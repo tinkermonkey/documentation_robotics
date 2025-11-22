@@ -1,0 +1,433 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/09-ux-layer.json",
+  "title": "UX Layer Schema",
+  "description": "Custom user experience specification for state management, layout, and behavior",
+  "type": "object",
+  "required": ["version", "screen", "states", "layout"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Specification version"
+    },
+    "screen": {
+      "type": "string",
+      "description": "Screen identifier"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "archimateElement": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to ApplicationComponent"
+    },
+    "dataSchema": {
+      "type": "string",
+      "description": "Path to JSON Schema file"
+    },
+    "apiSpec": {
+      "type": "string",
+      "description": "Path to OpenAPI spec file"
+    },
+    "states": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ScreenState" },
+      "minItems": 1
+    },
+    "layout": {
+      "$ref": "#/definitions/ScreenLayout"
+    },
+    "globalActions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ActionButton" }
+    }
+  },
+  "definitions": {
+    "ScreenState": {
+      "type": "object",
+      "required": ["name"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "initial": {
+          "type": "boolean",
+          "default": false
+        },
+        "description": {
+          "type": "string"
+        },
+        "onEnter": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StateAction" }
+        },
+        "onExit": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StateAction" }
+        },
+        "transitions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StateTransition" }
+        },
+        "enabledFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "disabledFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "hiddenFields": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "StateAction": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["fetchData", "saveData", "deleteData", "validateForm", "clearForm", "showNotification", "navigateTo", "callAPI", "updateState", "computeValue"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "api": {
+          "type": "object",
+          "properties": {
+            "operationId": {
+              "type": "string",
+              "description": "OpenAPI operationId"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]
+            },
+            "endpoint": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        },
+        "data": {
+          "type": "object",
+          "properties": {
+            "source": {
+              "type": "string",
+              "enum": ["api-response", "form-data", "route-params", "query-params", "local-storage", "constant", "computed"]
+            },
+            "target": {
+              "type": "string",
+              "description": "JSONPath to target location"
+            },
+            "transform": {
+              "type": "string",
+              "description": "Transformation expression"
+            }
+          }
+        },
+        "errorHandling": {
+          "type": "object",
+          "properties": {
+            "onError": {
+              "type": "string",
+              "description": "Target state on error"
+            },
+            "showNotification": {
+              "type": "boolean",
+              "default": true
+            },
+            "errorMessage": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "StateTransition": {
+      "type": "object",
+      "required": ["to", "on"],
+      "properties": {
+        "to": {
+          "type": "string",
+          "description": "Target state name"
+        },
+        "on": {
+          "type": "string",
+          "enum": ["success", "failure", "submit", "cancel", "click", "timeout", "dataReady", "custom"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "condition": {
+          "$ref": "#/definitions/Condition"
+        },
+        "validate": {
+          "type": "boolean",
+          "default": false
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/StateAction" }
+        }
+      }
+    },
+    "Condition": {
+      "type": "object",
+      "required": ["expression"],
+      "properties": {
+        "expression": {
+          "type": "string",
+          "description": "JavaScript-like boolean expression"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "ScreenLayout": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["form", "list", "detail", "dashboard", "wizard", "split", "custom"]
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "sections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/LayoutSection" }
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FieldDefinition" }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ActionButton" }
+        },
+        "navigation": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NavigationElement" }
+        }
+      }
+    },
+    "LayoutSection": {
+      "type": "object",
+      "required": ["name", "title"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "collapsible": {
+          "type": "boolean",
+          "default": false
+        },
+        "collapsed": {
+          "type": "boolean",
+          "default": false
+        },
+        "columns": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        },
+        "order": {
+          "type": "integer"
+        },
+        "fields": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/FieldDefinition" }
+        },
+        "subsections": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/LayoutSection" }
+        },
+        "conditionalDisplay": {
+          "$ref": "#/definitions/Condition"
+        }
+      }
+    },
+    "FieldDefinition": {
+      "type": "object",
+      "required": ["name", "label"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "helpText": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "readonly": {
+          "type": "boolean",
+          "default": false
+        },
+        "hidden": {
+          "type": "boolean",
+          "default": false
+        },
+        "order": {
+          "type": "integer"
+        },
+        "dataBinding": {
+          "type": "object",
+          "properties": {
+            "schemaRef": {
+              "type": "string",
+              "description": "JSONPath to property in JSON Schema"
+            },
+            "defaultValue": {}
+          }
+        },
+        "component": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["text-input", "textarea", "number-input", "email-input", "password-input", "url-input", "phone-input", "date-picker", "datetime-picker", "time-picker", "select", "multi-select", "autocomplete", "checkbox", "radio-group", "toggle", "slider", "file-upload", "image-upload", "rich-text-editor", "markdown-editor", "color-picker", "rating", "tags-input", "custom"]
+            },
+            "props": {
+              "type": "object"
+            }
+          }
+        },
+        "validation": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ValidationRule" }
+        },
+        "conditionalDisplay": {
+          "$ref": "#/definitions/Condition"
+        },
+        "dependsOn": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "triggers": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "ValidationRule": {
+      "type": "object",
+      "required": ["type", "message"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["required", "minLength", "maxLength", "pattern", "email", "url", "min", "max", "custom"]
+        },
+        "message": {
+          "type": "string"
+        },
+        "value": {
+          "description": "Rule-specific value"
+        }
+      }
+    },
+    "ActionButton": {
+      "type": "object",
+      "required": ["name", "label", "action"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "label": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["primary", "secondary", "danger", "success", "warning", "link", "icon"]
+        },
+        "icon": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean",
+          "default": false
+        },
+        "tooltip": {
+          "type": "string"
+        },
+        "action": {
+          "$ref": "#/definitions/StateAction"
+        },
+        "confirmationPrompt": {
+          "type": "string"
+        },
+        "enableCondition": {
+          "$ref": "#/definitions/Condition"
+        }
+      }
+    },
+    "NavigationElement": {
+      "type": "object",
+      "required": ["type", "items"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["breadcrumb", "tabs", "menu", "stepper"]
+        },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/NavigationItem" },
+          "minItems": 1
+        }
+      }
+    },
+    "NavigationItem": {
+      "type": "object",
+      "required": ["label", "path"],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "badge": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    }
+  }
+}

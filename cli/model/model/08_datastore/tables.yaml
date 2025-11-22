@@ -1,0 +1,32 @@
+Manifest File:
+  name: Manifest File
+  description: Central manifest.yaml file storing project metadata, layer configuration,
+    and statistics
+  schema: model
+  format: yaml
+  path: model/manifest.yaml
+  id: datastore.table.manifest-file
+Layer Files:
+  name: Layer Files
+  description: YAML files containing element definitions for each architecture layer,
+    stored in layer-specific directories
+  schema: model
+  format: yaml
+  pattern: '*.yaml'
+  path: model/{layer_number}_{layer_name}/
+  id: datastore.table.layer-files
+Configuration File:
+  name: Configuration File
+  description: dr.config.yaml file containing tool configuration and validation rules
+  schema: root
+  format: yaml
+  path: dr.config.yaml
+  id: datastore.table.configuration-file
+Projection Rules File:
+  name: Projection Rules File
+  description: projection-rules.yaml file defining cross-layer element projection
+    rules
+  schema: root
+  format: yaml
+  path: projection-rules.yaml
+  id: datastore.table.projection-rules-file

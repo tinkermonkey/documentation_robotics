@@ -52,9 +52,6 @@ docs/_build/
 *.log
 .dr/logs/
 
-# DR CLI metadata (generated)
-.dr/
-
 # Temporary files
 *.tmp
 *.bak

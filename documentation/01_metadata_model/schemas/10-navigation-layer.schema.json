@@ -1,0 +1,429 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/10-navigation-layer.json",
+  "title": "Navigation Layer Schema",
+  "description": "Custom navigation specification for routing, guards, and navigation flows",
+  "type": "object",
+  "required": ["version", "application", "baseUrl", "routes"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Specification version"
+    },
+    "application": {
+      "type": "string",
+      "description": "Application identifier"
+    },
+    "baseUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "Base URL for application"
+    },
+    "archimateElement": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to ApplicationComponent"
+    },
+    "routes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Route" },
+      "minItems": 1
+    },
+    "transitions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NavigationTransition" }
+    },
+    "guards": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NavigationGuard" }
+    },
+    "menus": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/NavigationMenu" }
+    }
+  },
+  "definitions": {
+    "Route": {
+      "type": "object",
+      "required": ["path", "name"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "description": "URL pattern (e.g., /products/:id)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Unique route name"
+        },
+        "title": {
+          "type": "string",
+          "description": "Page title"
+        },
+        "description": {
+          "type": "string"
+        },
+        "exact": {
+          "type": "boolean",
+          "default": true
+        },
+        "caseSensitive": {
+          "type": "boolean",
+          "default": false
+        },
+        "params": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/RouteParam" }
+        },
+        "queryParams": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/QueryParam" }
+        },
+        "meta": {
+          "$ref": "#/definitions/RouteMeta"
+        },
+        "screen": {
+          "type": "string",
+          "description": "UX spec reference"
+        },
+        "component": {
+          "type": "string",
+          "description": "Component name/path"
+        },
+        "archimateRef": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "guards": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "parent": {
+          "type": "string",
+          "description": "Parent route path for nested routes"
+        },
+        "redirectTo": {
+          "type": "string",
+          "description": "Redirect target route path"
+        }
+      }
+    },
+    "RouteParam": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "uuid", "slug", "date", "boolean"]
+        },
+        "required": {
+          "type": "boolean",
+          "default": true
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Regex validation pattern"
+        },
+        "description": {
+          "type": "string"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        }
+      }
+    },
+    "QueryParam": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "uuid", "slug", "date", "boolean"]
+        },
+        "required": {
+          "type": "boolean",
+          "default": false
+        },
+        "default": {
+          "description": "Default value"
+        },
+        "description": {
+          "type": "string"
+        },
+        "enum": {
+          "type": "array",
+          "description": "Allowed values"
+        },
+        "min": {
+          "type": "number"
+        },
+        "max": {
+          "type": "number"
+        }
+      }
+    },
+    "RouteMeta": {
+      "type": "object",
+      "properties": {
+        "requiresAuth": {
+          "type": "boolean",
+          "default": false
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "layout": {
+          "type": "string"
+        },
+        "breadcrumb": {
+          "type": "object",
+          "properties": {
+            "label": { "type": "string" },
+            "parent": { "type": "string" }
+          }
+        },
+        "keepAlive": {
+          "type": "boolean",
+          "default": false
+        },
+        "transition": {
+          "type": "string"
+        },
+        "seo": {
+          "type": "object",
+          "properties": {
+            "metaTitle": { "type": "string" },
+            "metaDescription": { "type": "string" },
+            "metaKeywords": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "ogImage": { "type": "string", "format": "uri" },
+            "canonical": { "type": "string", "format": "uri" },
+            "noIndex": { "type": "boolean", "default": false }
+          }
+        },
+        "analytics": {
+          "type": "object",
+          "properties": {
+            "trackPageView": { "type": "boolean", "default": true },
+            "eventCategory": { "type": "string" },
+            "customDimensions": { "type": "object" }
+          }
+        }
+      }
+    },
+    "NavigationTransition": {
+      "type": "object",
+      "required": ["from", "to", "trigger"],
+      "properties": {
+        "from": {
+          "type": "string",
+          "description": "Source route path"
+        },
+        "to": {
+          "type": "string",
+          "description": "Target route path"
+        },
+        "trigger": {
+          "type": "string",
+          "enum": ["click", "submit", "success", "failure", "cancel", "automatic", "deepLink", "backButton"]
+        },
+        "element": {
+          "type": "string",
+          "description": "UI element identifier"
+        },
+        "description": {
+          "type": "string"
+        },
+        "paramMapping": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ParamMapping" }
+        },
+        "guards": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "actions": {
+          "type": "array",
+          "items": { "type": "object" }
+        }
+      }
+    },
+    "ParamMapping": {
+      "type": "object",
+      "required": ["source", "target"],
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source parameter path"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target parameter name"
+        },
+        "transform": {
+          "type": "string",
+          "description": "Transformation expression"
+        },
+        "default": {
+          "description": "Default value if source is missing"
+        }
+      }
+    },
+    "NavigationGuard": {
+      "type": "object",
+      "required": ["name", "type", "condition", "onDeny"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["authentication", "authorization", "validation", "data-loaded", "custom"]
+        },
+        "description": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "condition": {
+          "$ref": "#/definitions/GuardCondition"
+        },
+        "onDeny": {
+          "$ref": "#/definitions/GuardAction"
+        }
+      }
+    },
+    "GuardCondition": {
+      "type": "object",
+      "required": ["expression"],
+      "properties": {
+        "expression": {
+          "type": "string"
+        },
+        "async": {
+          "type": "boolean",
+          "default": false
+        },
+        "timeout": {
+          "type": "integer",
+          "description": "Timeout in milliseconds for async checks"
+        }
+      }
+    },
+    "GuardAction": {
+      "type": "object",
+      "required": ["action"],
+      "properties": {
+        "action": {
+          "type": "string",
+          "enum": ["redirect", "show-error", "navigate-back", "abort"]
+        },
+        "target": {
+          "type": "string",
+          "description": "Route path for redirect"
+        },
+        "message": {
+          "type": "string"
+        },
+        "preserveUrl": {
+          "type": "boolean",
+          "default": false
+        }
+      }
+    },
+    "NavigationMenu": {
+      "type": "object",
+      "required": ["name", "type", "position", "items"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["main", "sidebar", "footer", "breadcrumb", "context", "tabs"]
+        },
+        "position": {
+          "type": "string",
+          "enum": ["top", "left", "right", "bottom"]
+        },
+        "items": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MenuItem" },
+          "minItems": 1
+        }
+      }
+    },
+    "MenuItem": {
+      "type": "object",
+      "required": ["label"],
+      "properties": {
+        "label": {
+          "type": "string"
+        },
+        "icon": {
+          "type": "string"
+        },
+        "badge": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "route": {
+          "type": "string",
+          "description": "Target route path"
+        },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MenuItem" }
+        },
+        "visibility": {
+          "$ref": "#/definitions/MenuVisibility"
+        }
+      }
+    },
+    "MenuVisibility": {
+      "type": "object",
+      "properties": {
+        "condition": {
+          "type": "string",
+          "description": "Boolean expression"
+        },
+        "requiresAuth": {
+          "type": "boolean",
+          "default": false
+        },
+        "roles": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "permissions": {
+          "type": "array",
+          "items": { "type": "string" }
+        }
+      }
+    }
+  }
+}

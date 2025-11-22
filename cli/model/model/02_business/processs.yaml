@@ -1,0 +1,44 @@
+Model Initialization Workflow:
+  name: Model Initialization Workflow
+  description: Complete workflow for initializing a new architecture model including
+    directory creation, manifest setup, and configuration
+  steps: '["Create directory structure", "Create manifest", "Create documentation",
+    "Create config", "Create projection rules"]'
+  id: business.process.model-initialization-workflow
+Element Management Workflow:
+  name: Element Management Workflow
+  description: CRUD operations workflow for managing architecture elements across
+    layers
+  operations: '["Create", "Read", "Update", "Delete"]'
+  scope: all-layers
+  id: business.process.element-management-workflow
+Validation Workflow:
+  name: Validation Workflow
+  description: Multi-stage validation process including schema, naming, references,
+    and semantic validation
+  stages: '["Schema validation", "Naming validation", "Reference validation", "Semantic
+    validation"]'
+  id: business.process.validation-workflow
+Dependency Analysis Workflow:
+  name: Dependency Analysis Workflow
+  description: Process for tracing and analyzing element dependencies across layers
+  capabilities: '["Trace dependencies", "Build dependency graph", "Impact analysis"]'
+  id: business.process.dependency-analysis-workflow
+Projection Workflow:
+  name: Projection Workflow
+  description: Cross-layer element projection process based on configurable rules
+  steps: '["Find applicable rules", "Apply projections", "Create target elements",
+    "Validate projections"]'
+  id: business.process.projection-workflow
+Export Workflow:
+  name: Export Workflow
+  description: Multi-format export process for generating ArchiMate, OpenAPI, PlantUML,
+    GraphML, and Markdown outputs
+  formats: '["ArchiMate", "OpenAPI", "JSON Schema", "PlantUML", "Markdown", "GraphML"]'
+  id: business.process.export-workflow
+Query and Search Workflow:
+  name: Query and Search Workflow
+  description: Process for discovering and retrieving elements using various search
+    criteria
+  operations: '["List by layer", "Search by properties", "Find by ID"]'
+  id: business.process.query-and-search-workflow

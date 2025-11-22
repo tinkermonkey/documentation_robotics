@@ -1,0 +1,25 @@
+Input Validation Control:
+  name: Input Validation Control
+  description: Validates all user inputs including element IDs, property values, and
+    file paths
+  type: input-validation
+  scope: all-commands
+  id: security.control.input-validation-control
+File System Access Control:
+  name: File System Access Control
+  description: Restricts file operations to model directory and validates file paths
+  type: access-control
+  scope: file-system
+  id: security.control.file-system-access-control
+Schema Validation Control:
+  name: Schema Validation Control
+  description: Enforces JSON schema compliance for all elements
+  type: data-validation
+  validator: jsonschema
+  id: security.control.schema-validation-control
+Reference Integrity Control:
+  name: Reference Integrity Control
+  description: Ensures all cross-layer references point to valid existing elements
+  type: referential-integrity
+  scope: cross-layer
+  id: security.control.reference-integrity-control

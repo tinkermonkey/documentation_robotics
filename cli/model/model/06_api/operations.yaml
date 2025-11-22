@@ -1,0 +1,100 @@
+init:
+  name: init
+  description: Initialize a new architecture model with directory structure and manifest
+  method: POST
+  path: /models
+  parameters: '{"project_name": "string", "template": "string", "minimal": "boolean",
+    "with_examples": "boolean", "path": "string"}'
+  responses: '{"201": "Model created successfully"}'
+  id: api.operation.init
+add:
+  name: add
+  description: Add a new element to a layer
+  method: POST
+  path: /layers/{layer}/elements
+  parameters: '{"layer": "string", "element_type": "string", "name": "string", "spec":
+    "file", "custom_id": "string", "description": "string", "property": "array", "project_to":
+    "string", "dry_run": "boolean"}'
+  responses: '{"201": "Element created successfully"}'
+  id: api.operation.add
+update:
+  name: update
+  description: Update an existing element
+  method: PATCH
+  path: /elements/{element_id}
+  parameters: '{"element_id": "string", "spec": "file", "set": "array", "dry_run":
+    "boolean"}'
+  responses: '{"200": "Element updated successfully"}'
+  id: api.operation.update
+remove:
+  name: remove
+  description: Remove an element from the model
+  method: DELETE
+  path: /elements/{element_id}
+  parameters: '{"element_id": "string", "force": "boolean", "cascade": "boolean",
+    "dry_run": "boolean", "yes": "boolean"}'
+  responses: '{"204": "Element deleted successfully"}'
+  id: api.operation.remove
+list:
+  name: list
+  description: List elements in a layer
+  method: GET
+  path: /layers/{layer}/elements
+  parameters: '{"layer": "string", "element_type": "string", "output": "string", "sort":
+    "string", "limit": "integer"}'
+  responses: '{"200": "Array of elements"}'
+  id: api.operation.list
+search:
+  name: search
+  description: Search for elements across all layers
+  method: GET
+  path: /elements/search
+  parameters: '{"layer": "string", "element_type": "string", "name_pattern": "string",
+    "property": "array", "output": "string", "limit": "integer"}'
+  responses: '{"200": "Array of matching elements"}'
+  id: api.operation.search
+find:
+  name: find
+  description: Find a specific element by ID
+  method: GET
+  path: /elements/{element_id}
+  parameters: '{"element_id": "string", "output": "string"}'
+  responses: '{"200": "Element details", "404": "Element not found"}'
+  id: api.operation.find
+validate:
+  name: validate
+  description: Validate the model for schema compliance and reference integrity
+  method: POST
+  path: /validation
+  parameters: '{"layer": "string", "element": "string", "strict": "boolean", "output":
+    "string"}'
+  responses: '{"200": "Validation results"}'
+  id: api.operation.validate
+trace:
+  name: trace
+  description: Trace dependencies for an element
+  method: GET
+  path: /elements/{element_id}/dependencies
+  parameters: '{"element_id": "string", "direction": "string", "max_depth": "integer",
+    "output": "string"}'
+  responses: '{"200": "Dependency tree"}'
+  id: api.operation.trace
+project:
+  name: project
+  description: Project an element to target layers based on projection rules
+  method: POST
+  path: /elements/{element_id}/projections
+  parameters: '{"element_id": "string", "target_layers": "array", "dry_run": "boolean",
+    "apply_rules": "string"}'
+  responses: '{"201": "Projected elements created"}'
+  id: api.operation.project
+export:
+  name: export
+  description: Export model to various formats (ArchiMate, OpenAPI, PlantUML, GraphML,
+    Markdown)
+  method: POST
+  path: /export
+  parameters: '{"format": "string", "layer": "string", "output": "string", "element_filter":
+    "string", "validate": "boolean"}'
+  responses: '{"200": "Export files generated"}'
+  id: api.operation.export

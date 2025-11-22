@@ -1,0 +1,269 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/11-apm-observability-layer.json",
+  "title": "APM/Observability Layer Schema",
+  "description": "OpenTelemetry-based APM configuration for distributed tracing, logging, and metrics",
+  "type": "object",
+  "required": ["version", "application", "tracing", "logging"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Configuration version"
+    },
+    "application": {
+      "type": "string",
+      "description": "Application identifier"
+    },
+    "archimateElement": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Reference to ApplicationComponent or TechnologyService"
+    },
+    "tracing": {
+      "$ref": "#/definitions/TraceConfiguration"
+    },
+    "logging": {
+      "$ref": "#/definitions/LogConfiguration"
+    },
+    "metrics": {
+      "$ref": "#/definitions/MetricConfiguration"
+    }
+  },
+  "definitions": {
+    "TraceConfiguration": {
+      "type": "object",
+      "required": ["serviceName", "sampler", "propagators", "exporters"],
+      "properties": {
+        "serviceName": {
+          "type": "string"
+        },
+        "serviceVersion": {
+          "type": "string"
+        },
+        "deploymentEnvironment": {
+          "type": "string"
+        },
+        "sampler": {
+          "type": "object",
+          "required": ["type"],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["always_on", "always_off", "traceidratio", "parentbased_always_on", "parentbased_always_off", "parentbased_traceidratio"]
+            },
+            "config": {
+              "type": "object",
+              "properties": {
+                "ratio": {
+                  "type": "number",
+                  "minimum": 0,
+                  "maximum": 1
+                }
+              }
+            }
+          }
+        },
+        "propagators": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["w3c-trace-context", "w3c-baggage", "b3", "jaeger", "xray", "ottrace"]
+          },
+          "minItems": 1
+        },
+        "exporters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExporterConfig" },
+          "minItems": 1
+        },
+        "instrumentations": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InstrumentationConfig" }
+        }
+      }
+    },
+    "LogConfiguration": {
+      "type": "object",
+      "required": ["serviceName", "logLevel", "exporters"],
+      "properties": {
+        "serviceName": {
+          "type": "string"
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
+        },
+        "schema": {
+          "type": "object",
+          "properties": {
+            "$ref": {
+              "type": "string",
+              "description": "Path to JSON Schema for log structure"
+            }
+          }
+        },
+        "processors": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/LogProcessor" }
+        },
+        "exporters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExporterConfig" },
+          "minItems": 1
+        }
+      }
+    },
+    "MetricConfiguration": {
+      "type": "object",
+      "required": ["serviceName", "meters", "exporters"],
+      "properties": {
+        "serviceName": {
+          "type": "string"
+        },
+        "exportIntervalMillis": {
+          "type": "integer",
+          "minimum": 1000,
+          "default": 60000
+        },
+        "meters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/MeterConfig" },
+          "minItems": 1
+        },
+        "exporters": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/ExporterConfig" },
+          "minItems": 1
+        }
+      }
+    },
+    "ExporterConfig": {
+      "type": "object",
+      "required": ["type", "endpoint"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["otlp", "console", "prometheus", "jaeger", "zipkin"]
+        },
+        "endpoint": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["grpc", "http", "http/json", "http/protobuf"]
+        },
+        "headers": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "compression": {
+          "type": "string",
+          "enum": ["none", "gzip"]
+        },
+        "timeout": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Timeout in milliseconds"
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        }
+      }
+    },
+    "InstrumentationConfig": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["http", "database", "redis", "graphql", "grpc", "messaging", "filesystem"]
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "captureHeaders": { "type": "boolean" },
+            "recordRequestHeaders": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "recordResponseHeaders": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "recordQueries": { "type": "boolean" },
+            "sanitizeStatements": { "type": "boolean" },
+            "maxStatementLength": { "type": "integer" },
+            "recordCommands": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "LogProcessor": {
+      "type": "object",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["batch", "resource", "filter", "transform"]
+        },
+        "config": {
+          "type": "object",
+          "properties": {
+            "maxQueueSize": { "type": "integer" },
+            "scheduledDelayMillis": { "type": "integer" },
+            "exportTimeoutMillis": { "type": "integer" },
+            "maxExportBatchSize": { "type": "integer" },
+            "attributes": {
+              "type": "object",
+              "additionalProperties": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "MeterConfig": {
+      "type": "object",
+      "required": ["name", "instruments"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Meter name"
+        },
+        "instruments": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/InstrumentConfig" },
+          "minItems": 1
+        }
+      }
+    },
+    "InstrumentConfig": {
+      "type": "object",
+      "required": ["type", "name", "unit"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["counter", "updowncounter", "gauge", "histogram"]
+        },
+        "name": {
+          "type": "string"
+        },
+        "unit": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "buckets": {
+          "type": "array",
+          "items": { "type": "number" },
+          "description": "Histogram buckets"
+        }
+      }
+    }
+  }
+}

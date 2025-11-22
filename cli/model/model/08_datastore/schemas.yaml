@@ -1,0 +1,12 @@
+Model Directory:
+  name: Model Directory
+  description: Directory structure for storing architecture model layers
+  owner: dr-cli
+  path: model/
+  id: datastore.schema.model-directory
+Specs Directory:
+  name: Specs Directory
+  description: Directory structure for storing generated specifications and exports
+  owner: dr-cli
+  path: specs/
+  id: datastore.schema.specs-directory

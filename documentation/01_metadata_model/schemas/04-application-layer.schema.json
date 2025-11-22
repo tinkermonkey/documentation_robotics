@@ -1,0 +1,353 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/04-application-layer.json",
+  "title": "Application Layer Schema",
+  "description": "ArchiMate Application Layer elements for application components, services, and data objects",
+  "type": "object",
+  "properties": {
+    "applicationComponents": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationComponent" }
+    },
+    "applicationCollaborations": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationCollaboration" }
+    },
+    "applicationInterfaces": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationInterface" }
+    },
+    "applicationFunctions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationFunction" }
+    },
+    "applicationInteractions": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationInteraction" }
+    },
+    "applicationProcesses": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationProcess" }
+    },
+    "applicationEvents": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationEvent" }
+    },
+    "applicationServices": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/ApplicationService" }
+    },
+    "dataObjects": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/DataObject" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Relationship" }
+    }
+  },
+  "definitions": {
+    "ApplicationComponent": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["frontend", "backend", "mobile", "desktop", "service"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "implementation.framework": {
+              "type": "string"
+            },
+            "spec.ux": {
+              "type": "string",
+              "description": "Path to UX spec file"
+            },
+            "spec.openapi": {
+              "type": "string",
+              "description": "Path to OpenAPI spec file"
+            }
+          }
+        }
+      }
+    },
+    "ApplicationCollaboration": {
+      "type": "object",
+      "required": ["id", "name", "components"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 2
+        }
+      }
+    },
+    "ApplicationInterface": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "protocol": {
+          "type": "string",
+          "enum": ["REST", "GraphQL", "SOAP", "gRPC", "WebSocket", "Message Queue"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "spec.openapi": {
+              "type": "string"
+            },
+            "interface.endpoint": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        }
+      }
+    },
+    "ApplicationFunction": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "function.async": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "function.idempotent": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          }
+        }
+      }
+    },
+    "ApplicationInteraction": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "pattern": {
+          "type": "string",
+          "enum": ["request-response", "publish-subscribe", "async-messaging", "streaming"]
+        }
+      }
+    },
+    "ApplicationProcess": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "process.orchestration": {
+              "type": "string"
+            },
+            "process.saga": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "ApplicationEvent": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "eventType": {
+          "type": "string",
+          "enum": ["domain-event", "integration-event", "system-event", "audit-event"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "event.schema": {
+              "type": "string"
+            },
+            "event.topic": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "ApplicationService": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "serviceType": {
+          "type": "string",
+          "enum": ["synchronous", "asynchronous", "batch", "streaming"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "spec.openapi": {
+              "type": "string"
+            },
+            "service.version": {
+              "type": "string"
+            },
+            "service.deprecated": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "apm.traced": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          }
+        }
+      }
+    },
+    "DataObject": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "spec.schema": {
+              "type": "string"
+            },
+            "spec.database": {
+              "type": "string"
+            },
+            "data.pii": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "data.retention": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": ["type", "source", "target"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Composition", "Assignment", "Realization", "Triggering", "Flow", "Access", "Serving", "Used By"]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
