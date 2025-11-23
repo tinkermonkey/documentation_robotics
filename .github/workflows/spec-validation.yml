@@ -1,15 +1,18 @@
 name: Specification Validation
 
+# DISABLED: Re-enable after pre-commit hooks are in place
+# See .pre-commit-config.yaml for local validation
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - 'spec/**'
-      - '.github/workflows/spec-validation.yml'
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - 'spec/**'
+  workflow_dispatch:  # Manual trigger only
+  # push:
+  #   branches: [main, develop]
+  #   paths:
+  #     - 'spec/**'
+  #     - '.github/workflows/spec-validation.yml'
+  # pull_request:
+  #   branches: [main, develop]
+  #   paths:
+  #     - 'spec/**'
 
 jobs:
   validate-schemas:

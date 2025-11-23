@@ -1,5 +1,6 @@
 name: Release
 
+# Keep enabled for releases, but releases should only happen after pre-commit validation
 on:
   push:
     tags:

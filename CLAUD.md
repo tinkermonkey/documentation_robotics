@@ -13,24 +13,34 @@
 
 ```
 documentation_robotics/
-├── cli/                         # CLI tool (self-contained)
-│   ├── src/documentation_robotics/
-│   │   ├── cli.py              # Main CLI entry point
-│   │   ├── commands/           # Command implementations
-│   │   ├── core/               # Core domain logic
-│   │   ├── export/             # Export format handlers
-│   │   ├── validators/         # Validation logic
-│   │   ├── schemas/            # JSON schemas
-│   │   └── utils/              # Utility functions
-│   ├── dr/                     # Documentation Robotics package for the dr CLI tool
-│   │   ├── model/              # Documentation Robotics model for the dr CLI tool
-│   │   └── specs/              # Documentation Robotics specifications for the dr CLI tool
-│   ├── tests/                  # Test suite
-│   ├── docs/                   # CLI design documentation
-│   └── pyproject.toml          # Python package config
+├── spec/                        # THE SPECIFICATION
+│   ├── VERSION                  # Current spec version (1.0.0)
+│   ├── CHANGELOG.md             # Specification changelog
+│   ├── GOVERNANCE.md            # Governance model
+│   ├── CONTRIBUTING.md          # Contribution guidelines
+│   ├── core/                    # Core specification documents
+│   ├── layers/                  # 11 layer specifications
+│   ├── schemas/                 # JSON Schema definitions
+│   ├── conformance/             # Conformance requirements
+│   ├── guides/                  # Implementation guides
+│   ├── examples/                # Example models
+│   └── test-fixtures/           # Test data for validators
 │
-└── documentation/              # Architecture specifications
-    └── 01_metadata_model/      # 11-layer model specs
+└── cli/                         # CLI IMPLEMENTATION
+    ├── src/documentation_robotics/
+    │   ├── cli.py              # Main CLI entry point
+    │   ├── commands/           # Command implementations
+    │   ├── core/               # Core domain logic
+    │   ├── export/             # Export format handlers
+    │   ├── validators/         # Validation logic
+    │   ├── schemas/            # JSON schemas
+    │   └── utils/              # Utility functions
+    ├── dr/                     # Documentation Robotics package for the dr CLI tool
+    │   ├── model/              # Documentation Robotics model for the dr CLI tool
+    │   └── specs/              # Documentation Robotics specifications for the dr CLI tool
+    ├── tests/                  # Test suite
+    ├── docs/                   # CLI design documentation
+    └── pyproject.toml          # Python package config
 ```
 
 ## The 11-Layer Architecture Model
@@ -277,10 +287,9 @@ When working with this project, you have pre-approved access to:
 ## Documentation
 
 - Main README: `/README.md`
+- Specification: `/spec/`
 - CLI README: `/cli/README.md`
-- Reorganization notes: `/REORGANIZATION.md`
 - CLI design docs: `/cli/docs/`
-- Metadata model specs: `/documentation/01_metadata_model/`
 
 ## Contact and Support
 
