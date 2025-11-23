@@ -254,7 +254,7 @@ conformanceReport:
   specification:
     version: "1.0.0"
   testSuiteVersion: "1.0.0"
-  date: "2025-01-23"
+  date: "2025-11-23"
 
   results:
     valid:

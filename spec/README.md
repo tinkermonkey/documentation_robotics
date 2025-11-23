@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0
 **Status:** Stable
-**Last Updated:** 2025-01-23
+**Last Updated:** 2025-11-23
 
 ## Overview
 
@@ -260,9 +260,9 @@ dr validate --all
 ## Version Information
 
 **Current Version:** 1.0.0
-**Release Date:** 2025-01-23
+**Release Date:** 2025-11-23
 **Status:** Stable
-**Next Review:** 2025-07-23
+**Next Review:** 2026-05-23
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 

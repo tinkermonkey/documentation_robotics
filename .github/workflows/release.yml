@@ -13,6 +13,8 @@ jobs:
     name: Release Specification
     if: startsWith(github.ref, 'refs/tags/spec-v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v3
 
@@ -31,15 +33,53 @@ jobs:
             exit 1
           fi
 
+      - name: Package schemas
+        run: |
+          cd spec
+          # Copy VERSION into schemas directory for packaging
+          cp VERSION schemas/
+
+          # Create tarball
+          tar -czf schemas-${{ steps.version.outputs.version }}.tar.gz schemas/
+
+          # Create zip
+          zip -r schemas-${{ steps.version.outputs.version }}.zip schemas/
+
+          # Remove VERSION from schemas (keep repo clean)
+          rm schemas/VERSION
+
+          echo "Created packages:"
+          ls -lh schemas-*.tar.gz schemas-*.zip
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          # Extract the section for this version from CHANGELOG.md
+          VERSION=${{ steps.version.outputs.version }}
+          awk -v ver="$VERSION" '
+            /^## \['"$VERSION"'\]/ { found=1; next }
+            found && /^## \[/ { exit }
+            found { print }
+          ' spec/CHANGELOG.md > /tmp/release_notes.md
+
+          # If no release notes found, use a default message
+          if [ ! -s /tmp/release_notes.md ]; then
+            echo "Specification release v$VERSION" > /tmp/release_notes.md
+            echo "" >> /tmp/release_notes.md
+            echo "See [CHANGELOG.md](https://github.com/${{ github.repository }}/blob/spec-v$VERSION/spec/CHANGELOG.md) for details." >> /tmp/release_notes.md
+          fi
+
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
           name: Specification v${{ steps.version.outputs.version }}
-          body_path: spec/CHANGELOG.md
+          body_path: /tmp/release_notes.md
           files: |
-            spec/**/*.md
-            spec/**/*.json
+            spec/schemas-${{ steps.version.outputs.version }}.tar.gz
+            spec/schemas-${{ steps.version.outputs.version }}.zip
             spec/VERSION
+            spec/CHANGELOG.md
+            spec/README.md
           draft: false
           prerelease: false
 

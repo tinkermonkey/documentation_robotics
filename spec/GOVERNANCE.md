@@ -26,7 +26,7 @@ This governance model ensures that:
 
 **Current Maintainers:**
 
-- [List maintainer names/organizations]
+- tinkermonkey
 
 ### Contributors
 
@@ -328,5 +328,5 @@ This governance document can be amended by:
 ---
 
 **Version:** 1.0.0
-**Last Updated:** 2025-01-23
-**Next Review:** 2025-07-23
+**Last Updated:** 2025-11-23
+**Next Review:** 2026-05-23

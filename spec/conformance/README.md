@@ -94,7 +94,7 @@ testSuite:
   crossLayerTestsPassed: 30
   crossLayerTestsTotal: 30
 
-date: "2025-01-23"
+date: "2025-11-23"
 attestation: "We certify that this implementation conforms to the specification."
 ```
 

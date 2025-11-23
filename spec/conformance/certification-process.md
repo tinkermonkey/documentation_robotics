@@ -92,7 +92,7 @@ conformanceStatement:
 
   testResults:
     testSuiteVersion: "1.0.0"
-    date: "2025-01-23"
+    date: "2025-11-23"
     validTestsPassed: 150
     validTestsTotal: 150
     invalidTestsPassed: 45
@@ -103,7 +103,7 @@ conformanceStatement:
     status: "PASS"
 
   attestation:
-    date: "2025-01-23"
+    date: "2025-11-23"
     attestedBy: "Your Name, Position"
     statement: "We certify that this implementation conforms to the Federated Architecture Metadata Model specification version 1.0.0 at the Full conformance level."
 

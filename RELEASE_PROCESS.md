@@ -90,9 +90,18 @@ Each component can be released independently with its own version number.
    ```
 
 5. **GitHub Actions**
-   - Workflow automatically creates GitHub release
-   - Attaches specification files
-   - Publishes release notes from CHANGELOG
+   - Workflow automatically triggered by `spec-v*` tag
+   - Verifies VERSION file matches tag
+   - Packages schemas into tarball and zip files:
+     - `schemas-{version}.tar.gz`
+     - `schemas-{version}.zip`
+   - Extracts release notes from CHANGELOG.md for this version
+   - Creates GitHub release with packaged schemas attached
+   - Release assets include:
+     - Schema packages (tar.gz and zip)
+     - VERSION file
+     - CHANGELOG.md
+     - README.md
 
 6. **Announce**
    - Post in GitHub Discussions
@@ -334,4 +343,4 @@ For questions about the release process:
 
 ---
 
-**Last Updated:** 2025-01-23
+**Last Updated:** 2025-11-23
