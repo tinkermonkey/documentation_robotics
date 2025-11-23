@@ -14,7 +14,7 @@
 ```
 documentation_robotics/
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (1.0.0)
+│   ├── VERSION                  # Current spec version (0.1.0)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines

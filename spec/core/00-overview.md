@@ -164,13 +164,13 @@ Extension Points: Multiple per layer
 
 ## Specification Status
 
-**Current Version:** 1.0.0
+**Current Version:** 0.1.0
 **Status:** Stable
 **Last Updated:** 2025-11-23
 
 ### Version History
 
-- **1.0.0** (2025-11-23) - Initial stable release
+- **0.1.0** (2025-11-23) - Initial stable release
   - 11 layer specifications complete
   - JSON Schemas for all layers
   - Conformance requirements defined

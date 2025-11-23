@@ -209,8 +209,8 @@ v2.0.0 - Feature X removed (migration guide provided)
 
 **Meaning:**
 
-- Models valid under 1.0.0 MUST be valid under 1.1.0
-- Implementations conforming to 1.0.0 SHOULD work with 1.1.0
+- Models valid under 0.1.0 MUST be valid under 1.1.0
+- Implementations conforming to 0.1.0 SHOULD work with 1.1.0
 - New features are additive, not replacing
 
 ### Forward Compatibility
@@ -248,8 +248,8 @@ Implementations should declare compatibility:
 
 | Spec Version | Implementation Version | Compatible? | Notes                    |
 | ------------ | ---------------------- | ----------- | ------------------------ |
-| 1.0.0        | 1.0.x                  | Yes         | Full compatibility       |
-| 1.0.0        | 1.1.x                  | Yes         | Backward compatible      |
+| 0.1.0        | 1.0.x                  | Yes         | Full compatibility       |
+| 0.1.0        | 1.1.x                  | Yes         | Backward compatible      |
 | 1.1.0        | 1.0.x                  | Partial     | New features unavailable |
 | 2.0.0        | 1.x.x                  | No          | Breaking changes         |
 
@@ -327,6 +327,6 @@ This governance document can be amended by:
 
 ---
 
-**Version:** 1.0.0
+**Version:** 0.1.0
 **Last Updated:** 2025-11-23
 **Next Review:** 2026-05-23

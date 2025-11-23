@@ -1,7 +1,7 @@
 # Federated Architecture Metadata Model Specification
 
-**Version:** 1.0.0
-**Status:** Stable
+**Version:** 0.1.0
+**Status:** Draft
 **Last Updated:** 2025-11-23
 
 ## Overview
@@ -10,17 +10,17 @@ This directory contains the complete specification for the Federated Architectur
 
 ## Quick Links
 
-- **📖 Read the Spec:** Start with [core/00-overview.md](core/00-overview.md)
-- **🏗️ Implement:** See [conformance/conformance-levels.md](conformance/conformance-levels.md)
-- **💡 Examples:** Browse [examples/](examples/)
-- **🤝 Contribute:** Read [CONTRIBUTING.md](CONTRIBUTING.md)
-- **⚖️ Governance:** See [GOVERNANCE.md](GOVERNANCE.md)
+- **Read the Spec:** Start with [core/00-overview.md](core/00-overview.md)
+- **Implement:** See [conformance/conformance-levels.md](conformance/conformance-levels.md)
+- **Examples:** Browse [examples/](examples/)
+- **Contribute:** Read [CONTRIBUTING.md](CONTRIBUTING.md)
+- **Governance:** See [GOVERNANCE.md](GOVERNANCE.md)
 
 ## Directory Structure
 
 ```
 spec/
-├── VERSION                     # Current specification version (1.0.0)
+├── VERSION                     # Current specification version
 ├── CHANGELOG.md                # Version history and changes
 ├── GOVERNANCE.md               # Governance model
 ├── CONTRIBUTING.md             # Contribution guidelines
@@ -259,9 +259,9 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 1.0.0
+**Current Version:** 0.1.0
 **Release Date:** 2025-11-23
-**Status:** Stable
+**Status:** Draft
 **Next Review:** 2026-05-23
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
@@ -312,9 +312,9 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{federated-arch-spec,
   title = {Federated Architecture Metadata Model Specification},
-  version = {1.0.0},
+  version = {0.1.0},
   year = {2025},
-  url = {https://github.com/yourorg/documentation_robotics/tree/main/spec}
+  url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }
 ```
 

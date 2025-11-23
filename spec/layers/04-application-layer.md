@@ -218,7 +218,7 @@ ApplicationService:
     - key: "spec.openapi"
       value: "specs/service-api.yaml" (optional)
     - key: "service.version"
-      value: "1.0.0" (optional)
+      value: "0.1.0" (optional)
     - key: "service.deprecated"
       value: "true|false" (optional)
 

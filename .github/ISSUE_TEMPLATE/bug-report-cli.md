@@ -9,7 +9,7 @@ assignees: ""
 ## Environment
 
 **CLI Version:** [e.g., 0.3.0] (run `dr --version`)
-**Spec Version:** [e.g., 1.0.0] (run `dr conformance`)
+**Spec Version:** [e.g., 0.1.0] (run `dr conformance`)
 **OS:** [e.g., macOS 13.0, Ubuntu 22.04, Windows 11]
 **Python Version:** [e.g., 3.11.0]
 

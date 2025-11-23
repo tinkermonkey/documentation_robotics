@@ -67,4 +67,4 @@ dr [new-command] [options]
 ## Environment
 
 **CLI Version:** [e.g., 0.3.0]
-**Spec Version:** [e.g., 1.0.0]
+**Spec Version:** [e.g., 0.1.0]

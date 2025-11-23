@@ -260,7 +260,7 @@ For critical bugs requiring immediate fix:
 The CLI declares which specification version it implements via `spec_version.py`:
 
 ```python
-SPEC_VERSION = "1.0.0"
+SPEC_VERSION = "0.1.0"
 ```
 
 **Compatibility Rules:**
@@ -272,7 +272,7 @@ SPEC_VERSION = "1.0.0"
 **Example:**
 
 - CLI implements spec v1.2.0
-- Can work with models using spec v1.0.0, v1.1.0, v1.2.0
+- Can work with models using spec v0.1.0, v1.1.0, v1.2.0
 - Cannot work with models using spec v2.0.0 (major mismatch)
 - May not support features from models using spec v1.3.0
 

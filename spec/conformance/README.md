@@ -60,12 +60,12 @@ See [certification-process.md](certification-process.md) for the process.
 ```yaml
 implementation:
   name: "Your Tool Name"
-  version: "1.0.0"
+  version: "0.1.0"
   organization: "Your Organization"
   url: "https://yourtool.com"
 
 specification:
-  version: "1.0.0"
+  version: "0.1.0"
   conformanceLevel: "full" # basic, standard, or full
 
 layers:
@@ -102,7 +102,7 @@ attestation: "We certify that this implementation conforms to the specification.
 
 | Implementation   | Version | Conformance Level | Spec Version |
 | ---------------- | ------- | ----------------- | ------------ |
-| dr CLI           | 0.3.0   | Full              | 1.0.0        |
+| dr CLI           | 0.3.0   | Full              | 0.1.0        |
 | (Add yours here) | -       | -                 | -            |
 
 ## Questions

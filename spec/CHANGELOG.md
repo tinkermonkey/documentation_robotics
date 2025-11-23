@@ -14,7 +14,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 ### Fixed
 ### Security
 
-## [1.0.0] - 2025-11-23
+## [0.1.0] - 2025-11-23
 
 ### Added
 - Initial stable release of the Federated Architecture Metadata Model specification
@@ -73,5 +73,5 @@ Examples:
 - `1.1.0` - New feature (e.g., add new entity type, new optional attribute)
 - `1.0.1` - Clarification (e.g., fix typo, clarify documentation)
 
-[Unreleased]: https://github.com/yourorg/documentation_robotics/compare/v1.0.0...HEAD
-[1.0.0]: https://github.com/yourorg/documentation_robotics/releases/tag/v1.0.0
+[Unreleased]: https://github.com/tinkermonkey/documentation_robotics/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/v0.1.0

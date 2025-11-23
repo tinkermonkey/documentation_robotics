@@ -2,7 +2,7 @@
 
 A comprehensive toolkit for managing federated architecture metadata models using industry standards.
 
-[![Specification](https://img.shields.io/badge/Specification-v1.0.0-blue)](spec/)
+[![Specification](https://img.shields.io/badge/Specification-v0.1.0-blue)](spec/)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.3.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -26,7 +26,7 @@ Documentation Robotics provides:
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 1.0.0 (Stable)
+**Version:** 0.1.0 (Stable)
 **Status:** Complete
 
 The Federated Architecture Metadata Model specification defines a standards-based approach to modeling enterprise and software architecture across 11 interconnected layers.
@@ -61,7 +61,7 @@ A command-line tool for managing architecture models conforming to the specifica
 - ✅ **Model Management** - Initialize, add, update, validate
 - ✅ **Cross-Layer References** - Track and validate relationships
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Standards-Based** - Uses specification v1.0.0
+- ✅ **Standards-Based** - Uses specification v0.1.0
 
 **Quick Start:**
 
@@ -90,7 +90,7 @@ dr conformance
 documentation_robotics/
 │
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (1.0.0)
+│   ├── VERSION                  # Current spec version (0.1.0)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
@@ -244,7 +244,7 @@ We welcome contributions! See:
 
 | Component         | Current Version | Status           |
 | ----------------- | --------------- | ---------------- |
-| **Specification** | 1.0.0           | Stable           |
+| **Specification** | 0.1.0           | Stable           |
 | **CLI Tool**      | 0.3.0           | Phase 3 Complete |
 
 ## License
@@ -265,7 +265,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{federated-arch-spec,
   title = {Federated Architecture Metadata Model Specification},
-  version = {1.0.0},
+  version = {0.1.0},
   year = {2025},
   url = {https://github.com/yourorg/documentation_robotics/tree/main/spec}
 }

@@ -369,7 +369,7 @@ InstrumentationScope:
       version: "0.27.0"
 
     - name: "product-service.custom"
-      version: "1.0.0"
+      version: "0.1.0"
 ```
 
 ### Attribute
