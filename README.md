@@ -1,151 +1,279 @@
 # Documentation Robotics
 
-A comprehensive toolkit for managing federated architecture metadata models. This project provides tools and specifications for creating, validating, and exporting multi-layer architecture models using industry standards.
+A comprehensive toolkit for managing federated architecture metadata models using industry standards.
 
-## Project Structure
+[![Specification](https://img.shields.io/badge/Specification-v1.0.0-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.0-green)](cli/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
+## Overview
+
+Documentation Robotics provides:
+- **A Specification** - Federated Architecture Metadata Model for complex software systems
+- **A CLI Tool** - `dr` command for managing architecture models
+- **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+
+## Quick Links
+
+- 📖 **[Read the Specification](spec/)** - Complete specification with all 11 layers
+- 🛠️ **[Use the CLI Tool](cli/)** - Install and use the `dr` command
+- 🤝 **[Contributing](CONTRIBUTING.md)** - How to contribute
+- 📋 **[Release Process](RELEASE_PROCESS.md)** - How releases work
+
+## Project Components
+
+### 1. The Specification
+
+**Location:** [`spec/`](spec/)
+**Version:** 1.0.0 (Stable)
+**Status:** Complete
+
+The Federated Architecture Metadata Model specification defines a standards-based approach to modeling enterprise and software architecture across 11 interconnected layers.
+
+**Key Features:**
+- ✅ **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+- ✅ **Federated Approach** - ArchiMate spine + specialized standards
+- ✅ **11 Layers** - Motivation through APM/Observability
+- ✅ **Minimal Custom Invention** - Only 3 custom specifications (27%)
+- ✅ **Tool Ecosystem Access** - Compatible with hundreds of existing tools
+
+**Quick Start:**
+1. Read [spec/README.md](spec/README.md)
+2. Explore [spec/core/00-overview.md](spec/core/00-overview.md)
+3. Browse [spec/examples/](spec/examples/)
+
+[→ Full Specification Documentation](spec/)
+
+### 2. The CLI Tool (`dr`)
+
+**Location:** [`cli/`](cli/)
+**Version:** 0.3.0
+**Status:** Phase 3 Complete
+
+A command-line tool for managing architecture models conforming to the specification.
+
+**Key Features:**
+- ✅ **Full Conformance** - Implements all 11 layers
+- ✅ **Model Management** - Initialize, add, update, validate
+- ✅ **Cross-Layer References** - Track and validate relationships
+- ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
+- ✅ **Standards-Based** - Uses specification v1.0.0
+
+**Quick Start:**
+```bash
+# Install
+pip install -e cli/
+
+# Initialize a model
+dr init my-project
+
+# Add elements
+dr add motivation goal --name "Improve Customer Satisfaction"
+
+# Validate
+dr validate
+
+# Check conformance
+dr conformance
+```
+
+[→ Full CLI Documentation](cli/)
+
+## Repository Structure
 
 ```
 documentation_robotics/
-├── cli/                        # CLI tool for model management
-│   ├── src/                   # Python source code
-│   ├── tests/                 # Test suite
-│   ├── docs/                  # CLI documentation and design docs
-│   └── README.md              # CLI-specific README
 │
-└── documentation/             # Architecture model specifications
-    └── 01_metadata_model/     # 11-layer metadata model definition
-        ├── 00-overview.md
-        └── layers/            # Individual layer specifications
-            ├── 01-motivation-layer.md
-            ├── 02-business-layer.md
-            ├── 03-security-layer.md
-            ├── 04-application-layer.md
-            ├── 05-technology-layer.md
-            ├── 06-api-layer.md
-            ├── 07-data-model-layer.md
-            ├── 08-datastore-layer.md
-            ├── 09-ux-layer.md
-            ├── 10-navigation-layer.md
-            └── 11-apm-layer.md
+├── spec/                        # THE SPECIFICATION
+│   ├── VERSION                  # Current spec version (1.0.0)
+│   ├── CHANGELOG.md             # Specification changelog
+│   ├── GOVERNANCE.md            # Governance model
+│   ├── CONTRIBUTING.md          # Contribution guidelines
+│   ├── core/                    # Core specification documents
+│   ├── layers/                  # 11 layer specifications
+│   ├── schemas/                 # JSON Schema definitions
+│   ├── conformance/             # Conformance requirements
+│   ├── guides/                  # Implementation guides
+│   ├── examples/                # Example models
+│   ├── test-fixtures/           # Test data for validators
+│   └── reference/               # Reference materials
+│
+├── cli/                         # CLI IMPLEMENTATION
+│   ├── src/                     # Python source code
+│   ├── tests/                   # Test suite
+│   ├── docs/                    # CLI documentation
+│   └── README.md                # CLI README
+│
+├── implementations/             # REFERENCE IMPLEMENTATIONS
+│   └── python-dr/               # Python reference (→ cli/)
+│
+├── tools/                       # PROJECT TOOLING
+│
+├── .github/                     # GitHub configuration
+│   ├── ISSUE_TEMPLATE/          # Issue templates (spec vs CLI)
+│   └── workflows/               # CI/CD workflows
+│
+├── README.md                    # This file
+├── CONTRIBUTING.md              # Project contribution guidelines
+├── RELEASE_PROCESS.md           # Release process documentation
+└── LICENSE                      # MIT License
 ```
 
-## Components
+## The 11 Layers
 
-### 1. CLI Tool (`dr`)
+The specification defines 11 interconnected layers:
 
-A command-line tool for managing architecture models across 11 layers.
+| # | Layer | Focus | Standard |
+|---|-------|-------|----------|
+| 01 | [Motivation](spec/layers/01-motivation-layer.md) | WHY | ArchiMate 3.2 |
+| 02 | [Business](spec/layers/02-business-layer.md) | WHAT | ArchiMate 3.2 |
+| 03 | [Security](spec/layers/03-security-layer.md) | WHO CAN | Custom |
+| 04 | [Application](spec/layers/04-application-layer.md) | HOW | ArchiMate 3.2 |
+| 05 | [Technology](spec/layers/05-technology-layer.md) | WITH WHAT | ArchiMate 3.2 |
+| 06 | [API](spec/layers/06-api-layer.md) | INTERFACE | OpenAPI 3.0 |
+| 07 | [Data Model](spec/layers/07-data-model-layer.md) | STRUCTURE | JSON Schema |
+| 08 | [Datastore](spec/layers/08-datastore-layer.md) | STORAGE | SQL DDL |
+| 09 | [UX](spec/layers/09-ux-layer.md) | PRESENTATION | Custom |
+| 10 | [Navigation](spec/layers/10-navigation-layer.md) | FLOW | Custom |
+| 11 | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE | OpenTelemetry |
 
-**Location:** `cli/`
+## Standards Leveraged
 
-**Features:**
-- Model initialization and element management
-- Cross-layer reference validation
-- Dependency tracking and projection
-- Export to ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML
+This project maximizes use of existing standards:
 
-**Status:** Phase 3 Complete (v0.3.0)
+- **ArchiMate 3.2** - Motivation, Business, Application, Technology layers (36%)
+- **OpenAPI 3.0** - API specifications (9%)
+- **JSON Schema Draft 7** - Data model definitions (9%)
+- **OpenTelemetry 1.0+** - Observability and tracing (9%)
+- **SQL DDL** - Database schemas (9%)
+- **Custom Specifications** - Security, UX, Navigation (27%)
 
-[→ Go to CLI documentation](cli/README.md)
+**Result:** 73% standards-based, 27% custom invention
 
-### 2. Metadata Model Specification
+## Getting Started
 
-Comprehensive specifications for a federated architecture metadata model spanning 11 layers.
+### For Architects
 
-**Location:** `documentation/01_metadata_model/`
+Want to use this for modeling your architecture?
 
-**Layers:**
-1. **Motivation** - Goals, requirements, stakeholders
-2. **Business** - Business processes and services
-3. **Security** - Authentication, authorization, threats
-4. **Application** - Application services and components
-5. **Technology** - Infrastructure and platforms
-6. **API** - REST APIs and operations
-7. **Data Model** - Entities and relationships
-8. **Data Store** - Database schemas
-9. **UX** - User interface components
-10. **Navigation** - Application routing
-11. **APM** - Observability and monitoring
+1. **Understand the Approach**
+   - Read [spec/core/00-overview.md](spec/core/00-overview.md)
+   - Review [spec/core/01-federated-approach.md](spec/core/01-federated-approach.md)
 
-[→ Go to metadata model documentation](documentation/01_metadata_model/)
+2. **Install the CLI**
+   ```bash
+   cd cli
+   pip install -e .
+   ```
 
-## Quick Start
+3. **Create Your First Model**
+   ```bash
+   dr init my-architecture
+   cd my-architecture
+   dr add motivation goal --name "My First Goal"
+   dr validate
+   ```
 
-### Using the CLI Tool
+4. **Learn More**
+   - Browse [spec/examples/](spec/examples/)
+   - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
 
-```bash
-# Navigate to CLI directory
-cd cli
+### For Tool Vendors
 
-# Install the tool
-pip install -e .
+Want to build a conformant tool?
 
-# Initialize a new architecture model
-dr init my-project
+1. **Read the Specification**
+   - Start with [spec/README.md](spec/README.md)
+   - Review [spec/conformance/conformance-levels.md](spec/conformance/conformance-levels.md)
 
-# Add elements, validate, export
-dr add business service --name "Customer Management"
-dr validate
-dr export --format archimate
-```
+2. **Choose Conformance Level**
+   - Basic (Layers 01-04)
+   - Standard (Layers 01-08)
+   - Full (All 11 layers)
 
-See [cli/README.md](cli/README.md) for detailed CLI documentation.
+3. **Implement & Test**
+   - Use [spec/schemas/](spec/schemas/) for validation
+   - Test with [spec/test-fixtures/](spec/test-fixtures/)
+   - Follow [spec/conformance/test-suite.md](spec/conformance/test-suite.md)
 
-### Understanding the Metadata Model
+4. **Claim Conformance**
+   - Follow [spec/conformance/certification-process.md](spec/conformance/certification-process.md)
+   - Submit conformance statement
 
-The metadata model provides specifications for representing enterprise architecture across 11 interconnected layers. Each layer uses industry standards where possible:
+### For Researchers
 
-- **ArchiMate 3.2** for motivation, business, application, and technology layers
-- **OpenAPI 3.0** for API specifications
-- **JSON Schema** for data models
-- **OpenTelemetry** for observability
+Evaluating this approach?
 
-See [documentation/01_metadata_model/](documentation/01_metadata_model/) for layer specifications.
-
-## Development
-
-### CLI Tool Development
-
-```bash
-cd cli
-
-# Install with dev dependencies
-pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Run with coverage
-pytest --cov=documentation_robotics --cov-report=html
-```
-
-### Documentation
-
-All documentation is in Markdown format and can be viewed directly on GitHub or in any Markdown viewer.
-
-## Standards Used
-
-- **ArchiMate 3.2** - Enterprise architecture modeling
-- **OpenAPI 3.0** - API specifications
-- **JSON Schema Draft 7** - Data model schemas
-- **OpenTelemetry** - Application monitoring
-- **PlantUML** - Diagram generation
-- **GraphML** - Graph visualization
-
-## License
-
-MIT License - see [LICENSE](LICENSE) file for details.
-
-## Version
-
-- CLI Tool: v0.3.0 (Phase 3 Complete)
-- Metadata Model: v1.0 (Stable)
+1. Read [spec/core/](spec/core/) for design decisions
+2. Review [spec/reference/standards-mapping.md](spec/reference/standards-mapping.md)
+3. Compare with existing approaches
+4. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
 
 ## Contributing
 
-Contributions are welcome! Please see individual component READMEs for specific contribution guidelines.
+We welcome contributions! See:
+- [CONTRIBUTING.md](CONTRIBUTING.md) - General contribution guidelines
+- [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md) - Specification contributions
+- [cli/README.md#development](cli/README.md#development) - CLI development
+
+**Ways to Contribute:**
+- 🐛 Report issues or ambiguities in the specification
+- 💡 Propose new features or improvements
+- 📝 Improve documentation
+- 🧪 Add test fixtures
+- 🎨 Create example models
+- 🛠️ Improve the CLI tool
+
+## Governance
+
+- **Specification:** See [spec/GOVERNANCE.md](spec/GOVERNANCE.md)
+- **Changes:** Follow governance process for changes
+- **Releases:** See [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
+- **Versioning:** Semantic Versioning 2.0.0
+
+## Versions
+
+| Component | Current Version | Status |
+|-----------|----------------|--------|
+| **Specification** | 1.0.0 | Stable |
+| **CLI Tool** | 0.3.0 | Phase 3 Complete |
+
+## License
+
+This project is licensed under the MIT License - see [LICENSE](LICENSE) for details.
 
 ## Support
 
-For issues, questions, or contributions:
-- CLI Tool: See [cli/README.md](cli/README.md)
-- Metadata Model: See [documentation/01_metadata_model/](documentation/01_metadata_model/)
+- **Questions:** [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)
+- **Issues:** [GitHub Issues](https://github.com/yourorg/documentation_robotics/issues)
+- **Specification Issues:** Use "Specification Bug Report" template
+- **CLI Issues:** Use "CLI Bug Report" template
+
+## Citation
+
+If you use this specification in academic work, please cite:
+
+```bibtex
+@techreport{federated-arch-spec,
+  title = {Federated Architecture Metadata Model Specification},
+  version = {1.0.0},
+  year = {2025},
+  url = {https://github.com/yourorg/documentation_robotics/tree/main/spec}
+}
+```
+
+## Acknowledgments
+
+This project integrates and builds upon:
+- **ArchiMate®** - Registered trademark of The Open Group
+- **OpenAPI Specification** - OpenAPI Initiative
+- **JSON Schema** - JSON Schema team
+- **OpenTelemetry** - Cloud Native Computing Foundation
+- **W3C Trace Context** - World Wide Web Consortium
+
+---
+
+**Ready to get started?**
+- 📖 Read the specification: [spec/README.md](spec/README.md)
+- 🛠️ Install the CLI: `pip install -e cli/`
+- 💬 Join the discussion: [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)

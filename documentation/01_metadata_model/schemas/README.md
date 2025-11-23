@@ -46,13 +46,13 @@ The metadata model defines a **federated architecture approach** using ArchiMate
    - Standard: SQL DDL + Extensions
    - Entities: Database, Table, Column, Constraint, Index, View, Trigger
 
-9. **`09-ux-layer.schema.json`** - PRESENTATION: User interface specifications
+9. **`09-ux-layer.schema.json`** - PRESENTATION: Multi-channel user experience specifications
    - Standard: Custom UX Specification
-   - Entities: UXSpec, ScreenState, StateAction, ScreenLayout, FieldDefinition, ActionButton
+   - Entities: UXSpec, ExperienceState, StateAction, View, SubView, Component, ActionComponent
 
-10. **`10-navigation-layer.schema.json`** - FLOW: User navigation and routing
+10. **`10-navigation-layer.schema.json`** - FLOW: Channel-agnostic navigation and routing
     - Standard: Custom Navigation Specification
-    - Entities: NavigationGraph, Route, NavigationGuard, NavigationTransition, NavigationMenu
+    - Entities: NavigationGraph, Route, NavigationGuard, NavigationTransition
 
 11. **`11-apm-observability-layer.schema.json`** - OBSERVE: Monitoring and tracing
     - Standard: OpenTelemetry 1.0+
@@ -116,9 +116,14 @@ The metadata model defines how layers reference each other:
 |--------------|--------------|----------------|---------|
 | ArchiMate | All Specs | `x-archimate-ref` | `"x-archimate-ref": "app-comp-product-ui"` |
 | OpenAPI | JSON Schema | `$ref` | `"$ref": "schemas/product.json#/definitions/Product"` |
+| UX | Motivation | `fulfillsRequirements` | `"fulfillsRequirements": ["req-product-data-management"]` |
+| UX | Business | `supportsProcesses` | `"supportsProcesses": ["bp-product-management"]` |
+| UX | Security | `security.model`, `resourceRef` | `"security": {"model": "product-security-model"}` |
 | UX | API | `operationId` | `"api": {"operationId": "getProduct"}` |
 | UX | Data | `schemaRef` | `"dataBinding": {"schemaRef": "product.json#/properties/name"}` |
-| Navigation | UX | `screen` | `"screen": "product-edit.ux.yaml"` |
+| UX | Navigation | `route` | `"route": "product-edit"` |
+| UX | APM | `measuredByMetrics` | `"measuredByMetrics": ["product.edit.load.time"]` |
+| Navigation | UX | `experience` | `"experience": "product-edit.ux.yaml"` |
 | APM | All | Trace context | Traces and logs correlate across all layers |
 
 ## Validation Strategy
@@ -153,17 +158,17 @@ This metadata model minimizes custom invention by leveraging established standar
 Only 3 custom specifications were created for gaps not covered by existing standards:
 
 1. **Security Model** (Layer 03) - Comprehensive RBAC/ABAC/Policy-based access control
-2. **UX Specification** (Layer 09) - State machines, layouts, and UI behavior
-3. **Navigation Specification** (Layer 10) - Routing, guards, and navigation flows
+2. **UX Specification** (Layer 09) - Multi-channel experience state machines, views, and component composition
+3. **Navigation Specification** (Layer 10) - Channel-agnostic routing, guards, and navigation flows
 
 ## Statistics
 
 ```yaml
 Total Schemas: 12 (11 layers + 1 master)
 Total Entity Types: 70+
-Total Attributes: ~400
+Total Attributes: ~430
 Total Enums: 35+
-Cross-Layer References: 55+
+Cross-Layer References: 65+
 
 Standards Leveraged: 5
 - ArchiMate 3.2
@@ -173,9 +178,9 @@ Standards Leveraged: 5
 - W3C Trace Context
 
 Custom Specifications: 3
-- Security Model
-- UX Specification
-- Navigation Specification
+- Security Model (RBAC/ABAC/Policy)
+- UX Multi-Channel Experience
+- Navigation Routing
 ```
 
 ## Implementation Guidance

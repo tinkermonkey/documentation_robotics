@@ -2,9 +2,17 @@
 
 A command-line tool for managing federated architecture metadata models across 11 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
 
+## Specification Conformance
+
+**Implements:** [Federated Architecture Metadata Model Specification v1.0.0](../spec/)
+**Conformance Level:** Full (All 11 layers)
+
+Run `dr conformance` to see detailed conformance information.
+
 ## Status
 
 **Current Version:** v0.3.0
+**Specification Version:** v1.0.0
 
 - ✅ **Phase 1 (MVP)** - Model initialization, element management, validation
 - ✅ **Phase 2 (Validation & Integrity)** - Cross-layer references, projection, dependency tracking
@@ -92,19 +100,21 @@ dr export --format all
 
 ## Architecture Model Structure
 
-The `dr` tool manages models with 11 layers:
+The `dr` tool manages models with 11 layers as defined in the [Federated Architecture Metadata Model Specification](../spec/):
 
-1. **Motivation** - Stakeholders, goals, requirements, principles
-2. **Business** - Business services, processes, actors, roles
-3. **Security** - Authentication, authorization, policies, threats
-4. **Application** - Application services, components, interfaces
-5. **Technology** - Infrastructure, nodes, devices, networks
-6. **API** - REST APIs, operations, endpoints (OpenAPI)
-7. **Data Model** - Entities, relationships (JSON Schema)
-8. **Data Store** - Databases, tables, columns, constraints
-9. **UX** - Screens, layouts, components, states
-10. **Navigation** - Routes, guards, transitions, menus
-11. **APM/Observability** - Traces, logs, metrics (OpenTelemetry)
+1. **Motivation** - Stakeholders, goals, requirements, principles ([spec](../spec/layers/01-motivation-layer.md))
+2. **Business** - Business services, processes, actors, roles ([spec](../spec/layers/02-business-layer.md))
+3. **Security** - Authentication, authorization, policies, threats ([spec](../spec/layers/03-security-layer.md))
+4. **Application** - Application services, components, interfaces ([spec](../spec/layers/04-application-layer.md))
+5. **Technology** - Infrastructure, nodes, devices, networks ([spec](../spec/layers/05-technology-layer.md))
+6. **API** - REST APIs, operations, endpoints (OpenAPI) ([spec](../spec/layers/06-api-layer.md))
+7. **Data Model** - Entities, relationships (JSON Schema) ([spec](../spec/layers/07-data-model-layer.md))
+8. **Data Store** - Databases, tables, columns, constraints ([spec](../spec/layers/08-datastore-layer.md))
+9. **UX** - Screens, layouts, components, states ([spec](../spec/layers/09-ux-layer.md))
+10. **Navigation** - Routes, guards, transitions, menus ([spec](../spec/layers/10-navigation-layer.md))
+11. **APM/Observability** - Traces, logs, metrics (OpenTelemetry) ([spec](../spec/layers/11-apm-observability-layer.md))
+
+For detailed layer specifications, see [../spec/layers/](../spec/layers/)
 
 ## Project Structure
 
@@ -139,11 +149,19 @@ project/
 
 ## Documentation
 
+### CLI Documentation
 - [CLI Requirements](docs/01_cli_requirements.md)
 - [Phase 3 Design](docs/02_cli_design_phase_3.md)
 - [Phase 3 Development Plan](docs/03_cli_dev_plan_phase_3.md)
 - [Quick Start Guide](QUICK_START.md)
 - [Implementation Summary](PHASE_3_IMPLEMENTATION_SUMMARY.md)
+
+### Specification Documentation
+- [Specification Overview](../spec/README.md)
+- [Core Concepts](../spec/core/)
+- [Layer Specifications](../spec/layers/)
+- [Conformance Requirements](../spec/conformance/)
+- [Implementation Guides](../spec/guides/)
 
 ## Export Formats
 

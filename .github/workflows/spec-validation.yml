@@ -1,0 +1,106 @@
+name: Specification Validation
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - 'spec/**'
+      - '.github/workflows/spec-validation.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'spec/**'
+
+jobs:
+  validate-schemas:
+    name: Validate JSON Schemas
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install AJV CLI
+        run: npm install -g ajv-cli ajv-formats
+
+      - name: Validate Schema Syntax
+        run: |
+          for schema in spec/schemas/*.schema.json; do
+            echo "Validating $schema"
+            ajv compile -s "$schema" --strict=false
+          done
+
+      - name: Validate Schema References
+        run: |
+          # TODO: Add validation that $ref references are valid
+          echo "Schema reference validation (TODO)"
+
+  validate-links:
+    name: Validate Markdown Links
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
+
+      - name: Install markdown-link-check
+        run: npm install -g markdown-link-check
+
+      - name: Check Links in Core Documentation
+        run: |
+          for file in spec/core/*.md; do
+            echo "Checking links in $file"
+            markdown-link-check "$file" --config .github/markdown-link-check-config.json || true
+          done
+
+      - name: Check Links in Layer Documentation
+        run: |
+          for file in spec/layers/*.md; do
+            echo "Checking links in $file"
+            markdown-link-check "$file" --config .github/markdown-link-check-config.json || true
+          done
+
+  check-consistency:
+    name: Check Specification Consistency
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check VERSION file exists
+        run: test -f spec/VERSION
+
+      - name: Validate VERSION format
+        run: |
+          VERSION=$(cat spec/VERSION)
+          if ! echo "$VERSION" | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "Invalid VERSION format: $VERSION"
+            exit 1
+          fi
+          echo "VERSION: $VERSION"
+
+      - name: Check CHANGELOG updated
+        if: github.event_name == 'pull_request'
+        run: |
+          if ! git diff origin/main --name-only | grep -q 'spec/CHANGELOG.md'; then
+            echo "Warning: CHANGELOG.md not updated"
+            echo "::warning::Consider updating spec/CHANGELOG.md"
+          fi
+
+  spell-check:
+    name: Spell Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Run spell check
+        uses: rojopolis/spellcheck-github-actions@0.33.1
+        with:
+          config_path: .github/spellcheck-config.json
+          task_name: Markdown
+          source_files: spec/**/*.md

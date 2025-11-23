@@ -22,6 +22,9 @@ documentation_robotics/
 │   │   ├── validators/         # Validation logic
 │   │   ├── schemas/            # JSON schemas
 │   │   └── utils/              # Utility functions
+│   ├── dr/                     # Documentation Robotics package for the dr CLI tool
+│   │   ├── model/              # Documentation Robotics model for the dr CLI tool
+│   │   └── specs/              # Documentation Robotics specifications for the dr CLI tool
 │   ├── tests/                  # Test suite
 │   ├── docs/                   # CLI design documentation
 │   └── pyproject.toml          # Python package config

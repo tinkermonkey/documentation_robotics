@@ -1,0 +1,114 @@
+Main Entry Point:
+  name: Main Entry Point
+  description: Primary entry point (main function) that initializes CLI and handles
+    global error catching
+  path: dr
+  handler: main
+  framework: click
+  id: navigation.route.main-entry-point
+Root Command Group:
+  name: Root Command Group
+  description: Click group decorator providing help text, version option, and verbose
+    flag
+  path: dr
+  handler: cli
+  type: command-group
+  options: '["--verbose", "--version"]'
+  id: navigation.route.root-command-group
+Init Command Route:
+  name: Init Command Route
+  description: Initialize new model - registered via cli.add_command(init.init)
+  path: dr init
+  handler: init.init
+  phase: '1'
+  category: model-management
+  id: navigation.route.init-command-route
+Add Command Route:
+  name: Add Command Route
+  description: Add element - CRUD operation for creating new elements
+  path: dr add
+  handler: add.add
+  phase: '1'
+  category: crud
+  id: navigation.route.add-command-route
+Update Command Route:
+  name: Update Command Route
+  description: Update element - CRUD operation for modifying elements
+  path: dr update
+  handler: update.update
+  phase: '1'
+  category: crud
+  id: navigation.route.update-command-route
+Remove Command Route:
+  name: Remove Command Route
+  description: Remove element - CRUD operation for deleting elements
+  path: dr remove
+  handler: remove.remove
+  phase: '1'
+  category: crud
+  id: navigation.route.remove-command-route
+List Command Route:
+  name: List Command Route
+  description: List elements - Query operation for displaying layer contents
+  path: dr list
+  handler: list_cmd.list_elements
+  phase: '1'
+  category: query
+  id: navigation.route.list-command-route
+Search Command Route:
+  name: Search Command Route
+  description: Search elements - Query operation for finding elements across layers
+  path: dr search
+  handler: search.search
+  phase: '1'
+  category: query
+  id: navigation.route.search-command-route
+Find Command Route:
+  name: Find Command Route
+  description: Find element - Query operation for retrieving specific element by ID
+  path: dr find
+  handler: find.find
+  phase: '1'
+  category: query
+  id: navigation.route.find-command-route
+Validate Command Route:
+  name: Validate Command Route
+  description: Validate model - Analysis operation for checking integrity
+  path: dr validate
+  handler: validate.validate
+  phase: '1'
+  category: analysis
+  id: navigation.route.validate-command-route
+Trace Command Route:
+  name: Trace Command Route
+  description: Trace dependencies - Phase 2 analysis operation for dependency tracking
+  path: dr trace
+  handler: trace.trace
+  phase: '2'
+  category: analysis
+  id: navigation.route.trace-command-route
+Project Command Route:
+  name: Project Command Route
+  description: Project element - Phase 2 operation for cross-layer projection
+  path: dr project
+  handler: project.project
+  phase: '2'
+  category: advanced
+  id: navigation.route.project-command-route
+Project All Command Route:
+  name: Project All Command Route
+  description: Project all eligible elements - Batch projection operation
+  path: dr project-all
+  handler: project.project_all
+  phase: '2'
+  category: advanced
+  id: navigation.route.project-all-command-route
+Export Command Route:
+  name: Export Command Route
+  description: Export model - Phase 3 operation for generating output in multiple
+    formats
+  path: dr export
+  handler: export.export
+  phase: '3'
+  category: advanced
+  id: navigation.route.export-command-route

@@ -1,0 +1,64 @@
+Element:
+  name: Element
+  description: Core domain entity representing a single architecture element across
+    any layer
+  properties: '{"id": "string", "type": "string", "layer": "string", "name": "string",
+    "description": "string", "data": "object"}'
+  required: '["id", "type", "layer", "name"]'
+  id: data_model.schema.element
+Layer:
+  name: Layer
+  description: Represents a single architecture layer containing elements
+  properties: '{"name": "string", "path": "string", "config": "object", "schema_path":
+    "string", "elements": "object"}'
+  required: '["name", "path"]'
+  id: data_model.schema.layer
+Model:
+  name: Model
+  description: Complete architecture model spanning all 11 layers with reference tracking
+  properties: '{"root_path": "string", "model_path": "string", "specs_path": "string",
+    "manifest": "object", "layers": "object"}'
+  required: '["root_path", "manifest", "layers"]'
+  id: data_model.schema.model
+Manifest:
+  name: Manifest
+  description: Model manifest containing project metadata, layer configuration, and
+    statistics
+  properties: '{"version": "string", "project": "object", "layers": "object", "statistics":
+    "object", "conventions": "object"}'
+  required: '["version", "project", "layers"]'
+  id: data_model.schema.manifest
+Reference:
+  name: Reference
+  description: Represents a cross-layer reference from one element to another
+  properties: '{"source_id": "string", "target_id": "string", "property_path": "string",
+    "reference_type": "string", "required": "boolean"}'
+  required: '["source_id", "target_id", "reference_type"]'
+  id: data_model.schema.reference
+ReferenceRegistry:
+  name: ReferenceRegistry
+  description: Manages and validates all cross-layer references in the model
+  properties: '{"references": "array", "reference_definitions": "array", "source_index":
+    "object", "target_index": "object"}'
+  required: '["references"]'
+  id: data_model.schema.reference-registry
+DependencyTracker:
+  name: DependencyTracker
+  description: Analyzes dependencies between elements using graph algorithms
+  properties: '{"model": "object", "registry": "object", "graph": "object"}'
+  required: '["model", "registry"]'
+  id: data_model.schema.dependency-tracker
+ProjectionEngine:
+  name: ProjectionEngine
+  description: Manages cross-layer element projections based on rules
+  properties: '{"model": "object", "rules": "array"}'
+  required: '["model", "rules"]'
+  id: data_model.schema.projection-engine
+ProjectionRule:
+  name: ProjectionRule
+  description: Defines how to project elements from one layer to another
+  properties: '{"name": "string", "from_layer": "string", "from_type": "string", "to_layer":
+    "string", "to_type": "string", "name_template": "string", "property_mappings":
+    "object"}'
+  required: '["name", "from_layer", "to_layer"]'
+  id: data_model.schema.projection-rule

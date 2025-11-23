@@ -1,0 +1,14 @@
+---
+metadata:
+  testId: "invalid-motivation-goal-wrong-type"
+  description: "Goal with wrong data type for 'id' (number instead of string)"
+  layer: "motivation"
+  entityType: "Goal"
+  expectation: "fail"
+  expectedError: "INVALID_TYPE"
+  expectedMessage: "Field 'id' must be of type string"
+
+data:
+  id: 12345  # Should be string, not number
+  name: "Improve Customer Satisfaction"
+  type: "Goal"

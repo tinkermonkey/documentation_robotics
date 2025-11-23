@@ -1,0 +1,370 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/01-motivation-layer.json",
+  "title": "Motivation Layer Schema",
+  "description": "ArchiMate Motivation Layer elements for capturing stakeholders, drivers, goals, requirements, and constraints",
+  "type": "object",
+  "properties": {
+    "stakeholders": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Stakeholder" }
+    },
+    "drivers": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Driver" }
+    },
+    "assessments": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Assessment" }
+    },
+    "goals": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Goal" }
+    },
+    "outcomes": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Outcome" }
+    },
+    "principles": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Principle" }
+    },
+    "requirements": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Requirement" }
+    },
+    "constraints": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Constraint" }
+    },
+    "meanings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Meaning" }
+    },
+    "values": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Value" }
+    },
+    "relationships": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/Relationship" }
+    }
+  },
+  "definitions": {
+    "Stakeholder": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Unique identifier"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Stakeholder name"
+        },
+        "documentation": {
+          "type": "string",
+          "description": "Detailed description"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["internal", "external", "customer", "partner", "regulator"],
+          "description": "Stakeholder type"
+        }
+      }
+    },
+    "Driver": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["market", "regulatory", "technology", "competitive", "operational", "strategic"]
+        }
+      }
+    },
+    "Assessment": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "assessmentType": {
+          "type": "string",
+          "enum": ["strength", "weakness", "opportunity", "threat", "risk", "gap"]
+        }
+      }
+    },
+    "Goal": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "goal.measurable": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "goal.target-date": {
+              "type": "string",
+              "format": "date"
+            },
+            "goal.kpi": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Outcome": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["planned", "in-progress", "achieved", "not-achieved"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "outcome.achieved-date": {
+              "type": "string",
+              "format": "date"
+            },
+            "outcome.metrics": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Principle": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "category": {
+          "type": "string",
+          "enum": ["business", "data", "application", "technology", "security", "integration"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "principle.rationale": {
+              "type": "string"
+            },
+            "principle.implications": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Requirement": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "requirementType": {
+          "type": "string",
+          "enum": ["functional", "non-functional", "business", "technical", "compliance", "user"]
+        },
+        "priority": {
+          "type": "string",
+          "enum": ["critical", "high", "medium", "low"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "requirement.source": {
+              "type": "string"
+            },
+            "requirement.status": {
+              "type": "string",
+              "enum": ["proposed", "approved", "implemented", "verified"]
+            },
+            "requirement.traceability-id": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Constraint": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "constraintType": {
+          "type": "string",
+          "enum": ["budget", "time", "technology", "regulatory", "organizational", "resource"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "constraint.source": {
+              "type": "string"
+            },
+            "constraint.negotiable": {
+              "type": "string",
+              "enum": ["true", "false"]
+            }
+          }
+        }
+      }
+    },
+    "Meaning": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        }
+      }
+    },
+    "Value": {
+      "type": "object",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string"
+        },
+        "valueType": {
+          "type": "string",
+          "enum": ["financial", "customer", "operational", "strategic", "social"]
+        },
+        "properties": {
+          "type": "object",
+          "properties": {
+            "value.quantifiable": {
+              "type": "string",
+              "enum": ["true", "false"]
+            },
+            "value.measurement": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": ["type", "source", "target"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["Aggregation", "Realization", "Specialization", "Association", "Influence"]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Source element ID"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid",
+          "description": "Target element ID"
+        },
+        "documentation": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

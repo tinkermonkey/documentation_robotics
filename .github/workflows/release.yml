@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+      - 'cli-v*.*.*'
+      - 'spec-v*.*.*'
+
+jobs:
+  release-spec:
+    name: Release Specification
+    if: startsWith(github.ref, 'refs/tags/spec-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/spec-v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing specification v$VERSION"
+
+      - name: Verify VERSION file matches
+        run: |
+          FILE_VERSION=$(cat spec/VERSION)
+          if [ "$FILE_VERSION" != "${{ steps.version.outputs.version }}" ]; then
+            echo "Version mismatch: tag=${{ steps.version.outputs.version }}, file=$FILE_VERSION"
+            exit 1
+          fi
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: Specification v${{ steps.version.outputs.version }}
+          body_path: spec/CHANGELOG.md
+          files: |
+            spec/**/*.md
+            spec/**/*.json
+            spec/VERSION
+          draft: false
+          prerelease: false
+
+  release-cli:
+    name: Release CLI
+    if: startsWith(github.ref, 'refs/tags/cli-v')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Extract version
+        id: version
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/cli-v}
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Releasing CLI v$VERSION"
+
+      - name: Install build dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        working-directory: ./cli
+        run: |
+          python -m build
+
+      - name: Publish to PyPI
+        working-directory: ./cli
+        env:
+          TWINE_USERNAME: __token__
+          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          twine upload dist/*
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: CLI v${{ steps.version.outputs.version }}
+          body: |
+            CLI release v${{ steps.version.outputs.version }}
+
+            Install: `pip install documentation-robotics==${{ steps.version.outputs.version }}`
+
+            See [CLI CHANGELOG](cli/CHANGELOG.md) for details.
+          files: |
+            cli/dist/*
+          draft: false
+          prerelease: false

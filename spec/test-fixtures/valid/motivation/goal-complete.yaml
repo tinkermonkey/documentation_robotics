@@ -1,0 +1,18 @@
+---
+metadata:
+  testId: "valid-motivation-goal-complete"
+  description: "Complete valid goal with all optional attributes"
+  layer: "motivation"
+  entityType: "Goal"
+  expectation: "pass"
+  conformanceLevel: "basic"
+
+data:
+  id: "goal-customer-satisfaction"
+  name: "Improve Customer Satisfaction"
+  type: "Goal"
+  documentation: "Increase overall customer satisfaction score by 20% within 12 months through improved user experience and faster response times."
+  properties:
+    priority: "high"
+    owner: "Product Team"
+    timeline: "12 months"

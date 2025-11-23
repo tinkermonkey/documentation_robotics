@@ -7,7 +7,7 @@ from .commands import init, add, find, list_cmd, search, update, remove, validat
 # Phase 2 commands
 from .commands import project, trace
 # Phase 3 commands
-from .commands import export
+from .commands import export, conformance
 
 console = Console()
 
@@ -51,6 +51,7 @@ cli.add_command(project.project_all)
 cli.add_command(trace.trace)
 # Phase 3 commands
 cli.add_command(export.export)
+cli.add_command(conformance.conformance)
 
 
 def main() -> None:

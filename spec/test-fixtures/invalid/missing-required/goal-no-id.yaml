@@ -1,0 +1,14 @@
+---
+metadata:
+  testId: "invalid-motivation-goal-missing-id"
+  description: "Goal missing required 'id' attribute"
+  layer: "motivation"
+  entityType: "Goal"
+  expectation: "fail"
+  expectedError: "MISSING_REQUIRED_FIELD"
+  expectedMessage: "Required field 'id' is missing"
+
+data:
+  name: "Improve Customer Satisfaction"
+  type: "Goal"
+  # 'id' is missing - should fail validation
