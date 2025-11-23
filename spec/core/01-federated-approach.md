@@ -53,18 +53,21 @@ Rather than creating a monolithic, custom metamodel, this specification:
 #### 1. **Leverage Existing Standards**
 
 **Problem with Custom Metamodels:**
+
 - Reinvent concepts already defined in standards
 - Lose compatibility with existing tools
 - Require custom validators and generators
 - Small ecosystem of tools
 
 **Federation Solution:**
+
 - Use proven standards with mature definitions
 - Benefit from extensive tool ecosystems
 - Standard validators work out-of-the-box
 - Large community support
 
 **Example:**
+
 ```yaml
 # ❌ Custom approach: Reinvent API modeling
 CustomAPIOperation:
@@ -79,23 +82,26 @@ CustomAPIOperation:
 ApplicationService:
   id: "user-api"
   properties:
-    spec.openapi: "specs/user-api.yaml"  # References OpenAPI file
+    spec.openapi: "specs/user-api.yaml" # References OpenAPI file
 # Use Swagger, Postman, etc. directly
 ```
 
 #### 2. **Independent Evolution**
 
 **Problem with Monolithic:**
+
 - All layers coupled to single specification version
 - Changes cascade across all layers
 - Breaking change in one area affects everything
 
 **Federation Solution:**
+
 - Each standard evolves independently
 - Update OpenAPI support without touching UX layer
 - ArchiMate version independent of JSON Schema version
 
 **Example:**
+
 ```yaml
 # Can upgrade independently
 Layer 06 (API): OpenAPI 3.0 → OpenAPI 3.1
@@ -114,22 +120,22 @@ Each layer uses the **best validator** for its standard:
 // Multi-layer validation with specialized tools
 const results = {
   // ArchiMate layers: Use ArchiMate validators
-  archimate: validateArchiMate('model.xml'),
+  archimate: validateArchiMate("model.xml"),
 
   // API layer: Use OpenAPI validators
-  openapi: validateOpenAPI('api.yaml'),          // Swagger, Spectral
+  openapi: validateOpenAPI("api.yaml"), // Swagger, Spectral
 
   // Data layer: Use JSON Schema validators
-  schemas: validateJSONSchema('schema.json'),    // AJV, Ajv
+  schemas: validateJSONSchema("schema.json"), // AJV, Ajv
 
   // UX layer: Custom validator (no standard exists)
-  ux: validateUXSpec('ux.yaml'),
+  ux: validateUXSpec("ux.yaml"),
 
   // APM layer: OpenTelemetry validators
-  apm: validateOTelConfig('apm.yaml'),
+  apm: validateOTelConfig("apm.yaml"),
 
   // Cross-layer: Custom reference checker
-  crossRefs: validateCrossReferences(all)
+  crossRefs: validateCrossReferences(all),
 };
 ```
 
@@ -137,14 +143,15 @@ const results = {
 
 By using standards, gain access to entire tool ecosystems:
 
-| Standard | Available Tools |
-|----------|----------------|
-| **OpenAPI** | Swagger Editor, Swagger UI, Postman, Insomnia, Stoplight, Redoc, Spectral |
-| **JSON Schema** | AJV, JSON Schema Validator, quicktype, json-schema-to-typescript |
-| **OpenTelemetry** | Jaeger, Zipkin, Prometheus, Grafana, Datadog, New Relic |
-| **ArchiMate** | Archi, Enterprise Architect, BiZZdesign, Sparx |
+| Standard          | Available Tools                                                           |
+| ----------------- | ------------------------------------------------------------------------- |
+| **OpenAPI**       | Swagger Editor, Swagger UI, Postman, Insomnia, Stoplight, Redoc, Spectral |
+| **JSON Schema**   | AJV, JSON Schema Validator, quicktype, json-schema-to-typescript          |
+| **OpenTelemetry** | Jaeger, Zipkin, Prometheus, Grafana, Datadog, New Relic                   |
+| **ArchiMate**     | Archi, Enterprise Architect, BiZZdesign, Sparx                            |
 
 **Example Workflow:**
+
 ```bash
 # Export to OpenAPI → Use Swagger ecosystem
 dr export --format openapi --output specs/api/
@@ -162,6 +169,7 @@ spectral lint specs/api/user-api.yaml
 #### 5. **Minimal Custom Invention**
 
 **Standards Coverage:**
+
 ```
 Total Layers: 11
 Using Existing Standards: 8 layers (73%)
@@ -219,9 +227,9 @@ metadata:
 states:
   - id: "product-list"
     api:
-      operationId: "listProducts"  # → OpenAPI operation
+      operationId: "listProducts" # → OpenAPI operation
     dataBinding:
-      schemaRef: "product.json#/definitions/Product"  # → JSON Schema
+      schemaRef: "product.json#/definitions/Product" # → JSON Schema
 ```
 
 ### 3. Cross-Layer References
@@ -269,20 +277,21 @@ UX (Layer 09) ────────────────▶ Navigation (La
 
 ## Benefits Summary
 
-| Benefit | Monolithic Custom Model | Federated Standards Model |
-|---------|------------------------|---------------------------|
-| **Standards Compliance** | None | 5 major standards |
-| **Tool Ecosystem** | Custom tools only | Hundreds of tools |
-| **Validation** | Custom validators | Standard validators + custom cross-layer |
-| **Community Support** | Limited | Large communities per standard |
-| **Evolution** | Coupled | Independent per standard |
-| **Learning Curve** | High (all custom) | Lower (mostly standard) |
-| **Interoperability** | Low | High |
-| **Custom Code** | Extensive | Minimal (3 custom specs) |
+| Benefit                  | Monolithic Custom Model | Federated Standards Model                |
+| ------------------------ | ----------------------- | ---------------------------------------- |
+| **Standards Compliance** | None                    | 5 major standards                        |
+| **Tool Ecosystem**       | Custom tools only       | Hundreds of tools                        |
+| **Validation**           | Custom validators       | Standard validators + custom cross-layer |
+| **Community Support**    | Limited                 | Large communities per standard           |
+| **Evolution**            | Coupled                 | Independent per standard                 |
+| **Learning Curve**       | High (all custom)       | Lower (mostly standard)                  |
+| **Interoperability**     | Low                     | High                                     |
+| **Custom Code**          | Extensive               | Minimal (3 custom specs)                 |
 
 ## Tradeoffs
 
 ### Advantages
+
 ✅ **Maximize standards usage** - 73% of layers use existing standards
 ✅ **Tool ecosystem access** - Hundreds of compatible tools
 ✅ **Independent evolution** - Update standards independently
@@ -291,12 +300,14 @@ UX (Layer 09) ────────────────▶ Navigation (La
 ✅ **Interoperability** - Other tools can consume standard formats
 
 ### Challenges
+
 ⚠️ **Coordination complexity** - Must manage multiple specifications
 ⚠️ **Version alignment** - Track multiple standard versions
 ⚠️ **Cross-layer validation** - Requires custom reference checker
 ⚠️ **Tool integration** - Multiple tools instead of one unified tool
 
 **Mitigation:** This specification provides:
+
 - Clear integration patterns
 - Cross-layer reference validation
 - Conformance test suite
@@ -307,12 +318,14 @@ UX (Layer 09) ────────────────▶ Navigation (La
 ### Why ArchiMate as the Spine?
 
 **Alternatives Considered:**
+
 1. ❌ **UML** - Too software-focused, weak motivation/business layers
 2. ❌ **BPMN** - Process-focused, not architectural
 3. ❌ **Custom** - High invention, no tool ecosystem
 4. ✅ **ArchiMate** - Enterprise architecture standard, all layers, mature
 
 **ArchiMate Advantages:**
+
 - Covers motivation, business, application, technology naturally
 - Mature standard (3.2) with stable metamodel
 - Tool ecosystem (Archi, EA, BiZZdesign)
@@ -326,6 +339,7 @@ Could ArchiMate be extended for API, Data, UX, etc.?
 **Decision:** No, use federation instead.
 
 **Rationale:**
+
 1. **Reinvention** - Would duplicate OpenAPI, JSON Schema
 2. **Tool support** - Extended ArchiMate wouldn't work with standard tools
 3. **Validation** - Would need custom validators anyway
@@ -338,6 +352,7 @@ Could ArchiMate be extended for API, Data, UX, etc.?
 ### E-commerce Product Management
 
 **ArchiMate Model (Spine):**
+
 ```xml
 <!-- Layer 04: Application -->
 <element id="app-product-ui" type="ApplicationComponent">
@@ -354,6 +369,7 @@ Could ArchiMate be extended for API, Data, UX, etc.?
 ```
 
 **OpenAPI Specification (Layer 06):**
+
 ```yaml
 # specs/api/product-api.yaml
 openapi: 3.0.0
@@ -374,6 +390,7 @@ paths:
 ```
 
 **JSON Schema (Layer 07):**
+
 ```json
 // specs/schemas/product.json
 {
@@ -383,9 +400,9 @@ paths:
       "type": "object",
       "x-archimate-ref": "data-object-product",
       "properties": {
-        "id": {"type": "string"},
-        "name": {"type": "string"},
-        "price": {"type": "number"}
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "price": { "type": "number" }
       }
     }
   }
@@ -393,6 +410,7 @@ paths:
 ```
 
 **UX Specification (Layer 09):**
+
 ```yaml
 # specs/ux/product-management.ux.yaml
 specVersion: "1.0"
@@ -403,10 +421,10 @@ metadata:
 states:
   - id: "product-list"
     api:
-      operationId: "listProducts"  # → OpenAPI
+      operationId: "listProducts" # → OpenAPI
     dataBinding:
-      schemaRef: "product.json#/definitions/Product"  # → JSON Schema
-    route: "/products"  # → Navigation layer
+      schemaRef: "product.json#/definitions/Product" # → JSON Schema
+    route: "/products" # → Navigation layer
 ```
 
 **Result:** Each layer uses its optimal standard, all linked via ArchiMate spine.
@@ -414,6 +432,7 @@ states:
 ## Conclusion
 
 The federated approach provides the best balance of:
+
 - **Standards compliance** (73% existing standards)
 - **Tool ecosystem access** (hundreds of compatible tools)
 - **Minimal custom invention** (only 3 custom specifications)

@@ -72,7 +72,7 @@ class ModelManager:
         self.root = root_dir
         self.model_dir = root_dir / "model"
         self.specs_dir = root_dir / "specs"
-        
+
     def load_layer(self, layer_name):
         layer_path = self.model_dir / layer_name
         data = {}
@@ -80,7 +80,7 @@ class ModelManager:
             key = yaml_file.stem
             data[key] = yaml.safe_load(yaml_file.read_text())
         return data
-    
+
     def save_layer(self, layer_name, data):
         layer_path = self.model_dir / layer_name
         layer_path.mkdir(exist_ok=True)
@@ -103,21 +103,21 @@ def cli():
 def add(layer, element_type, name, spec, project_to):
     """Add an element to a layer"""
     mgr = ModelManager()
-    
+
     # Parse spec
     element_spec = yaml.safe_load(spec) if spec else {}
     element_spec['name'] = name
     element_spec['id'] = f"{layer}.{element_type}.{name.lower().replace(' ', '-')}"
-    
+
     # Add to layer
     layer_data = mgr.load_layer(layer)
     if element_type not in layer_data:
         layer_data[element_type] = {}
     layer_data[element_type][name] = element_spec
     mgr.save_layer(layer, layer_data)
-    
+
     click.echo(f"Added {element_type} '{name}' to {layer} layer")
-    
+
     # Project to other layers
     if project_to:
         for target_layer in project_to:
@@ -146,7 +146,7 @@ def validate(layer, strict):
     """Validate model consistency"""
     mgr = ModelManager()
     results = {}
-    
+
     # Validate each layer
     if layer:
         results[layer] = validate_layer(layer, strict)
@@ -154,10 +154,10 @@ def validate(layer, strict):
         for layer_dir in mgr.model_dir.iterdir():
             if layer_dir.is_dir():
                 results[layer_dir.name] = validate_layer(layer_dir.name, strict)
-    
+
     # Check cross-references
     results['references'] = validate_references(mgr)
-    
+
     for layer, status in results.items():
         symbol = "✓" if status == "valid" else "✗"
         click.echo(f"{symbol} {layer}: {status}")
@@ -168,12 +168,12 @@ def validate(layer, strict):
 def export(format, output):
     """Export to standard specifications"""
     mgr = ModelManager()
-    
+
     if format == 'archimate' or format == 'all':
         export_archimate(mgr)
     if format == 'openapi' or format == 'all':
         export_openapi(mgr)
-    
+
     click.echo(f"Exported {format} to specs/")
 
 @cli.command()
@@ -197,7 +197,7 @@ motivation:
 
 business:
   services: []
-  
+
 application:
   components: []
 
@@ -223,6 +223,7 @@ if __name__ == '__main__':
 ## How Claude Code Uses This
 
 ### Direct File Manipulation
+
 Claude Code can directly read/write the model files:
 
 ```python
@@ -230,18 +231,19 @@ Claude Code can directly read/write the model files:
 def add_business_service(name, description):
     service_file = Path("model/business/services.yaml")
     services = yaml.safe_load(service_file.read_text()) or {}
-    
+
     services[name] = {
         'id': f"business.service.{name.lower().replace(' ', '-')}",
         'name': name,
         'description': description,
         'created': datetime.now().isoformat()
     }
-    
+
     service_file.write_text(yaml.dump(services))
 ```
 
 ### Using the `dr` CLI
+
 Claude Code can also use the CLI for convenience:
 
 ```bash
@@ -256,6 +258,7 @@ $ dr export --format openapi
 ```
 
 ### Hybrid Approach
+
 Claude Code can mix both approaches:
 
 ```python
@@ -272,7 +275,7 @@ subprocess.run([
     "--spec", "-"
 ], input=yaml.dump(new_service), text=True)
 
-# Read the projection rules directly  
+# Read the projection rules directly
 rules = yaml.safe_load(Path("projection-rules.yaml").read_text())
 
 # Apply projections programmatically
@@ -351,15 +354,15 @@ projections:
         name_template: "{source.name}Service"
         properties:
           realizes: "{source.id}"
-          
+
   - from: application.service
     to: api.specification
     rules:
       - create_file: "specs/openapi/{source.name.kebab}-api.yaml"
         template: "templates/openapi-service.yaml"
-        
+
   - from: api.operation
-    to: ux.state_action  
+    to: ux.state_action
     rules:
       - create_type: StateAction
         properties:
@@ -368,6 +371,7 @@ projections:
 ```
 
 This approach gives you the best of both worlds:
+
 - **Structure** through conventions and the `dr` tool
 - **Flexibility** through direct file access
 - **Intelligence** through Claude Code's ability to understand and manipulate both
@@ -398,6 +402,7 @@ project/
 ```
 
 ### `.dr/README.md`
+
 ```markdown
 # Documentation Robotics Model
 
@@ -405,14 +410,14 @@ This codebase uses the Documentation Robotics federated architecture model.
 
 ## Quick Reference
 
-| Layer | Location | Schema | Description |
-|-------|----------|--------|-------------|
-| Business | `model/business/` | `.dr/schemas/business-layer.schema.yaml` | Business services, processes, actors |
-| Application | `model/application/` | `.dr/schemas/application-layer.schema.yaml` | Software components and services |
-| API | `specs/openapi/` | OpenAPI 3.0 | API specifications |
-| Data | `specs/schemas/` | JSON Schema | Data models |
-| UX | `specs/ux/` | `.dr/schemas/ux-layer.schema.yaml` | User interface specifications |
-| Security | `model/security/` | `.dr/schemas/security-layer.schema.yaml` | Roles, permissions, policies |
+| Layer       | Location             | Schema                                      | Description                          |
+| ----------- | -------------------- | ------------------------------------------- | ------------------------------------ |
+| Business    | `model/business/`    | `.dr/schemas/business-layer.schema.yaml`    | Business services, processes, actors |
+| Application | `model/application/` | `.dr/schemas/application-layer.schema.yaml` | Software components and services     |
+| API         | `specs/openapi/`     | OpenAPI 3.0                                 | API specifications                   |
+| Data        | `specs/schemas/`     | JSON Schema                                 | Data models                          |
+| UX          | `specs/ux/`          | `.dr/schemas/ux-layer.schema.yaml`          | User interface specifications        |
+| Security    | `model/security/`    | `.dr/schemas/security-layer.schema.yaml`    | Roles, permissions, policies         |
 
 ## Working with the Model
 
@@ -436,6 +441,7 @@ See CONVENTIONS.md for complete rules.
 Create YAML schemas that are both human and machine readable:
 
 ### `.dr/schemas/business-layer.schema.yaml`
+
 ```yaml
 # Business Layer Schema
 # This file describes the structure of business layer elements
@@ -449,29 +455,29 @@ element_types:
   service:
     file: services.yaml
     required_properties:
-      - name        # Human-readable name
-      - id          # Format: business.service.<kebab-name>
+      - name # Human-readable name
+      - id # Format: business.service.<kebab-name>
       - description # What this service does
     optional_properties:
-      - processes   # List of business processes
-      - actors      # Business actors involved
-      - realizes    # Links to motivation layer goals
+      - processes # List of business processes
+      - actors # Business actors involved
+      - realizes # Links to motivation layer goals
     example:
       name: "Customer Management"
       id: "business.service.customer-management"
       description: "Manages customer lifecycle"
       processes: ["onboarding", "support", "retention"]
       actors: ["customer", "support-agent"]
-      
+
   process:
     file: processes.yaml
     required_properties:
       - name
-      - id          # Format: business.process.<kebab-name>
-      - steps       # Ordered list of process steps
+      - id # Format: business.process.<kebab-name>
+      - steps # Ordered list of process steps
     relationships:
-      - service     # Which service owns this process
-      - actors      # Who participates
+      - service # Which service owns this process
+      - actors # Who participates
 
 relationships:
   - from: service
@@ -486,7 +492,7 @@ relationships:
 
 Create a `.dr/INSTRUCTIONS.md` that Claude Code should always read first:
 
-```markdown
+````markdown
 # Instructions for Claude Code
 
 When working with the Documentation Robotics model in this codebase:
@@ -502,6 +508,7 @@ When working with the Documentation Robotics model in this codebase:
 For each element type, here's what to modify:
 
 ### Adding a Business Service
+
 1. File: `model/business/services.yaml`
 2. Structure:
    ```yaml
@@ -510,14 +517,18 @@ For each element type, here's what to modify:
      name: "Service Name"
      description: "What it does"
    ```
+````
+
 3. Then project to: application layer, api layer
 
 ### Adding an API Operation
+
 1. File: `specs/openapi/<service>-api.yaml`
 2. Follow OpenAPI 3.0 specification
 3. Link to: application.service via x-realizes extension
 
 ### Adding a UX Screen
+
 1. File: `specs/ux/<screen-name>.ux.yaml`
 2. Structure: See `.dr/schemas/ux-layer.schema.yaml`
 3. Reference: API operations via operationId
@@ -531,10 +542,11 @@ For each element type, here's what to modify:
 ## Available Commands
 
 - `dr add <layer> <type> --name "Name"` - Add element
-- `dr validate` - Check consistency  
+- `dr validate` - Check consistency
 - `dr find <id>` - Locate element
 - `dr export --format <format>` - Generate specifications
-```
+
+````
 
 ## Approach 4: Manifest with Intelligence
 
@@ -557,7 +569,7 @@ layers:
       goals: 3
       requirements: 12
       stakeholders: 5
-      
+
   business:
     path: model/business/
     schema: .dr/schemas/business-layer.schema.yaml
@@ -569,14 +581,14 @@ layers:
       - services.yaml     # Business services
       - processes.yaml    # Business processes
       - actors.yaml      # Business actors
-      
+
   application:
     path: model/application/
     schema: .dr/schemas/application-layer.schema.yaml
     elements:
       components: 10
       services: 8
-      
+
   api:
     path: specs/openapi/
     format: openapi-3.0
@@ -584,14 +596,14 @@ layers:
       - customer-api.yaml
       - product-api.yaml
       - order-api.yaml
-      
+
 cross_references:
   # These show how layers connect
   - from: business.service.customer-management
     to: application.service.customer-service
     type: realized_by
-    
-  - from: application.service.customer-service  
+
+  - from: application.service.customer-service
     to: api.customer-api.operations
     type: exposed_as
 
@@ -601,13 +613,14 @@ conventions:
     api: "{service-name}-api.yaml"
     schema: "{entity-name}.schema.json"
     ux: "{screen-name}.ux.yaml"
-```
+````
 
 ## Approach 5: Example-Driven Learning
 
 Create example files that show the patterns:
 
 ### `.dr/examples/complete-capability.yaml`
+
 ```yaml
 # Example: Adding a complete "Order Management" capability
 # This shows how elements connect across layers
@@ -625,7 +638,7 @@ application:
     id: "application.service.order-service"
     realizes: "business.service.order-management"
     operations: ["createOrder", "getOrder", "updateOrder", "cancelOrder"]
-    
+
   component:
     name: "OrderUI"
     id: "application.component.order-ui"
@@ -641,7 +654,7 @@ api:
         post:
           operationId: "createOrder"
           x-realizes: "application.service.order-service"
-          
+
 data:
   # This goes in specs/schemas/order.schema.json
   entity:
@@ -650,14 +663,14 @@ data:
       id: { type: "string", format: "uuid" }
       customerId: { type: "string", format: "uuid" }
       items: { type: "array" }
-      
+
 ux:
   # This goes in specs/ux/order-create.ux.yaml
   screen:
     name: "order-create"
     states: ["initial", "editing", "submitting", "complete"]
     api_operations: ["createOrder"]
-    
+
 security:
   permissions:
     - "order.create"
@@ -678,25 +691,25 @@ Create a `dr check` command that explains what it's looking for:
 @click.option('--teach', is_flag=True, help='Explain what is being checked')
 def check(teach):
     """Validate and explain the model structure"""
-    
+
     if teach:
         print("""
         Checking Documentation Robotics Model Structure:
-        
+
         1. BUSINESS LAYER (model/business/)
            - Looking for services.yaml
            - Each service needs: id, name, description
            - IDs should match pattern: business.service.*
-           
+
         2. APPLICATION LAYER (model/application/)
            - Looking for components.yaml and services.yaml
            - Services should realize business services
-           
+
         3. API SPECIFICATIONS (specs/openapi/)
            - Each .yaml file should be valid OpenAPI 3.0
            - Operations should have x-realizes linking to app services
         """)
-    
+
     # Actual validation...
 ```
 
@@ -724,6 +737,7 @@ Then, in your interactions with Claude Code, you can simply say:
 > "Read `.dr/INSTRUCTIONS.md` first, then add a Customer Management capability following the Documentation Robotics model"
 
 Claude Code will:
+
 1. Read the instructions to understand the model
 2. Check the manifest to see current state
 3. Read relevant schemas for validation rules
@@ -741,11 +755,13 @@ Create a `.claude-context` file that Claude Code should always read:
 This project uses the Documentation Robotics federated architecture model.
 
 Key files to understand the model:
+
 - `.dr/INSTRUCTIONS.md` - How to work with the model
 - `model/manifest.yaml` - Current model state
 - `.dr/schemas/` - Structure definitions for each layer
 
 Before making changes:
+
 1. Read the relevant schema file
 2. Check existing elements in model/
 3. Follow ID conventions: {layer}.{type}.{kebab-name}

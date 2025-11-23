@@ -1,12 +1,15 @@
 """
 JSON Schema validation for elements.
 """
+
+import json
 from pathlib import Path
 from typing import Optional
-import json
+
 import jsonschema
-from .base import BaseValidator, ValidationResult
+
 from ..core.element import Element
+from .base import BaseValidator, ValidationResult
 
 
 class SchemaValidator(BaseValidator):
@@ -26,11 +29,7 @@ class SchemaValidator(BaseValidator):
             with open(schema_path, "r") as f:
                 self.schema = json.load(f)
 
-    def validate_element(
-        self,
-        element: Element,
-        strict: bool = False
-    ) -> ValidationResult:
+    def validate_element(self, element: Element, strict: bool = False) -> ValidationResult:
         """
         Validate element against schema.
 
@@ -47,7 +46,7 @@ class SchemaValidator(BaseValidator):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="No schema available for validation"
+                message="No schema available for validation",
             )
             return result
 
@@ -61,14 +60,12 @@ class SchemaValidator(BaseValidator):
                 element_id=element.id,
                 message=f"Schema validation failed: {e.message}",
                 location=f"$.{'.'.join(str(p) for p in e.path)}",
-                fix=self._suggest_fix(e)
+                fix=self._suggest_fix(e),
             )
 
         except jsonschema.SchemaError as e:
             result.add_error(
-                layer=element.layer,
-                element_id=element.id,
-                message=f"Invalid schema: {e.message}"
+                layer=element.layer, element_id=element.id, message=f"Invalid schema: {e.message}"
             )
 
         # Additional strict checks
@@ -84,7 +81,7 @@ class SchemaValidator(BaseValidator):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="Missing description (recommended in strict mode)"
+                message="Missing description (recommended in strict mode)",
             )
 
         # Check naming conventions
@@ -92,7 +89,7 @@ class SchemaValidator(BaseValidator):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="Element name should start with uppercase letter"
+                message="Element name should start with uppercase letter",
             )
 
     def _suggest_fix(self, error: jsonschema.ValidationError) -> Optional[str]:

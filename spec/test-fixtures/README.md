@@ -82,11 +82,13 @@ dr validate --conformance --layer motivation
 ### Expected Results
 
 **Valid Tests:**
+
 - All fixtures MUST be accepted as valid
 - No validation errors
 - All attributes correctly stored
 
 **Invalid Tests:**
+
 - All fixtures MUST be rejected
 - Appropriate error codes returned
 - Helpful error messages provided
@@ -96,16 +98,19 @@ dr validate --conformance --layer motivation
 ### Level 1: Basic Conformance (Layers 01-04)
 
 **Valid Tests:**
+
 - Minimum: 10 tests per layer
 - Coverage: All entity types, all required attributes, edge cases
 
 **Invalid Tests:**
+
 - Minimum: 5 tests per layer
 - Coverage: Missing required, wrong types, invalid references
 
 ### Level 2: Standard Conformance (Layers 05-08)
 
 Additional tests for:
+
 - Technology constraints
 - API-Schema references
 - Schema-Database consistency
@@ -114,6 +119,7 @@ Additional tests for:
 ### Level 3: Full Conformance (Layers 09-11)
 
 Additional tests for:
+
 - UX state machines
 - Navigation graphs
 - Observability configurations
@@ -193,6 +199,7 @@ See [../CONTRIBUTING.md](../CONTRIBUTING.md#contributing-to-test-fixtures) for d
 ## Maintenance
 
 Test fixtures are maintained as part of the specification:
+
 - Updated when specification changes
 - Expanded when gaps identified
 - Reviewed with each spec release
@@ -201,6 +208,7 @@ Test fixtures are maintained as part of the specification:
 ## Questions
 
 For questions about test fixtures:
+
 - See [../conformance/test-suite.md](../conformance/test-suite.md)
 - Review existing fixtures as examples
 - Open GitHub issue

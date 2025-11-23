@@ -3,13 +3,14 @@ Conformance tests for the Federated Architecture Metadata Model specification.
 
 These tests validate that the CLI correctly implements the specification.
 """
-import pytest
-import yaml
+
 from pathlib import Path
+
+import pytest
 from documentation_robotics.spec_version import (
-    SPEC_VERSION,
     CONFORMANCE_LEVEL,
     IMPLEMENTED_LAYERS,
+    SPEC_VERSION,
     get_conformance_statement,
 )
 

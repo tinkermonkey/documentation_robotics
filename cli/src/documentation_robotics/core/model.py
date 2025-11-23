@@ -1,15 +1,18 @@
 """
 Model abstraction - represents the entire architecture model.
 """
+
 from pathlib import Path
 from typing import Dict, List, Optional
-from .manifest import Manifest
-from .layer import Layer
+
+from .dependency_tracker import DependencyTracker
 from .element import Element
+from .layer import Layer
+from .manifest import Manifest
+from .projection_engine import ProjectionEngine
+
 # Phase 2 imports
 from .reference_registry import ReferenceRegistry
-from .projection_engine import ProjectionEngine
-from .dependency_tracker import DependencyTracker
 
 
 class Model:
@@ -35,9 +38,7 @@ class Model:
 
         # Phase 2: Initialize reference registry
         self.reference_registry = ReferenceRegistry()
-        self.reference_registry.load_reference_definitions(
-            self.root_path / ".dr" / "schemas"
-        )
+        self.reference_registry.load_reference_definitions(self.root_path / ".dr" / "schemas")
 
         # Build reference registry from existing elements
         for layer in self.layers.values():
@@ -58,9 +59,7 @@ class Model:
             if layer_config.get("enabled", True):
                 layer_path = self.root_path / layer_config["path"]
                 layers[layer_name] = Layer.load(
-                    name=layer_name,
-                    path=layer_path,
-                    config=layer_config
+                    name=layer_name, path=layer_path, config=layer_config
                 )
         return layers
 
@@ -95,7 +94,7 @@ class Model:
         layer: Optional[str] = None,
         element_type: Optional[str] = None,
         name_pattern: Optional[str] = None,
-        **properties
+        **properties,
     ) -> List[Element]:
         """
         Find elements matching criteria.
@@ -116,9 +115,7 @@ class Model:
         for layer_obj in layers_to_search:
             results.extend(
                 layer_obj.find_elements(
-                    element_type=element_type,
-                    name_pattern=name_pattern,
-                    **properties
+                    element_type=element_type, name_pattern=name_pattern, **properties
                 )
             )
 
@@ -144,7 +141,7 @@ class Model:
         self.manifest.save()
 
         # Phase 2: Register element references
-        if hasattr(self, 'reference_registry'):
+        if hasattr(self, "reference_registry"):
             self.reference_registry.register_element(element)
 
     def update_element(self, element_id: str, updates: Dict) -> None:

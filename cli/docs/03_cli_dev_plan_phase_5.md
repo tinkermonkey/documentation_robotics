@@ -5,6 +5,7 @@
 This document provides a detailed, actionable development plan for implementing Phase 5 (Advanced Features) of the `dr` CLI tool. Phase 5 is the final phase and adds power-user features including interactive REPL, diff/merge, advanced reporting, and a plugin system.
 
 **Phase 5 Goals:**
+
 - Interactive REPL mode for exploratory work
 - Diff and merge capabilities for model evolution
 - Advanced reporting system with visualizations
@@ -21,6 +22,7 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.1 Build Strategy
 
 **Feature-by-Feature Implementation:**
+
 - Build REPL infrastructure first (most complex)
 - Add diff/merge capabilities
 - Implement reporting system
@@ -28,6 +30,7 @@ This document provides a detailed, actionable development plan for implementing 
 - Optimize and polish
 
 **Quality Standards:**
+
 - Maintain 80%+ code coverage
 - REPL is responsive and intuitive
 - Diff algorithm is accurate
@@ -50,6 +53,7 @@ pip install tabulate>=0.9.0         # Table formatting
 ### 3.1 Sprint 1: Interactive REPL Foundation (Week 1-2)
 
 #### Task 1.1: REPL Core Infrastructure
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Phase 1-4 complete
@@ -58,6 +62,7 @@ pip install tabulate>=0.9.0         # Table formatting
 Create the foundation for the interactive REPL.
 
 **Deliverables:**
+
 - [ ] REPLEngine class
 - [ ] Command parser
 - [ ] Context management
@@ -65,6 +70,7 @@ Create the foundation for the interactive REPL.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create REPLEngine class
 2. Implement PromptSession with prompt_toolkit
 3. Implement command parser (support quoted args)
@@ -82,6 +88,7 @@ Create the foundation for the interactive REPL.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] REPL starts and accepts commands
 - [ ] History works
 - [ ] Auto-suggest works
@@ -91,6 +98,7 @@ Create the foundation for the interactive REPL.
 ---
 
 #### Task 1.2: REPL Command System
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -99,6 +107,7 @@ Create the foundation for the interactive REPL.
 Implement the REPL command system.
 
 **Deliverables:**
+
 - [ ] Command registration system
 - [ ] All dr commands available in REPL
 - [ ] REPL-specific commands
@@ -106,6 +115,7 @@ Implement the REPL command system.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create Command abstract class
 2. Implement command registration
 3. Integrate existing dr commands:
@@ -125,6 +135,7 @@ Implement the REPL command system.
 7. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] All dr commands work in REPL
 - [ ] REPL-specific commands work
 - [ ] Tab completion works
@@ -132,6 +143,7 @@ Implement the REPL command system.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_repl.py
 from documentation_robotics.interactive.repl import REPLEngine
@@ -169,6 +181,7 @@ def test_repl_completion(sample_model):
 ---
 
 #### Task 1.3: REPL Output Formatting
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 1.2
@@ -177,12 +190,14 @@ def test_repl_completion(sample_model):
 Add rich output formatting to REPL.
 
 **Deliverables:**
+
 - [ ] Syntax highlighting
 - [ ] Table formatting
 - [ ] Pager for long output
 - [ ] Visual enhancements
 
 **Implementation Steps:**
+
 1. Integrate Pygments for syntax highlighting
 2. Add YAML/JSON syntax highlighting for element display
 3. Add table formatting with Rich
@@ -192,6 +207,7 @@ Add rich output formatting to REPL.
 7. Write tests
 
 **Acceptance Criteria:**
+
 - [ ] Output is syntax highlighted
 - [ ] Tables formatted nicely
 - [ ] Long output paged
@@ -202,6 +218,7 @@ Add rich output formatting to REPL.
 ### 3.2 Sprint 2: REPL Features & Polish (Week 3)
 
 #### Task 2.1: Interactive Workflows
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -210,12 +227,14 @@ Add rich output formatting to REPL.
 Add interactive workflow features to REPL.
 
 **Deliverables:**
+
 - [ ] Guided workflows
 - [ ] Interactive prompts
 - [ ] Wizards for common tasks
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Implement workflow engine
 2. Create guided workflows:
    - New element wizard
@@ -226,6 +245,7 @@ Add interactive workflow features to REPL.
 5. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Workflows guide user through tasks
 - [ ] Prompts validate input
 - [ ] Can cancel workflows
@@ -234,6 +254,7 @@ Add interactive workflow features to REPL.
 ---
 
 #### Task 2.2: Interactive Command
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 2.1
@@ -242,12 +263,14 @@ Add interactive workflow features to REPL.
 Implement `dr interactive` command to launch REPL.
 
 **Deliverables:**
+
 - [ ] Interactive command
 - [ ] Banner and welcome message
 - [ ] Integration with existing model
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create interactive Click command
 2. Load model from current directory
 3. Show welcome banner
@@ -256,6 +279,7 @@ Implement `dr interactive` command to launch REPL.
 6. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Command launches REPL
 - [ ] Model loaded correctly
 - [ ] Exit works cleanly
@@ -266,6 +290,7 @@ Implement `dr interactive` command to launch REPL.
 ### 3.3 Sprint 3: Diff Engine (Week 4)
 
 #### Task 3.1: Diff Engine Core
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** Phase 1-4 complete
@@ -274,6 +299,7 @@ Implement `dr interactive` command to launch REPL.
 Implement model comparison and diff generation.
 
 **Deliverables:**
+
 - [ ] DiffEngine class
 - [ ] Element-level diffs
 - [ ] Deep comparison
@@ -281,20 +307,22 @@ Implement model comparison and diff generation.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create DiffEngine class
 2. Implement diff() method using DeepDiff
-3. Implement _compare_elements()
-4. Implement _compare_layers()
+3. Implement \_compare_elements()
+4. Implement \_compare_layers()
 5. Create DiffResult data structure:
    - Added elements
    - Removed elements
    - Modified elements (with details)
    - Moved elements
-6. Implement _categorize_changes()
+6. Implement \_categorize_changes()
 7. Implement semantic diff (understand significance)
 8. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Accurately detects all changes
 - [ ] Deep comparison works
 - [ ] Semantic understanding
@@ -302,6 +330,7 @@ Implement model comparison and diff generation.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_diff_engine.py
 from documentation_robotics.diff.diff_engine import DiffEngine
@@ -338,6 +367,7 @@ def test_diff_semantic(model_v1, model_v2_breaking):
 ---
 
 #### Task 3.2: Diff Formatting & Output
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 3.1
@@ -346,12 +376,14 @@ def test_diff_semantic(model_v1, model_v2_breaking):
 Format and display diff results.
 
 **Deliverables:**
+
 - [ ] Diff formatters
 - [ ] Multiple output formats
 - [ ] Visualization
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Implement text diff formatter (unified diff style)
 2. Implement JSON diff formatter
 3. Implement HTML diff formatter (with highlighting)
@@ -361,6 +393,7 @@ Format and display diff results.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Multiple output formats supported
 - [ ] Text format is readable
 - [ ] HTML format has highlighting
@@ -370,6 +403,7 @@ Format and display diff results.
 ---
 
 #### Task 3.3: Diff Command Implementation
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 3.2
@@ -378,11 +412,13 @@ Format and display diff results.
 Implement `dr diff` command.
 
 **Deliverables:**
+
 - [ ] Diff command
 - [ ] Options for filtering and formatting
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create diff Click command
 2. Add source/target specification (paths, branches, etc.)
 3. Add layer filtering
@@ -392,6 +428,7 @@ Implement `dr diff` command.
 7. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can compare two model versions
 - [ ] Filtering works
 - [ ] Output formats work
@@ -402,6 +439,7 @@ Implement `dr diff` command.
 ### 3.4 Sprint 4: Merge & Reporting (Week 5)
 
 #### Task 4.1: Merge Engine
+
 **Estimated Time:** 12 hours
 **Priority:** High
 **Dependencies:** Task 3.3
@@ -410,6 +448,7 @@ Implement `dr diff` command.
 Implement model merging capabilities.
 
 **Deliverables:**
+
 - [ ] MergeEngine class
 - [ ] Three-way merge
 - [ ] Conflict detection
@@ -417,6 +456,7 @@ Implement model merging capabilities.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create MergeEngine class
 2. Implement merge() method
 3. Implement three-way merge algorithm:
@@ -432,6 +472,7 @@ Implement model merging capabilities.
 7. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Three-way merge works
 - [ ] Conflicts detected accurately
 - [ ] Resolution strategies work
@@ -440,6 +481,7 @@ Implement model merging capabilities.
 ---
 
 #### Task 4.2: Report Engine Implementation
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 1.1
@@ -448,12 +490,14 @@ Implement model merging capabilities.
 Implement advanced reporting system.
 
 **Deliverables:**
+
 - [ ] ReportEngine class
 - [ ] Multiple report types
 - [ ] Visualization generation
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ReportEngine class
 2. Implement report types:
    - Coverage report (completeness by layer)
@@ -472,6 +516,7 @@ Implement advanced reporting system.
 6. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] All report types work
 - [ ] Visualizations render correctly
 - [ ] HTML reports are interactive
@@ -479,6 +524,7 @@ Implement advanced reporting system.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_report_engine.py
 from documentation_robotics.reporting.report_engine import ReportEngine
@@ -514,6 +560,7 @@ def test_dependency_report(sample_model_with_deps):
 ---
 
 #### Task 4.3: Report Command Implementation
+
 **Estimated Time:** 4 hours
 **Priority:** High
 **Dependencies:** Task 4.2
@@ -522,12 +569,14 @@ def test_dependency_report(sample_model_with_deps):
 Implement `dr report` command.
 
 **Deliverables:**
+
 - [ ] Report command
 - [ ] Report type selection
 - [ ] Format selection
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create report Click command
 2. Add report type selection
 3. Add output format selection
@@ -537,6 +586,7 @@ Implement `dr report` command.
 7. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] All report types accessible
 - [ ] Formats work
 - [ ] Filtering works
@@ -547,6 +597,7 @@ Implement `dr report` command.
 ### 3.5 Sprint 5: Plugin System (Week 6)
 
 #### Task 5.1: Plugin Architecture
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** All previous phases
@@ -555,6 +606,7 @@ Implement `dr report` command.
 Create plugin architecture for extensibility.
 
 **Deliverables:**
+
 - [ ] PluginManager class
 - [ ] Plugin base classes
 - [ ] Extension points
@@ -562,6 +614,7 @@ Create plugin architecture for extensibility.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create PluginManager class
 2. Define extension points:
    - Validators (custom validation rules)
@@ -582,6 +635,7 @@ Create plugin architecture for extensibility.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Plugins can be loaded
 - [ ] All extension points work
 - [ ] Plugin isolation
@@ -591,6 +645,7 @@ Create plugin architecture for extensibility.
 ---
 
 #### Task 5.2: Plugin API & SDK
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 5.1
@@ -599,12 +654,14 @@ Create plugin architecture for extensibility.
 Create plugin development SDK.
 
 **Deliverables:**
+
 - [ ] Plugin API documentation
 - [ ] Plugin templates
 - [ ] Example plugins
 - [ ] Plugin testing utilities
 
 **Implementation Steps:**
+
 1. Document plugin API
 2. Create plugin templates for each type
 3. Create example plugins:
@@ -616,6 +673,7 @@ Create plugin development SDK.
 6. Write documentation
 
 **Acceptance Criteria:**
+
 - [ ] API documented
 - [ ] Templates available
 - [ ] Examples work
@@ -626,6 +684,7 @@ Create plugin development SDK.
 ### 3.6 Sprint 6: Optimization & Final Polish (Week 7-8)
 
 #### Task 6.1: Performance Optimization
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** All features complete
@@ -634,12 +693,14 @@ Create plugin development SDK.
 Optimize performance across all features.
 
 **Deliverables:**
+
 - [ ] Performance profiling results
 - [ ] Optimization implementations
 - [ ] Benchmark suite
 - [ ] Performance guide
 
 **Focus Areas:**
+
 - Model loading performance
 - Query performance
 - REPL responsiveness
@@ -648,6 +709,7 @@ Optimize performance across all features.
 - Memory usage optimization
 
 **Optimization Techniques:**
+
 1. Lazy loading for large models
 2. Caching frequently accessed data
 3. Index optimization
@@ -655,6 +717,7 @@ Optimize performance across all features.
 5. Memory-efficient data structures
 
 **Acceptance Criteria:**
+
 - [ ] Load 1000 elements < 2s
 - [ ] REPL response < 100ms
 - [ ] Diff 1000 elements < 3s
@@ -665,6 +728,7 @@ Optimize performance across all features.
 ---
 
 #### Task 6.2: Advanced Query System
+
 **Estimated Time:** 8 hours
 **Priority:** Medium
 **Dependencies:** Task 6.1
@@ -673,12 +737,14 @@ Optimize performance across all features.
 Add advanced query capabilities.
 
 **Deliverables:**
+
 - [ ] Query language/DSL
 - [ ] Complex filters
 - [ ] Aggregations
 - [ ] Query command
 
 **Implementation Steps:**
+
 1. Design query language
 2. Implement query parser
 3. Implement query executor
@@ -691,6 +757,7 @@ Add advanced query capabilities.
 6. Write tests
 
 **Acceptance Criteria:**
+
 - [ ] Query language works
 - [ ] Complex queries supported
 - [ ] Aggregations work
@@ -699,6 +766,7 @@ Add advanced query capabilities.
 ---
 
 #### Task 6.3: Documentation Completion
+
 **Estimated Time:** 12 hours
 **Priority:** Critical
 **Dependencies:** All features complete
@@ -707,6 +775,7 @@ Add advanced query capabilities.
 Complete all documentation for Phase 5 and overall project.
 
 **Deliverables:**
+
 - [ ] Phase 5 feature documentation
 - [ ] Complete user guide
 - [ ] Plugin development guide
@@ -715,6 +784,7 @@ Complete all documentation for Phase 5 and overall project.
 - [ ] Video tutorials (optional)
 
 **Sections:**
+
 1. Interactive mode guide
 2. Diff and merge guide
 3. Reporting guide
@@ -727,6 +797,7 @@ Complete all documentation for Phase 5 and overall project.
 10. FAQ
 
 **Acceptance Criteria:**
+
 - [ ] All features documented
 - [ ] User guide complete
 - [ ] Plugin guide complete
@@ -736,6 +807,7 @@ Complete all documentation for Phase 5 and overall project.
 ---
 
 #### Task 6.4: Integration Testing
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 6.3
@@ -744,20 +816,23 @@ Complete all documentation for Phase 5 and overall project.
 Comprehensive integration testing across all phases.
 
 **Deliverables:**
+
 - [ ] End-to-end test suites
 - [ ] Cross-phase integration tests
 - [ ] Performance test suite
 - [ ] Regression test suite
 
 **Test Scenarios:**
+
 1. Complete workflow from init to code generation
 2. Multi-user collaboration scenario
 3. Large model handling (10,000+ elements)
 4. Plugin integration
-5. Export ’ Import ’ Diff roundtrip
+5. Export ï¿½ Import ï¿½ Diff roundtrip
 6. REPL workflow scenarios
 
 **Acceptance Criteria:**
+
 - [ ] All E2E tests pass
 - [ ] Cross-phase integration verified
 - [ ] Performance tests pass
@@ -766,6 +841,7 @@ Comprehensive integration testing across all phases.
 ---
 
 #### Task 6.5: Release Preparation
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** All tasks complete
@@ -774,12 +850,14 @@ Comprehensive integration testing across all phases.
 Prepare for 1.0 release.
 
 **Deliverables:**
+
 - [ ] Release notes
 - [ ] Migration guide
 - [ ] Package metadata
 - [ ] Release checklist
 
 **Implementation Steps:**
+
 1. Write comprehensive release notes
 2. Create migration guide from earlier versions
 3. Update package metadata
@@ -788,6 +866,7 @@ Prepare for 1.0 release.
 6. Tag release
 
 **Acceptance Criteria:**
+
 - [ ] Release notes complete
 - [ ] Migration guide clear
 - [ ] Metadata updated
@@ -800,6 +879,7 @@ Prepare for 1.0 release.
 ### 4.1 Unit Tests
 
 **New Components:**
+
 - REPLEngine and commands
 - DiffEngine
 - MergeEngine
@@ -812,22 +892,26 @@ Prepare for 1.0 release.
 ### 4.2 Integration Tests
 
 **REPL Tests:**
+
 - Command execution
 - Context management
 - Workflows
 - Error handling
 
 **Diff/Merge Tests:**
+
 - Various diff scenarios
 - Merge with conflicts
 - Conflict resolution
 
 **Reporting Tests:**
+
 - All report types
 - Visualization generation
 - Export formats
 
 **Plugin Tests:**
+
 - Plugin loading
 - Each extension point
 - Plugin isolation
@@ -835,6 +919,7 @@ Prepare for 1.0 release.
 ### 4.3 Performance Tests
 
 **Benchmarks:**
+
 - REPL responsiveness
 - Large model handling
 - Diff performance
@@ -845,59 +930,67 @@ Prepare for 1.0 release.
 
 All features across 5 phases:
 
-| Feature | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 |
-|---------|---------|---------|---------|---------|---------|
-| Model Init |  | | | | |
-| Element CRUD |  | | | | |
-| Basic Validation |  | | | | |
-| Reference Tracking | |  | | | |
-| Projection | |  | | | |
-| Dependency Tracing | |  | | | |
-| ArchiMate Export | | |  | | |
-| OpenAPI Export | | |  | | |
-| PlantUML Export | | |  | | |
-| API Client Gen | | | |  | |
-| Database Gen | | | |  | |
-| UI Component Gen | | | |  | |
-| Test Gen | | | |  | |
-| Interactive REPL | | | | |  |
-| Diff/Merge | | | | |  |
-| Advanced Reports | | | | |  |
-| Plugin System | | | | |  |
+| Feature            | Phase 1 | Phase 2 | Phase 3 | Phase 4 | Phase 5 |
+| ------------------ | ------- | ------- | ------- | ------- | ------- |
+| Model Init         |         |         |         |         |         |
+| Element CRUD       |         |         |         |         |         |
+| Basic Validation   |         |         |         |         |         |
+| Reference Tracking |         |         |         |         |         |
+| Projection         |         |         |         |         |         |
+| Dependency Tracing |         |         |         |         |         |
+| ArchiMate Export   |         |         |         |         |         |
+| OpenAPI Export     |         |         |         |         |         |
+| PlantUML Export    |         |         |         |         |         |
+| API Client Gen     |         |         |         |         |         |
+| Database Gen       |         |         |         |         |         |
+| UI Component Gen   |         |         |         |         |         |
+| Test Gen           |         |         |         |         |         |
+| Interactive REPL   |         |         |         |         |         |
+| Diff/Merge         |         |         |         |         |         |
+| Advanced Reports   |         |         |         |         |         |
+| Plugin System      |         |         |         |         |         |
 
 ## 6. Risk Management
 
 ### Risk 1: REPL Complexity
+
 **Probability:** High
 **Impact:** Medium
 **Mitigation:**
+
 - Start with basic REPL
 - Incremental feature addition
 - Extensive user testing
 - Good error messages
 
 ### Risk 2: Diff Accuracy
+
 **Probability:** Medium
 **Impact:** High
 **Mitigation:**
+
 - Leverage proven libraries (DeepDiff)
 - Comprehensive test scenarios
 - Semantic understanding
 - Clear diff output
 
 ### Risk 3: Plugin Security
+
 **Probability:** Medium
 **Impact:** High
 **Mitigation:**
+
 - Plugin validation
 - Sandboxing where possible
 - Clear security guidelines
 - Plugin signing (future)
 
 ### Risk 4: Performance Degradation
+
 **Probability:** High
 **Impact:** Medium
 **Mitigation:**
+
 - Early profiling
 - Continuous benchmarking
 - Optimization sprints
@@ -907,7 +1000,8 @@ All features across 5 phases:
 
 Phase 5 is complete when:
 
-### Functional Requirements:
+### Functional Requirements
+
 - [ ] Interactive REPL works smoothly
 - [ ] Diff detects all changes accurately
 - [ ] Merge handles conflicts correctly
@@ -916,13 +1010,15 @@ Phase 5 is complete when:
 - [ ] Advanced queries work
 - [ ] Performance targets met
 
-### Non-Functional Requirements:
+### Non-Functional Requirements
+
 - [ ] Code coverage > 80%
 - [ ] REPL responsive (< 100ms)
 - [ ] Documentation complete
 - [ ] All phases integrated
 
-### Quality Criteria:
+### Quality Criteria
+
 - [ ] All E2E tests pass
 - [ ] Performance benchmarks met
 - [ ] No critical bugs
@@ -930,32 +1026,36 @@ Phase 5 is complete when:
 
 ## 8. Timeline Summary
 
-| Week | Sprint | Focus | Key Deliverables |
-|------|--------|-------|------------------|
-| 1-2 | Sprint 1 | REPL Foundation | REPLEngine, commands, formatting |
-| 3 | Sprint 2 | REPL Features | Workflows, polish, interactive command |
-| 4 | Sprint 3 | Diff Engine | DiffEngine, formatting, diff command |
-| 5 | Sprint 4 | Merge & Reporting | MergeEngine, ReportEngine, commands |
-| 6 | Sprint 5 | Plugin System | PluginManager, API, examples |
-| 7-8 | Sprint 6 | Optimization | Performance, docs, testing, release |
+| Week | Sprint   | Focus             | Key Deliverables                       |
+| ---- | -------- | ----------------- | -------------------------------------- |
+| 1-2  | Sprint 1 | REPL Foundation   | REPLEngine, commands, formatting       |
+| 3    | Sprint 2 | REPL Features     | Workflows, polish, interactive command |
+| 4    | Sprint 3 | Diff Engine       | DiffEngine, formatting, diff command   |
+| 5    | Sprint 4 | Merge & Reporting | MergeEngine, ReportEngine, commands    |
+| 6    | Sprint 5 | Plugin System     | PluginManager, API, examples           |
+| 7-8  | Sprint 6 | Optimization      | Performance, docs, testing, release    |
 
-**Total Estimated Time:** 160 hours (8 weeks × 20 hours/week)
+**Total Estimated Time:** 160 hours (8 weeks ï¿½ 20 hours/week)
 
 ## 9. Success Metrics
 
 ### User Experience
+
 - **Target:** Intuitive and enjoyable to use
 - **Measure:** User satisfaction surveys
 
 ### Performance
+
 - **Target:** Responsive for large models
 - **Measure:** Benchmark suite
 
 ### Extensibility
+
 - **Target:** Easy to create plugins
 - **Measure:** Community plugin count
 
 ### Completeness
+
 - **Target:** Covers all use cases
 - **Measure:** Feature requests vs implemented
 
@@ -974,10 +1074,11 @@ After Phase 5 completion:
 
 ## 11. Complete Project Summary
 
-**Total Development Time:** 40 weeks (8 weeks × 5 phases)
+**Total Development Time:** 40 weeks (8 weeks ï¿½ 5 phases)
 **Total Estimated Hours:** 800 hours
 
 **Phase Summary:**
+
 - **Phase 1:** Core MVP - Model management, basic validation
 - **Phase 2:** Validation & Integrity - References, projection, dependencies
 - **Phase 3:** Export - ArchiMate, OpenAPI, PlantUML, Markdown
@@ -985,6 +1086,7 @@ After Phase 5 completion:
 - **Phase 5:** Advanced Features - REPL, diff/merge, reports, plugins
 
 **Final Deliverables:**
+
 - Production-ready CLI tool
 - Complete documentation
 - 80%+ code coverage

@@ -5,6 +5,7 @@
 This document provides a detailed, actionable development plan for implementing Phase 2 (Validation & Integrity) of the `dr` CLI tool. Phase 2 builds upon Phase 1's foundation to add comprehensive validation, cross-layer projection capabilities, and dependency tracing.
 
 **Phase 2 Goals:**
+
 - Implement comprehensive schema validation for all 11 layers
 - Add cross-reference validation and tracking
 - Enable semantic validation rules
@@ -20,6 +21,7 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.1 Build Strategy
 
 **Incremental Enhancement:**
+
 - Enhance existing validators from Phase 1
 - Add reference tracking layer
 - Build projection engine
@@ -27,6 +29,7 @@ This document provides a detailed, actionable development plan for implementing 
 - Integrate all components
 
 **Quality Standards:**
+
 - Maintain 80%+ code coverage
 - All new components fully tested
 - Backward compatible with Phase 1 models
@@ -46,6 +49,7 @@ pip install jsonpath-ng>=1.5.0   # JSON path queries
 ### 3.1 Sprint 1: Reference Registry (Week 1-2)
 
 #### Task 1.1: Reference Data Model
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Phase 1 complete
@@ -54,19 +58,22 @@ pip install jsonpath-ng>=1.5.0   # JSON path queries
 Create the Reference dataclass and core data structures for tracking references.
 
 **Deliverables:**
+
 - [ ] Reference dataclass with all fields
 - [ ] ReferenceType enum
 - [ ] Reference validation logic
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create Reference dataclass in reference_registry.py
 2. Define ReferenceType enum (projection, composition, aggregation, etc.)
 3. Add validation for reference fields
-4. Implement __hash__ and __eq__ for Reference
+4. Implement **hash** and **eq** for Reference
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Reference objects are immutable
 - [ ] All reference types supported
 - [ ] Hash and equality work correctly
@@ -75,6 +82,7 @@ Create the Reference dataclass and core data structures for tracking references.
 ---
 
 #### Task 1.2: ReferenceRegistry Core Implementation
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -83,6 +91,7 @@ Create the Reference dataclass and core data structures for tracking references.
 Implement the core ReferenceRegistry class with indexing.
 
 **Deliverables:**
+
 - [ ] ReferenceRegistry class
 - [ ] Triple indexing (source, target, type)
 - [ ] Add/remove/query methods
@@ -90,8 +99,9 @@ Implement the core ReferenceRegistry class with indexing.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ReferenceRegistry class
-2. Implement __init__ with index structures
+2. Implement **init** with index structures
 3. Implement add_reference() with index updates
 4. Implement remove_reference() with index cleanup
 5. Implement query methods (by_source, by_target, by_type)
@@ -101,6 +111,7 @@ Implement the core ReferenceRegistry class with indexing.
 9. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] References indexed by source, target, and type
 - [ ] Query performance: O(1) for indexed lookups
 - [ ] Broken references detected
@@ -109,6 +120,7 @@ Implement the core ReferenceRegistry class with indexing.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_reference_registry.py
 from documentation_robotics.core.reference_registry import (
@@ -170,6 +182,7 @@ def test_find_circular_references():
 ---
 
 #### Task 1.3: Model Integration for References
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 1.2
@@ -178,14 +191,16 @@ def test_find_circular_references():
 Integrate ReferenceRegistry into the Model class.
 
 **Deliverables:**
+
 - [ ] Enhanced Model class with reference tracking
 - [ ] Auto-discovery of references in elements
 - [ ] Reference updates on element add/remove/update
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Add reference_registry field to Model class
-2. Implement _discover_references() method
+2. Implement \_discover_references() method
 3. Update add_element() to register references
 4. Update remove_element() to clean up references
 5. Update update_element() to update references
@@ -193,6 +208,7 @@ Integrate ReferenceRegistry into the Model class.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] References auto-discovered on model load
 - [ ] References updated on element changes
 - [ ] References cleaned up on element removal
@@ -204,6 +220,7 @@ Integrate ReferenceRegistry into the Model class.
 ### 3.2 Sprint 2: Enhanced Validation (Week 3)
 
 #### Task 2.1: Cross-Reference Validator
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -212,6 +229,7 @@ Integrate ReferenceRegistry into the Model class.
 Implement comprehensive cross-reference validation.
 
 **Deliverables:**
+
 - [ ] CrossReferenceValidator class
 - [ ] Broken reference detection
 - [ ] Circular reference detection
@@ -219,16 +237,18 @@ Implement comprehensive cross-reference validation.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create CrossReferenceValidator class
 2. Implement validate() method
-3. Implement _validate_reference_targets()
-4. Implement _validate_reference_sources()
-5. Implement _check_circular_dependencies()
-6. Implement _find_orphan_elements()
+3. Implement \_validate_reference_targets()
+4. Implement \_validate_reference_sources()
+5. Implement \_check_circular_dependencies()
+6. Implement \_find_orphan_elements()
 7. Add helpful error messages
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] All broken references reported
 - [ ] Circular dependencies detected
 - [ ] Orphan elements identified
@@ -238,6 +258,7 @@ Implement comprehensive cross-reference validation.
 ---
 
 #### Task 2.2: Semantic Validator
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 2.1
@@ -246,6 +267,7 @@ Implement comprehensive cross-reference validation.
 Implement semantic validation for layer-specific rules.
 
 **Deliverables:**
+
 - [ ] SemanticValidator class
 - [ ] Layer-specific validation rules
 - [ ] Business logic validation
@@ -253,6 +275,7 @@ Implement semantic validation for layer-specific rules.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create SemanticValidator class
 2. Define semantic rule data structure
 3. Implement built-in semantic rules:
@@ -266,6 +289,7 @@ Implement semantic validation for layer-specific rules.
 7. Write unit tests for each rule
 
 **Acceptance Criteria:**
+
 - [ ] Built-in semantic rules work
 - [ ] Custom rules can be loaded from config
 - [ ] Violations reported with context
@@ -273,6 +297,7 @@ Implement semantic validation for layer-specific rules.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_semantic_validator.py
 from documentation_robotics.validators.semantic import SemanticValidator
@@ -304,6 +329,7 @@ def test_api_operation_references_data_model(sample_model_with_api):
 ---
 
 #### Task 2.3: Enhanced Validate Command
+
 **Estimated Time:** 4 hours
 **Priority:** High
 **Dependencies:** Task 2.2
@@ -312,6 +338,7 @@ def test_api_operation_references_data_model(sample_model_with_api):
 Enhance the validate command to use new validators.
 
 **Deliverables:**
+
 - [ ] Enhanced validate command
 - [ ] Reference validation reporting
 - [ ] Semantic validation reporting
@@ -319,6 +346,7 @@ Enhance the validate command to use new validators.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Update validate command to use CrossReferenceValidator
 2. Add semantic validation execution
 3. Enhance output to show reference errors
@@ -327,6 +355,7 @@ Enhance the validate command to use new validators.
 6. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Command runs all validators
 - [ ] Reference errors clearly reported
 - [ ] Semantic errors clearly reported
@@ -338,6 +367,7 @@ Enhance the validate command to use new validators.
 ### 3.3 Sprint 3: Projection Engine Core (Week 4)
 
 #### Task 3.1: Projection Rule Data Model
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -346,12 +376,14 @@ Enhance the validate command to use new validators.
 Create data structures for projection rules.
 
 **Deliverables:**
+
 - [ ] ProjectionRule dataclass
 - [ ] Rule validation
 - [ ] Rule serialization/deserialization
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ProjectionRule dataclass
 2. Define rule fields (from_layer, to_layer, mappings, etc.)
 3. Implement rule validation
@@ -359,6 +391,7 @@ Create data structures for projection rules.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Rules have all required fields
 - [ ] Rules validate correctly
 - [ ] Rules serialize to/from YAML
@@ -367,6 +400,7 @@ Create data structures for projection rules.
 ---
 
 #### Task 3.2: ProjectionEngine Implementation
+
 **Estimated Time:** 12 hours
 **Priority:** Critical
 **Dependencies:** Task 3.1
@@ -375,6 +409,7 @@ Create data structures for projection rules.
 Implement the core projection engine.
 
 **Deliverables:**
+
 - [ ] ProjectionEngine class
 - [ ] Rule loading
 - [ ] Element projection logic
@@ -383,6 +418,7 @@ Implement the core projection engine.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ProjectionEngine class
 2. Implement load_rules() from YAML
 3. Implement find_applicable_rules()
@@ -398,6 +434,7 @@ Implement the core projection engine.
 8. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Rules load from configuration
 - [ ] Elements project correctly
 - [ ] Templates render correctly
@@ -407,6 +444,7 @@ Implement the core projection engine.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_projection_engine.py
 from documentation_robotics.core.projection_engine import (
@@ -462,6 +500,7 @@ def test_project_all(sample_model_with_services):
 ---
 
 #### Task 3.3: Projection Rules Configuration
+
 **Estimated Time:** 4 hours
 **Priority:** High
 **Dependencies:** Task 3.2
@@ -470,24 +509,27 @@ def test_project_all(sample_model_with_services):
 Create default projection rules for common patterns.
 
 **Deliverables:**
+
 - [ ] Default projection-rules.yaml
 - [ ] Documentation for rule format
 - [ ] Example rules for all layer pairs
 - [ ] Validation for rule files
 
 **Implementation Steps:**
+
 1. Create .dr/projection-rules.yaml template
 2. Define rules for common projections:
-   - Business ’ Application
-   - Application ’ Technology
-   - Business ’ API
-   - Data Model ’ Datastore
-   - UX ’ Navigation
+   - Business ï¿½ Application
+   - Application ï¿½ Technology
+   - Business ï¿½ API
+   - Data Model ï¿½ Datastore
+   - UX ï¿½ Navigation
 3. Document rule format in README
 4. Add rule validation
 5. Create examples
 
 **Acceptance Criteria:**
+
 - [ ] Default rules cover common cases
 - [ ] Rules are well-documented
 - [ ] Examples demonstrate all features
@@ -499,6 +541,7 @@ Create default projection rules for common patterns.
 ### 3.4 Sprint 4: Projection Commands (Week 5)
 
 #### Task 4.1: Project Command Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 3.2
@@ -507,6 +550,7 @@ Create default projection rules for common patterns.
 Implement the `dr project` command.
 
 **Deliverables:**
+
 - [ ] Project command
 - [ ] Single element projection
 - [ ] Rule selection
@@ -514,6 +558,7 @@ Implement the `dr project` command.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create project Click command
 2. Implement element selection
 3. Implement target layer specification
@@ -525,6 +570,7 @@ Implement the `dr project` command.
 9. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can project single element
 - [ ] Target layer can be specified
 - [ ] Rule can be selected or auto-discovered
@@ -533,6 +579,7 @@ Implement the `dr project` command.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_project.py
 from click.testing import CliRunner
@@ -577,6 +624,7 @@ def test_project_dry_run(initialized_model_with_rules):
 ---
 
 #### Task 4.2: Project-All Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 4.1
@@ -585,6 +633,7 @@ def test_project_dry_run(initialized_model_with_rules):
 Implement the `dr project-all` command for bulk projection.
 
 **Deliverables:**
+
 - [ ] Project-all command
 - [ ] Layer-to-layer projection
 - [ ] Progress reporting
@@ -592,6 +641,7 @@ Implement the `dr project-all` command for bulk projection.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create project-all Click command
 2. Implement layer specification (from/to)
 3. Implement element filtering
@@ -602,6 +652,7 @@ Implement the `dr project-all` command for bulk projection.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can project all elements in a layer
 - [ ] Progress shown for large batches
 - [ ] Errors aggregated and reported
@@ -613,6 +664,7 @@ Implement the `dr project-all` command for bulk projection.
 ### 3.5 Sprint 5: Dependency Tracing (Week 6)
 
 #### Task 5.1: DependencyTracker Implementation
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -621,6 +673,7 @@ Implement the `dr project-all` command for bulk projection.
 Implement dependency tracking and analysis using NetworkX.
 
 **Deliverables:**
+
 - [ ] DependencyTracker class
 - [ ] Dependency graph construction
 - [ ] Path finding
@@ -629,6 +682,7 @@ Implement dependency tracking and analysis using NetworkX.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create DependencyTracker class
 2. Implement graph construction from ReferenceRegistry
 3. Implement find_dependencies() (direct dependencies)
@@ -641,6 +695,7 @@ Implement dependency tracking and analysis using NetworkX.
 10. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Dependency graph built from references
 - [ ] Can find direct and transitive dependencies
 - [ ] Can perform impact analysis
@@ -650,6 +705,7 @@ Implement dependency tracking and analysis using NetworkX.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_dependency_tracker.py
 from documentation_robotics.core.dependency_tracker import DependencyTracker
@@ -689,6 +745,7 @@ def test_find_dependency_path(sample_model_with_refs):
 ---
 
 #### Task 5.2: Trace Command Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 5.1
@@ -697,6 +754,7 @@ def test_find_dependency_path(sample_model_with_refs):
 Implement the `dr trace` command for dependency tracing.
 
 **Deliverables:**
+
 - [ ] Trace command
 - [ ] Multiple trace modes (deps, dependents, impact, path)
 - [ ] Tree visualization
@@ -704,6 +762,7 @@ Implement the `dr trace` command for dependency tracing.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create trace Click command
 2. Implement --mode option (dependencies, dependents, impact, path)
 3. Implement tree output format
@@ -714,6 +773,7 @@ Implement the `dr trace` command for dependency tracing.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can trace dependencies
 - [ ] Can trace dependents
 - [ ] Can perform impact analysis
@@ -723,6 +783,7 @@ Implement the `dr trace` command for dependency tracing.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_trace.py
 from click.testing import CliRunner
@@ -760,6 +821,7 @@ def test_trace_impact(initialized_model_with_deps):
 ### 3.6 Sprint 6: Integration & Testing (Week 7-8)
 
 #### Task 6.1: End-to-End Workflows
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** All previous tasks
@@ -768,12 +830,14 @@ def test_trace_impact(initialized_model_with_deps):
 Create end-to-end tests for complete workflows.
 
 **Deliverables:**
+
 - [ ] E2E test scenarios
 - [ ] Full workflow tests
 - [ ] Performance tests
 - [ ] Documentation
 
 **Test Scenarios:**
+
 1. **Projection Workflow:**
    - Initialize model
    - Add business services
@@ -795,6 +859,7 @@ Create end-to-end tests for complete workflows.
    - Export dependency graph
 
 **Acceptance Criteria:**
+
 - [ ] All E2E scenarios pass
 - [ ] Workflows documented
 - [ ] Performance acceptable
@@ -803,6 +868,7 @@ Create end-to-end tests for complete workflows.
 ---
 
 #### Task 6.2: Performance Optimization
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 6.1
@@ -811,17 +877,20 @@ Create end-to-end tests for complete workflows.
 Optimize performance for large models.
 
 **Deliverables:**
+
 - [ ] Performance profiling
 - [ ] Optimization implementations
 - [ ] Benchmark results
 
 **Focus Areas:**
+
 - Reference registry lookups
 - Dependency graph construction
 - Projection performance
 - Validation speed
 
 **Acceptance Criteria:**
+
 - [ ] Reference lookups: O(1) average
 - [ ] Projection: < 200ms per element
 - [ ] Validation: < 5s for 1000 elements
@@ -830,6 +899,7 @@ Optimize performance for large models.
 ---
 
 #### Task 6.3: Documentation Updates
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** All previous tasks
@@ -838,6 +908,7 @@ Optimize performance for large models.
 Update documentation for Phase 2 features.
 
 **Deliverables:**
+
 - [ ] Updated README
 - [ ] Projection guide
 - [ ] Validation guide
@@ -845,6 +916,7 @@ Update documentation for Phase 2 features.
 - [ ] API documentation
 
 **Sections to Add:**
+
 1. Cross-layer projection guide
 2. Writing projection rules
 3. Understanding validation errors
@@ -853,6 +925,7 @@ Update documentation for Phase 2 features.
 6. Best practices
 
 **Acceptance Criteria:**
+
 - [ ] All new commands documented
 - [ ] Examples for all features
 - [ ] Troubleshooting guide updated
@@ -861,6 +934,7 @@ Update documentation for Phase 2 features.
 ---
 
 #### Task 6.4: Migration Support
+
 **Estimated Time:** 4 hours
 **Priority:** Medium
 **Dependencies:** Task 6.3
@@ -869,11 +943,13 @@ Update documentation for Phase 2 features.
 Create migration support for Phase 1 models.
 
 **Deliverables:**
+
 - [ ] Migration script
 - [ ] Reference discovery utility
 - [ ] Migration documentation
 
 **Implementation Steps:**
+
 1. Create dr migrate command
 2. Implement reference discovery for existing models
 3. Create reference registry from existing model
@@ -881,6 +957,7 @@ Create migration support for Phase 1 models.
 5. Document process
 
 **Acceptance Criteria:**
+
 - [ ] Phase 1 models migrate cleanly
 - [ ] References auto-discovered
 - [ ] Migration documented
@@ -893,6 +970,7 @@ Create migration support for Phase 1 models.
 ### 4.1 Unit Tests
 
 **New Components to Test:**
+
 - ReferenceRegistry (all methods)
 - ProjectionEngine (rule loading, projection logic)
 - DependencyTracker (graph operations)
@@ -904,12 +982,14 @@ Create migration support for Phase 1 models.
 ### 4.2 Integration Tests
 
 **Command Tests:**
+
 - `dr project` - single element projection
 - `dr project-all` - bulk projection
 - `dr trace` - all trace modes
 - `dr validate` - enhanced validation
 
 **Workflow Tests:**
+
 - Projection workflow
 - Validation workflow
 - Dependency analysis workflow
@@ -917,6 +997,7 @@ Create migration support for Phase 1 models.
 ### 4.3 Performance Tests
 
 **Benchmarks:**
+
 - Reference registry with 10,000 references
 - Projection of 1,000 elements
 - Dependency graph with 1,000 nodes
@@ -925,26 +1006,32 @@ Create migration support for Phase 1 models.
 ## 5. Risk Management
 
 ### Risk 1: Circular Reference Performance
+
 **Probability:** Medium
 **Impact:** Medium
 **Mitigation:**
+
 - Use NetworkX for efficient cycle detection
 - Cache cycle detection results
 - Limit search depth
 
 ### Risk 2: Projection Rule Complexity
+
 **Probability:** High
 **Impact:** Low
 **Mitigation:**
+
 - Start with simple rules
 - Comprehensive validation
 - Good error messages
 - Extensive examples
 
 ### Risk 3: Backward Compatibility
+
 **Probability:** Low
 **Impact:** High
 **Mitigation:**
+
 - Maintain Phase 1 API
 - Migration script
 - Comprehensive testing
@@ -954,7 +1041,8 @@ Create migration support for Phase 1 models.
 
 Phase 2 is complete when:
 
-### Functional Requirements:
+### Functional Requirements
+
 - [ ] Reference registry tracks all cross-layer references
 - [ ] Cross-reference validation detects broken references
 - [ ] Semantic validation enforces business rules
@@ -962,14 +1050,16 @@ Phase 2 is complete when:
 - [ ] Dependency tracker analyzes impact
 - [ ] All commands work with large models (1000+ elements)
 
-### Non-Functional Requirements:
+### Non-Functional Requirements
+
 - [ ] Code coverage > 80%
 - [ ] Projection performance < 200ms per element
 - [ ] Validation performance < 5s for 1000 elements
 - [ ] Documentation complete
 - [ ] Phase 1 models migrate cleanly
 
-### Quality Criteria:
+### Quality Criteria
+
 - [ ] All E2E tests pass
 - [ ] No critical bugs
 - [ ] Performance benchmarks met
@@ -978,29 +1068,32 @@ Phase 2 is complete when:
 ## 7. Success Metrics
 
 ### Functionality
+
 - **Target:** All commands work correctly
 - **Measure:** Integration test pass rate
 
 ### Performance
+
 - **Target:** < 200ms projection time
 - **Measure:** pytest-benchmark
 
 ### Validation Coverage
+
 - **Target:** 95% of common errors caught
 - **Measure:** Test scenario coverage
 
 ## 8. Timeline Summary
 
-| Week | Sprint | Focus | Key Deliverables |
-|------|--------|-------|------------------|
-| 1-2 | Sprint 1 | Reference Registry | ReferenceRegistry, Model integration |
-| 3 | Sprint 2 | Enhanced Validation | CrossReferenceValidator, SemanticValidator |
-| 4 | Sprint 3 | Projection Core | ProjectionEngine, rules |
-| 5 | Sprint 4 | Projection Commands | `dr project`, `dr project-all` |
-| 6 | Sprint 5 | Dependency Tracing | DependencyTracker, `dr trace` |
-| 7-8 | Sprint 6 | Integration | E2E tests, docs, optimization |
+| Week | Sprint   | Focus               | Key Deliverables                           |
+| ---- | -------- | ------------------- | ------------------------------------------ |
+| 1-2  | Sprint 1 | Reference Registry  | ReferenceRegistry, Model integration       |
+| 3    | Sprint 2 | Enhanced Validation | CrossReferenceValidator, SemanticValidator |
+| 4    | Sprint 3 | Projection Core     | ProjectionEngine, rules                    |
+| 5    | Sprint 4 | Projection Commands | `dr project`, `dr project-all`             |
+| 6    | Sprint 5 | Dependency Tracing  | DependencyTracker, `dr trace`              |
+| 7-8  | Sprint 6 | Integration         | E2E tests, docs, optimization              |
 
-**Total Estimated Time:** 160 hours (8 weeks × 20 hours/week)
+**Total Estimated Time:** 160 hours (8 weeks ï¿½ 20 hours/week)
 
 ## 9. Next Steps After Phase 2
 

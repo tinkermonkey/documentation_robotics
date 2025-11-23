@@ -1,23 +1,28 @@
 """
 Dependency tracker - analyzes dependencies between elements.
 """
-from typing import List, Dict, Set, Optional, Any
+
 from dataclasses import dataclass
 from enum import Enum
+from typing import Any, Dict, List, Optional, Set
+
 import networkx as nx
+
 from .reference_registry import ReferenceRegistry
 
 
 class TraceDirection(Enum):
     """Direction to trace dependencies."""
-    UP = "up"          # Find what this depends on
-    DOWN = "down"      # Find what depends on this
-    BOTH = "both"      # Both directions
+
+    UP = "up"  # Find what this depends on
+    DOWN = "down"  # Find what depends on this
+    BOTH = "both"  # Both directions
 
 
 @dataclass
 class DependencyPath:
     """Represents a dependency path between two elements."""
+
     source: str
     target: str
     path: List[str]
@@ -54,7 +59,7 @@ class DependencyTracker:
         self,
         element_id: str,
         direction: TraceDirection = TraceDirection.BOTH,
-        max_depth: Optional[int] = None
+        max_depth: Optional[int] = None,
     ) -> List[Any]:
         """
         Trace dependencies from an element.
@@ -91,12 +96,7 @@ class DependencyTracker:
 
         return elements
 
-    def _trace_up(
-        self,
-        graph: nx.DiGraph,
-        element_id: str,
-        max_depth: Optional[int]
-    ) -> Set[str]:
+    def _trace_up(self, graph: nx.DiGraph, element_id: str, max_depth: Optional[int]) -> Set[str]:
         """Trace upward dependencies (what element depends on)."""
         if max_depth is None:
             # Get all descendants (what this points to / depends on)
@@ -118,12 +118,7 @@ class DependencyTracker:
 
             return descendants
 
-    def _trace_down(
-        self,
-        graph: nx.DiGraph,
-        element_id: str,
-        max_depth: Optional[int]
-    ) -> Set[str]:
+    def _trace_down(self, graph: nx.DiGraph, element_id: str, max_depth: Optional[int]) -> Set[str]:
         """Trace downward dependencies (what depends on element)."""
         if max_depth is None:
             # Get all ancestors (what points to this / depends on this)
@@ -146,10 +141,7 @@ class DependencyTracker:
             return ancestors
 
     def find_dependency_paths(
-        self,
-        source_id: str,
-        target_id: str,
-        max_paths: int = 10
+        self, source_id: str, target_id: str, max_paths: int = 10
     ) -> List[DependencyPath]:
         """
         Find all dependency paths between two elements.
@@ -169,12 +161,7 @@ class DependencyTracker:
 
         try:
             # Find all simple paths
-            paths = list(nx.all_simple_paths(
-                graph,
-                source_id,
-                target_id,
-                cutoff=max_paths
-            ))
+            paths = list(nx.all_simple_paths(graph, source_id, target_id, cutoff=max_paths))
 
             # Convert to DependencyPath objects
             dependency_paths = []
@@ -185,13 +172,15 @@ class DependencyTracker:
                     edge_data = graph.get_edge_data(path[i], path[i + 1])
                     rel_types.append(edge_data.get("type", "unknown") if edge_data else "unknown")
 
-                dependency_paths.append(DependencyPath(
-                    source=source_id,
-                    target=target_id,
-                    path=path,
-                    depth=len(path) - 1,
-                    relationship_types=rel_types
-                ))
+                dependency_paths.append(
+                    DependencyPath(
+                        source=source_id,
+                        target=target_id,
+                        path=path,
+                        depth=len(path) - 1,
+                        relationship_types=rel_types,
+                    )
+                )
 
             return dependency_paths
 

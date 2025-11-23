@@ -14,6 +14,7 @@ The APM/Observability Layer defines distributed tracing, logging, and metrics us
 ## Why OpenTelemetry?
 
 OpenTelemetry is the industry standard for observability:
+
 - **Complete Coverage**: Traces, metrics, and logs in one specification
 - **Vendor Neutral**: Works with any observability backend
 - **Industry Standard**: CNCF project with broad adoption
@@ -24,17 +25,21 @@ OpenTelemetry is the industry standard for observability:
 ## Three Pillars of Observability
 
 ### 1. Distributed Tracing
+
 Track requests across services
 
 ### 2. Metrics
+
 Measure system performance and behavior
 
 ### 3. Logging
+
 Capture detailed event information
 
 ## Core OpenTelemetry Entities
 
 ### Span
+
 ```yaml
 Span:
   description: "Unit of work in distributed tracing"
@@ -66,11 +71,11 @@ Span:
 
   enums:
     SpanKind:
-      - INTERNAL      # Internal operation
-      - SERVER        # Synchronous server request
-      - CLIENT        # Synchronous client request
-      - PRODUCER      # Asynchronous producer
-      - CONSUMER      # Asynchronous consumer
+      - INTERNAL # Internal operation
+      - SERVER # Synchronous server request
+      - CLIENT # Synchronous client request
+      - PRODUCER # Asynchronous producer
+      - CONSUMER # Asynchronous consumer
 
   examples:
     # HTTP server span
@@ -106,6 +111,7 @@ Span:
 ```
 
 ### SpanEvent
+
 ```yaml
 SpanEvent:
   description: "Timestamped event during span execution"
@@ -140,6 +146,7 @@ SpanEvent:
 ```
 
 ### SpanLink
+
 ```yaml
 SpanLink:
   description: "Link to related span (different trace or parent)"
@@ -164,6 +171,7 @@ SpanLink:
 ```
 
 ### SpanStatus
+
 ```yaml
 SpanStatus:
   description: "Outcome of span execution"
@@ -173,9 +181,9 @@ SpanStatus:
 
   enums:
     StatusCode:
-      - UNSET   # Default, no explicit status
-      - OK      # Success
-      - ERROR   # Failure
+      - UNSET # Default, no explicit status
+      - OK # Success
+      - ERROR # Failure
 
   examples:
     # Success
@@ -187,6 +195,7 @@ SpanStatus:
 ```
 
 ### LogRecord
+
 ```yaml
 LogRecord:
   description: "OpenTelemetry log entry"
@@ -264,6 +273,7 @@ LogRecord:
 ```
 
 ### Resource
+
 ```yaml
 Resource:
   description: "Immutable representation of entity producing telemetry"
@@ -341,6 +351,7 @@ Resource:
 ```
 
 ### InstrumentationScope
+
 ```yaml
 InstrumentationScope:
   description: "Logical unit of code that generates telemetry"
@@ -362,6 +373,7 @@ InstrumentationScope:
 ```
 
 ### Attribute
+
 ```yaml
 Attribute:
   description: "Key-value pair metadata"
@@ -435,6 +447,7 @@ Attribute:
 ## Metrics (OpenTelemetry Metrics)
 
 ### Metric Types
+
 ```yaml
 MetricTypes:
   Counter:
@@ -468,6 +481,7 @@ MetricTypes:
 ## APM Configuration
 
 ### APMConfiguration
+
 ```yaml
 APMConfiguration:
   description: "Complete APM configuration for an application"
@@ -490,6 +504,7 @@ APMConfiguration:
 ```
 
 ### TraceConfiguration
+
 ```yaml
 TraceConfiguration:
   description: "Distributed tracing configuration"
@@ -515,20 +530,20 @@ TraceConfiguration:
 
   enums:
     SamplerType:
-      - always_on            # Sample everything
-      - always_off           # Sample nothing
-      - traceidratio         # Sample by trace ID ratio
+      - always_on # Sample everything
+      - always_off # Sample nothing
+      - traceidratio # Sample by trace ID ratio
       - parentbased_always_on
       - parentbased_always_off
       - parentbased_traceidratio
 
     PropagatorType:
-      - w3c-trace-context    # W3C Trace Context (recommended)
-      - w3c-baggage          # W3C Baggage
-      - b3                   # Zipkin B3
-      - jaeger               # Jaeger
-      - xray                 # AWS X-Ray
-      - ottrace              # OpenTracing
+      - w3c-trace-context # W3C Trace Context (recommended)
+      - w3c-baggage # W3C Baggage
+      - b3 # Zipkin B3
+      - jaeger # Jaeger
+      - xray # AWS X-Ray
+      - ottrace # OpenTracing
 
   examples:
     serviceName: "product-service"
@@ -537,7 +552,7 @@ TraceConfiguration:
     sampler:
       type: parentbased_traceidratio
       config:
-        ratio: 0.1  # Sample 10% of traces
+        ratio: 0.1 # Sample 10% of traces
     propagators:
       - w3c-trace-context
       - w3c-baggage
@@ -559,6 +574,7 @@ TraceConfiguration:
 ```
 
 ### LogConfiguration
+
 ```yaml
 LogConfiguration:
   description: "Logging configuration"
@@ -614,6 +630,7 @@ LogConfiguration:
 ```
 
 ### MetricConfiguration
+
 ```yaml
 MetricConfiguration:
   description: "Metrics configuration"
@@ -670,6 +687,7 @@ MetricConfiguration:
 ```
 
 ### DataQualityMetrics
+
 ```yaml
 DataQualityMetrics:
   description: "Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)"
@@ -799,13 +817,13 @@ DataQualityMetric:
       "type": "object",
       "description": "Contextual data",
       "properties": {
-        "traceId": {"type": "string"},
-        "spanId": {"type": "string"},
-        "userId": {"type": "string"},
-        "tenantId": {"type": "string"},
-        "requestId": {"type": "string"},
-        "sessionId": {"type": "string"},
-        "correlationId": {"type": "string"}
+        "traceId": { "type": "string" },
+        "spanId": { "type": "string" },
+        "userId": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "requestId": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "correlationId": { "type": "string" }
       }
     },
 
@@ -813,12 +831,12 @@ DataQualityMetric:
       "type": "object",
       "description": "HTTP request details",
       "properties": {
-        "method": {"type": "string"},
-        "path": {"type": "string"},
-        "queryParams": {"type": "object"},
-        "headers": {"type": "object"},
-        "remoteAddr": {"type": "string"},
-        "userAgent": {"type": "string"}
+        "method": { "type": "string" },
+        "path": { "type": "string" },
+        "queryParams": { "type": "object" },
+        "headers": { "type": "object" },
+        "remoteAddr": { "type": "string" },
+        "userAgent": { "type": "string" }
       }
     },
 
@@ -826,9 +844,9 @@ DataQualityMetric:
       "type": "object",
       "description": "HTTP response details",
       "properties": {
-        "statusCode": {"type": "integer"},
-        "durationMs": {"type": "number"},
-        "bytesWritten": {"type": "integer"}
+        "statusCode": { "type": "integer" },
+        "durationMs": { "type": "number" },
+        "bytesWritten": { "type": "integer" }
       }
     },
 
@@ -836,9 +854,9 @@ DataQualityMetric:
       "type": "object",
       "description": "Error details if applicable",
       "properties": {
-        "type": {"type": "string"},
-        "message": {"type": "string"},
-        "stackTrace": {"type": "string"}
+        "type": { "type": "string" },
+        "message": { "type": "string" },
+        "stackTrace": { "type": "string" }
       }
     },
 
@@ -846,10 +864,10 @@ DataQualityMetric:
       "type": "object",
       "description": "Performance metrics",
       "properties": {
-        "cpuTimeMs": {"type": "number"},
-        "memoryUsedBytes": {"type": "integer"},
-        "dbQueriesCount": {"type": "integer"},
-        "dbTimeMs": {"type": "number"}
+        "cpuTimeMs": { "type": "number" },
+        "memoryUsedBytes": { "type": "integer" },
+        "dbQueriesCount": { "type": "integer" },
+        "dbTimeMs": { "type": "number" }
       }
     }
   },
@@ -898,7 +916,7 @@ tracing:
   sampler:
     type: parentbased_traceidratio
     config:
-      ratio: 0.1  # Sample 10% of root spans
+      ratio: 0.1 # Sample 10% of root spans
     governedByPrinciples:
       - "principle-cost-optimization"
       - "principle-privacy-by-design"
@@ -906,8 +924,8 @@ tracing:
 
   # Context propagation
   propagators:
-    - w3c-trace-context  # Primary propagator
-    - w3c-baggage        # For baggage propagation
+    - w3c-trace-context # Primary propagator
+    - w3c-baggage # For baggage propagation
 
   # Trace export
   exporters:
@@ -1174,11 +1192,11 @@ metrics:
           uxComponentRef: "product-list-screen"
           # Core Web Vitals
           webVitals:
-            - metric: "LCP"  # Largest Contentful Paint
+            - metric: "LCP" # Largest Contentful Paint
               threshold: "< 2.5s"
-            - metric: "FID"  # First Input Delay
+            - metric: "FID" # First Input Delay
               threshold: "< 100ms"
-            - metric: "CLS"  # Cumulative Layout Shift
+            - metric: "CLS" # Cumulative Layout Shift
               threshold: "< 0.1"
           motivationMapping:
             contributesToGoal: "goal-user-experience"
@@ -1269,29 +1287,36 @@ dataQuality:
 ## Integration Points
 
 ### To Motivation Layer (Enhanced)
+
 **Goals & Outcomes:**
+
 - `motivationMapping.contributesToGoal` - Metrics link to Goals they measure
 - `motivationMapping.measuresOutcome` - Metrics track Outcome achievement
 - `motivationMapping.kpiFormula` - Defines goal achievement calculation
 
 **Requirements Fulfillment (NEW):**
+
 - `motivationMapping.fulfillsRequirements` - Metrics validate Requirements (especially NFRs)
 - `motivationMapping.validationCriteria` - SLA/NFR threshold validation
 - Examples: API latency requirements, availability SLAs, data quality requirements
 
 **Principle Governance (NEW):**
+
 - `APMConfiguration.motivationMapping.governedByPrinciples` - Observability strategy governed by Principles
 - `TraceConfiguration.sampler.governedByPrinciples` - Sampling decisions driven by Principles
 - `DataQualityMetric.motivationMapping.governedByPrinciples` - Data quality governed by Principles
 - Examples: Cost optimization, privacy by design, observability-first principles
 
 **Traceability Benefits:**
+
 - Proves goal achievement through quantitative measurement
 - Validates NFR compliance with real-time metrics
 - Demonstrates architectural principle adherence
 
 ### To Business Layer (Enhanced)
+
 **Business Process Performance (NEW):**
+
 - `Span.businessProcess` - Traces link to BusinessProcess
 - `Span.processStepName` - Specific process step tracking
 - `MetricInstrument.businessProcessRef` - Metrics measure process performance
@@ -1299,16 +1324,20 @@ dataQuality:
 - Enables business process mining and end-to-end process optimization
 
 **Business Service Monitoring:**
+
 - BusinessProcess KPI targets validated by metrics
 - Business metrics track service-level performance
 
 ### To ArchiMate Application Layer
+
 - TraceConfiguration references ApplicationService
 - Span names map to ApplicationFunction operations
 - Resource attributes identify ApplicationComponent
 
 ### To Technology Layer (NEW)
+
 **Infrastructure Attribution:**
+
 - `Resource.technology.component.id` - Links to Technology Layer components
 - `Resource.technology.framework` - Framework identification (React, Spring Boot, etc.)
 - `Resource.technology.runtime` - Runtime environment tracking
@@ -1316,20 +1345,25 @@ dataQuality:
 - Enables infrastructure performance analysis and cost allocation
 
 ### To API Layer (OpenAPI)
+
 - Span names match OpenAPI operationIds
 - HTTP attributes follow OpenAPI parameters
 - Enables automatic instrumentation of APIs
 - API operation SLA targets validated by metrics
 
 ### To Data Model Layer (Enhanced)
+
 **Data Quality Monitoring (NEW - Critical):**
+
 - `DataQualityMetrics.dataModelSchemaId` - Links to JSON Schema definitions
 - `DataQualityMetric` types: completeness, accuracy, freshness, consistency, integrity
 - Closes the loop on Data Model Layer's `x-apm-data-quality-metrics` reference
 - Enables data governance and quality validation
 
 ### To UX Layer (Enhanced)
+
 **Real User Monitoring (NEW):**
+
 - `MetricInstrument.uxComponentRef` - Links to UX Layer screens/components
 - `webVitals` metrics - Core Web Vitals (LCP, FID, CLS)
 - Page load time metrics per UX component
@@ -1337,12 +1371,15 @@ dataQuality:
 - Enables UX performance optimization and user journey analysis
 
 **End-to-End Tracing:**
+
 - Frontend traces link to backend traces
 - User interactions generate client spans
 - End-to-end transaction tracing
 
 ### To Navigation Layer (NEW)
+
 **Navigation Flow Performance:**
+
 - `MetricInstrument.navigationRouteRef` - Links to Navigation routes
 - Route transition time metrics
 - Navigation guard execution performance
@@ -1350,23 +1387,28 @@ dataQuality:
 - Enables identification of UX bottlenecks in navigation flows
 
 ### To Data Store Layer
+
 - Database spans track query performance
 - Connection pool metrics
 - Query optimization insights
 
 ### To Security Layer (Enhanced)
+
 **Accountability & Audit (NEW):**
+
 - `LogConfiguration.auditConfiguration.accountabilityRequirementRefs` - Links to AccountabilityRequirements
 - `LogConfiguration.auditConfiguration.retentionPeriod` - Driven by security requirements
 - `LogConfiguration.auditConfiguration.nonRepudiation` - Cryptographic audit integrity
 
 **Threat Detection (NEW):**
+
 - `MetricInstrument.securityThreatRef` - Metrics linked to Threats they detect
 - `MetricInstrument.securityControlRef` - Metrics monitor security Controls
 - `MetricInstrument.securityAccountabilityRef` - Links to accountability requirements
 - Examples: Failed auth attempts → brute force threat, unauthorized access → RBAC control
 
 **Security Monitoring:**
+
 - Audit logs include trace context
 - Security events tracked in spans
 - Anomaly detection via metrics
@@ -1374,6 +1416,7 @@ dataQuality:
 ## Best Practices
 
 ### Core Observability Practices
+
 1. **Sampling**: Use intelligent sampling in production (10-20%)
 2. **Cardinality**: Limit attribute cardinality to avoid metric explosion
 3. **Correlation**: Always include trace context in logs
@@ -1386,6 +1429,7 @@ dataQuality:
 10. **Security**: Sanitize sensitive data from traces and logs
 
 ### Cross-Layer Integration Practices (NEW)
+
 11. **Requirements Validation**: Link SLA/NFR metrics to Requirements for compliance proof
 12. **Principle Governance**: Document which Principles govern observability decisions
 13. **Business Process Mining**: Track process-level metrics to enable end-to-end optimization

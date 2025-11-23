@@ -1,10 +1,13 @@
 """
 Initialize a new architecture model.
 """
-import click
+
 from pathlib import Path
+
+import click
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
+
 from ..core.manifest import Manifest
 from ..utils.file_io import create_directory_structure
 
@@ -20,7 +23,7 @@ class ModelInitializer:
         project_name: str,
         template: str = "basic",
         minimal: bool = False,
-        with_examples: bool = False
+        with_examples: bool = False,
     ):
         self.root_path = root_path
         self.project_name = project_name
@@ -31,9 +34,7 @@ class ModelInitializer:
     def create(self) -> None:
         """Create the model structure."""
         with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            console=console
+            SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console
         ) as progress:
             # Create directory structure
             task = progress.add_task("Creating directory structure...", total=None)
@@ -66,7 +67,9 @@ class ModelInitializer:
                 self._create_examples()
                 progress.update(task, completed=True)
 
-        console.print(f"\n✓ Successfully initialized model: {self.project_name}", style="green bold")
+        console.print(
+            f"\n✓ Successfully initialized model: {self.project_name}", style="green bold"
+        )
         console.print(f"   Location: {self.root_path.absolute()}")
         console.print("\nNext steps:")
         console.print("  1. Review the model structure in model/")
@@ -108,7 +111,7 @@ class ModelInitializer:
             path=self.root_path / "model" / "manifest.yaml",
             project_name=self.project_name,
             project_description=f"Architecture model for {self.project_name}",
-            project_version="1.0.0"
+            project_version="1.0.0",
         )
 
     def _create_documentation(self) -> None:
@@ -279,7 +282,7 @@ def init(project_name: str, template: str, minimal: bool, with_examples: bool, p
         project_name=project_name,
         template=template,
         minimal=minimal,
-        with_examples=with_examples
+        with_examples=with_examples,
     )
 
     try:

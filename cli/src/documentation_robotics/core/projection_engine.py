@@ -1,9 +1,11 @@
 """
 Projection engine - automatically creates elements across layers.
 """
-from typing import Dict, List, Optional, Any
-from pathlib import Path
+
 from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
 import yaml
 from jinja2 import Template
 
@@ -11,6 +13,7 @@ from jinja2 import Template
 @dataclass
 class ProjectionRule:
     """Defines how to project from one layer to another."""
+
     name: str
     from_layer: str
     from_type: str
@@ -82,13 +85,11 @@ class ProjectionEngine:
             name_template=rule_details.get("name_template", "{source.name}"),
             property_mappings=rule_details.get("properties", {}),
             conditions=rule_data.get("conditions"),
-            template_file=rule_details.get("template")
+            template_file=rule_details.get("template"),
         )
 
     def find_applicable_rules(
-        self,
-        source: Any,
-        target_layer: Optional[str] = None
+        self, source: Any, target_layer: Optional[str] = None
     ) -> List[ProjectionRule]:
         """
         Find projection rules applicable to a source element.
@@ -141,7 +142,7 @@ class ProjectionEngine:
         source: Any,
         target_layer: str,
         rule: Optional[ProjectionRule] = None,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> Optional[Any]:
         """
         Project an element to a target layer.
@@ -159,9 +160,7 @@ class ProjectionEngine:
         if not rule:
             rules = self.find_applicable_rules(source, target_layer)
             if not rules:
-                raise ValueError(
-                    f"No projection rule found for {source.id} -> {target_layer}"
-                )
+                raise ValueError(f"No projection rule found for {source.id} -> {target_layer}")
             rule = rules[0]  # Use first matching rule
 
         # Build projected element
@@ -175,7 +174,7 @@ class ProjectionEngine:
             self.model.add_element(rule.to_layer, projected)
 
             # Update reference registry
-            if hasattr(self.model, 'reference_registry'):
+            if hasattr(self.model, "reference_registry"):
                 self.model.reference_registry.register_element(projected)
 
             return projected
@@ -183,11 +182,7 @@ class ProjectionEngine:
         except Exception as e:
             raise ValueError(f"Failed to project element: {e}")
 
-    def _build_projected_element(
-        self,
-        source: Any,
-        rule: ProjectionRule
-    ) -> Any:
+    def _build_projected_element(self, source: Any, rule: ProjectionRule) -> Any:
         """
         Build projected element from source and rule.
 
@@ -198,8 +193,8 @@ class ProjectionEngine:
         Returns:
             New projected element
         """
-        from .element import Element
         from ..utils.id_generator import generate_element_id
+        from .element import Element
 
         # Render name template
         name = self._render_template(rule.name_template, source)
@@ -219,12 +214,7 @@ class ProjectionEngine:
             self._set_nested_property(data, target_prop, value)
 
         # Create element
-        return Element(
-            id=element_id,
-            element_type=rule.to_type,
-            layer=rule.to_layer,
-            data=data
-        )
+        return Element(id=element_id, element_type=rule.to_type, layer=rule.to_layer, data=data)
 
     def _render_template(self, template_str: str, source: Any) -> str:
         """
@@ -277,6 +267,7 @@ class ProjectionEngine:
     def _to_snake_case(self, text: str) -> str:
         """Convert to snake_case."""
         from ..utils.id_generator import to_kebab_case
+
         return to_kebab_case(text).replace("-", "_")
 
     def _set_nested_property(self, data: dict, path: str, value: Any) -> None:
@@ -295,7 +286,7 @@ class ProjectionEngine:
         self,
         from_layer: Optional[str] = None,
         to_layer: Optional[str] = None,
-        dry_run: bool = False
+        dry_run: bool = False,
     ) -> List[Any]:
         """
         Project all applicable elements.

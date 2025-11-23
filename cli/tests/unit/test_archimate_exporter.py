@@ -1,10 +1,10 @@
 """Tests for ArchiMate exporter."""
+
 import pytest
-from pathlib import Path
-from lxml import etree as ET
-from documentation_robotics.export.archimate_exporter import ArchiMateExporter
-from documentation_robotics.export.export_manager import ExportOptions, ExportFormat
 from documentation_robotics.core.element import Element
+from documentation_robotics.export.archimate_exporter import ArchiMateExporter
+from documentation_robotics.export.export_manager import ExportFormat, ExportOptions
+from lxml import etree as ET
 
 
 @pytest.fixture
@@ -89,29 +89,16 @@ def test_archimate_xml_structure(model_with_elements, temp_dir):
 def test_archimate_element_mapping():
     """Test ArchiMate element type mapping."""
     # Test motivation layer mappings
-    assert (
-        ArchiMateExporter.LAYER_TYPE_MAP[("motivation", "goal")] == "Goal"
-    )
-    assert (
-        ArchiMateExporter.LAYER_TYPE_MAP[("motivation", "stakeholder")]
-        == "Stakeholder"
-    )
+    assert ArchiMateExporter.LAYER_TYPE_MAP[("motivation", "goal")] == "Goal"
+    assert ArchiMateExporter.LAYER_TYPE_MAP[("motivation", "stakeholder")] == "Stakeholder"
 
     # Test business layer mappings
-    assert (
-        ArchiMateExporter.LAYER_TYPE_MAP[("business", "service")] == "BusinessService"
-    )
+    assert ArchiMateExporter.LAYER_TYPE_MAP[("business", "service")] == "BusinessService"
     assert ArchiMateExporter.LAYER_TYPE_MAP[("business", "actor")] == "BusinessActor"
 
     # Test application layer mappings
-    assert (
-        ArchiMateExporter.LAYER_TYPE_MAP[("application", "service")]
-        == "ApplicationService"
-    )
-    assert (
-        ArchiMateExporter.LAYER_TYPE_MAP[("application", "component")]
-        == "ApplicationComponent"
-    )
+    assert ArchiMateExporter.LAYER_TYPE_MAP[("application", "service")] == "ApplicationService"
+    assert ArchiMateExporter.LAYER_TYPE_MAP[("application", "component")] == "ApplicationComponent"
 
 
 def test_archimate_relationship_mapping():
@@ -159,7 +146,7 @@ def test_archimate_export_with_properties(model_with_elements, temp_dir):
     if elements is not None and len(elements) > 0:
         element = elements[0]
         # Properties section might exist
-        properties = element.find("properties")
+        _properties = element.find("properties")
         # If element has extra properties beyond standard fields,
         # properties section should exist
         # This is a basic check
@@ -167,7 +154,6 @@ def test_archimate_export_with_properties(model_with_elements, temp_dir):
 
 def test_archimate_generate_id():
     """Test ID generation."""
-    from documentation_robotics.core.model import Model
     from pathlib import Path
 
     # Create a minimal mock model
@@ -181,9 +167,7 @@ def test_archimate_generate_id():
         layers = {}
 
     model = MockModel()
-    options = ExportOptions(
-        format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml")
-    )
+    options = ExportOptions(format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml"))
 
     exporter = ArchiMateExporter(model, options)
 

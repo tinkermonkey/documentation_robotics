@@ -21,6 +21,7 @@ Run `dr conformance` to see detailed conformance information.
 ## Features
 
 ### Phase 1 (MVP)
+
 - ✅ Model initialization with 11-layer structure
 - ✅ Element management (add, update, remove) across all layers
 - ✅ Query and search capabilities
@@ -28,6 +29,7 @@ Run `dr conformance` to see detailed conformance information.
 - ✅ Manifest tracking and statistics
 
 ### Phase 2 (Validation & Integrity)
+
 - ✅ Cross-layer reference tracking and validation
 - ✅ Element projection across layers
 - ✅ Dependency tracking and tracing
@@ -35,6 +37,7 @@ Run `dr conformance` to see detailed conformance information.
 - ✅ Circular dependency detection
 
 ### Phase 3 (Export)
+
 - ✅ Export to ArchiMate 3.2 XML
 - ✅ Export to OpenAPI 3.0 specifications
 - ✅ Export to JSON Schema Draft 7
@@ -43,6 +46,7 @@ Run `dr conformance` to see detailed conformance information.
 - ✅ Export to GraphML for visualization
 
 ### Coming in Future Phases
+
 - Code generation (TypeScript, Python, React components)
 - Interactive REPL mode
 - Diff/merge functionality
@@ -150,6 +154,7 @@ project/
 ## Documentation
 
 ### CLI Documentation
+
 - [CLI Requirements](docs/01_cli_requirements.md)
 - [Phase 3 Design](docs/02_cli_design_phase_3.md)
 - [Phase 3 Development Plan](docs/03_cli_dev_plan_phase_3.md)
@@ -157,6 +162,7 @@ project/
 - [Implementation Summary](PHASE_3_IMPLEMENTATION_SUMMARY.md)
 
 ### Specification Documentation
+
 - [Specification Overview](../spec/README.md)
 - [Core Concepts](../spec/core/)
 - [Layer Specifications](../spec/layers/)
@@ -165,14 +171,14 @@ project/
 
 ## Export Formats
 
-| Format | Command | Output | Tool Compatibility |
-|--------|---------|--------|-------------------|
-| ArchiMate | `dr export --format archimate` | `.archimate` XML | Archi, Enterprise Architect |
-| OpenAPI | `dr export --format openapi` | `.yaml` specs | Swagger Editor, Postman |
-| JSON Schema | `dr export --format schema` | `.schema.json` | Any JSON Schema validator |
-| PlantUML | `dr export --format plantuml` | `.puml` diagrams | PlantUML, online renderers |
-| Markdown | `dr export --format markdown` | `.md` docs | Any Markdown viewer |
-| GraphML | `dr export --format graphml` | `.graphml` | yEd, Gephi, Cytoscape |
+| Format      | Command                        | Output           | Tool Compatibility          |
+| ----------- | ------------------------------ | ---------------- | --------------------------- |
+| ArchiMate   | `dr export --format archimate` | `.archimate` XML | Archi, Enterprise Architect |
+| OpenAPI     | `dr export --format openapi`   | `.yaml` specs    | Swagger Editor, Postman     |
+| JSON Schema | `dr export --format schema`    | `.schema.json`   | Any JSON Schema validator   |
+| PlantUML    | `dr export --format plantuml`  | `.puml` diagrams | PlantUML, online renderers  |
+| Markdown    | `dr export --format markdown`  | `.md` docs       | Any Markdown viewer         |
+| GraphML     | `dr export --format graphml`   | `.graphml`       | yEd, Gephi, Cytoscape       |
 
 ## Development
 
@@ -205,6 +211,7 @@ MIT License - see LICENSE file for details.
 ## Version
 
 Current: v0.3.0 (Phase 3 Complete)
+
 - Phase 1 (MVP): v0.1.0
 - Phase 2 (Validation): v0.2.0
 - Phase 3 (Export): v0.3.0

@@ -1,13 +1,16 @@
 """
 Export model to various formats.
 """
-import click
+
 from pathlib import Path
+from typing import Optional
+
+import click
 from rich.console import Console
 from rich.table import Table
-from typing import Optional, List
+
 from ..core.model import Model
-from ..export.export_manager import ExportManager, ExportFormat
+from ..export.export_manager import ExportFormat, ExportManager
 
 console = Console()
 
@@ -16,9 +19,7 @@ console = Console()
 @click.option(
     "--format",
     "format_name",
-    type=click.Choice(
-        ["archimate", "openapi", "schema", "plantuml", "markdown", "graphml", "all"]
-    ),
+    type=click.Choice(["archimate", "openapi", "schema", "plantuml", "markdown", "graphml", "all"]),
     default="all",
     help="Export format",
 )
@@ -78,7 +79,7 @@ def export(
                 validate_output=validate,
             )
 
-            console.print(f"\n✓ [green bold]Export successful[/green bold]")
+            console.print("\n✓ [green bold]Export successful[/green bold]")
             console.print(f"   Output: {result_path}")
 
     except Exception as e:

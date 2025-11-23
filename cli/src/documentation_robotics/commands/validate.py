@@ -1,11 +1,14 @@
 """
 Validate the model.
 """
-import click
+
+import json
 from pathlib import Path
+
+import click
 from rich.console import Console
 from rich.table import Table
-import json
+
 from ..core.model import Model
 
 console = Console()
@@ -73,7 +76,7 @@ def _display_text_results(result, model):
             str(len(layer.elements)),
             str(errors),
             str(warnings),
-            f"[{status_style}]{status}[/{status_style}]"
+            f"[{status_style}]{status}[/{status_style}]",
         )
 
     console.print(table)

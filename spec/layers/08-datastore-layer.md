@@ -14,6 +14,7 @@ The Data Store Layer defines the physical data storage using SQL DDL (Data Defin
 ## Why SQL DDL + Minimal Extensions?
 
 SQL DDL is the standard for database definition:
+
 - **Industry Standard**: Universal language for database schemas
 - **Database Native**: Direct execution by database engines
 - **Version Controllable**: DDL files can be versioned in git
@@ -23,6 +24,7 @@ SQL DDL is the standard for database definition:
 ## Core Database Entities
 
 ### Database
+
 ```yaml
 Database:
   description: "Database instance containing schemas"
@@ -53,6 +55,7 @@ Database:
 ```
 
 ### DatabaseSchema
+
 ```yaml
 DatabaseSchema:
   description: "Logical grouping of database objects"
@@ -67,13 +70,14 @@ DatabaseSchema:
     - sequences: Sequence[] (0..*)
 
   examples:
-    - public       # Default schema
-    - auth         # Authentication tables
-    - analytics    # Analytics/reporting tables
-    - audit        # Audit log tables
+    - public # Default schema
+    - auth # Authentication tables
+    - analytics # Analytics/reporting tables
+    - audit # Audit log tables
 ```
 
 ### Table
+
 ```yaml
 Table:
   description: "Database table definition"
@@ -113,6 +117,7 @@ Table:
 ```
 
 ### Column
+
 ```yaml
 Column:
   description: "Table column definition"
@@ -189,6 +194,7 @@ Column:
 ```
 
 ### Constraint
+
 ```yaml
 Constraint:
   description: "Table constraint"
@@ -219,7 +225,7 @@ Constraint:
       - UNIQUE
       - FOREIGN_KEY
       - CHECK
-      - EXCLUSION  # PostgreSQL-specific
+      - EXCLUSION # PostgreSQL-specific
 
     ReferentialAction:
       - CASCADE
@@ -255,6 +261,7 @@ Constraint:
 ```
 
 ### Index
+
 ```yaml
 Index:
   description: "Database index for query optimization"
@@ -311,6 +318,7 @@ Index:
 ```
 
 ### View
+
 ```yaml
 View:
   description: "Database view"
@@ -722,6 +730,7 @@ COMMENT ON VIEW vw_products_low_stock IS
 ## Migration Management
 
 ### Migration Files
+
 ```yaml
 MigrationFile:
   description: "Database migration script"
@@ -751,6 +760,7 @@ MigrationFile:
 ```
 
 ### Migration Tools
+
 ```yaml
 Tools:
   - Flyway: Java-based migration tool
@@ -771,28 +781,33 @@ Naming Convention:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Constraints drive retention**: x-governed-by-constraints links table retention policies to regulatory Constraints
 - **Requirements drive schema**: x-governed-by-requirements traces database design to Requirements
 - **Principles guide design**: x-governed-by-principles ensures database follows architectural Principles (normalization, data ownership, etc.)
 - **Compliance proof**: Table/column comments provide audit trail for compliance
 
 ### To Data Model Layer (JSON Schema)
+
 - Table COMMENT includes x-json-schema path
 - Column COMMENT includes x-json-schema-path
 - Ensures database matches logical data model
 - Enables bidirectional sync
 
 ### To ArchiMate Technology Layer
+
 - Table COMMENT includes x-archimate-ref to Artifact
 - Enables traceability to architecture
 - Links physical to logical
 
 ### To Security Layer
+
 - Column metadata (x-pii, x-encrypted)
 - Table metadata (x-retention, x-classification)
 - Audit fields (created_at, updated_at, deleted_at)
 
 ### To APM/Observability Layer
+
 - **Database performance monitoring**: x-apm-performance-metrics links tables to database performance Metrics
 - **Query performance**: Track query latency, execution plans, slow queries (e.g., "metric-products-query-latency-p95")
 - **Table growth**: Monitor table size, row count trends, storage usage (e.g., "metric-products-table-size-bytes")
@@ -811,6 +826,7 @@ Naming Convention:
 ## Database-Specific Features
 
 ### PostgreSQL Extensions
+
 ```sql
 -- Enable UUID generation
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
@@ -831,6 +847,7 @@ CREATE POLICY products_tenant_isolation ON products
 ```
 
 ### MySQL/MariaDB Specifics
+
 ```sql
 -- Storage engine
 CREATE TABLE products (
@@ -849,6 +866,7 @@ ALTER TABLE products
 ## Best Practices
 
 ### Core Database Practices
+
 1. **Use Migrations**: Never edit schema directly, always through migrations
 2. **Version Control**: All DDL in git
 3. **Naming Conventions**: Consistent naming (snake_case for PostgreSQL)
@@ -864,12 +882,14 @@ ALTER TABLE products
 13. **Covering Indexes**: Include frequently accessed columns
 
 ### Cross-Layer Integration Practices
+
 14. **Metadata Links**: Use COMMENT to link tables to other layers (schemas, architecture, governance)
 15. **Motivation References**: Link tables to Principles, Requirements, and Constraints that govern their design
 16. **Schema Alignment**: Maintain x-json-schema references to ensure database matches logical data model
 17. **Security Metadata**: Document PII, encryption, and retention requirements at table level
 
 ### APM/Observability Integration Practices
+
 18. **Performance Monitoring**: Link tables to performance metrics using x-apm-performance-metrics
 19. **Critical Tables First**: Prioritize APM metric links for high-traffic and customer-facing tables
 20. **Quality Monitoring**: Link tables to data quality metrics using x-apm-data-quality-metrics
@@ -882,6 +902,7 @@ ALTER TABLE products
 27. **Complete Chain**: Maintain Goal → Requirement → Schema → Table → Metric → Outcome traceability
 
 ### Metric Selection Guidelines
+
 28. **Transactional Tables**: Focus on query latency (p95, p99), write throughput, lock contention
 29. **Analytical Tables**: Focus on table growth, sequential scans, partition health, vacuum duration
 30. **Master Data Tables**: Focus on data quality (duplicates, nulls, referential integrity)
@@ -891,6 +912,7 @@ ALTER TABLE products
 ## Validation
 
 ### Schema Validation
+
 ```yaml
 Tools:
   - pg_dump: Export schema for comparison
@@ -960,12 +982,14 @@ Connection Pooling:
 **Solution**: `x-apm-performance-metrics` provides structured links from tables to operational performance metrics.
 
 **Industry Precedent**:
+
 - **APM Tools**: Datadog, New Relic, Dynatrace all link database metrics to specific tables/queries
 - **Database Monitoring**: PostgreSQL extensions (pg_stat_statements), MySQL Performance Schema
 - **Cloud Platforms**: AWS RDS Performance Insights, Azure SQL Insights, Google Cloud SQL Insights
 - **Observability Standards**: OpenTelemetry database semantic conventions link traces to database operations
 
 **Benefits**:
+
 - ✅ **Complete Traceability**: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
 - ✅ **Proactive Monitoring**: Alert before performance degrades to user-impacting levels
 - ✅ **Capacity Planning**: Historical trends inform scaling decisions (table growth, query patterns)
@@ -974,6 +998,7 @@ Connection Pooling:
 - ✅ **Impact Analysis**: Understand which business goals are at risk when table performance degrades
 
 **Example Traceability Chain**:
+
 ```yaml
 # Motivation Layer (01)
 Goal:
@@ -1021,6 +1046,7 @@ Metric:
 **Solution**: `x-apm-data-quality-metrics` provides structured links from tables to operational data quality metrics.
 
 **Distinction from Data Model Layer (07)**:
+
 ```yaml
 Data Model Layer (07) - Logical Quality:
   - Schema validation (JSON Schema)
@@ -1036,16 +1062,19 @@ Datastore Layer (08) - Physical Quality:
 ```
 
 **Both layers are necessary**:
+
 - Layer 07 prevents bad data from being written
 - Layer 08 detects when bad data was written anyway (bugs, direct DB access, migrations)
 
 **Industry Precedent**:
+
 - **Data Quality Tools**: Great Expectations, Soda Core, dbt tests all define checks at table level
 - **Cloud Platforms**: AWS Glue Data Quality, Azure Purview, Google Cloud Data Quality
 - **Data Catalogs**: Collibra, Alation link data quality metrics to physical tables
 - **Standards**: DAMA DMBOK, ISO 8000 define data quality at both logical and physical levels
 
 **Benefits**:
+
 - ✅ **Database Integrity Monitoring**: Detect constraint violations in real-time
 - ✅ **Compliance Validation**: Prove data meets regulatory requirements at database level
 - ✅ **Anomaly Detection**: Identify unexpected data patterns (sudden record count spikes/drops)
@@ -1054,6 +1083,7 @@ Datastore Layer (08) - Physical Quality:
 - ✅ **Operational Safety**: Alert when database constraints are being violated by application bugs
 
 **Example Use Cases**:
+
 ```yaml
 # Financial System - Constraint Monitoring
 Table: transactions
@@ -1111,24 +1141,28 @@ This provides **complete observability** from logical data contracts through phy
 ## Benefits Summary
 
 ### For Database Administrators
+
 - **Performance Monitoring**: Direct links from tables to key performance metrics
 - **Proactive Alerts**: Alert on query slowness, table bloat, index inefficiency before users complain
 - **Capacity Planning**: Track table growth trends, predict storage needs
 - **Quality Assurance**: Monitor constraint violations, detect data integrity issues
 
 ### For Data Engineers
+
 - **Data Quality**: Observable data quality at the physical layer
 - **Impact Analysis**: Understand which business goals depend on table performance
 - **Migration Safety**: Track performance impact of schema changes
 - **Governance**: Prove compliance with data quality requirements
 
 ### For Business Stakeholders
+
 - **Goal Validation**: Measure achievement of performance and quality goals
 - **SLA Compliance**: Verify database meets business performance commitments
 - **Risk Visibility**: Understand business impact of database issues
 - **ROI Measurement**: Link database investments to business outcomes
 
 ### For Compliance Officers
+
 - **Regulatory Compliance**: Automated monitoring of data retention, integrity, quality
 - **Audit Readiness**: Complete audit trail of data quality metrics
 - **Risk Management**: Early detection of compliance violations (constraint failures)
@@ -1137,6 +1171,7 @@ This provides **complete observability** from logical data contracts through phy
 ## Implementation Examples
 
 ### High-Traffic E-Commerce Products Table
+
 ```sql
 COMMENT ON TABLE products IS
 'Product catalog table with comprehensive APM integration.
@@ -1149,6 +1184,7 @@ x-apm-data-quality-metrics: metric-products-constraint-violations,metric-product
 ```
 
 ### Financial Transactions Table
+
 ```sql
 COMMENT ON TABLE transactions IS
 'Financial transaction records with strict quality monitoring.
@@ -1161,6 +1197,7 @@ x-apm-data-quality-metrics: metric-transactions-amount-check-violations,metric-t
 ```
 
 ### Customer Master Data Table
+
 ```sql
 COMMENT ON TABLE customers IS
 'Customer master data with data quality focus.

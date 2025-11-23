@@ -1,13 +1,13 @@
 """Unit tests for SemanticValidator."""
-import pytest
-from documentation_robotics.validators.semantic import (
-    SemanticValidator,
-    BusinessServiceRealizationRule,
-    APIOperationApplicationServiceRule,
-    UXScreenAPIOperationRule,
-    SecurityResourceApplicationElementRule
-)
+
 from documentation_robotics.core.element import Element
+from documentation_robotics.validators.semantic import (
+    APIOperationApplicationServiceRule,
+    BusinessServiceRealizationRule,
+    SecurityResourceApplicationElementRule,
+    SemanticValidator,
+    UXScreenAPIOperationRule,
+)
 
 
 class TestBusinessServiceRealizationRule:
@@ -20,7 +20,7 @@ class TestBusinessServiceRealizationRule:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Test Service"}
+            data={"name": "Test Service"},
         )
         initialized_model.add_element("business", biz_service)
 
@@ -29,10 +29,7 @@ class TestBusinessServiceRealizationRule:
             id="application.service.test",
             element_type="service",
             layer="application",
-            data={
-                "name": "Test App Service",
-                "realizes": "business.service.test"
-            }
+            data={"name": "Test App Service", "realizes": "business.service.test"},
         )
         initialized_model.add_element("application", app_service)
 
@@ -48,7 +45,7 @@ class TestBusinessServiceRealizationRule:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Test Service"}
+            data={"name": "Test Service"},
         )
         initialized_model.add_element("business", biz_service)
 
@@ -65,7 +62,7 @@ class TestBusinessServiceRealizationRule:
             id="business.actor.test",
             element_type="actor",
             layer="business",
-            data={"name": "Test Actor"}
+            data={"name": "Test Actor"},
         )
 
         rule = BusinessServiceRealizationRule()
@@ -84,10 +81,7 @@ class TestAPIOperationApplicationServiceRule:
             id="api.operation.test",
             element_type="operation",
             layer="api",
-            data={
-                "name": "Test Operation",
-                "applicationServiceRef": "application.service.test"
-            }
+            data={"name": "Test Operation", "applicationServiceRef": "application.service.test"},
         )
 
         rule = APIOperationApplicationServiceRule()
@@ -102,7 +96,7 @@ class TestAPIOperationApplicationServiceRule:
             id="api.operation.test",
             element_type="operation",
             layer="api",
-            data={"name": "Test Operation"}
+            data={"name": "Test Operation"},
         )
 
         rule = APIOperationApplicationServiceRule()
@@ -124,13 +118,10 @@ class TestUXScreenAPIOperationRule:
             layer="ux",
             data={
                 "name": "Test Screen",
-                "states": [{
-                    "name": "loading",
-                    "actions": [
-                        {"operationId": "api.operation.get-data"}
-                    ]
-                }]
-            }
+                "states": [
+                    {"name": "loading", "actions": [{"operationId": "api.operation.get-data"}]}
+                ],
+            },
         )
 
         rule = UXScreenAPIOperationRule()
@@ -145,10 +136,7 @@ class TestUXScreenAPIOperationRule:
             id="ux.screen.test",
             element_type="screen",
             layer="ux",
-            data={
-                "name": "Test Screen",
-                "states": []
-            }
+            data={"name": "Test Screen", "states": []},
         )
 
         rule = UXScreenAPIOperationRule()
@@ -167,10 +155,7 @@ class TestSecurityResourceApplicationElementRule:
             id="security.resource.test",
             element_type="resource",
             layer="security",
-            data={
-                "name": "Test Resource",
-                "archimateRef": "application.service.test"
-            }
+            data={"name": "Test Resource", "archimateRef": "application.service.test"},
         )
 
         rule = SecurityResourceApplicationElementRule()
@@ -185,7 +170,7 @@ class TestSecurityResourceApplicationElementRule:
             id="security.resource.test",
             element_type="resource",
             layer="security",
-            data={"name": "Test Resource"}
+            data={"name": "Test Resource"},
         )
 
         rule = SecurityResourceApplicationElementRule()
@@ -220,7 +205,7 @@ class TestSemanticValidator:
             id="business.service.orphan",
             element_type="service",
             layer="business",
-            data={"name": "Orphan Service"}
+            data={"name": "Orphan Service"},
         )
         initialized_model.add_element("business", biz_service)
 
@@ -239,7 +224,7 @@ class TestSemanticValidator:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Test Service"}
+            data={"name": "Test Service"},
         )
         initialized_model.add_element("business", biz_service)
 
@@ -248,7 +233,7 @@ class TestSemanticValidator:
             id="api.operation.test",
             element_type="operation",
             layer="api",
-            data={"name": "Test Operation"}
+            data={"name": "Test Operation"},
         )
         initialized_model.add_element("api", api_op)
 

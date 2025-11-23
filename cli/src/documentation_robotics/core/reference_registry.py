@@ -1,21 +1,24 @@
 """
 Reference registry - tracks and validates cross-layer references.
 """
-from typing import Dict, List, Set, Optional, Tuple, Any
-from dataclasses import dataclass, field
-from pathlib import Path
+
 from collections import defaultdict
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Set, Tuple
+
 import yaml
 
 
 @dataclass
 class Reference:
     """Represents a reference from one element to another."""
-    source_id: str          # Element making the reference
-    target_id: str          # Element being referenced
-    property_path: str      # Path to the reference property (e.g., "realizes", "data.schemaRef")
-    reference_type: str     # Type of reference (realizes, serves, accesses, etc.)
-    required: bool = True   # Whether this reference is required to exist
+
+    source_id: str  # Element making the reference
+    target_id: str  # Element being referenced
+    property_path: str  # Path to the reference property (e.g., "realizes", "data.schemaRef")
+    reference_type: str  # Type of reference (realizes, serves, accesses, etc.)
+    required: bool = True  # Whether this reference is required to exist
 
     def __hash__(self):
         return hash((self.source_id, self.target_id, self.property_path))
@@ -24,15 +27,16 @@ class Reference:
         if not isinstance(other, Reference):
             return False
         return (
-            self.source_id == other.source_id and
-            self.target_id == other.target_id and
-            self.property_path == other.property_path
+            self.source_id == other.source_id
+            and self.target_id == other.target_id
+            and self.property_path == other.property_path
         )
 
 
 @dataclass
 class ReferenceDefinition:
     """Defines expected references for a layer/element type."""
+
     layer: str
     element_type: str
     property_path: str
@@ -73,6 +77,7 @@ class ReferenceRegistry:
         master_schema_path = schema_dir / "federated-architecture.schema.json"
         if master_schema_path.exists():
             import json
+
             with open(master_schema_path, "r") as f:
                 schema = json.load(f)
                 self._extract_reference_definitions(schema)
@@ -85,16 +90,18 @@ class ReferenceRegistry:
         # Extract from cross-layer references section
         cross_layer = schema.get("crossLayerReferences", [])
         for ref_def in cross_layer:
-            self.reference_definitions.append(ReferenceDefinition(
-                layer=ref_def.get("sourceLayer"),
-                element_type=ref_def.get("sourceType"),
-                property_path=ref_def.get("propertyPath"),
-                target_layer=ref_def.get("targetLayer"),
-                target_type=ref_def.get("targetType"),
-                reference_type=ref_def.get("referenceType"),
-                required=ref_def.get("required", False),
-                cardinality=ref_def.get("cardinality", "0..*")
-            ))
+            self.reference_definitions.append(
+                ReferenceDefinition(
+                    layer=ref_def.get("sourceLayer"),
+                    element_type=ref_def.get("sourceType"),
+                    property_path=ref_def.get("propertyPath"),
+                    target_layer=ref_def.get("targetLayer"),
+                    target_type=ref_def.get("targetType"),
+                    reference_type=ref_def.get("referenceType"),
+                    required=ref_def.get("required", False),
+                    cardinality=ref_def.get("cardinality", "0..*"),
+                )
+            )
 
     def register_element(self, element: Any) -> None:
         """
@@ -150,37 +157,36 @@ class ReferenceRegistry:
 
                 # Handle single reference
                 if isinstance(value, str):
-                    references.append(Reference(
-                        source_id=element.id,
-                        target_id=value,
-                        property_path=prop_name,
-                        reference_type=self._infer_reference_type(prop_name),
-                        required=True
-                    ))
+                    references.append(
+                        Reference(
+                            source_id=element.id,
+                            target_id=value,
+                            property_path=prop_name,
+                            reference_type=self._infer_reference_type(prop_name),
+                            required=True,
+                        )
+                    )
 
                 # Handle list of references
                 elif isinstance(value, list):
                     for target_id in value:
                         if isinstance(target_id, str):
-                            references.append(Reference(
-                                source_id=element.id,
-                                target_id=target_id,
-                                property_path=prop_name,
-                                reference_type=self._infer_reference_type(prop_name),
-                                required=False
-                            ))
+                            references.append(
+                                Reference(
+                                    source_id=element.id,
+                                    target_id=target_id,
+                                    property_path=prop_name,
+                                    reference_type=self._infer_reference_type(prop_name),
+                                    required=False,
+                                )
+                            )
 
         # Scan nested structures
         references.extend(self._scan_nested_references(element, element.data))
 
         return references
 
-    def _scan_nested_references(
-        self,
-        element: Any,
-        data: dict,
-        path: str = ""
-    ) -> List[Reference]:
+    def _scan_nested_references(self, element: Any, data: dict, path: str = "") -> List[Reference]:
         """Recursively scan nested structures for references."""
         references = []
 
@@ -193,29 +199,31 @@ class ReferenceRegistry:
             # Look for reference patterns
             if key.endswith("Ref") or key.endswith("Reference"):
                 if isinstance(value, str):
-                    references.append(Reference(
-                        source_id=element.id,
-                        target_id=value,
-                        property_path=current_path,
-                        reference_type=self._infer_reference_type(key),
-                        required=False
-                    ))
+                    references.append(
+                        Reference(
+                            source_id=element.id,
+                            target_id=value,
+                            property_path=current_path,
+                            reference_type=self._infer_reference_type(key),
+                            required=False,
+                        )
+                    )
                 elif isinstance(value, list):
                     for target_id in value:
                         if isinstance(target_id, str):
-                            references.append(Reference(
-                                source_id=element.id,
-                                target_id=target_id,
-                                property_path=current_path,
-                                reference_type=self._infer_reference_type(key),
-                                required=False
-                            ))
+                            references.append(
+                                Reference(
+                                    source_id=element.id,
+                                    target_id=target_id,
+                                    property_path=current_path,
+                                    reference_type=self._infer_reference_type(key),
+                                    required=False,
+                                )
+                            )
 
             # Recurse into nested dicts
             elif isinstance(value, dict):
-                references.extend(
-                    self._scan_nested_references(element, value, current_path)
-                )
+                references.extend(self._scan_nested_references(element, value, current_path))
 
         return references
 
@@ -262,7 +270,8 @@ class ReferenceRegistry:
         """
         # Remove from main list
         self.references = [
-            r for r in self.references
+            r
+            for r in self.references
             if not (r.source_id == source_id and r.target_id == target_id)
         ]
 
@@ -334,10 +343,7 @@ class ReferenceRegistry:
 
         return broken
 
-    def find_missing_references(
-        self,
-        element: Any
-    ) -> List[Tuple[ReferenceDefinition, str]]:
+    def find_missing_references(self, element: Any) -> List[Tuple[ReferenceDefinition, str]]:
         """
         Find missing required references for an element.
 
@@ -358,7 +364,8 @@ class ReferenceRegistry:
 
             # Check if reference exists
             existing = [
-                r for r in self._source_index.get(element.id, [])
+                r
+                for r in self._source_index.get(element.id, [])
                 if r.property_path == ref_def.property_path
             ]
 
@@ -385,10 +392,7 @@ class ReferenceRegistry:
 
         for ref in self.references:
             graph.add_edge(
-                ref.source_id,
-                ref.target_id,
-                type=ref.reference_type,
-                property=ref.property_path
+                ref.source_id, ref.target_id, type=ref.reference_type, property=ref.property_path
             )
 
         return graph
@@ -407,14 +411,10 @@ class ReferenceRegistry:
         try:
             cycles = list(nx.simple_cycles(graph))
             return cycles
-        except:
+        except Exception:
             return []
 
-    def get_impact_analysis(
-        self,
-        element_id: str,
-        max_depth: Optional[int] = None
-    ) -> Set[str]:
+    def get_impact_analysis(self, element_id: str, max_depth: Optional[int] = None) -> Set[str]:
         """
         Get all elements that would be impacted by changing/removing an element.
 
@@ -471,7 +471,7 @@ class ReferenceRegistry:
                     "target": ref.target_id,
                     "property": ref.property_path,
                     "type": ref.reference_type,
-                    "required": ref.required
+                    "required": ref.required,
                 }
                 for ref in self.references
             ]
@@ -503,12 +503,14 @@ class ReferenceRegistry:
             return registry
 
         for ref_data in data["references"]:
-            registry.add_reference(Reference(
-                source_id=ref_data["source"],
-                target_id=ref_data["target"],
-                property_path=ref_data["property"],
-                reference_type=ref_data["type"],
-                required=ref_data.get("required", True)
-            ))
+            registry.add_reference(
+                Reference(
+                    source_id=ref_data["source"],
+                    target_id=ref_data["target"],
+                    property_path=ref_data["property"],
+                    reference_type=ref_data["type"],
+                    required=ref_data.get("required", True),
+                )
+            )
 
         return registry

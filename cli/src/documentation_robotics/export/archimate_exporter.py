@@ -1,12 +1,14 @@
 """
 ArchiMate XML exporter.
 """
-from pathlib import Path
-from typing import Dict, List, Set
-from lxml import etree as ET
+
 from datetime import datetime
-from .export_manager import BaseExporter, ExportOptions
+from pathlib import Path
+
+from lxml import etree as ET
+
 from ..core.element import Element
+from .export_manager import BaseExporter
 
 
 class ArchiMateExporter(BaseExporter):
@@ -297,7 +299,7 @@ class ArchiMateExporter(BaseExporter):
 
             # Add elements to folder
             for element in layer.elements.values():
-                item = ET.SubElement(folder, "item", attrib={"identifierRef": element.id})
+                ET.SubElement(folder, "item", attrib={"identifierRef": element.id})
 
     def _generate_id(self) -> str:
         """Generate unique identifier."""

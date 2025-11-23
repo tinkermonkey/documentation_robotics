@@ -1,9 +1,12 @@
 """
 Remove an element from the model.
 """
-import click
+
 from pathlib import Path
+
+import click
 from rich.console import Console
+
 from ..core.model import Model
 
 console = Console()
@@ -40,7 +43,10 @@ def remove(element_id: str, force: bool, cascade: bool, dry_run: bool, yes: bool
     console.print(f"  Name: {element.name}")
 
     if dependencies:
-        console.print(f"\n[yellow]Warning: This element has {len(dependencies)} dependent element(s):[/yellow]")
+        console.print(
+            f"\n[yellow]Warning: This element has {len(dependencies)} "
+            f"dependent element(s):[/yellow]"
+        )
         for dep in dependencies[:5]:
             console.print(f"  - {dep.id}")
         if len(dependencies) > 5:

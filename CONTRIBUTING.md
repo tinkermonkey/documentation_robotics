@@ -26,6 +26,7 @@ See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md) for detailed setup instructions.
 ### Contributing to the Specification
 
 For specification contributions (new layers, entities, changes):
+
 - See [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md)
 - Follow the governance process in [spec/GOVERNANCE.md](spec/GOVERNANCE.md)
 - Use "Specification" issue templates
@@ -33,6 +34,7 @@ For specification contributions (new layers, entities, changes):
 ### Contributing to the CLI Tool
 
 For CLI improvements (features, bug fixes):
+
 - See [cli/README.md#development](cli/README.md#development)
 - Run tests: `cd cli && pytest`
 - Use "CLI" issue templates
@@ -141,6 +143,7 @@ git commit -m "feat(cli): add new command"
 ## Code Style
 
 ### Python (CLI)
+
 - **Formatter:** Black (line-length=100)
 - **Linter:** Ruff
 - **Type Checking:** mypy
@@ -149,16 +152,19 @@ git commit -m "feat(cli): add new command"
 Pre-commit hooks enforce these automatically.
 
 ### Markdown (Documentation)
+
 - Follow [markdownlint](https://github.com/DavidAnson/markdownlint) rules
 - See `.markdownlint.yaml` for configuration
 - Auto-fix: `markdownlint --fix '**/*.md'`
 
 ### YAML (Model Files)
+
 - 2-space indentation
 - No tabs
 - Valid YAML syntax
 
 ### JSON (Schemas)
+
 - Valid JSON syntax
 - JSON Schemas must conform to Draft 7
 - Use `ajv` for validation
@@ -166,12 +172,14 @@ Pre-commit hooks enforce these automatically.
 ## Testing
 
 ### Specification
+
 - All schemas must be valid JSON Schema Draft 7
 - Example models must validate against schemas
 - All markdown links must be valid
 - Spell check passes (coming soon)
 
 ### CLI
+
 ```bash
 cd cli
 
@@ -206,6 +214,7 @@ Fixes #123
 ```
 
 **Types:**
+
 - `feat`: New feature
 - `fix`: Bug fix
 - `docs`: Documentation only
@@ -215,6 +224,7 @@ Fixes #123
 - `refactor`: Code refactoring
 
 **Scopes:**
+
 - `spec`: Specification changes
 - `cli`: CLI tool changes
 - `core`: Core specification documents
@@ -222,6 +232,7 @@ Fixes #123
 - `conformance`: Conformance-related changes
 
 **Examples:**
+
 ```
 spec: add new entity type to motivation layer
 fix(cli): correct validation error message
@@ -244,6 +255,7 @@ feat(cli): add export to JSON format
 ### 2. PR Template
 
 Use the appropriate template:
+
 - **Specification changes:** Include impact assessment
 - **CLI changes:** Include testing evidence
 - **Breaking changes:** Include migration guide
@@ -279,6 +291,7 @@ Use the appropriate template:
 - **CLI issues:** Use "CLI Bug Report" or "CLI Feature Request"
 
 Include:
+
 - Clear description
 - Steps to reproduce (for bugs)
 - Expected vs. actual behavior
@@ -303,6 +316,7 @@ By contributing, you agree that your contributions will be licensed under the MI
 ---
 
 **Ready to contribute?**
+
 1. Install pre-commit: `pip install pre-commit && pre-commit install`
 2. Read [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md)
 3. Pick an issue or propose a new feature

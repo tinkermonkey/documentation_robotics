@@ -7,6 +7,7 @@ This is the "data model of the data models" - showing all entity types, their at
 ## **1. ArchiMate Layer (Spine)**
 
 ### **Entity: ArchiMateModel**
+
 ```yaml
 ArchiMateModel:
   attributes:
@@ -16,7 +17,7 @@ ArchiMateModel:
     xmlns: string (namespace URI)
     created: datetime
     modified: datetime
-  
+
   contains:
     - elements: Element[] (1..*)
     - relationships: Relationship[] (0..*)
@@ -25,6 +26,7 @@ ArchiMateModel:
 ```
 
 ### **Entity: Element**
+
 ```yaml
 Element:
   attributes:
@@ -33,13 +35,13 @@ Element:
     name: string
     documentation: string (optional)
     layer: Layer [enum]
-  
+
   contains:
     - properties: Property[] (0..*)
-  
+
   references:
     - parentElement: Element.id (optional, for composition)
-  
+
   enums:
     ElementType:
       # Business Layer
@@ -56,7 +58,7 @@ Element:
       - Contract
       - Representation
       - Product
-      
+
       # Application Layer
       - ApplicationComponent
       - ApplicationCollaboration
@@ -67,7 +69,7 @@ Element:
       - ApplicationEvent
       - ApplicationService
       - DataObject
-      
+
       # Technology Layer
       - Node
       - Device
@@ -82,7 +84,7 @@ Element:
       - TechnologyEvent
       - TechnologyService
       - Artifact
-      
+
       # Motivation Layer
       - Stakeholder
       - Driver
@@ -94,7 +96,7 @@ Element:
       - Constraint
       - Meaning
       - Value
-    
+
     Layer:
       - Business
       - Application
@@ -106,6 +108,7 @@ Element:
 ```
 
 ### **Entity: Relationship**
+
 ```yaml
 Relationship:
   attributes:
@@ -115,10 +118,10 @@ Relationship:
     target: string [FK -> Element.id]
     name: string (optional)
     documentation: string (optional)
-  
+
   contains:
     - properties: Property[] (0..*)
-  
+
   enums:
     RelationshipType:
       # Structural
@@ -126,30 +129,31 @@ Relationship:
       - Aggregation
       - Assignment
       - Realization
-      
+
       # Dependency
       - Serving
       - Access
       - Influence
       - Association
-      
+
       # Dynamic
       - Triggering
       - Flow
-      
+
       # Other
       - Specialization
       - Junction
 ```
 
 ### **Entity: Property**
+
 ```yaml
 Property:
   attributes:
     key: string [references PropertyDefinition.key]
     value: string
     type: PropertyType [enum]
-  
+
   enums:
     PropertyType:
       - string
@@ -162,6 +166,7 @@ Property:
 ```
 
 ### **Entity: PropertyDefinition**
+
 ```yaml
 PropertyDefinition:
   attributes:
@@ -173,33 +178,33 @@ PropertyDefinition:
     defaultValue: string (optional)
     enumValues: string[] (if type=enum)
     pattern: string (regex, optional)
-    
+
   # Standard property definitions for federation
   standardProperties:
     - key: "spec.openapi"
       type: fileReference
       description: "Path to OpenAPI specification"
-    
+
     - key: "spec.schema"
       type: fileReference
       description: "Path to JSON Schema"
-    
+
     - key: "spec.ux"
       type: fileReference
       description: "Path to UX specification"
-    
+
     - key: "spec.navigation"
       type: fileReference
       description: "Path to navigation specification"
-    
+
     - key: "spec.database"
       type: fileReference
       description: "Path to database DDL"
-    
+
     - key: "spec.security"
       type: fileReference
       description: "Path to security specification"
-    
+
     - key: "implementation.framework"
       type: enum
       enumValues: [react, vue, angular, svelte]
@@ -210,6 +215,7 @@ PropertyDefinition:
 ## **2. API Layer (OpenAPI)**
 
 ### **Entity: OpenAPISpec**
+
 ```yaml
 OpenAPISpec:
   attributes:
@@ -218,29 +224,30 @@ OpenAPISpec:
     version: string
     description: string (optional)
     termsOfService: string (optional)
-    
+
   contains:
     - servers: Server[] (0..*)
     - paths: PathItem[] (1..*)
     - components: Components (0..1)
     - security: SecurityRequirement[] (0..*)
     - tags: Tag[] (0..*)
-  
+
   references:
     - archimateElement: Element.id [where Element.type = ApplicationService]
 ```
 
 ### **Entity: PathItem**
+
 ```yaml
 PathItem:
   attributes:
     path: string [PK] (e.g., "/api/products/{id}")
     summary: string (optional)
     description: string (optional)
-  
+
   contains:
     - operations: Operation[] (1..*) [keyed by HTTP method]
-  
+
   enums:
     HttpMethod:
       - get
@@ -253,6 +260,7 @@ PathItem:
 ```
 
 ### **Entity: Operation**
+
 ```yaml
 Operation:
   attributes:
@@ -261,19 +269,20 @@ Operation:
     summary: string (optional)
     description: string (optional)
     deprecated: boolean (default: false)
-  
+
   contains:
     - parameters: Parameter[] (0..*)
     - requestBody: RequestBody (0..1)
     - responses: Response[] (1..*) [keyed by status code]
     - security: SecurityRequirement[] (0..*)
-  
+
   references:
     - dataSchema: Schema.name [in components.schemas]
     - archimateElement: Element.id (optional, for traceability)
 ```
 
 ### **Entity: Parameter**
+
 ```yaml
 Parameter:
   attributes:
@@ -282,10 +291,10 @@ Parameter:
     required: boolean
     description: string (optional)
     deprecated: boolean (default: false)
-  
+
   contains:
     - schema: Schema (1..1)
-  
+
   enums:
     ParameterLocation:
       - path
@@ -295,42 +304,46 @@ Parameter:
 ```
 
 ### **Entity: RequestBody**
+
 ```yaml
 RequestBody:
   attributes:
     required: boolean (default: false)
     description: string (optional)
-  
+
   contains:
     - content: MediaType[] (1..*) [keyed by content-type]
 ```
 
 ### **Entity: Response**
+
 ```yaml
 Response:
   attributes:
     statusCode: string [PK] (e.g., "200", "404")
     description: string
-  
+
   contains:
     - headers: Header[] (0..*)
     - content: MediaType[] (0..*) [keyed by content-type]
 ```
 
 ### **Entity: MediaType**
+
 ```yaml
 MediaType:
   attributes:
     contentType: string (e.g., "application/json")
-  
+
   contains:
     - schema: Schema (1..1)
-  
+
   references:
     - schemaRef: string (e.g., "product-schema.json#/definitions/Product")
 ```
 
 ### **Entity: Components**
+
 ```yaml
 Components:
   contains:
@@ -342,6 +355,7 @@ Components:
 ```
 
 ### **Entity: SecurityScheme**
+
 ```yaml
 SecurityScheme:
   attributes:
@@ -352,7 +366,7 @@ SecurityScheme:
     bearerFormat: string (e.g., "JWT", optional)
     in: ParameterLocation (for apiKey type)
     openIdConnectUrl: string (for openIdConnect type)
-  
+
   enums:
     SecuritySchemeType:
       - apiKey
@@ -366,6 +380,7 @@ SecurityScheme:
 ## **3. Data Model Layer (JSON Schema)**
 
 ### **Entity: JSONSchema**
+
 ```yaml
 JSONSchema:
   attributes:
@@ -373,15 +388,16 @@ JSONSchema:
     $id: string (schema identifier URI, optional)
     title: string (optional)
     description: string (optional)
-  
+
   contains:
     - definitions: SchemaDefinition[] (0..*) [keyed by name]
-  
+
   references:
     - archimateElement: Element.id [where Element.type = DataObject]
 ```
 
 ### **Entity: SchemaDefinition**
+
 ```yaml
 SchemaDefinition:
   attributes:
@@ -390,7 +406,7 @@ SchemaDefinition:
     title: string (optional)
     description: string (optional)
     default: any (optional)
-    
+
   # Validation keywords
   constraints:
     # String
@@ -398,35 +414,35 @@ SchemaDefinition:
     - maxLength: integer (optional)
     - pattern: string (regex, optional)
     - format: string (e.g., "email", "date-time", optional)
-    
+
     # Numeric
     - minimum: number (optional)
     - maximum: number (optional)
     - exclusiveMinimum: boolean (optional)
     - exclusiveMaximum: boolean (optional)
     - multipleOf: number (optional)
-    
+
     # Array
     - minItems: integer (optional)
     - maxItems: integer (optional)
     - uniqueItems: boolean (optional)
-    
+
     # Object
     - required: string[] (property names)
     - additionalProperties: boolean | Schema (optional)
     - minProperties: integer (optional)
     - maxProperties: integer (optional)
-  
+
   contains:
     - properties: SchemaProperty[] (if type=object)
     - items: Schema (if type=array)
     - enum: any[] (if enumerated values)
-    
+
     # Custom extensions
     - x-database: DatabaseMapping (optional)
     - x-ui: UIMapping (optional)
     - x-security: SecurityMapping (optional)
-  
+
   enums:
     JSONType:
       - string
@@ -439,23 +455,25 @@ SchemaDefinition:
 ```
 
 ### **Entity: SchemaProperty**
+
 ```yaml
 SchemaProperty:
   attributes:
     name: string [PK within object schema]
     schema: Schema (1..1)
-  
+
   references:
     - $ref: string (reference to another schema)
 ```
 
 ### **Entity: DatabaseMapping** (x-database extension)
+
 ```yaml
 DatabaseMapping:
   attributes:
     table: string
     schema: string (optional, e.g., "public")
-  
+
   contains:
     - columns: ColumnMapping[] (keyed by property name)
     - indexes: Index[] (optional)
@@ -463,6 +481,7 @@ DatabaseMapping:
 ```
 
 ### **Entity: ColumnMapping**
+
 ```yaml
 ColumnMapping:
   attributes:
@@ -474,10 +493,10 @@ ColumnMapping:
     autoIncrement: boolean (default: false)
     unique: boolean (default: false)
     default: string (optional)
-  
+
   references:
     - foreignKey: ForeignKey (optional)
-  
+
   enums:
     SQLType:
       - VARCHAR
@@ -498,6 +517,7 @@ ColumnMapping:
 ```
 
 ### **Entity: ForeignKey**
+
 ```yaml
 ForeignKey:
   attributes:
@@ -505,7 +525,7 @@ ForeignKey:
     column: string
     onDelete: ReferentialAction [enum]
     onUpdate: ReferentialAction [enum]
-  
+
   enums:
     ReferentialAction:
       - CASCADE
@@ -516,6 +536,7 @@ ForeignKey:
 ```
 
 ### **Entity: Index**
+
 ```yaml
 Index:
   attributes:
@@ -523,7 +544,7 @@ Index:
     columns: string[] (column names)
     unique: boolean (default: false)
     type: IndexType [enum]
-  
+
   enums:
     IndexType:
       - BTREE
@@ -533,6 +554,7 @@ Index:
 ```
 
 ### **Entity: UIMapping** (x-ui extension)
+
 ```yaml
 UIMapping:
   contains:
@@ -540,6 +562,7 @@ UIMapping:
 ```
 
 ### **Entity: FieldUIMapping**
+
 ```yaml
 FieldUIMapping:
   attributes:
@@ -550,11 +573,11 @@ FieldUIMapping:
     helpText: string (optional)
     readOnly: boolean (default: false)
     hidden: boolean (default: false)
-  
+
   references:
     - dataSource: string (API endpoint, optional)
     - dependsOn: string[] (property names, optional)
-  
+
   enums:
     UIComponent:
       - text-input
@@ -578,29 +601,31 @@ FieldUIMapping:
 ## **4. UX Layer (Custom Spec)**
 
 ### **Entity: UXSpec**
+
 ```yaml
 UXSpec:
   attributes:
     version: string (spec version)
     screen: string (screen identifier)
-  
+
   contains:
     - states: ScreenState[] (1..*)
     - layout: ScreenLayout (1..1)
-  
+
   references:
     - archimateElement: Element.id [where Element.type = ApplicationComponent]
     - dataSchema: string (path to JSON Schema)
 ```
 
 ### **Entity: ScreenState**
+
 ```yaml
 ScreenState:
   attributes:
     name: string [PK within spec]
     initial: boolean (default: false)
     description: string (optional)
-  
+
   contains:
     - onEnter: StateAction[] (0..*)
     - onExit: StateAction[] (0..*)
@@ -608,17 +633,18 @@ ScreenState:
 ```
 
 ### **Entity: StateAction**
+
 ```yaml
 StateAction:
   attributes:
     action: ActionType [enum]
     description: string (optional)
-  
+
   references:
     - api: string (operationId from OpenAPI)
     - apiRef: Element.id [where Element.type = ApplicationService]
     - dataPath: string (JSONPath expression, optional)
-  
+
   enums:
     ActionType:
       - fetchData
@@ -632,17 +658,18 @@ StateAction:
 ```
 
 ### **Entity: StateTransition**
+
 ```yaml
 StateTransition:
   attributes:
     to: string [FK -> ScreenState.name]
     on: TriggerType [enum]
     description: string (optional)
-  
+
   contains:
     - condition: Condition (optional)
     - validate: boolean (default: false)
-  
+
   enums:
     TriggerType:
       - success
@@ -655,12 +682,13 @@ StateTransition:
 ```
 
 ### **Entity: Condition**
+
 ```yaml
 Condition:
   attributes:
     expression: string (boolean expression)
     description: string (optional)
-  
+
   # Expression syntax examples:
   # - "data.status === 'draft'"
   # - "form.isValid && user.hasPermission"
@@ -668,18 +696,19 @@ Condition:
 ```
 
 ### **Entity: ScreenLayout**
+
 ```yaml
 ScreenLayout:
   attributes:
     type: LayoutType [enum]
     title: string (optional)
     description: string (optional)
-  
+
   contains:
     - sections: LayoutSection[] (0..*)
     - fields: FieldDefinition[] (0..*)
     - actions: ActionButton[] (0..*)
-  
+
   enums:
     LayoutType:
       - form
@@ -691,6 +720,7 @@ ScreenLayout:
 ```
 
 ### **Entity: LayoutSection**
+
 ```yaml
 LayoutSection:
   attributes:
@@ -699,12 +729,13 @@ LayoutSection:
     collapsible: boolean (default: false)
     collapsed: boolean (default: false)
     columns: integer (default: 1)
-  
+
   contains:
     - fields: FieldDefinition[] (0..*)
 ```
 
 ### **Entity: FieldDefinition**
+
 ```yaml
 FieldDefinition:
   attributes:
@@ -712,16 +743,17 @@ FieldDefinition:
     required: boolean (default: false)
     readonly: boolean (default: false)
     hidden: boolean (default: false)
-  
+
   references:
     - schemaRef: string (JSONPath to property in JSON Schema)
     # e.g., "product-schema.json#/definitions/Product/properties/name"
-  
+
   contains:
     - conditionalDisplay: Condition (optional)
 ```
 
 ### **Entity: ActionButton**
+
 ```yaml
 ActionButton:
   attributes:
@@ -730,11 +762,11 @@ ActionButton:
     type: ButtonType [enum]
     icon: string (optional)
     disabled: boolean (default: false)
-  
+
   contains:
     - action: StateAction (1..1)
     - confirmationPrompt: string (optional)
-  
+
   enums:
     ButtonType:
       - primary
@@ -748,6 +780,7 @@ ActionButton:
 ## **5. Navigation Layer (Custom Spec)**
 
 ### **Entity: NavigationGraph**
+
 ```yaml
 NavigationGraph:
   contains:
@@ -757,6 +790,7 @@ NavigationGraph:
 ```
 
 ### **Entity: Route**
+
 ```yaml
 Route:
   attributes:
@@ -764,11 +798,11 @@ Route:
     screen: string (screen identifier)
     title: string (optional)
     description: string (optional)
-  
+
   contains:
     - params: RouteParam[] (0..*)
     - queryParams: QueryParam[] (0..*)
-  
+
   references:
     - archimateRef: Element.id [ApplicationComponent]
     - uxSpec: string (path to UX spec)
@@ -776,6 +810,7 @@ Route:
 ```
 
 ### **Entity: RouteParam**
+
 ```yaml
 RouteParam:
   attributes:
@@ -783,7 +818,7 @@ RouteParam:
     type: ParamType [enum]
     required: boolean (default: true)
     pattern: string (regex, optional)
-  
+
   enums:
     ParamType:
       - string
@@ -792,6 +827,7 @@ RouteParam:
 ```
 
 ### **Entity: QueryParam**
+
 ```yaml
 QueryParam:
   attributes:
@@ -802,6 +838,7 @@ QueryParam:
 ```
 
 ### **Entity: NavigationTransition**
+
 ```yaml
 NavigationTransition:
   attributes:
@@ -810,10 +847,10 @@ NavigationTransition:
     trigger: NavigationTrigger [enum]
     element: string (optional, UI element name)
     description: string (optional)
-  
+
   contains:
     - paramMapping: ParamMapping[] (0..*)
-  
+
   enums:
     NavigationTrigger:
       - click
@@ -824,6 +861,7 @@ NavigationTransition:
 ```
 
 ### **Entity: ParamMapping**
+
 ```yaml
 ParamMapping:
   attributes:
@@ -833,17 +871,18 @@ ParamMapping:
 ```
 
 ### **Entity: NavigationGuard**
+
 ```yaml
 NavigationGuard:
   attributes:
     name: string [PK]
     type: GuardType [enum]
     description: string (optional)
-  
+
   contains:
     - condition: Condition (1..1)
     - redirectTo: string (route path, if condition fails)
-  
+
   enums:
     GuardType:
       - authentication
@@ -857,6 +896,7 @@ NavigationGuard:
 ## **6. Security Layer (Custom Spec)**
 
 ### **Entity: SecurityModel**
+
 ```yaml
 SecurityModel:
   contains:
@@ -867,25 +907,27 @@ SecurityModel:
 ```
 
 ### **Entity: Role**
+
 ```yaml
 Role:
   attributes:
     name: string [PK]
     description: string (optional)
     inheritsFrom: string[] (role names, optional)
-  
+
   references:
     - permissions: Permission.name[] (0..*)
 ```
 
 ### **Entity: Permission**
+
 ```yaml
 Permission:
   attributes:
     name: string [PK] (e.g., "product.create", "user.read")
     description: string (optional)
     scope: PermissionScope [enum]
-  
+
   enums:
     PermissionScope:
       - global
@@ -894,19 +936,20 @@ Permission:
 ```
 
 ### **Entity: SecureResource**
+
 ```yaml
 SecureResource:
   attributes:
     resource: string [PK] (resource identifier)
     type: ResourceType [enum]
     description: string (optional)
-  
+
   contains:
     - operations: ResourceOperation[] (1..*)
-  
+
   references:
     - archimateRef: Element.id
-  
+
   enums:
     ResourceType:
       - api
@@ -916,22 +959,24 @@ SecureResource:
 ```
 
 ### **Entity: ResourceOperation**
+
 ```yaml
 ResourceOperation:
   attributes:
     operation: string [PK within resource] (e.g., "getProduct", "updateProduct")
     description: string (optional)
-  
+
   references:
     - allowRoles: Role.name[] (0..*)
     - denyRoles: Role.name[] (0..*)
-  
+
   contains:
     - conditions: AccessCondition[] (0..*)
     - fieldAccess: FieldAccessControl[] (0..*)
 ```
 
 ### **Entity: AccessCondition**
+
 ```yaml
 AccessCondition:
   attributes:
@@ -939,7 +984,7 @@ AccessCondition:
     operator: ConditionOperator [enum]
     value: string
     message: string (optional, error message)
-  
+
   enums:
     ConditionOperator:
       - equals
@@ -953,41 +998,44 @@ AccessCondition:
 ```
 
 ### **Entity: FieldAccessControl**
+
 ```yaml
 FieldAccessControl:
   attributes:
     field: string [PK within operation]
     read: boolean (default: true)
     write: boolean (default: true)
-  
+
   references:
     - allowRoles: Role.name[] (optional)
     - denyRoles: Role.name[] (optional)
-  
+
   contains:
     - conditions: AccessCondition[] (0..*)
 ```
 
 ### **Entity: SecurityPolicy**
+
 ```yaml
 SecurityPolicy:
   attributes:
     name: string [PK]
     description: string (optional)
     enabled: boolean (default: true)
-  
+
   contains:
     - rules: PolicyRule[] (1..*)
 ```
 
 ### **Entity: PolicyRule**
+
 ```yaml
 PolicyRule:
   attributes:
     condition: Condition (1..1)
     effect: PolicyEffect [enum]
     message: string (optional)
-  
+
   enums:
     PolicyEffect:
       - allow
@@ -1000,19 +1048,20 @@ PolicyRule:
 ## **7. Technology/Data Store Layer**
 
 ### **Entity: DatabaseDefinition**
+
 ```yaml
 DatabaseDefinition:
   attributes:
     name: string [PK]
     type: DatabaseType [enum]
     version: string (optional)
-  
+
   contains:
     - schemas: DatabaseSchema[] (0..*)
-  
+
   references:
     - archimateRef: Element.id [where Element.type = Artifact or Node]
-  
+
   enums:
     DatabaseType:
       - PostgreSQL
@@ -1024,32 +1073,35 @@ DatabaseDefinition:
 ```
 
 ### **Entity: DatabaseSchema**
+
 ```yaml
 DatabaseSchema:
   attributes:
     name: string [PK within database]
-  
+
   contains:
     - tables: Table[] (0..*)
     - views: View[] (0..*)
 ```
 
 ### **Entity: Table**
+
 ```yaml
 Table:
   attributes:
     name: string [PK within schema]
-  
+
   contains:
     - columns: Column[] (1..*)
     - constraints: TableConstraint[] (0..*)
     - indexes: Index[] (0..*)
-  
+
   references:
     - jsonSchema: string (path to JSON Schema that defines this table)
 ```
 
 ### **Entity: Column**
+
 ```yaml
 Column:
   attributes:
@@ -1057,24 +1109,25 @@ Column:
     type: SQLType
     nullable: boolean (default: true)
     defaultValue: string (optional)
-  
+
   references:
     - schemaProperty: string (JSONPath to property in JSON Schema)
 ```
 
 ### **Entity: TableConstraint**
+
 ```yaml
 TableConstraint:
   attributes:
     name: string [PK within table]
     type: ConstraintType [enum]
-  
+
   contains:
     - columns: string[] (column names)
-  
+
   references:
     - foreignKey: ForeignKey (if type=FOREIGN_KEY)
-  
+
   enums:
     ConstraintType:
       - PRIMARY_KEY
@@ -1088,6 +1141,7 @@ TableConstraint:
 ## **Cross-Reference Metadata**
 
 ### **Entity: CrossReference**
+
 ```yaml
 CrossReference:
   attributes:
@@ -1098,7 +1152,7 @@ CrossReference:
     referenceType: ReferenceType [enum]
     valid: boolean (validation result)
     lastChecked: datetime
-  
+
   enums:
     EntityType:
       - ArchiMateElement
@@ -1108,7 +1162,7 @@ CrossReference:
       - Route
       - SecureResource
       - Table
-    
+
     ReferenceType:
       - specReference (ArchiMate property points to spec file)
       - schemaReference (OpenAPI $ref to JSON Schema)

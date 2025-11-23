@@ -1,10 +1,11 @@
 """
 PlantUML diagram exporter.
 """
+
 from pathlib import Path
-from typing import List, Set, Any
+from typing import Any
+
 from .export_manager import BaseExporter
-from ..core.element import Element
 
 
 class PlantUMLExporter(BaseExporter):
@@ -48,9 +49,7 @@ class PlantUMLExporter(BaseExporter):
             # Add components
             for element in app_layer.elements.values():
                 if element.type == "component":
-                    f.write(
-                        f'component "{element.name}" as {self._sanitize_id(element.id)}\n'
-                    )
+                    f.write(f'component "{element.name}" as {self._sanitize_id(element.id)}\n')
 
             f.write("\n")
 
@@ -149,9 +148,7 @@ class PlantUMLExporter(BaseExporter):
                 # Add all elements as packages/components
                 for element in layer.elements.values():
                     element_type = self._get_plantuml_type(element.type)
-                    f.write(
-                        f'{element_type} "{element.name}" as {self._sanitize_id(element.id)}\n'
-                    )
+                    f.write(f'{element_type} "{element.name}" as {self._sanitize_id(element.id)}\n')
 
                 f.write("\n")
 

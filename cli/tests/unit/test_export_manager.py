@@ -1,11 +1,13 @@
 """Tests for export manager."""
-import pytest
+
 from pathlib import Path
+
+import pytest
 from documentation_robotics.export.export_manager import (
-    ExportManager,
-    ExportFormat,
-    ExportOptions,
     BaseExporter,
+    ExportFormat,
+    ExportManager,
+    ExportOptions,
 )
 
 
@@ -78,9 +80,7 @@ class MockExporter(BaseExporter):
 
 def test_base_exporter_initialization(initialized_model):
     """Test BaseExporter initialization."""
-    options = ExportOptions(
-        format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml")
-    )
+    options = ExportOptions(format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml"))
     exporter = MockExporter(initialized_model, options)
 
     assert exporter.model == initialized_model
@@ -89,9 +89,7 @@ def test_base_exporter_initialization(initialized_model):
 
 def test_base_exporter_export_not_implemented(initialized_model):
     """Test that BaseExporter.export() raises NotImplementedError."""
-    options = ExportOptions(
-        format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml")
-    )
+    options = ExportOptions(format=ExportFormat.ARCHIMATE, output_path=Path("/tmp/test.xml"))
     exporter = BaseExporter(initialized_model, options)
 
     with pytest.raises(NotImplementedError):

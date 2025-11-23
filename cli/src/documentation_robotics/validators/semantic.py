@@ -1,7 +1,9 @@
 """
 Semantic validator - validates semantic correctness of model.
 """
-from typing import List, Dict, Set, Any
+
+from typing import Any, List
+
 from .base import BaseValidator, ValidationResult
 
 
@@ -37,7 +39,7 @@ class BusinessServiceRealizationRule(SemanticRule):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="Business service is not realized by any application service"
+                message="Business service is not realized by any application service",
             )
 
         return result
@@ -53,13 +55,15 @@ class APIOperationApplicationServiceRule(SemanticRule):
             return result
 
         # Check for application service reference
-        app_service_ref = element.get("x-application-service") or element.get("applicationServiceRef")
+        app_service_ref = element.get("x-application-service") or element.get(
+            "applicationServiceRef"
+        )
 
         if not app_service_ref:
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="API operation does not reference an application service"
+                message="API operation does not reference an application service",
             )
 
         return result
@@ -90,7 +94,7 @@ class UXScreenAPIOperationRule(SemanticRule):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="UX screen does not reference any API operations"
+                message="UX screen does not reference any API operations",
             )
 
         return result
@@ -112,7 +116,7 @@ class SecurityResourceApplicationElementRule(SemanticRule):
             result.add_warning(
                 layer=element.layer,
                 element_id=element.id,
-                message="Security resource does not reference any application element"
+                message="Security resource does not reference any application element",
             )
 
         return result

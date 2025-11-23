@@ -1,9 +1,11 @@
 """
 JSON Schema exporter.
 """
-from pathlib import Path
-from typing import Dict, Any
+
 import json
+from pathlib import Path
+from typing import Any, Dict
+
 from .export_manager import BaseExporter
 
 

@@ -14,6 +14,7 @@ The Motivation Layer describes the reasons and drivers behind the architecture. 
 ## Entity Definitions
 
 ### Stakeholder
+
 ```yaml
 Stakeholder:
   description: "Individual, team, or organization with interest in the outcome"
@@ -39,6 +40,7 @@ Stakeholder:
 ```
 
 ### Driver
+
 ```yaml
 Driver:
   description: "External or internal condition that motivates an organization"
@@ -65,6 +67,7 @@ Driver:
 ```
 
 ### Assessment
+
 ```yaml
 Assessment:
   description: "Outcome of analysis of the state of affairs"
@@ -91,6 +94,7 @@ Assessment:
 ```
 
 ### Goal
+
 ```yaml
 Goal:
   description: "High-level statement of intent, direction, or desired end state"
@@ -123,6 +127,7 @@ Goal:
 ```
 
 ### Outcome
+
 ```yaml
 Outcome:
   description: "End result that has been achieved"
@@ -152,6 +157,7 @@ Outcome:
 ```
 
 ### Principle
+
 ```yaml
 Principle:
   description: "Normative property of all systems in a given context"
@@ -185,6 +191,7 @@ Principle:
 ```
 
 ### Requirement
+
 ```yaml
 Requirement:
   description: "Statement of need that must be realized"
@@ -234,6 +241,7 @@ Requirement:
 ```
 
 ### Constraint
+
 ```yaml
 Constraint:
   description: "Restriction on the way in which a system is realized"
@@ -275,6 +283,7 @@ Constraint:
 ```
 
 ### Meaning
+
 ```yaml
 Meaning:
   description: "Knowledge or expertise present in a representation"
@@ -290,6 +299,7 @@ Meaning:
 ```
 
 ### Value
+
 ```yaml
 Value:
   description: "Relative worth, utility, or importance of something"
@@ -324,17 +334,20 @@ Value:
 ## Relationships
 
 ### Structural Relationships
+
 - **Aggregation**: Goal aggregates sub-Goals
 - **Realization**: Outcome realizes Goal
 - **Specialization**: Requirement specializes Requirement (parent-child)
 
 ### Influence Relationships
+
 - **Association**: Stakeholder associated with Driver
 - **Influence**: Driver influences Assessment
 - **Influence**: Assessment influences Goal
 - **Influence**: Principle influences Requirement
 
 ### Other Relationships
+
 - **Association**: Stakeholder associated with Goal
 - **Association**: Requirement associated with Constraint
 - **Realization**: Goal realizes Value
@@ -429,12 +442,14 @@ Value:
 ## Integration Points
 
 ### To Business Layer
+
 - Goal drives BusinessService
 - Requirement constrains BusinessProcess
 - Stakeholder is BusinessActor
 - Value delivered by Product
 
 ### To Application Layer
+
 - **Goal → ApplicationService**: Services declare which Goals they support (motivation.supports-goals)
 - **Value → ApplicationService**: Services declare which Values they deliver (motivation.delivers-value)
 - **Principle → ApplicationService**: Services declare governing Principles (motivation.governed-by-principles)
@@ -443,35 +458,42 @@ Value:
 - Constraint limits ApplicationComponent choices
 
 ### To Technology Layer
+
 - Requirement constrains Node selection
 - Constraint limits TechnologyService options
 - Principle guides technology choices
 
 ### To API Layer
+
 - **Requirement → API Operations**: Operations declare which Requirements they fulfill (x-fulfills-requirements)
 - **Principle → API Design**: API specifications declare governing Principles (x-governed-by-principles)
 - Principle guides API design patterns (REST, versioning, backwards compatibility)
 
 ### To Data Model Layer
+
 - **Constraint → Data Retention**: Schemas reference Constraints that drive retention policies (x-security.governedBy.constraintRefs)
 - **Requirement → Data Protection**: Schemas reference Requirements for data protection (x-security.governedBy.requirementRefs)
 - **Principle → Data Design**: Schemas reference Principles that guide data modeling (x-security.governedBy.principleRefs, x-ui.governedBy.principleRefs)
 
 ### To Data Store Layer
+
 - **Constraint → Physical Schema**: Table comments reference Constraints driving policies (x-governed-by-constraints)
 - **Requirement → Database Design**: Table/column comments reference Requirements (x-governed-by-requirements)
 - **Principle → Database Architecture**: Table comments reference Principles (x-governed-by-principles)
 
 ### To UX Layer
+
 - **Goal → Screen/Feature**: UX specs declare which Goals they support (motivationAlignment.supportsGoals)
 - **Value → User Experience**: UX specs declare which Values they deliver (motivationAlignment.deliversValue)
 - **Principle → UX Design**: UX specs declare governing UX Principles (motivationAlignment.governedByPrinciples)
 
 ### To Navigation Layer
+
 - **Principle → Navigation Design**: Navigation graphs declare governing Principles (governedByPrinciples)
 - NavigationGuard enforces security Requirements
 
 ### To APM/Observability Layer
+
 - **Goal → Business Metrics**: Metrics declare which Goals they measure (motivationMapping.contributesToGoal)
 - **Outcome → Measurement**: Metrics declare which Outcomes they validate (motivationMapping.measuresOutcome)
 - **KPI Formulas**: Metrics define how to calculate goal achievement (motivationMapping.kpiFormula)
@@ -482,16 +504,14 @@ Value:
 The Motivation Layer enables critical traceability:
 
 ```yaml
-Traceability Chain:
-  Stakeholder � Driver � Assessment � Goal � Requirement � Implementation
+Traceability Chain: Stakeholder � Driver � Assessment � Goal � Requirement � Implementation
 
-Example:
-  Customer (Stakeholder)
-    � Needs mobile access (Driver)
-      � Current system is web-only (Assessment)
-        � Launch mobile app (Goal)
-          � Support iOS and Android (Requirement)
-            � Mobile ApplicationComponent
+Example: Customer (Stakeholder)
+  � Needs mobile access (Driver)
+  � Current system is web-only (Assessment)
+  � Launch mobile app (Goal)
+  � Support iOS and Android (Requirement)
+  � Mobile ApplicationComponent
 ```
 
 ## Validation Rules
@@ -520,6 +540,7 @@ Example:
 ## Common Patterns
 
 ### Goal Decomposition
+
 ```yaml
 Strategic Goal: "Become Market Leader"
    > Business Goal: "Increase Market Share to 30%"
@@ -531,6 +552,7 @@ Strategic Goal: "Become Market Leader"
 ```
 
 ### Requirements Hierarchy
+
 ```yaml
 Business Requirement: "Support Mobile Customers"
    > Functional Requirement: "iOS Application"
@@ -542,6 +564,7 @@ Business Requirement: "Support Mobile Customers"
 ```
 
 ### Principle Application
+
 ```yaml
 Principle: "Security by Design"
   Influences:
@@ -555,6 +578,7 @@ Principle: "Security by Design"
 ## Property Conventions
 
 ### Goal Properties
+
 ```yaml
 goal.measurable: "true|false"
 goal.target-date: "YYYY-MM-DD"
@@ -563,6 +587,7 @@ goal.owner: "Stakeholder name or id"
 ```
 
 ### Requirement Properties
+
 ```yaml
 requirement.source: "stakeholder|regulation|analysis"
 requirement.status: "proposed|approved|implemented|verified|rejected"
@@ -576,6 +601,7 @@ requirement.security.implementation-params: "{JSON object with parameters}"
 ```
 
 ### Principle Properties
+
 ```yaml
 principle.rationale: "Why this principle exists"
 principle.implications: "What this means for implementation"
@@ -583,6 +609,7 @@ principle.exceptions: "When this principle may not apply"
 ```
 
 ### Constraint Properties
+
 ```yaml
 constraint.source: "budget|time|technology|regulation"
 constraint.negotiable: "true|false"
@@ -590,7 +617,7 @@ constraint.impact: "Description of impact on solution"
 
 # Compliance/commitment properties
 constraint.commitment-type: "service-level|regulatory|contractual|policy"
-constraint.compliance-requirements: "[\"requirement 1\", \"requirement 2\"]"
+constraint.compliance-requirements: '["requirement 1", "requirement 2"]'
 constraint.penalties: "Description of non-compliance consequences"
 ```
 
@@ -611,6 +638,7 @@ This ensures that every architectural decision has a clear business justificatio
 The Motivation Layer serves as the foundation for security modeling by providing:
 
 ### Requirements for Security Controls
+
 ```yaml
 # Motivation Requirement → Security Implementation
 Requirement:
@@ -636,6 +664,7 @@ Requirement:
 ```
 
 ### Constraints for Compliance Commitments
+
 ```yaml
 # Regulatory/Contractual commitments as Constraints
 Constraint:
@@ -653,6 +682,7 @@ Constraint:
 ```
 
 ### Assessment for Threat Analysis
+
 ```yaml
 # Business risk assessment → Security threat modeling
 Assessment:
@@ -669,6 +699,7 @@ Threat:
 ```
 
 ### Stakeholder Mapping to Security Actors
+
 ```yaml
 # Business stakeholder → Security actor
 Stakeholder:
@@ -684,6 +715,7 @@ Actor:
 ```
 
 ### Traceability Chain
+
 ```
 Stakeholder → Goal → Assessment → Requirement → Security Implementation
      ↓          ↓         ↓            ↓                ↓
@@ -698,6 +730,7 @@ Example:
 ```
 
 This integration ensures:
+
 - **Single source of truth** for requirements
 - **Clear traceability** from business goals to security controls
 - **Proper layering** of concerns (WHY → WHAT → HOW)

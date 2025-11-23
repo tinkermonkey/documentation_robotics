@@ -14,28 +14,28 @@ Each layer validates using its standard's native validator:
 // Multi-layer validation with specialized tools
 const results = {
   // ArchiMate layers (01, 02, 04, 05): Use ArchiMate validators
-  archimate: validateArchiMate('model.xml'),
+  archimate: validateArchiMate("model.xml"),
 
   // Security layer (03): Custom validator
-  security: validateSecurity('specs/security/security.yaml'),
+  security: validateSecurity("specs/security/security.yaml"),
 
   // API layer (06): OpenAPI validators
-  openapi: validateOpenAPI('specs/api/*.yaml'),
+  openapi: validateOpenAPI("specs/api/*.yaml"),
 
   // Data Model layer (07): JSON Schema validators
-  schemas: validateJSONSchema('specs/schemas/*.json'),
+  schemas: validateJSONSchema("specs/schemas/*.json"),
 
   // Datastore layer (08): DDL validators
-  datastore: validateDDL('specs/datastore/*.sql'),
+  datastore: validateDDL("specs/datastore/*.sql"),
 
   // UX layer (09): Custom UX validator
-  ux: validateUXSpec('specs/ux/*.yaml'),
+  ux: validateUXSpec("specs/ux/*.yaml"),
 
   // Navigation layer (10): Custom navigation validator
-  navigation: validateNavigation('specs/navigation/*.yaml'),
+  navigation: validateNavigation("specs/navigation/*.yaml"),
 
   // APM layer (11): OpenTelemetry validators
-  apm: validateOTelConfig('specs/apm/*.yaml')
+  apm: validateOTelConfig("specs/apm/*.yaml"),
 };
 ```
 
@@ -58,7 +58,7 @@ const crossLayerResults = {
   archiRefs: validateArchimateRefs(model),
 
   // Validate route references exist in navigation layer
-  routes: validateRoutes(model)
+  routes: validateRoutes(model),
 };
 ```
 
@@ -78,23 +78,23 @@ const semanticResults = {
   circularDeps: detectCircularDependencies(model),
 
   // Validate requirement coverage
-  requirementCoverage: validateRequirementCoverage(model)
+  requirementCoverage: validateRequirementCoverage(model),
 };
 ```
 
 ## Validation Tools
 
-| Layer | Standard | Validator Tool |
-|-------|----------|----------------|
-| 01-02, 04-05 | ArchiMate 3.2 | ArchiMate XSD, Archi validator |
-| 03 | Custom Security | Custom JSON Schema validator |
-| 06 | OpenAPI 3.0 | Swagger Validator, Spectral |
-| 07 | JSON Schema Draft 7 | AJV, JSON Schema Validator |
-| 08 | SQL DDL | Database-specific linters |
-| 09 | Custom UX | Custom JSON Schema validator |
-| 10 | Custom Navigation | Custom JSON Schema validator |
-| 11 | OpenTelemetry | OTel Collector validator |
-| Cross-layer | All | Custom reference checker |
+| Layer        | Standard            | Validator Tool                 |
+| ------------ | ------------------- | ------------------------------ |
+| 01-02, 04-05 | ArchiMate 3.2       | ArchiMate XSD, Archi validator |
+| 03           | Custom Security     | Custom JSON Schema validator   |
+| 06           | OpenAPI 3.0         | Swagger Validator, Spectral    |
+| 07           | JSON Schema Draft 7 | AJV, JSON Schema Validator     |
+| 08           | SQL DDL             | Database-specific linters      |
+| 09           | Custom UX           | Custom JSON Schema validator   |
+| 10           | Custom Navigation   | Custom JSON Schema validator   |
+| 11           | OpenTelemetry       | OTel Collector validator       |
+| Cross-layer  | All                 | Custom reference checker       |
 
 ## Validation Workflow
 

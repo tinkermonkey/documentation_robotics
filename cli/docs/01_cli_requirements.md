@@ -5,6 +5,7 @@
 The `dr` (Documentation Robotics) CLI is a command-line tool for managing federated architecture metadata models. It enables creation, validation, querying, and export of architecture models across 11 layers using both standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
 
 **Design Philosophy:**
+
 - **Files are the API** - The model is stored as YAML/JSON files that can be directly manipulated
 - **CLI provides convenience** - The `dr` tool offers validation, projection, and export functionality
 - **Claude Code integration** - Designed to be easily used by both humans and Claude Code
@@ -16,9 +17,11 @@ The `dr` (Documentation Robotics) CLI is a command-line tool for managing federa
 ### 2.1 Core Capabilities
 
 #### FR-001: Model Initialization
+
 **Requirement:** The tool SHALL create a new architecture model with default structure.
 
 **Acceptance Criteria:**
+
 - Creates `model/` directory with all 11 layer subdirectories
 - Creates `specs/` directory with appropriate subdirectories
 - Creates `model/manifest.yaml` with layer registry
@@ -27,6 +30,7 @@ The `dr` (Documentation Robotics) CLI is a command-line tool for managing federa
 - Creates `projection-rules.yaml` with default projection rules
 
 **Command:**
+
 ```bash
 dr init [project-name] [options]
   --template <template-name>  # Optional: use a template (basic, microservices, etc.)
@@ -35,9 +39,11 @@ dr init [project-name] [options]
 ```
 
 #### FR-002: Element Management
+
 **Requirement:** The tool SHALL support adding, updating, and removing elements across all 11 layers.
 
 **Acceptance Criteria:**
+
 - Can add elements to any layer with validation
 - Can update existing elements
 - Can remove elements with dependency checking
@@ -47,6 +53,7 @@ dr init [project-name] [options]
 - Updates manifest.yaml automatically
 
 **Commands:**
+
 ```bash
 # Add element
 dr add <layer> <element-type> --name <name> [options]
@@ -74,6 +81,7 @@ dr export <layer> --file <file>  # Export layer to file
 ```
 
 **Examples:**
+
 ```bash
 # Add a business service
 dr add business service \
@@ -95,9 +103,11 @@ dr remove business.service.customer-management --cascade
 ```
 
 #### FR-003: Query and Search
+
 **Requirement:** The tool SHALL support querying and searching elements across all layers.
 
 **Acceptance Criteria:**
+
 - Can find elements by ID, name, type, or layer
 - Can search by property values
 - Can filter by relationships
@@ -105,6 +115,7 @@ dr remove business.service.customer-management --cascade
 - Outputs in multiple formats (YAML, JSON, table)
 
 **Commands:**
+
 ```bash
 # Find by ID
 dr find <element-id>
@@ -134,6 +145,7 @@ dr trace <element-id> [options]
 ```
 
 **Examples:**
+
 ```bash
 # Find specific element
 dr find business.service.customer-management --show-refs
@@ -149,9 +161,11 @@ dr trace application.service.customer-service --direction both
 ```
 
 #### FR-004: Validation
+
 **Requirement:** The tool SHALL validate model integrity, schema compliance, and cross-layer consistency.
 
 **Acceptance Criteria:**
+
 - Validates each layer against its schema (ArchiMate XSD, JSON Schema, etc.)
 - Validates cross-layer references
 - Validates projection rules
@@ -161,6 +175,7 @@ dr trace application.service.customer-service --direction both
 - Supports incremental validation (single layer or element)
 
 **Commands:**
+
 ```bash
 dr validate [options]
   --layer <layer>             # Validate specific layer
@@ -174,6 +189,7 @@ dr check [options]            # Alias for validate with --strict
 ```
 
 **Validation Rules:**
+
 1. **Schema Validation:**
    - Motivation Layer: ArchiMate 3.2 Motivation elements
    - Business Layer: ArchiMate 3.2 Business elements
@@ -202,9 +218,11 @@ dr check [options]            # Alias for validate with --strict
    - Security resources reference application/data elements
 
 #### FR-005: Projection
+
 **Requirement:** The tool SHALL support automatic projection of elements across layers based on rules.
 
 **Acceptance Criteria:**
+
 - Applies projection rules from `projection-rules.yaml`
 - Creates derived elements in target layers
 - Maintains relationships between projected elements
@@ -213,6 +231,7 @@ dr check [options]            # Alias for validate with --strict
 - Validates projected elements
 
 **Commands:**
+
 ```bash
 dr project <element-id> --to <layer>[,...] [options]
   --rule <rule-name>          # Use specific projection rule
@@ -225,6 +244,7 @@ dr project-all [options]      # Project all unprojected elements
 ```
 
 **Projection Rules Structure:**
+
 ```yaml
 # projection-rules.yaml
 projections:
@@ -252,9 +272,11 @@ projections:
 ```
 
 #### FR-006: Export
+
 **Requirement:** The tool SHALL export the model to various standard formats.
 
 **Acceptance Criteria:**
+
 - Exports to ArchiMate XML
 - Exports to OpenAPI 3.0 YAML
 - Exports to JSON Schema
@@ -264,6 +286,7 @@ projections:
 - Exports to custom formats via plugins
 
 **Commands:**
+
 ```bash
 dr export [options]
   --format <format>           # archimate, openapi, schema, plantuml, markdown, graphml, all
@@ -289,9 +312,11 @@ dr export markdown --output docs/
 6. **GraphML** - Graph structure for visualization tools
 
 #### FR-007: Code Generation
+
 **Requirement:** The tool SHALL support code generation from model specifications.
 
 **Acceptance Criteria:**
+
 - Generates TypeScript/JavaScript code from API specs
 - Generates Python code from API specs
 - Generates database migrations from Data Store layer
@@ -302,6 +327,7 @@ dr export markdown --output docs/
 - Generates tests from specifications
 
 **Commands:**
+
 ```bash
 dr generate <target> [options]
   --language <lang>           # typescript, javascript, python, java, etc.
@@ -330,9 +356,11 @@ dr generate tests --output tests/
 7. **Documentation** - API documentation, architecture docs
 
 #### FR-008: Diff and Merge
+
 **Requirement:** The tool SHALL support comparing models and merging changes.
 
 **Acceptance Criteria:**
+
 - Compares two model versions
 - Shows added, modified, and deleted elements
 - Supports structural and semantic diffs
@@ -341,6 +369,7 @@ dr generate tests --output tests/
 - Generates change reports
 
 **Commands:**
+
 ```bash
 dr diff <source> <target> [options]
   --layer <layer>             # Compare specific layer
@@ -355,6 +384,7 @@ dr merge <source> [options]
 ```
 
 **Examples:**
+
 ```bash
 # Compare current model with previous version
 dr diff HEAD~1 HEAD
@@ -367,9 +397,11 @@ dr merge feature-branch --strategy interactive
 ```
 
 #### FR-009: Reporting
+
 **Requirement:** The tool SHALL generate reports and analytics about the model.
 
 **Acceptance Criteria:**
+
 - Generates coverage reports (which layers are populated)
 - Generates dependency reports
 - Generates complexity metrics
@@ -378,6 +410,7 @@ dr merge feature-branch --strategy interactive
 - Exports reports in multiple formats
 
 **Commands:**
+
 ```bash
 dr report <report-type> [options]
   --output <file>             # Output file
@@ -407,9 +440,9 @@ dr report stats               # Model statistics
    - Impact analysis
 
 3. **Traceability Matrix:**
-   - Stakeholder ’ Goal ’ Requirement ’ Implementation
-   - Business Service ’ Application ’ API ’ UX
-   - Threat ’ Assessment ’ Requirement ’ Control
+   - Stakeholder ï¿½ Goal ï¿½ Requirement ï¿½ Implementation
+   - Business Service ï¿½ Application ï¿½ API ï¿½ UX
+   - Threat ï¿½ Assessment ï¿½ Requirement ï¿½ Control
 
 4. **Complexity Metrics:**
    - Elements per layer
@@ -418,9 +451,11 @@ dr report stats               # Model statistics
    - Coupling metrics
 
 #### FR-010: Interactive Mode
+
 **Requirement:** The tool SHALL provide an interactive REPL mode for exploratory work.
 
 **Acceptance Criteria:**
+
 - Starts interactive shell with autocomplete
 - Supports all CLI commands
 - Provides context-aware suggestions
@@ -429,6 +464,7 @@ dr report stats               # Model statistics
 - Supports scripting
 
 **Commands:**
+
 ```bash
 dr interactive                # Start interactive mode
 dr repl                       # Alias for interactive
@@ -444,6 +480,7 @@ dr repl                       # Alias for interactive
 ### 2.2 Configuration Requirements
 
 #### FR-011: Configuration Management
+
 **Requirement:** The tool SHALL support flexible configuration.
 
 **Configuration File:** `dr.config.yaml`
@@ -454,17 +491,17 @@ version: "1.0.0"
 
 # Model paths
 paths:
-  model: "./model"              # Model directory
-  specs: "./specs"              # Specs output directory
-  templates: "./.dr/templates"  # Template directory
-  schemas: "./.dr/schemas"      # Schema directory
+  model: "./model" # Model directory
+  specs: "./specs" # Specs output directory
+  templates: "./.dr/templates" # Template directory
+  schemas: "./.dr/schemas" # Schema directory
 
 # Default behaviors
 defaults:
-  output_format: "yaml"         # Default output format
-  validation_mode: "standard"   # standard, strict
-  auto_project: true            # Auto-project on add
-  backup_before_update: true    # Backup before destructive operations
+  output_format: "yaml" # Default output format
+  validation_mode: "standard" # standard, strict
+  auto_project: true # Auto-project on add
+  backup_before_update: true # Backup before destructive operations
 
 # Layer configuration
 layers:
@@ -484,14 +521,14 @@ layers:
 
 # Validation rules
 validation:
-  strict_naming: true           # Enforce naming conventions
-  require_documentation: false  # Require documentation field
-  check_cross_refs: true        # Validate cross-references
-  fail_on_warning: false        # Treat warnings as errors
+  strict_naming: true # Enforce naming conventions
+  require_documentation: false # Require documentation field
+  check_cross_refs: true # Validate cross-references
+  fail_on_warning: false # Treat warnings as errors
 
 # Projection configuration
 projection:
-  auto_project: true            # Auto-project on element creation
+  auto_project: true # Auto-project on element creation
   rules_file: "./projection-rules.yaml"
 
 # Export configuration
@@ -513,15 +550,16 @@ generation:
 
 # Plugins
 plugins:
-  enabled: []                   # List of enabled plugins
+  enabled: [] # List of enabled plugins
 
 # Logging
 logging:
-  level: "info"                 # debug, info, warning, error
-  file: ".dr/logs/dr.log"       # Log file location
+  level: "info" # debug, info, warning, error
+  file: ".dr/logs/dr.log" # Log file location
 ```
 
 **Commands:**
+
 ```bash
 dr config get <key>             # Get configuration value
 dr config set <key> <value>     # Set configuration value
@@ -532,9 +570,11 @@ dr config validate              # Validate configuration file
 ### 2.3 Claude Code Integration Requirements
 
 #### FR-012: Claude Code Compatibility
+
 **Requirement:** The tool SHALL be easily usable by Claude Code.
 
 **Acceptance Criteria:**
+
 - All commands have clear, parseable output
 - JSON output mode for programmatic consumption
 - Exit codes indicate success/failure
@@ -545,6 +585,7 @@ dr config validate              # Validate configuration file
 **Claude Code Usage Patterns:**
 
 1. **Direct File Manipulation:**
+
 ```python
 # Claude Code can directly read/write files
 import yaml
@@ -565,12 +606,14 @@ Path("model/business/services.yaml").write_text(yaml.dump(services))
 ```
 
 2. **Using CLI for Validation:**
+
 ```bash
 # Claude Code runs validation after making changes
 dr validate --strict --output json
 ```
 
 3. **Hybrid Approach:**
+
 ```python
 # Claude reads model
 model = load_model("model/")
@@ -590,9 +633,11 @@ result = subprocess.run(["dr", "validate", "--strict"], capture_output=True)
 ```
 
 #### FR-013: Documentation Discovery
+
 **Requirement:** The tool SHALL provide comprehensive self-documentation for Claude Code.
 
 **Documentation Structure:**
+
 ```
 .dr/
    README.md                    # Quick reference
@@ -615,6 +660,7 @@ result = subprocess.run(["dr", "validate", "--strict"], capture_output=True)
 ```
 
 **Commands:**
+
 ```bash
 dr docs                         # Show documentation index
 dr docs <topic>                 # Show specific topic
@@ -626,11 +672,13 @@ dr schema <layer>               # Show layer schema
 ### 2.4 Error Handling Requirements
 
 #### FR-014: Error Handling
+
 **Requirement:** The tool SHALL provide clear, actionable error messages.
 
 **Error Categories:**
 
 1. **Validation Errors:**
+
 ```yaml
 Error: Validation failed for element 'business.service.customer-management'
   Location: model/business/services.yaml:15
@@ -639,6 +687,7 @@ Error: Validation failed for element 'business.service.customer-management'
 ```
 
 2. **Cross-Reference Errors:**
+
 ```yaml
 Error: Invalid cross-reference
   Element: application.service.customer-service
@@ -649,6 +698,7 @@ Error: Invalid cross-reference
 ```
 
 3. **Projection Errors:**
+
 ```yaml
 Error: Projection failed
   Source: business.service.customer-management
@@ -658,6 +708,7 @@ Error: Projection failed
 ```
 
 4. **Schema Errors:**
+
 ```yaml
 Error: Schema validation failed
   File: specs/openapi/customer-api.yaml
@@ -668,6 +719,7 @@ Error: Schema validation failed
 ```
 
 **Exit Codes:**
+
 - `0` - Success
 - `1` - Validation error
 - `2` - Schema error
@@ -681,11 +733,13 @@ Error: Schema validation failed
 ### 3.1 Performance
 
 #### NFR-001: Response Time
+
 - Command execution SHALL complete within 2 seconds for models up to 1000 elements
 - Validation SHALL complete within 5 seconds for models up to 1000 elements
 - Export SHALL complete within 10 seconds for full model
 
 #### NFR-002: Scalability
+
 - SHALL support models with up to 10,000 elements
 - SHALL support up to 100,000 cross-layer references
 - Memory usage SHALL not exceed 500MB for typical models
@@ -693,6 +747,7 @@ Error: Schema validation failed
 ### 3.2 Usability
 
 #### NFR-003: User Experience
+
 - All commands SHALL have clear help text
 - Error messages SHALL be actionable
 - Output SHALL be human-readable by default
@@ -700,6 +755,7 @@ Error: Schema validation failed
 - Tab completion SHALL be available for shells (bash, zsh, fish)
 
 #### NFR-004: Documentation
+
 - All commands SHALL have man pages
 - All features SHALL have examples
 - All schemas SHALL have inline documentation
@@ -708,12 +764,14 @@ Error: Schema validation failed
 ### 3.3 Reliability
 
 #### NFR-005: Data Integrity
+
 - All destructive operations SHALL create backups
 - All file operations SHALL be atomic
 - All validations SHALL be performed before writes
 - Recovery SHALL be possible from backups
 
 #### NFR-006: Robustness
+
 - SHALL handle malformed YAML/JSON gracefully
 - SHALL handle missing files gracefully
 - SHALL handle circular dependencies
@@ -722,12 +780,14 @@ Error: Schema validation failed
 ### 3.4 Maintainability
 
 #### NFR-007: Code Quality
+
 - Code coverage SHALL be >80%
 - All public APIs SHALL have documentation
 - All modules SHALL have unit tests
 - All integration points SHALL have integration tests
 
 #### NFR-008: Extensibility
+
 - SHALL support plugins via extension points
 - SHALL support custom validators
 - SHALL support custom generators
@@ -736,12 +796,14 @@ Error: Schema validation failed
 ### 3.5 Portability
 
 #### NFR-009: Platform Support
+
 - SHALL run on Linux, macOS, and Windows
 - SHALL support Python 3.9+
 - SHALL support Node.js 16+ (if implemented in Node)
 - SHALL be installable via pip/npm/brew
 
 #### NFR-010: Integration
+
 - SHALL integrate with Git workflows
 - SHALL integrate with CI/CD pipelines
 - SHALL integrate with IDEs (VS Code, IntelliJ)
@@ -970,7 +1032,7 @@ cross_references:
 statistics:
   total_elements: 145
   total_relationships: 87
-  completeness: 0.73  # 73% complete
+  completeness: 0.73 # 73% complete
   last_validation: "2025-01-22T15:30:00Z"
   validation_status: "passed"
 
@@ -987,69 +1049,70 @@ conventions:
 
 ### 5.1 Model Management
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr init` | Initialize new model | `dr init my-project` |
-| `dr add` | Add element to layer | `dr add business service --name "Customer Mgmt"` |
-| `dr update` | Update element | `dr update business.service.customer-mgmt --set status=active` |
-| `dr remove` | Remove element | `dr remove business.service.customer-mgmt --cascade` |
-| `dr import` | Import elements from file | `dr import business --file services.yaml` |
-| `dr export` | Export layer to file | `dr export business --file backup.yaml` |
+| Command     | Description               | Example                                                        |
+| ----------- | ------------------------- | -------------------------------------------------------------- |
+| `dr init`   | Initialize new model      | `dr init my-project`                                           |
+| `dr add`    | Add element to layer      | `dr add business service --name "Customer Mgmt"`               |
+| `dr update` | Update element            | `dr update business.service.customer-mgmt --set status=active` |
+| `dr remove` | Remove element            | `dr remove business.service.customer-mgmt --cascade`           |
+| `dr import` | Import elements from file | `dr import business --file services.yaml`                      |
+| `dr export` | Export layer to file      | `dr export business --file backup.yaml`                        |
 
 ### 5.2 Querying
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr find` | Find element by ID | `dr find business.service.customer-mgmt` |
-| `dr search` | Search elements | `dr search --type service --name "Customer*"` |
-| `dr list` | List elements in layer | `dr list business service` |
-| `dr trace` | Trace dependencies | `dr trace business.service.customer-mgmt --direction both` |
+| Command     | Description            | Example                                                    |
+| ----------- | ---------------------- | ---------------------------------------------------------- |
+| `dr find`   | Find element by ID     | `dr find business.service.customer-mgmt`                   |
+| `dr search` | Search elements        | `dr search --type service --name "Customer*"`              |
+| `dr list`   | List elements in layer | `dr list business service`                                 |
+| `dr trace`  | Trace dependencies     | `dr trace business.service.customer-mgmt --direction both` |
 
 ### 5.3 Validation
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr validate` | Validate model | `dr validate --strict` |
-| `dr check` | Alias for strict validation | `dr check --layer business` |
+| Command       | Description                 | Example                     |
+| ------------- | --------------------------- | --------------------------- |
+| `dr validate` | Validate model              | `dr validate --strict`      |
+| `dr check`    | Alias for strict validation | `dr check --layer business` |
 
 ### 5.4 Projection
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr project` | Project element to layers | `dr project business.service.x --to application,api` |
-| `dr project-all` | Project all elements | `dr project-all --from business --to application` |
+| Command          | Description               | Example                                              |
+| ---------------- | ------------------------- | ---------------------------------------------------- |
+| `dr project`     | Project element to layers | `dr project business.service.x --to application,api` |
+| `dr project-all` | Project all elements      | `dr project-all --from business --to application`    |
 
 ### 5.5 Export & Generation
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr export` | Export to standard formats | `dr export --format archimate` |
-| `dr generate` | Generate code | `dr generate api-client --language typescript` |
+| Command       | Description                | Example                                        |
+| ------------- | -------------------------- | ---------------------------------------------- |
+| `dr export`   | Export to standard formats | `dr export --format archimate`                 |
+| `dr generate` | Generate code              | `dr generate api-client --language typescript` |
 
 ### 5.6 Reporting
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr report` | Generate reports | `dr report coverage` |
-| `dr stats` | Show model statistics | `dr stats` |
+| Command     | Description           | Example              |
+| ----------- | --------------------- | -------------------- |
+| `dr report` | Generate reports      | `dr report coverage` |
+| `dr stats`  | Show model statistics | `dr stats`           |
 
 ### 5.7 Utility
 
-| Command | Description | Example |
-|---------|-------------|---------|
-| `dr config` | Manage configuration | `dr config set validation.strict true` |
-| `dr docs` | Show documentation | `dr docs business-layer` |
-| `dr examples` | Show examples | `dr examples add-business-service` |
-| `dr schema` | Show layer schema | `dr schema business` |
-| `dr interactive` | Start REPL | `dr interactive` |
-| `dr diff` | Compare models | `dr diff v1/ v2/` |
-| `dr merge` | Merge models | `dr merge feature-branch` |
-| `dr version` | Show version | `dr version` |
-| `dr help` | Show help | `dr help add` |
+| Command          | Description          | Example                                |
+| ---------------- | -------------------- | -------------------------------------- |
+| `dr config`      | Manage configuration | `dr config set validation.strict true` |
+| `dr docs`        | Show documentation   | `dr docs business-layer`               |
+| `dr examples`    | Show examples        | `dr examples add-business-service`     |
+| `dr schema`      | Show layer schema    | `dr schema business`                   |
+| `dr interactive` | Start REPL           | `dr interactive`                       |
+| `dr diff`        | Compare models       | `dr diff v1/ v2/`                      |
+| `dr merge`       | Merge models         | `dr merge feature-branch`              |
+| `dr version`     | Show version         | `dr version`                           |
+| `dr help`        | Show help            | `dr help add`                          |
 
 ## 6. Implementation Priorities
 
 ### Phase 1: Core Functionality (MVP)
+
 1.  Model initialization (`init`)
 2.  Element management (`add`, `update`, `remove`)
 3.  Query and search (`find`, `search`, `list`)
@@ -1057,6 +1120,7 @@ conventions:
 5.  Manifest management
 
 ### Phase 2: Validation & Integrity
+
 1.  Schema validation for all layers
 2.  Cross-reference validation
 3.  Semantic validation
@@ -1064,6 +1128,7 @@ conventions:
 5.  Dependency tracing (`trace`)
 
 ### Phase 3: Export & Integration
+
 1.  ArchiMate export
 2.  OpenAPI export
 3.  JSON Schema export
@@ -1071,12 +1136,14 @@ conventions:
 5.  Markdown documentation
 
 ### Phase 4: Code Generation
+
 1.  API client generation
 2.  Database migration generation
 3.  UI component generation
 4.  Test generation
 
 ### Phase 5: Advanced Features
+
 1.  Interactive mode (`interactive`)
 2.  Diff and merge (`diff`, `merge`)
 3.  Reporting (`report`)
@@ -1085,22 +1152,26 @@ conventions:
 ## 7. Testing Requirements
 
 ### 7.1 Unit Tests
+
 - All command handlers SHALL have unit tests
 - All validators SHALL have unit tests
 - All generators SHALL have unit tests
 - Code coverage SHALL be >80%
 
 ### 7.2 Integration Tests
+
 - All CLI commands SHALL have integration tests
 - All export formats SHALL have integration tests
 - All projection scenarios SHALL have integration tests
 
 ### 7.3 End-to-End Tests
+
 - Complete workflow scenarios SHALL be tested
 - Claude Code integration SHALL be tested
 - Multi-layer operations SHALL be tested
 
 ### 7.4 Performance Tests
+
 - Large model handling SHALL be tested
 - Memory usage SHALL be monitored
 - Command execution time SHALL be measured
@@ -1108,6 +1179,7 @@ conventions:
 ## 8. Documentation Requirements
 
 ### 8.1 User Documentation
+
 - Quick start guide
 - Command reference (man pages)
 - Tutorial with examples
@@ -1115,6 +1187,7 @@ conventions:
 - Troubleshooting guide
 
 ### 8.2 Developer Documentation
+
 - Architecture overview
 - API reference
 - Plugin development guide
@@ -1122,6 +1195,7 @@ conventions:
 - Testing guide
 
 ### 8.3 Schema Documentation
+
 - Layer schema specifications
 - Element definitions
 - Relationship types

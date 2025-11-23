@@ -1,10 +1,11 @@
 """
 Export manager - orchestrates export operations.
 """
-from typing import Dict, List, Optional, Type
-from pathlib import Path
-from enum import Enum
+
 from dataclasses import dataclass
+from enum import Enum
+from pathlib import Path
+from typing import Dict, List, Optional, Type
 
 
 class ExportFormat(Enum):
@@ -130,9 +131,7 @@ class ExportManager:
         except ImportError:
             pass
 
-    def export(
-        self, format: ExportFormat, output_path: Optional[Path] = None, **kwargs
-    ) -> Path:
+    def export(self, format: ExportFormat, output_path: Optional[Path] = None, **kwargs) -> Path:
         """
         Export model to specified format.
 

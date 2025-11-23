@@ -144,14 +144,14 @@ spec/
 
 This specification **leverages existing standards** for 73% of its layers:
 
-| Standard | Layers | Coverage |
-|----------|--------|----------|
-| ArchiMate 3.2 | 01, 02, 04, 05 | 36% |
-| OpenAPI 3.0 | 06 | 9% |
-| JSON Schema Draft 7 | 07 | 9% |
-| OpenTelemetry 1.0+ | 11 | 9% |
-| SQL DDL | 08 | 9% |
-| **Custom** | 03, 09, 10 | 27% |
+| Standard            | Layers         | Coverage |
+| ------------------- | -------------- | -------- |
+| ArchiMate 3.2       | 01, 02, 04, 05 | 36%      |
+| OpenAPI 3.0         | 06             | 9%       |
+| JSON Schema Draft 7 | 07             | 9%       |
+| OpenTelemetry 1.0+  | 11             | 9%       |
+| SQL DDL             | 08             | 9%       |
+| **Custom**          | 03, 09, 10     | 27%      |
 
 **Result:** Maximum tool ecosystem compatibility with minimal custom invention.
 
@@ -211,11 +211,11 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 
 Implementations can claim three conformance levels:
 
-| Level | Layers | Use Case |
-|-------|--------|----------|
-| **Basic** | 01-04 | Small projects, motivation through application |
-| **Standard** | 01-08 | Most projects, through database design |
-| **Full** | 01-11 | Enterprise projects, complete traceability |
+| Level        | Layers | Use Case                                       |
+| ------------ | ------ | ---------------------------------------------- |
+| **Basic**    | 01-04  | Small projects, motivation through application |
+| **Standard** | 01-08  | Most projects, through database design         |
+| **Full**     | 01-11  | Enterprise projects, complete traceability     |
 
 See [conformance/conformance-levels.md](conformance/conformance-levels.md) for details.
 
@@ -269,6 +269,7 @@ See [CHANGELOG.md](CHANGELOG.md) for version history.
 ## Contributing
 
 We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
+
 - How to report issues
 - How to propose changes
 - Style guidelines
@@ -277,6 +278,7 @@ We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for:
 ## Governance
 
 This specification follows a defined governance model. See [GOVERNANCE.md](GOVERNANCE.md) for:
+
 - Change process
 - Decision-making
 - Versioning policy
@@ -296,6 +298,7 @@ This specification is licensed under the MIT License. See [../LICENSE](../LICENS
 ## Acknowledgments
 
 This specification builds upon and integrates:
+
 - **ArchiMate®** - Registered trademark of The Open Group
 - **OpenAPI Specification** - OpenAPI Initiative
 - **JSON Schema** - JSON Schema team

@@ -1,11 +1,14 @@
 """
 OpenAPI 3.0 exporter.
 """
+
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Any, Dict, List
+
 import yaml
-from .export_manager import BaseExporter, ExportOptions
+
 from ..core.element import Element
+from .export_manager import BaseExporter
 
 
 class OpenAPIExporter(BaseExporter):
@@ -66,9 +69,7 @@ class OpenAPIExporter(BaseExporter):
 
         return groups
 
-    def _create_openapi_spec(
-        self, service_name: str, operations: List[Element]
-    ) -> Dict[str, Any]:
+    def _create_openapi_spec(self, service_name: str, operations: List[Element]) -> Dict[str, Any]:
         """Create OpenAPI specification."""
         spec = {
             "openapi": "3.0.0",
@@ -77,9 +78,7 @@ class OpenAPIExporter(BaseExporter):
                 "version": "1.0.0",
                 "description": f"API specification for {service_name}",
             },
-            "servers": [
-                {"url": "https://api.example.com/v1", "description": "Production server"}
-            ],
+            "servers": [{"url": "https://api.example.com/v1", "description": "Production server"}],
             "paths": {},
             "components": {
                 "schemas": {},
@@ -167,9 +166,7 @@ class OpenAPIExporter(BaseExporter):
             if "content" in response:
                 openapi_response["content"] = response["content"]
             elif "schema" in response:
-                openapi_response["content"] = {
-                    "application/json": {"schema": response["schema"]}
-                }
+                openapi_response["content"] = {"application/json": {"schema": response["schema"]}}
 
             openapi_responses[str(status_code)] = openapi_response
 
@@ -186,9 +183,7 @@ class OpenAPIExporter(BaseExporter):
         if "content" in request_body:
             openapi_body["content"] = request_body["content"]
         elif "schema" in request_body:
-            openapi_body["content"] = {
-                "application/json": {"schema": request_body["schema"]}
-            }
+            openapi_body["content"] = {"application/json": {"schema": request_body["schema"]}}
 
         return openapi_body
 

@@ -1,9 +1,12 @@
 """
 Search for elements across layers.
 """
-import click
+
 from pathlib import Path
+
+import click
 from rich.console import Console
+
 from ..core.model import Model
 from ..utils.output import print_element_table
 
@@ -17,7 +20,9 @@ console = Console()
 @click.option("--property", "-p", multiple=True, help="Filter by property (key=value)")
 @click.option("--output", type=click.Choice(["table", "yaml", "json"]), default="table")
 @click.option("--limit", type=int, help="Limit number of results")
-def search(layer: str, element_type: str, name_pattern: str, property: tuple, output: str, limit: int):
+def search(
+    layer: str, element_type: str, name_pattern: str, property: tuple, output: str, limit: int
+):
     """Search for elements across layers."""
 
     # Load model
@@ -40,10 +45,7 @@ def search(layer: str, element_type: str, name_pattern: str, property: tuple, ou
 
     # Search
     elements = model.find_elements(
-        layer=layer,
-        element_type=element_type,
-        name_pattern=name_pattern,
-        **properties
+        layer=layer, element_type=element_type, name_pattern=name_pattern, **properties
     )
 
     # Apply limit
@@ -61,9 +63,11 @@ def search(layer: str, element_type: str, name_pattern: str, property: tuple, ou
         print_element_table(elements)
     elif output == "yaml":
         import yaml
+
         for element in elements:
             console.print(yaml.dump({element.id: element.to_dict()}, default_flow_style=False))
     elif output == "json":
         import json
+
         data = {e.id: e.to_dict() for e in elements}
         console.print(json.dumps(data, indent=2))

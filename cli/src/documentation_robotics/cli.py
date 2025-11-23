@@ -1,13 +1,26 @@
 """
 CLI entry point for dr tool.
 """
+
 import click
 from rich.console import Console
-from .commands import init, add, find, list_cmd, search, update, remove, validate
+
 # Phase 2 commands
-from .commands import project, trace
 # Phase 3 commands
-from .commands import export, conformance
+from .commands import (
+    add,
+    conformance,
+    export,
+    find,
+    init,
+    list_cmd,
+    project,
+    remove,
+    search,
+    trace,
+    update,
+    validate,
+)
 
 console = Console()
 
@@ -33,7 +46,7 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     For more information, see: https://github.com/anthropics/documentation-robotics
     """
     ctx.ensure_object(dict)
-    ctx.obj['verbose'] = verbose
+    ctx.obj["verbose"] = verbose
 
 
 # Register commands

@@ -14,6 +14,7 @@ The Application Layer describes the application services that support the busine
 ## Entity Definitions
 
 ### ApplicationComponent
+
 ```yaml
 ApplicationComponent:
   description: "Modular, deployable, and replaceable part of a system"
@@ -22,7 +23,7 @@ ApplicationComponent:
     name: string
     documentation: string (optional)
     type: ComponentType [enum]
-  
+
   properties:
     - key: "implementation.framework"
       value: "react|vue|angular|spring|express" (optional)
@@ -30,7 +31,7 @@ ApplicationComponent:
       value: "specs/component-ux.yaml" (optional)
     - key: "spec.openapi"
       value: "specs/component-api.yaml" (optional)
-    
+
   enums:
     ComponentType:
       - frontend
@@ -38,7 +39,7 @@ ApplicationComponent:
       - mobile
       - desktop
       - service
-    
+
   examples:
     - Product Management UI
     - Order Service
@@ -47,6 +48,7 @@ ApplicationComponent:
 ```
 
 ### ApplicationCollaboration
+
 ```yaml
 ApplicationCollaboration:
   description: "Aggregate of application components working together"
@@ -54,10 +56,10 @@ ApplicationCollaboration:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   contains:
     - components: ApplicationComponent[] (2..*)
-    
+
   examples:
     - Microservices Cluster
     - Frontend Application Suite
@@ -65,6 +67,7 @@ ApplicationCollaboration:
 ```
 
 ### ApplicationInterface
+
 ```yaml
 ApplicationInterface:
   description: "Point of access where application service is available"
@@ -73,13 +76,13 @@ ApplicationInterface:
     name: string
     documentation: string (optional)
     protocol: InterfaceProtocol [enum]
-    
+
   properties:
     - key: "spec.openapi"
       value: "specs/interface-api.yaml" (optional)
     - key: "interface.endpoint"
       value: "https://api.example.com/v1" (optional)
-    
+
   enums:
     InterfaceProtocol:
       - REST
@@ -88,7 +91,7 @@ ApplicationInterface:
       - gRPC
       - WebSocket
       - Message Queue
-    
+
   examples:
     - REST API
     - GraphQL Endpoint
@@ -96,6 +99,7 @@ ApplicationInterface:
 ```
 
 ### ApplicationFunction
+
 ```yaml
 ApplicationFunction:
   description: "Automated behavior performed by application component"
@@ -103,7 +107,7 @@ ApplicationFunction:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   properties:
     - key: "function.async"
       value: "true|false" (optional)
@@ -123,6 +127,7 @@ ApplicationFunction:
 ```
 
 ### ApplicationInteraction
+
 ```yaml
 ApplicationInteraction:
   description: "Unit of collective application behavior"
@@ -131,14 +136,14 @@ ApplicationInteraction:
     name: string
     documentation: string (optional)
     pattern: InteractionPattern [enum]
-    
+
   enums:
     InteractionPattern:
       - request-response
       - publish-subscribe
       - async-messaging
       - streaming
-    
+
   examples:
     - API Call Sequence
     - Event Broadcasting
@@ -146,6 +151,7 @@ ApplicationInteraction:
 ```
 
 ### ApplicationProcess
+
 ```yaml
 ApplicationProcess:
   description: "Sequence of application behaviors"
@@ -153,13 +159,13 @@ ApplicationProcess:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   properties:
     - key: "process.orchestration"
       value: "specs/orchestration.yaml" (optional)
     - key: "process.saga"
       value: "specs/saga-definition.yaml" (optional)
-    
+
   examples:
     - Order Processing Workflow
     - Data Pipeline
@@ -167,6 +173,7 @@ ApplicationProcess:
 ```
 
 ### ApplicationEvent
+
 ```yaml
 ApplicationEvent:
   description: "Application state change notification"
@@ -175,20 +182,20 @@ ApplicationEvent:
     name: string
     documentation: string (optional)
     eventType: ApplicationEventType [enum]
-    
+
   properties:
     - key: "event.schema"
       value: "schemas/event.json" (optional)
     - key: "event.topic"
       value: "orders.created" (optional)
-    
+
   enums:
     ApplicationEventType:
       - domain-event
       - integration-event
       - system-event
       - audit-event
-    
+
   examples:
     - OrderCreated
     - UserLoggedIn
@@ -197,6 +204,7 @@ ApplicationEvent:
 ```
 
 ### ApplicationService
+
 ```yaml
 ApplicationService:
   description: "Service that exposes application functionality"
@@ -231,14 +239,14 @@ ApplicationService:
       value: "value-id-1,value-id-2" (optional, comma-separated Value IDs)
     - key: "motivation.governed-by-principles"
       value: "principle-id-1,principle-id-2" (optional, comma-separated Principle IDs)
-    
+
   enums:
     ServiceType:
       - synchronous
       - asynchronous
       - batch
       - streaming
-    
+
   examples:
     # Service with motivation mapping and APM tracking
     - name: "Product API"
@@ -268,6 +276,7 @@ ApplicationService:
 ```
 
 ### DataObject
+
 ```yaml
 DataObject:
   description: "Data structured for automated processing"
@@ -275,7 +284,7 @@ DataObject:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   properties:
     - key: "spec.schema"
       value: "schemas/data-object.json" (optional)
@@ -285,7 +294,7 @@ DataObject:
       value: "true|false" (optional)
     - key: "data.retention"
       value: "90days|1year|7years" (optional)
-    
+
   examples:
     - Customer Data
     - Order Data
@@ -296,16 +305,19 @@ DataObject:
 ## Relationships
 
 ### Structural Relationships
+
 - **Composition**: ApplicationCollaboration contains ApplicationComponents
 - **Assignment**: ApplicationComponent assigned to ApplicationFunction
 - **Realization**: ApplicationComponent realizes ApplicationService
 
 ### Behavioral Relationships
+
 - **Triggering**: ApplicationEvent triggers ApplicationProcess
 - **Flow**: ApplicationService flows to ApplicationService
 - **Access**: ApplicationService accesses DataObject
 
 ### Dependency Relationships
+
 - **Serving**: ApplicationInterface serves ApplicationComponent
 - **Used By**: ApplicationService used by BusinessProcess
 
@@ -320,13 +332,13 @@ DataObject:
     <property key="implementation.framework">express</property>
     <property key="spec.openapi">specs/product-api.yaml</property>
   </element>
-  
+
   <element id="product-ui" type="ApplicationComponent">
     <n>Product Management UI</n>
     <property key="implementation.framework">react</property>
     <property key="spec.ux">specs/product-ui.yaml</property>
   </element>
-  
+
   <!-- Application Service -->
   <element id="product-service" type="ApplicationService">
     <n>Product Service</n>
@@ -337,13 +349,13 @@ DataObject:
     <property key="motivation.delivers-value">value-customer-convenience</property>
     <property key="motivation.governed-by-principles">principle-api-first,principle-cloud-native</property>
   </element>
-  
+
   <!-- Application Interface -->
   <element id="rest-interface" type="ApplicationInterface">
     <n>REST API Interface</n>
     <property key="interface.endpoint">https://api.example.com/v2</property>
   </element>
-  
+
   <!-- Data Object -->
   <element id="product-data" type="DataObject">
     <n>Product Data</n>
@@ -352,14 +364,14 @@ DataObject:
     <property key="data.pii">false</property>
     <property key="data.retention">7years</property>
   </element>
-  
+
   <!-- Application Event -->
   <element id="product-updated-event" type="ApplicationEvent">
     <n>ProductUpdated Event</n>
     <property key="event.schema">schemas/product-updated-event.json</property>
     <property key="event.topic">products.updated</property>
   </element>
-  
+
   <!-- Relationships -->
   <relationship type="Realization" source="product-api" target="product-service"/>
   <relationship type="Access" source="product-service" target="product-data"/>
@@ -372,6 +384,7 @@ DataObject:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Services support Goals**: ApplicationService.properties["motivation.supports-goals"] links services to business objectives
 - **Services deliver Value**: ApplicationService.properties["motivation.delivers-value"] shows value contribution
 - **Principles guide design**: ApplicationService.properties["motivation.governed-by-principles"] ensures architectural consistency
@@ -380,22 +393,26 @@ DataObject:
 - **Portfolio management**: Enables capability-based planning and investment prioritization
 
 ### From Business Layer
+
 - ApplicationService realizes BusinessService
 - ApplicationProcess supports BusinessProcess (referenced by BusinessProcess.application.realized-by-process)
 - DataObject represents BusinessObject (referenced by BusinessObject.application.represented-by-dataobject)
 
 ### To Technology Layer
+
 - ApplicationComponent deployed on Node
 - ApplicationService uses TechnologyService
 - DataObject stored in Artifact
 
 ### To APM/Observability Layer
+
 - **Services tracked by metrics**: ApplicationService.properties["apm.business-metrics"] links services to business KPIs
 - **SLA targets defined**: ApplicationService.properties["apm.sla-target-latency"] and ["apm.sla-target-availability"] specify service levels
 - **Distributed tracing**: ApplicationService.properties["apm.traced"] enables observability
 - **Goal validation**: Enables closed-loop feedback on business objective achievement
 
 ### To External Specifications
+
 - ApplicationService → OpenAPI specification
 - DataObject → JSON Schema
 - ApplicationComponent → UX specification
@@ -404,32 +421,36 @@ DataObject:
 ## Property Conventions
 
 ### API References
+
 ```yaml
-spec.openapi: "path/to/openapi.yaml"  # OpenAPI specification
+spec.openapi: "path/to/openapi.yaml" # OpenAPI specification
 spec.graphql: "path/to/schema.graphql" # GraphQL schema
 spec.asyncapi: "path/to/asyncapi.yaml" # AsyncAPI for events
 ```
 
 ### Implementation Details
+
 ```yaml
 implementation.framework: "react|vue|angular|express|spring"
 implementation.language: "typescript|java|python|go"
-implementation.version: "16.0.0"  # Framework version
+implementation.version: "16.0.0" # Framework version
 ```
 
 ### Service Properties
+
 ```yaml
-service.version: "2.0.0"           # Semantic version
-service.deprecated: "true|false"   # Deprecation flag
-service.auth: "oauth2|jwt|apikey"  # Authentication method
-service.rateLimit: "100/minute"    # Rate limiting
+service.version: "2.0.0" # Semantic version
+service.deprecated: "true|false" # Deprecation flag
+service.auth: "oauth2|jwt|apikey" # Authentication method
+service.rateLimit: "100/minute" # Rate limiting
 ```
 
 ### Data Properties
+
 ```yaml
-data.pii: "true|false"              # Contains PII
-data.encrypted: "true|false"        # Encryption at rest
-data.retention: "90days|1year"      # Retention period
+data.pii: "true|false" # Contains PII
+data.encrypted: "true|false" # Encryption at rest
+data.retention: "90days|1year" # Retention period
 data.classification: "public|internal|confidential"
 ```
 

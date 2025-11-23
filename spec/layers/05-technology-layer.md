@@ -14,6 +14,7 @@ The Technology Layer describes the technology infrastructure used to support the
 ## Entity Definitions
 
 ### Node
+
 ```yaml
 Node:
   description: "Computational or physical resource that hosts artifacts"
@@ -103,6 +104,7 @@ Node:
 ```
 
 ### Device
+
 ```yaml
 Device:
   description: "Physical IT resource with processing capability"
@@ -111,13 +113,13 @@ Device:
     name: string
     documentation: string (optional)
     deviceType: DeviceType [enum]
-    
+
   properties:
     - key: "device.manufacturer"
       value: string (optional)
     - key: "device.model"
       value: string (optional)
-    
+
   enums:
     DeviceType:
       - server
@@ -125,7 +127,7 @@ Device:
       - mobile
       - iot-device
       - network-device
-    
+
   examples:
     - Dell PowerEdge Server
     - iPhone
@@ -134,6 +136,7 @@ Device:
 ```
 
 ### SystemSoftware
+
 ```yaml
 SystemSoftware:
   description: "Software that provides platform for applications"
@@ -229,6 +232,7 @@ SystemSoftware:
 ```
 
 ### TechnologyCollaboration
+
 ```yaml
 TechnologyCollaboration:
   description: "Aggregate of nodes working together"
@@ -236,10 +240,10 @@ TechnologyCollaboration:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   contains:
     - nodes: Node[] (2..*)
-    
+
   examples:
     - High Availability Cluster
     - CDN Network
@@ -247,6 +251,7 @@ TechnologyCollaboration:
 ```
 
 ### TechnologyInterface
+
 ```yaml
 TechnologyInterface:
   description: "Point of access where technology services are available"
@@ -255,13 +260,13 @@ TechnologyInterface:
     name: string
     documentation: string (optional)
     protocol: TechProtocol [enum]
-    
+
   properties:
     - key: "interface.port"
       value: integer (optional)
     - key: "interface.url"
       value: string (optional)
-    
+
   enums:
     TechProtocol:
       - HTTP
@@ -272,7 +277,7 @@ TechnologyInterface:
       - AMQP
       - MQTT
       - SQL
-    
+
   examples:
     - HTTPS Endpoint
     - Database Port
@@ -280,6 +285,7 @@ TechnologyInterface:
 ```
 
 ### Path
+
 ```yaml
 Path:
   description: "Link between nodes through which they exchange"
@@ -288,20 +294,20 @@ Path:
     name: string
     documentation: string (optional)
     pathType: PathType [enum]
-    
+
   properties:
     - key: "path.bandwidth"
       value: "1Gbps|10Gbps" (optional)
     - key: "path.latency"
       value: "5ms|20ms" (optional)
-    
+
   enums:
     PathType:
       - network
       - vpn
       - direct-connect
       - internet
-    
+
   examples:
     - VPN Connection
     - AWS Direct Connect
@@ -309,6 +315,7 @@ Path:
 ```
 
 ### CommunicationNetwork
+
 ```yaml
 CommunicationNetwork:
   description: "Set of structures that connects nodes"
@@ -377,6 +384,7 @@ CommunicationNetwork:
 ```
 
 ### TechnologyFunction
+
 ```yaml
 TechnologyFunction:
   description: "Collection of technology behavior"
@@ -384,7 +392,7 @@ TechnologyFunction:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   examples:
     - Load Balancing
     - Data Replication
@@ -392,6 +400,7 @@ TechnologyFunction:
 ```
 
 ### TechnologyProcess
+
 ```yaml
 TechnologyProcess:
   description: "Sequence of technology behaviors"
@@ -399,11 +408,11 @@ TechnologyProcess:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   properties:
     - key: "process.automation"
       value: "ansible|terraform|kubernetes" (optional)
-    
+
   examples:
     - Deployment Pipeline
     - Backup Process
@@ -411,6 +420,7 @@ TechnologyProcess:
 ```
 
 ### TechnologyInteraction
+
 ```yaml
 TechnologyInteraction:
   description: "Unit of collective technology behavior"
@@ -418,7 +428,7 @@ TechnologyInteraction:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   examples:
     - Database Replication
     - Cache Synchronization
@@ -426,6 +436,7 @@ TechnologyInteraction:
 ```
 
 ### TechnologyEvent
+
 ```yaml
 TechnologyEvent:
   description: "Technology state change"
@@ -434,7 +445,7 @@ TechnologyEvent:
     name: string
     documentation: string (optional)
     eventType: TechEventType [enum]
-    
+
   enums:
     TechEventType:
       - startup
@@ -442,7 +453,7 @@ TechnologyEvent:
       - failure
       - scaling
       - maintenance
-    
+
   examples:
     - Server Started
     - Node Failed
@@ -450,6 +461,7 @@ TechnologyEvent:
 ```
 
 ### TechnologyService
+
 ```yaml
 TechnologyService:
   description: "Externally visible unit of technology functionality"
@@ -532,6 +544,7 @@ TechnologyService:
 ```
 
 ### Artifact
+
 ```yaml
 Artifact:
   description: "Physical piece of data used or produced"
@@ -639,16 +652,19 @@ Artifact:
 ## Relationships
 
 ### Structural Relationships
+
 - **Composition**: Node contains SystemSoftware
 - **Assignment**: Artifact assigned to Node
 - **Realization**: Node realizes TechnologyService
 
 ### Behavioral Relationships
+
 - **Triggering**: TechnologyEvent triggers TechnologyProcess
 - **Flow**: Data flows through Path
 - **Access**: SystemSoftware accesses Artifact
 
 ### Other Relationships
+
 - **Association**: Node associated with CommunicationNetwork
 - **Serving**: TechnologyService serves ApplicationComponent
 - **Used By**: TechnologyInterface used by ApplicationInterface
@@ -769,6 +785,7 @@ Artifact:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **TechnologyService supports Goals**: TechnologyService.properties["motivation.supports-goals"] links infrastructure SLAs to business objectives
 - **Technology governed by Principles**: Node, SystemSoftware, CommunicationNetwork, and TechnologyService reference architectural Principles that guide technology selection
 - **Technology constrained by Constraints**: Node (budget, vendor), SystemSoftware (license), CommunicationNetwork (regulatory), Artifact (retention) reference limiting Constraints
@@ -776,26 +793,31 @@ Artifact:
 - **Complete traceability**: From business goals → architectural principles → technology choices → infrastructure implementation
 
 ### To APM/Observability Layer
+
 - **TechnologyService SLA monitoring**: TechnologyService.properties["apm.sla-target-availability"] and ["apm.sla-target-latency"] define service level targets
 - **Health monitoring**: TechnologyService.properties["apm.health-monitored"] and ["apm.health-check-endpoint"] enable infrastructure health tracking
 - **Infrastructure metrics**: Technology layer elements generate infrastructure metrics (CPU, memory, network, disk)
 - **Goal validation**: Links technology SLAs to business goal achievement measurement
 
 ### To Security Layer
+
 - **Artifact encryption and classification**: Artifact.properties["security.*"] defines encryption requirements and data classification
 - **Network security policies**: CommunicationNetwork security requirements drive firewall rules and segmentation
 - **Compliance mapping**: Security constraints on Artifacts and Networks enforce regulatory compliance
 
 ### From Application Layer
+
 - Node hosts ApplicationComponent
 - TechnologyService serves ApplicationService
 - Artifact stores DataObject
 
 ### To Physical Layer (if used)
+
 - Node deployed on Device
 - Path uses Facility networks
 
 ### To Infrastructure-as-Code
+
 - Node → Terraform modules
 - CommunicationNetwork → Cloud network definitions
 - SystemSoftware → Ansible playbooks
@@ -803,22 +825,25 @@ Artifact:
 ## Property Conventions
 
 ### Cloud Properties
+
 ```yaml
 node.provider: "aws|azure|gcp|onprem"
-node.instance-type: "t3.medium"        # Provider-specific
-node.region: "us-east-1"                # Cloud region
-node.availability-zone: "us-east-1a"    # Specific AZ
+node.instance-type: "t3.medium" # Provider-specific
+node.region: "us-east-1" # Cloud region
+node.availability-zone: "us-east-1a" # Specific AZ
 ```
 
 ### Infrastructure-as-Code
+
 ```yaml
-spec.terraform: "path/to/resource.tf"   # Terraform definition
-spec.ansible: "path/to/playbook.yml"    # Ansible playbook
+spec.terraform: "path/to/resource.tf" # Terraform definition
+spec.ansible: "path/to/playbook.yml" # Ansible playbook
 spec.kubernetes: "path/to/manifest.yaml" # K8s manifest
-spec.helm: "path/to/chart"              # Helm chart
+spec.helm: "path/to/chart" # Helm chart
 ```
 
 ### Performance Properties
+
 ```yaml
 node.cpu: "4 cores"
 node.memory: "16GB"
@@ -828,6 +853,7 @@ path.latency: "5ms"
 ```
 
 ### Monitoring Properties
+
 ```yaml
 service.monitoring: "prometheus|datadog|newrelic"
 service.alerting: "pagerduty|opsgenie"
@@ -837,6 +863,7 @@ service.logging: "elasticsearch|splunk"
 ## Validation Rules
 
 ### Technical Validation
+
 1. **Node Configuration**: Nodes should have provider and instance-type
 2. **Service SLA**: TechnologyServices should define service.sla
 3. **Network CIDR**: CommunicationNetworks should have valid CIDR
@@ -845,6 +872,7 @@ service.logging: "elasticsearch|splunk"
 6. **Path Connectivity**: Paths must connect two Nodes
 
 ### Motivation Layer Integration Validation
+
 7. **TechnologyService Governance**: TechnologyServices should have at least one of motivation.supports-goals OR motivation.governed-by-principles
 8. **Node Selection Rationale**: Nodes with specified provider should reference motivation.governed-by-principles (explains why that provider)
 9. **SystemSoftware License Alignment**: SystemSoftware.license should align with referenced motivation.constrained-by constraints (e.g., "opensource" license when constraint requires open-source)
@@ -852,17 +880,20 @@ service.logging: "elasticsearch|splunk"
 11. **Sensitive Artifact Classification**: Artifacts with security.pii=true should have security.classification and security.encryption-required
 
 ### Cross-Layer Reference Validation
-12. **Valid Motivation References**: All motivation.* property values must reference valid IDs in Motivation Layer
+
+12. **Valid Motivation References**: All motivation.\* property values must reference valid IDs in Motivation Layer
 13. **Principle Consistency**: Referenced Principles should be categorized as "technology" or relevant category
 14. **Requirement Fulfillment**: Referenced Requirements should be technical or non-functional type
 15. **Constraint Applicability**: Referenced Constraints should be applicable to technology decisions (budget, time, technology, regulatory)
 
 ### APM/Observability Integration Validation
+
 16. **SLA Target Consistency**: If apm.sla-target-availability is set, service.sla should also be defined
 17. **Health Monitoring Configuration**: If apm.health-monitored=true, apm.health-check-endpoint should be specified
 18. **SLA Format**: apm.sla-target-availability should be valid percentage (99.9%, 99.95%, 99.99%, etc.)
 
 ### Security Integration Validation
+
 19. **Encryption Type Validity**: security.encryption-type should only be set if security.encryption-required=true
 20. **PII Encryption**: Artifacts with security.pii=true should have security.encryption-required=true
 21. **Classification Consistency**: security.classification should align with referenced constraint requirements
@@ -870,6 +901,7 @@ service.logging: "elasticsearch|splunk"
 ## Best Practices
 
 ### Technical Best Practices
+
 1. **Define Infrastructure-as-Code** - Reference Terraform/Ansible files
 2. **Specify SLAs** - Every TechnologyService needs an SLA
 3. **Model Redundancy** - Show HA clusters and failover paths
@@ -880,6 +912,7 @@ service.logging: "elasticsearch|splunk"
 8. **Security Boundaries** - Use CommunicationNetworks to show segmentation
 
 ### Motivation Layer Integration Best Practices
+
 9. **Document Technology Rationale** - Use motivation.governed-by-principles to explain WHY specific technology was chosen
 10. **Link Infrastructure to Goals** - TechnologyServices should reference motivation.supports-goals to show how infrastructure enables business objectives
 11. **Capture Constraints** - Use motivation.constrained-by to document budget limits, vendor lock-in, license requirements, or regulatory restrictions
@@ -888,12 +921,14 @@ service.logging: "elasticsearch|splunk"
 14. **ADR Integration** - Motivation references serve as lightweight Architecture Decision Records (ADRs)
 
 ### APM/Observability Best Practices
+
 15. **Define SLA Targets** - Specify apm.sla-target-availability and apm.sla-target-latency for all critical TechnologyServices
 16. **Enable Health Monitoring** - Set apm.health-monitored=true and provide apm.health-check-endpoint for production services
 17. **Align with Business Goals** - Ensure infrastructure SLAs support business goals referenced in motivation.supports-goals
 18. **Monitor What Matters** - Focus on SLAs that directly impact customer experience and business outcomes
 
 ### Security Integration Best Practices
+
 19. **Classify All Artifacts** - Always set security.classification for Artifacts containing data
 20. **Encrypt Sensitive Data** - Set security.encryption-required=true for all confidential and restricted Artifacts
 21. **Mark PII** - Use security.pii=true to flag Artifacts containing personally identifiable information
@@ -901,6 +936,7 @@ service.logging: "elasticsearch|splunk"
 23. **Network Segmentation Principles** - Document zero-trust and network segmentation principles for CommunicationNetworks
 
 ### Traceability Best Practices
+
 24. **Complete Chain** - Maintain traceability from business goals → principles → technology choices → infrastructure implementation
 25. **Bidirectional Navigation** - Use upward references in Technology Layer, enable downward queries through tooling
 26. **Consistent Naming** - Use consistent ID patterns across layers (e.g., "principle-cloud-native", "goal-system-reliability")
@@ -913,25 +949,33 @@ service.logging: "elasticsearch|splunk"
 The Technology Layer integration with Motivation Layer addresses critical gaps in infrastructure architecture documentation:
 
 #### 1. **Technology Decisions as Architecture Decisions**
+
 Technology choices are strategic architecture decisions that should be justified:
+
 - **Problem**: Infrastructure is often deployed without documented rationale
 - **Solution**: Motivation references make technology choices self-documenting ADRs (Architecture Decision Records)
 - **Example**: "Why PostgreSQL?" → `motivation.governed-by-principles: "principle-open-source-first,principle-acid-compliance"`
 
 #### 2. **Traceability from Business Goals to Infrastructure**
+
 Business objectives depend on infrastructure reliability:
+
 - **Problem**: Infrastructure SLAs exist in isolation from business goals they enable
 - **Solution**: `motivation.supports-goals` links infrastructure availability to business outcomes
 - **Example**: "99.99% database uptime" → `supports-goals: "goal-system-reliability,goal-customer-satisfaction"`
 
 #### 3. **Compliance and Regulatory Requirements**
+
 Infrastructure must implement regulatory constraints:
+
 - **Problem**: GDPR, HIPAA, SOX requirements are documented separately from infrastructure
 - **Solution**: `motivation.constrained-by` links infrastructure to compliance obligations
 - **Example**: "EU data residency" → `constrained-by: "constraint-gdpr-compliance,constraint-eu-data-residency"`
 
 #### 4. **Budget and Vendor Constraints**
+
 Infrastructure choices are limited by organizational constraints:
+
 - **Problem**: Budget limits and vendor lock-in affect technology selection but aren't documented
 - **Solution**: `motivation.constrained-by` captures these limitations explicitly
 - **Example**: "AWS only" → `constrained-by: "constraint-aws-infrastructure,constraint-budget-500k"`
@@ -939,6 +983,7 @@ Infrastructure choices are limited by organizational constraints:
 ### Why Technology Layer Needs APM Integration
 
 Linking infrastructure to observability enables proactive monitoring:
+
 - **Service Level Objectives**: `apm.sla-target-availability` defines measurable infrastructure targets
 - **Goal Validation**: Infrastructure SLAs prove business goal achievement through metrics
 - **Health Monitoring**: `apm.health-monitored` enables automated infrastructure health tracking
@@ -947,6 +992,7 @@ Linking infrastructure to observability enables proactive monitoring:
 ### Why Technology Layer Needs Security Integration
 
 Infrastructure security must be explicit and traceable:
+
 - **Data Protection**: Artifacts storing sensitive data must declare encryption requirements
 - **Compliance**: PII and classification metadata enable automated compliance checking
 - **Network Security**: Security principles on networks document zero-trust architecture
@@ -1183,7 +1229,6 @@ Metric:
     contributesToGoal: "goal-system-reliability"
     measuresOutcome: "outcome-reliability-achieved"
     kpiFormula: "AVG(database.uptime) over last 30 days"
-
 # Result: Complete chain from goal → infrastructure → measurement
 # Proves: Database infrastructure directly contributes to business reliability goal
 # Validates: 99.99% database SLA enables 99.9% system availability goal
@@ -1192,24 +1237,28 @@ Metric:
 ## Benefits Summary
 
 ### For Architects
+
 - **Decision Documentation**: Technology choices are self-documenting
 - **Traceability**: Complete chain from business goals to infrastructure
 - **Validation**: Ensure technology aligns with principles and constraints
 - **Impact Analysis**: Understand which goals depend on specific infrastructure
 
 ### For Compliance Officers
+
 - **Regulatory Mapping**: Direct links from regulations to infrastructure controls
 - **Audit Trail**: Provable compliance through documented constraints
 - **Risk Assessment**: Identify infrastructure supporting high-risk data
 - **Evidence**: Automated compliance reporting through metadata queries
 
 ### For Operations Teams
+
 - **SLA Alignment**: Infrastructure SLAs linked to business objectives
 - **Monitoring Priorities**: Know which infrastructure supports critical goals
 - **Health Tracking**: Automated health monitoring for critical services
 - **Incident Response**: Understand business impact of infrastructure failures
 
 ### For Budget Planning
+
 - **Cost Justification**: Infrastructure costs tied to business goals
 - **Constraint Visibility**: Budget limits documented explicitly
 - **ROI Analysis**: Infrastructure investment linked to value delivery

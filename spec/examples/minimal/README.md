@@ -10,6 +10,7 @@ This is the smallest valid architecture model conforming to the Federated Archit
 ## Learning Objectives
 
 After studying this example, you'll understand:
+
 - Required directory structure
 - Minimal required entities per layer
 - How to reference between layers
@@ -38,23 +39,28 @@ minimal/
 ## Entities Included
 
 ### Layer 01: Motivation
+
 - 1 Goal
 - 1 Requirement
 
 ### Layer 02: Business
+
 - 1 Business Service
 
 ### Layer 03: Security
+
 - 1 Role
 - 1 Permission
 
 ### Layer 04: Application
+
 - 1 Application Component
 - 1 Application Service
 
 ## Cross-Layer References
 
 Demonstrates:
+
 - Application Service → Business Service (realization)
 - Application Component → Goal (supports)
 - Business Service → Requirement (fulfills)
@@ -84,6 +90,7 @@ dr validate --all
 ## Next Steps
 
 After understanding this minimal example:
+
 1. Review [../e-commerce/README.md](../e-commerce/README.md) for a realistic example
 2. See [../../guides/getting-started.md](../../guides/getting-started.md) for a full tutorial
 3. Read layer specifications in [../../layers/](../../layers/)

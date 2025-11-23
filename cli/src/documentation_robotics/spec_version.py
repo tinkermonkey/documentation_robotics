@@ -110,6 +110,5 @@ def check_model_compatibility(model_spec_version: str) -> tuple[bool, str]:
     else:
         return (
             True,
-            f"Compatible: model uses {model_spec_version}, "
-            f"tool implements {SPEC_VERSION}",
+            f"Compatible: model uses {model_spec_version}, " f"tool implements {SPEC_VERSION}",
         )

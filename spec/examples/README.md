@@ -5,6 +5,7 @@ This directory contains example architecture models demonstrating the Federated 
 ## Available Examples
 
 ### 1. Minimal Example
+
 **Location:** [minimal/](minimal/)
 **Description:** Smallest valid model demonstrating basic conformance
 **Layers:** 01-04 (Motivation, Business, Security, Application)
@@ -12,6 +13,7 @@ This directory contains example architecture models demonstrating the Federated 
 **Status:** In Progress
 
 ### 2. E-commerce Example
+
 **Location:** [e-commerce/](e-commerce/)
 **Description:** Realistic e-commerce application architecture
 **Layers:** All 11 layers
@@ -19,6 +21,7 @@ This directory contains example architecture models demonstrating the Federated 
 **Status:** Planned
 
 ### 3. Microservices Example
+
 **Location:** [microservices/](microservices/)
 **Description:** Distributed microservices architecture
 **Layers:** All 11 layers, emphasizing API and observability
@@ -26,6 +29,7 @@ This directory contains example architecture models demonstrating the Federated 
 **Status:** Planned
 
 ### 4. Reference Implementation
+
 **Location:** [reference-implementation/](reference-implementation/)
 **Description:** Complete model used for testing the `dr` CLI tool
 **Layers:** All 11 layers
@@ -58,6 +62,7 @@ dr validate --all
 ### Learning from Examples
 
 Each example includes:
+
 - `README.md` - Description and learning objectives
 - `model/` - Architecture model files (YAML)
 - `specs/` - Generated specifications (if applicable)

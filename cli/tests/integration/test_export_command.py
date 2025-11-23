@@ -1,7 +1,7 @@
 """Integration tests for export command."""
+
 import pytest
 from click.testing import CliRunner
-from pathlib import Path
 from documentation_robotics.cli import cli
 
 
@@ -32,10 +32,15 @@ def test_export_archimate(runner, initialized_model, tmp_path):
 
     # Command might fail if model is empty, but should not crash
     # Just check it doesn't have unhandled exceptions
-    assert "Error:" in result.output or "successful" in result.output or result.exit_code in [
-        0,
-        1,
-    ]
+    assert (
+        "Error:" in result.output
+        or "successful" in result.output
+        or result.exit_code
+        in [
+            0,
+            1,
+        ]
+    )
 
 
 def test_export_command_no_model(runner, tmp_path):

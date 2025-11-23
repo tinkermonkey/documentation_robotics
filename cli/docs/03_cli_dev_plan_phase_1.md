@@ -5,6 +5,7 @@
 This document provides a detailed, actionable development plan for implementing Phase 1 (MVP) of the `dr` CLI tool. It breaks down the design into specific tasks, defines dependencies, establishes milestones, and provides acceptance criteria.
 
 **Phase 1 Goals:**
+
 - Deliver a functional MVP for model initialization and management
 - Enable element CRUD operations across all 11 layers
 - Provide basic validation capabilities
@@ -18,12 +19,14 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.1 Methodology
 
 **Iterative Development:**
+
 - Build core infrastructure first
 - Add commands incrementally
 - Test continuously
 - Integrate early and often
 
 **Quality Standards:**
+
 - Type hints on all functions
 - Docstrings on all classes and public methods
 - Unit tests for all core functionality
@@ -33,6 +36,7 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.2 Development Environment
 
 **Required Tools:**
+
 ```bash
 # Python environment
 python >= 3.9
@@ -45,11 +49,13 @@ pre-commit install
 ```
 
 **IDE Recommendations:**
+
 - VS Code with Python extension
 - PyCharm Professional
 - Vim/Neovim with LSP
 
 **Testing Infrastructure:**
+
 ```bash
 # Run unit tests
 pytest tests/unit/
@@ -73,6 +79,7 @@ black --check src/
 ### 3.1 Sprint 1: Project Setup & Core Infrastructure (Week 1-2)
 
 #### Task 1.1: Project Scaffolding
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** None
@@ -81,6 +88,7 @@ black --check src/
 Set up the basic project structure with proper packaging configuration.
 
 **Deliverables:**
+
 - [ ] Create directory structure per design
 - [ ] Create `pyproject.toml` with dependencies
 - [ ] Create `README.md` with project overview
@@ -89,6 +97,7 @@ Set up the basic project structure with proper packaging configuration.
 - [ ] Initialize git repository
 
 **Implementation Steps:**
+
 1. Create root project directory
 2. Set up `src/documentation_robotics/` structure
 3. Create all subdirectories (commands/, core/, validators/, utils/, schemas/)
@@ -96,12 +105,14 @@ Set up the basic project structure with proper packaging configuration.
 5. Add basic README with installation instructions
 
 **Acceptance Criteria:**
+
 - [ ] Project can be installed with `pip install -e .`
 - [ ] All directories exist per design
 - [ ] Dependencies install without errors
 - [ ] `dr --version` command works
 
 **Testing:**
+
 ```bash
 # Test installation
 pip install -e .
@@ -114,6 +125,7 @@ tree src/documentation_robotics/
 ---
 
 #### Task 1.2: CLI Entry Point & Framework
+
 **Estimated Time:** 3 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -122,6 +134,7 @@ tree src/documentation_robotics/
 Implement the main CLI entry point using Click framework.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/cli.py` with Click group
 - [ ] Command registration system
 - [ ] Version option
@@ -129,6 +142,7 @@ Implement the main CLI entry point using Click framework.
 - [ ] Basic error handling
 
 **Implementation Steps:**
+
 1. Create cli.py with @click.group() decorator
 2. Add version option from package metadata
 3. Set up command registration pattern
@@ -136,12 +150,14 @@ Implement the main CLI entry point using Click framework.
 5. Implement basic error handling with Rich console
 
 **Acceptance Criteria:**
+
 - [ ] `dr --help` shows command list
 - [ ] `dr --version` shows version number
 - [ ] Commands can be registered and discovered
 - [ ] Error messages display with Rich formatting
 
 **Code Example:**
+
 ```python
 # src/documentation_robotics/cli.py
 import click
@@ -166,6 +182,7 @@ if __name__ == "__main__":
 ```
 
 **Testing:**
+
 ```python
 # tests/unit/test_cli.py
 from click.testing import CliRunner
@@ -181,6 +198,7 @@ def test_cli_help():
 ---
 
 #### Task 1.3: Manifest Class Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -189,12 +207,14 @@ def test_cli_help():
 Implement the Manifest class for managing model metadata.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/core/manifest.py`
 - [ ] Manifest class with all methods from design
 - [ ] Unit tests for Manifest class
 
 **Implementation Steps:**
-1. Create Manifest class with __init__ method
+
+1. Create Manifest class with **init** method
 2. Implement classmethod `load()` for loading from file
 3. Implement classmethod `create()` for new manifest
 4. Implement `_default_layers()` static method
@@ -205,6 +225,7 @@ Implement the Manifest class for managing model metadata.
 9. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Can create new manifest with all 11 layers
 - [ ] Can load existing manifest from YAML
 - [ ] Can save manifest to YAML
@@ -214,6 +235,7 @@ Implement the Manifest class for managing model metadata.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_manifest.py
 import pytest
@@ -251,6 +273,7 @@ def test_increment_element_count(sample_manifest):
 ---
 
 #### Task 1.4: Element Class Implementation
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -259,21 +282,24 @@ def test_increment_element_count(sample_manifest):
 Implement the Element class representing individual architecture elements.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/core/element.py`
 - [ ] Element class with all methods
 - [ ] Unit tests for Element class
 
 **Implementation Steps:**
-1. Create Element class with __init__ method
+
+1. Create Element class with **init** method
 2. Implement properties (name, description)
 3. Implement get/set/update methods
 4. Implement to_dict() method
 5. Implement save() method
 6. Implement classmethod create()
-7. Add __repr__ method
+7. Add **repr** method
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Elements can be created with all required fields
 - [ ] Properties are accessible
 - [ ] Data can be updated
@@ -281,6 +307,7 @@ Implement the Element class representing individual architecture elements.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_element.py
 from documentation_robotics.core.element import Element
@@ -326,6 +353,7 @@ def test_element_to_dict():
 ---
 
 #### Task 1.5: Layer Class Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 1.4
@@ -334,6 +362,7 @@ def test_element_to_dict():
 Implement the Layer class for managing elements within a layer.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/core/layer.py`
 - [ ] Layer class with all methods
 - [ ] Element loading from YAML files
@@ -341,10 +370,11 @@ Implement the Layer class for managing elements within a layer.
 - [ ] Unit tests for Layer class
 
 **Implementation Steps:**
-1. Create Layer class with __init__ method
-2. Implement _load_elements() method
-3. Implement _load_elements_from_file() method
-4. Implement _create_element_from_data() method
+
+1. Create Layer class with **init** method
+2. Implement \_load_elements() method
+3. Implement \_load_elements_from_file() method
+4. Implement \_create_element_from_data() method
 5. Implement get_element() method
 6. Implement find_elements() with filtering
 7. Implement add_element() method
@@ -354,6 +384,7 @@ Implement the Layer class for managing elements within a layer.
 11. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Layers load elements from YAML files
 - [ ] Elements can be retrieved by ID
 - [ ] Elements can be filtered by type, name, properties
@@ -363,6 +394,7 @@ Implement the Layer class for managing elements within a layer.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_layer.py
 from pathlib import Path
@@ -416,6 +448,7 @@ def test_layer_remove_element(sample_layer_with_elements):
 ---
 
 #### Task 1.6: Model Class Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3, Task 1.4, Task 1.5
@@ -424,6 +457,7 @@ def test_layer_remove_element(sample_layer_with_elements):
 Implement the Model class as the main facade for model operations.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/core/model.py`
 - [ ] Model class with all methods
 - [ ] Cross-layer operations
@@ -431,21 +465,23 @@ Implement the Model class as the main facade for model operations.
 - [ ] Unit tests for Model class
 
 **Implementation Steps:**
-1. Create Model class with __init__ method
-2. Implement _load_layers() method
+
+1. Create Model class with **init** method
+2. Implement \_load_layers() method
 3. Implement get_layer() and get_element() methods
 4. Implement find_elements() with cross-layer support
 5. Implement add_element() method
 6. Implement update_element() method
 7. Implement remove_element() with dependency checking
 8. Implement find_dependencies() method
-9. Implement _references_element() helper
+9. Implement \_references_element() helper
 10. Implement validate() method stub
 11. Implement save() method
 12. Implement classmethod create()
 13. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Model loads from existing directory structure
 - [ ] Can create new model structure
 - [ ] Elements can be retrieved across layers
@@ -455,6 +491,7 @@ Implement the Model class as the main facade for model operations.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_model.py
 from pathlib import Path
@@ -522,6 +559,7 @@ def test_model_remove_element_cascade(sample_model_with_deps):
 ---
 
 #### Task 1.7: Utility Functions
+
 **Estimated Time:** 4 hours
 **Priority:** High
 **Dependencies:** Task 1.1
@@ -530,12 +568,14 @@ def test_model_remove_element_cascade(sample_model_with_deps):
 Implement utility functions for ID generation and file I/O.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/utils/id_generator.py`
 - [ ] `src/documentation_robotics/utils/file_io.py`
 - [ ] `src/documentation_robotics/utils/output.py`
 - [ ] Unit tests for all utilities
 
 **Implementation Steps:**
+
 1. Implement generate_element_id() function
 2. Implement to_kebab_case() function
 3. Implement update_yaml_element() function
@@ -544,6 +584,7 @@ Implement utility functions for ID generation and file I/O.
 6. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] ID generation follows conventions
 - [ ] Kebab-case conversion handles all cases
 - [ ] YAML updates preserve file structure
@@ -551,6 +592,7 @@ Implement utility functions for ID generation and file I/O.
 - [ ] All unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_id_generator.py
 from documentation_robotics.utils.id_generator import (
@@ -590,6 +632,7 @@ def test_to_kebab_case_from_snake():
 ### 3.2 Sprint 2: Init & Add Commands (Week 3)
 
 #### Task 2.1: Init Command Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 1.6, Task 1.7
@@ -598,6 +641,7 @@ def test_to_kebab_case_from_snake():
 Implement the `dr init` command for initializing new models.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/init.py`
 - [ ] ModelInitializer class
 - [ ] Directory structure creation
@@ -606,18 +650,20 @@ Implement the `dr init` command for initializing new models.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create ModelInitializer class
-2. Implement _create_directories() method
-3. Implement _create_manifest() method
-4. Implement _copy_schemas() method
-5. Implement _create_documentation() method
-6. Implement _create_config() method
-7. Implement _create_examples() method
+2. Implement \_create_directories() method
+3. Implement \_create_manifest() method
+4. Implement \_copy_schemas() method
+5. Implement \_create_documentation() method
+6. Implement \_create_config() method
+7. Implement \_create_examples() method
 8. Implement init Click command
 9. Add progress indicators with Rich
 10. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Command creates proper directory structure
 - [ ] Manifest is created with all layers
 - [ ] Schemas are copied
@@ -629,6 +675,7 @@ Implement the `dr init` command for initializing new models.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_init.py
 from click.testing import CliRunner
@@ -681,6 +728,7 @@ def test_init_existing_model_fails(initialized_tmp_path):
 ---
 
 #### Task 2.2: Add Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 2.1
@@ -689,6 +737,7 @@ def test_init_existing_model_fails(initialized_tmp_path):
 Implement the `dr add` command for adding elements.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/add.py`
 - [ ] Add command with all options
 - [ ] Property parsing
@@ -696,6 +745,7 @@ Implement the `dr add` command for adding elements.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create add Click command with arguments/options
 2. Implement model loading
 3. Implement layer validation
@@ -707,6 +757,7 @@ Implement the `dr add` command for adding elements.
 9. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Elements can be added to any layer
 - [ ] Spec files are loaded correctly
 - [ ] Properties are parsed from command line
@@ -716,6 +767,7 @@ Implement the `dr add` command for adding elements.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_add.py
 from click.testing import CliRunner
@@ -788,6 +840,7 @@ def test_add_dry_run(initialized_model_path):
 ### 3.3 Sprint 3: Query Commands (Week 4)
 
 #### Task 3.1: Find Command Implementation
+
 **Estimated Time:** 4 hours
 **Priority:** High
 **Dependencies:** Task 2.2
@@ -796,12 +849,14 @@ def test_add_dry_run(initialized_model_path):
 Implement the `dr find` command for retrieving elements by ID.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/find.py`
 - [ ] Multiple output formats (YAML, JSON, table)
 - [ ] Dependency display
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create find Click command
 2. Implement element lookup
 3. Implement YAML output format
@@ -812,6 +867,7 @@ Implement the `dr find` command for retrieving elements by ID.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Elements can be found by ID
 - [ ] YAML output is formatted correctly
 - [ ] JSON output is valid
@@ -823,6 +879,7 @@ Implement the `dr find` command for retrieving elements by ID.
 ---
 
 #### Task 3.2: List Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 3.1
@@ -831,6 +888,7 @@ Implement the `dr find` command for retrieving elements by ID.
 Implement the `dr list` command for listing elements in a layer.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/list.py`
 - [ ] Table and tree views
 - [ ] Filtering by type
@@ -838,6 +896,7 @@ Implement the `dr list` command for listing elements in a layer.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create list Click command
 2. Implement layer listing
 3. Implement table view
@@ -848,6 +907,7 @@ Implement the `dr list` command for listing elements in a layer.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can list all elements in a layer
 - [ ] Table view shows key attributes
 - [ ] Tree view shows hierarchy
@@ -859,6 +919,7 @@ Implement the `dr list` command for listing elements in a layer.
 ---
 
 #### Task 3.3: Search Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 3.2
@@ -867,6 +928,7 @@ Implement the `dr list` command for listing elements in a layer.
 Implement the `dr search` command for searching across layers.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/search.py`
 - [ ] Text search
 - [ ] Property filters
@@ -874,6 +936,7 @@ Implement the `dr search` command for searching across layers.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create search Click command
 2. Implement cross-layer search
 3. Implement text matching
@@ -884,6 +947,7 @@ Implement the `dr search` command for searching across layers.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Can search across all layers
 - [ ] Text matching works (name, description)
 - [ ] Property filters work
@@ -896,6 +960,7 @@ Implement the `dr search` command for searching across layers.
 ### 3.4 Sprint 4: Update & Remove Commands (Week 5)
 
 #### Task 4.1: Update Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 3.1
@@ -904,6 +969,7 @@ Implement the `dr search` command for searching across layers.
 Implement the `dr update` command for modifying elements.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/update.py`
 - [ ] Property updates
 - [ ] Spec file merging
@@ -911,6 +977,7 @@ Implement the `dr update` command for modifying elements.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create update Click command
 2. Implement element lookup
 3. Implement property updates
@@ -921,6 +988,7 @@ Implement the `dr update` command for modifying elements.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Elements can be updated by ID
 - [ ] Individual properties can be updated
 - [ ] Spec files merge correctly
@@ -932,6 +1000,7 @@ Implement the `dr update` command for modifying elements.
 ---
 
 #### Task 4.2: Remove Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 4.1
@@ -940,6 +1009,7 @@ Implement the `dr update` command for modifying elements.
 Implement the `dr remove` command for deleting elements.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/remove.py`
 - [ ] Dependency checking
 - [ ] Cascade deletion
@@ -947,6 +1017,7 @@ Implement the `dr remove` command for deleting elements.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create remove Click command
 2. Implement element lookup
 3. Implement dependency checking
@@ -957,6 +1028,7 @@ Implement the `dr remove` command for deleting elements.
 8. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Elements can be removed by ID
 - [ ] Dependencies are checked
 - [ ] Cascade mode removes dependents
@@ -970,6 +1042,7 @@ Implement the `dr remove` command for deleting elements.
 ### 3.5 Sprint 5: Validation System (Week 6)
 
 #### Task 5.1: Base Validation Framework
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 1.6
@@ -978,6 +1051,7 @@ Implement the `dr remove` command for deleting elements.
 Implement the base validation framework.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/validators/base.py`
 - [ ] ValidationResult class
 - [ ] ValidationIssue class
@@ -985,6 +1059,7 @@ Implement the base validation framework.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ValidationIssue dataclass
 2. Create ValidationResult class
 3. Implement add_error() and add_warning()
@@ -995,6 +1070,7 @@ Implement the base validation framework.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Validation results track errors and warnings
 - [ ] Results can be merged
 - [ ] Results can be serialized
@@ -1004,6 +1080,7 @@ Implement the base validation framework.
 ---
 
 #### Task 5.2: Schema Validator
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 5.1
@@ -1012,6 +1089,7 @@ Implement the base validation framework.
 Implement JSON Schema validation for elements.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/validators/schema.py`
 - [ ] SchemaValidator class
 - [ ] Error message formatting
@@ -1019,6 +1097,7 @@ Implement JSON Schema validation for elements.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create SchemaValidator class
 2. Implement schema loading
 3. Implement validate_element() method
@@ -1028,6 +1107,7 @@ Implement JSON Schema validation for elements.
 7. Write unit tests with various scenarios
 
 **Acceptance Criteria:**
+
 - [ ] Elements validate against JSON Schema
 - [ ] Error messages are clear
 - [ ] Fix suggestions are helpful
@@ -1037,6 +1117,7 @@ Implement JSON Schema validation for elements.
 ---
 
 #### Task 5.3: Naming Convention Validator
+
 **Estimated Time:** 4 hours
 **Priority:** Medium
 **Dependencies:** Task 5.1
@@ -1045,12 +1126,14 @@ Implement JSON Schema validation for elements.
 Implement validation for naming conventions.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/validators/naming.py`
 - [ ] NamingValidator class
 - [ ] Convention rules
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create NamingValidator class
 2. Implement ID format validation
 3. Implement name format validation
@@ -1059,6 +1142,7 @@ Implement validation for naming conventions.
 6. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] IDs validate against format
 - [ ] Names validate against conventions
 - [ ] File names validate against patterns
@@ -1068,6 +1152,7 @@ Implement validation for naming conventions.
 ---
 
 #### Task 5.4: Reference Validator
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 5.1
@@ -1076,6 +1161,7 @@ Implement validation for naming conventions.
 Implement validation for cross-references.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/validators/references.py`
 - [ ] ReferenceValidator class
 - [ ] Broken reference detection
@@ -1083,6 +1169,7 @@ Implement validation for cross-references.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ReferenceValidator class
 2. Implement reference extraction from elements
 3. Implement broken reference detection
@@ -1092,6 +1179,7 @@ Implement validation for cross-references.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Broken references are detected
 - [ ] Circular references are detected
 - [ ] Orphan elements are identified
@@ -1101,6 +1189,7 @@ Implement validation for cross-references.
 ---
 
 #### Task 5.5: Validate Command Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 5.2, Task 5.3, Task 5.4
@@ -1109,6 +1198,7 @@ Implement validation for cross-references.
 Implement the `dr validate` command.
 
 **Deliverables:**
+
 - [ ] `src/documentation_robotics/commands/validate.py`
 - [ ] Comprehensive validation reporting
 - [ ] Fix suggestions
@@ -1116,6 +1206,7 @@ Implement the `dr validate` command.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create validate Click command
 2. Implement full model validation
 3. Implement layer-specific validation
@@ -1127,6 +1218,7 @@ Implement the `dr validate` command.
 9. Write integration tests
 
 **Acceptance Criteria:**
+
 - [ ] Validates entire model
 - [ ] Can validate specific layer
 - [ ] Can validate specific element
@@ -1141,6 +1233,7 @@ Implement the `dr validate` command.
 ### 3.6 Sprint 6: Integration & Testing (Week 7-8)
 
 #### Task 6.1: Test Fixtures & Helpers
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** All previous tasks
@@ -1149,12 +1242,14 @@ Implement the `dr validate` command.
 Create comprehensive test fixtures and helpers.
 
 **Deliverables:**
+
 - [ ] `tests/conftest.py` with pytest fixtures
 - [ ] Sample model for testing
 - [ ] Test data generators
 - [ ] Assertion helpers
 
 **Implementation Steps:**
+
 1. Create conftest.py
 2. Implement sample_model fixture
 3. Implement initialized_model fixture
@@ -1164,6 +1259,7 @@ Create comprehensive test fixtures and helpers.
 7. Document fixture usage
 
 **Acceptance Criteria:**
+
 - [ ] Fixtures available to all tests
 - [ ] Sample models realistic
 - [ ] Generators produce valid data
@@ -1173,6 +1269,7 @@ Create comprehensive test fixtures and helpers.
 ---
 
 #### Task 6.2: Integration Test Suite
+
 **Estimated Time:** 12 hours
 **Priority:** Critical
 **Dependencies:** Task 6.1
@@ -1181,12 +1278,14 @@ Create comprehensive test fixtures and helpers.
 Create comprehensive integration tests for all commands.
 
 **Deliverables:**
+
 - [ ] Complete integration test coverage
 - [ ] End-to-end workflows
 - [ ] Error scenario tests
 - [ ] Performance benchmarks
 
 **Implementation Steps:**
+
 1. Write tests for init command
 2. Write tests for add command
 3. Write tests for find command
@@ -1200,6 +1299,7 @@ Create comprehensive integration tests for all commands.
 11. Add performance benchmarks
 
 **Acceptance Criteria:**
+
 - [ ] All commands have integration tests
 - [ ] Workflows tested end-to-end
 - [ ] Error cases covered
@@ -1209,6 +1309,7 @@ Create comprehensive integration tests for all commands.
 ---
 
 #### Task 6.3: Documentation
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** All previous tasks
@@ -1217,6 +1318,7 @@ Create comprehensive integration tests for all commands.
 Create comprehensive user documentation.
 
 **Deliverables:**
+
 - [ ] README.md with quickstart
 - [ ] docs/getting_started.md
 - [ ] docs/commands.md
@@ -1224,6 +1326,7 @@ Create comprehensive user documentation.
 - [ ] Example workflows
 
 **Implementation Steps:**
+
 1. Write README with overview and installation
 2. Create getting started guide
 3. Document all commands with examples
@@ -1233,6 +1336,7 @@ Create comprehensive user documentation.
 7. Add contribution guide
 
 **Acceptance Criteria:**
+
 - [ ] README is clear and complete
 - [ ] Getting started works for new users
 - [ ] All commands documented
@@ -1242,6 +1346,7 @@ Create comprehensive user documentation.
 ---
 
 #### Task 6.4: Performance Optimization
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 6.2
@@ -1250,11 +1355,13 @@ Create comprehensive user documentation.
 Optimize performance for large models.
 
 **Deliverables:**
+
 - [ ] Performance profiling results
 - [ ] Optimization implementations
 - [ ] Benchmark suite
 
 **Implementation Steps:**
+
 1. Profile current performance
 2. Identify bottlenecks
 3. Optimize file I/O
@@ -1264,6 +1371,7 @@ Optimize performance for large models.
 7. Document performance characteristics
 
 **Acceptance Criteria:**
+
 - [ ] Model with 1000+ elements loads in < 2s
 - [ ] Search across all layers < 500ms
 - [ ] Validation runs in reasonable time
@@ -1272,6 +1380,7 @@ Optimize performance for large models.
 ---
 
 #### Task 6.5: Bug Fixes & Polish
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 6.2
@@ -1280,11 +1389,13 @@ Optimize performance for large models.
 Fix bugs found during testing and polish UX.
 
 **Deliverables:**
+
 - [ ] All critical bugs fixed
 - [ ] UX improvements
 - [ ] Error message improvements
 
 **Implementation Steps:**
+
 1. Triage bugs from testing
 2. Fix critical bugs
 3. Fix high-priority bugs
@@ -1294,6 +1405,7 @@ Fix bugs found during testing and polish UX.
 7. Improve command help text
 
 **Acceptance Criteria:**
+
 - [ ] No critical bugs remain
 - [ ] Error messages are helpful
 - [ ] Output is polished
@@ -1309,6 +1421,7 @@ Fix bugs found during testing and polish UX.
 **Coverage Target:** 85%+
 
 **Focus Areas:**
+
 - Core classes (Model, Manifest, Layer, Element)
 - Validators
 - Utilities
@@ -1316,6 +1429,7 @@ Fix bugs found during testing and polish UX.
 - File I/O
 
 **Testing Approach:**
+
 ```python
 # Use pytest with fixtures
 @pytest.fixture
@@ -1336,12 +1450,14 @@ def test_element_creation(sample_element):
 **Coverage Target:** All commands
 
 **Focus Areas:**
+
 - Command execution
 - File system operations
 - Model persistence
 - Error handling
 
 **Testing Approach:**
+
 ```python
 # Use Click testing utilities
 from click.testing import CliRunner
@@ -1364,7 +1480,8 @@ def test_init_and_add_workflow(tmp_path):
 ### 4.3 End-to-End Tests
 
 **Scenarios:**
-1. **Complete Workflow:** Init ’ Add ’ Find ’ Update ’ Validate ’ Remove
+
+1. **Complete Workflow:** Init ï¿½ Add ï¿½ Find ï¿½ Update ï¿½ Validate ï¿½ Remove
 2. **Multi-Layer:** Add elements across multiple layers with references
 3. **Error Recovery:** Handle corrupt files, missing schemas, etc.
 4. **Large Models:** Test with 1000+ elements
@@ -1372,12 +1489,14 @@ def test_init_and_add_workflow(tmp_path):
 ### 4.4 Performance Tests
 
 **Benchmarks:**
+
 - Model initialization time
 - Element search time
 - Validation time
 - File I/O time
 
 **Tools:**
+
 - pytest-benchmark
 - memory_profiler
 - cProfile
@@ -1385,8 +1504,10 @@ def test_init_and_add_workflow(tmp_path):
 ## 5. Code Review Checkpoints
 
 ### Checkpoint 1: Core Infrastructure (End of Week 2)
+
 **Reviewers:** Tech Lead
 **Focus:**
+
 - [ ] Architecture alignment
 - [ ] Code organization
 - [ ] Type hints
@@ -1394,8 +1515,10 @@ def test_init_and_add_workflow(tmp_path):
 - [ ] Test coverage
 
 ### Checkpoint 2: Commands (End of Week 5)
+
 **Reviewers:** Tech Lead + Senior Developer
 **Focus:**
+
 - [ ] Command functionality
 - [ ] Error handling
 - [ ] User experience
@@ -1403,8 +1526,10 @@ def test_init_and_add_workflow(tmp_path):
 - [ ] Documentation
 
 ### Checkpoint 3: Final Review (End of Week 8)
+
 **Reviewers:** Full Team
 **Focus:**
+
 - [ ] All acceptance criteria met
 - [ ] Code quality
 - [ ] Test coverage
@@ -1414,36 +1539,44 @@ def test_init_and_add_workflow(tmp_path):
 ## 6. Risk Management
 
 ### Risk 1: YAML File Corruption
+
 **Probability:** Medium
 **Impact:** High
 **Mitigation:**
+
 - Implement atomic file writes
 - Create backups before updates
 - Add file validation
 - Provide recovery tools
 
 ### Risk 2: Schema Changes Breaking Models
+
 **Probability:** Low
 **Impact:** High
 **Mitigation:**
+
 - Version schemas
 - Implement migration system
 - Validate schema compatibility
 - Document breaking changes
 
 ### Risk 3: Performance Issues with Large Models
+
 **Probability:** Medium
 **Impact:** Medium
 **Mitigation:**
+
 - Implement lazy loading
 - Add caching
 - Optimize file I/O
 - Create performance benchmarks early
 
 ### Risk 4: Complex Dependencies
+
 **Probability:** High
 **Impact:** Low
 **Mitigation:**
+
 - Document dependencies clearly
 - Implement dependency visualization
 - Add cascade delete option
@@ -1486,7 +1619,8 @@ A task is considered "done" when:
 
 Phase 1 is complete when:
 
-### Functional Requirements:
+### Functional Requirements
+
 - [ ] FR-001: Can initialize new models
 - [ ] FR-002: Can add elements to all 11 layers
 - [ ] FR-003: Can update existing elements
@@ -1498,21 +1632,24 @@ Phase 1 is complete when:
 - [ ] FR-009: Manifest tracks all changes
 - [ ] FR-010: Dependencies are tracked
 
-### Non-Functional Requirements:
+### Non-Functional Requirements
+
 - [ ] NFR-001: Code coverage > 80%
 - [ ] NFR-002: Model with 100 elements loads in < 1s
 - [ ] NFR-003: All commands have help text
 - [ ] NFR-004: Error messages are helpful
 - [ ] NFR-005: Documentation is complete
 
-### Quality Criteria:
+### Quality Criteria
+
 - [ ] All integration tests pass
 - [ ] No critical bugs
 - [ ] Performance benchmarks met
 - [ ] Documentation reviewed
 - [ ] Code reviewed and approved
 
-### Deliverables:
+### Deliverables
+
 - [ ] Installable Python package
 - [ ] Complete test suite
 - [ ] User documentation
@@ -1522,31 +1659,37 @@ Phase 1 is complete when:
 ## 9. Success Metrics
 
 ### Code Quality
+
 - **Target:** > 80% test coverage
 - **Measure:** pytest-cov report
 
 ### Performance
+
 - **Target:** Model load < 2s for 1000 elements
 - **Measure:** pytest-benchmark
 
 ### Usability
+
 - **Target:** New user completes workflow in < 10 min
 - **Measure:** User testing sessions
 
 ### Reliability
+
 - **Target:** No data loss scenarios
 - **Measure:** Integration test suite
 
 ## 10. Post-Phase 1 Handoff
 
-### To Phase 2 Team:
+### To Phase 2 Team
+
 - [ ] Working Phase 1 implementation
 - [ ] Test suite with > 80% coverage
 - [ ] Documentation complete
 - [ ] Known issues documented
 - [ ] Performance baseline established
 
-### Handoff Documents:
+### Handoff Documents
+
 1. Phase 1 implementation review
 2. Known limitations document
 3. Performance benchmark results
@@ -1639,16 +1782,16 @@ def generate_api_operation(name: str, **kwargs) -> Element:
 
 ## 12. Timeline Summary
 
-| Week | Sprint | Focus | Key Deliverables |
-|------|--------|-------|------------------|
-| 1-2 | Sprint 1 | Core Infrastructure | Model, Manifest, Layer, Element classes |
-| 3 | Sprint 2 | Init & Add Commands | `dr init`, `dr add` |
-| 4 | Sprint 3 | Query Commands | `dr find`, `dr list`, `dr search` |
-| 5 | Sprint 4 | Update & Remove | `dr update`, `dr remove` |
-| 6 | Sprint 5 | Validation | Validators, `dr validate` |
-| 7-8 | Sprint 6 | Integration | Tests, docs, polish |
+| Week | Sprint   | Focus               | Key Deliverables                        |
+| ---- | -------- | ------------------- | --------------------------------------- |
+| 1-2  | Sprint 1 | Core Infrastructure | Model, Manifest, Layer, Element classes |
+| 3    | Sprint 2 | Init & Add Commands | `dr init`, `dr add`                     |
+| 4    | Sprint 3 | Query Commands      | `dr find`, `dr list`, `dr search`       |
+| 5    | Sprint 4 | Update & Remove     | `dr update`, `dr remove`                |
+| 6    | Sprint 5 | Validation          | Validators, `dr validate`               |
+| 7-8  | Sprint 6 | Integration         | Tests, docs, polish                     |
 
-**Total Estimated Time:** 160 hours (8 weeks × 20 hours/week)
+**Total Estimated Time:** 160 hours (8 weeks ï¿½ 20 hours/week)
 
 ## 13. Next Steps After Phase 1
 

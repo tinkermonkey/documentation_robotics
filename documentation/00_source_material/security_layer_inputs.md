@@ -3,6 +3,7 @@ Excellent find! STS-ml (Socio-Technical Security Modeling Language) takes a fund
 ## Philosophical Differences
 
 ### Your Security Spec: **Implementation-Focused**
+
 ```yaml
 # "WHO can do WHAT to WHICH resources"
 roles:
@@ -16,6 +17,7 @@ resources:
 ```
 
 ### STS-ml: **Goal & Relationship-Focused**
+
 ```
 # "WHO wants to achieve WHAT, depending on WHOM"
 Actor: Product Manager
@@ -34,13 +36,15 @@ Actor: Product Manager
 STS-ml distinguishes between different information rights that your spec conflates:
 
 **STS-ml Concepts:**
+
 - **Produce**: Create new information
-- **Read**: View information  
+- **Read**: View information
 - **Modify**: Change existing information
 - **Distribute**: Share with others
 - **Delete**: Remove information (implicit)
 
 **Enhanced Security Spec:**
+
 ```yaml
 resources:
   - resource: "product-data"
@@ -48,11 +52,11 @@ resources:
       - actor: "editor"
         produce: true
         read: true
-        modify: 
+        modify:
           constraint: "status != 'published'"
-        distribute: false  # Can't share with external systems
-        
-      - actor: "viewer" 
+        distribute: false # Can't share with external systems
+
+      - actor: "viewer"
         read: true
         produce: false
         modify: false
@@ -65,6 +69,7 @@ resources:
 STS-ml models delegation of goals and permissions, which your spec doesn't capture:
 
 **STS-ml Concept:**
+
 ```
 Product Manager --delegates--> Editor
   Goal: Update Product
@@ -73,22 +78,23 @@ Product Manager --delegates--> Editor
 ```
 
 **Enhanced Security Spec:**
+
 ```yaml
 delegations:
   - delegator: "product-manager"
     delegatee: "editor"
     permission: "product.update"
     constraints:
-      retainOversight: true  # Delegator keeps visibility
+      retainOversight: true # Delegator keeps visibility
       timebound: "30days"
       revocable: true
-    delegationType: "execution"  # vs. "permission" delegation
-    
+    delegationType: "execution" # vs. "permission" delegation
+
   - delegator: "admin"
     delegatee: "product-manager"
     permission: "product.*"
-    delegationType: "permission"  # Can further delegate
-    maxDelegationDepth: 2  # Limit delegation chains
+    delegationType: "permission" # Can further delegate
+    maxDelegationDepth: 2 # Limit delegation chains
 ```
 
 ### 3. **Separation & Binding of Duty**
@@ -96,23 +102,25 @@ delegations:
 STS-ml explicitly models these security patterns:
 
 **STS-ml Concepts:**
+
 - **Separation of Duty (SoD)**: Different actors must perform related tasks
 - **Binding of Duty (BoD)**: Same actor must complete related tasks
 - **Need-to-Know**: Information access based on goal requirements
 
 **Enhanced Security Spec:**
+
 ```yaml
 securityConstraints:
   separationOfDuty:
     - name: "purchase-approval"
       tasks: ["create-order", "approve-order"]
       message: "Order creator cannot approve"
-      
+
   bindingOfDuty:
     - name: "audit-completion"
       tasks: ["start-audit", "complete-audit"]
       message: "Same auditor must complete"
-      
+
   needToKnow:
     - resource: "customer-ssn"
       goal: "process-tax-document"
@@ -124,6 +132,7 @@ securityConstraints:
 STS-ml models actor dependencies and trust relationships:
 
 **Enhanced Security Spec:**
+
 ```yaml
 actors:
   - name: "external-vendor"
@@ -134,7 +143,7 @@ actors:
         resource: "product-api"
         goal: "sync-inventory"
         criticality: "high"
-        
+
 socialCommitments:
   - committer: "data-processor"
     committedTo: "data-controller"
@@ -149,6 +158,7 @@ socialCommitments:
 STS-ml emphasizes accountability chains:
 
 **Enhanced Security Spec:**
+
 ```yaml
 accountability:
   - action: "approve-transaction"
@@ -158,11 +168,11 @@ accountability:
       - "timestamp"
       - "ip-address"
     auditRetention: "7years"
-    
+
   - action: "data-access"
     purposeDeclaration: required
     purposeTypes: ["support", "audit", "legal"]
-    challengeable: true  # User can challenge access
+    challengeable: true # User can challenge access
 ```
 
 ### 6. **Threat Modeling Integration**
@@ -170,6 +180,7 @@ accountability:
 STS-ml includes threat events and security requirements:
 
 **Enhanced Security Spec:**
+
 ```yaml
 threats:
   - id: "unauthorized-price-change"
@@ -177,7 +188,7 @@ threats:
     actors: ["malicious-insider"]
     likelihood: "medium"
     impact: "high"
-    
+
 securityRequirements:
   - id: "dual-control-pricing"
     mitigates: ["unauthorized-price-change"]
@@ -189,15 +200,15 @@ securityRequirements:
 
 ## Comparative Analysis
 
-| Aspect | Your Security Spec | STS-ml | Recommendation |
-|--------|-------------------|--------|----------------|
-| **Focus** | Implementation (RBAC/ABAC) | Requirements & Relationships | Adopt goal-oriented view for requirements |
-| **Actors** | Roles only | Agents, Roles, Organizations | Add actor types and relationships |
-| **Permissions** | CRUD-style | Information rights (R/M/P/D) | Adopt finer-grained rights model |
-| **Delegation** | Via role inheritance | Explicit delegation chains | Add delegation support |
-| **Constraints** | Conditions on operations | SoD, BoD, Need-to-Know | Add security patterns |
-| **Trust** | Implicit | Explicit trust relationships | Model trust for external actors |
-| **Compliance** | Not modeled | Social commitments | Add regulatory commitments |
+| Aspect          | Your Security Spec         | STS-ml                       | Recommendation                            |
+| --------------- | -------------------------- | ---------------------------- | ----------------------------------------- |
+| **Focus**       | Implementation (RBAC/ABAC) | Requirements & Relationships | Adopt goal-oriented view for requirements |
+| **Actors**      | Roles only                 | Agents, Roles, Organizations | Add actor types and relationships         |
+| **Permissions** | CRUD-style                 | Information rights (R/M/P/D) | Adopt finer-grained rights model          |
+| **Delegation**  | Via role inheritance       | Explicit delegation chains   | Add delegation support                    |
+| **Constraints** | Conditions on operations   | SoD, BoD, Need-to-Know       | Add security patterns                     |
+| **Trust**       | Implicit                   | Explicit trust relationships | Model trust for external actors           |
+| **Compliance**  | Not modeled                | Social commitments           | Add regulatory commitments                |
 
 ## Recommended Hybrid Approach
 
@@ -205,7 +216,7 @@ Extend your security spec with STS-ml concepts:
 
 ```yaml
 # File: specs/security/product-security.yaml
-version: "2.0.0"  # Enhanced with STS-ml concepts
+version: "2.0.0" # Enhanced with STS-ml concepts
 application: "product-management"
 
 # Traditional implementation details
@@ -220,7 +231,7 @@ actors:
     goals:
       - "maintain-product-catalog"
       - "ensure-pricing-accuracy"
-    
+
 informationEntities:
   - id: "product-pricing"
     classification: "confidential"
@@ -230,7 +241,7 @@ informationEntities:
       - actor: "finance"
         rights: ["read", "modify"]
         constraint: "approval required"
-        
+
 delegations:
   - from: "product-manager"
     to: "product-editor"
@@ -238,18 +249,18 @@ delegations:
     constraints:
       excludes: ["pricing", "cost"]
       retainVisibility: true
-      
+
 securityPatterns:
   separationOfDuty:
     - process: "price-change"
       roles: ["proposer", "approver"]
-      
+
 socialDependencies:
   - depender: "sales-system"
     dependee: "product-catalog"
     resource: "accurate-pricing"
     criticality: "high"
-    
+
 threats:
   - id: "price-manipulation"
     goal: "ensure-pricing-accuracy"

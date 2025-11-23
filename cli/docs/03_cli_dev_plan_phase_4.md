@@ -5,6 +5,7 @@
 This document provides a detailed, actionable development plan for implementing Phase 4 (Code Generation) of the `dr` CLI tool. Phase 4 builds upon Phases 1-3 to add comprehensive code generation capabilities from the architecture model.
 
 **Phase 4 Goals:**
+
 - Generate API clients in TypeScript, Python, and Java
 - Generate database migrations (SQL, Prisma, TypeORM, SQLAlchemy)
 - Generate UI components (React, Vue, Angular)
@@ -21,6 +22,7 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.1 Build Strategy
 
 **Language-by-Language, Framework-by-Framework:**
+
 - Build generation infrastructure first
 - Implement generators one at a time
 - Start with API clients (most valuable)
@@ -28,6 +30,7 @@ This document provides a detailed, actionable development plan for implementing 
 - Create comprehensive template library
 
 **Quality Standards:**
+
 - Maintain 80%+ code coverage
 - Generated code must compile/run
 - Generated code follows language conventions
@@ -51,6 +54,7 @@ pip install sqlparse>=0.4.0        # SQL parsing/formatting
 ### 3.1 Sprint 1: Code Generation Infrastructure (Week 1)
 
 #### Task 1.1: Base Generator Framework
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Phase 1-3 complete
@@ -59,6 +63,7 @@ pip install sqlparse>=0.4.0        # SQL parsing/formatting
 Create the base code generation framework.
 
 **Deliverables:**
+
 - [ ] BaseGenerator abstract class
 - [ ] CodegenOptions dataclass
 - [ ] Language and framework enums
@@ -66,6 +71,7 @@ Create the base code generation framework.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create BaseGenerator abstract class with:
    - generate() method
    - validate() method
@@ -81,6 +87,7 @@ Create the base code generation framework.
 6. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] BaseGenerator provides clear interface
 - [ ] Utilities tested
 - [ ] Case conversions work correctly
@@ -89,6 +96,7 @@ Create the base code generation framework.
 ---
 
 #### Task 1.2: GenerationManager Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -97,6 +105,7 @@ Create the base code generation framework.
 Implement the GenerationManager to orchestrate code generation.
 
 **Deliverables:**
+
 - [ ] GenerationManager class
 - [ ] Generator registration system
 - [ ] Template management
@@ -104,6 +113,7 @@ Implement the GenerationManager to orchestrate code generation.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create GenerationManager class
 2. Implement generator registration
 3. Implement generate() method with generator selection
@@ -114,6 +124,7 @@ Implement the GenerationManager to orchestrate code generation.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Can register generators
 - [ ] Can generate for any language/framework
 - [ ] Templates managed correctly
@@ -123,6 +134,7 @@ Implement the GenerationManager to orchestrate code generation.
 ---
 
 #### Task 1.3: Template System Enhancement
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 1.2
@@ -131,16 +143,18 @@ Implement the GenerationManager to orchestrate code generation.
 Enhance Jinja2 template system for code generation.
 
 **Deliverables:**
+
 - [ ] Custom Jinja2 filters for codegen
 - [ ] Template helpers
 - [ ] Template validation
 - [ ] Template examples
 
 **Implementation Steps:**
+
 1. Create custom Jinja2 filters:
    - camelCase, PascalCase, snake_case, kebab-case
    - pluralize, singularize
-   - type_mapping (dr type ’ language type)
+   - type_mapping (dr type ï¿½ language type)
    - indent
 2. Create template helpers:
    - import_statement
@@ -151,6 +165,7 @@ Enhance Jinja2 template system for code generation.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] All filters work correctly
 - [ ] Helpers tested
 - [ ] Templates validate
@@ -161,6 +176,7 @@ Enhance Jinja2 template system for code generation.
 ### 3.2 Sprint 2: API Client Generation (Week 2-3)
 
 #### Task 2.1: TypeScript API Client Generator
+
 **Estimated Time:** 12 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -169,6 +185,7 @@ Enhance Jinja2 template system for code generation.
 Generate TypeScript API clients from API layer.
 
 **Deliverables:**
+
 - [ ] TypeScriptAPIClientGenerator class
 - [ ] Axios-based client template
 - [ ] Fetch-based client template
@@ -177,12 +194,13 @@ Generate TypeScript API clients from API layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create TypeScriptAPIClientGenerator class
-2. Implement _generate_client_class()
-3. Implement _generate_method() for each operation
-4. Implement _generate_types() from data model
-5. Implement _generate_request_config()
-6. Implement _generate_error_handling()
+2. Implement \_generate_client_class()
+3. Implement \_generate_method() for each operation
+4. Implement \_generate_types() from data model
+5. Implement \_generate_request_config()
+6. Implement \_generate_error_handling()
 7. Add support for authentication
 8. Create templates for:
    - Axios client
@@ -192,6 +210,7 @@ Generate TypeScript API clients from API layer.
 10. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid TypeScript
 - [ ] Type-safe API calls
 - [ ] Compiles with tsc
@@ -199,6 +218,7 @@ Generate TypeScript API clients from API layer.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_typescript_generator.py
 from documentation_robotics.codegen.typescript import TypeScriptAPIClientGenerator
@@ -236,6 +256,7 @@ def test_typescript_compiles(generated_client_path):
 ---
 
 #### Task 2.2: Python API Client Generator
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 2.1
@@ -244,6 +265,7 @@ def test_typescript_compiles(generated_client_path):
 Generate Python API clients from API layer.
 
 **Deliverables:**
+
 - [ ] PythonAPIClientGenerator class
 - [ ] Requests-based client template
 - [ ] Httpx-based client template
@@ -252,11 +274,12 @@ Generate Python API clients from API layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create PythonAPIClientGenerator class
-2. Implement _generate_client_class()
-3. Implement _generate_method() for each operation
-4. Implement _generate_models() from data model (Pydantic)
-5. Implement _generate_error_handling()
+2. Implement \_generate_client_class()
+3. Implement \_generate_method() for each operation
+4. Implement \_generate_models() from data model (Pydantic)
+5. Implement \_generate_error_handling()
 6. Add support for authentication
 7. Create templates for:
    - Requests client
@@ -266,6 +289,7 @@ Generate Python API clients from API layer.
 9. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid Python 3.9+
 - [ ] Type hints throughout
 - [ ] Passes black formatting
@@ -275,6 +299,7 @@ Generate Python API clients from API layer.
 ---
 
 #### Task 2.3: Java API Client Generator
+
 **Estimated Time:** 10 hours
 **Priority:** Medium
 **Dependencies:** Task 2.2
@@ -283,6 +308,7 @@ Generate Python API clients from API layer.
 Generate Java API clients from API layer.
 
 **Deliverables:**
+
 - [ ] JavaAPIClientGenerator class
 - [ ] OkHttp-based client template
 - [ ] RestTemplate-based client template
@@ -291,16 +317,18 @@ Generate Java API clients from API layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create JavaAPIClientGenerator class
-2. Implement _generate_client_class()
-3. Implement _generate_method() for each operation
-4. Implement _generate_pojos() from data model
-5. Implement _generate_error_handling()
+2. Implement \_generate_client_class()
+3. Implement \_generate_method() for each operation
+4. Implement \_generate_pojos() from data model
+5. Implement \_generate_error_handling()
 6. Add support for authentication
 7. Create templates
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid Java code
 - [ ] Follows Java conventions
 - [ ] Compiles with javac
@@ -311,6 +339,7 @@ Generate Java API clients from API layer.
 ### 3.3 Sprint 3: Database Generation (Week 4)
 
 #### Task 3.1: SQL Migration Generator
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -319,6 +348,7 @@ Generate Java API clients from API layer.
 Generate SQL migrations from Data Model layer.
 
 **Deliverables:**
+
 - [ ] SQLMigrationGenerator class
 - [ ] CREATE TABLE statements
 - [ ] Foreign keys and constraints
@@ -327,11 +357,12 @@ Generate SQL migrations from Data Model layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create SQLMigrationGenerator class
-2. Implement _entity_to_table()
-3. Implement _field_to_column() with type mapping
-4. Implement _relationship_to_foreign_key()
-5. Implement _generate_indexes()
+2. Implement \_entity_to_table()
+3. Implement \_field_to_column() with type mapping
+4. Implement \_relationship_to_foreign_key()
+5. Implement \_generate_indexes()
 6. Implement migration versioning
 7. Support for multiple SQL dialects (PostgreSQL, MySQL, SQLite)
 8. Implement rollback scripts
@@ -339,6 +370,7 @@ Generate SQL migrations from Data Model layer.
 10. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid SQL
 - [ ] Supports major SQL dialects
 - [ ] Foreign keys correct
@@ -346,6 +378,7 @@ Generate SQL migrations from Data Model layer.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_sql_generator.py
 from documentation_robotics.codegen.database import SQLMigrationGenerator
@@ -379,6 +412,7 @@ def test_sql_valid(generated_migration):
 ---
 
 #### Task 3.2: Prisma Schema Generator
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 3.1
@@ -387,6 +421,7 @@ def test_sql_valid(generated_migration):
 Generate Prisma schema from Data Model layer.
 
 **Deliverables:**
+
 - [ ] PrismaSchemaGenerator class
 - [ ] Model definitions
 - [ ] Relationships
@@ -394,15 +429,17 @@ Generate Prisma schema from Data Model layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create PrismaSchemaGenerator class
-2. Implement _entity_to_model()
-3. Implement _field_to_attribute() with type mapping
-4. Implement _relationship_to_relation()
-5. Implement _generate_datasource()
-6. Implement _generate_generator()
+2. Implement \_entity_to_model()
+3. Implement \_field_to_attribute() with type mapping
+4. Implement \_relationship_to_relation()
+5. Implement \_generate_datasource()
+6. Implement \_generate_generator()
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid Prisma schema
 - [ ] Relationships correct
 - [ ] Validates with prisma CLI
@@ -411,6 +448,7 @@ Generate Prisma schema from Data Model layer.
 ---
 
 #### Task 3.3: ORM Generator (TypeORM & SQLAlchemy)
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 3.2
@@ -419,6 +457,7 @@ Generate Prisma schema from Data Model layer.
 Generate ORM entity definitions.
 
 **Deliverables:**
+
 - [ ] TypeORMGenerator class
 - [ ] SQLAlchemyGenerator class
 - [ ] Entity decorators
@@ -426,6 +465,7 @@ Generate ORM entity definitions.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create TypeORMGenerator class
 2. Implement TypeORM entity generation
 3. Create SQLAlchemyGenerator class
@@ -434,6 +474,7 @@ Generate ORM entity definitions.
 6. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid TypeORM entities
 - [ ] Generates valid SQLAlchemy models
 - [ ] Relationships work
@@ -444,6 +485,7 @@ Generate ORM entity definitions.
 ### 3.4 Sprint 4: UI Component Generation (Week 5)
 
 #### Task 4.1: React Component Generator
+
 **Estimated Time:** 12 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -452,6 +494,7 @@ Generate ORM entity definitions.
 Generate React components from UX layer.
 
 **Deliverables:**
+
 - [ ] ReactComponentGenerator class
 - [ ] Functional components
 - [ ] TypeScript support
@@ -460,11 +503,12 @@ Generate React components from UX layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ReactComponentGenerator class
-2. Implement _generate_component() for each screen
-3. Implement _generate_form() from UX form elements
-4. Implement _generate_list() from UX tables
-5. Implement _generate_types() from data model
+2. Implement \_generate_component() for each screen
+3. Implement \_generate_form() from UX form elements
+4. Implement \_generate_list() from UX tables
+5. Implement \_generate_types() from data model
 6. Add API integration hooks
 7. Add state management (React Query, Redux)
 8. Create templates
@@ -472,6 +516,7 @@ Generate React components from UX layer.
 10. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid React/TypeScript
 - [ ] Components compile
 - [ ] Follows React best practices
@@ -480,6 +525,7 @@ Generate React components from UX layer.
 ---
 
 #### Task 4.2: Vue Component Generator
+
 **Estimated Time:** 10 hours
 **Priority:** Medium
 **Dependencies:** Task 4.1
@@ -488,6 +534,7 @@ Generate React components from UX layer.
 Generate Vue 3 components from UX layer.
 
 **Deliverables:**
+
 - [ ] VueComponentGenerator class
 - [ ] Composition API components
 - [ ] TypeScript support
@@ -495,6 +542,7 @@ Generate Vue 3 components from UX layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create VueComponentGenerator class
 2. Implement component generation
 3. Add Composition API support
@@ -502,6 +550,7 @@ Generate Vue 3 components from UX layer.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid Vue 3 components
 - [ ] Uses Composition API
 - [ ] TypeScript support
@@ -510,6 +559,7 @@ Generate Vue 3 components from UX layer.
 ---
 
 #### Task 4.3: Angular Component Generator
+
 **Estimated Time:** 10 hours
 **Priority:** Medium
 **Dependencies:** Task 4.2
@@ -518,12 +568,14 @@ Generate Vue 3 components from UX layer.
 Generate Angular components from UX layer.
 
 **Deliverables:**
+
 - [ ] AngularComponentGenerator class
 - [ ] Component, template, styles
 - [ ] Forms with validation
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create AngularComponentGenerator class
 2. Implement component generation
 3. Implement template generation
@@ -531,6 +583,7 @@ Generate Angular components from UX layer.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid Angular components
 - [ ] Follows Angular style guide
 - [ ] Forms with validation
@@ -541,6 +594,7 @@ Generate Angular components from UX layer.
 ### 3.5 Sprint 5: Routes & Middleware (Week 6)
 
 #### Task 5.1: Route Generator
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -549,6 +603,7 @@ Generate Angular components from UX layer.
 Generate navigation routes from Navigation layer.
 
 **Deliverables:**
+
 - [ ] RouteGenerator class
 - [ ] React Router routes
 - [ ] Vue Router routes
@@ -556,6 +611,7 @@ Generate navigation routes from Navigation layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create RouteGenerator class
 2. Implement route generation for React Router
 3. Implement route generation for Vue Router
@@ -565,6 +621,7 @@ Generate navigation routes from Navigation layer.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Routes generated correctly
 - [ ] Guard logic included
 - [ ] Lazy loading supported
@@ -573,6 +630,7 @@ Generate navigation routes from Navigation layer.
 ---
 
 #### Task 5.2: Security Middleware Generator
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 5.1
@@ -581,6 +639,7 @@ Generate navigation routes from Navigation layer.
 Generate security middleware from Security layer.
 
 **Deliverables:**
+
 - [ ] MiddlewareGenerator class
 - [ ] Authentication middleware
 - [ ] Authorization middleware
@@ -588,6 +647,7 @@ Generate security middleware from Security layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create MiddlewareGenerator class
 2. Implement authentication middleware generation
 3. Implement authorization middleware generation
@@ -597,6 +657,7 @@ Generate security middleware from Security layer.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Middleware generated correctly
 - [ ] Works with target frameworks
 - [ ] Security best practices followed
@@ -607,6 +668,7 @@ Generate security middleware from Security layer.
 ### 3.6 Sprint 6: Test Generation & Integration (Week 7-8)
 
 #### Task 6.1: Test Generator Implementation
+
 **Estimated Time:** 12 hours
 **Priority:** High
 **Dependencies:** All generators
@@ -615,6 +677,7 @@ Generate security middleware from Security layer.
 Generate tests with traceability to architecture.
 
 **Deliverables:**
+
 - [ ] TestGenerator class
 - [ ] Unit test generation
 - [ ] Integration test generation
@@ -622,6 +685,7 @@ Generate tests with traceability to architecture.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create TestGenerator class
 2. Implement unit test generation for API clients
 3. Implement integration test generation:
@@ -637,6 +701,7 @@ Generate tests with traceability to architecture.
 7. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Tests generated for all layers
 - [ ] Tests link to architecture elements
 - [ ] Tests compile and run
@@ -644,6 +709,7 @@ Generate tests with traceability to architecture.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_test_generator.py
 from documentation_robotics.codegen.tests import TestGenerator
@@ -671,6 +737,7 @@ def test_generate_api_tests(sample_model_with_api):
 ---
 
 #### Task 6.2: Generate Command Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** All generators complete
@@ -679,6 +746,7 @@ def test_generate_api_tests(sample_model_with_api):
 Implement the `dr generate` command.
 
 **Deliverables:**
+
 - [ ] Generate command with all generator support
 - [ ] Language/framework selection
 - [ ] Batch generation
@@ -686,6 +754,7 @@ Implement the `dr generate` command.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Create generate Click command
 2. Implement generator type selection
 3. Implement language/framework selection
@@ -696,6 +765,7 @@ Implement the `dr generate` command.
 8. Write comprehensive integration tests
 
 **Acceptance Criteria:**
+
 - [ ] All generators accessible
 - [ ] Options work correctly
 - [ ] Dry-run shows what would be generated
@@ -703,6 +773,7 @@ Implement the `dr generate` command.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_generate.py
 from click.testing import CliRunner
@@ -740,6 +811,7 @@ def test_generate_all(initialized_model):
 ---
 
 #### Task 6.3: Code Quality & Formatting
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 6.2
@@ -748,12 +820,14 @@ def test_generate_all(initialized_model):
 Ensure generated code meets quality standards.
 
 **Deliverables:**
+
 - [ ] Code formatters integration
 - [ ] Linting integration
 - [ ] Quality validation
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Integrate black for Python
 2. Integrate prettier for TypeScript/JavaScript
 3. Integrate formatters for other languages
@@ -765,6 +839,7 @@ Ensure generated code meets quality standards.
 6. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generated code is formatted
 - [ ] No lint errors
 - [ ] Compiles successfully
@@ -773,6 +848,7 @@ Ensure generated code meets quality standards.
 ---
 
 #### Task 6.4: Documentation & Examples
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** All tasks complete
@@ -781,6 +857,7 @@ Ensure generated code meets quality standards.
 Create comprehensive documentation for code generation.
 
 **Deliverables:**
+
 - [ ] Code generation guide
 - [ ] Generator-specific guides
 - [ ] Template customization guide
@@ -788,6 +865,7 @@ Create comprehensive documentation for code generation.
 - [ ] Troubleshooting
 
 **Sections:**
+
 1. Code generation overview
 2. API client generation guide
 3. Database generation guide
@@ -800,6 +878,7 @@ Create comprehensive documentation for code generation.
 10. Troubleshooting
 
 **Acceptance Criteria:**
+
 - [ ] All generators documented
 - [ ] Examples for each language/framework
 - [ ] Template customization explained
@@ -808,6 +887,7 @@ Create comprehensive documentation for code generation.
 ---
 
 #### Task 6.5: Performance & Optimization
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 6.4
@@ -816,17 +896,20 @@ Create comprehensive documentation for code generation.
 Optimize code generation performance.
 
 **Deliverables:**
+
 - [ ] Performance profiling
 - [ ] Optimization implementations
 - [ ] Benchmark results
 
 **Focus Areas:**
+
 - Template rendering performance
 - Multi-file generation
 - Code formatting performance
 - Large model handling
 
 **Acceptance Criteria:**
+
 - [ ] Generate 100 components < 5s
 - [ ] Batch generation efficient
 - [ ] Memory usage reasonable
@@ -839,6 +922,7 @@ Optimize code generation performance.
 ### 4.1 Unit Tests
 
 **Coverage per Generator:**
+
 - TypeScript/Python/Java API clients
 - SQL/Prisma/TypeORM/SQLAlchemy database
 - React/Vue/Angular components
@@ -851,6 +935,7 @@ Optimize code generation performance.
 ### 4.2 Integration Tests
 
 **Generated Code Tests:**
+
 - Compile generated TypeScript
 - Run generated Python through mypy
 - Compile generated Java
@@ -860,6 +945,7 @@ Optimize code generation performance.
 ### 4.3 Real Framework Tests
 
 **Framework Validation:**
+
 - Create sample React app with generated components
 - Create sample API with generated client
 - Create sample database with generated migrations
@@ -872,6 +958,7 @@ Optimize code generation performance.
 **Languages:** TypeScript, Python, Java
 **Frameworks:** Axios, Fetch, Requests, Httpx, OkHttp, RestTemplate
 **Features:**
+
 - Type-safe API calls
 - Error handling
 - Authentication support
@@ -881,6 +968,7 @@ Optimize code generation performance.
 
 **Targets:** SQL, Prisma, TypeORM, SQLAlchemy
 **Features:**
+
 - Schema generation
 - Migration versioning
 - Foreign keys and constraints
@@ -890,6 +978,7 @@ Optimize code generation performance.
 
 **Frameworks:** React, Vue, Angular
 **Features:**
+
 - Forms with validation
 - Data tables
 - Detail views
@@ -899,6 +988,7 @@ Optimize code generation performance.
 
 **Frameworks:** Jest, Vitest, PyTest, JUnit
 **Features:**
+
 - Unit tests
 - Integration tests
 - E2E tests
@@ -907,27 +997,33 @@ Optimize code generation performance.
 ## 6. Risk Management
 
 ### Risk 1: Framework API Changes
+
 **Probability:** Medium
 **Impact:** Medium
 **Mitigation:**
+
 - Target stable framework versions
 - Regular updates to templates
 - Version compatibility matrix
 - Clear documentation
 
 ### Risk 2: Code Quality
+
 **Probability:** High
 **Impact:** Low
 **Mitigation:**
+
 - Integrated formatters
 - Linting validation
 - Compilation checks
 - Code review of templates
 
 ### Risk 3: Complexity of Templates
+
 **Probability:** High
 **Impact:** Medium
 **Mitigation:**
+
 - Start simple
 - Incremental features
 - Template testing
@@ -937,7 +1033,8 @@ Optimize code generation performance.
 
 Phase 4 is complete when:
 
-### Functional Requirements:
+### Functional Requirements
+
 - [ ] Can generate API clients in TypeScript, Python, Java
 - [ ] Can generate database artifacts (SQL, Prisma, ORM)
 - [ ] Can generate UI components (React, Vue, Angular)
@@ -945,13 +1042,15 @@ Phase 4 is complete when:
 - [ ] Can generate tests with traceability
 - [ ] Generated code compiles and runs
 
-### Non-Functional Requirements:
+### Non-Functional Requirements
+
 - [ ] Code coverage > 80%
 - [ ] Generation performance < 5s for 100 components
 - [ ] Generated code follows conventions
 - [ ] Documentation complete
 
-### Quality Criteria:
+### Quality Criteria
+
 - [ ] All integration tests pass
 - [ ] Generated code passes quality checks
 - [ ] Templates customizable
@@ -959,28 +1058,31 @@ Phase 4 is complete when:
 
 ## 8. Timeline Summary
 
-| Week | Sprint | Focus | Key Deliverables |
-|------|--------|-------|------------------|
-| 1 | Sprint 1 | Infrastructure | BaseGenerator, GenerationManager |
-| 2-3 | Sprint 2 | API Clients | TypeScript, Python, Java generators |
-| 4 | Sprint 3 | Database | SQL, Prisma, ORM generators |
-| 5 | Sprint 4 | UI Components | React, Vue, Angular generators |
-| 6 | Sprint 5 | Routes & Middleware | Route and middleware generators |
-| 7-8 | Sprint 6 | Tests & Integration | Test generator, commands, docs |
+| Week | Sprint   | Focus               | Key Deliverables                    |
+| ---- | -------- | ------------------- | ----------------------------------- |
+| 1    | Sprint 1 | Infrastructure      | BaseGenerator, GenerationManager    |
+| 2-3  | Sprint 2 | API Clients         | TypeScript, Python, Java generators |
+| 4    | Sprint 3 | Database            | SQL, Prisma, ORM generators         |
+| 5    | Sprint 4 | UI Components       | React, Vue, Angular generators      |
+| 6    | Sprint 5 | Routes & Middleware | Route and middleware generators     |
+| 7-8  | Sprint 6 | Tests & Integration | Test generator, commands, docs      |
 
-**Total Estimated Time:** 160 hours (8 weeks × 20 hours/week)
+**Total Estimated Time:** 160 hours (8 weeks ï¿½ 20 hours/week)
 
 ## 9. Success Metrics
 
 ### Code Quality
+
 - **Target:** 100% of generated code compiles
 - **Measure:** Compilation tests
 
 ### Framework Compatibility
+
 - **Target:** Works with latest stable versions
 - **Measure:** Framework integration tests
 
 ### Developer Productivity
+
 - **Target:** 10x reduction in boilerplate coding
 - **Measure:** Time studies
 

@@ -1,9 +1,12 @@
 """
 List elements in a layer.
 """
-import click
+
 from pathlib import Path
+
+import click
 from rich.console import Console
+
 from ..core.model import Model
 from ..utils.output import print_element_table
 
@@ -60,9 +63,11 @@ def list_elements(layer: str, element_type: str, output: str, sort: str, limit: 
         print_element_table(elements)
     elif output == "yaml":
         import yaml
+
         for element in elements:
             console.print(yaml.dump({element.id: element.to_dict()}, default_flow_style=False))
     elif output == "json":
         import json
+
         data = {e.id: e.to_dict() for e in elements}
         console.print(json.dumps(data, indent=2))

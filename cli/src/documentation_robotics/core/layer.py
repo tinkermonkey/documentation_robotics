@@ -1,10 +1,13 @@
 """
 Layer abstraction - represents a single architecture layer.
 """
-from pathlib import Path
-from typing import Dict, List, Optional, Any
-import yaml
+
 import fnmatch
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+import yaml
+
 from .element import Element
 
 
@@ -57,9 +60,7 @@ class Layer:
             # The key is the element type or name
             for key, element_data in data.items():
                 if isinstance(element_data, dict):
-                    element = self._create_element_from_data(
-                        key, element_data, file_path
-                    )
+                    element = self._create_element_from_data(key, element_data, file_path)
                     if element:
                         self.elements[element.id] = element
 
@@ -68,10 +69,7 @@ class Layer:
             print(f"Warning: Failed to load {file_path}: {e}")
 
     def _create_element_from_data(
-        self,
-        key: str,
-        data: Dict[str, Any],
-        file_path: Path
+        self, key: str, data: Dict[str, Any], file_path: Path
     ) -> Optional[Element]:
         """Create Element from data dictionary."""
         # Element should have 'id' and 'type'
@@ -88,7 +86,7 @@ class Layer:
             element_type=element_type,
             layer=self.name,
             data=data,
-            file_path=file_path
+            file_path=file_path,
         )
 
     def _infer_type_from_file(self, file_path: Path) -> str:
@@ -104,10 +102,7 @@ class Layer:
         return self.elements.get(element_id)
 
     def find_elements(
-        self,
-        element_type: Optional[str] = None,
-        name_pattern: Optional[str] = None,
-        **properties
+        self, element_type: Optional[str] = None, name_pattern: Optional[str] = None, **properties
     ) -> List[Element]:
         """
         Find elements matching criteria.
@@ -228,8 +223,8 @@ class Layer:
         Returns:
             ValidationResult
         """
-        from ..validators.schema import SchemaValidator
         from ..validators.base import ValidationResult
+        from ..validators.schema import SchemaValidator
 
         result = ValidationResult()
 

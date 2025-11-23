@@ -1,8 +1,9 @@
 """
 Element abstraction - represents a single architecture element.
 """
-from typing import Dict, Any, Optional
+
 from pathlib import Path
+from typing import Any, Dict, Optional
 
 
 class Element:
@@ -19,7 +20,7 @@ class Element:
         element_type: str,
         layer: str,
         data: Dict[str, Any],
-        file_path: Optional[Path] = None
+        file_path: Optional[Path] = None,
     ):
         """
         Initialize element.
@@ -61,12 +62,7 @@ class Element:
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert element to dictionary."""
-        return {
-            "id": self.id,
-            "type": self.type,
-            "layer": self.layer,
-            **self.data
-        }
+        return {"id": self.id, "type": self.type, "layer": self.layer, **self.data}
 
     def save(self) -> None:
         """Save element to its source file."""
@@ -81,13 +77,7 @@ class Element:
         update_yaml_element(self.file_path, self.id, self.data)
 
     @classmethod
-    def create(
-        cls,
-        layer: str,
-        element_type: str,
-        name: str,
-        **attributes
-    ) -> "Element":
+    def create(cls, layer: str, element_type: str, name: str, **attributes) -> "Element":
         """
         Create a new element.
 
@@ -104,18 +94,9 @@ class Element:
 
         element_id = generate_element_id(layer, element_type, name)
 
-        data = {
-            "id": element_id,
-            "name": name,
-            **attributes
-        }
+        data = {"id": element_id, "name": name, **attributes}
 
-        return cls(
-            id=element_id,
-            element_type=element_type,
-            layer=layer,
-            data=data
-        )
+        return cls(id=element_id, element_type=element_type, layer=layer, data=data)
 
     def __repr__(self) -> str:
         return f"Element(id='{self.id}', type='{self.type}', name='{self.name}')"

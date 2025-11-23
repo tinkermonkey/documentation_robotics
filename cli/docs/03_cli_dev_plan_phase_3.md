@@ -5,6 +5,7 @@
 This document provides a detailed, actionable development plan for implementing Phase 3 (Export Capabilities) of the `dr` CLI tool. Phase 3 builds upon Phases 1 and 2 to add comprehensive export capabilities to industry-standard formats.
 
 **Phase 3 Goals:**
+
 - Export models to ArchiMate 3.2 XML format
 - Generate OpenAPI 3.0 specifications from API layer
 - Export JSON Schema definitions from Data Model layer
@@ -21,6 +22,7 @@ This document provides a detailed, actionable development plan for implementing 
 ### 2.1 Build Strategy
 
 **Format-by-Format Implementation:**
+
 - Build export infrastructure first
 - Implement exporters one at a time
 - Start with most complex (ArchiMate)
@@ -28,6 +30,7 @@ This document provides a detailed, actionable development plan for implementing 
 - Create reusable templates
 
 **Quality Standards:**
+
 - Maintain 80%+ code coverage
 - All exports validate against target schemas
 - Performance: export < 2s for 100 elements
@@ -47,6 +50,7 @@ pip install markdown>=3.4.0       # Markdown processing
 ### 3.1 Sprint 1: Export Infrastructure (Week 1)
 
 #### Task 1.1: Base Exporter Framework
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Phase 1 & 2 complete
@@ -55,6 +59,7 @@ pip install markdown>=3.4.0       # Markdown processing
 Create the base exporter infrastructure and common utilities.
 
 **Deliverables:**
+
 - [ ] BaseExporter abstract class
 - [ ] ExportFormat enum
 - [ ] ExportOptions dataclass
@@ -62,6 +67,7 @@ Create the base exporter infrastructure and common utilities.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create BaseExporter abstract class with:
    - export() method
    - validate() method
@@ -75,6 +81,7 @@ Create the base exporter infrastructure and common utilities.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] BaseExporter provides clear interface
 - [ ] All exporters will inherit from it
 - [ ] Common utilities tested
@@ -83,6 +90,7 @@ Create the base exporter infrastructure and common utilities.
 ---
 
 #### Task 1.2: ExportManager Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** Task 1.1
@@ -91,6 +99,7 @@ Create the base exporter infrastructure and common utilities.
 Implement the ExportManager to orchestrate exports.
 
 **Deliverables:**
+
 - [ ] ExportManager class
 - [ ] Exporter registration system
 - [ ] Multi-format export support
@@ -98,6 +107,7 @@ Implement the ExportManager to orchestrate exports.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ExportManager class
 2. Implement exporter registration
 3. Implement export() method with format selection
@@ -108,6 +118,7 @@ Implement the ExportManager to orchestrate exports.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Can register exporters
 - [ ] Can export to any format
 - [ ] Can export multiple formats at once
@@ -117,6 +128,7 @@ Implement the ExportManager to orchestrate exports.
 ---
 
 #### Task 1.3: Export Command Framework
+
 **Estimated Time:** 4 hours
 **Priority:** Critical
 **Dependencies:** Task 1.2
@@ -125,12 +137,14 @@ Implement the ExportManager to orchestrate exports.
 Create the base export command infrastructure.
 
 **Deliverables:**
+
 - [ ] Export command with format selection
 - [ ] Common options (output path, overwrite, etc.)
 - [ ] Validation integration
 - [ ] Integration test framework
 
 **Implementation Steps:**
+
 1. Create export Click command
 2. Add --format option
 3. Add --output option
@@ -141,6 +155,7 @@ Create the base export command infrastructure.
 8. Write integration test framework
 
 **Acceptance Criteria:**
+
 - [ ] Command accepts all common options
 - [ ] Error handling works
 - [ ] Integration tests can be added easily
@@ -151,6 +166,7 @@ Create the base export command infrastructure.
 ### 3.2 Sprint 2: ArchiMate Exporter (Week 2-3)
 
 #### Task 2.1: ArchiMate Data Model
+
 **Estimated Time:** 6 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -159,12 +175,14 @@ Create the base export command infrastructure.
 Create data structures for ArchiMate concepts.
 
 **Deliverables:**
+
 - [ ] ArchiMate element types mapping
 - [ ] Relationship types mapping
 - [ ] Layer mapping
 - [ ] Documentation
 
 **Implementation Steps:**
+
 1. Map dr layers to ArchiMate layers
 2. Map dr element types to ArchiMate concepts
 3. Map dr references to ArchiMate relationships
@@ -172,6 +190,7 @@ Create data structures for ArchiMate concepts.
 5. Document mappings
 
 **Acceptance Criteria:**
+
 - [ ] All 11 layers map to ArchiMate
 - [ ] Element types map correctly
 - [ ] Relationships map correctly
@@ -180,6 +199,7 @@ Create data structures for ArchiMate concepts.
 ---
 
 #### Task 2.2: ArchiMate XML Generation
+
 **Estimated Time:** 12 hours
 **Priority:** Critical
 **Dependencies:** Task 2.1
@@ -188,6 +208,7 @@ Create data structures for ArchiMate concepts.
 Implement ArchiMate 3.2 XML export.
 
 **Deliverables:**
+
 - [ ] ArchiMateExporter class
 - [ ] XML generation logic
 - [ ] Metadata export
@@ -195,18 +216,20 @@ Implement ArchiMate 3.2 XML export.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create ArchiMateExporter class
-2. Implement _create_root() for XML structure
-3. Implement _add_metadata()
-4. Implement _add_elements() with layer mapping
-5. Implement _add_relationships() from references
-6. Implement _create_views() for diagrams
-7. Implement _add_properties()
+2. Implement \_create_root() for XML structure
+3. Implement \_add_metadata()
+4. Implement \_add_elements() with layer mapping
+5. Implement \_add_relationships() from references
+6. Implement \_create_views() for diagrams
+7. Implement \_add_properties()
 8. Add XML formatting and pretty-printing
 9. Implement validation against ArchiMate 3.2 XSD
 10. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid ArchiMate 3.2 XML
 - [ ] All elements exported correctly
 - [ ] Relationships exported correctly
@@ -214,6 +237,7 @@ Implement ArchiMate 3.2 XML export.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_archimate_exporter.py
 from documentation_robotics.export.archimate import ArchiMateExporter
@@ -254,6 +278,7 @@ def test_archimate_validation(sample_model, archimate_xsd):
 ---
 
 #### Task 2.3: ArchiMate Views Export
+
 **Estimated Time:** 8 hours
 **Priority:** Medium
 **Dependencies:** Task 2.2
@@ -262,12 +287,14 @@ def test_archimate_validation(sample_model, archimate_xsd):
 Add support for exporting ArchiMate views/diagrams.
 
 **Deliverables:**
+
 - [ ] View generation
 - [ ] Layout hints
 - [ ] Multiple view types
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Implement layered view generation
 2. Implement element positioning hints
 3. Create views for each layer
@@ -275,6 +302,7 @@ Add support for exporting ArchiMate views/diagrams.
 5. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Views generated for all layers
 - [ ] Elements positioned reasonably
 - [ ] Views open in ArchiMate tools
@@ -285,6 +313,7 @@ Add support for exporting ArchiMate views/diagrams.
 ### 3.3 Sprint 3: OpenAPI & JSON Schema Exporters (Week 4)
 
 #### Task 3.1: OpenAPI Exporter Implementation
+
 **Estimated Time:** 10 hours
 **Priority:** Critical
 **Dependencies:** Task 1.3
@@ -293,6 +322,7 @@ Add support for exporting ArchiMate views/diagrams.
 Implement OpenAPI 3.0 specification export from API layer.
 
 **Deliverables:**
+
 - [ ] OpenAPIExporter class
 - [ ] Path and operation export
 - [ ] Schema generation from data model
@@ -301,18 +331,20 @@ Implement OpenAPI 3.0 specification export from API layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create OpenAPIExporter class
-2. Implement _create_openapi_spec() base structure
-3. Implement _add_paths() from API operations
-4. Implement _add_schemas() from data model
-5. Implement _add_security() from security layer
-6. Implement _add_servers()
-7. Implement _add_tags()
+2. Implement \_create_openapi_spec() base structure
+3. Implement \_add_paths() from API operations
+4. Implement \_add_schemas() from data model
+5. Implement \_add_security() from security layer
+6. Implement \_add_servers()
+7. Implement \_add_tags()
 8. Add validation against OpenAPI 3.0 schema
 9. Support multiple services (multi-file output)
 10. Write comprehensive unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid OpenAPI 3.0 specs
 - [ ] All API operations exported
 - [ ] Schemas linked to data model
@@ -321,6 +353,7 @@ Implement OpenAPI 3.0 specification export from API layer.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_openapi_exporter.py
 from documentation_robotics.export.openapi import OpenAPIExporter
@@ -360,6 +393,7 @@ def test_openapi_validation(sample_model_with_api):
 ---
 
 #### Task 3.2: JSON Schema Exporter Implementation
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** Task 3.1
@@ -368,6 +402,7 @@ def test_openapi_validation(sample_model_with_api):
 Implement JSON Schema Draft 7 export from Data Model layer.
 
 **Deliverables:**
+
 - [ ] JSONSchemaExporter class
 - [ ] Entity to schema conversion
 - [ ] Relationship handling
@@ -375,17 +410,19 @@ Implement JSON Schema Draft 7 export from Data Model layer.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create JSONSchemaExporter class
-2. Implement _entity_to_schema() conversion
-3. Implement _field_to_property() conversion
-4. Implement _add_required_fields()
-5. Implement _add_relationships() as references
+2. Implement \_entity_to_schema() conversion
+3. Implement \_field_to_property() conversion
+4. Implement \_add_required_fields()
+5. Implement \_add_relationships() as references
 6. Support for nested objects
 7. Support for arrays
 8. Add validation against JSON Schema meta-schema
 9. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid JSON Schema Draft 7
 - [ ] All entities exported
 - [ ] Types mapped correctly
@@ -398,6 +435,7 @@ Implement JSON Schema Draft 7 export from Data Model layer.
 ### 3.4 Sprint 4: PlantUML Exporter (Week 5)
 
 #### Task 4.1: PlantUML Diagram Generator
+
 **Estimated Time:** 12 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -406,6 +444,7 @@ Implement JSON Schema Draft 7 export from Data Model layer.
 Implement PlantUML diagram generation for multiple diagram types.
 
 **Deliverables:**
+
 - [ ] PlantUMLExporter class
 - [ ] Component diagrams
 - [ ] Class diagrams
@@ -414,15 +453,16 @@ Implement PlantUML diagram generation for multiple diagram types.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create PlantUMLExporter class
 2. Implement component diagram generation:
-   - Application layer ’ components
-   - Technology layer ’ deployment
+   - Application layer ï¿½ components
+   - Technology layer ï¿½ deployment
 3. Implement class diagram generation:
-   - Data model ’ classes
-   - Relationships ’ associations
+   - Data model ï¿½ classes
+   - Relationships ï¿½ associations
 4. Implement sequence diagram generation:
-   - API operations ’ sequences
+   - API operations ï¿½ sequences
    - Flows from UX to data
 5. Implement deployment diagram generation:
    - Technology infrastructure
@@ -431,6 +471,7 @@ Implement PlantUML diagram generation for multiple diagram types.
 8. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid PlantUML syntax
 - [ ] Multiple diagram types supported
 - [ ] Diagrams render correctly
@@ -438,6 +479,7 @@ Implement PlantUML diagram generation for multiple diagram types.
 - [ ] Unit tests pass
 
 **Testing:**
+
 ```python
 # tests/unit/test_plantuml_exporter.py
 from documentation_robotics.export.plantuml import PlantUMLExporter
@@ -474,6 +516,7 @@ def test_export_class_diagram(sample_model_with_data_model):
 ### 3.5 Sprint 5: Markdown & GraphML Exporters (Week 6)
 
 #### Task 5.1: Markdown Documentation Generator
+
 **Estimated Time:** 10 hours
 **Priority:** High
 **Dependencies:** Task 1.3
@@ -482,6 +525,7 @@ def test_export_class_diagram(sample_model_with_data_model):
 Generate comprehensive Markdown documentation from model.
 
 **Deliverables:**
+
 - [ ] MarkdownExporter class
 - [ ] Multi-file documentation structure
 - [ ] Index generation
@@ -490,6 +534,7 @@ Generate comprehensive Markdown documentation from model.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create MarkdownExporter class
 2. Implement directory structure creation
 3. Implement index.md generation
@@ -502,6 +547,7 @@ Generate comprehensive Markdown documentation from model.
 10. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Complete documentation structure
 - [ ] All elements documented
 - [ ] Cross-references work
@@ -511,6 +557,7 @@ Generate comprehensive Markdown documentation from model.
 ---
 
 #### Task 5.2: GraphML Exporter Implementation
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 1.3
@@ -519,6 +566,7 @@ Generate comprehensive Markdown documentation from model.
 Export model as GraphML for visualization in tools like yEd, Gephi.
 
 **Deliverables:**
+
 - [ ] GraphMLExporter class
 - [ ] Node and edge export
 - [ ] Metadata export
@@ -526,6 +574,7 @@ Export model as GraphML for visualization in tools like yEd, Gephi.
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Create GraphMLExporter class
 2. Implement GraphML XML structure
 3. Implement node export (elements)
@@ -537,6 +586,7 @@ Export model as GraphML for visualization in tools like yEd, Gephi.
 9. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] Generates valid GraphML
 - [ ] Opens in visualization tools
 - [ ] Layers distinguished visually
@@ -548,6 +598,7 @@ Export model as GraphML for visualization in tools like yEd, Gephi.
 ### 3.6 Sprint 6: Integration & Polish (Week 7-8)
 
 #### Task 6.1: Export Command Completion
+
 **Estimated Time:** 8 hours
 **Priority:** Critical
 **Dependencies:** All exporters complete
@@ -556,6 +607,7 @@ Export model as GraphML for visualization in tools like yEd, Gephi.
 Complete the export command with all format support.
 
 **Deliverables:**
+
 - [ ] Full export command
 - [ ] All formats integrated
 - [ ] Batch export
@@ -563,6 +615,7 @@ Complete the export command with all format support.
 - [ ] Integration tests
 
 **Implementation Steps:**
+
 1. Register all exporters with ExportManager
 2. Implement format-specific options
 3. Add batch export (--all flag)
@@ -572,6 +625,7 @@ Complete the export command with all format support.
 7. Write comprehensive integration tests
 
 **Acceptance Criteria:**
+
 - [ ] All formats accessible via command
 - [ ] Format-specific options work
 - [ ] Batch export works
@@ -579,6 +633,7 @@ Complete the export command with all format support.
 - [ ] Integration tests pass
 
 **Testing:**
+
 ```python
 # tests/integration/test_export.py
 from click.testing import CliRunner
@@ -615,6 +670,7 @@ def test_export_all(initialized_model_with_elements):
 ---
 
 #### Task 6.2: Template System
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** All exporters complete
@@ -623,12 +679,14 @@ def test_export_all(initialized_model_with_elements):
 Create comprehensive template system for customization.
 
 **Deliverables:**
+
 - [ ] Template structure
 - [ ] Default templates for all formats
 - [ ] Custom template support
 - [ ] Template documentation
 
 **Implementation Steps:**
+
 1. Create .dr/templates/ structure
 2. Create templates for each export format
 3. Implement template loading
@@ -638,6 +696,7 @@ Create comprehensive template system for customization.
 7. Create examples
 
 **Acceptance Criteria:**
+
 - [ ] Default templates for all formats
 - [ ] Custom templates can override defaults
 - [ ] Templates documented
@@ -646,6 +705,7 @@ Create comprehensive template system for customization.
 ---
 
 #### Task 6.3: Export Validation & Quality
+
 **Estimated Time:** 6 hours
 **Priority:** High
 **Dependencies:** Task 6.1
@@ -654,18 +714,20 @@ Create comprehensive template system for customization.
 Add comprehensive validation for exported files.
 
 **Deliverables:**
+
 - [ ] Export validators
 - [ ] Quality checks
 - [ ] Validation reporting
 - [ ] Unit tests
 
 **Implementation Steps:**
+
 1. Implement validation for each format:
-   - ArchiMate ’ XSD validation
-   - OpenAPI ’ spec validator
-   - JSON Schema ’ meta-schema
-   - PlantUML ’ syntax check
-   - GraphML ’ schema validation
+   - ArchiMate ï¿½ XSD validation
+   - OpenAPI ï¿½ spec validator
+   - JSON Schema ï¿½ meta-schema
+   - PlantUML ï¿½ syntax check
+   - GraphML ï¿½ schema validation
 2. Add quality checks:
    - Completeness
    - Consistency
@@ -674,6 +736,7 @@ Add comprehensive validation for exported files.
 4. Write unit tests
 
 **Acceptance Criteria:**
+
 - [ ] All exports validate by default
 - [ ] Validation can be disabled
 - [ ] Validation errors are clear
@@ -682,6 +745,7 @@ Add comprehensive validation for exported files.
 ---
 
 #### Task 6.4: Documentation & Examples
+
 **Estimated Time:** 8 hours
 **Priority:** High
 **Dependencies:** All tasks complete
@@ -690,6 +754,7 @@ Add comprehensive validation for exported files.
 Create comprehensive documentation for export features.
 
 **Deliverables:**
+
 - [ ] Export guide
 - [ ] Format-specific guides
 - [ ] Template guide
@@ -697,6 +762,7 @@ Create comprehensive documentation for export features.
 - [ ] Troubleshooting
 
 **Sections:**
+
 1. Export overview
 2. ArchiMate export guide
 3. OpenAPI export guide
@@ -708,6 +774,7 @@ Create comprehensive documentation for export features.
 9. Troubleshooting exports
 
 **Acceptance Criteria:**
+
 - [ ] All formats documented
 - [ ] Examples for each format
 - [ ] Template customization explained
@@ -716,6 +783,7 @@ Create comprehensive documentation for export features.
 ---
 
 #### Task 6.5: Performance Optimization
+
 **Estimated Time:** 6 hours
 **Priority:** Medium
 **Dependencies:** Task 6.3
@@ -724,17 +792,20 @@ Create comprehensive documentation for export features.
 Optimize export performance for large models.
 
 **Deliverables:**
+
 - [ ] Performance profiling
 - [ ] Optimization implementations
 - [ ] Benchmark results
 
 **Focus Areas:**
+
 - XML generation performance
 - Large model handling
 - Multi-format batch export
 - Template rendering
 
 **Acceptance Criteria:**
+
 - [ ] Export 100 elements < 2s (any format)
 - [ ] Batch export 100 elements < 10s (all formats)
 - [ ] Memory usage reasonable
@@ -747,6 +818,7 @@ Optimize export performance for large models.
 ### 4.1 Unit Tests
 
 **Coverage per Exporter:**
+
 - ArchiMateExporter: Element mapping, relationship mapping, XML generation
 - OpenAPIExporter: Path generation, schema generation, security
 - JSONSchemaExporter: Type mapping, required fields, references
@@ -759,6 +831,7 @@ Optimize export performance for large models.
 ### 4.2 Integration Tests
 
 **Export Command Tests:**
+
 - Each format individually
 - Batch export
 - Format-specific options
@@ -766,6 +839,7 @@ Optimize export performance for large models.
 - Error handling
 
 **Validation Tests:**
+
 - Generated files validate against official schemas
 - Quality checks pass
 - Error messages are helpful
@@ -773,6 +847,7 @@ Optimize export performance for large models.
 ### 4.3 Format Validation Tests
 
 **External Validation:**
+
 - ArchiMate: Validate with Archi tool
 - OpenAPI: Validate with Swagger Editor
 - PlantUML: Render diagrams
@@ -785,23 +860,25 @@ Optimize export performance for large models.
 **Input:** Complete model
 **Output:** ArchiMate 3.2 XML file
 **Options:**
+
 - include-views: Generate views (default: true)
 - view-types: Specify view types
 - namespace: Custom namespace
 
 **Layer Mapping:**
+
 ```
-Motivation ’ Motivation Layer
-Business ’ Business Layer
-Application ’ Application Layer
-Technology ’ Technology Layer
-Security ’ (Aspect in applicable layers)
-API ’ Application Layer (Interface)
-Data Model ’ Application Layer (Data Object)
-Datastore ’ Technology Layer
-UX ’ Application Layer (Interface)
-Navigation ’ Application Layer
-APM ’ Technology Layer
+Motivation ï¿½ Motivation Layer
+Business ï¿½ Business Layer
+Application ï¿½ Application Layer
+Technology ï¿½ Technology Layer
+Security ï¿½ (Aspect in applicable layers)
+API ï¿½ Application Layer (Interface)
+Data Model ï¿½ Application Layer (Data Object)
+Datastore ï¿½ Technology Layer
+UX ï¿½ Application Layer (Interface)
+Navigation ï¿½ Application Layer
+APM ï¿½ Technology Layer
 ```
 
 ### 5.2 OpenAPI Exporter
@@ -809,6 +886,7 @@ APM ’ Technology Layer
 **Input:** API layer
 **Output:** OpenAPI 3.0 JSON/YAML
 **Options:**
+
 - per-service: Generate file per service
 - include-security: Include security schemes
 - server-urls: Add server URLs
@@ -819,6 +897,7 @@ APM ’ Technology Layer
 **Input:** Data Model layer
 **Output:** JSON Schema Draft 7 files
 **Options:**
+
 - per-entity: File per entity
 - include-examples: Add example values
 - additional-properties: Allow additional properties
@@ -828,6 +907,7 @@ APM ’ Technology Layer
 **Input:** All layers
 **Output:** PlantUML text files
 **Options:**
+
 - diagram-type: component, class, sequence, deployment
 - layout: top-bottom, left-right
 - style: default, custom
@@ -838,6 +918,7 @@ APM ’ Technology Layer
 **Input:** Complete model
 **Output:** Markdown documentation tree
 **Options:**
+
 - include-diagrams: Embed diagrams
 - diagram-format: plantuml, mermaid
 - depth: Documentation detail level
@@ -848,6 +929,7 @@ APM ’ Technology Layer
 **Input:** Complete model
 **Output:** GraphML XML file
 **Options:**
+
 - include-attributes: Include all attributes
 - visual-hints: Add colors, shapes
 - layout-hints: Add positioning info
@@ -855,27 +937,33 @@ APM ’ Technology Layer
 ## 6. Risk Management
 
 ### Risk 1: Format Specification Complexity
+
 **Probability:** High
 **Impact:** Medium
 **Mitigation:**
+
 - Start with simple subset
 - Incremental feature addition
 - Extensive testing against reference tools
 - Clear documentation of supported features
 
 ### Risk 2: Performance with Large Models
+
 **Probability:** Medium
 **Impact:** Medium
 **Mitigation:**
+
 - Streaming XML generation
 - Lazy loading where possible
 - Progress indicators
 - Benchmarking early
 
 ### Risk 3: Tool Compatibility
+
 **Probability:** Medium
 **Impact:** Low
 **Mitigation:**
+
 - Test with target tools
 - Follow specifications strictly
 - Provide validation
@@ -885,7 +973,8 @@ APM ’ Technology Layer
 
 Phase 3 is complete when:
 
-### Functional Requirements:
+### Functional Requirements
+
 - [ ] ArchiMate export generates valid XML
 - [ ] OpenAPI export generates valid specs
 - [ ] JSON Schema export generates valid schemas
@@ -894,13 +983,15 @@ Phase 3 is complete when:
 - [ ] GraphML export opens in visualization tools
 - [ ] All exports validate against target schemas
 
-### Non-Functional Requirements:
+### Non-Functional Requirements
+
 - [ ] Code coverage > 80%
 - [ ] Export performance < 2s for 100 elements
 - [ ] Generated files are human-readable
 - [ ] Documentation complete
 
-### Quality Criteria:
+### Quality Criteria
+
 - [ ] All integration tests pass
 - [ ] External tools can import exports
 - [ ] Templates customizable
@@ -908,28 +999,31 @@ Phase 3 is complete when:
 
 ## 8. Timeline Summary
 
-| Week | Sprint | Focus | Key Deliverables |
-|------|--------|-------|------------------|
-| 1 | Sprint 1 | Infrastructure | BaseExporter, ExportManager |
-| 2-3 | Sprint 2 | ArchiMate | ArchiMate exporter, views |
-| 4 | Sprint 3 | OpenAPI/JSON | OpenAPI & JSON Schema exporters |
-| 5 | Sprint 4 | PlantUML | PlantUML diagram generation |
-| 6 | Sprint 5 | Markdown/GraphML | Documentation & graph export |
-| 7-8 | Sprint 6 | Integration | Commands, templates, docs |
+| Week | Sprint   | Focus            | Key Deliverables                |
+| ---- | -------- | ---------------- | ------------------------------- |
+| 1    | Sprint 1 | Infrastructure   | BaseExporter, ExportManager     |
+| 2-3  | Sprint 2 | ArchiMate        | ArchiMate exporter, views       |
+| 4    | Sprint 3 | OpenAPI/JSON     | OpenAPI & JSON Schema exporters |
+| 5    | Sprint 4 | PlantUML         | PlantUML diagram generation     |
+| 6    | Sprint 5 | Markdown/GraphML | Documentation & graph export    |
+| 7-8  | Sprint 6 | Integration      | Commands, templates, docs       |
 
-**Total Estimated Time:** 160 hours (8 weeks × 20 hours/week)
+**Total Estimated Time:** 160 hours (8 weeks ï¿½ 20 hours/week)
 
 ## 9. Success Metrics
 
 ### Compatibility
+
 - **Target:** 100% valid exports
 - **Measure:** External tool validation
 
 ### Performance
+
 - **Target:** < 2s export time for 100 elements
 - **Measure:** pytest-benchmark
 
 ### Usability
+
 - **Target:** Exports usable without modification
 - **Measure:** User testing
 

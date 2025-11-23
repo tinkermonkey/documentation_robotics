@@ -29,7 +29,7 @@ External specifications reference back to ArchiMate using `x-archimate-ref`:
 openapi: 3.0.0
 info:
   title: Product API
-  x-archimate-ref: "app-product-api"  # Links back to ArchiMate
+  x-archimate-ref: "app-product-api" # Links back to ArchiMate
 ```
 
 ### 3. Standard References
@@ -47,28 +47,29 @@ components:
 states:
   - id: "product-list"
     api:
-      operationId: "listProducts"  # References OpenAPI operation
+      operationId: "listProducts" # References OpenAPI operation
 ```
 
 ## Cross-Layer Reference Types
 
-| Source Layer | Target Layer | Reference Type | Example |
-|--------------|--------------|----------------|---------|
-| ArchiMate (All) | External Specs | `spec.*` property | `spec.openapi: "api.yaml"` |
-| External Specs | ArchiMate | `x-archimate-ref` | `x-archimate-ref: "app-id"` |
-| OpenAPI (06) | JSON Schema (07) | `$ref` | `$ref: "schema.json#/Product"` |
-| UX (09) | Motivation (01) | `fulfillsRequirements` | `fulfillsRequirements: ["req-123"]` |
-| UX (09) | Business (02) | `supportsProcesses` | `supportsProcesses: ["bp-checkout"]` |
-| UX (09) | Security (03) | `security.model` | `security: {model: "rbac.yaml"}` |
-| UX (09) | API (06) | `operationId` | `api: {operationId: "getProducts"}` |
-| UX (09) | Data (07) | `schemaRef` | `schemaRef: "product.json#/Product"` |
-| UX (09) | Navigation (10) | `route` | `route: "/products"` |
-| Navigation (10) | UX (09) | `experience` | `experience: "product-list.ux.yaml"` |
-| APM (11) | All | Trace context | Correlates spans across layers |
+| Source Layer    | Target Layer     | Reference Type         | Example                              |
+| --------------- | ---------------- | ---------------------- | ------------------------------------ |
+| ArchiMate (All) | External Specs   | `spec.*` property      | `spec.openapi: "api.yaml"`           |
+| External Specs  | ArchiMate        | `x-archimate-ref`      | `x-archimate-ref: "app-id"`          |
+| OpenAPI (06)    | JSON Schema (07) | `$ref`                 | `$ref: "schema.json#/Product"`       |
+| UX (09)         | Motivation (01)  | `fulfillsRequirements` | `fulfillsRequirements: ["req-123"]`  |
+| UX (09)         | Business (02)    | `supportsProcesses`    | `supportsProcesses: ["bp-checkout"]` |
+| UX (09)         | Security (03)    | `security.model`       | `security: {model: "rbac.yaml"}`     |
+| UX (09)         | API (06)         | `operationId`          | `api: {operationId: "getProducts"}`  |
+| UX (09)         | Data (07)        | `schemaRef`            | `schemaRef: "product.json#/Product"` |
+| UX (09)         | Navigation (10)  | `route`                | `route: "/products"`                 |
+| Navigation (10) | UX (09)          | `experience`           | `experience: "product-list.ux.yaml"` |
+| APM (11)        | All              | Trace context          | Correlates spans across layers       |
 
 ## Example: E-commerce Checkout
 
 ### Layer 01: Motivation
+
 ```yaml
 Goal:
   id: "goal-fast-checkout"
@@ -82,6 +83,7 @@ Requirement:
 ```
 
 ### Layer 02: Business
+
 ```yaml
 BusinessProcess:
   id: "bp-checkout"
@@ -90,6 +92,7 @@ BusinessProcess:
 ```
 
 ### Layer 04: Application
+
 ```yaml
 ApplicationService:
   id: "app-checkout-service"
@@ -100,6 +103,7 @@ ApplicationService:
 ```
 
 ### Layer 06: API
+
 ```yaml
 # specs/api/checkout-api.yaml
 openapi: 3.0.0
@@ -118,6 +122,7 @@ paths:
 ```
 
 ### Layer 07: Data Model
+
 ```json
 // specs/schemas/checkout.json
 {
@@ -127,8 +132,8 @@ paths:
       "x-archimate-ref": "data-object-checkout",
       "type": "object",
       "properties": {
-        "orderId": {"type": "string"},
-        "items": {"type": "array"}
+        "orderId": { "type": "string" },
+        "items": { "type": "array" }
       }
     }
   }
@@ -136,6 +141,7 @@ paths:
 ```
 
 ### Layer 09: UX
+
 ```yaml
 # specs/ux/checkout.ux.yaml
 specVersion: "1.0"
@@ -157,6 +163,7 @@ states:
 ```
 
 ### Layer 10: Navigation
+
 ```yaml
 # specs/navigation/shop-navigation.yaml
 routes:
@@ -169,6 +176,7 @@ routes:
 ```
 
 ### Layer 11: APM
+
 ```yaml
 # specs/apm/checkout-tracing.yaml
 traces:
@@ -194,12 +202,13 @@ metrics:
     labels:
       goal: "goal-fast-checkout"
     slo:
-      target: 30  # seconds - from req-checkout-30sec
+      target: 30 # seconds - from req-checkout-30sec
 ```
 
 ## Validation Rules
 
 ### 1. Reference Existence
+
 All references must point to existing elements:
 
 ```python
@@ -224,6 +233,7 @@ def validate_reference_existence(model):
 ```
 
 ### 2. Reference Type Consistency
+
 Referenced elements must have compatible types:
 
 ```python
@@ -242,6 +252,7 @@ def validate_reference_types(model):
 ```
 
 ### 3. Bidirectional Consistency
+
 Bidirectional references must be consistent:
 
 ```python

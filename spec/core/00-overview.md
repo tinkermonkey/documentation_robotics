@@ -19,6 +19,7 @@ This specification provides a comprehensive, standards-based approach to modelin
 ### Scope
 
 **In Scope:**
+
 - Metadata model definitions for 11 architectural layers
 - Cross-layer integration patterns and reference types
 - Validation requirements and conformance criteria
@@ -26,6 +27,7 @@ This specification provides a comprehensive, standards-based approach to modelin
 - Extension mechanisms for domain-specific needs
 
 **Out of Scope:**
+
 - Specific modeling tools or implementations
 - Proprietary tool integrations
 - Domain-specific business logic
@@ -55,7 +57,9 @@ This specification is organized into:
 ## Normative vs. Informative
 
 ### Normative Content
+
 Content that **MUST** be followed for conformance:
+
 - Layer entity definitions
 - Attribute specifications
 - Cross-layer reference types
@@ -65,7 +69,9 @@ Content that **MUST** be followed for conformance:
 Keywords: MUST, MUST NOT, REQUIRED, SHALL, SHALL NOT
 
 ### Informative Content
+
 Content that **SHOULD** be considered as guidance:
+
 - Implementation guides
 - Example models
 - Best practices
@@ -108,19 +114,19 @@ The specification is built on these foundational principles:
 
 The specification defines 11 layers, ordered to balance abstraction hierarchy with pragmatic workflow:
 
-| Layer | Name | Focus | Standard Used |
-|-------|------|-------|---------------|
-| 01 | Motivation | WHY | ArchiMate 3.2 Motivation |
-| 02 | Business | WHAT | ArchiMate 3.2 Business |
-| 03 | Security | WHO CAN | Custom Security Model |
-| 04 | Application | HOW | ArchiMate 3.2 Application |
-| 05 | Technology | WITH WHAT | ArchiMate 3.2 Technology |
-| 06 | API | INTERFACE | OpenAPI 3.0 |
-| 07 | Data Model | STRUCTURE | JSON Schema Draft 7 |
-| 08 | Datastore | STORAGE | SQL DDL + Extensions |
-| 09 | UX | PRESENTATION | Custom UX Specification |
-| 10 | Navigation | FLOW | Custom Navigation Specification |
-| 11 | APM/Observability | OBSERVE | OpenTelemetry 1.0+ |
+| Layer | Name              | Focus        | Standard Used                   |
+| ----- | ----------------- | ------------ | ------------------------------- |
+| 01    | Motivation        | WHY          | ArchiMate 3.2 Motivation        |
+| 02    | Business          | WHAT         | ArchiMate 3.2 Business          |
+| 03    | Security          | WHO CAN      | Custom Security Model           |
+| 04    | Application       | HOW          | ArchiMate 3.2 Application       |
+| 05    | Technology        | WITH WHAT    | ArchiMate 3.2 Technology        |
+| 06    | API               | INTERFACE    | OpenAPI 3.0                     |
+| 07    | Data Model        | STRUCTURE    | JSON Schema Draft 7             |
+| 08    | Datastore         | STORAGE      | SQL DDL + Extensions            |
+| 09    | UX                | PRESENTATION | Custom UX Specification         |
+| 10    | Navigation        | FLOW         | Custom Navigation Specification |
+| 11    | APM/Observability | OBSERVE      | OpenTelemetry 1.0+              |
 
 See [02-layering-philosophy.md](02-layering-philosophy.md) for detailed rationale.
 
@@ -183,12 +189,14 @@ See [../conformance/conformance-levels.md](../conformance/conformance-levels.md)
 ## How to Use This Specification
 
 ### For Architects
+
 1. Read core specifications to understand the approach
 2. Review layer specifications relevant to your needs
 3. Use implementation guides for practical application
 4. Reference examples for patterns
 
 ### For Tool Vendors
+
 1. Read conformance requirements
 2. Implement layers according to specifications
 3. Validate against JSON Schemas
@@ -196,6 +204,7 @@ See [../conformance/conformance-levels.md](../conformance/conformance-levels.md)
 5. Claim conformance level
 
 ### For Developers
+
 1. Understand the federated architecture concept
 2. Focus on layers relevant to your work
 3. Use CLI tools or other implementations
@@ -223,6 +232,7 @@ This specification is licensed under MIT License. See [LICENSE](../../LICENSE) f
 ## Acknowledgments
 
 This specification builds upon and integrates:
+
 - ArchiMate® is a registered trademark of The Open Group
 - OpenAPI Specification by the OpenAPI Initiative
 - JSON Schema by the JSON Schema team

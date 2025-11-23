@@ -14,6 +14,7 @@ The API Layer defines the application programming interfaces using the industry-
 ## Why OpenAPI?
 
 OpenAPI is the de facto standard for REST API specification:
+
 - **Industry Standard**: Widely adopted, understood, and supported
 - **Rich Ecosystem**: Extensive tooling for validation, documentation, testing, code generation
 - **Machine Readable**: Enables automation and code generation
@@ -23,6 +24,7 @@ OpenAPI is the de facto standard for REST API specification:
 ## Core OpenAPI Structure
 
 ### OpenAPIDocument
+
 ```yaml
 OpenAPIDocument:
   description: "Root of an OpenAPI specification file"
@@ -46,6 +48,7 @@ OpenAPIDocument:
 ```
 
 ### Info
+
 ```yaml
 Info:
   description: "Metadata about the API"
@@ -71,6 +74,7 @@ Info:
 ```
 
 ### Server
+
 ```yaml
 Server:
   description: "Server where the API is available"
@@ -93,16 +97,19 @@ Server:
 ```
 
 ### Paths
+
 ```yaml
 Paths:
   description: "Available API endpoints and operations"
   structure: object (keyed by path pattern)
 
-  pathPattern: string (e.g., "/products/{id}")
+  pathPattern:
+    string (e.g., "/products/{id}")
     # Each path contains PathItem
 ```
 
 ### PathItem
+
 ```yaml
 PathItem:
   description: "Operations available on a path"
@@ -124,6 +131,7 @@ PathItem:
 ```
 
 ### Operation
+
 ```yaml
 Operation:
   description: "Single API operation (HTTP method on a path)"
@@ -209,6 +217,7 @@ Operation:
 ```
 
 ### Parameter
+
 ```yaml
 Parameter:
   description: "Parameter for an operation"
@@ -272,6 +281,7 @@ Parameter:
 ```
 
 ### RequestBody
+
 ```yaml
 RequestBody:
   description: "Request payload for an operation"
@@ -305,6 +315,7 @@ RequestBody:
 ```
 
 ### Responses
+
 ```yaml
 Responses:
   description: "Possible responses from an operation"
@@ -316,6 +327,7 @@ Responses:
 ```
 
 ### Response
+
 ```yaml
 Response:
   description: "Single response definition"
@@ -358,6 +370,7 @@ Response:
 ```
 
 ### MediaType
+
 ```yaml
 MediaType:
   description: "Media type and schema for request/response body"
@@ -371,6 +384,7 @@ MediaType:
 ```
 
 ### Components
+
 ```yaml
 Components:
   description: "Reusable component definitions"
@@ -387,6 +401,7 @@ Components:
 ```
 
 ### Schema
+
 ```yaml
 Schema:
   description: "Data type definition (JSON Schema subset)"
@@ -444,6 +459,7 @@ Schema:
 ```
 
 ### SecurityScheme
+
 ```yaml
 SecurityScheme:
   description: "Security mechanism for the API"
@@ -887,6 +903,7 @@ security:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Operations support Goals**: x-supports-goals links API operations to business objectives they enable
 - **Operations fulfill Requirements**: x-fulfills-requirements links API endpoints to Requirements they implement
 - **Principles guide API design**: x-governed-by-principles ensures API follows design Principles (REST, versioning, etc.)
@@ -895,6 +912,7 @@ security:
 - **Architecture decision records**: Principles explain "why" certain API designs were chosen
 
 **Example Traceability Chain**:
+
 ```
 Goal (goal-customer-satisfaction)
   → BusinessService (business-service-product-catalog)
@@ -904,31 +922,37 @@ Goal (goal-customer-satisfaction)
 ```
 
 ### To Business Layer
+
 - **Operations realize BusinessServices**: x-business-service-ref links operations to the business capability they implement
 - **Operations exposed via BusinessInterface**: x-business-interface-ref links operations to business access points (web portal, partner API, etc.)
 - **Digital manifestation**: API operations are the digital realization of business services
 - **Business impact analysis**: Enables understanding which business services are affected when APIs change
 
 **Bidirectional Navigation**:
+
 - BusinessInterface.interface.api-operations (downward documentation reference)
 - Operation.x-business-service-ref (upward implementation reference)
 
 ### To ArchiMate Application Layer
+
 - OpenAPI document references ApplicationService via x-archimate-ref
 - Operation maps to ApplicationFunction or ApplicationService
 - Enables traceability from business requirements to API implementation
 
 ### To Data Model Layer (JSON Schema)
+
 - Schema definitions reference or embed JSON Schemas
 - Ensures API contracts match data model
 - Single source of truth for data structures
 
 ### To UX Layer
+
 - StateAction.api.operationId references Operation.operationId
 - Enables UI to call correct API operations
 - Type-safe form-to-API binding
 
 ### To Security Layer
+
 - **SecurityScheme definitions**: Map to SecurityModel authentication configuration
 - **Operation security requirements**: Enforce access control via OpenAPI security field
 - **x-security-resource**: Links operation to SecureResource for detailed authorization rules
@@ -936,6 +960,7 @@ Goal (goal-customer-satisfaction)
 - **Enhanced security traceability**: From operation → required permissions → roles → actors
 
 **Security Integration Flow**:
+
 ```yaml
 Operation (createProduct)
   → x-required-permissions: ["product.create"]
@@ -947,6 +972,7 @@ Operation (createProduct)
 ```
 
 ### To APM/Observability Layer
+
 - **Distributed tracing**: x-apm-trace enables operation-level tracing
 - **SLA targets**: x-apm-sla-target-latency and x-apm-sla-target-availability define operation-specific performance requirements
 - **Business metrics**: x-apm-business-metrics links operations to the business metrics they affect
@@ -955,17 +981,18 @@ Operation (createProduct)
 - **Goal validation**: Links API performance to business goal achievement measurement
 
 **APM Integration Example**:
+
 ```yaml
 # High-criticality search operation
 GET /products:
-  x-apm-sla-target-latency: "100ms"  # Fast search required
-  x-apm-sla-target-availability: "99.99%"  # Critical for customer experience
+  x-apm-sla-target-latency: "100ms" # Fast search required
+  x-apm-sla-target-availability: "99.99%" # Critical for customer experience
   x-apm-business-metrics: ["metric-catalog-findability"]
   x-apm-criticality: critical
 
 # Lower-criticality write operation
 POST /products:
-  x-apm-sla-target-latency: "500ms"  # Writes can be slower
+  x-apm-sla-target-latency: "500ms" # Writes can be slower
   x-apm-sla-target-availability: "99.9%"
   x-apm-business-metrics: ["metric-catalog-growth"]
   x-apm-criticality: high
@@ -974,6 +1001,7 @@ POST /products:
 ## Validation
 
 ### OpenAPI Validation
+
 ```yaml
 Tools:
   - Swagger Editor: Online editor with live validation
@@ -993,6 +1021,7 @@ Validation Checks:
 ```
 
 ### Cross-Layer Reference Validation
+
 ```yaml
 Business Layer References:
   - x-business-service-ref must reference valid BusinessService.id
@@ -1030,6 +1059,7 @@ Consistency Checks:
 ## Best Practices
 
 ### Core OpenAPI Practices
+
 1. **Semantic Versioning**: Use semantic versioning for API versions
 2. **Unique Operation IDs**: Every operation must have unique operationId
 3. **Comprehensive Examples**: Provide examples for request/response
@@ -1049,12 +1079,14 @@ Consistency Checks:
 ### Cross-Layer Integration Practices
 
 #### Business Layer Integration
+
 16. **Always Link to Business Services**: Every operation should have x-business-service-ref to show business value
 17. **Document Business Interface**: Use x-business-interface-ref to show which business channel exposes the operation
 18. **Consistent Service Mapping**: Related operations (CRUD on same resource) should reference the same business service
 19. **Business Impact Analysis**: Use business references to assess impact of API changes
 
 #### Motivation Layer Integration
+
 20. **Goal Alignment Required**: Critical operations must have x-supports-goals to justify their existence
 21. **Link to Requirements**: Use x-fulfills-requirements to show which requirements the operation satisfies
 22. **Declare Governing Principles**: Use x-governed-by-principles to document architectural decisions (API-first, REST conventions, etc.)
@@ -1062,6 +1094,7 @@ Consistency Checks:
 24. **Traceability Chain**: Ensure complete chain: Goal → Requirement → Operation → Metric
 
 #### APM/Observability Integration
+
 25. **Define SLA Targets**: All production operations should have x-apm-sla-target-latency and x-apm-sla-target-availability
 26. **Different SLAs for Different Operations**: Read operations should be faster than write operations; search should be fastest
 27. **Link to Business Metrics**: Use x-apm-business-metrics to show which business KPIs the operation affects
@@ -1069,6 +1102,7 @@ Consistency Checks:
 29. **Enable Tracing**: Set x-apm-trace: true for all operations in production
 
 #### Security Layer Integration
+
 30. **Explicit Permissions**: Use x-required-permissions to declare permissions beyond authentication
 31. **Link to Security Resources**: Use x-security-resource to reference detailed authorization rules
 32. **Security for All Authenticated Operations**: Any operation requiring authentication should declare x-required-permissions
@@ -1077,6 +1111,7 @@ Consistency Checks:
 ### Integration Examples
 
 #### High-Criticality Read Operation
+
 ```yaml
 GET /products:
   x-business-service-ref: "business-service-product-catalog"
@@ -1089,6 +1124,7 @@ GET /products:
 ```
 
 #### Regulated Delete Operation
+
 ```yaml
 DELETE /customers/{id}:
   x-business-service-ref: "business-service-customer-management"
@@ -1101,6 +1137,7 @@ DELETE /customers/{id}:
 ```
 
 #### Write Operation with Business Impact
+
 ```yaml
 POST /orders:
   x-business-service-ref: "business-service-order-processing"
@@ -1117,12 +1154,14 @@ POST /orders:
 ### Why APIs Need Business Layer Connections
 
 APIs are the **digital manifestation of business services**. Without explicit connections to business services:
+
 - ❌ **Business impact unknown**: When an API changes or fails, business impact cannot be assessed
 - ❌ **Orphaned APIs**: APIs exist without clear business justification, leading to technical debt
 - ❌ **Portfolio management impossible**: Cannot analyze API portfolio from business capability perspective
 - ❌ **Investment prioritization unclear**: Cannot prioritize API work based on business value
 
 With business connections:
+
 - ✅ **Business traceability**: Clear path from business capability → API operation → implementation
 - ✅ **Impact analysis**: Understand which business services are affected by API changes
 - ✅ **API governance**: Justify each API operation with business value
@@ -1131,11 +1170,13 @@ With business connections:
 ### Why APIs Need Goal Alignment
 
 Operations within the same API may support different business goals. Without goal-level tracking:
+
 - ❌ **Unclear business value**: Cannot justify API investment with business outcomes
 - ❌ **No ROI tracking**: Cannot measure which operations drive business success
 - ❌ **Misaligned priorities**: Developer priorities may not align with business goals
 
 With goal alignment:
+
 - ✅ **Value-driven development**: Focus API work on operations that support critical goals
 - ✅ **ROI measurement**: Track which operations contribute to goal achievement
 - ✅ **Executive visibility**: Show how API operations drive business objectives
@@ -1144,17 +1185,20 @@ With goal alignment:
 ### Why APIs Need Operation-Level SLAs
 
 Different operations have different performance requirements. A single API-level SLA is insufficient:
+
 - ❌ **One-size-fits-all monitoring**: Search operations and bulk imports treated the same
 - ❌ **Alert fatigue**: Generic alerts don't prioritize customer-facing operations
 - ❌ **Resource waste**: Over-provisioning all operations to meet strictest requirement
 
 With operation-level SLAs:
+
 - ✅ **Right-sized monitoring**: Critical search operations get <100ms SLA, bulk writes get 2s SLA
 - ✅ **Prioritized alerts**: Customer-facing operations (criticality: critical) get immediate attention
 - ✅ **Efficient resource allocation**: Optimize infrastructure based on actual operation requirements
 - ✅ **Business-aligned SLAs**: SLAs reflect business impact, not arbitrary technical targets
 
 **Industry Evidence**: API management platforms (Apigee, Kong, AWS API Gateway) all support operation-level SLAs because:
+
 - Search operations require <100ms for good UX
 - Write operations can tolerate 500ms-1s
 - Batch operations may have 10s+ SLAs
@@ -1163,11 +1207,13 @@ With operation-level SLAs:
 ### Why APIs Need Enhanced Security Mapping
 
 OpenAPI security schemes provide authentication, but authorization requires more detail:
+
 - ❌ **Incomplete security picture**: Security schemes show authentication, not authorization
 - ❌ **Permission gaps**: Cannot validate if user has required permissions for operation
 - ❌ **Manual security audits**: Security team must manually trace operations to permission requirements
 
 With explicit permission references:
+
 - ✅ **Complete security specification**: Authentication (schemes) + Authorization (permissions)
 - ✅ **Automated validation**: Tools can verify user has required permissions before calling operation
 - ✅ **Security audit trail**: Clear path from operation → permissions → roles → actors
@@ -1176,17 +1222,20 @@ With explicit permission references:
 ### Why APIs Need Constraint References
 
 Some operations have specific regulatory or compliance requirements:
+
 - ❌ **Hidden compliance requirements**: GDPR right-to-be-forgotten scattered across documentation
 - ❌ **Audit challenges**: Cannot prove which operations implement regulatory requirements
 - ❌ **Implementation gaps**: Developers unaware of compliance constraints
 
 With constraint references:
+
 - ✅ **Explicit compliance**: Operations declare which regulations they must satisfy
 - ✅ **Audit readiness**: Automated reports showing GDPR/HIPAA/SOX compliance per operation
 - ✅ **Developer awareness**: Constraints visible in API specification, not buried in legal documents
 - ✅ **Testing requirements**: Constraint references drive compliance test generation
 
 **Example**: DELETE /customers/{id} must reference:
+
 - `constraint-gdpr-article-17` (right to be forgotten)
 - `constraint-audit-trail-required` (deletion must be logged)
 - `constraint-data-retention-policy` (soft delete vs. hard delete rules)
@@ -1195,37 +1244,42 @@ With constraint references:
 
 These extensions align with practices from leading API management platforms:
 
-| Extension | Industry Equivalent | Platform Examples |
-|-----------|-------------------|-------------------|
+| Extension              | Industry Equivalent         | Platform Examples                                      |
+| ---------------------- | --------------------------- | ------------------------------------------------------ |
 | x-business-service-ref | Business capability mapping | Apigee (API Products), MuleSoft (API-led connectivity) |
-| x-supports-goals | Business objective tracking | AWS Service Catalog, Azure API Management policies |
-| x-apm-sla-target-* | Operation-level SLAs | Kong (per-route SLAs), AWS API Gateway (usage plans) |
-| x-required-permissions | Fine-grained authorization | Auth0 (permissions), Okta (scopes) |
-| x-constrained-by | Compliance tagging | ServiceNow GRC, Apigee API compliance policies |
+| x-supports-goals       | Business objective tracking | AWS Service Catalog, Azure API Management policies     |
+| x-apm-sla-target-\*    | Operation-level SLAs        | Kong (per-route SLAs), AWS API Gateway (usage plans)   |
+| x-required-permissions | Fine-grained authorization  | Auth0 (permissions), Okta (scopes)                     |
+| x-constrained-by       | Compliance tagging          | ServiceNow GRC, Apigee API compliance policies         |
 
 ### Benefits Summary
 
 **For Product Managers**:
+
 - Understand business value of each API operation
 - Prioritize API work based on goal alignment
 - Measure API contribution to business outcomes
 
 **For Architects**:
+
 - Complete traceability from goals → APIs → metrics
 - Justify architectural decisions with business context
 - API portfolio management based on business capabilities
 
 **For Developers**:
+
 - Clear security requirements for each operation
 - Understanding of business impact guides implementation priorities
 - Compliance requirements visible in API specs
 
 **For Operations Teams**:
+
 - Right-sized SLAs for each operation
 - Business context for alert prioritization
 - Clear understanding of which operations are business-critical
 
 **For Compliance Officers**:
+
 - Automated compliance reporting per operation
 - Clear audit trail for regulatory requirements
 - Provable compliance with GDPR/HIPAA/SOX

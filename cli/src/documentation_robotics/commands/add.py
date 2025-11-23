@@ -1,13 +1,16 @@
 """
 Add an element to the model.
 """
-import click
+
 from pathlib import Path
-from rich.console import Console
 from typing import Optional
+
+import click
 import yaml
-from ..core.model import Model
+from rich.console import Console
+
 from ..core.element import Element
+from ..core.model import Model
 from ..utils.id_generator import generate_element_id
 
 console = Console()
@@ -32,7 +35,7 @@ def add(
     description: Optional[str],
     property: tuple,
     project_to: Optional[str],
-    dry_run: bool
+    dry_run: bool,
 ):
     """Add an element to a layer."""
 
@@ -76,15 +79,10 @@ def add(
     element_data["id"] = element_id
 
     # Create element
-    element = Element(
-        id=element_id,
-        element_type=element_type,
-        layer=layer,
-        data=element_data
-    )
+    element = Element(id=element_id, element_type=element_type, layer=layer, data=element_data)
 
     # Show what will be created
-    console.print(f"\n[bold]Creating element:[/bold]")
+    console.print("\n[bold]Creating element:[/bold]")
     console.print(f"  Layer: {layer}")
     console.print(f"  Type: {element_type}")
     console.print(f"  Name: {name}")

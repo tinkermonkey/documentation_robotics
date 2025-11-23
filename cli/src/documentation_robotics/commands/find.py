@@ -1,12 +1,15 @@
 """
 Find and display an element.
 """
-import click
+
+import json
 from pathlib import Path
+
+import click
+import yaml
 from rich.console import Console
 from rich.panel import Panel
-import yaml
-import json
+
 from ..core.model import Model
 from ..utils.output import print_element_table
 
@@ -48,11 +51,13 @@ def find(element_id: str, output: str, show_refs: bool, show_deps: bool):
 
     # Display element
     if output == "yaml":
-        console.print(Panel(
-            yaml.dump(element.to_dict(), default_flow_style=False),
-            title=f"Element: {element_id}",
-            border_style="blue"
-        ))
+        console.print(
+            Panel(
+                yaml.dump(element.to_dict(), default_flow_style=False),
+                title=f"Element: {element_id}",
+                border_style="blue",
+            )
+        )
 
     elif output == "json":
         console.print(json.dumps(element.to_dict(), indent=2))

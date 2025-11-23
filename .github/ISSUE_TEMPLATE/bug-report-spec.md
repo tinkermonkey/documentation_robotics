@@ -1,9 +1,9 @@
 ---
 name: Specification Bug Report
 about: Report an error or inconsistency in the specification
-title: '[SPEC] '
-labels: ['spec-bug', 'specification']
-assignees: ''
+title: "[SPEC] "
+labels: ["spec-bug", "specification"]
+assignees: ""
 ---
 
 ## Section/Layer
@@ -15,6 +15,7 @@ assignees: ''
 ## Description
 
 **Current Text:**
+
 ```
 [Quote the problematic text exactly]
 ```
@@ -25,6 +26,7 @@ assignees: ''
 ## Expected Behavior
 
 **Should Be:**
+
 ```
 [What the text should say]
 ```

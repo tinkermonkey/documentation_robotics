@@ -7,6 +7,7 @@ The UX Layer defines user experience state management, interaction design, and b
 ### UXSpec Scope
 
 A **UXSpec** models a **single, routable user experience** such as:
+
 - One screen/page (e.g., product edit form, product list view)
 - One form or wizard step
 - One conversation flow (voice/chat)
@@ -15,6 +16,7 @@ A **UXSpec** models a **single, routable user experience** such as:
 **Not** an entire application - an application contains multiple UXSpecs, connected via the Navigation Layer.
 
 **Relationship to Business Processes:**
+
 - One UXSpec can support multiple BusinessProcesses (via `business.supportsProcesses`)
 - One BusinessProcess typically spans multiple UXSpecs (orchestrated via NavigationFlow)
 - NavigationFlow in the Navigation Layer orchestrates multiple UXSpecs to realize a complete business process
@@ -29,6 +31,7 @@ A **UXSpec** models a **single, routable user experience** such as:
 ## Why Custom?
 
 Existing standards fall short:
+
 - **W3C UI specs**: Too low-level (HTML/CSS), visual-only
 - **Design systems**: Too visual, not behavioral or multi-channel
 - **State machine specs**: Don't integrate with APIs and data
@@ -36,6 +39,7 @@ Existing standards fall short:
 - **Form builders**: Limited to forms, not full experiences
 
 Our UX spec bridges the gap between design and implementation by:
+
 1. Defining experience states and transitions (across channels)
 2. Linking user interactions to API operations
 3. Mapping components to data schemas
@@ -45,6 +49,7 @@ Our UX spec bridges the gap between design and implementation by:
 ## Entity Definitions
 
 ### UXSpec
+
 ```yaml
 UXSpec:
   description: "Complete UX specification for an experience (visual, voice, chat, SMS)"
@@ -68,11 +73,11 @@ UXSpec:
 
   enums:
     ChannelType:
-      - visual       # Web, mobile app
-      - voice        # Phone, voice assistant
-      - chat         # Chatbot, messaging
-      - sms          # SMS/text messaging
-      - multimodal   # Multiple channels
+      - visual # Web, mobile app
+      - voice # Phone, voice assistant
+      - chat # Chatbot, messaging
+      - sms # SMS/text messaging
+      - multimodal # Multiple channels
 
   # Motivation Layer Integration
   motivationAlignment:
@@ -106,6 +111,7 @@ UXSpec:
 ```
 
 ### ExperienceState
+
 ```yaml
 ExperienceState:
   description: "Distinct state that the experience can be in (works across all channels)"
@@ -159,6 +165,7 @@ ExperienceState:
 ```
 
 ### StateAction
+
 ```yaml
 StateAction:
   description: "Action executed during state lifecycle"
@@ -208,6 +215,7 @@ StateAction:
 ```
 
 ### StateTransition
+
 ```yaml
 StateTransition:
   description: "Transition from current state to another state"
@@ -234,6 +242,7 @@ StateTransition:
 ```
 
 ### Condition
+
 ```yaml
 Condition:
   description: "Boolean expression for guard conditions"
@@ -253,6 +262,7 @@ Condition:
 ```
 
 ### View
+
 ```yaml
 View:
   description: "Routable grouping of components (a complete user experience)"
@@ -303,6 +313,7 @@ View:
 ```
 
 ### SubView
+
 ```yaml
 SubView:
   description: "Reusable grouping of components (not directly routable)"
@@ -340,6 +351,7 @@ SubView:
 ```
 
 ### Component
+
 ```yaml
 Component:
   description: "Atomic UI element (table, form field, graph, custom visualization)"
@@ -395,6 +407,7 @@ Component:
 ```
 
 ### ComponentConfig
+
 ```yaml
 ComponentConfig:
   description: "Type-specific configuration for components"
@@ -465,9 +478,9 @@ ComponentConfig:
     voice: string (voice identifier)
 
     AudioType:
-      - speech           # Text-to-speech
-      - recorded         # Pre-recorded audio
-      - stream           # Audio stream
+      - speech # Text-to-speech
+      - recorded # Pre-recorded audio
+      - stream # Audio stream
 
   # For custom components
   CustomConfig:
@@ -476,6 +489,7 @@ ComponentConfig:
 ```
 
 ### ValidationRule
+
 ```yaml
 ValidationRule:
   description: "Client-side validation rule for a field"
@@ -489,12 +503,12 @@ ValidationRule:
       - required
       - minLength
       - maxLength
-      - pattern        # Regex validation
+      - pattern # Regex validation
       - email
       - url
-      - min           # Minimum numeric value
-      - max           # Maximum numeric value
-      - custom        # Custom validation function
+      - min # Minimum numeric value
+      - max # Maximum numeric value
+      - custom # Custom validation function
 
   examples:
     - type: required
@@ -510,6 +524,7 @@ ValidationRule:
 ```
 
 ### ActionComponent
+
 ```yaml
 ActionComponent:
   description: "Interactive element that triggers actions (button, menu, link, voice command)"
@@ -600,7 +615,7 @@ title: "Product Editor"
 description: "Visual experience for creating and editing products"
 
 references:
-  application: "app-product-management"  # Links to Application entity
+  application: "app-product-management" # Links to Application entity
   archimateElement: "app-comp-product-ui"
   dataSchema: "schemas/product.json"
   apiSpec: "specs/api/product-api.yaml"
@@ -698,7 +713,7 @@ states:
 
   - name: "viewing"
     description: "Displaying product in read-only mode"
-    disabledComponents: ["all"]  # All form components disabled
+    disabledComponents: ["all"] # All form components disabled
     transitions:
       - to: "editing"
         on: click
@@ -765,7 +780,7 @@ views:
     type: form
     title: "Product Details"
     routable: true
-    route: "product-edit"  # References Navigation Layer route
+    route: "product-edit" # References Navigation Layer route
     layout:
       type: grid
       columns: 2
@@ -935,6 +950,7 @@ views:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Experiences support Goals**: `motivationAlignment.supportsGoals` links UX to business objectives
 - **Experiences deliver Value**: `motivationAlignment.deliversValue` shows user value contribution
 - **Principles guide UX design**: `motivationAlignment.governedByPrinciples` ensures consistent UX (accessibility, mobile-first, multi-channel, etc.)
@@ -943,6 +959,7 @@ views:
 - **Traceability**: Requirement → UXSpec → API → Implementation creates complete audit trail
 
 ### To Business Layer
+
 - **Process support**: `business.supportsProcesses` links UX experiences to BusinessProcess entities they support
 - **Service realization**: `business.realizesServices` shows which BusinessService entities are realized through the UX
 - **Actor targeting**: `business.targetActors` documents which BusinessActor types the experience is designed for
@@ -951,15 +968,18 @@ views:
 - **Traceability**: BusinessProcess → UXSpec → Metrics enables process optimization
 
 ### To Application Layer
+
 - **UXSpec.application**: Links experience to Application entity
 - **Multi-app systems**: Different UX applications for different use cases (customer portal, admin panel, mobile app)
 - **Application context**: Each UX spec belongs to a specific application
 
 ### To ArchiMate Application Layer
+
 - UXSpec references ApplicationComponent via archimateElement
 - Maps to frontend ApplicationComponent types
 
 ### To Security Layer
+
 - **Experience-level security**: `UXSpec.security.model` references SecurityModel, `defaultRequiredRoles` sets baseline access
 - **View-level security**: `View.security.resourceRef` links to SecureResource (type: screen), `requiredRoles` and `requiredPermissions` control view access
 - **Component-level security**: `Component.security.fieldAccess` references SecureResource field-level controls, `visibleToRoles` and `editableByRoles` enable fine-grained access control
@@ -969,16 +989,19 @@ views:
 - **Traceability**: SecurityModel → UXSpec → Component enables security requirement validation
 
 ### To API Layer (OpenAPI)
+
 - StateAction.api.operationId references OpenAPI operations
 - Component.dataSource references API operations
 - Ensures UI actions align with available APIs
 
 ### To Data Model Layer (JSON Schema)
+
 - Component.dataBinding.schemaRef points to schema properties
 - Ensures components match data structure
 - Validation alignment across layers
 
 ### To Navigation Layer
+
 - **View to Route**: View.route references Route identifier
 - **Action navigation**: ActionComponent navigation actions reference Routes
 - **State triggers navigation**: Experience state transitions trigger route changes
@@ -994,6 +1017,7 @@ views:
   - Context variables accessible via JSONPath in StateAction data sources
 
 ### To APM/Observability Layer
+
 - **Metric linkage**: `apm.measuredByMetrics` links UX experiences to metrics that measure their effectiveness
 - **Performance targets**: `apm.performanceTargets` defines expected performance characteristics (load time, latency, error rates, completion rates)
 - **Closed-loop measurement**: Goal → UXSpec → Metrics → Goal validation enables data-driven UX optimization
@@ -1006,6 +1030,7 @@ views:
 ## Validation
 
 ### UX Spec Validation
+
 ```javascript
 // Validation checks:
 1. Exactly one initial ExperienceState exists
@@ -1051,38 +1076,40 @@ views:
 ## Property Conventions
 
 ### File Naming
+
 ```yaml
 Pattern: "{experience-identifier}.ux.yaml"
 Examples:
-  - product-edit.ux.yaml          # Visual form experience
-  - customer-list.ux.yaml          # Visual list experience
-  - order-status-voice.ux.yaml     # Voice experience
-  - support-chat.ux.yaml           # Chat experience
+  - product-edit.ux.yaml # Visual form experience
+  - customer-list.ux.yaml # Visual list experience
+  - order-status-voice.ux.yaml # Voice experience
+  - support-chat.ux.yaml # Chat experience
 ```
 
 ### Experience State Naming
+
 ```yaml
 Common States (Visual):
-  - initial      # Entry point
-  - loading      # Fetching data
-  - viewing      # Read-only display
-  - editing      # Form editing
-  - validating   # Running validation
-  - saving       # Submitting data
-  - deleting     # Removing data
-  - error        # Error occurred
-  - success      # Operation completed
+  - initial # Entry point
+  - loading # Fetching data
+  - viewing # Read-only display
+  - editing # Form editing
+  - validating # Running validation
+  - saving # Submitting data
+  - deleting # Removing data
+  - error # Error occurred
+  - success # Operation completed
 
 Common States (Voice):
-  - listening    # Waiting for user speech
-  - speaking     # Playing audio response
-  - processing   # Processing speech input
-  - confirming   # Confirming user intent
+  - listening # Waiting for user speech
+  - speaking # Playing audio response
+  - processing # Processing speech input
+  - confirming # Confirming user intent
 
 Common States (Chat):
-  - awaiting-input   # Waiting for user message
-  - typing           # Showing typing indicator
-  - responding       # Sending response
+  - awaiting-input # Waiting for user message
+  - typing # Showing typing indicator
+  - responding # Sending response
 
 Common States (All Channels):
   - initial
@@ -1145,6 +1172,7 @@ Test Code:
 ## Common Patterns
 
 ### List-Detail Pattern
+
 ```yaml
 List Experience (product-list.ux.yaml):
   - States: loading � viewing
@@ -1158,6 +1186,7 @@ Detail Experience (product-detail.ux.yaml):
 ```
 
 ### Wizard Pattern
+
 ```yaml
 Multi-Step Wizard:
   - States: step1 � step2 � step3 � review � submitting
@@ -1168,6 +1197,7 @@ Multi-Step Wizard:
 ```
 
 ### Master-Detail Pattern
+
 ```yaml
 Split View:
   - View type: split
@@ -1178,6 +1208,7 @@ Split View:
 ```
 
 ### Voice Interaction Pattern
+
 ```yaml
 Voice Experience (order-status-voice.ux.yaml):
   - Channel: voice
@@ -1188,6 +1219,7 @@ Voice Experience (order-status-voice.ux.yaml):
 ```
 
 ### Chat Conversation Pattern
+
 ```yaml
 Chat Experience (support-chat.ux.yaml):
   - Channel: chat

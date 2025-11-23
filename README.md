@@ -9,6 +9,7 @@ A comprehensive toolkit for managing federated architecture metadata models usin
 ## Overview
 
 Documentation Robotics provides:
+
 - **A Specification** - Federated Architecture Metadata Model for complex software systems
 - **A CLI Tool** - `dr` command for managing architecture models
 - **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
@@ -31,6 +32,7 @@ Documentation Robotics provides:
 The Federated Architecture Metadata Model specification defines a standards-based approach to modeling enterprise and software architecture across 11 interconnected layers.
 
 **Key Features:**
+
 - ✅ **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 - ✅ **Federated Approach** - ArchiMate spine + specialized standards
 - ✅ **11 Layers** - Motivation through APM/Observability
@@ -38,6 +40,7 @@ The Federated Architecture Metadata Model specification defines a standards-base
 - ✅ **Tool Ecosystem Access** - Compatible with hundreds of existing tools
 
 **Quick Start:**
+
 1. Read [spec/README.md](spec/README.md)
 2. Explore [spec/core/00-overview.md](spec/core/00-overview.md)
 3. Browse [spec/examples/](spec/examples/)
@@ -53,6 +56,7 @@ The Federated Architecture Metadata Model specification defines a standards-base
 A command-line tool for managing architecture models conforming to the specification.
 
 **Key Features:**
+
 - ✅ **Full Conformance** - Implements all 11 layers
 - ✅ **Model Management** - Initialize, add, update, validate
 - ✅ **Cross-Layer References** - Track and validate relationships
@@ -60,6 +64,7 @@ A command-line tool for managing architecture models conforming to the specifica
 - ✅ **Standards-Based** - Uses specification v1.0.0
 
 **Quick Start:**
+
 ```bash
 # Install
 pip install -e cli/
@@ -123,19 +128,19 @@ documentation_robotics/
 
 The specification defines 11 interconnected layers:
 
-| # | Layer | Focus | Standard |
-|---|-------|-------|----------|
-| 01 | [Motivation](spec/layers/01-motivation-layer.md) | WHY | ArchiMate 3.2 |
-| 02 | [Business](spec/layers/02-business-layer.md) | WHAT | ArchiMate 3.2 |
-| 03 | [Security](spec/layers/03-security-layer.md) | WHO CAN | Custom |
-| 04 | [Application](spec/layers/04-application-layer.md) | HOW | ArchiMate 3.2 |
-| 05 | [Technology](spec/layers/05-technology-layer.md) | WITH WHAT | ArchiMate 3.2 |
-| 06 | [API](spec/layers/06-api-layer.md) | INTERFACE | OpenAPI 3.0 |
-| 07 | [Data Model](spec/layers/07-data-model-layer.md) | STRUCTURE | JSON Schema |
-| 08 | [Datastore](spec/layers/08-datastore-layer.md) | STORAGE | SQL DDL |
-| 09 | [UX](spec/layers/09-ux-layer.md) | PRESENTATION | Custom |
-| 10 | [Navigation](spec/layers/10-navigation-layer.md) | FLOW | Custom |
-| 11 | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE | OpenTelemetry |
+| #   | Layer                                                          | Focus        | Standard      |
+| --- | -------------------------------------------------------------- | ------------ | ------------- |
+| 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |
+| 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |
+| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | Custom        |
+| 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |
+| 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |
+| 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |
+| 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |
+| 08  | [Datastore](spec/layers/08-datastore-layer.md)                 | STORAGE      | SQL DDL       |
+| 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | Custom        |
+| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | Custom        |
+| 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |
 
 ## Standards Leveraged
 
@@ -161,12 +166,14 @@ Want to use this for modeling your architecture?
    - Review [spec/core/01-federated-approach.md](spec/core/01-federated-approach.md)
 
 2. **Install the CLI**
+
    ```bash
    cd cli
    pip install -e .
    ```
 
 3. **Create Your First Model**
+
    ```bash
    dr init my-architecture
    cd my-architecture
@@ -212,11 +219,13 @@ Evaluating this approach?
 ## Contributing
 
 We welcome contributions! See:
+
 - [CONTRIBUTING.md](CONTRIBUTING.md) - General contribution guidelines
 - [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md) - Specification contributions
 - [cli/README.md#development](cli/README.md#development) - CLI development
 
 **Ways to Contribute:**
+
 - 🐛 Report issues or ambiguities in the specification
 - 💡 Propose new features or improvements
 - 📝 Improve documentation
@@ -233,10 +242,10 @@ We welcome contributions! See:
 
 ## Versions
 
-| Component | Current Version | Status |
-|-----------|----------------|--------|
-| **Specification** | 1.0.0 | Stable |
-| **CLI Tool** | 0.3.0 | Phase 3 Complete |
+| Component         | Current Version | Status           |
+| ----------------- | --------------- | ---------------- |
+| **Specification** | 1.0.0           | Stable           |
+| **CLI Tool**      | 0.3.0           | Phase 3 Complete |
 
 ## License
 
@@ -265,6 +274,7 @@ If you use this specification in academic work, please cite:
 ## Acknowledgments
 
 This project integrates and builds upon:
+
 - **ArchiMate®** - Registered trademark of The Open Group
 - **OpenAPI Specification** - OpenAPI Initiative
 - **JSON Schema** - JSON Schema team
@@ -274,6 +284,7 @@ This project integrates and builds upon:
 ---
 
 **Ready to get started?**
+
 - 📖 Read the specification: [spec/README.md](spec/README.md)
 - 🛠️ Install the CLI: `pip install -e cli/`
 - 💬 Join the discussion: [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)

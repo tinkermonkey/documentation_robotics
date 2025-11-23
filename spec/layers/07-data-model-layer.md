@@ -14,6 +14,7 @@ The Data Model Layer defines the structure, types, and validation rules for data
 ## Why JSON Schema?
 
 JSON Schema is the standard for JSON data validation:
+
 - **Industry Standard**: Widely adopted for JSON data validation
 - **Language Agnostic**: Works across all programming languages
 - **Comprehensive**: Supports complex validation rules
@@ -24,6 +25,7 @@ JSON Schema is the standard for JSON data validation:
 ## Core JSON Schema Structure
 
 ### JSONSchema
+
 ```yaml
 JSONSchema:
   description: "Root schema document"
@@ -54,15 +56,15 @@ JSONType:
   description: "Core JSON data types"
   values:
     - string
-    - number      # Any numeric value
-    - integer     # Whole numbers only
+    - number # Any numeric value
+    - integer # Whole numbers only
     - boolean
     - object
     - array
     - "null"
 
   # Can also be array of types for unions
-  example: ["string", "null"]  # Nullable string
+  example: ["string", "null"] # Nullable string
 ```
 
 ### String Validation
@@ -80,31 +82,31 @@ StringSchema:
   enums:
     StringFormat:
       # Date and Time
-      - date-time    # RFC 3339 date-time
-      - date         # RFC 3339 full-date
-      - time         # RFC 3339 full-time
+      - date-time # RFC 3339 date-time
+      - date # RFC 3339 full-date
+      - time # RFC 3339 full-time
 
       # Email and Networks
-      - email        # Email address
-      - idn-email    # Internationalized email
-      - hostname     # Internet hostname
+      - email # Email address
+      - idn-email # Internationalized email
+      - hostname # Internet hostname
       - idn-hostname # Internationalized hostname
-      - ipv4         # IPv4 address
-      - ipv6         # IPv6 address
-      - uri          # Universal Resource Identifier
+      - ipv4 # IPv4 address
+      - ipv6 # IPv6 address
+      - uri # Universal Resource Identifier
       - uri-reference
-      - iri          # Internationalized URI
+      - iri # Internationalized URI
       - iri-reference
 
       # JSON and Regex
       - json-pointer
       - relative-json-pointer
-      - regex        # Regular expression
+      - regex # Regular expression
 
       # Custom formats (not standard, but commonly used)
-      - uuid         # UUID/GUID
-      - phone        # Phone number
-      - credit-card  # Credit card number
+      - uuid # UUID/GUID
+      - phone # Phone number
+      - credit-card # Credit card number
 
   examples:
     # Email
@@ -210,8 +212,8 @@ ArraySchema:
     coordinates:
       type: array
       items:
-        - type: number  # latitude
-        - type: number  # longitude
+        - type: number # latitude
+        - type: number # longitude
       minItems: 2
       maxItems: 2
       description: "Geographic coordinates [lat, lon]"
@@ -270,7 +272,7 @@ ObjectSchema:
         country:
           type: string
       dependencies:
-        postalCode: ["country"]  # If postalCode exists, country is required
+        postalCode: ["country"] # If postalCode exists, country is required
 ```
 
 ### Schema Composition
@@ -283,7 +285,7 @@ SchemaComposition:
     allOf: Schema[] # Must match ALL schemas
     anyOf: Schema[] # Must match AT LEAST ONE schema
     oneOf: Schema[] # Must match EXACTLY ONE schema
-    not: Schema     # Must NOT match this schema
+    not: Schema # Must NOT match this schema
 
   examples:
     # allOf - combining schemas (like inheritance)
@@ -638,9 +640,9 @@ x-security:
 
     MaskingStrategy:
       - none
-      - partial       # Show first/last characters
-      - full          # Complete masking
-      - hash          # One-way hash
+      - partial # Show first/last characters
+      - full # Complete masking
+      - hash # One-way hash
 
   examples:
     # GDPR-driven retention
@@ -686,16 +688,9 @@ x-security:
       "metric-product-sku-format-validity",
       "metric-product-weight-reasonableness"
     ],
-    "freshnessMetrics": [
-      "metric-product-inventory-freshness",
-      "metric-product-price-update-age"
-    ],
-    "uniquenessMetrics": [
-      "metric-product-sku-uniqueness"
-    ],
-    "integrityMetrics": [
-      "metric-product-category-reference-integrity"
-    ]
+    "freshnessMetrics": ["metric-product-inventory-freshness", "metric-product-price-update-age"],
+    "uniquenessMetrics": ["metric-product-sku-uniqueness"],
+    "integrityMetrics": ["metric-product-category-reference-integrity"]
   },
   "x-database": {
     "table": "products",
@@ -975,6 +970,7 @@ x-security:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Security governance**: x-security.governedBy.constraintRefs, requirementRefs, principleRefs link field-level security policies to Motivation Layer
 - **Data governance**: x-data-governance.governedBy.principleRefs, requirementRefs, constraintRefs link schema-level data architecture decisions to Motivation Layer
 - **Data architecture principles**: Links schemas to principles like "principle-canonical-data-model", "principle-event-sourcing", "principle-data-normalization"
@@ -985,6 +981,7 @@ x-security:
 - **Separation of concerns**: x-security for security/privacy, x-data-governance for architecture/design, x-ui for user experience
 
 ### To Business Layer
+
 - **Bidirectional traceability**:
   - BusinessObject.spec.schema-id → JSONSchema (downward documentation reference)
   - JSONSchema.x-business-object-ref → BusinessObject (upward implementation reference)
@@ -993,30 +990,36 @@ x-security:
 - **Complete lineage**: Business concept → Application data → Schema → Database → Metrics
 
 ### To ArchiMate Application Layer
+
 - **Schema references DataObject**: x-archimate-ref links schema to application-level DataObject
 - **Technical traceability**: Enables traceability from application components to data structures
 
 ### To API Layer (OpenAPI)
+
 - OpenAPI schemas reference or embed JSON Schemas via $ref
 - Ensures API request/response match data model
 - Single source of truth for data types
 
 ### To UX Layer
+
 - FieldDefinition.dataBinding.schemaRef references schema properties
 - x-ui extension provides rendering hints
 - Ensures forms match data structure
 
 ### To Data Store Layer
+
 - x-database extension maps to physical database
 - Column definitions, indexes, constraints
 - Enables database schema generation
 
 ### To Security Layer
+
 - x-security extension defines access control
 - PII and encryption metadata
 - Data classification and retention
 
 ### To APM/Observability Layer
+
 - **Data quality monitoring**: x-apm-data-quality-metrics links schemas to data quality Metrics in APM Layer
 - **Completeness tracking**: Monitor required field completion rates (e.g., "metric-customer-email-completeness")
 - **Accuracy monitoring**: Track data validation success rates (e.g., "metric-product-price-validity")
@@ -1032,6 +1035,7 @@ x-security:
 ## Validation
 
 ### Schema Validation Tools
+
 ```yaml
 Validators:
   - AJV: Fast JavaScript validator
@@ -1051,6 +1055,7 @@ Features:
 ## Best Practices
 
 ### Core JSON Schema Practices
+
 1. **Use $id**: Give schemas unique identifiers
 2. **Provide Descriptions**: Document all properties
 3. **Set additionalProperties**: Be explicit about extra properties
@@ -1064,11 +1069,13 @@ Features:
 ### Cross-Layer Integration Practices
 
 #### Business Layer Integration
+
 10. **Link to Business Concepts**: Use x-business-object-ref to connect schemas to BusinessObject for domain-driven design traceability
 11. **Business Impact Analysis**: Maintain bidirectional links (BusinessObject.spec.schema-id + JSONSchema.x-business-object-ref)
 12. **Domain Modeling**: Every schema representing a business concept should reference its BusinessObject
 
 #### Motivation Layer Integration
+
 13. **Data Governance**: Use x-data-governance.governedBy to document data architecture principles, requirements, and constraints
 14. **Separate Concerns**: Use x-security.governedBy for security/privacy, x-data-governance for architecture/design decisions
 15. **Document Principles**: Reference principles like "principle-canonical-data-model", "principle-event-sourcing"
@@ -1076,6 +1083,7 @@ Features:
 17. **Capture Constraints**: Reference constraints like "constraint-sox-compliance", "constraint-7year-retention"
 
 #### APM/Observability Integration
+
 18. **Data Quality Metrics**: Use x-apm-data-quality-metrics to link schemas to data quality monitoring
 19. **Completeness Metrics**: Define metrics for required field completion rates
 20. **Accuracy Metrics**: Define metrics for data validation success rates
@@ -1084,17 +1092,20 @@ Features:
 23. **Goal Alignment**: Ensure data quality metrics support business goals (e.g., "goal-customer-360-view")
 
 #### Security & UI Integration
+
 24. **Security Metadata**: Always include x-security for sensitive data
 25. **UI Rendering**: Use x-ui.group for logical grouping and x-ui.component for field types
 26. **Database Mapping**: Use x-database for persistence layer mapping
 
 ### Data Quality Best Practices
+
 27. **Measure What Matters**: Focus on quality dimensions that impact business goals
 28. **Start with Critical Data**: Implement quality metrics for master data and high-value entities first
 29. **Progressive Enhancement**: Begin with completeness/accuracy, add consistency/freshness/integrity as you mature
 30. **Industry Standards**: Follow DAMA DMBOK data quality dimensions (completeness, accuracy, consistency, timeliness, uniqueness, integrity)
 
 ### Traceability Best Practices
+
 31. **Complete Chain**: Maintain Goal → Requirement → Schema → Metric → Outcome traceability
 32. **Upward References**: Schemas reference their purpose (BusinessObject, Principles, Metrics) following the link philosophy
 33. **Bidirectional Queries**: Use upward references for maintenance, enable downward queries through tooling
@@ -1130,24 +1141,20 @@ Documentation:
 ## Common Patterns
 
 ### Nullable Fields
+
 ```json
 {
   "description": {
-    "anyOf": [
-      {"type": "string"},
-      {"type": "null"}
-    ]
+    "anyOf": [{ "type": "string" }, { "type": "null" }]
   }
 }
 ```
 
 ### Discriminated Unions
+
 ```json
 {
-  "oneOf": [
-    {"$ref": "#/definitions/CreditCard"},
-    {"$ref": "#/definitions/BankTransfer"}
-  ],
+  "oneOf": [{ "$ref": "#/definitions/CreditCard" }, { "$ref": "#/definitions/BankTransfer" }],
   "discriminator": {
     "propertyName": "paymentType"
   }
@@ -1155,6 +1162,7 @@ Documentation:
 ```
 
 ### Timestamps Pattern
+
 ```json
 {
   "createdAt": {
@@ -1171,13 +1179,11 @@ Documentation:
 ```
 
 ### Soft Delete Pattern
+
 ```json
 {
   "deletedAt": {
-    "anyOf": [
-      {"type": "string", "format": "date-time"},
-      {"type": "null"}
-    ],
+    "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
     "readOnly": true
   }
 }
@@ -1188,6 +1194,7 @@ Documentation:
 ### Why Data Models Need Business Object References
 
 **Problem**: Technical schemas exist in isolation from business concepts
+
 - ❌ Cannot answer "which business concept does this schema represent?"
 - ❌ Business impact analysis impossible when schemas change
 - ❌ Domain-driven design traceability is one-way only (BusinessObject → Schema)
@@ -1195,36 +1202,38 @@ Documentation:
 **Solution**: `x-business-object-ref` provides upward traceability
 
 **Benefits**:
+
 - ✅ **Bidirectional traceability**: BusinessObject.spec.schema-id (downward) + JSONSchema.x-business-object-ref (upward)
 - ✅ **Business impact analysis**: Understand which business concepts are affected by schema changes
 - ✅ **Domain-driven design**: Complete lineage from business domain to technical implementation
 - ✅ **Follows link philosophy**: Implementation (schema) knows its business purpose
 
 **Example Traceability Chain**:
+
 ```yaml
 # Business Layer (02)
 BusinessObject:
   id: "business-object-customer"
   name: "Customer"
-  spec.schema-id: "550e8400-e29b-41d4-a716-446655440000"  # Downward reference
+  spec.schema-id: "550e8400-e29b-41d4-a716-446655440000" # Downward reference
 
 # Data Model Layer (07)
 JSONSchema:
   $id: "https://example.com/schemas/customer.json"
-  x-business-object-ref: "business-object-customer"  # Upward reference
+  x-business-object-ref: "business-object-customer" # Upward reference
   x-archimate-ref: "data-object-customer"
 
 # Application Layer (04)
 DataObject:
   id: "data-object-customer"
   spec.schema: "schemas/customer.json"
-
 # Result: Complete Business → Application → Data → Database lineage
 ```
 
 ### Why Data Models Need Data Governance References
 
 **Problem**: Security governance exists (x-security.governedBy), but broader data architecture governance is missing
+
 - ❌ Cannot trace which principles guide data model design (normalization, event sourcing, canonical models)
 - ❌ Cannot link schemas to data requirements (master data management, audit trails, temporal data)
 - ❌ Cannot capture data constraints beyond security (retention policies, regulatory compliance)
@@ -1232,6 +1241,7 @@ DataObject:
 **Solution**: `x-data-governance.governedBy` provides schema-level governance metadata
 
 **Benefits**:
+
 - ✅ **Separation of concerns**: x-security (field-level privacy/security) vs. x-data-governance (schema-level architecture)
 - ✅ **Principle-driven design**: Links schemas to data architecture principles
 - ✅ **Requirement traceability**: Links schemas to data model requirements
@@ -1266,6 +1276,7 @@ x-data-governance:
 ### Why Data Models Need Data Quality Metrics
 
 **Problem**: Data quality is a first-class concern, but no link from schemas to quality metrics exists
+
 - ❌ Cannot trace which metrics monitor which data structures
 - ❌ Data quality monitoring is ad-hoc, not systematically linked to schemas
 - ❌ No way to validate if business goals (e.g., "goal-customer-360-view") are achieved via data quality
@@ -1274,6 +1285,7 @@ x-data-governance:
 **Solution**: `x-apm-data-quality-metrics` links schemas to data quality Metrics in APM Layer
 
 **Benefits**:
+
 - ✅ **Data governance**: Industry-standard practice (DAMA DMBOK, ISO 8000)
 - ✅ **Observable quality**: Links data models to measurable quality metrics
 - ✅ **Business goal validation**: Enables Goal → Schema → Metric → Outcome chain
@@ -1282,12 +1294,14 @@ x-data-governance:
 - ✅ **Compliance reporting**: Automated data quality reports for audits
 
 **Industry Precedent**:
+
 - **Data Catalogs**: Collibra, Alation link schemas to quality metrics
 - **Cloud Platforms**: AWS Glue Data Quality, Azure Purview, Google Cloud Data Quality
 - **Data Quality Tools**: Great Expectations, Deequ, Soda Core all link schemas to quality rules
 - **Standards**: DAMA DMBOK defines 6 quality dimensions linked to data models
 
 **Data Quality Dimensions** (DAMA DMBOK, ISO 8000):
+
 1. **Completeness**: % of required fields populated
 2. **Accuracy**: % of values within valid ranges/formats
 3. **Consistency**: % of values passing cross-field validation rules
@@ -1356,30 +1370,35 @@ Metric:
 ## Benefits Summary
 
 ### For Data Architects
+
 - **Complete traceability**: Goal → Requirement → Schema → Metric → Outcome
 - **Governance automation**: Automated linking of schemas to principles, requirements, constraints
 - **Quality by design**: Data quality metrics defined alongside data models
 - **Business alignment**: Schemas explicitly linked to business concepts and goals
 
 ### For Data Engineers
+
 - **Clear governance**: Know which principles, requirements, and constraints apply to each schema
 - **Quality monitoring**: Automated data quality monitoring linked to schema definitions
 - **Impact analysis**: Understand business impact of schema changes
 - **Single source of truth**: All governance metadata in one place (schema file)
 
 ### For Business Stakeholders
+
 - **Business traceability**: See which technical schemas implement business concepts
 - **Goal validation**: Measure business goal achievement via data quality metrics
 - **Compliance visibility**: Clear audit trail from business requirements to technical implementation
 - **ROI measurement**: Link data quality improvements to business outcomes
 
 ### For Compliance Officers
+
 - **Regulatory mapping**: Direct links from regulations (constraints) to data models
 - **Audit readiness**: Automated compliance reporting via schema governance metadata
 - **Data governance**: Provable compliance with GDPR, SOX, HIPAA requirements
 - **Quality SLAs**: Measurable data quality commitments
 
 ### For Operations Teams
+
 - **Quality monitoring**: Automated alerts when data quality degrades
 - **SLA enforcement**: Data quality SLAs linked to business commitments
 - **Incident response**: Understand business impact of data quality issues
@@ -1433,13 +1452,8 @@ Metric:
       "metric-customer-name-consistency",
       "metric-customer-address-standardization"
     ],
-    "freshnessMetrics": [
-      "metric-customer-last-updated-age",
-      "metric-customer-profile-staleness"
-    ],
-    "uniquenessMetrics": [
-      "metric-customer-duplicate-rate"
-    ]
+    "freshnessMetrics": ["metric-customer-last-updated-age", "metric-customer-profile-staleness"],
+    "uniquenessMetrics": ["metric-customer-duplicate-rate"]
   },
 
   "x-database": {

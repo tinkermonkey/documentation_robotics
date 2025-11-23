@@ -39,40 +39,40 @@ This guide explains how the Security Layer integrates with the Motivation Layer 
 
 ### Single Source of Truth
 
-| Concept | Defined In | Referenced By |
-|---------|-----------|---------------|
-| **Business Actors** | Business Layer | Security Layer (Actor.businessActorRef) |
-| **Stakeholders** | Motivation Layer | Security Layer (Actor.stakeholderRef) |
-| **Goals** | Motivation Layer | Security Layer (ActorObjective.motivationGoalRef) |
-| **Requirements** | Motivation Layer | Security Layer (Threat.mitigatedByRequirements) |
-| **Assessments** | Motivation Layer | Security Layer (Threat.assessmentRef) |
-| **Constraints** | Motivation Layer | Security Layer (SocialDependency.commitmentRefs) |
+| Concept             | Defined In       | Referenced By                                     |
+| ------------------- | ---------------- | ------------------------------------------------- |
+| **Business Actors** | Business Layer   | Security Layer (Actor.businessActorRef)           |
+| **Stakeholders**    | Motivation Layer | Security Layer (Actor.stakeholderRef)             |
+| **Goals**           | Motivation Layer | Security Layer (ActorObjective.motivationGoalRef) |
+| **Requirements**    | Motivation Layer | Security Layer (Threat.mitigatedByRequirements)   |
+| **Assessments**     | Motivation Layer | Security Layer (Threat.assessmentRef)             |
+| **Constraints**     | Motivation Layer | Security Layer (SocialDependency.commitmentRefs)  |
 
 ## Key Refactoring Changes (v2.0)
 
 ### 1. Renamed Entities
 
-| Old Name | New Name | Reason |
-|----------|----------|--------|
+| Old Name                | New Name         | Reason                              |
+| ----------------------- | ---------------- | ----------------------------------- |
 | `Goal` (Security Layer) | `ActorObjective` | Avoid conflict with Motivation Goal |
 
 ### 2. Removed Entities (Now Use Motivation Layer)
 
-| Removed Entity | Replacement | Location |
-|----------------|-------------|----------|
-| `SecurityRequirement` | `Requirement` with security properties | Motivation Layer |
-| `SocialCommitment` | `Constraint` with compliance properties | Motivation Layer |
+| Removed Entity        | Replacement                             | Location         |
+| --------------------- | --------------------------------------- | ---------------- |
+| `SecurityRequirement` | `Requirement` with security properties  | Motivation Layer |
+| `SocialCommitment`    | `Constraint` with compliance properties | Motivation Layer |
 
 ### 3. Added Cross-References
 
-| Security Entity | New Reference Field | Target Layer | Target Entity |
-|-----------------|---------------------|--------------|---------------|
-| `Actor` | `businessActorRef` | Business | BusinessActor |
-| `Actor` | `stakeholderRef` | Motivation | Stakeholder |
-| `ActorObjective` | `motivationGoalRef` | Motivation | Goal |
-| `Threat` | `assessmentRef` | Motivation | Assessment |
-| `Threat` | `mitigatedByRequirements` | Motivation | Requirement[] |
-| `SocialDependency` | `commitmentRefs` | Motivation | Constraint[] |
+| Security Entity    | New Reference Field       | Target Layer | Target Entity |
+| ------------------ | ------------------------- | ------------ | ------------- |
+| `Actor`            | `businessActorRef`        | Business     | BusinessActor |
+| `Actor`            | `stakeholderRef`          | Motivation   | Stakeholder   |
+| `ActorObjective`   | `motivationGoalRef`       | Motivation   | Goal          |
+| `Threat`           | `assessmentRef`           | Motivation   | Assessment    |
+| `Threat`           | `mitigatedByRequirements` | Motivation   | Requirement[] |
+| `SocialDependency` | `commitmentRefs`          | Motivation   | Constraint[]  |
 
 ## Complete Integration Example
 
@@ -175,13 +175,13 @@ actors:
   - id: "product-manager-actor"
     name: "Product Manager"
     type: role
-    businessActorRef: "business-actor-product-manager"  # → Business Layer
-    stakeholderRef: "stakeholder-product-manager"        # → Motivation Layer
+    businessActorRef: "business-actor-product-manager" # → Business Layer
+    stakeholderRef: "stakeholder-product-manager" # → Motivation Layer
     objectives:
       - id: "ensure-pricing-accuracy"
         description: "Ensure pricing is accurate and approved"
         criticality: critical
-        motivationGoalRef: "goal-pricing-accuracy"      # → Motivation Layer
+        motivationGoalRef: "goal-pricing-accuracy" # → Motivation Layer
 
 # Threat linked to Assessment and mitigated by Requirements
 threats:
@@ -192,8 +192,8 @@ threats:
     threatActors: ["malicious-insider", "compromised-editor"]
     likelihood: medium
     impact: high
-    assessmentRef: "assessment-pricing-manipulation-risk"  # → Motivation Assessment
-    mitigatedByRequirements:                                # → Motivation Requirements
+    assessmentRef: "assessment-pricing-manipulation-risk" # → Motivation Assessment
+    mitigatedByRequirements: # → Motivation Requirements
       - "req-dual-control-pricing"
       - "req-price-audit-trail"
     countermeasures:
@@ -213,7 +213,7 @@ socialDependencies:
     trust:
       trustLevel: medium
       verification: continuous
-    commitmentRefs: ["constraint-inventory-sla"]  # → Motivation Constraint
+    commitmentRefs: ["constraint-inventory-sla"] # → Motivation Constraint
 
 # Security Constraints (SoD implements the requirement)
 securityConstraints:
@@ -326,26 +326,31 @@ for assessment in assessments:
 ## Benefits of Integration
 
 ### 1. Single Source of Truth
+
 - **One place** for all requirements (Motivation Layer)
 - **One place** for all actors (Business Layer + Motivation Layer)
 - **No duplication** between business and security models
 
 ### 2. Complete Traceability
+
 - Trace from **stakeholder** → **goal** → **assessment** → **requirement** → **security control**
 - Justify every security control with business requirement
 - Understand impact of requirement changes on security
 
 ### 3. Consistency
+
 - Same actor identity across layers
 - Goals aligned between business and security
 - Requirements validated against multiple concerns
 
 ### 4. ArchiMate Alignment
+
 - Leverages standard ArchiMate Motivation elements
 - Follows ArchiMate best practices for layering
 - Compatible with ArchiMate tooling
 
 ### 5. Reduced Maintenance
+
 - Change stakeholder once, reflected everywhere
 - Update requirement in one place
 - Single definition for compliance commitments
@@ -355,6 +360,7 @@ for assessment in assessments:
 ### Migrating from v1.0 to v2.0
 
 #### 1. Rename Goals to Objectives
+
 ```yaml
 # OLD (v1.0)
 actors:
@@ -371,6 +377,7 @@ actors:
 ```
 
 #### 2. Move SecurityRequirements to Motivation Layer
+
 ```yaml
 # OLD (v1.0) - Security Layer
 threats:
@@ -394,6 +401,7 @@ threats:
 ```
 
 #### 3. Convert SocialCommitments to Constraints
+
 ```yaml
 # OLD (v1.0) - Security Layer
 socialDependencies:
@@ -423,8 +431,7 @@ socialDependencies:
 ### Cross-Layer Reference Validation
 
 ```yaml
-Validation Rules:
-  1. Actor.businessActorRef must reference valid BusinessActor
+Validation Rules: 1. Actor.businessActorRef must reference valid BusinessActor
   2. Actor.stakeholderRef must reference valid Stakeholder
   3. ActorObjective.motivationGoalRef must reference valid Goal
   4. Threat.assessmentRef must reference valid Assessment
@@ -437,6 +444,7 @@ Validation Rules:
 ## Best Practices
 
 ### 1. Always Start with Motivation
+
 ```yaml
 # Define WHY first
 1. Identify Stakeholders
@@ -456,6 +464,7 @@ Validation Rules:
 ```
 
 ### 2. Use Properties for Security Details
+
 ```yaml
 # Motivation Requirement stays business-focused
 requirement:
@@ -472,6 +481,7 @@ properties:
 ```
 
 ### 3. Maintain Bidirectional Traceability
+
 ```yaml
 # Forward: Stakeholder → Actor
 stakeholder:
@@ -484,6 +494,7 @@ actors = find_actors_by_stakeholder("stakeholder-pm")
 ```
 
 ### 4. Document Rationale
+
 ```yaml
 # In Motivation Layer, explain WHY
 requirement:
@@ -505,6 +516,7 @@ threat:
 ## Summary
 
 The integrated layer approach provides:
+
 - **Clear separation of concerns**: WHY (Motivation) vs WHO (Business) vs WHAT/HOW (Security)
 - **Single source of truth**: Requirements, actors, and commitments defined once
 - **Complete traceability**: From business goals to security controls

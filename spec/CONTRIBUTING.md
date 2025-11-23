@@ -122,31 +122,38 @@ Discussion period: 30+ days
 
 ```markdown
 ## Summary
+
 [Brief description of changes]
 
 ## Related Issue(s)
+
 Fixes #[issue number]
 Relates to #[issue number]
 
 ## Type of Change
+
 - [ ] Editorial (typo, formatting)
 - [ ] Informative (examples, guides)
 - [ ] Normative (entity definitions, validation rules)
 - [ ] Breaking (incompatible with previous version)
 
 ## Changes Made
+
 - [Bullet list of specific changes]
 
 ## Testing
+
 - [How were changes validated?]
 
 ## Documentation
+
 - [ ] Updated layer documentation
 - [ ] Updated schemas
 - [ ] Updated examples
 - [ ] Updated CHANGELOG.md
 
 ## Breaking Changes
+
 [If applicable, describe breaking changes and migration path]
 ```
 
@@ -163,6 +170,7 @@ Use RFC 2119 keywords:
 - **MAY**, **OPTIONAL** - Truly optional
 
 **Example:**
+
 ```markdown
 Entity IDs MUST be unique within their layer.
 Entity names SHOULD follow kebab-case convention.
@@ -198,7 +206,7 @@ Use YAML for examples:
 ```yaml
 # Good: Clear, commented example
 Entity:
-  id: "example-entity"  # Unique identifier
+  id: "example-entity" # Unique identifier
   name: "Example Entity"
   type: "EntityType"
   # Optional documentation
@@ -214,9 +222,9 @@ Use JSON for schemas:
   "type": "object",
   "required": ["id", "name", "type"],
   "properties": {
-    "id": {"type": "string"},
-    "name": {"type": "string"},
-    "type": {"type": "string"}
+    "id": { "type": "string" },
+    "name": { "type": "string" },
+    "type": { "type": "string" }
   }
 }
 ```

@@ -1,10 +1,13 @@
 """
 Conformance command for displaying specification conformance information.
 """
+
 import json
+
 import click
-from ..spec_version import get_conformance_statement, SPEC_VERSION, CONFORMANCE_LEVEL
-from ..utils.output import print_success, print_info, print_table
+
+from ..spec_version import get_conformance_statement
+from ..utils.output import print_info, print_success, print_table
 
 
 @click.command()

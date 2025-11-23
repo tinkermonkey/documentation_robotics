@@ -66,7 +66,7 @@ implementation:
 
 specification:
   version: "1.0.0"
-  conformanceLevel: "full"  # basic, standard, or full
+  conformanceLevel: "full" # basic, standard, or full
 
 layers:
   motivation: true
@@ -100,14 +100,15 @@ attestation: "We certify that this implementation conforms to the specification.
 
 ## Known Conformant Implementations
 
-| Implementation | Version | Conformance Level | Spec Version |
-|----------------|---------|-------------------|--------------|
-| dr CLI | 0.3.0 | Full | 1.0.0 |
-| (Add yours here) | - | - | - |
+| Implementation   | Version | Conformance Level | Spec Version |
+| ---------------- | ------- | ----------------- | ------------ |
+| dr CLI           | 0.3.0   | Full              | 1.0.0        |
+| (Add yours here) | -       | -                 | -            |
 
 ## Questions
 
 For questions about conformance:
+
 - Review [conformance-levels.md](conformance-levels.md)
 - Check [test-suite.md](test-suite.md)
 - See [certification-process.md](certification-process.md)
@@ -116,6 +117,7 @@ For questions about conformance:
 ---
 
 **Next Steps:**
+
 1. Read [conformance-levels.md](conformance-levels.md) to choose a level
 2. Review [test-suite.md](test-suite.md) to understand requirements
 3. Follow [certification-process.md](certification-process.md) to claim conformance

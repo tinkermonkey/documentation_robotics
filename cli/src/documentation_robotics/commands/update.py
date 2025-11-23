@@ -1,10 +1,13 @@
 """
 Update an existing element.
 """
-import click
+
 from pathlib import Path
-from rich.console import Console
+
+import click
 import yaml
+from rich.console import Console
+
 from ..core.model import Model
 
 console = Console()

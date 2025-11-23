@@ -10,12 +10,12 @@ Implementations of the Federated Architecture Metadata Model can claim conforman
 
 ### Required Layers
 
-| Layer | Standard | Required |
-|-------|----------|----------|
-| 01 - Motivation | ArchiMate 3.2 | ✅ Yes |
-| 02 - Business | ArchiMate 3.2 | ✅ Yes |
-| 03 - Security | Custom | ✅ Yes |
-| 04 - Application | ArchiMate 3.2 | ✅ Yes |
+| Layer            | Standard      | Required |
+| ---------------- | ------------- | -------- |
+| 01 - Motivation  | ArchiMate 3.2 | ✅ Yes   |
+| 02 - Business    | ArchiMate 3.2 | ✅ Yes   |
+| 03 - Security    | Custom        | ✅ Yes   |
+| 04 - Application | ArchiMate 3.2 | ✅ Yes   |
 
 ### Required Capabilities
 
@@ -51,6 +51,7 @@ Implementations MUST:
 ### Test Requirements
 
 MUST pass:
+
 - All valid test fixtures for layers 01-04
 - All invalid test fixtures for layers 01-04
 - Cross-layer reference tests for layers 01-04
@@ -76,12 +77,12 @@ specVersion: "1.0.0"
 
 All Basic layers, plus:
 
-| Layer | Standard | Required |
-|-------|----------|----------|
-| 05 - Technology | ArchiMate 3.2 | ✅ Yes |
-| 06 - API | OpenAPI 3.0 | ✅ Yes |
-| 07 - Data Model | JSON Schema Draft 7 | ✅ Yes |
-| 08 - Datastore | SQL DDL | ✅ Yes |
+| Layer           | Standard            | Required |
+| --------------- | ------------------- | -------- |
+| 05 - Technology | ArchiMate 3.2       | ✅ Yes   |
+| 06 - API        | OpenAPI 3.0         | ✅ Yes   |
+| 07 - Data Model | JSON Schema Draft 7 | ✅ Yes   |
+| 08 - Datastore  | SQL DDL             | ✅ Yes   |
 
 ### Additional Capabilities
 
@@ -125,6 +126,7 @@ Beyond Basic level, implementations MUST:
 ### Test Requirements
 
 MUST pass:
+
 - All Basic level tests
 - All valid test fixtures for layers 05-08
 - All invalid test fixtures for layers 05-08
@@ -151,11 +153,11 @@ specVersion: "1.0.0"
 
 All Standard layers, plus:
 
-| Layer | Standard | Required |
-|-------|----------|----------|
-| 09 - UX | Custom | ✅ Yes |
-| 10 - Navigation | Custom | ✅ Yes |
-| 11 - APM/Observability | OpenTelemetry 1.0+ | ✅ Yes |
+| Layer                  | Standard           | Required |
+| ---------------------- | ------------------ | -------- |
+| 09 - UX                | Custom             | ✅ Yes   |
+| 10 - Navigation        | Custom             | ✅ Yes   |
+| 11 - APM/Observability | OpenTelemetry 1.0+ | ✅ Yes   |
 
 ### Additional Capabilities
 
@@ -202,6 +204,7 @@ Beyond Standard level, implementations MUST:
 ### Test Requirements
 
 MUST pass:
+
 - All Standard level tests
 - All valid test fixtures for layers 09-11
 - All invalid test fixtures for layers 09-11
@@ -213,7 +216,20 @@ MUST pass:
 
 ```yaml
 conformanceLevel: "full"
-layers: [motivation, business, security, application, technology, api, data-model, datastore, ux, navigation, apm]
+layers:
+  [
+    motivation,
+    business,
+    security,
+    application,
+    technology,
+    api,
+    data-model,
+    datastore,
+    ux,
+    navigation,
+    apm,
+  ]
 specVersion: "1.0.0"
 ```
 
@@ -221,36 +237,39 @@ specVersion: "1.0.0"
 
 ## Conformance Comparison
 
-| Capability | Basic | Standard | Full |
-|------------|-------|----------|------|
-| **Layers** | 4 | 8 | 11 |
-| **ArchiMate** | ✅ | ✅ | ✅ |
-| **Security** | ✅ | ✅ | ✅ |
-| **API (OpenAPI)** | ❌ | ✅ | ✅ |
-| **Data (JSON Schema)** | ❌ | ✅ | ✅ |
-| **Database** | ❌ | ✅ | ✅ |
-| **UX** | ❌ | ❌ | ✅ |
-| **Navigation** | ❌ | ❌ | ✅ |
-| **Observability** | ❌ | ❌ | ✅ |
-| **Traceability** | Partial | Good | Complete |
-| **Export Formats** | 2 | 5+ | 8+ |
+| Capability             | Basic   | Standard | Full     |
+| ---------------------- | ------- | -------- | -------- |
+| **Layers**             | 4       | 8        | 11       |
+| **ArchiMate**          | ✅      | ✅       | ✅       |
+| **Security**           | ✅      | ✅       | ✅       |
+| **API (OpenAPI)**      | ❌      | ✅       | ✅       |
+| **Data (JSON Schema)** | ❌      | ✅       | ✅       |
+| **Database**           | ❌      | ✅       | ✅       |
+| **UX**                 | ❌      | ❌       | ✅       |
+| **Navigation**         | ❌      | ❌       | ✅       |
+| **Observability**      | ❌      | ❌       | ✅       |
+| **Traceability**       | Partial | Good     | Complete |
+| **Export Formats**     | 2       | 5+       | 8+       |
 
 ## Choosing a Conformance Level
 
-### Choose Basic If:
+### Choose Basic If
+
 - ✅ Small to medium projects
 - ✅ Focus on requirements and architecture
 - ✅ Don't need API/data modeling
 - ✅ Need basic traceability (goals → components)
 
-### Choose Standard If:
+### Choose Standard If
+
 - ✅ Software development projects
 - ✅ Need API specifications
 - ✅ Need data modeling
 - ✅ Need database design
 - ✅ Most common use case
 
-### Choose Full If:
+### Choose Full If
+
 - ✅ Enterprise projects
 - ✅ Multi-channel experiences (web, mobile, voice, etc.)
 - ✅ Need complete traceability (goal → UX → API → DB → metrics)
@@ -260,6 +279,7 @@ specVersion: "1.0.0"
 ## Partial Conformance
 
 Implementations MAY support layers selectively (e.g., layers 01, 02, 04, 06, 07) but:
+
 - MUST NOT claim a conformance level
 - SHOULD document which layers are supported
 - SHOULD pass tests for supported layers

@@ -14,6 +14,7 @@ The Navigation Layer defines the application's routing, navigation flows, and tr
 ## Why Custom?
 
 No existing standard covers our navigation needs:
+
 - **URL Routing**: Too framework-specific and web-centric (React Router, Vue Router, etc.)
 - **OpenAPI paths**: Focused on API, not experience navigation
 - **Sitemap XML**: Too simplistic, no guards or flows
@@ -21,6 +22,7 @@ No existing standard covers our navigation needs:
 - **Voice flow specs**: Channel-specific, not unified
 
 Our Navigation spec provides:
+
 1. Channel-agnostic route definitions
 2. Navigation transitions and flows
 3. Guard conditions for access control
@@ -30,6 +32,7 @@ Our Navigation spec provides:
 ## Entity Definitions
 
 ### NavigationGraph
+
 ```yaml
 NavigationGraph:
   description: "Complete navigation structure for application"
@@ -51,6 +54,7 @@ NavigationGraph:
 ```
 
 ### Route
+
 ```yaml
 Route:
   description: "Single route/destination in the application (channel-agnostic)"
@@ -84,9 +88,9 @@ Route:
 
   enums:
     RouteType:
-      - experience    # Routes to an experience
-      - redirect      # Redirects to another route
-      - external      # Links to external resource
+      - experience # Routes to an experience
+      - redirect # Redirects to another route
+      - external # Links to external resource
 
   examples:
     # Visual route (URL-based)
@@ -149,6 +153,7 @@ Route:
 ```
 
 ### RouteMeta
+
 ```yaml
 RouteMeta:
   description: "Route metadata"
@@ -176,6 +181,7 @@ RouteMeta:
 ```
 
 ### NavigationTransition
+
 ```yaml
 NavigationTransition:
   description: "Transition from one route to another"
@@ -190,15 +196,15 @@ NavigationTransition:
 
   enums:
     NavigationTrigger:
-      - user-action    # User initiated (click, voice command, etc.)
-      - submit         # Form/data submission
-      - success        # Previous action succeeded
-      - failure        # Previous action failed
-      - cancel         # User cancelled
-      - automatic      # Automatic navigation
-      - deeplink       # Deep link activation
-      - back           # Navigate back
-      - timeout        # Time-based trigger
+      - user-action # User initiated (click, voice command, etc.)
+      - submit # Form/data submission
+      - success # Previous action succeeded
+      - failure # Previous action failed
+      - cancel # User cancelled
+      - automatic # Automatic navigation
+      - deeplink # Deep link activation
+      - back # Navigate back
+      - timeout # Time-based trigger
 
   examples:
     # List to detail
@@ -234,6 +240,7 @@ NavigationTransition:
 ```
 
 ### NavigationGuard
+
 ```yaml
 NavigationGuard:
   description: "Guard condition for route access"
@@ -258,11 +265,11 @@ NavigationGuard:
 
   enums:
     GuardType:
-      - authentication  # User must be logged in
-      - authorization   # User must have role/permission
-      - validation      # Route params must be valid
-      - data-loaded     # Required data must be loaded
-      - custom          # Custom guard logic
+      - authentication # User must be logged in
+      - authorization # User must have role/permission
+      - validation # Route params must be valid
+      - data-loaded # Required data must be loaded
+      - custom # Custom guard logic
 
     HttpMethod:
       - GET
@@ -284,7 +291,7 @@ NavigationGuard:
       onDeny:
         action: redirect
         target: "/login"
-        preserveUrl: true  # Return to requested page after login
+        preserveUrl: true # Return to requested page after login
 
     # Role-based authorization
     - name: "admin-only"
@@ -338,6 +345,7 @@ NavigationGuard:
 ```
 
 ### GuardCondition
+
 ```yaml
 GuardCondition:
   description: "Condition expression for guard"
@@ -364,6 +372,7 @@ GuardCondition:
 ```
 
 ### GuardAction
+
 ```yaml
 GuardAction:
   description: "Action when guard denies access"
@@ -396,6 +405,7 @@ GuardAction:
 ```
 
 ### NavigationFlow
+
 ```yaml
 NavigationFlow:
   description: "Sequence of routes that realizes a business process"
@@ -443,6 +453,7 @@ NavigationFlow:
 ```
 
 ### FlowStep
+
 ```yaml
 FlowStep:
   description: "One step in a navigation flow"
@@ -566,6 +577,7 @@ FlowStep:
 ```
 
 ### ContextVariable
+
 ```yaml
 ContextVariable:
   description: "Shared variable across flow steps (Gap #1: Cross-experience state)"
@@ -578,16 +590,16 @@ ContextVariable:
 
   enums:
     ContextScope:
-      - flow        # Scoped to this flow instance
-      - session     # Scoped to user session
-      - user        # Scoped to user (persisted)
+      - flow # Scoped to this flow instance
+      - session # Scoped to user session
+      - user # Scoped to user (persisted)
 
     StorageType:
-      - memory          # In-memory only
+      - memory # In-memory only
       - session-storage # Browser session storage
-      - local-storage   # Browser local storage
-      - server-session  # Server-side session
-      - database        # Persisted to DB
+      - local-storage # Browser local storage
+      - server-session # Server-side session
+      - database # Persisted to DB
 
   examples:
     # Shopping cart (session-scoped)
@@ -616,6 +628,7 @@ ContextVariable:
 ```
 
 ### DataMapping
+
 ```yaml
 DataMapping:
   description: "Maps data between flow context and experience (Gap #2: Data handoff)"
@@ -647,6 +660,7 @@ DataMapping:
 ```
 
 ### ProcessTracking
+
 ```yaml
 ProcessTracking:
   description: "Tracks business process instance across flow (Gap #3: Process correlation)"
@@ -669,6 +683,7 @@ ProcessTracking:
 ```
 
 ### FlowAnalytics
+
 ```yaml
 FlowAnalytics:
   description: "Analytics for funnel tracking (Gap #9: Funnel analytics)"
@@ -694,6 +709,7 @@ FlowAnalytics:
 ```
 
 ### NotificationAction
+
 ```yaml
 NotificationAction:
   description: "Notification to send during flow step"
@@ -1057,7 +1073,7 @@ flows:
               transform: "addToCart(product, quantity)"
         nextStep:
           onSuccess: 3
-          onCancel: 1  # Back to list (Gap #8: Error recovery)
+          onCancel: 1 # Back to list (Gap #8: Error recovery)
 
       # Step 3: Checkout (Gap #5: Conditional branching)
       - sequence: 3
@@ -1090,8 +1106,8 @@ flows:
           compensationAction: "refundPayment"
         nextStep:
           onSuccess: 4
-          onFailure: 2  # Payment failed, return to product detail
-          onCancel: 1   # Cancel checkout
+          onFailure: 2 # Payment failed, return to product detail
+          onCancel: 1 # Cancel checkout
 
       # Step 4: Confirmation
       - sequence: 4
@@ -1201,7 +1217,7 @@ flows:
             recipients: "$.order.approverEmail"
         nextStep:
           onSuccess: 3
-          onFailure: 1  # Rejection, return to review
+          onFailure: 1 # Rejection, return to review
 
       - sequence: 3
         route: "order-processing"
@@ -1218,6 +1234,7 @@ flows:
 ## Integration Points
 
 ### To Motivation Layer
+
 - **Principles guide navigation**: `NavigationGraph.governedByPrinciples` ensures navigation follows UX Principles (user-centric, accessibility, multi-channel, etc.)
 - **Flows support Goals**: `NavigationFlow.motivation.supportsGoals` links user journeys to business objectives, enabling goal-based impact analysis
 - **Flows deliver Value**: `NavigationFlow.motivation.deliversValue` shows which stakeholder values are delivered through user journeys
@@ -1227,16 +1244,19 @@ flows:
 - **Compliance support**: NavigationGuard → Requirement traceability is critical for security audits (SOC 2, ISO 27001, NIST)
 
 ### To Business Layer
+
 - **NavigationFlow realizes BusinessProcess**: `NavigationFlow.business.realizesProcess` links flows to BusinessProcess entities
 - **Flows realize BusinessServices**: `NavigationFlow.business.realizesServices` shows which services are delivered through the flow
 - **Process instance tracking**: `ProcessTracking.processInstanceId` correlates UX flow with business process instances
 - **End-to-end traceability**: BusinessProcess → NavigationFlow → UXSpec → Implementation provides complete audit trail
 
 ### To ArchiMate Application Layer
+
 - Route references ApplicationComponent via archimateRef
 - Navigation structure maps to application structure
 
 ### To UX Layer
+
 - **Route to Experience**: Route.experience references UX spec file
 - **View to Route**: View.route references Route.identifier
 - **Action navigation**: ActionComponent navigation actions reference Route.identifier
@@ -1245,6 +1265,7 @@ flows:
 - **Data handoff**: FlowStep.dataTransfer maps data between flow context and UX experience state
 
 ### To API Layer
+
 - **Guards call API operations**: `NavigationGuard.api.operationId` explicitly references API operations used for validation (e.g., checking resource existence, authorization)
 - **Guard API methods**: `NavigationGuard.api.method` specifies HTTP method used for guard validation calls
 - **Experience state actions**: Trigger navigation transitions
@@ -1253,17 +1274,20 @@ flows:
 - **Dependency analysis**: Explicit guard → API links enable architectural analysis of navigation dependencies
 
 ### To Security Layer
+
 - RouteMeta.roles/permissions reference SecurityModel
 - NavigationGuard enforces access control
 - Authentication/authorization integration
 - **Collaborative flows**: FlowStep.collaboration.assignedTo enforces role-based task assignment
 
 ### To Data Model Layer
+
 - **Context variables**: ContextVariable.schemaRef references JSON Schema definitions
 - **Type safety**: Shared context variables are typed via JSON Schema
 - **Data validation**: DataMapping ensures type-safe data transfer between experiences
 
 ### To APM/Observability Layer
+
 - **Funnel metrics**: FlowAnalytics.funnelMetrics tracks conversion through flow steps
 - **Drop-off alerts**: FlowAnalytics.dropoffAlerts triggers alerts when users abandon flows
 - **Process monitoring**: ProcessTracking enables flow instance monitoring and recovery
@@ -1368,6 +1392,7 @@ Consistency Warnings:
 ## Best Practices
 
 ### Core Navigation
+
 1. **Unique Identifiers**: Every route must have a unique identifier
 2. **Guards**: Use guards for authentication and authorization
 3. **Channel Addressing**: Provide appropriate addressing for each channel (URL, intent, event, keyword)
@@ -1380,6 +1405,7 @@ Consistency Warnings:
 10. **Multi-channel**: Design routes that can work across multiple channels where appropriate
 
 ### NavigationFlow Best Practices (NEW)
+
 11. **Flow Scope**: Create one flow per business process or major user journey
 12. **Shared Context**: Use shared context for data that needs to persist across multiple experiences
 13. **Data Handoff**: Always use DataMapping for explicit data transfer between steps
@@ -1469,16 +1495,16 @@ Testing:
 
 NavigationFlow addresses the following identified gaps:
 
-| Gap | NavigationFlow Feature | How It's Addressed |
-|-----|----------------------|-------------------|
-| **#1: Cross-experience state** | `sharedContext` with `ContextVariable` | Variables scoped to flow/session/user with configurable persistence |
-| **#2: Data handoff** | `dataTransfer` with `DataMapping` | Explicit input/output mappings between steps with transformations |
-| **#3: Process correlation** | `processTracking` with `processInstanceId` | Correlates flow instances to business process instances, enables resumability |
-| **#4: Multi-user workflows** | `FlowStep.collaboration` | Assignment, approval waits, notifications |
-| **#5: Conditional branching** | `FlowStep.condition` + `nextStep` branching | Guards on steps, onSuccess/onFailure/onCancel paths |
-| **#6: Compensating transactions** | `FlowStep.compensation` | Rollback steps and compensation actions for failed transactions |
-| **#7: Async integration** | `FlowStep.async` | Polling, webhooks, status endpoints for long-running operations |
-| **#8: Error recovery** | `nextStep.onFailure` + `onCancel` | Explicit fallback and cancel paths |
-| **#9: Funnel analytics** | `FlowAnalytics` | Funnel metrics, conversion goals, drop-off alerts |
+| Gap                               | NavigationFlow Feature                      | How It's Addressed                                                            |
+| --------------------------------- | ------------------------------------------- | ----------------------------------------------------------------------------- |
+| **#1: Cross-experience state**    | `sharedContext` with `ContextVariable`      | Variables scoped to flow/session/user with configurable persistence           |
+| **#2: Data handoff**              | `dataTransfer` with `DataMapping`           | Explicit input/output mappings between steps with transformations             |
+| **#3: Process correlation**       | `processTracking` with `processInstanceId`  | Correlates flow instances to business process instances, enables resumability |
+| **#4: Multi-user workflows**      | `FlowStep.collaboration`                    | Assignment, approval waits, notifications                                     |
+| **#5: Conditional branching**     | `FlowStep.condition` + `nextStep` branching | Guards on steps, onSuccess/onFailure/onCancel paths                           |
+| **#6: Compensating transactions** | `FlowStep.compensation`                     | Rollback steps and compensation actions for failed transactions               |
+| **#7: Async integration**         | `FlowStep.async`                            | Polling, webhooks, status endpoints for long-running operations               |
+| **#8: Error recovery**            | `nextStep.onFailure` + `onCancel`           | Explicit fallback and cancel paths                                            |
+| **#9: Funnel analytics**          | `FlowAnalytics`                             | Funnel metrics, conversion goals, drop-off alerts                             |
 
 This Navigation Layer provides a comprehensive, channel-agnostic way to define application navigation with full support for guards, multi-channel routing, and business process orchestration through NavigationFlows.

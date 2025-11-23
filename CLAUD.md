@@ -197,6 +197,7 @@ pytest tests/integration/
 ### Phase 3 Completion (v0.3.0)
 
 The CLI recently completed Phase 3, which added:
+
 - Export capabilities for 6+ formats
 - Full cross-layer dependency tracking
 - Projection engine for impact analysis
@@ -242,16 +243,19 @@ The CLI recently completed Phase 3, which added:
 ## Testing Strategy
 
 ### Unit Tests
+
 - Test individual components in isolation
 - Mock external dependencies
 - Focus on edge cases and error handling
 
 ### Integration Tests
+
 - Test complete command workflows
 - Use temporary directories for test models
 - Verify end-to-end functionality
 
 ### Test Fixtures
+
 - Common test data in `conftest.py`
 - Reusable model builders
 - Sample elements for each layer
@@ -259,6 +263,7 @@ The CLI recently completed Phase 3, which added:
 ## Future Considerations
 
 The repository structure supports future additions:
+
 - Web UI in `web/` directory
 - REST API server in `api/` directory
 - Plugin system in `plugins/` directory
@@ -268,6 +273,7 @@ The repository structure supports future additions:
 ### Approved Commands
 
 When working with this project, you have pre-approved access to:
+
 - `python3` commands
 - `source .venv/bin/activate`
 - `dr validate`
@@ -294,6 +300,7 @@ When working with this project, you have pre-approved access to:
 ## Contact and Support
 
 This is a local development project. For issues or questions, refer to:
+
 - CLI documentation in `cli/README.md`
 - Design documents in `cli/docs/`
 - Metadata model specifications in `documentation/01_metadata_model/`

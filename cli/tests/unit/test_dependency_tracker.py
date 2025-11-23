@@ -1,9 +1,10 @@
 """Unit tests for DependencyTracker."""
+
 import pytest
 from documentation_robotics.core.dependency_tracker import (
+    DependencyPath,
     DependencyTracker,
     TraceDirection,
-    DependencyPath
 )
 from documentation_robotics.core.element import Element
 from documentation_robotics.core.reference_registry import ReferenceDefinition
@@ -29,7 +30,7 @@ class TestDependencyPath:
             target="c",
             path=["a", "b", "c"],
             depth=2,
-            relationship_types=["uses", "serves"]
+            relationship_types=["uses", "serves"],
         )
 
         assert path.source == "a"
@@ -45,35 +46,37 @@ class TestDependencyTracker:
     def model_with_deps(self, initialized_model):
         """Create a model with dependencies."""
         # Add reference definitions to the registry
-        initialized_model.reference_registry.reference_definitions.extend([
-            ReferenceDefinition(
-                layer="application",
-                element_type="service",
-                property_path="realizes",
-                target_layer="business",
-                target_type="service",
-                reference_type="realization",
-                required=False,
-                cardinality="0..1"
-            ),
-            ReferenceDefinition(
-                layer="api",
-                element_type="operation",
-                property_path="applicationServiceRef",
-                target_layer="application",
-                target_type="service",
-                reference_type="uses",
-                required=False,
-                cardinality="0..1"
-            )
-        ])
+        initialized_model.reference_registry.reference_definitions.extend(
+            [
+                ReferenceDefinition(
+                    layer="application",
+                    element_type="service",
+                    property_path="realizes",
+                    target_layer="business",
+                    target_type="service",
+                    reference_type="realization",
+                    required=False,
+                    cardinality="0..1",
+                ),
+                ReferenceDefinition(
+                    layer="api",
+                    element_type="operation",
+                    property_path="applicationServiceRef",
+                    target_layer="application",
+                    target_type="service",
+                    reference_type="uses",
+                    required=False,
+                    cardinality="0..1",
+                ),
+            ]
+        )
 
         # Business service
         biz_service = Element(
             id="business.service.customer-mgmt",
             element_type="service",
             layer="business",
-            data={"name": "Customer Management"}
+            data={"name": "Customer Management"},
         )
         initialized_model.add_element("business", biz_service)
 
@@ -82,10 +85,7 @@ class TestDependencyTracker:
             id="application.service.customer-svc",
             element_type="service",
             layer="application",
-            data={
-                "name": "Customer Service",
-                "realizes": "business.service.customer-mgmt"
-            }
+            data={"name": "Customer Service", "realizes": "business.service.customer-mgmt"},
         )
         initialized_model.add_element("application", app_service)
 
@@ -96,8 +96,8 @@ class TestDependencyTracker:
             layer="api",
             data={
                 "name": "Get Customer",
-                "applicationServiceRef": "application.service.customer-svc"
-            }
+                "applicationServiceRef": "application.service.customer-svc",
+            },
         )
         initialized_model.add_element("api", api_op)
 
@@ -114,10 +114,7 @@ class TestDependencyTracker:
         """Test tracing downward dependencies."""
         tracker = DependencyTracker(model_with_deps)
 
-        deps = tracker.trace_dependencies(
-            "business.service.customer-mgmt",
-            TraceDirection.DOWN
-        )
+        deps = tracker.trace_dependencies("business.service.customer-mgmt", TraceDirection.DOWN)
 
         # Should find application service that realizes it
         dep_ids = {d.id for d in deps}
@@ -127,10 +124,7 @@ class TestDependencyTracker:
         """Test tracing upward dependencies."""
         tracker = DependencyTracker(model_with_deps)
 
-        deps = tracker.trace_dependencies(
-            "api.operation.get-customer",
-            TraceDirection.UP
-        )
+        deps = tracker.trace_dependencies("api.operation.get-customer", TraceDirection.UP)
 
         # Should find application service it references
         dep_ids = {d.id for d in deps}
@@ -140,10 +134,7 @@ class TestDependencyTracker:
         """Test tracing both directions."""
         tracker = DependencyTracker(model_with_deps)
 
-        deps = tracker.trace_dependencies(
-            "application.service.customer-svc",
-            TraceDirection.BOTH
-        )
+        deps = tracker.trace_dependencies("application.service.customer-svc", TraceDirection.BOTH)
 
         dep_ids = {d.id for d in deps}
 
@@ -157,9 +148,7 @@ class TestDependencyTracker:
 
         # Depth 1 from business service
         deps = tracker.trace_dependencies(
-            "business.service.customer-mgmt",
-            TraceDirection.DOWN,
-            max_depth=1
+            "business.service.customer-mgmt", TraceDirection.DOWN, max_depth=1
         )
 
         dep_ids = {d.id for d in deps}
@@ -174,10 +163,7 @@ class TestDependencyTracker:
         """Test tracing nonexistent element."""
         tracker = DependencyTracker(initialized_model)
 
-        deps = tracker.trace_dependencies(
-            "nonexistent.element.id",
-            TraceDirection.BOTH
-        )
+        deps = tracker.trace_dependencies("nonexistent.element.id", TraceDirection.BOTH)
 
         assert len(deps) == 0
 
@@ -198,7 +184,7 @@ class TestDependencyTracker:
             id="business.service.orphan",
             element_type="service",
             layer="business",
-            data={"name": "Orphan Service"}
+            data={"name": "Orphan Service"},
         )
         initialized_model.add_element("business", orphan)
 
@@ -218,8 +204,8 @@ class TestDependencyTracker:
                 layer="api",
                 data={
                     "name": f"Operation {i}",
-                    "applicationServiceRef": "application.service.customer-svc"
-                }
+                    "applicationServiceRef": "application.service.customer-svc",
+                },
             )
             model_with_deps.add_element("api", elem)
 
@@ -235,8 +221,7 @@ class TestDependencyTracker:
         tracker = DependencyTracker(model_with_deps)
 
         paths = tracker.find_dependency_paths(
-            "api.operation.get-customer",
-            "business.service.customer-mgmt"
+            "api.operation.get-customer", "business.service.customer-mgmt"
         )
 
         assert len(paths) >= 1
@@ -248,11 +233,7 @@ class TestDependencyTracker:
         tracker = DependencyTracker(model_with_deps)
         graph = tracker.registry.get_dependency_graph()
 
-        ancestors = tracker._trace_up(
-            graph,
-            "api.operation.get-customer",
-            max_depth=None
-        )
+        ancestors = tracker._trace_up(graph, "api.operation.get-customer", max_depth=None)
 
         assert "application.service.customer-svc" in ancestors
 
@@ -261,10 +242,6 @@ class TestDependencyTracker:
         tracker = DependencyTracker(model_with_deps)
         graph = tracker.registry.get_dependency_graph()
 
-        descendants = tracker._trace_down(
-            graph,
-            "business.service.customer-mgmt",
-            max_depth=None
-        )
+        descendants = tracker._trace_down(graph, "business.service.customer-mgmt", max_depth=None)
 
         assert "application.service.customer-svc" in descendants

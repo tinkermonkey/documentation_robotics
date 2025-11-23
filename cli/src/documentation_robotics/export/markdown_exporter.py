@@ -1,10 +1,12 @@
 """
 Markdown documentation exporter.
 """
+
 from pathlib import Path
 from typing import List
-from .export_manager import BaseExporter
+
 from ..core.element import Element
+from .export_manager import BaseExporter
 
 
 class MarkdownExporter(BaseExporter):
@@ -37,9 +39,7 @@ class MarkdownExporter(BaseExporter):
         output_file = self.options.output_path / "README.md"
 
         with open(output_file, "w") as f:
-            f.write(
-                f"# {self.model.manifest.project.get('name', 'Architecture Model')}\n\n"
-            )
+            f.write(f"# {self.model.manifest.project.get('name', 'Architecture Model')}\n\n")
 
             # Description
             if "description" in self.model.manifest.project:
@@ -50,20 +50,16 @@ class MarkdownExporter(BaseExporter):
             f.write(
                 f"- **Total Elements**: {self.model.manifest.statistics.get('total_elements', 0)}\n"
             )
-            f.write(
-                f"- **Total Relationships**: {self.model.manifest.statistics.get('total_relationships', 0)}\n"
-            )
-            f.write(
-                f"- **Completeness**: {self.model.manifest.statistics.get('completeness', 0) * 100:.1f}%\n\n"
-            )
+            relationships = self.model.manifest.statistics.get("total_relationships", 0)
+            f.write(f"- **Total Relationships**: {relationships}\n")
+            completeness = self.model.manifest.statistics.get("completeness", 0) * 100
+            f.write(f"- **Completeness**: {completeness:.1f}%\n\n")
 
             # Layer overview
             f.write("## Layers\n\n")
             for layer_name, layer_config in self.model.manifest.layers.items():
                 element_count = sum(layer_config.get("elements", {}).values())
-                f.write(
-                    f"- [{layer_config['name']}]({layer_name}.md) ({element_count} elements)\n"
-                )
+                f.write(f"- [{layer_config['name']}]({layer_name}.md) ({element_count} elements)\n")
 
             f.write("\n")
 
@@ -173,9 +169,9 @@ class MarkdownExporter(BaseExporter):
                         app_services = self._find_realizing_services(element.id)
                         api_ops = self._find_api_operations(app_services)
 
-                        f.write(
-                            f"| {element.name} | {', '.join(app_services)} | {', '.join(api_ops)} |\n"
-                        )
+                        services_str = ", ".join(app_services)
+                        ops_str = ", ".join(api_ops)
+                        f.write(f"| {element.name} | {services_str} | {ops_str} |\n")
 
     def _find_realizing_services(self, business_service_id: str) -> List[str]:
         """Find application services that realize a business service."""

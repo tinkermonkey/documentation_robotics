@@ -1,13 +1,15 @@
 """
 Base validation classes and structures.
 """
-from typing import List, Optional
+
 from dataclasses import dataclass, field
+from typing import List, Optional
 
 
 @dataclass
 class ValidationIssue:
     """Represents a single validation issue."""
+
     layer: str
     element_id: Optional[str]
     message: str
@@ -19,6 +21,7 @@ class ValidationIssue:
 @dataclass
 class ValidationResult:
     """Represents validation results."""
+
     errors: List[ValidationIssue] = field(default_factory=list)
     warnings: List[ValidationIssue] = field(default_factory=list)
 
@@ -28,33 +31,37 @@ class ValidationResult:
         message: str,
         element_id: Optional[str] = None,
         location: Optional[str] = None,
-        fix: Optional[str] = None
+        fix: Optional[str] = None,
     ):
         """Add an error."""
-        self.errors.append(ValidationIssue(
-            layer=layer,
-            element_id=element_id,
-            message=message,
-            severity="error",
-            location=location,
-            fix_suggestion=fix
-        ))
+        self.errors.append(
+            ValidationIssue(
+                layer=layer,
+                element_id=element_id,
+                message=message,
+                severity="error",
+                location=location,
+                fix_suggestion=fix,
+            )
+        )
 
     def add_warning(
         self,
         layer: str,
         message: str,
         element_id: Optional[str] = None,
-        location: Optional[str] = None
+        location: Optional[str] = None,
     ):
         """Add a warning."""
-        self.warnings.append(ValidationIssue(
-            layer=layer,
-            element_id=element_id,
-            message=message,
-            severity="warning",
-            location=location
-        ))
+        self.warnings.append(
+            ValidationIssue(
+                layer=layer,
+                element_id=element_id,
+                message=message,
+                severity="warning",
+                location=location,
+            )
+        )
 
     def merge(self, other: "ValidationResult", prefix: str = ""):
         """Merge another result into this one."""
@@ -84,7 +91,7 @@ class ValidationResult:
                     "element_id": e.element_id,
                     "message": e.message,
                     "location": e.location,
-                    "fix": e.fix_suggestion
+                    "fix": e.fix_suggestion,
                 }
                 for e in self.errors
             ],
@@ -93,10 +100,10 @@ class ValidationResult:
                     "layer": w.layer,
                     "element_id": w.element_id,
                     "message": w.message,
-                    "location": w.location
+                    "location": w.location,
                 }
                 for w in self.warnings
-            ]
+            ],
         }
 
 

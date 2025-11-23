@@ -1,11 +1,8 @@
 """Unit tests for ProjectionEngine."""
+
 import pytest
-from pathlib import Path
-from documentation_robotics.core.projection_engine import (
-    ProjectionEngine,
-    ProjectionRule
-)
 from documentation_robotics.core.element import Element
+from documentation_robotics.core.projection_engine import ProjectionEngine, ProjectionRule
 
 
 class TestProjectionRule:
@@ -20,7 +17,7 @@ class TestProjectionRule:
             to_layer="application",
             to_type="service",
             name_template="{source.name}Service",
-            property_mappings={"realizes": "{source.id}"}
+            property_mappings={"realizes": "{source.id}"},
         )
 
         assert rule.name == "test-rule"
@@ -47,10 +44,7 @@ class TestProjectionEngine:
             to_layer="application",
             to_type="service",
             name_template="{source.name}",
-            property_mappings={
-                "realizes": "{source.id}",
-                "description": "Realizes {source.name}"
-            }
+            property_mappings={"realizes": "{source.id}", "description": "Realizes {source.name}"},
         )
 
     def test_engine_creation(self, mock_model):
@@ -63,7 +57,8 @@ class TestProjectionEngine:
     def test_engine_with_rules_file(self, mock_model, temp_dir):
         """Test creating engine with rules file."""
         rules_file = temp_dir / "test-projection-rules.yaml"
-        rules_file.write_text("""
+        rules_file.write_text(
+            """
 projections:
   - name: "test-rule"
     from: business.service
@@ -73,7 +68,8 @@ projections:
         name_template: "{source.name}"
         properties:
           realizes: "{source.id}"
-""")
+"""
+        )
 
         engine = ProjectionEngine(mock_model, rules_file)
 
@@ -89,7 +85,7 @@ projections:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Test Service"}
+            data={"name": "Test Service"},
         )
 
         rules = engine.find_applicable_rules(element, "application")
@@ -107,7 +103,7 @@ projections:
             id="technology.node.test",
             element_type="node",
             layer="technology",
-            data={"name": "Test Node"}
+            data={"name": "Test Node"},
         )
 
         rules = engine.find_applicable_rules(element, "application")
@@ -122,7 +118,7 @@ projections:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Customer Management", "description": "Manages customers"}
+            data={"name": "Customer Management", "description": "Manages customers"},
         )
 
         result = engine._render_template("{source.name}", element)
@@ -139,7 +135,7 @@ projections:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Customer Management"}
+            data={"name": "Customer Management"},
         )
 
         # Kebab case
@@ -162,7 +158,7 @@ projections:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Customer"}
+            data={"name": "Customer"},
         )
 
         result = engine._render_template("{{source.name}}Service", element)
@@ -176,7 +172,7 @@ projections:
             id="business.service.customer-mgmt",
             element_type="service",
             layer="business",
-            data={"name": "Customer Management", "description": "Manages customers"}
+            data={"name": "Customer Management", "description": "Manages customers"},
         )
 
         projected = engine._build_projected_element(source, simple_rule)
@@ -195,7 +191,7 @@ projections:
             id="business.service.test",
             element_type="service",
             layer="business",
-            data={"name": "Test Service"}
+            data={"name": "Test Service"},
         )
 
         # Add source to model first
@@ -217,7 +213,7 @@ projections:
             id="test.element.1",
             element_type="test",
             layer="test",
-            data={"status": "active", "type": "primary"}
+            data={"status": "active", "type": "primary"},
         )
 
         conditions = {"status": "active"}
@@ -228,10 +224,7 @@ projections:
         engine = ProjectionEngine(mock_model)
 
         element = Element(
-            id="test.element.1",
-            element_type="test",
-            layer="test",
-            data={"status": "inactive"}
+            id="test.element.1", element_type="test", layer="test", data={"status": "inactive"}
         )
 
         conditions = {"status": "active"}
@@ -242,10 +235,7 @@ projections:
         engine = ProjectionEngine(mock_model)
 
         element = Element(
-            id="test.element.1",
-            element_type="test",
-            layer="test",
-            data={"status": "active"}
+            id="test.element.1", element_type="test", layer="test", data={"status": "active"}
         )
 
         conditions = {"status": ["active", "pending"]}
@@ -276,11 +266,13 @@ projections:
             "name": "test-rule",
             "from": "business.service",
             "to": "application.service",
-            "rules": [{
-                "create_type": "service",
-                "name_template": "{source.name}",
-                "properties": {"realizes": "{source.id}"}
-            }]
+            "rules": [
+                {
+                    "create_type": "service",
+                    "name_template": "{source.name}",
+                    "properties": {"realizes": "{source.id}"},
+                }
+            ],
         }
 
         rule = engine._parse_rule(rule_data)

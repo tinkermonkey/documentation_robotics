@@ -36,6 +36,7 @@ spec/test-fixtures/
 **Requirement:** Implementations MUST accept these as valid and store/retrieve them correctly.
 
 **Coverage:**
+
 - Minimal valid examples (only required fields)
 - Complete valid examples (all fields)
 - Edge cases within valid range
@@ -49,6 +50,7 @@ spec/test-fixtures/
 **Requirement:** Implementations MUST reject these with appropriate errors.
 
 **Categories:**
+
 - `missing-required/` - Missing required attributes
 - `invalid-types/` - Wrong data types
 - `invalid-enums/` - Invalid enum values
@@ -63,6 +65,7 @@ spec/test-fixtures/
 **Requirement:** Implementations MUST validate references between layers.
 
 **Tests:**
+
 - API operations reference valid schemas
 - UX states reference valid API operations
 - Navigation routes reference valid UX experiences
@@ -202,7 +205,7 @@ data:
       states:
         - id: "products-loaded"
           api:
-            operationId: "listProducts"  # References API operation above
+            operationId: "listProducts" # References API operation above
 ```
 
 ## Test Coverage Requirements
@@ -210,6 +213,7 @@ data:
 ### Level 1: Basic Conformance
 
 MUST pass:
+
 - ✅ All valid fixtures for layers 01-04 (minimum 10 per layer)
 - ✅ All invalid fixtures for layers 01-04 (minimum 5 per layer)
 - ✅ Cross-layer tests: Application → Motivation
@@ -218,6 +222,7 @@ MUST pass:
 ### Level 2: Standard Conformance
 
 MUST pass:
+
 - ✅ All Basic tests
 - ✅ All valid fixtures for layers 05-08
 - ✅ All invalid fixtures for layers 05-08
@@ -228,6 +233,7 @@ MUST pass:
 ### Level 3: Full Conformance
 
 MUST pass:
+
 - ✅ All Standard tests
 - ✅ All valid fixtures for layers 09-11
 - ✅ All invalid fixtures for layers 09-11
@@ -259,7 +265,7 @@ conformanceReport:
 
     invalid:
       total: 45
-      passed: 45  # Correctly rejected
+      passed: 45 # Correctly rejected
       failed: 0
       passRate: 100%
 

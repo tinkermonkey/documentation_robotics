@@ -16,6 +16,7 @@ Conformance certification is a **self-certification process** with optional thir
 ### Step 1: Choose Conformance Level
 
 Select the appropriate level:
+
 - **Basic** - Layers 01-04
 - **Standard** - Layers 01-08
 - **Full** - Layers 01-11
@@ -66,21 +67,21 @@ conformanceStatement:
   specification:
     name: "Federated Architecture Metadata Model"
     version: "1.0.0"
-    conformanceLevel: "full"  # basic, standard, or full
+    conformanceLevel: "full" # basic, standard, or full
     url: "https://github.com/yourorg/documentation_robotics/tree/main/spec"
 
   layers:
-    01_motivation: {implemented: true, standard: "ArchiMate 3.2"}
-    02_business: {implemented: true, standard: "ArchiMate 3.2"}
-    03_security: {implemented: true, standard: "Custom"}
-    04_application: {implemented: true, standard: "ArchiMate 3.2"}
-    05_technology: {implemented: true, standard: "ArchiMate 3.2"}
-    06_api: {implemented: true, standard: "OpenAPI 3.0"}
-    07_data_model: {implemented: true, standard: "JSON Schema Draft 7"}
-    08_datastore: {implemented: true, standard: "SQL DDL"}
-    09_ux: {implemented: true, standard: "Custom"}
-    10_navigation: {implemented: true, standard: "Custom"}
-    11_apm: {implemented: true, standard: "OpenTelemetry 1.0+"}
+    01_motivation: { implemented: true, standard: "ArchiMate 3.2" }
+    02_business: { implemented: true, standard: "ArchiMate 3.2" }
+    03_security: { implemented: true, standard: "Custom" }
+    04_application: { implemented: true, standard: "ArchiMate 3.2" }
+    05_technology: { implemented: true, standard: "ArchiMate 3.2" }
+    06_api: { implemented: true, standard: "OpenAPI 3.0" }
+    07_data_model: { implemented: true, standard: "JSON Schema Draft 7" }
+    08_datastore: { implemented: true, standard: "SQL DDL" }
+    09_ux: { implemented: true, standard: "Custom" }
+    10_navigation: { implemented: true, standard: "Custom" }
+    11_apm: { implemented: true, standard: "OpenTelemetry 1.0+" }
 
   capabilities:
     entityManagement: true
@@ -116,6 +117,7 @@ conformanceStatement:
 Publish your conformance statement:
 
 1. **In Your README:**
+
    ```markdown
    ## Conformance
 
@@ -168,6 +170,7 @@ For official recognition, request third-party verification:
 ### Verification Criteria
 
 Implementations are verified against:
+
 - ✅ All conformance test pass
 - ✅ Documentation is accurate
 - ✅ Claims match actual capabilities
@@ -221,11 +224,13 @@ If you implement only some layers:
 
 1. **Do Not Claim a Conformance Level**
 2. **Document Supported Layers:**
+
    ```yaml
    implementation:
      supportedLayers: [motivation, business, application, api, data-model]
      note: "Partial implementation - no conformance level claimed"
    ```
+
 3. **Pass Tests for Supported Layers**
 
 ## Conformance Badges
@@ -233,17 +238,22 @@ If you implement only some layers:
 Once conformant, use badges:
 
 **Markdown:**
+
 ```markdown
 ![Conformance: Full](https://img.shields.io/badge/Federated%20Architecture%20Spec-Full%20Conformance-green)
 ```
 
 **HTML:**
+
 ```html
-<img src="https://img.shields.io/badge/Federated%20Architecture%20Spec-Full%20Conformance-green"
-     alt="Conformance: Full">
+<img
+  src="https://img.shields.io/badge/Federated%20Architecture%20Spec-Full%20Conformance-green"
+  alt="Conformance: Full"
+/>
 ```
 
 **Badge Levels:**
+
 - `Basic Conformance` - Blue badge
 - `Standard Conformance` - Yellow badge
 - `Full Conformance` - Green badge
@@ -251,6 +261,7 @@ Once conformant, use badges:
 ## Questions
 
 For certification questions:
+
 - Review this document
 - Check [conformance-levels.md](conformance-levels.md)
 - See [test-suite.md](test-suite.md)

@@ -1,0 +1,17 @@
+# Markdownlint configuration
+# See: https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+# Disable rules that are too strict or not useful
+MD001: false  # Heading levels should only increment by one - allow skipping
+MD013: false  # Line length - too restrictive for documentation
+MD024: false  # Multiple headings with the same content - common in structured docs
+MD025: false  # Multiple top-level headings - allow for complex docs
+MD029: false  # Ordered list item prefix - allow flexible numbering
+MD033: false  # Allow inline HTML (sometimes needed)
+MD036: false  # Emphasis as heading - sometimes stylistically appropriate
+MD040: false  # Allow code blocks without language specification
+MD041: false  # First line in file should be a top level heading - not always needed
+MD046: false  # Code block style - allow both fenced and indented
+
+# Keep most other rules enabled with default settings
+default: true

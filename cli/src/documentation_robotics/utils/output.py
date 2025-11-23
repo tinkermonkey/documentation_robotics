@@ -1,12 +1,13 @@
 """
 Output formatting utilities.
 """
+
+import json
 from typing import Any, Dict, List
+
+import yaml
 from rich.console import Console
 from rich.table import Table
-from rich.panel import Panel
-import yaml
-import json
 
 console = Console()
 
@@ -39,12 +40,7 @@ def print_element_table(elements: List[Any]) -> None:
     table.add_column("Layer", style="blue")
 
     for element in elements:
-        table.add_row(
-            element.id,
-            element.name,
-            element.type,
-            element.layer
-        )
+        table.add_row(element.id, element.name, element.type, element.layer)
 
     console.print(table)
 

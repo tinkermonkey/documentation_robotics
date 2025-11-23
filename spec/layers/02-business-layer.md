@@ -14,6 +14,7 @@ The Business Layer represents the business services offered to customers, realiz
 ## Entity Definitions
 
 ### BusinessActor
+
 ```yaml
 BusinessActor:
   description: "An organizational entity capable of performing behavior"
@@ -21,7 +22,7 @@ BusinessActor:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-  
+
   examples:
     - Customer
     - Employee
@@ -30,6 +31,7 @@ BusinessActor:
 ```
 
 ### BusinessRole
+
 ```yaml
 BusinessRole:
   description: "The responsibility for performing specific behavior"
@@ -37,7 +39,7 @@ BusinessRole:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-  
+
   examples:
     - Sales Representative
     - Account Manager
@@ -45,6 +47,7 @@ BusinessRole:
 ```
 
 ### BusinessCollaboration
+
 ```yaml
 BusinessCollaboration:
   description: "Aggregate of business roles working together"
@@ -65,6 +68,7 @@ BusinessCollaboration:
 ```
 
 ### BusinessInterface
+
 ```yaml
 BusinessInterface:
   description: "Point of access where business service is available"
@@ -86,6 +90,7 @@ BusinessInterface:
 ```
 
 ### BusinessProcess
+
 ```yaml
 BusinessProcess:
   description: "Sequence of business behaviors achieving a result"
@@ -121,6 +126,7 @@ BusinessProcess:
 ```
 
 ### BusinessFunction
+
 ```yaml
 BusinessFunction:
   description: "Collection of business behavior based on criteria"
@@ -128,7 +134,7 @@ BusinessFunction:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   examples:
     - Marketing
     - Sales
@@ -136,6 +142,7 @@ BusinessFunction:
 ```
 
 ### BusinessInteraction
+
 ```yaml
 BusinessInteraction:
   description: "Unit of collective behavior by collaboration"
@@ -143,13 +150,14 @@ BusinessInteraction:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   examples:
     - Sales Meeting
     - Contract Negotiation
 ```
 
 ### BusinessEvent
+
 ```yaml
 BusinessEvent:
   description: "Something that happens and influences behavior"
@@ -178,6 +186,7 @@ BusinessEvent:
 ```
 
 ### BusinessService
+
 ```yaml
 BusinessService:
   description: "Service that fulfills a business need"
@@ -207,6 +216,7 @@ BusinessService:
 ```
 
 ### BusinessObject
+
 ```yaml
 BusinessObject:
   description: "Concept used within business domain"
@@ -237,6 +247,7 @@ BusinessObject:
 ```
 
 ### Contract
+
 ```yaml
 Contract:
   description: "Formal specification of agreement"
@@ -258,6 +269,7 @@ Contract:
 ```
 
 ### Representation
+
 ```yaml
 Representation:
   description: "Perceptible form of business object"
@@ -266,14 +278,14 @@ Representation:
     name: string
     documentation: string (optional)
     format: RepresentationFormat [enum]
-    
+
   enums:
     RepresentationFormat:
       - document
       - report
       - form
       - message
-    
+
   examples:
     - Order Form
     - Invoice PDF
@@ -281,6 +293,7 @@ Representation:
 ```
 
 ### Product
+
 ```yaml
 Product:
   description: "Coherent collection of services with a value"
@@ -288,11 +301,11 @@ Product:
     id: string (UUID) [PK]
     name: string
     documentation: string (optional)
-    
+
   contains:
     - services: BusinessService[] (1..*)
     - contracts: Contract[] (0..*)
-    
+
   examples:
     - Basic Subscription
     - Premium Package
@@ -302,16 +315,19 @@ Product:
 ## Relationships
 
 ### Structural Relationships
+
 - **Composition**: Product contains BusinessServices
 - **Aggregation**: BusinessCollaboration aggregates BusinessRoles
 - **Assignment**: BusinessActor assigned to BusinessRole
 - **Realization**: BusinessProcess realizes BusinessService
 
 ### Behavioral Relationships
+
 - **Triggering**: BusinessEvent triggers BusinessProcess
 - **Flow**: BusinessProcess flows to BusinessProcess
 
 ### Other Relationships
+
 - **Association**: BusinessObject associated with BusinessProcess
 - **Access**: BusinessProcess accesses BusinessObject
 - **Serving**: BusinessService serves BusinessActor
@@ -399,6 +415,7 @@ Product:
 ## Integration Points
 
 ### To Application Layer
+
 - **BusinessService** realized by **ApplicationService**
 - **BusinessProcess** automated by **ApplicationProcess** (application.realized-by-process property)
 - **BusinessProcess** maps to **ApplicationProcess** steps (application.process-steps property)
@@ -407,6 +424,7 @@ Product:
 - **BusinessEvent** triggers **ApplicationEvent** (event.application-ref property)
 
 ### To Motivation Layer
+
 - **BusinessService** delivers **Value** (motivation.delivers-value property)
 - **BusinessService** supports **Goals** (motivation.supports-goals property)
 - **BusinessService** governed by **Principles** (motivation.governed-by-principles property)
@@ -416,32 +434,38 @@ Product:
 - **BusinessObject** ownership by **BusinessActor** (data.governance-owner property)
 
 ### To API Layer
+
 - **BusinessInterface** maps to **API Operations** (interface.api-operations property)
 - BusinessInterface digital channels (web, mobile, api, partner-integration)
 
 ### To Security Layer
+
 - **BusinessProcess** protected by **Security Controls** (process.security-controls property)
 - **BusinessCollaboration** maps to **Security Actors** (collaboration.security-actors property)
 - **BusinessCollaboration** defines **Permissions** (collaboration.shared-permissions property)
 
 ### To Data Model Layer
+
 - **BusinessObject** → **JSON Schema** (spec.schema property)
 - **BusinessObject** → **Schema ID** (spec.schema-id property) for strong data governance
 
 ### To APM/Observability Layer
+
 - **BusinessProcess** tracked by **Business Metrics** (apm.business-metrics property)
 - **BusinessProcess** defines **KPI Targets** (process.kpi-target property)
 
 ### To Other Specifications
+
 - BusinessProcess → BPMN file (process.bpmn property)
 - BusinessObject → JSON Schema (spec.schema property)
-- BusinessService → SLA document (sla.* properties)
+- BusinessService → SLA document (sla.\* properties)
 - Contract → SLA Metrics (contract.sla-metrics property)
 - BusinessEvent → Event Topic (event.topic property)
 
 ## Validation Rules
 
 ### Core Validation
+
 1. **Naming Convention**: BusinessElements use PascalCase
 2. **Required Attributes**: All elements must have id and name
 3. **Relationship Validity**: Source and target must exist
@@ -449,6 +473,7 @@ Product:
 5. **Circular Dependencies**: No circular composition relationships
 
 ### Cross-Layer Reference Validation
+
 6. **Event References**: event.application-ref must reference valid ApplicationEvent ID
 7. **Constraint References**: contract.constraint-refs must reference valid Constraint IDs
 8. **API Operation References**: interface.api-operations must reference valid operationIds from OpenAPI specs
@@ -456,10 +481,11 @@ Product:
 10. **Security Actor References**: collaboration.security-actors must reference valid Actor IDs
 11. **Schema References**: spec.schema-id must reference valid JSON Schema identifier
 12. **Business Actor References**: data.governance-owner must reference valid BusinessActor ID
-13. **Motivation References**: motivation.* properties must reference valid Goal/Value/Principle IDs
+13. **Motivation References**: motivation.\* properties must reference valid Goal/Value/Principle IDs
 14. **Metric References**: apm.business-metrics must reference valid metric definitions
 
 ### Property Format Validation
+
 15. **Comma-Separated Lists**: Multi-value properties should use comma-separated format (no spaces)
 16. **Boolean Values**: Boolean properties must be "true" or "false" (lowercase)
 17. **KPI Format**: process.kpi-target should use "key: value" pairs separated by commas
@@ -468,6 +494,7 @@ Product:
 ## Best Practices
 
 ### Core Modeling
+
 1. **Start with Business Services** - Define what value you deliver
 2. **Map Actors and Roles** - Identify who performs what
 3. **Detail Business Processes** - Show how services are realized
@@ -475,6 +502,7 @@ Product:
 5. **Model Events** - Capture triggers and state changes
 
 ### Cross-Layer Integration
+
 6. **Link Services to Goals** - Use motivation.supports-goals to show business alignment
 7. **Link Services to Value** - Use motivation.delivers-value to demonstrate stakeholder value
 8. **Connect Events to Applications** - Use event.application-ref to bridge business and technical events
@@ -482,17 +510,20 @@ Product:
 10. **Trace Contracts to Constraints** - Use contract.constraint-refs for compliance traceability
 
 ### Security and Governance
+
 11. **Secure Business Processes** - Use process.security-controls to document security requirements
 12. **Enable Audit Trails** - Set process.audit-required for sensitive processes
 13. **Enforce Separation of Duty** - Use process.separation-of-duty for critical processes
 14. **Map Collaborations to Actors** - Use collaboration.security-actors for RBAC design
 
 ### Data Governance
+
 15. **Link Objects to Schemas** - Use spec.schema-id for strong data governance
 16. **Assign Data Owners** - Use data.governance-owner to establish accountability
-17. **Document SLAs** - Add sla.* properties to BusinessServices
+17. **Document SLAs** - Add sla.\* properties to BusinessServices
 18. **Track Contract Metrics** - Use contract.sla-metrics for measurable commitments
 
 ### Observability
+
 19. **Define Business Metrics** - Use apm.business-metrics to measure process performance
 20. **Set KPI Targets** - Use process.kpi-target to define success criteria

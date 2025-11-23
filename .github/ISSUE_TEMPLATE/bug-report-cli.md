@@ -1,9 +1,9 @@
 ---
 name: CLI Bug Report
 about: Report a bug in the `dr` CLI tool
-title: '[CLI] '
-labels: ['cli-bug', 'cli']
-assignees: ''
+title: "[CLI] "
+labels: ["cli-bug", "cli"]
+assignees: ""
 ---
 
 ## Environment
@@ -28,6 +28,7 @@ assignees: ''
 3. [...]
 
 **Minimal example:**
+
 ```yaml
 # Include minimal model files if applicable
 ```
@@ -42,6 +43,7 @@ $ dr [your command]
 ## Model Structure
 
 If relevant, describe your model structure:
+
 ```
 model/
 ├── 01_motivation/

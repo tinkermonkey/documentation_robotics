@@ -1,9 +1,9 @@
 ---
 name: Specification Feature Request
 about: Propose a change or addition to the specification
-title: '[SPEC PROPOSAL] '
-labels: ['spec-proposal', 'specification']
-assignees: ''
+title: "[SPEC PROPOSAL] "
+labels: ["spec-proposal", "specification"]
+assignees: ""
 ---
 
 ## Summary
@@ -21,6 +21,7 @@ As a [role], I want to [do something] so that [benefit].
 ## Proposed Solution
 
 **Changes Required:**
+
 - [ ] Add new layer
 - [ ] Add new entity type
 - [ ] Add new attribute
@@ -54,6 +55,7 @@ Cons: [...]
 ## Impact Assessment
 
 **Layers Affected:**
+
 - [ ] 01 - Motivation
 - [ ] 02 - Business
 - [ ] 03 - Security
@@ -67,11 +69,13 @@ Cons: [...]
 - [ ] 11 - APM
 
 **Breaking Change:**
+
 - [ ] Yes - Breaks existing models
 - [ ] No - Backward compatible
 - [ ] Maybe - Depends on implementation
 
 **Implementation Effort:**
+
 - [ ] Low - Documentation only
 - [ ] Medium - Schema changes, examples
 - [ ] High - Major specification changes

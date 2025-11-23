@@ -18,6 +18,7 @@ The Security Layer defines authentication, authorization, access control, and se
 ## Why Custom?
 
 No existing standard comprehensively covers:
+
 - **RBAC**: Role-Based Access Control
 - **ABAC**: Attribute-Based Access Control
 - **Field-level Security**: Granular data access control
@@ -27,6 +28,7 @@ No existing standard comprehensively covers:
 - **STS-ml Concepts**: Goal-oriented security, delegation, security patterns
 
 Our Security spec provides:
+
 1. Role and permission definitions
 2. Resource-level access control
 3. Field-level access control
@@ -44,6 +46,7 @@ Our Security spec provides:
 ## Entity Definitions
 
 ### SecurityModel
+
 ```yaml
 SecurityModel:
   description: "Complete security model for application"
@@ -71,6 +74,7 @@ SecurityModel:
 ```
 
 ### AuthenticationConfig
+
 ```yaml
 AuthenticationConfig:
   description: "Authentication configuration"
@@ -113,6 +117,7 @@ AuthenticationConfig:
 ```
 
 ### PasswordPolicy
+
 ```yaml
 PasswordPolicy:
   description: "Password requirements"
@@ -141,6 +146,7 @@ PasswordPolicy:
 ```
 
 ### Role
+
 ```yaml
 Role:
   description: "User role definition"
@@ -202,6 +208,7 @@ Role:
 ```
 
 ### Permission
+
 ```yaml
 Permission:
   description: "Permission definition"
@@ -256,6 +263,7 @@ Permission:
 ```
 
 ### SecureResource
+
 ```yaml
 SecureResource:
   description: "Protected resource definition"
@@ -274,11 +282,11 @@ SecureResource:
 
   enums:
     ResourceType:
-      - api         # API endpoint
-      - screen      # UI screen/component
-      - data        # Data object
-      - file        # File/document
-      - service     # Backend service
+      - api # API endpoint
+      - screen # UI screen/component
+      - data # Data object
+      - file # File/document
+      - service # Backend service
 
   examples:
     # API resource
@@ -331,6 +339,7 @@ SecureResource:
 ```
 
 ### ResourceOperation
+
 ```yaml
 ResourceOperation:
   description: "Operation on a resource"
@@ -381,6 +390,7 @@ ResourceOperation:
 ```
 
 ### AccessCondition
+
 ```yaml
 AccessCondition:
   description: "Conditional access rule"
@@ -405,16 +415,16 @@ AccessCondition:
       - notContains
       - startsWith
       - endsWith
-      - matches        # Regex match
+      - matches # Regex match
       - exists
       - notExists
 
     DataSource:
-      - constant       # Static value
+      - constant # Static value
       - user-attribute # From authenticated user
       - resource-field # From resource being accessed
-      - context        # From request context
-      - computed       # Computed value
+      - context # From request context
+      - computed # Computed value
 
   examples:
     # Owner check
@@ -447,6 +457,7 @@ AccessCondition:
 ```
 
 ### FieldAccessControl
+
 ```yaml
 FieldAccessControl:
   description: "Field-level access control"
@@ -469,10 +480,10 @@ FieldAccessControl:
   enums:
     MaskingStrategy:
       - none
-      - partial      # Show first/last chars (e.g., "****5678")
-      - full         # Complete masking (e.g., "********")
-      - hash         # One-way hash
-      - redact       # Remove completely
+      - partial # Show first/last chars (e.g., "****5678")
+      - full # Complete masking (e.g., "********")
+      - hash # One-way hash
+      - redact # Remove completely
 
   examples:
     # Sensitive field (price)
@@ -489,7 +500,7 @@ FieldAccessControl:
       description: "Customer email"
       read:
         allowRoles: ["support", "admin"]
-        mask: partial  # show first 2 and domain
+        mask: partial # show first 2 and domain
         conditions:
           - field: "consentGiven"
             operator: "equals"
@@ -509,6 +520,7 @@ FieldAccessControl:
 ```
 
 ### SecurityPolicy
+
 ```yaml
 SecurityPolicy:
   description: "Declarative security policy"
@@ -572,6 +584,7 @@ SecurityPolicy:
 ```
 
 ### PolicyRule
+
 ```yaml
 PolicyRule:
   description: "Individual policy rule"
@@ -615,6 +628,7 @@ PolicyRule:
 ```
 
 ### PolicyAction
+
 ```yaml
 PolicyAction:
   description: "Action to take when policy rule matches"
@@ -624,18 +638,18 @@ PolicyAction:
 
   enums:
     ActionType:
-      - allow                # Grant access
-      - deny                 # Deny access
-      - audit-access         # Log access
-      - require-mfa          # Require multi-factor auth
-      - require-approval     # Require manual approval
-      - apply-mask           # Apply data masking
-      - apply-encryption     # Encrypt data
-      - apply-retention      # Apply retention policy
-      - notify               # Send notification
-      - rate-limit           # Apply rate limiting
-      - check-ip-whitelist   # Verify IP address
-      - check-time-window    # Verify time of access
+      - allow # Grant access
+      - deny # Deny access
+      - audit-access # Log access
+      - require-mfa # Require multi-factor auth
+      - require-approval # Require manual approval
+      - apply-mask # Apply data masking
+      - apply-encryption # Encrypt data
+      - apply-retention # Apply retention policy
+      - notify # Send notification
+      - rate-limit # Apply rate limiting
+      - check-ip-whitelist # Verify IP address
+      - check-time-window # Verify time of access
 
   examples:
     # Audit
@@ -663,6 +677,7 @@ PolicyAction:
 ```
 
 ### DataClassification
+
 ```yaml
 DataClassification:
   description: "Data classification and protection policies"
@@ -691,22 +706,22 @@ Classification:
 
     EncryptionRequirement:
       - none
-      - in-transit        # HTTPS only
-      - at-rest           # Database encryption
-      - both              # Full encryption
-      - end-to-end        # E2E encryption
+      - in-transit # HTTPS only
+      - at-rest # Database encryption
+      - both # Full encryption
+      - end-to-end # E2E encryption
 
     AccessControlLevel:
-      - open              # No restrictions
-      - authenticated     # Login required
-      - role-based        # RBAC
-      - attribute-based   # ABAC
+      - open # No restrictions
+      - authenticated # Login required
+      - role-based # RBAC
+      - attribute-based # ABAC
 
     AuditLevel:
       - none
-      - minimal           # Access only
-      - standard          # Access + modifications
-      - comprehensive     # All operations
+      - minimal # Access only
+      - standard # Access + modifications
+      - comprehensive # All operations
 
   examples:
     # Public data
@@ -745,6 +760,7 @@ Classification:
 ```
 
 ### Actor (STS-ml Inspired)
+
 ```yaml
 Actor:
   description: "Actor in the system (beyond roles)"
@@ -765,10 +781,10 @@ Actor:
 
   enums:
     ActorType:
-      - role          # User role
-      - agent         # Individual user
-      - organization  # External organization
-      - system        # External system
+      - role # User role
+      - agent # Individual user
+      - organization # External organization
+      - system # External system
 
     TrustLevel:
       - none
@@ -805,6 +821,7 @@ Actor:
 ```
 
 ### ActorObjective
+
 ```yaml
 ActorObjective:
   description: "Security-related objective or goal of an actor"
@@ -836,6 +853,7 @@ ActorObjective:
 ```
 
 ### ActorDependency
+
 ```yaml
 ActorDependency:
   description: "Dependency between actors"
@@ -853,6 +871,7 @@ ActorDependency:
 ```
 
 ### InformationEntity (STS-ml Inspired)
+
 ```yaml
 InformationEntity:
   description: "Information asset with fine-grained rights"
@@ -897,6 +916,7 @@ InformationEntity:
 ```
 
 ### InformationRight
+
 ```yaml
 InformationRight:
   description: "Fine-grained information access rights"
@@ -930,6 +950,7 @@ InformationRight:
 ```
 
 ### Delegation (STS-ml Inspired)
+
 ```yaml
 Delegation:
   description: "Explicit delegation of permissions or goals"
@@ -983,6 +1004,7 @@ Delegation:
 ```
 
 ### SecurityConstraints (STS-ml Inspired)
+
 ```yaml
 SecurityConstraints:
   description: "Security patterns and constraints"
@@ -1059,6 +1081,7 @@ NeedToKnow:
 ```
 
 ### SocialDependency (STS-ml Inspired)
+
 ```yaml
 SocialDependency:
   description: "Dependencies and trust between actors"
@@ -1080,9 +1103,9 @@ SocialDependency:
   enums:
     VerificationLevel:
       - none
-      - manual         # Manual verification
-      - automated      # Automated checks
-      - continuous     # Continuous monitoring
+      - manual # Manual verification
+      - automated # Automated checks
+      - continuous # Continuous monitoring
 
   examples:
     - depender: "sales-system"
@@ -1106,6 +1129,7 @@ SocialDependency:
 ```
 
 ### AccountabilityRequirement (STS-ml Inspired)
+
 ```yaml
 AccountabilityRequirement:
   description: "Accountability and non-repudiation requirements"
@@ -1158,6 +1182,7 @@ AccountabilityRequirement:
 ```
 
 ### Evidence
+
 ```yaml
 Evidence:
   description: "Evidence required for accountability"
@@ -1195,6 +1220,7 @@ Evidence:
 ```
 
 ### Threat (STS-ml Inspired)
+
 ```yaml
 Threat:
   description: "Security threat and countermeasures"
@@ -1263,7 +1289,8 @@ Threat:
       likelihood: medium
       impact: critical
       assessmentRef: "assessment-api-security-vulnerability"
-      mitigatedByRequirements: ["req-api-strong-auth", "req-api-rate-limiting", "req-data-encryption"]
+      mitigatedByRequirements:
+        ["req-api-strong-auth", "req-api-rate-limiting", "req-data-encryption"]
       countermeasures:
         - type: "authentication"
           description: "Strong authentication required"
@@ -1283,6 +1310,7 @@ Threat:
 ```
 
 ### Countermeasure
+
 ```yaml
 Countermeasure:
   description: "Security countermeasure for a threat"
@@ -1319,7 +1347,7 @@ Countermeasure:
 
 ```yaml
 # File: specs/security/product-security.yaml
-version: "2.0.0"  # Enhanced with STS-ml concepts
+version: "2.0.0" # Enhanced with STS-ml concepts
 application: "product-management"
 
 # ============================================================
@@ -1523,7 +1551,7 @@ resources:
         description: "Product cost (internal)"
         read:
           allowRoles: ["product-manager", "admin"]
-          mask: full  # Masked for non-admins
+          mask: full # Masked for non-admins
         write:
           allowRoles: ["admin"]
 
@@ -1811,7 +1839,8 @@ threats:
     likelihood: medium
     impact: high
     assessmentRef: "assessment-cost-data-exposure-risk"
-    mitigatedByRequirements: ["req-cost-access-control", "req-cost-audit-trail", "req-need-to-know-cost"]
+    mitigatedByRequirements:
+      ["req-cost-access-control", "req-cost-audit-trail", "req-need-to-know-cost"]
     countermeasures:
       - type: "access-control"
         description: "Strict role-based access to cost data"
@@ -1833,6 +1862,7 @@ threats:
 ## Integration Points
 
 ### To Motivation Layer (WHY)
+
 - **Actor** references **Stakeholder** (stakeholderRef)
 - **ActorObjective** references **Goal** (motivationGoalRef)
 - **Threat** references **Assessment** (assessmentRef)
@@ -1841,6 +1871,7 @@ threats:
 - **Requirement** properties specify security implementation details
 
 **Example Flow**:
+
 ```
 Stakeholder → Goal → Assessment (threat) → Requirement → Security Implementation
      ↓          ↓            ↓                   ↓               ↓
@@ -1848,31 +1879,38 @@ Stakeholder → Goal → Assessment (threat) → Requirement → Security Implem
 ```
 
 ### To Business Layer (WHO)
+
 - **Actor** references **BusinessActor** (businessActorRef)
 - **BusinessService** is secured by ResourceOperation
 - **BusinessProcess** authorization mapped from roles
 
 ### To ArchiMate Application Layer
+
 - SecurityModel references ApplicationComponent
 - Resource authorization maps to ApplicationService
 
 ### To API Layer (OpenAPI)
+
 - ResourceOperation maps to OpenAPI operations
 - Security schemes reference authentication config
 
 ### To Data Model Layer (JSON Schema)
+
 - FieldAccessControl maps to schema properties
 - Data classification guides x-security extensions
 
 ### To UX Layer
+
 - Screen access control via NavigationGuard
 - Field visibility based on permissions
 
 ### To Navigation Layer
+
 - Route guards reference roles/permissions
 - Authentication requirements
 
 ### To Data Store Layer
+
 - Encryption requirements for columns
 - Audit trail requirements
 
@@ -1911,6 +1949,7 @@ Validation Checks:
 ## Best Practices
 
 ### Traditional Security Practices
+
 1. **Principle of Least Privilege**: Grant minimum required permissions
 2. **Role Hierarchy**: Use inheritance to avoid duplication
 3. **Defense in Depth**: Multiple layers of security
@@ -1923,6 +1962,7 @@ Validation Checks:
 10. **Policy-Based**: Use policies for complex rules
 
 ### STS-ml Inspired Practices
+
 11. **Goal-Oriented Security**: Model actor goals to understand why access is needed
 12. **Information Flow Control**: Use fine-grained rights (produce, read, modify, distribute) not just CRUD
 13. **Explicit Delegation**: Model delegation chains with constraints rather than implicit role assignments
@@ -1935,6 +1975,7 @@ Validation Checks:
 20. **Purpose Declaration**: Require justification for accessing sensitive information
 
 ### Layer Integration Approach
+
 - **Motivation Layer** (WHY): Define security requirements, threats as assessments, compliance constraints
 - **Business Layer** (WHO): Define business actors that map to security actors
 - **Security Layer** (WHAT/HOW): Define security implementation using cross-layer references
@@ -1945,6 +1986,7 @@ Validation Checks:
 - Reference **Objectives to Goals** to align security with business outcomes
 
 ### Implementation Benefits
+
 - **Single source of truth** for all requirements in Motivation Layer
 - **Clear traceability** from stakeholders → goals → threats → requirements → controls
 - **Avoid duplication** of actors, requirements, and constraints across layers

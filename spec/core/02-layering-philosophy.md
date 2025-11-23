@@ -6,19 +6,19 @@ The 11-layer structure balances **abstraction hierarchy** with **pragmatic workf
 
 ## Layer Ordering
 
-| Layer | Name | Focus | Abstraction Level | Design Phase |
-|-------|------|-------|-------------------|--------------|
-| 01 | Motivation | WHY | Highest (Strategy) | Discovery |
-| 02 | Business | WHAT | High (Business) | Analysis |
-| 03 | Security | WHO CAN | Cross-cutting | Design (Early) |
-| 04 | Application | HOW | Medium (Logical) | Design |
-| 05 | Technology | WITH WHAT | Medium (Platform) | Design (Constraints) |
-| 06 | API | INTERFACE | Low (Specification) | Design (Detail) |
-| 07 | Data Model | STRUCTURE | Low (Specification) | Design (Detail) |
-| 08 | Datastore | STORAGE | Lower (Physical) | Design (Detail) |
-| 09 | UX | PRESENTATION | Low (Implementation) | Design (Detail) |
-| 10 | Navigation | FLOW | Low (Implementation) | Design (Detail) |
-| 11 | APM/Observability | OBSERVE | Lowest (Runtime) | Operations |
+| Layer | Name              | Focus        | Abstraction Level    | Design Phase         |
+| ----- | ----------------- | ------------ | -------------------- | -------------------- |
+| 01    | Motivation        | WHY          | Highest (Strategy)   | Discovery            |
+| 02    | Business          | WHAT         | High (Business)      | Analysis             |
+| 03    | Security          | WHO CAN      | Cross-cutting        | Design (Early)       |
+| 04    | Application       | HOW          | Medium (Logical)     | Design               |
+| 05    | Technology        | WITH WHAT    | Medium (Platform)    | Design (Constraints) |
+| 06    | API               | INTERFACE    | Low (Specification)  | Design (Detail)      |
+| 07    | Data Model        | STRUCTURE    | Low (Specification)  | Design (Detail)      |
+| 08    | Datastore         | STORAGE      | Lower (Physical)     | Design (Detail)      |
+| 09    | UX                | PRESENTATION | Low (Implementation) | Design (Detail)      |
+| 10    | Navigation        | FLOW         | Low (Implementation) | Design (Detail)      |
+| 11    | APM/Observability | OBSERVE      | Lowest (Runtime)     | Operations           |
 
 ## Ordering Principles
 
@@ -38,6 +38,7 @@ Stakeholders → Drivers → Goals → Requirements → Constraints
 **Key Concept:** Requirements drive design, not the reverse.
 
 **Example Flow:**
+
 ```yaml
 # Layer 01: WHY
 Goal:
@@ -83,6 +84,7 @@ Business Services → Business Processes → Business Actors
 **Technology-Agnostic:** Business layer should not mention technology choices.
 
 **Example:**
+
 ```yaml
 # ✅ Good: Technology-agnostic business definition
 BusinessService:
@@ -104,6 +106,7 @@ BusinessService:
 **Rationale:** Security is a **cross-cutting concern** that constrains all subsequent layers
 
 **Why Early?**
+
 - Security decisions affect architecture fundamentally
 - Cannot bolt on security later
 - Influences API design, data models, UX flows
@@ -119,6 +122,7 @@ Security Policies → Roles → Permissions
 ```
 
 **Example:**
+
 ```yaml
 # Layer 03: Security constraints defined early
 Role:
@@ -138,7 +142,7 @@ Operation:
   operationId: "getOrder"
   path: "/orders/{orderId}"
   security:
-    - resourceOwnerOnly: []  # Enforces policy-data-isolation
+    - resourceOwnerOnly: [] # Enforces policy-data-isolation
 
 # Layer 07: Data model includes security metadata
 Schema:
@@ -176,6 +180,7 @@ Application Components → Services → Interfaces
 **Why Layer 5 (Before API/Data/UX)?**
 
 In practice, teams select technology stacks **early** in the design process:
+
 ```
 Week 1-2: Architecture Design
 ├─ "We'll use Node.js and React"
@@ -236,12 +241,14 @@ Component:
 **Alternative Considered:** Technology at Layer 8+ (after API/Data)
 
 **Rejected Because:**
+
 - ❌ Teams don't actually work this way
 - ❌ API design depends on technology capabilities
 - ❌ Data models depend on database features
 - ❌ Creates artificial "technology-agnostic" phase that's immediately violated
 
 **Accepted Tradeoff:**
+
 - ⚠️ Technology layer is more "concrete" than pure abstraction hierarchy suggests
 - ✅ Reflects real-world design workflow
 - ✅ Makes technology constraints explicit early
@@ -274,7 +281,7 @@ Operation:
   operationId: "createProduct"
   requestBody:
     content:
-      application/json:  # REST/JSON chosen in Layer 05
+      application/json: # REST/JSON chosen in Layer 05
         schema:
           $ref: "#/components/schemas/Product"
 
@@ -284,8 +291,8 @@ Operation:
 Schema:
   name: "Product"
   properties:
-    id: {type: "string", format: "uuid"}
-    metadata: {type: "object"}  # Generic
+    id: { type: "string", format: "uuid" }
+    metadata: { type: "object" } # Generic
 
 # ↓
 
@@ -294,9 +301,9 @@ Table:
   name: "products"
   columns:
     - name: "id"
-      type: "uuid"  # PostgreSQL-specific type
+      type: "uuid" # PostgreSQL-specific type
     - name: "metadata"
-      type: "jsonb"  # PostgreSQL-specific type
+      type: "jsonb" # PostgreSQL-specific type
 ```
 
 ### 9-10. UX and Navigation (Layers 09-10)
@@ -304,6 +311,7 @@ Table:
 **Rationale:** User-facing implementation details
 
 **Why UX before Navigation?**
+
 - UX defines screens/states
 - Navigation defines how to move between them
 - Natural dependency: Navigation needs to know what UX states exist
@@ -340,6 +348,7 @@ NavigationTransition:
 **Rationale:** Observability is a **runtime concern** that spans all layers
 
 **Why Last?**
+
 - Observes the behavior of all other layers
 - Requires all layers to be defined first
 - Cross-layer correlation (trace business process → API call → database query)
@@ -360,30 +369,31 @@ Goal → Business Process → Application Service → API Operation → Database
 ```
 
 **Example:**
+
 ```yaml
 # Layer 11: APM configuration
 TraceConfiguration:
   serviceName: "product-service"
   spans:
-    - name: "business.checkout"  # Traces Layer 02
+    - name: "business.checkout" # Traces Layer 02
       attributes:
         businessProcess: "bp-checkout"
 
-    - name: "app.checkout-service"  # Traces Layer 04
+    - name: "app.checkout-service" # Traces Layer 04
       attributes:
         applicationService: "app-checkout-service"
 
-    - name: "api.POST./orders"  # Traces Layer 06
+    - name: "api.POST./orders" # Traces Layer 06
       attributes:
         operationId: "createOrder"
 
-    - name: "db.orders.insert"  # Traces Layer 08
+    - name: "db.orders.insert" # Traces Layer 08
       attributes:
         table: "orders"
 
 MetricConfiguration:
   metrics:
-    - name: "goal.customer-satisfaction.score"  # Measures Layer 01
+    - name: "goal.customer-satisfaction.score" # Measures Layer 01
       type: "gauge"
       labels:
         goal: "goal-improve-customer-satisfaction"
@@ -394,6 +404,7 @@ MetricConfiguration:
 The layer ordering matches how teams actually work:
 
 ### Phase 1: Discovery & Analysis (Weeks 1-2)
+
 ```
 Layer 01: Motivation    → Gather requirements, define goals
 Layer 02: Business      → Model business processes
@@ -401,12 +412,14 @@ Layer 03: Security      → Define security requirements
 ```
 
 ### Phase 2: Architecture & Design (Weeks 3-4)
+
 ```
 Layer 04: Application   → Design application architecture
 Layer 05: Technology    → Select technology stack ← CONSTRAINT POINT
 ```
 
 ### Phase 3: Detailed Design (Weeks 5-8)
+
 ```
 Layer 06: API           → Design service contracts (within tech constraints)
 Layer 07: Data Model    → Design data structures (within tech constraints)
@@ -416,13 +429,14 @@ Layer 10: Navigation    → Design navigation flows (within tech constraints)
 ```
 
 ### Phase 4: Operations (Ongoing)
+
 ```
 Layer 11: APM           → Configure observability and monitoring
 ```
 
 ## Abstraction vs. Pragmatism
 
-### Pure Abstraction Hierarchy Would Be:
+### Pure Abstraction Hierarchy Would Be
 
 ```
 01 Motivation (Why)
@@ -438,7 +452,7 @@ Layer 11: APM           → Configure observability and monitoring
 11 APM (Runtime)
 ```
 
-### Pragmatic Hierarchy Is:
+### Pragmatic Hierarchy Is
 
 ```
 01 Motivation (Why)
@@ -454,13 +468,15 @@ Layer 11: APM           → Configure observability and monitoring
 11 APM (Runtime)
 ```
 
-### Rationale for Pragmatism:
+### Rationale for Pragmatism
 
 **Security (Layer 03 vs. 10):**
+
 - ✅ Early: Security constraints influence all design
 - ❌ Late: Retrofitting security is expensive and error-prone
 
 **Technology (Layer 05 vs. 08):**
+
 - ✅ Early: Technology choices are design constraints
 - ❌ Late: Pretends technology doesn't influence API/Data design (it does)
 

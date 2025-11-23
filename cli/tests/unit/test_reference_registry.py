@@ -1,11 +1,11 @@
 """Unit tests for ReferenceRegistry."""
-import pytest
+
+from documentation_robotics.core.element import Element
 from documentation_robotics.core.reference_registry import (
     Reference,
+    ReferenceDefinition,
     ReferenceRegistry,
-    ReferenceDefinition
 )
-from documentation_robotics.core.element import Element
 
 
 class TestReference:
@@ -18,7 +18,7 @@ class TestReference:
             target_id="application.service.test",
             property_path="realizes",
             reference_type="realization",
-            required=True
+            required=True,
         )
 
         assert ref.source_id == "business.service.test"
@@ -252,9 +252,9 @@ class TestReferenceRegistry:
             data={
                 "nested": {
                     "dataRef": "data.entity.customer",
-                    "apiRef": "api.operation.get-customer"
+                    "apiRef": "api.operation.get-customer",
                 }
-            }
+            },
         )
 
         refs = registry._scan_nested_references(element, element.data)
@@ -278,7 +278,7 @@ class TestReferenceDefinition:
             target_type="service",
             reference_type="realization",
             required=True,
-            cardinality="1"
+            cardinality="1",
         )
 
         assert ref_def.layer == "business"

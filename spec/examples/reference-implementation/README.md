@@ -10,6 +10,7 @@ This is a complete architecture model used as the reference implementation for t
 ## Purpose
 
 This model serves as:
+
 - **Reference Implementation** - Demonstrates all specification features
 - **Test Suite** - Used for testing the `dr` CLI tool
 - **Learning Resource** - Shows realistic usage patterns
@@ -34,6 +35,7 @@ This model serves as:
 ## Cross-Layer Integration
 
 This model demonstrates:
+
 - Requirements traceability (Goal → Requirement → Component → API → Metric)
 - Technology constraints (Technology → API → Data Model → Database)
 - User experience flow (UX → API → Data Model)
@@ -49,6 +51,7 @@ dr validate --all
 ```
 
 Expected result:
+
 ```
 ✓ All layers valid
 ✓ All cross-layer references valid
@@ -61,6 +64,7 @@ Expected result:
 ### As a Learning Resource
 
 Study this model to see:
+
 - How to structure a complete model
 - Patterns for cross-layer references
 - Naming conventions
@@ -69,6 +73,7 @@ Study this model to see:
 ### As a Testing Baseline
 
 Use this model to test your implementation:
+
 ```bash
 # Your tool should validate this successfully
 your-tool validate spec/examples/reference-implementation

@@ -1,14 +1,17 @@
 """
 Trace dependencies between elements.
 """
-import click
+
 from pathlib import Path
-from rich.console import Console
-from rich.tree import Tree
-from rich.table import Table
 from typing import Optional
+
+import click
+from rich.console import Console
+from rich.table import Table
+from rich.tree import Tree
+
+from ..core.dependency_tracker import TraceDirection
 from ..core.model import Model
-from ..core.dependency_tracker import DependencyTracker, TraceDirection
 
 console = Console()
 
@@ -19,17 +22,13 @@ console = Console()
     "--direction",
     type=click.Choice(["up", "down", "both"]),
     default="both",
-    help="Direction to trace"
+    help="Direction to trace",
 )
 @click.option("--max-depth", type=int, help="Maximum depth to trace")
 @click.option("--output", type=click.Choice(["tree", "table", "list"]), default="tree")
 @click.option("--group-by-layer", is_flag=True, help="Group results by layer")
 def trace(
-    element_id: str,
-    direction: str,
-    max_depth: Optional[int],
-    output: str,
-    group_by_layer: bool
+    element_id: str, direction: str, max_depth: Optional[int], output: str, group_by_layer: bool
 ):
     """Trace dependencies for an element."""
 
@@ -78,7 +77,9 @@ def trace(
 def _display_grouped(by_layer: dict, model: Model):
     """Display dependencies grouped by layer."""
     for layer_name in sorted(by_layer.keys()):
-        console.print(f"\n[bold cyan]{layer_name}:[/bold cyan] ({len(by_layer[layer_name])} elements)")
+        console.print(
+            f"\n[bold cyan]{layer_name}:[/bold cyan] ({len(by_layer[layer_name])} elements)"
+        )
 
         for elem_id in sorted(by_layer[layer_name]):
             element = model.get_element(elem_id)

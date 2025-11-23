@@ -1,7 +1,9 @@
 """
 Cross-reference validation.
 """
-from typing import Set, List, Any, Optional
+
+from typing import Any, List, Optional, Set
+
 from .base import BaseValidator, ValidationResult
 
 
@@ -40,10 +42,7 @@ class ReferenceValidator(BaseValidator):
         return result
 
     def _validate_element_references(
-        self,
-        element: Any,
-        valid_ids: Set[str],
-        result: ValidationResult
+        self, element: Any, valid_ids: Set[str], result: ValidationResult
     ) -> None:
         """
         Validate references in a single element.
@@ -68,7 +67,7 @@ class ReferenceValidator(BaseValidator):
                     layer=element.layer,
                     element_id=element.id,
                     message=f"Invalid reference to '{ref}' - element does not exist",
-                    fix=fix_msg
+                    fix=fix_msg,
                 )
 
     def _extract_references(self, data: Any, references: Optional[Set[str]] = None) -> Set[str]:
@@ -97,9 +96,18 @@ class ReferenceValidator(BaseValidator):
         elif isinstance(data, dict):
             # Look for common reference field names
             reference_fields = [
-                "realizes", "serves", "accesses", "flows_to", "flows_from",
-                "composed_of", "aggregates", "specializes", "assigned_to",
-                "triggers", "references", "depends_on"
+                "realizes",
+                "serves",
+                "accesses",
+                "flows_to",
+                "flows_from",
+                "composed_of",
+                "aggregates",
+                "specializes",
+                "assigned_to",
+                "triggers",
+                "references",
+                "depends_on",
             ]
 
             for key, value in data.items():
@@ -119,13 +127,24 @@ class ReferenceValidator(BaseValidator):
 
         # Check if first part is a known layer
         known_layers = {
-            "motivation", "business", "security", "application", "technology",
-            "api", "data_model", "datastore", "ux", "navigation", "apm"
+            "motivation",
+            "business",
+            "security",
+            "application",
+            "technology",
+            "api",
+            "data_model",
+            "datastore",
+            "ux",
+            "navigation",
+            "apm",
         }
 
         return parts[0] in known_layers
 
-    def _find_similar_ids(self, target: str, valid_ids: Set[str], max_suggestions: int = 3) -> List[str]:
+    def _find_similar_ids(
+        self, target: str, valid_ids: Set[str], max_suggestions: int = 3
+    ) -> List[str]:
         """
         Find similar element IDs.
 

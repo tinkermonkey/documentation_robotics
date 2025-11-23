@@ -9,10 +9,12 @@
 ## Workflows
 
 ### Spec Validation (`spec-validation.yml`)
+
 **Status:** Disabled (manual trigger only)
 **Purpose:** Validate specification files
 
 **Checks:**
+
 - JSON Schema syntax
 - Markdown link validity
 - VERSION file format
@@ -20,15 +22,18 @@
 - Spell checking
 
 **Re-enable when:**
+
 - [ ] Pre-commit hooks are stable
 - [ ] All files pass local validation
 - [ ] Team is using hooks consistently
 
 ### CLI Tests (`cli-tests.yml`)
+
 **Status:** Disabled (manual trigger only)
 **Purpose:** Test CLI tool
 
 **Checks:**
+
 - Python 3.9-3.12 compatibility
 - Linting (ruff, black)
 - Type checking (mypy)
@@ -37,11 +42,13 @@
 - Code coverage
 
 **Re-enable when:**
+
 - [ ] Pre-commit hooks are stable
 - [ ] All tests pass locally
 - [ ] Team is using hooks consistently
 
 ### Release (`release.yml`)
+
 **Status:** Enabled (release tags only)
 **Purpose:** Publish releases
 
@@ -52,12 +59,14 @@
 When ready to re-enable CI:
 
 1. **Verify local validation passes:**
+
    ```bash
    pre-commit run --all-files
    pytest  # In cli/ directory
    ```
 
 2. **Update workflow files:**
+
    ```bash
    # Uncomment the push/pull_request triggers in:
    .github/workflows/spec-validation.yml

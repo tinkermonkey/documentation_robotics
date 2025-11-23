@@ -1,8 +1,10 @@
 """Pytest configuration and fixtures."""
-import pytest
-from pathlib import Path
-import tempfile
+
 import shutil
+import tempfile
+from pathlib import Path
+
+import pytest
 from documentation_robotics.core.element import Element
 from documentation_robotics.core.model import Model
 
@@ -26,8 +28,8 @@ def sample_element():
             "id": "business.service.test-service",
             "name": "Test Service",
             "description": "A test service",
-            "documentation": "Test documentation"
-        }
+            "documentation": "Test documentation",
+        },
     )
 
 
@@ -42,8 +44,8 @@ def sample_element_with_refs():
             "id": "application.service.test-app-service",
             "name": "Test App Service",
             "realizes": "business.service.test-service",
-            "uses": ["data_model.entity.customer", "data_model.entity.order"]
-        }
+            "uses": ["data_model.entity.customer", "data_model.entity.order"],
+        },
     )
 
 
@@ -57,7 +59,7 @@ def initialized_model(temp_dir):
         project_name="test-project",
         template="basic",
         minimal=False,
-        with_examples=False
+        with_examples=False,
     )
     initializer.create()
 

@@ -1,9 +1,11 @@
 """
 Manifest management - tracks model metadata and layer registry.
 """
-from pathlib import Path
-from typing import Dict, Any, Optional
+
 from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, Optional
+
 import yaml
 
 
@@ -47,7 +49,7 @@ class Manifest:
         path: Path,
         project_name: str,
         project_description: str = "",
-        project_version: str = "1.0.0"
+        project_version: str = "1.0.0",
     ) -> "Manifest":
         """
         Create a new manifest.
@@ -219,8 +221,7 @@ class Manifest:
             if current > 0:
                 self.layers[layer]["elements"][element_type] = current - 1
                 self.statistics["total_elements"] = max(
-                    0,
-                    self.statistics.get("total_elements", 0) - 1
+                    0, self.statistics.get("total_elements", 0) - 1
                 )
 
         self._update_timestamp()

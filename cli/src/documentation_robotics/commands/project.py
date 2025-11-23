@@ -1,11 +1,14 @@
 """
 Project an element to other layers.
 """
-import click
+
 from pathlib import Path
+from typing import Optional
+
+import click
 from rich.console import Console
 from rich.table import Table
-from typing import Optional
+
 from ..core.model import Model
 
 console = Console()
@@ -17,13 +20,7 @@ console = Console()
 @click.option("--rule", help="Specific projection rule to use")
 @click.option("--dry-run", is_flag=True, help="Show what would be created")
 @click.option("--force", is_flag=True, help="Overwrite existing elements")
-def project(
-    element_id: str,
-    to_layers: str,
-    rule: Optional[str],
-    dry_run: bool,
-    force: bool
-):
+def project(element_id: str, to_layers: str, rule: Optional[str], dry_run: bool, force: bool):
     """Project an element to other layers."""
 
     # Load model
@@ -64,7 +61,7 @@ def project(
             if not applicable_rules:
                 console.print(
                     f"⚠  Warning: No projection rule found for {source.layer} -> {target_layer}",
-                    style="yellow"
+                    style="yellow",
                 )
                 continue
 
@@ -72,10 +69,7 @@ def project(
 
             # Perform projection
             projected = engine.project_element(
-                source,
-                target_layer,
-                rule=projection_rule,
-                dry_run=dry_run
+                source, target_layer, rule=projection_rule, dry_run=dry_run
             )
 
             if projected:
