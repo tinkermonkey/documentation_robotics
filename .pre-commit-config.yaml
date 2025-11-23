@@ -1,0 +1,101 @@
+# Pre-commit hooks for Documentation Robotics
+# Install: pip install pre-commit && pre-commit install
+# Run manually: pre-commit run --all-files
+
+repos:
+  # General file checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: ^spec/test-fixtures/
+      - id: end-of-file-fixer
+        exclude: ^spec/test-fixtures/
+      - id: check-yaml
+        args: [--unsafe]  # Allow custom YAML tags
+        exclude: ^spec/test-fixtures/invalid/
+      - id: check-json
+        exclude: ^spec/test-fixtures/invalid/
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: mixed-line-ending
+        args: [--fix=lf]
+
+  # Markdown linting
+  - repo: https://github.com/igorshubovych/markdownlint-cli
+    rev: v0.39.0
+    hooks:
+      - id: markdownlint
+        args: [--fix]
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md)
+
+  # Python formatting and linting (for CLI)
+  - repo: https://github.com/psf/black
+    rev: 24.1.1
+    hooks:
+      - id: black
+        files: ^cli/
+        args: [--line-length=100, --target-version=py39]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.1.15
+    hooks:
+      - id: ruff
+        files: ^cli/
+        args: [--fix, --line-length=100, --target-version=py39, --select=E,F,I,N,W]
+
+      # Also run ruff in check mode (no auto-fix) to catch remaining issues
+      - id: ruff
+        name: ruff-check
+        files: ^cli/
+        args: [--line-length=100, --target-version=py39, --select=E,F,I,N,W]
+
+  # Python type checking (for CLI)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.8.0
+    hooks:
+      - id: mypy
+        files: ^cli/src/
+        args: [--python-version=3.9, --warn-return-any, --warn-unused-configs]
+        additional_dependencies:
+          - types-PyYAML
+          - types-python-dateutil
+          - click
+          - pyyaml
+          - jsonschema
+          - pydantic
+          - rich
+
+  # JSON Schema validation
+  - repo: https://github.com/python-jsonschema/check-jsonschema
+    rev: 0.27.3
+    hooks:
+      - id: check-jsonschema
+        name: Validate JSON Schemas (syntax)
+        files: ^spec/schemas/.*\.schema\.json$
+        args: [--schemafile, https://json-schema.org/draft-07/schema]
+
+  # Spell checking (optional - can be enabled later)
+  # - repo: https://github.com/codespell-project/codespell
+  #   rev: v2.2.6
+  #   hooks:
+  #     - id: codespell
+  #       args: [--ignore-words=.codespell-ignore]
+
+# Exclude patterns
+exclude: |
+  (?x)^(
+    \.git/|
+    \.venv/|
+    venv/|
+    __pycache__/|
+    \.pytest_cache/|
+    \.mypy_cache/|
+    node_modules/|
+    dist/|
+    build/|
+    \.egg-info/|
+    coverage/
+  )
