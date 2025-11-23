@@ -1,0 +1,81 @@
+# ============================================================================
+# Stage 1: Base Environment Setup
+# ============================================================================
+FROM clauditoreum-orchestrator:latest
+
+# The base image already includes:
+# - Claude CLI (REQUIRED - must be present)
+# - Git CLI (REQUIRED - must be present)
+# - GitHub CLI (REQUIRED - must be present)
+# - Python 3.11
+# - Essential build tools
+# - procps package (provides 'ps' command needed by Claude CLI)
+
+USER root
+
+# ============================================================================
+# Stage 2: Install Project-Specific Runtimes
+# ============================================================================
+# This project uses Python which is already in the base image
+# No additional runtimes needed
+
+# ============================================================================
+# Stage 3: Pre-install Dependencies (RECOMMENDED)
+# ============================================================================
+# Pre-installing dependencies speeds up agent startup time because the agent
+# doesn't have to install them every time it runs.
+
+# WORKDIR should match where the orchestrator will mount the project
+WORKDIR /workspace/documentation_robotics
+
+# Copy ONLY the dependency manifests needed for installation
+# DO NOT copy source code - it comes from the runtime mount
+COPY cli/pyproject.toml ./cli/
+
+# Pre-install Python dependencies
+# The CLI is in a subdirectory, so we need to install from there
+RUN pip install --no-cache-dir \
+    'click>=8.1.0' \
+    'pyyaml>=6.0' \
+    'jsonschema>=4.17.0' \
+    'pydantic>=2.0.0' \
+    'rich>=13.0.0' \
+    'python-dateutil>=2.8.0' \
+    'jinja2>=3.1.0' \
+    'networkx>=3.0' \
+    'jsonpath-ng>=1.5.0' \
+    'lxml>=4.9.0' \
+    'markdown>=3.4.0' \
+    'pytest>=7.0.0' \
+    'pytest-cov>=4.0.0'
+
+# ============================================================================
+# Stage 4: Ownership and Permissions
+# ============================================================================
+# Change ownership ONLY of what was installed, NOT source code
+# Source code ownership is handled by the mount
+
+# Python packages are already installed in /usr/local as root, no chown needed
+
+# ============================================================================
+# Stage 5: Switch to Runtime User
+# ============================================================================
+USER orchestrator
+
+# ============================================================================
+# Stage 6: Verification (MANDATORY)
+# ============================================================================
+# Verify all critical CLIs are present (from base image)
+RUN claude --version && \
+    git --version && \
+    gh --version
+
+# Verify project-specific tools
+RUN python3 --version && \
+    pip --version && \
+    python3 -c "import click; import pydantic; import jsonschema; import networkx; print('All Python dependencies available')"
+
+# ============================================================================
+# Default command
+# ============================================================================
+CMD ["/bin/bash"]
