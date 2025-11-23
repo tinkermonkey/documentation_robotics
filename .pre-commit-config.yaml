@@ -75,7 +75,7 @@ repos:
       - id: check-jsonschema
         name: Validate JSON Schemas (syntax)
         files: ^spec/schemas/.*\.schema\.json$
-        args: [--schemafile, https://json-schema.org/draft-07/schema]
+        args: [--schemafile, "https://json-schema.org/draft-07/schema"]
 
   # Spell checking (optional - can be enabled later)
   # - repo: https://github.com/codespell-project/codespell
