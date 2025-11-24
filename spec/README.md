@@ -1,20 +1,27 @@
-# Federated Architecture Metadata Model Specification
+# Documentation Robotics Specification
 
-**Version:** 0.1.0
+> **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
+
+[![Specification](https://img.shields.io/badge/Specification-v0.1.1-blue)](.)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.1-green)](../cli/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+
+**Version:** 0.1.1
 **Status:** Draft
 **Last Updated:** 2025-11-23
 
 ## Overview
 
-This directory contains the complete specification for the Federated Architecture Metadata Model, a standards-based approach to modeling enterprise and software architecture across 11 interconnected layers.
+This directory contains the complete Documentation Robotics Specification, a standards-based approach to modeling enterprise and software architecture as a federated architecture data model across 11 interconnected layers.
 
 ## Quick Links
 
-- **Read the Spec:** Start with [core/00-overview.md](core/00-overview.md)
-- **Implement:** See [conformance/conformance-levels.md](conformance/conformance-levels.md)
-- **Examples:** Browse [examples/](examples/)
-- **Contribute:** Read [CONTRIBUTING.md](CONTRIBUTING.md)
-- **Governance:** See [GOVERNANCE.md](GOVERNANCE.md)
+- **[Read the Spec](#how-to-read-this-specification)** - Start with [core/00-overview.md](core/00-overview.md)
+- **[Implement a Tool](conformance/conformance-levels.md)** - Conformance requirements
+- **[Browse Examples](examples/)** - Practical patterns
+- **[Use the CLI](../cli/)** - Reference implementation
+- **[Contribute](CONTRIBUTING.md)** - How to contribute
+- **[Governance](GOVERNANCE.md)** - Change process
 
 ## Directory Structure
 
@@ -98,11 +105,26 @@ spec/
     └── bibliography.md
 ```
 
+## The Vision
+
+The specification aims to be a comprehensive, standards-based approach to describing:
+
+- **What** a software system is
+- **How** it works
+- **Why** it works that way
+- **How to observe it** in production
+
+**Key Principles:**
+
+- **Standards-first** - Use excellent existing standards to their fullest extent
+- **Minimal invention** - Only add glue between standards and fill critical gaps
+- **Federated approach** - Each layer uses optimal standards, integrated via ArchiMate spine
+- **As simple as possible** - While being reasonably complete
+- **Tool ecosystem access** - Compatible with hundreds of existing tools
+
+For the broader motivation, see [The Need](../README.md#the-need) in the main README.
+
 ## How to Read This Specification
-
-### For Architects
-
-**Goal:** Understand the model to apply it to your architecture work
 
 1. Start with [core/00-overview.md](core/00-overview.md) - Get the big picture
 2. Read [core/01-federated-approach.md](core/01-federated-approach.md) - Understand why federation
@@ -113,49 +135,28 @@ spec/
 
 **Time Investment:** 2-3 hours for overview, then explore as needed
 
-### For Tool Vendors
-
-**Goal:** Implement a conformant tool
-
-1. Read [core/](core/) documents - Understand the specification
-2. Review [conformance/conformance-levels.md](conformance/conformance-levels.md) - Choose conformance level
-3. Study [schemas/](schemas/) - Understand data structures
-4. Review [conformance/test-suite.md](conformance/test-suite.md) - Understand validation requirements
-5. Run [test-fixtures/](test-fixtures/) through your implementation
-6. Follow [conformance/certification-process.md](conformance/certification-process.md) to claim conformance
-
-**Time Investment:** 1-2 weeks for full implementation
-
-### For Researchers/Standards Bodies
-
-**Goal:** Evaluate the approach
-
-1. Read [core/00-overview.md](core/00-overview.md) and [core/01-federated-approach.md](core/01-federated-approach.md)
-2. Review [core/02-layering-philosophy.md](core/02-layering-philosophy.md) - Design decisions
-3. Examine [reference/standards-mapping.md](reference/standards-mapping.md) - Standards integration
-4. Compare with existing approaches
-5. Review [GOVERNANCE.md](GOVERNANCE.md) - Governance model
-
-**Time Investment:** 3-4 hours
-
 ## Specification Highlights
 
 ### Standards-First Approach
 
-This specification **leverages existing standards** for 73% of its layers:
+This specification **leverages existing standards** for most of its layers:
 
-| Standard            | Layers         | Coverage |
-| ------------------- | -------------- | -------- |
-| ArchiMate 3.2       | 01, 02, 04, 05 | 36%      |
-| OpenAPI 3.0         | 06             | 9%       |
-| JSON Schema Draft 7 | 07             | 9%       |
-| OpenTelemetry 1.0+  | 11             | 9%       |
-| SQL DDL             | 08             | 9%       |
-| **Custom**          | 03, 09, 10     | 27%      |
+| Standard            | Layers         | Status      |
+| ------------------- | -------------- | ----------- |
+| ArchiMate 3.2       | 01, 02, 04, 05 | Established |
+| OpenAPI 3.0         | 06             | Established |
+| JSON Schema Draft 7 | 07             | Established |
+| OpenTelemetry 1.0+  | 11             | Established |
+| SQL DDL             | 08             | Established |
+| **Custom**          | 03, 09, 10     | New         |
 
-**Result:** Maximum tool ecosystem compatibility with minimal custom invention.
+**Result:** Maximum tool ecosystem compatibility with only 27% custom invention.
+
+For more details, see [Standards Leveraged](../README.md#standards-leveraged) in the main README.
 
 ### 11 Interconnected Layers
+
+The specification defines 11 layers that cover the complete software system lifecycle:
 
 ```
 01. Motivation       WHY        Goals, requirements, stakeholders
@@ -170,6 +171,16 @@ This specification **leverages existing standards** for 73% of its layers:
 10. Navigation       FLOW       Navigation and routing
 11. APM              OBSERVE    Monitoring and tracing (OTel)
 ```
+
+For detailed layer descriptions and relationships, see [The 11 Layers](../README.md#the-11-layers) in the main README.
+
+Each layer specification includes:
+
+- **Purpose** - What the layer models
+- **Entity Types** - Elements that can be defined
+- **Relationships** - How elements relate within and across layers
+- **Standards** - Which standard is used (if applicable)
+- **Validation Rules** - What makes a valid layer model
 
 ### Federation Pattern
 
@@ -259,7 +270,7 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.1.0
+**Current Version:** 0.1.1
 **Release Date:** 2025-11-23
 **Status:** Draft
 **Next Review:** 2026-05-23
@@ -310,9 +321,9 @@ This specification builds upon and integrates:
 If you use this specification in academic work, please cite:
 
 ```bibtex
-@techreport{federated-arch-spec,
-  title = {Federated Architecture Metadata Model Specification},
-  version = {0.1.0},
+@techreport{documentation-robotics-spec,
+  title = {Documentation Robotics Specification},
+  version = {0.1.1},
   year = {2025},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

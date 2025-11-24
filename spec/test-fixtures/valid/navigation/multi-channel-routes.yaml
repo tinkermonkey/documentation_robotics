@@ -1,7 +1,7 @@
 # Valid navigation layer fixture - Multi-channel routes
 # Tests: Multi-channel addressing, guards, flows
 
-version: "0.1.0"
+version: "0.1.1"
 application: "customer-portal"
 description: "Customer support portal navigation with multi-channel support"
 

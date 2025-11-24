@@ -1,7 +1,7 @@
 # Minimal Example - UX Layer
 # Single screen
 
-version: "0.1.0"
+version: "0.1.1"
 application: minimal-app
 
 screens:

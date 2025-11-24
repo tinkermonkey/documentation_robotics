@@ -86,4 +86,4 @@ Cons: [...]
 
 ## Specification Version
 
-**Current Version:** [e.g., 0.1.0]
+**Current Version:** [e.g., 0.1.1]

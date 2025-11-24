@@ -1,11 +1,11 @@
 """
-Documentation Robotics CLI - Federated Architecture Metadata Model Implementation.
+Documentation Robotics CLI Implementation.
 
-This package provides tools for managing architecture models across 11 layers,
-implementing the Federated Architecture Metadata Model specification.
+This package provides tools for managing project models across 11 layers of a software system,
+implementing the Documentation Robotics Specification.
 """
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 __spec_version__ = "0.1.0"
 
 # Core exports for programmatic use

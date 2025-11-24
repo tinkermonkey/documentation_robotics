@@ -5,8 +5,6 @@ CLI entry point for dr tool.
 import click
 from rich.console import Console
 
-# Phase 2 commands
-# Phase 3 commands
 from .commands import (
     add,
     claude,
@@ -33,7 +31,7 @@ console = Console()
 def cli(ctx: click.Context, verbose: bool) -> None:
     """Documentation Robotics - Architecture model management tool.
 
-    The dr tool helps you manage federated architecture metadata models
+    The dr tool helps you manage federated architecture data models
     across 11 layers using standard specifications and custom extensions.
 
     Common commands:

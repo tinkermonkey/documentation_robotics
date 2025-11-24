@@ -67,7 +67,9 @@ class TestFullWorkflow:
         # Step 1: Initialize project
         result = runner.invoke(cli, ["init", "test-project", "--path", str(temp_project)])
         assert result.exit_code == 0, f"Init failed: {result.output}"
-        assert (temp_project / "model").exists(), "Model directory should be created"
+        assert (
+            temp_project / "documentation-robotics" / "model"
+        ).exists(), "Model directory should be created"
         assert (temp_project / ".dr" / "schemas").exists(), "Schemas should be copied"
 
         # Verify schemas were copied

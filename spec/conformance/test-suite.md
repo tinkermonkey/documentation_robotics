@@ -250,10 +250,10 @@ MUST pass:
 conformanceReport:
   implementation:
     name: "Your Tool"
-    version: "0.1.0"
+    version: "0.1.1"
   specification:
-    version: "0.1.0"
-  testSuiteVersion: "0.1.0"
+    version: "0.1.1"
+  testSuiteVersion: "0.1.1"
   date: "2025-11-23"
 
   results:

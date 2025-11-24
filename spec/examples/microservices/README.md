@@ -535,7 +535,7 @@ This example is ideal for:
 
 ---
 
-**Spec Version**: 0.1.0
+**Spec Version**: 0.1.1
 **Conformance Level**: Full + Enterprise Patterns
 **Industry**: SaaS Platform
 **Complexity**: High

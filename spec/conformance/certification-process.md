@@ -1,6 +1,6 @@
 # Certification Process
 
-This document describes how implementations claim conformance to the Federated Architecture Metadata Model specification.
+This document describes how implementations claim conformance to the Documentation Robotics specification.
 
 ## Overview
 
@@ -57,7 +57,7 @@ Create a conformance statement file:
 conformanceStatement:
   implementation:
     name: "Your Tool Name"
-    version: "0.1.0"
+    version: "0.1.1"
     vendor: "Your Organization"
     website: "https://yourtool.com"
     documentation: "https://docs.yourtool.com"
@@ -65,8 +65,8 @@ conformanceStatement:
     license: "MIT"
 
   specification:
-    name: "Federated Architecture Metadata Model"
-    version: "0.1.0"
+    name: "Documentation Robotics"
+    version: "0.1.1"
     conformanceLevel: "full" # basic, standard, or full
     url: "https://github.com/yourorg/documentation_robotics/tree/main/spec"
 
@@ -91,7 +91,7 @@ conformanceStatement:
     exportFormats: ["archimate", "openapi", "json-schema", "plantuml", "markdown"]
 
   testResults:
-    testSuiteVersion: "0.1.0"
+    testSuiteVersion: "0.1.1"
     date: "2025-11-23"
     validTestsPassed: 150
     validTestsTotal: 150
@@ -105,7 +105,7 @@ conformanceStatement:
   attestation:
     date: "2025-11-23"
     attestedBy: "Your Name, Position"
-    statement: "We certify that this implementation conforms to the Federated Architecture Metadata Model specification version 0.1.0 at the Full conformance level."
+    statement: "We certify that this implementation conforms to the Documentation Robotics specification version 0.1.1 at the Full conformance level."
 
   additionalNotes: |
     Any additional information about your implementation,
@@ -121,7 +121,7 @@ Publish your conformance statement:
    ```markdown
    ## Conformance
 
-   This tool conforms to the [Federated Architecture Metadata Model Specification v0.1.0]
+   This tool conforms to the [Documentation Robotics Specification v0.1.1]
    (https://github.com/yourorg/documentation_robotics/tree/main/spec)
    at the **Full Conformance** level.
 

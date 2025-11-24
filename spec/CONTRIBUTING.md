@@ -1,6 +1,6 @@
 # Contributing to the Specification
 
-Thank you for your interest in contributing to the Federated Architecture Metadata Model specification!
+Thank you for your interest in contributing to the Documentation Robotics specification!
 
 ## How to Contribute
 

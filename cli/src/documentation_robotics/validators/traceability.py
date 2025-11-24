@@ -1,5 +1,5 @@
 """
-Upward traceability validation for the Federated Architecture Metadata Model.
+Upward traceability validation for the Documentation Robotics Specification.
 
 This validator ensures that implementation layers properly trace back to higher-level
 layers, particularly to motivation elements (goals, requirements, principles).

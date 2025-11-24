@@ -1,8 +1,8 @@
 """
 Specification version tracking for the CLI implementation.
 
-This module tracks which version of the Federated Architecture Metadata Model
-specification this CLI implementation conforms to.
+This module tracks which version of the Documentation Robotics Specification
+this CLI implementation conforms to.
 """
 
 # Specification version implemented
@@ -66,7 +66,7 @@ def get_conformance_statement():
             "license": "MIT",
         },
         "specification": {
-            "name": "Federated Architecture Metadata Model",
+            "name": "Documentation Robotics Specification",
             "version": SPEC_VERSION,
             "conformanceLevel": CONFORMANCE_LEVEL,
             "url": "https://github.com/yourorg/documentation_robotics/tree/main/spec",

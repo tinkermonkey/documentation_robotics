@@ -1,5 +1,5 @@
 # Projection rules for cross-layer element generation
-version: "0.1.0"
+version: "0.1.1"
 
 projections:
   # Business Service -> Application Service

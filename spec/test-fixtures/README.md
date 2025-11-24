@@ -1,6 +1,6 @@
 # Test Fixtures
 
-This directory contains test fixtures for validating conformance to the Federated Architecture Metadata Model specification.
+This directory contains test fixtures for validating conformance to the Documentation Robotics specification.
 
 ## Purpose
 

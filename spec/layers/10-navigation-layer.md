@@ -739,7 +739,7 @@ NotificationAction:
 
 ```yaml
 # File: specs/navigation/product-navigation.yaml
-version: "0.1.0"
+version: "0.1.1"
 application: "product-management"
 description: "Navigation structure for product management application"
 

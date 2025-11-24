@@ -101,7 +101,7 @@ Expected output:
 
 ```
 Installation Status
-Version: 0.3.0
+Version: 0.3.1
 Installed: 2025-01-24T10:30:00
 
 ┌──────────────────┬───────┬──────────┐

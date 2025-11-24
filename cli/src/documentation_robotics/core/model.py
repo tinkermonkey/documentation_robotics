@@ -34,8 +34,8 @@ class Model:
             lazy_load: Enable lazy loading of layers (default: False)
         """
         self.root_path = root_path
-        self.model_path = root_path / "model"
-        self.specs_path = root_path / "specs"
+        self.model_path = root_path / "documentation-robotics" / "model"
+        self.specs_path = root_path / "documentation-robotics" / "specs"
         self.manifest = Manifest.load(self.model_path / "manifest.yaml")
 
         # Phase 4.3: Initialize cache
@@ -65,7 +65,7 @@ class Model:
                     self.reference_registry.register_element(element)
 
         # Phase 2: Initialize projection engine
-        projection_rules_path = self.root_path / "projection-rules.yaml"
+        projection_rules_path = self.root_path / "documentation-robotics" / "projection-rules.yaml"
         self.projection_engine = ProjectionEngine(self, projection_rules_path)
 
         # Phase 2: Initialize dependency tracker

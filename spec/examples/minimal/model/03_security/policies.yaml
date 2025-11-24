@@ -1,7 +1,7 @@
 # Minimal Example - Security Layer
 # Basic authentication policy
 
-version: "0.1.0"
+version: "0.1.1"
 security-model:
   authentication:
     methods:

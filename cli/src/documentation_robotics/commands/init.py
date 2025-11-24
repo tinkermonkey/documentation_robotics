@@ -78,7 +78,7 @@ class ModelInitializer:
         )
         console.print(f"   Location: {self.root_path.absolute()}")
         console.print("\nNext steps:")
-        console.print("  1. Review the model structure in model/")
+        console.print("  1. Review the model structure in documentation-robotics/model/")
         console.print("  2. Read documentation in .dr/README.md")
         console.print("  3. Add your first element: dr add business service --name 'My Service'")
 
@@ -89,24 +89,24 @@ class ModelInitializer:
             ".dr/examples",
             ".dr/templates",
             ".dr/logs",
-            "model/01_motivation",
-            "model/02_business",
-            "model/03_security",
-            "model/04_application",
-            "model/05_technology",
-            "model/06_api",
-            "model/07_data_model",
-            "model/08_datastore",
-            "model/09_ux",
-            "model/10_navigation",
-            "model/11_apm",
-            "specs/archimate",
-            "specs/openapi",
-            "specs/schemas",
-            "specs/ux",
-            "specs/navigation",
-            "specs/security",
-            "specs/apm",
+            "documentation-robotics/model/01_motivation",
+            "documentation-robotics/model/02_business",
+            "documentation-robotics/model/03_security",
+            "documentation-robotics/model/04_application",
+            "documentation-robotics/model/05_technology",
+            "documentation-robotics/model/06_api",
+            "documentation-robotics/model/07_data_model",
+            "documentation-robotics/model/08_datastore",
+            "documentation-robotics/model/09_ux",
+            "documentation-robotics/model/10_navigation",
+            "documentation-robotics/model/11_apm",
+            "documentation-robotics/specs/archimate",
+            "documentation-robotics/specs/openapi",
+            "documentation-robotics/specs/schemas",
+            "documentation-robotics/specs/ux",
+            "documentation-robotics/specs/navigation",
+            "documentation-robotics/specs/security",
+            "documentation-robotics/specs/apm",
         ]
 
         create_directory_structure(self.root_path, directories)
@@ -125,7 +125,7 @@ class ModelInitializer:
     def _create_manifest(self) -> None:
         """Create manifest.yaml."""
         Manifest.create(
-            path=self.root_path / "model" / "manifest.yaml",
+            path=self.root_path / "documentation-robotics" / "model" / "manifest.yaml",
             project_name=self.project_name,
             project_description=f"Architecture model for {self.project_name}",
             project_version="1.0.0",
@@ -139,8 +139,10 @@ This is a Documentation Robotics architecture model.
 
 ## Structure
 
-- `model/` - The canonical architecture model (11 layers)
-- `specs/` - Generated specifications (ArchiMate, OpenAPI, etc.)
+- `documentation-robotics/` - Main project directory
+  - `model/` - The canonical architecture model (11 layers)
+  - `specs/` - Generated specifications (ArchiMate, OpenAPI, etc.)
+  - `projection-rules.yaml` - Cross-layer projection rules
 - `.dr/` - Tool configuration and schemas
 
 ## Quick Start
@@ -178,8 +180,8 @@ For more information, see the Documentation Robotics documentation.
 
 # Model paths
 paths:
-  model: "./model"
-  specs: "./specs"
+  model: "./documentation-robotics/model"
+  specs: "./documentation-robotics/specs"
   templates: "./.dr/templates"
   schemas: "./.dr/schemas"
 
@@ -258,7 +260,7 @@ projections:
           operationId: "{{source.id}}"
 """
 
-        projection_rules_path = self.root_path / "projection-rules.yaml"
+        projection_rules_path = self.root_path / "documentation-robotics" / "projection-rules.yaml"
         projection_rules_path.write_text(projection_rules_content)
 
     def _create_examples(self) -> None:
@@ -273,7 +275,9 @@ CustomerManagement:
   documentation: "Handles all customer-related operations"
 """
 
-        example_path = self.root_path / "model" / "02_business" / "services.yaml"
+        example_path = (
+            self.root_path / "documentation-robotics" / "model" / "02_business" / "services.yaml"
+        )
         example_path.parent.mkdir(parents=True, exist_ok=True)
         example_path.write_text(example_service)
 
@@ -318,9 +322,11 @@ def init(
     root_path = Path(path).resolve()
 
     # Check if directory already has a model
-    if (root_path / "model" / "manifest.yaml").exists():
+    if (root_path / "documentation-robotics" / "model" / "manifest.yaml").exists():
         console.print("✗ Error: Model already exists in this directory", style="red bold")
-        console.print(f"   Found: {root_path / 'model' / 'manifest.yaml'}")
+        console.print(
+            f"   Found: {root_path / 'documentation-robotics' / 'model' / 'manifest.yaml'}"
+        )
         raise click.Abort()
 
     initializer = ModelInitializer(

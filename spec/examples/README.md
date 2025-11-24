@@ -1,6 +1,6 @@
 # Example Models
 
-This directory contains example architecture models demonstrating the Federated Architecture Metadata Model specification.
+This directory contains example architecture models demonstrating the Documentation Robotics specification.
 
 ## Available Examples
 

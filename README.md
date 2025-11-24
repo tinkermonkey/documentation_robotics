@@ -1,45 +1,61 @@
 # Documentation Robotics
 
-A comprehensive toolkit for managing federated architecture metadata models using industry standards.
+A comprehensive toolkit for managing federated data models for modeling large software systems using industry standards.
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
-[![Specification](https://img.shields.io/badge/Specification-v0.1.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.3.0-green)](cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.1.1-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.1-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
 
 Documentation Robotics provides:
 
-- **A Specification** - Federated Architecture Metadata Model for complex software systems
-- **A CLI Tool** - `dr` command for managing architecture models
+- **A Specification** - A federated data model for modeling complex software systems
+- **A CLI Tool** - `dr` command for managing models according to the specification
 - **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+
+## The Need
+
+Modern software systems are complex, distributed, and constantly evolving. Traditional architecture, business, and engineering documentation methods struggle to keep up, leading to outdated or incomplete information. Each of those aspects are improving, but they also remain fairly disconnected from the others. Additionally, keeping a group of humans on the same page regarding what a system is, how it works, and why it works that way is a significant challenge. It's also a significant risk factor for software projects and budgets. With the rise of capable agentic software devlopment tools, this need to communicate large complex systems in context, at a high level, both before and after the SDLC is becoming critical. This project aims to provide a standards-based, federated approach to modeling these systems that is easy to use, maintain, and integrate into existing development workflows. It serves to inform the SDLC and the creative process leading into it while also serving as a validation mechanism and feedback loop for the SDLC.
+
+## The Specification
+
+The vision for the spec is to be a comprehensive, standards-based approach to describing what a software system is, how it works, why it works that way, and how to observe it in production. The many excellent standards that already exist are used to their fullest extent, minimizing invention, but also adding some glue between them and a few missing layers to hopefully create a unified and holistic modeling framework that is not overly complex. A guiding principle is also to keep it as simple as possible while also being reasonably complete.
+
+## The Tooling
+
+The motivation for the tooling is to make it easy and efficient to create, manage, validate, and export models that conform to the specification. With the adoption of infrastructure-as-code, APM, standards like OpenAPI, JSON Schema, and OpenTelemetry, much of this data is available some form to technologists. AI-assisted development make it much easiers to generate and maintain this metadata as part of the software development lifecycle to fill in the gaps. With a unified data model and tooling, we can help architects, developers, and AI agents better understand, communicate, and evolve complex software systems.
+
+The vision is to be able to explore adding functionality to a system at any level that we happen to be envisioning it, whether that's the business layer, application layer, API layer, data model layer, etc, and from there project those changes into the other layers to explore impact and opportunity. By having a unified model that spans all these layers, we can help ensure consistency and traceability across the entire system design.
+
+The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, etc.) to manage these models in a collaborative manner. From the CLI, tools like sub-agents, custom commands, and other automation can be built to further streamline the process of managing system models in a way that is not tied to a specific ecosystem or vendor. We've started with a Claude Code integration to enable natural language interaction with the models, but the vision is to enable a wide variety of integrations and automation around this unified data model.
 
 ## Quick Links
 
-- 📖 **[Read the Specification](spec/)** - Complete specification with all 11 layers
-- 🛠️ **[Use the CLI Tool](cli/)** - Install and use the `dr` command
-- 🤝 **[Contributing](CONTRIBUTING.md)** - How to contribute
-- 📋 **[Release Process](RELEASE_PROCESS.md)** - How releases work
+- **[Read the Specification](spec/)** - Complete specification with all 11 layers
+- **[Use the CLI Tool](cli/)** - Install and use the `dr` command
+- **[Contributing](CONTRIBUTING.md)** - How to contribute
+- **[Release Process](RELEASE_PROCESS.md)** - How releases work
 
 ## Project Components
 
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 0.1.0 (Stable)
+**Version:** 0.1.1 (Stable)
 **Status:** Complete
 
-The Federated Architecture Metadata Model specification defines a standards-based approach to modeling enterprise and software architecture across 11 interconnected layers.
+The Documentation Robotics specification defines a standards-based approach to modeling software across 11 interconnected layers.
 
 **Key Features:**
 
-- ✅ **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
-- ✅ **Federated Approach** - ArchiMate spine + specialized standards
-- ✅ **11 Layers** - Motivation through APM/Observability
-- ✅ **Minimal Custom Invention** - Only 3 custom specifications (27%)
-- ✅ **Tool Ecosystem Access** - Compatible with hundreds of existing tools
+- **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
+- **Federated Approach** - ArchiMate spine + specialized standards
+- **11 Layers** - Motivation through APM/Observability
+- **Minimal Custom Invention** - Only 2 custom specifications (security, UX/navigation)
+- **Tool Ecosystem Access** - Compatible with hundreds of existing tools
 
 **Quick Start:**
 
@@ -52,10 +68,10 @@ The Federated Architecture Metadata Model specification defines a standards-base
 ### 2. The CLI Tool (`dr`)
 
 **Location:** [`cli/`](cli/)
-**Version:** 0.3.0
-**Status:** Phase 3 Complete
+**Version:** 0.3.1
+**Status:** MVP Complete
 
-A command-line tool for managing architecture models conforming to the specification.
+A command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
@@ -63,7 +79,7 @@ A command-line tool for managing architecture models conforming to the specifica
 - ✅ **Model Management** - Initialize, add, update, validate
 - ✅ **Cross-Layer References** - Track and validate relationships
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Standards-Based** - Uses specification v0.1.0
+- ✅ **Standards-Based** - Uses specification v0.1.1
 
 **Quick Start:**
 
@@ -92,7 +108,7 @@ dr conformance
 documentation_robotics/
 │
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.1.0)
+│   ├── VERSION                  # Current spec version (0.1.1)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
@@ -148,20 +164,18 @@ The specification defines 11 interconnected layers:
 
 This project maximizes use of existing standards:
 
-- **ArchiMate 3.2** - Motivation, Business, Application, Technology layers (36%)
-- **OpenAPI 3.0** - API specifications (9%)
-- **JSON Schema Draft 7** - Data model definitions (9%)
-- **OpenTelemetry 1.0+** - Observability and tracing (9%)
-- **SQL DDL** - Database schemas (9%)
-- **Custom Specifications** - Security, UX, Navigation (27%)
-
-**Result:** 73% standards-based, 27% custom invention
+- **ArchiMate 3.2** - Motivation, Business, Application, Technology layers
+- **OpenAPI 3.0** - API specifications
+- **JSON Schema Draft 7** - Data model definitions
+- **OpenTelemetry 1.0+** - Observability and tracing
+- **SQL DDL** - Database schemas
+- **Custom Specifications** - Security, UX, Navigation
 
 ## Getting Started
 
 ### For Architects
 
-Want to use this for modeling your architecture?
+Want to use this for modeling your project?
 
 1. **Understand the Approach**
    - Read [spec/core/00-overview.md](spec/core/00-overview.md)
@@ -177,8 +191,7 @@ Want to use this for modeling your architecture?
 3. **Create Your First Model**
 
    ```bash
-   dr init my-architecture
-   cd my-architecture
+   dr init my-project # creates a documentation-robotics folder at the project root
    dr add motivation goal --name "My First Goal"
    dr validate
    ```
@@ -228,12 +241,12 @@ We welcome contributions! See:
 
 **Ways to Contribute:**
 
-- 🐛 Report issues or ambiguities in the specification
-- 💡 Propose new features or improvements
-- 📝 Improve documentation
-- 🧪 Add test fixtures
-- 🎨 Create example models
-- 🛠️ Improve the CLI tool
+- Report issues or ambiguities in the specification
+- Propose new features or improvements
+- Improve documentation
+- Add test fixtures
+- Create example models
+- Improve the CLI tool
 
 ## Governance
 
@@ -244,10 +257,10 @@ We welcome contributions! See:
 
 ## Versions
 
-| Component         | Current Version | Status           |
-| ----------------- | --------------- | ---------------- |
-| **Specification** | 0.1.0           | Stable           |
-| **CLI Tool**      | 0.3.0           | Phase 3 Complete |
+| Component         | Current Version | Status       |
+| ----------------- | --------------- | ------------ |
+| **Specification** | 0.1.1           | Stable       |
+| **CLI Tool**      | 0.3.1           | MVP Complete |
 
 ## License
 
@@ -265,9 +278,9 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 If you use this specification in academic work, please cite:
 
 ```bibtex
-@techreport{federated-arch-spec,
-  title = {Federated Architecture Metadata Model Specification},
-  version = {0.1.0},
+@techreport{documentation-robotics-spec,
+  title = {Documentation Robotics Specification},
+  version = {0.1.1},
   year = {2025},
   url = {https://github.com/yourorg/documentation_robotics/tree/main/spec}
 }
@@ -287,6 +300,6 @@ This project integrates and builds upon:
 
 **Ready to get started?**
 
-- 📖 Read the specification: [spec/README.md](spec/README.md)
-- 🛠️ Install the CLI: `pip install -e cli/`
-- 💬 Join the discussion: [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)
+- Read the specification: [spec/README.md](spec/README.md)
+- Install the CLI: `pip install -e cli/`
+- Join the discussion: [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)

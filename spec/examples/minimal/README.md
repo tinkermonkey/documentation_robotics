@@ -1,6 +1,6 @@
 # Minimal Example
 
-The smallest conformant model demonstrating all 11 layers of the Federated Architecture Metadata Model.
+The smallest conformant model demonstrating all 11 layers of the Documentation Robotics specification.
 
 ## Purpose
 
@@ -188,6 +188,6 @@ This model achieves **Full Conformance**:
 
 ---
 
-**Spec Version**: 0.1.0
+**Spec Version**: 0.1.1
 **Conformance Level**: Full
 **Last Updated**: 2025-11-24

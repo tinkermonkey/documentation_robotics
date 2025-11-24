@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Documentation Robotics CLI provides comprehensive validation capabilities to ensure your architecture model conforms to the Federated Architecture Metadata Model specification (v0.1.0).
+The Documentation Robotics CLI provides comprehensive validation capabilities to ensure your architecture model conforms to the Documentation Robotics Specification (v0.1.0).
 
 ## Validation Levels
 

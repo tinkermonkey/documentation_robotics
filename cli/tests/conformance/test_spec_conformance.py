@@ -1,5 +1,5 @@
 """
-Conformance tests for the Federated Architecture Metadata Model specification.
+Conformance tests for the Documentation Robotics Specification.
 
 These tests validate that the CLI correctly implements the specification.
 """

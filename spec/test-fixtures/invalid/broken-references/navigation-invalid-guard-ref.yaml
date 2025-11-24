@@ -2,7 +2,7 @@
 # Should fail: Navigation reference validation
 # Error: Route references guard that doesn't exist
 
-version: "0.1.0"
+version: "0.1.1"
 application: "test-app"
 
 routes:

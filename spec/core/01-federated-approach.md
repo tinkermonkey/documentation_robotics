@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The Federated Architecture Metadata Model uses a **federation pattern** where ArchiMate serves as the architectural spine, integrating multiple specialized standards for specific concerns. This approach minimizes custom invention and maximizes tool ecosystem compatibility.
+The Documentation Robotics uses a **federation pattern** where ArchiMate serves as the architectural spine, integrating multiple specialized standards for specific concerns. This approach minimizes custom invention and maximizes tool ecosystem compatibility.
 
 ## The Federation Pattern
 

@@ -1,5 +1,5 @@
 """
-Validators for the Federated Architecture Metadata Model.
+Validators for the Documentation Robotics Specification.
 
 This package contains all validation logic for ensuring model correctness
 across schema, semantic, and cross-layer consistency dimensions.

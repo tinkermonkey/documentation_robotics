@@ -1,4 +1,4 @@
-version: 0.1.0
+version: 0.1.1
 schema: documentation-robotics-v1
 created: '2025-11-22T22:40:59.781170Z'
 updated: '2025-11-22T23:24:11.386273Z'
@@ -6,7 +6,7 @@ project:
   name: Documentation Robotics CLI
   description: Architecture model of the Documentation Robotics CLI tool itself, demonstrating
     the 11-layer federated architecture approach for a Python CLI application
-  version: 0.3.0
+  version: 0.3.1
 documentation: .dr/README.md
 layers:
   motivation:

@@ -2,7 +2,7 @@
 Data quality metrics for APM/Observability layer.
 
 This module provides support for tracking data quality metrics as specified
-in the Federated Architecture Metadata Model spec. Data quality metrics
+in the Documentation Robotics Specification. Data quality metrics
 track completeness, accuracy, timeliness, and consistency of data.
 
 Spec Requirement: Layer 11 (APM) must track data quality metrics and link

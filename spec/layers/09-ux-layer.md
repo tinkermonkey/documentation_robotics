@@ -54,7 +54,7 @@ Our UX spec bridges the gap between design and implementation by:
 UXSpec:
   description: "Complete UX specification for an experience (visual, voice, chat, SMS)"
   attributes:
-    version: string (spec version, e.g., "0.1.0")
+    version: string (spec version, e.g., "0.1.1")
     experience: string (experience identifier, e.g., "product-edit", "order-status-voice")
     channel: ChannelType [enum] (primary channel for this experience)
     title: string (optional)
@@ -608,7 +608,7 @@ ActionComponent:
 
 ```yaml
 # File: specs/ux/product-edit-experience.ux.yaml
-version: "0.1.0"
+version: "0.1.1"
 experience: "product-edit"
 channel: visual
 title: "Product Editor"

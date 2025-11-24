@@ -1,61 +1,98 @@
 # Documentation Robotics (`dr`) CLI Tool
 
-A command-line tool for managing federated architecture metadata models across 11 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
+A command-line tool for managing federated architecture data models across 11 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
+
+> **Part of [Documentation Robotics](../README.md)** - For project overview, motivation, and full context, see the [main README](../README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.1-green)](.)
+[![Specification](https://img.shields.io/badge/Specification-v0.1.0-blue)](../spec/)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
+
+## Installation
+
+```shell
+pip install documentation-robotics
+```
+
+## Quick Links
+
+- **[Install & Quick Start](#installation)** - Get started in minutes
+- **[Claude Code Integration](docs/user-guide/claude-code-integration.md)** - AI-powered modeling
+- **[Export Formats](#export-formats)** - ArchiMate, OpenAPI, PlantUML, etc.
+- **[The Specification](../spec/)** - Full spec documentation
+- **[Development](#development)** - Contributing to the CLI
 
 ## Specification Conformance
 
-**Implements:** [Federated Architecture Metadata Model Specification v0.1.0](../spec/)
+**Implements:** [Documentation Robotics Specification v0.1.0](../spec/)
 **Conformance Level:** Full (All 11 layers)
 
 Run `dr conformance` to see detailed conformance information.
 
 ## Status
 
-**Current Version:** v0.3.0
+**Current Version:** v0.3.1
 **Specification Version:** v0.1.0
 
-- ✅ **Phase 1 (MVP)** - Model initialization, element management, validation
-- ✅ **Phase 2 (Validation & Integrity)** - Cross-layer references, projection, dependency tracking
-- ✅ **Phase 3 (Export)** - Export to ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML
+This is the alpha release of the `dr` CLI tool, implementing most core features to prove out the concept:
+
+- **Model CRUD** - Model initialization, element management, validation
+- **Validation & Integrity** - Cross-layer references, projection, dependency tracking
+- **Export** - Export to ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML
+
+## The Vision
+
+The `dr` CLI makes it easy and efficient to create, manage, validate, and export models that conform to the [Documentation Robotics Specification](../spec/).
+
+**Key Goals:**
+
+- **Easy & Efficient** - Simple commands for complex modeling tasks
+- **Standards-Based** - Leverage existing tooling ecosystems (ArchiMate, OpenAPI, etc.)
+- **AI-Friendly** - Designed for both human and AI agent interaction
+- **Git-Friendly** - All models are text-based and version-controllable
+- **Collaborative** - Built for CI/CD, automation, and team workflows
+
+With unified tooling around a federated data model, we help architects, developers, and AI agents better understand, communicate, and evolve complex software systems.
+
+For the broader motivation and context, see [The Need](../README.md#the-need) in the main README.
 
 ## Features
 
-### Phase 1 (MVP)
+### Foundation
 
-- ✅ Model initialization with 11-layer structure
-- ✅ Element management (add, update, remove) across all layers
-- ✅ Query and search capabilities
-- ✅ Basic validation (schema, naming, cross-references)
-- ✅ Manifest tracking and statistics
+- Model initialization with 11-layer structure
+- Element management (add, update, remove) across all layers
+- Query and search capabilities
+- Basic validation (schema, naming, cross-references)
+- Manifest tracking and statistics
 
-### Phase 2 (Validation & Integrity)
+### Validation & Integrity
 
-- ✅ Cross-layer reference tracking and validation
-- ✅ Element projection across layers
-- ✅ Dependency tracking and tracing
-- ✅ Semantic validation
-- ✅ Circular dependency detection
+- Cross-layer reference tracking and validation
+- Element projection across layers
+- Dependency tracking and tracing
+- Semantic validation
+- Circular dependency detection
 
-### Phase 3 (Export)
+### Export
 
-- ✅ Export to ArchiMate 3.2 XML
-- ✅ Export to OpenAPI 3.0 specifications
-- ✅ Export to JSON Schema Draft 7
-- ✅ Generate PlantUML diagrams (component, class, deployment)
-- ✅ Generate Markdown documentation
-- ✅ Export to GraphML for visualization
+- Export to ArchiMate 3.2 XML
+- Export to OpenAPI 3.0 specifications
+- Export to JSON Schema Draft 7
+- Generate PlantUML diagrams (component, class, deployment)
+- Generate Markdown documentation
+- Export to GraphML for visualization
 
-### Claude Code Integration (NEW! 🎉)
+### Claude Code Integration
 
-- ✅ **Natural Language Modeling** - Create architecture models using conversational language
-- ✅ **Automatic Code Extraction** - Extract models from existing codebases (Python, TypeScript, Java, Go)
-- ✅ **Intelligent Validation** - Auto-fix common issues with confidence scoring
-- ✅ **Documentation Generation** - Generate comprehensive docs and diagrams automatically
-- ✅ **Slash Commands** - Quick access to common workflows (`/dr-model`, `/dr-ingest`, `/dr-validate`)
-- ✅ **Specialized Agents** - Autonomous agents for complex tasks (extractor, validator, documenter)
-- ✅ **Customization** - Templates for organization-specific commands and agents
+- **Natural Language Modeling** - Create architecture models using conversational language
+- **Automatic Code Extraction** - Extract models from existing codebases (Python, TypeScript, Java, Go)
+- **Intelligent Validation** - Auto-fix common issues with confidence scoring
+- **Documentation Generation** - Generate comprehensive docs and diagrams automatically
+- **Slash Commands** - Quick access to common workflows (`/dr-model`, `/dr-ingest`, `/dr-validate`)
+- **Specialized Agents** - Autonomous agents for complex tasks (extractor, validator, documenter)
+- **Customization** - Templates for organization-specific commands and agents
 
 **Try it:**
 
@@ -66,15 +103,6 @@ claude                         # Open Claude Code
 ```
 
 See [Claude Code Integration Guide](docs/user-guide/claude-code-integration.md) for details.
-
-### Coming in Future Phases
-
-- Code generation (TypeScript, Python, React components)
-- Interactive REPL mode
-- Diff/merge functionality
-- Advanced reporting and analytics
-- CI/CD integration
-- Enhanced AI capabilities (better extraction, smarter suggestions)
 
 ## Installation
 
@@ -127,7 +155,7 @@ dr export --format markdown
 dr export --format all
 ```
 
-### AI-Powered Usage with Claude Code (NEW!)
+### AI-Powered Usage with Claude Code
 
 ```bash
 # Install Claude Code integration
@@ -158,7 +186,7 @@ See [Claude Code Integration Guide](docs/user-guide/claude-code-integration.md) 
 
 ## Architecture Model Structure
 
-The `dr` tool manages models with 11 layers as defined in the [Federated Architecture Metadata Model Specification](../spec/):
+The `dr` tool manages models with 11 layers as defined in the [Documentation Robotics Specification](../spec/). For a complete overview of all layers and their relationships, see [The 11 Layers](../README.md#the-11-layers) in the main README.
 
 1. **Motivation** - Stakeholders, goals, requirements, principles ([spec](../spec/layers/01-motivation-layer.md))
 2. **Business** - Business services, processes, actors, roles ([spec](../spec/layers/02-business-layer.md))
@@ -178,32 +206,35 @@ For detailed layer specifications, see [../spec/layers/](../spec/layers/)
 
 ```
 project/
-├── .dr/                    # Tool configuration and schemas
-│   ├── schemas/           # JSON Schema definitions for each layer
-│   ├── examples/          # Example elements
-│   └── README.md          # Model documentation
-├── model/                  # The canonical architecture model
-│   ├── manifest.yaml      # Model metadata and registry
-│   ├── 01_motivation/     # Motivation layer elements
-│   ├── 02_business/       # Business layer elements
-│   └── ...               # Other layers
-├── specs/                  # Generated/exported specifications
-│   ├── archimate/         # ArchiMate XML exports
-│   ├── openapi/           # OpenAPI 3.0 specs
-│   ├── schemas/           # JSON Schema files
-│   ├── diagrams/          # PlantUML diagrams
-│   └── docs/              # Markdown documentation
-├── dr.config.yaml         # Configuration
-└── projection-rules.yaml  # Cross-layer projection rules
+├── .dr/                                # Tool configuration and schemas
+│   ├── schemas/                       # JSON Schema definitions for each layer
+│   ├── examples/                      # Example elements
+│   └── README.md                      # Model documentation
+├── documentation-robotics/             # Main project directory
+│   ├── model/                         # The canonical architecture model
+│   │   ├── manifest.yaml              # Model metadata and registry
+│   │   ├── 01_motivation/             # Motivation layer elements
+│   │   ├── 02_business/               # Business layer elements
+│   │   └── ...                       # Other layers
+│   ├── specs/                         # Generated/exported specifications
+│   │   ├── archimate/                 # ArchiMate XML exports
+│   │   ├── openapi/                   # OpenAPI 3.0 specs
+│   │   ├── schemas/                   # JSON Schema files
+│   │   ├── diagrams/                  # PlantUML diagrams
+│   │   └── docs/                      # Markdown documentation
+│   └── projection-rules.yaml          # Cross-layer projection rules
+└── dr.config.yaml                     # Configuration
 ```
 
 ## Design Philosophy
 
 - **Files are the API** - The model is stored as YAML/JSON files that can be directly manipulated
 - **CLI provides convenience** - The `dr` tool offers validation, projection, and export functionality
-- **Claude Code integration** - Designed to be easily used by both humans and Claude Code
-- **Standards-based** - Leverage existing standards wherever possible (ArchiMate, OpenAPI, JSON Schema)
+- **Standards-first** - Leverage existing standards wherever possible (ArchiMate, OpenAPI, JSON Schema)
+- **AI-native design** - Designed for easy use by both humans and AI agents (Claude Code, etc.)
 - **Git-friendly** - All model files are text-based and version-controllable
+- **Federated approach** - Each layer uses optimal standards, integrated via ArchiMate spine
+- **Cross-layer traceability** - Track relationships from business goals through to observability
 
 ## Documentation
 
@@ -226,8 +257,6 @@ project/
 ### CLI Documentation
 
 - [CLI Requirements](docs/01_cli_requirements.md)
-- [Phase 3 Design](docs/02_cli_design_phase_3.md)
-- [Phase 3 Development Plan](docs/03_cli_dev_plan_phase_3.md)
 - [Quick Start Guide](QUICK_START.md)
 - [Implementation Summary](PHASE_3_IMPLEMENTATION_SUMMARY.md)
 
@@ -280,8 +309,8 @@ MIT License - see LICENSE file for details.
 
 ## Version
 
-Current: v0.3.0 (Phase 3 Complete)
+Current: v0.3.1 (MVP Complete)
 
-- Phase 1 (MVP): v0.1.0
+- Phase 1 (Core): v0.1.0
 - Phase 2 (Validation): v0.2.0
-- Phase 3 (Export): v0.3.0
+- Phase 3 (Export): v0.3.1

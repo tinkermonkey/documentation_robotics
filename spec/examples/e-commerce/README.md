@@ -406,7 +406,7 @@ After studying this example, you'll understand:
 
 ---
 
-**Spec Version**: 0.1.0
+**Spec Version**: 0.1.1
 **Conformance Level**: Full
 **Industry**: E-Commerce
 **Complexity**: Medium

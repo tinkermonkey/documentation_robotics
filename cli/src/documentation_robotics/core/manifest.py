@@ -109,7 +109,7 @@ class Manifest:
             "motivation": {
                 "order": 1,
                 "name": "Motivation",
-                "path": "model/01_motivation/",
+                "path": "documentation-robotics/model/01_motivation/",
                 "schema": ".dr/schemas/01-motivation-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -117,7 +117,7 @@ class Manifest:
             "business": {
                 "order": 2,
                 "name": "Business",
-                "path": "model/02_business/",
+                "path": "documentation-robotics/model/02_business/",
                 "schema": ".dr/schemas/02-business-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -125,7 +125,7 @@ class Manifest:
             "security": {
                 "order": 3,
                 "name": "Security",
-                "path": "model/03_security/",
+                "path": "documentation-robotics/model/03_security/",
                 "schema": ".dr/schemas/03-security-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -133,7 +133,7 @@ class Manifest:
             "application": {
                 "order": 4,
                 "name": "Application",
-                "path": "model/04_application/",
+                "path": "documentation-robotics/model/04_application/",
                 "schema": ".dr/schemas/04-application-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -141,7 +141,7 @@ class Manifest:
             "technology": {
                 "order": 5,
                 "name": "Technology",
-                "path": "model/05_technology/",
+                "path": "documentation-robotics/model/05_technology/",
                 "schema": ".dr/schemas/05-technology-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -149,7 +149,7 @@ class Manifest:
             "api": {
                 "order": 6,
                 "name": "API",
-                "path": "model/06_api/",
+                "path": "documentation-robotics/model/06_api/",
                 "schema": ".dr/schemas/06-api-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -157,7 +157,7 @@ class Manifest:
             "data_model": {
                 "order": 7,
                 "name": "Data Model",
-                "path": "model/07_data_model/",
+                "path": "documentation-robotics/model/07_data_model/",
                 "schema": ".dr/schemas/07-data-model-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -165,7 +165,7 @@ class Manifest:
             "datastore": {
                 "order": 8,
                 "name": "Data Store",
-                "path": "model/08_datastore/",
+                "path": "documentation-robotics/model/08_datastore/",
                 "schema": ".dr/schemas/08-datastore-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -173,7 +173,7 @@ class Manifest:
             "ux": {
                 "order": 9,
                 "name": "UX",
-                "path": "model/09_ux/",
+                "path": "documentation-robotics/model/09_ux/",
                 "schema": ".dr/schemas/09-ux-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -181,7 +181,7 @@ class Manifest:
             "navigation": {
                 "order": 10,
                 "name": "Navigation",
-                "path": "model/10_navigation/",
+                "path": "documentation-robotics/model/10_navigation/",
                 "schema": ".dr/schemas/10-navigation-layer.schema.json",
                 "enabled": True,
                 "elements": {},
@@ -189,7 +189,7 @@ class Manifest:
             "apm": {
                 "order": 11,
                 "name": "APM/Observability",
-                "path": "model/11_apm/",
+                "path": "documentation-robotics/model/11_apm/",
                 "schema": ".dr/schemas/11-apm-observability-layer.schema.json",
                 "enabled": True,
                 "elements": {},

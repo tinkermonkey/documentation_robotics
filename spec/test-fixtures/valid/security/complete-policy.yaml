@@ -1,7 +1,7 @@
 # Valid security layer fixture - Complete security policy with roles and resources
 # Tests: Schema validation, security integration, cross-layer enforcement
 
-version: "0.1.0"
+version: "0.1.1"
 security-model:
   authentication:
     methods:

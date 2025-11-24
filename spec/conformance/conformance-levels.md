@@ -1,6 +1,6 @@
 # Conformance Levels
 
-Implementations of the Federated Architecture Metadata Model can claim conformance at three levels, each building on the previous level.
+Implementations of the Documentation Robotics specification can claim conformance at three levels, each building on the previous level.
 
 ## Level 1: Basic Conformance
 
@@ -62,7 +62,7 @@ MUST pass:
 ```yaml
 conformanceLevel: "basic"
 layers: [motivation, business, security, application]
-specVersion: "0.1.0"
+specVersion: "0.1.1"
 ```
 
 ---
@@ -138,7 +138,7 @@ MUST pass:
 ```yaml
 conformanceLevel: "standard"
 layers: [motivation, business, security, application, technology, api, data-model, datastore]
-specVersion: "0.1.0"
+specVersion: "0.1.1"
 ```
 
 ---
@@ -230,7 +230,7 @@ layers:
     navigation,
     apm,
   ]
-specVersion: "0.1.0"
+specVersion: "0.1.1"
 ```
 
 ---

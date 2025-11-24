@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "documentation-robotics"
-version = "0.3.0"
-description = "CLI tool for managing federated architecture metadata models"
+version = "0.3.1"
+description = "CLI tool for managing federated architecture data models"
 readme = "README.md"
 requires-python = ">=3.9"
 license = {text = "MIT"}
@@ -33,7 +33,6 @@ dependencies = [
     "jinja2>=3.1.0",
     "networkx>=3.0",
     "jsonpath-ng>=1.5.0",
-    # Phase 3 dependencies
     "lxml>=4.9.0",
     "markdown>=3.4.0",
 ]
@@ -58,6 +57,10 @@ where = ["src"]
 [tool.setuptools.package-data]
 documentation_robotics = [
     "schemas/bundled/*.json",
+    "claude_integration/reference_sheets/*.md",
+    "claude_integration/commands/*.md",
+    "claude_integration/agents/*.md",
+    "claude_integration/templates/*.md",
 ]
 
 [tool.pytest.ini_options]

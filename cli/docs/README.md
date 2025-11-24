@@ -47,7 +47,7 @@ Complete documentation for the Documentation Robotics CLI tool.
 
 ---
 
-## What's New in v0.3.0
+## What's New in v0.3.1
 
 ### New Validation Capabilities
 

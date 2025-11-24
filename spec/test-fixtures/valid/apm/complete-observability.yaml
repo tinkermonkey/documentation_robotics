@@ -1,7 +1,7 @@
 # Valid APM layer fixture - Complete observability with traces, metrics, and data quality
 # Tests: Schema validation, goal traceability, data quality metrics
 
-version: "0.1.0"
+version: "0.1.1"
 application: "ticket-management"
 description: "Observability specification for ticket management system"
 

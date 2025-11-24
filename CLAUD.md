@@ -2,19 +2,19 @@
 
 ## Project Overview
 
-**Documentation Robotics** is a comprehensive toolkit for managing federated architecture metadata models. The project consists of:
+**Documentation Robotics** is a comprehensive toolkit for managing federated architecture data models. The project consists of:
 
 1. **CLI Tool (`dr`)** - A Python command-line interface for managing 11-layer architecture models
 2. **Metadata Model Specifications** - Comprehensive documentation defining the 11-layer federated architecture model
 
-**Current Version:** CLI v0.3.0 (Phase 3 Complete), Metadata Model v1.0
+**Current Version:** CLI v0.3.1 (Phase 3 Complete), Metadata Model v1.0
 
 ## Repository Structure
 
 ```
 documentation_robotics/
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.1.0)
+│   ├── VERSION                  # Current spec version (0.1.1)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
@@ -194,9 +194,7 @@ pytest tests/integration/
 
 ## Important Context
 
-### Phase 3 Completion (v0.3.0)
-
-The CLI recently completed Phase 3, which added:
+The CLI recently completed the alpha build-out, which includes:
 
 - Export capabilities for 6+ formats
 - Full cross-layer dependency tracking

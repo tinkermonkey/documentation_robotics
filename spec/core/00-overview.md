@@ -1,8 +1,8 @@
-# Federated Architecture Metadata Model Specification
+# Documentation Robotics Specification
 
 ## Overview
 
-This specification defines a **federated architecture metadata model** for complex software systems, using ArchiMate as the architectural spine with specialized standards for different concerns. The approach minimizes custom invention by leveraging established standards wherever possible.
+This specification defines a **federated architecture data model** for complex software systems, using ArchiMate as the architectural spine with specialized standards for different concerns. The approach minimizes custom invention by leveraging established standards wherever possible.
 
 ## Purpose and Scope
 
@@ -164,13 +164,13 @@ Extension Points: Multiple per layer
 
 ## Specification Status
 
-**Current Version:** 0.1.0
+**Current Version:** 0.1.1
 **Status:** Stable
 **Last Updated:** 2025-11-23
 
 ### Version History
 
-- **0.1.0** (2025-11-23) - Initial stable release
+- **0.1.1** (2025-11-23) - Initial stable release
   - 11 layer specifications complete
   - JSON Schemas for all layers
   - Conformance requirements defined
