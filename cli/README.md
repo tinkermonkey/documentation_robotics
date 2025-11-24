@@ -2,6 +2,8 @@
 
 A command-line tool for managing federated architecture metadata models across 11 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
 
+[![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
+
 ## Specification Conformance
 
 **Implements:** [Federated Architecture Metadata Model Specification v0.1.0](../spec/)

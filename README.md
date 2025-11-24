@@ -2,6 +2,8 @@
 
 A comprehensive toolkit for managing federated architecture metadata models using industry standards.
 
+[![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
+
 [![Specification](https://img.shields.io/badge/Specification-v0.1.0-blue)](spec/)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.3.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
