@@ -98,8 +98,8 @@ See [Contributing Guide](../CONTRIBUTING.md) for details.
 
 Found an issue in the documentation? Have a suggestion?
 
-- [Report documentation issues](https://github.com/yourorg/documentation_robotics/issues/new?labels=documentation)
-- [Suggest improvements](https://github.com/yourorg/documentation_robotics/discussions)
+- [Report documentation issues](https://github.com/tinkermonkey/documentation_robotics/issues/new?labels=documentation)
+- [Suggest improvements](https://github.com/tinkermonkey/documentation_robotics/discussions)
 
 ---
 

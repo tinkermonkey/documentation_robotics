@@ -44,7 +44,7 @@ For CLI improvements (features, bug fixes):
 ### 1. Fork and Clone
 
 ```bash
-git clone https://github.com/yourname/documentation_robotics.git
+git clone https://github.com/tinkermonkey/documentation_robotics.git
 cd documentation_robotics
 ```
 
@@ -300,8 +300,8 @@ Include:
 
 ## Getting Help
 
-- **Questions:** [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)
-- **Issues:** [GitHub Issues](https://github.com/yourorg/documentation_robotics/issues)
+- **Questions:** [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
+- **Issues:** [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues)
 - **Pre-commit help:** See [PRE_COMMIT_SETUP.md](PRE_COMMIT_SETUP.md)
 - **Specification questions:** See [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md)
 

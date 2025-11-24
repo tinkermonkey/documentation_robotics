@@ -61,14 +61,14 @@ conformanceStatement:
     vendor: "Your Organization"
     website: "https://yourtool.com"
     documentation: "https://docs.yourtool.com"
-    repository: "https://github.com/yourorg/yourtool"
+    repository: "https://github.com/tinkermonkey/yourtool"
     license: "MIT"
 
   specification:
     name: "Federated Architecture Metadata Model"
     version: "0.1.0"
     conformanceLevel: "full" # basic, standard, or full
-    url: "https://github.com/yourorg/documentation_robotics/tree/main/spec"
+    url: "https://github.com/tinkermonkey/documentation_robotics/tree/main/spec"
 
   layers:
     01_motivation: { implemented: true, standard: "ArchiMate 3.2" }
@@ -122,7 +122,7 @@ Publish your conformance statement:
    ## Conformance
 
    This tool conforms to the [Federated Architecture Metadata Model Specification v0.1.0]
-   (https://github.com/yourorg/documentation_robotics/tree/main/spec)
+   (https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
    at the **Full Conformance** level.
 
    See [conformance-statement.yaml](conformance-statement.yaml) for details.

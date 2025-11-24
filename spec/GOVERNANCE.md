@@ -323,7 +323,6 @@ This governance document can be amended by:
 
 - **GitHub Issues:** For proposals and discussions
 - **GitHub Discussions:** For general questions
-- **Email:** [maintainer-email]
 
 ---
 
