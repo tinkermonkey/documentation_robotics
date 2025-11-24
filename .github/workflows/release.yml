@@ -87,6 +87,9 @@ jobs:
     name: Release CLI
     if: startsWith(github.ref, 'refs/tags/cli-v')
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v3
 
