@@ -457,6 +457,6 @@ See [Troubleshooting Guide](troubleshooting.md) for common issues and solutions.
 
 ### Community
 
-- GitHub: https://github.com/yourorg/documentation_robotics
-- Issues: https://github.com/yourorg/documentation_robotics/issues
-- Discussions: https://github.com/yourorg/documentation_robotics/discussions
+- GitHub: https://github.com/tinkermonkey/documentation_robotics
+- Issues: https://github.com/tinkermonkey/documentation_robotics/issues
+- Discussions: https://github.com/tinkermonkey/documentation_robotics/discussions

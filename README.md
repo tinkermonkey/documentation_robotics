@@ -268,8 +268,8 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 ## Support
 
-- **Questions:** [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)
-- **Issues:** [GitHub Issues](https://github.com/yourorg/documentation_robotics/issues)
+- **Questions:** [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
+- **Issues:** [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues)
 - **Specification Issues:** Use "Specification Bug Report" template
 - **CLI Issues:** Use "CLI Bug Report" template
 
@@ -282,7 +282,7 @@ If you use this specification in academic work, please cite:
   title = {Documentation Robotics Specification},
   version = {0.1.1},
   year = {2025},
-  url = {https://github.com/yourorg/documentation_robotics/tree/main/spec}
+  url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }
 ```
 
@@ -302,4 +302,4 @@ This project integrates and builds upon:
 
 - Read the specification: [spec/README.md](spec/README.md)
 - Install the CLI: `pip install -e cli/`
-- Join the discussion: [GitHub Discussions](https://github.com/yourorg/documentation_robotics/discussions)
+- Join the discussion: [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)

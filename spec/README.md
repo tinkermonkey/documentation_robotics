@@ -236,7 +236,7 @@ See [conformance/conformance-levels.md](conformance/conformance-levels.md) for d
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/documentation_robotics.git
+git clone https://github.com/tinkermonkey/documentation_robotics.git
 cd documentation_robotics/spec
 
 # Read in order
