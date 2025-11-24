@@ -2,7 +2,7 @@
 Manifest management - tracks model metadata and layer registry.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -26,7 +26,7 @@ class Manifest:
         """
         self.path = path
         self.data = data
-        self.version = data.get("version", "1.0.0")
+        self.version = data.get("version", "0.1.0")
         self.project = data.get("project", {})
         self.layers = data.get("layers", {})
         self.statistics = data.get("statistics", {})
@@ -63,10 +63,10 @@ class Manifest:
         Returns:
             New Manifest instance
         """
-        now = datetime.utcnow().isoformat() + "Z"
+        now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         data = {
-            "version": "1.0.0",
+            "version": "0.1.0",
             "schema": "documentation-robotics-v1",
             "created": now,
             "updated": now,
@@ -229,12 +229,14 @@ class Manifest:
     def update_validation_status(self, status: str, timestamp: Optional[str] = None) -> None:
         """Update validation status and timestamp."""
         self.statistics["validation_status"] = status
-        self.statistics["last_validation"] = timestamp or datetime.utcnow().isoformat() + "Z"
+        self.statistics["last_validation"] = timestamp or datetime.now(
+            timezone.utc
+        ).isoformat().replace("+00:00", "Z")
         self._update_timestamp()
 
     def _update_timestamp(self) -> None:
         """Update the 'updated' timestamp."""
-        self.data["updated"] = datetime.utcnow().isoformat() + "Z"
+        self.data["updated"] = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
     def save(self) -> None:
         """Save manifest to file."""

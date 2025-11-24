@@ -5,6 +5,7 @@ Model abstraction - represents the entire architecture model.
 from pathlib import Path
 from typing import Dict, List, Optional
 
+from .cache import ModelCache, make_query_key
 from .dependency_tracker import DependencyTracker
 from .element import Element
 from .layer import Layer
@@ -23,27 +24,45 @@ class Model:
     and querying across all layers.
     """
 
-    def __init__(self, root_path: Path):
+    def __init__(self, root_path: Path, enable_cache: bool = True, lazy_load: bool = False):
         """
         Initialize model from root directory.
 
         Args:
             root_path: Path to the model root directory
+            enable_cache: Enable caching for improved performance (default: True)
+            lazy_load: Enable lazy loading of layers (default: False)
         """
         self.root_path = root_path
         self.model_path = root_path / "model"
         self.specs_path = root_path / "specs"
         self.manifest = Manifest.load(self.model_path / "manifest.yaml")
-        self.layers: Dict[str, Layer] = self._load_layers()
+
+        # Phase 4.3: Initialize cache
+        self._cache = ModelCache() if enable_cache else None
+        self._lazy_load = lazy_load
+
+        # Load layers (lazy or eager)
+        if lazy_load:
+            self.layers: Dict[str, Layer] = {}
+            self._lazy_layers: Dict[str, bool] = {
+                name: False
+                for name, config in self.manifest.layers.items()
+                if config.get("enabled", True)
+            }
+        else:
+            self.layers: Dict[str, Layer] = self._load_layers()
+            self._lazy_layers = {}
 
         # Phase 2: Initialize reference registry
         self.reference_registry = ReferenceRegistry()
         self.reference_registry.load_reference_definitions(self.root_path / ".dr" / "schemas")
 
-        # Build reference registry from existing elements
-        for layer in self.layers.values():
-            for element in layer.elements.values():
-                self.reference_registry.register_element(element)
+        # Build reference registry from existing elements (skip if lazy loading)
+        if not lazy_load:
+            for layer in self.layers.values():
+                for element in layer.elements.values():
+                    self.reference_registry.register_element(element)
 
         # Phase 2: Initialize projection engine
         projection_rules_path = self.root_path / "projection-rules.yaml"
@@ -59,17 +78,48 @@ class Model:
             if layer_config.get("enabled", True):
                 layer_path = self.root_path / layer_config["path"]
                 layers[layer_name] = Layer.load(
-                    name=layer_name, path=layer_path, config=layer_config
+                    name=layer_name, path=layer_path, config=layer_config, cache=self._cache
                 )
         return layers
 
     def get_layer(self, layer_name: str) -> Optional[Layer]:
-        """Get layer by name."""
+        """
+        Get layer by name, loading if lazy.
+
+        Args:
+            layer_name: Name of the layer
+
+        Returns:
+            Layer if found, None otherwise
+        """
+        # Check if already loaded
+        if layer_name in self.layers:
+            return self.layers[layer_name]
+
+        # Check if lazy loading is enabled and layer needs to be loaded
+        if self._lazy_load and layer_name in self._lazy_layers:
+            if not self._lazy_layers[layer_name]:
+                # Load the layer
+                layer_config = self.manifest.layers.get(layer_name)
+                if layer_config and layer_config.get("enabled", True):
+                    layer_path = self.root_path / layer_config["path"]
+                    layer = Layer.load(
+                        name=layer_name, path=layer_path, config=layer_config, cache=self._cache
+                    )
+                    self.layers[layer_name] = layer
+                    self._lazy_layers[layer_name] = True
+
+                    # Register elements in reference registry
+                    for element in layer.elements.values():
+                        self.reference_registry.register_element(element)
+
+                    return layer
+
         return self.layers.get(layer_name)
 
     def get_element(self, element_id: str) -> Optional[Element]:
         """
-        Get element by ID across all layers.
+        Get element by ID across all layers (with caching).
 
         Args:
             element_id: Element ID in format {layer}.{type}.{name}
@@ -77,6 +127,12 @@ class Model:
         Returns:
             Element if found, None otherwise
         """
+        # Try cache first
+        if self._cache:
+            cached = self._cache.get_element(element_id)
+            if cached is not None:
+                return cached
+
         # Parse element ID to extract layer
         parts = element_id.split(".")
         if len(parts) < 3:
@@ -87,7 +143,13 @@ class Model:
         if not layer:
             return None
 
-        return layer.get_element(element_id)
+        element = layer.get_element(element_id)
+
+        # Cache the result
+        if element and self._cache:
+            self._cache.set_element(element_id, element)
+
+        return element
 
     def find_elements(
         self,
@@ -97,7 +159,7 @@ class Model:
         **properties,
     ) -> List[Element]:
         """
-        Find elements matching criteria.
+        Find elements matching criteria (with caching).
 
         Args:
             layer: Filter by layer name
@@ -108,6 +170,16 @@ class Model:
         Returns:
             List of matching elements
         """
+        # Try cache first
+        if self._cache:
+            query_key = make_query_key(
+                layer=layer, element_type=element_type, name_pattern=name_pattern, **properties
+            )
+            cached = self._cache.get_query(query_key)
+            if cached is not None:
+                return cached
+
+        # Perform search
         results = []
 
         layers_to_search = [self.layers[layer]] if layer else self.layers.values()
@@ -118,6 +190,10 @@ class Model:
                     element_type=element_type, name_pattern=name_pattern, **properties
                 )
             )
+
+        # Cache the results
+        if self._cache:
+            self._cache.set_query(query_key, results)
 
         return results
 
@@ -144,6 +220,10 @@ class Model:
         if hasattr(self, "reference_registry"):
             self.reference_registry.register_element(element)
 
+        # Phase 4.3: Invalidate caches
+        if self._cache:
+            self._cache.invalidate_queries()  # Query results may have changed
+
     def update_element(self, element_id: str, updates: Dict) -> None:
         """
         Update an existing element.
@@ -161,6 +241,11 @@ class Model:
 
         element.update(updates)
         element.save()
+
+        # Phase 4.3: Invalidate caches
+        if self._cache:
+            self._cache.invalidate_element(element_id)
+            self._cache.invalidate_queries()
 
     def remove_element(self, element_id: str, cascade: bool = False) -> None:
         """
@@ -197,6 +282,11 @@ class Model:
         layer.remove_element(element_id)
         self.manifest.decrement_element_count(layer_name, element.type)
         self.manifest.save()
+
+        # Phase 4.3: Invalidate caches
+        if self._cache:
+            self._cache.invalidate_element(element_id)
+            self._cache.invalidate_queries()
 
     def find_dependencies(self, element_id: str) -> List[Element]:
         """
@@ -253,24 +343,49 @@ class Model:
             ValidationResult with all errors and warnings
         """
         from ..validators.base import ValidationResult
+        from ..validators.consistency import BidirectionalConsistencyValidator
+        from ..validators.goal_metrics import GoalToMetricTraceabilityValidator
+        from ..validators.security import SecurityIntegrationValidator
         from ..validators.semantic import SemanticValidator
+        from ..validators.traceability import UpwardTraceabilityValidator
 
         result = ValidationResult()
 
-        # Phase 1: Validate each layer (schema validation)
+        # Phase 1: Schema validation for each layer
         for layer_name, layer in self.layers.items():
             layer_result = layer.validate(strict=strict)
             result.merge(layer_result, prefix=layer_name)
 
-        # Phase 1: Validate cross-layer references
+        # Phase 2: Cross-layer reference validation (always)
         ref_result = self._validate_cross_references()
         result.merge(ref_result)
 
-        # Phase 2: Semantic validation
+        # Phase 3: Semantic validation (always in strict mode, recommended otherwise)
+        semantic_validator = SemanticValidator(self)
+        semantic_result = semantic_validator.validate()
+        result.merge(semantic_result)
+
+        # Phase 4: Spec alignment validators (strict mode only for comprehensive validation)
         if strict:
-            semantic_validator = SemanticValidator(self)
-            semantic_result = semantic_validator.validate()
-            result.merge(semantic_result)
+            # Upward traceability validation
+            traceability_validator = UpwardTraceabilityValidator()
+            traceability_result = traceability_validator.validate(self)
+            result.merge(traceability_result)
+
+            # Security integration validation
+            security_validator = SecurityIntegrationValidator()
+            security_result = security_validator.validate(self)
+            result.merge(security_result)
+
+            # Bidirectional consistency validation
+            consistency_validator = BidirectionalConsistencyValidator()
+            consistency_result = consistency_validator.validate(self)
+            result.merge(consistency_result)
+
+            # Goal-to-metric traceability validation
+            goal_metrics_validator = GoalToMetricTraceabilityValidator()
+            goal_metrics_result = goal_metrics_validator.validate(self)
+            result.merge(goal_metrics_result)
 
         return result
 
@@ -280,6 +395,59 @@ class Model:
 
         validator = ReferenceValidator(self)
         return validator.validate()
+
+    def get_cache_stats(self) -> Optional[Dict]:
+        """
+        Get cache statistics.
+
+        Returns:
+            Dictionary with cache statistics if caching is enabled, None otherwise
+        """
+        if self._cache:
+            return self._cache.get_stats_summary()
+        return None
+
+    def clear_cache(self) -> None:
+        """Clear all caches."""
+        if self._cache:
+            self._cache.clear()
+
+    def invalidate_cache(
+        self, element_id: Optional[str] = None, layer: Optional[str] = None
+    ) -> None:
+        """
+        Invalidate cache entries.
+
+        Args:
+            element_id: Invalidate specific element (optional)
+            layer: Invalidate entire layer (optional)
+        """
+        if not self._cache:
+            return
+
+        if element_id:
+            self._cache.invalidate_element(element_id)
+        elif layer:
+            self._cache.invalidate_layer(layer)
+        else:
+            # Invalidate query cache
+            self._cache.invalidate_queries()
+
+    def preload_layers(self, layer_names: Optional[List[str]] = None) -> None:
+        """
+        Preload layers (useful for lazy loading).
+
+        Args:
+            layer_names: Specific layers to load (default: all)
+        """
+        if not self._lazy_load:
+            return  # Already eagerly loaded
+
+        if layer_names is None:
+            layer_names = list(self._lazy_layers.keys())
+
+        for layer_name in layer_names:
+            self.get_layer(layer_name)  # Triggers lazy load
 
     def save(self) -> None:
         """Save all layers and manifest."""

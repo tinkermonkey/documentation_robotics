@@ -6,7 +6,7 @@ specification this CLI implementation conforms to.
 """
 
 # Specification version implemented
-SPEC_VERSION = "1.0.0"
+SPEC_VERSION = "0.1.0"
 
 # Conformance level
 CONFORMANCE_LEVEL = "full"  # basic, standard, or full
@@ -32,6 +32,11 @@ CAPABILITIES = {
     "schemaValidation": True,
     "crossLayerReferences": True,
     "semanticValidation": True,
+    "upwardTraceability": True,
+    "securityIntegration": True,
+    "bidirectionalConsistency": True,
+    "goalToMetricTraceability": True,
+    "dataQualityMetrics": True,
     "exportFormats": [
         "archimate",
         "openapi",

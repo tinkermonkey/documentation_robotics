@@ -4,7 +4,7 @@ A command-line tool for managing federated architecture metadata models across 1
 
 ## Specification Conformance
 
-**Implements:** [Federated Architecture Metadata Model Specification v1.0.0](../spec/)
+**Implements:** [Federated Architecture Metadata Model Specification v0.1.0](../spec/)
 **Conformance Level:** Full (All 11 layers)
 
 Run `dr conformance` to see detailed conformance information.
@@ -12,7 +12,7 @@ Run `dr conformance` to see detailed conformance information.
 ## Status
 
 **Current Version:** v0.3.0
-**Specification Version:** v1.0.0
+**Specification Version:** v0.1.0
 
 - ✅ **Phase 1 (MVP)** - Model initialization, element management, validation
 - ✅ **Phase 2 (Validation & Integrity)** - Cross-layer references, projection, dependency tracking
@@ -45,6 +45,26 @@ Run `dr conformance` to see detailed conformance information.
 - ✅ Generate Markdown documentation
 - ✅ Export to GraphML for visualization
 
+### Claude Code Integration (NEW! 🎉)
+
+- ✅ **Natural Language Modeling** - Create architecture models using conversational language
+- ✅ **Automatic Code Extraction** - Extract models from existing codebases (Python, TypeScript, Java, Go)
+- ✅ **Intelligent Validation** - Auto-fix common issues with confidence scoring
+- ✅ **Documentation Generation** - Generate comprehensive docs and diagrams automatically
+- ✅ **Slash Commands** - Quick access to common workflows (`/dr-model`, `/dr-ingest`, `/dr-validate`)
+- ✅ **Specialized Agents** - Autonomous agents for complex tasks (extractor, validator, documenter)
+- ✅ **Customization** - Templates for organization-specific commands and agents
+
+**Try it:**
+
+```bash
+dr claude install              # Install Claude integration
+claude                         # Open Claude Code
+> /dr-model Add order management service
+```
+
+See [Claude Code Integration Guide](docs/user-guide/claude-code-integration.md) for details.
+
 ### Coming in Future Phases
 
 - Code generation (TypeScript, Python, React components)
@@ -52,6 +72,7 @@ Run `dr conformance` to see detailed conformance information.
 - Diff/merge functionality
 - Advanced reporting and analytics
 - CI/CD integration
+- Enhanced AI capabilities (better extraction, smarter suggestions)
 
 ## Installation
 
@@ -67,6 +88,8 @@ pip install -e ".[dev]"
 ```
 
 ## Quick Start
+
+### Traditional CLI Usage
 
 ```bash
 # Initialize a new model
@@ -101,6 +124,35 @@ dr export --format plantuml
 dr export --format markdown
 dr export --format all
 ```
+
+### AI-Powered Usage with Claude Code (NEW!)
+
+```bash
+# Install Claude Code integration
+dr claude install
+
+# Start Claude Code
+claude
+
+# Then use natural language:
+> Create an architecture model for an e-commerce platform with:
+> - Business services for orders, payments, and inventory
+> - Application services that realize each business service
+> - REST API operations
+> - Security controls (OAuth2, rate limiting)
+> - Monitoring metrics (availability, latency)
+
+# Or use slash commands:
+> /dr-model Add order management service
+> /dr-ingest ./src/api --layers business,application,api
+> /dr-validate --fix
+> /dr-project business→application
+
+# Extract from existing code:
+> Please analyze my FastAPI application in ./src and create an architecture model
+```
+
+See [Claude Code Integration Guide](docs/user-guide/claude-code-integration.md) for full details.
 
 ## Architecture Model Structure
 
@@ -152,6 +204,22 @@ project/
 - **Git-friendly** - All model files are text-based and version-controllable
 
 ## Documentation
+
+### User Guides
+
+- **[Claude Code Integration Guide](docs/user-guide/claude-code-integration.md)** - Complete guide to AI-powered modeling
+- [Getting Started](docs/user-guide/getting-started.md) - Basic DR usage
+- [Validation Guide](docs/user-guide/validation.md) - Model validation and quality
+
+### Claude Code Integration
+
+- [Integration Guide](docs/user-guide/claude-code-integration.md) - How to use DR with Claude Code
+- [Design Document](docs/04_claude_code_integration_design.md) - Architecture and rationale
+- [Workflow Examples](src/documentation_robotics/claude_integration/templates/workflow-examples.md) - 10 complete workflows
+- [Custom Command Template](src/documentation_robotics/claude_integration/templates/custom-command-template.md)
+- [Custom Agent Template](src/documentation_robotics/claude_integration/templates/custom-agent-template.md)
+- [Testing Guide](docs/testing/claude-integration-tests.md) - Integration testing procedures
+- [Changelog](docs/CLAUDE_INTEGRATION_CHANGELOG.md) - What's new in Claude integration
 
 ### CLI Documentation
 

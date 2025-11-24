@@ -1,0 +1,160 @@
+# Valid navigation layer fixture - Multi-channel routes
+# Tests: Multi-channel addressing, guards, flows
+
+version: "0.1.0"
+application: "customer-portal"
+description: "Customer support portal navigation with multi-channel support"
+
+routes:
+  # Web + Voice route
+  - identifier: "ticket-list"
+    name: "My Tickets"
+    type: experience
+    title: "Support Tickets"
+    description: "View all customer support tickets"
+    experience: "ticket-list.ux.yaml"
+    archimateRef: "application.component.web-ui"
+    guards: ["authenticated"]
+    addressing:
+      url: "/tickets"
+      intent: "ShowMyTickets"
+    meta:
+      requiresAuth: true
+      roles: ["customer", "support-agent"]
+      layout: "main-layout"
+      seo:
+        metaTitle: "My Support Tickets"
+        metaDescription: "View and manage your support tickets"
+
+  # Multi-channel route (web + voice + chat + SMS)
+  - identifier: "ticket-status"
+    name: "Check Ticket Status"
+    type: experience
+    title: "Ticket Status"
+    description: "Check status of a specific ticket"
+    experience: "ticket-status.ux.yaml"
+    guards: ["authenticated", "ticket-access"]
+    addressing:
+      url: "/tickets/:ticketId/status"
+      intent: "CheckTicketStatus"
+      event: "ticket.status.requested"
+      keyword: "STATUS"
+    meta:
+      requiresAuth: true
+      roles: ["customer"]
+
+  # Web-only administrative route
+  - identifier: "admin-panel"
+    name: "Admin Panel"
+    type: experience
+    title: "Administration"
+    description: "System administration panel"
+    experience: "admin-panel.ux.yaml"
+    guards: ["authenticated", "is-admin"]
+    addressing:
+      url: "/admin"
+    meta:
+      requiresAuth: true
+      roles: ["admin"]
+      layout: "admin-layout"
+
+  # Redirect
+  - identifier: "home"
+    name: "Home"
+    type: redirect
+    redirectTo: "ticket-list"
+    addressing:
+      url: "/"
+
+guards:
+  - name: "authenticated"
+    type: authentication
+    description: "Ensures user is authenticated"
+    order: 1
+    condition:
+      expression: "user.isAuthenticated()"
+      async: false
+    onDeny:
+      action: redirect
+      target: "login"
+      message: "Please log in to continue"
+      preserveRoute: true
+
+  - name: "is-admin"
+    type: authorization
+    description: "Ensures user has admin role"
+    order: 2
+    condition:
+      expression: "user.hasRole('admin')"
+      async: false
+    onDeny:
+      action: show-error
+      message: "Access denied. Admin privileges required."
+
+  - name: "ticket-access"
+    type: authorization
+    description: "Ensures user can access the ticket"
+    order: 2
+    condition:
+      expression: "await checkTicketAccess(route.params.ticketId, user.id)"
+      async: true
+      timeout: 3000
+    onDeny:
+      action: redirect
+      target: "ticket-list"
+      message: "You don't have access to this ticket"
+
+transitions:
+  - from: "ticket-list"
+    to: "ticket-status"
+    trigger: "user-action"
+    description: "User clicks on a ticket"
+
+  - from: "ticket-status"
+    to: "ticket-list"
+    trigger: "back"
+    description: "User navigates back"
+
+flows:
+  - name: "ticket-creation-flow"
+    description: "Complete flow for creating a support ticket"
+    business:
+      realizesProcess: "business.process.create-ticket"
+      realizesServices:
+        - "business.service.customer-support"
+    steps:
+      - sequence: 1
+        route: "ticket-list"
+        name: "View Tickets"
+        description: "Starting point - user views their tickets"
+        required: true
+        nextStep:
+          onSuccess: 2
+
+      - sequence: 2
+        route: "create-ticket-form"
+        name: "Fill Form"
+        description: "User fills out ticket creation form"
+        required: true
+        dataTransfer:
+          outputs:
+            - source: "form.data"
+              target: "ticket.details"
+              required: true
+        nextStep:
+          onSuccess: 3
+          onCancel: 1
+
+      - sequence: 3
+        route: "ticket-confirmation"
+        name: "Confirm Creation"
+        description: "Ticket is created and user sees confirmation"
+        required: true
+        nextStep:
+          onSuccess: 4
+
+      - sequence: 4
+        route: "ticket-status"
+        name: "View Status"
+        description: "User is shown the new ticket status"
+        required: false

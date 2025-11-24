@@ -1,0 +1,134 @@
+# Cross-layer integration fixture - Complete traceability chain
+# Tests: Upward traceability, bidirectional consistency, goal-to-metric traceability
+# This fixture demonstrates a complete trace from motivation -> business -> application -> apm
+
+# Motivation Layer
+motivation:
+  goals:
+    - id: motivation.goal.reduce-support-costs
+      type: goal
+      name: Reduce Support Costs
+      description: Reduce operational costs of customer support by 30%
+      properties:
+        priority: critical
+        kpi:
+          metric: "Support Cost per Ticket"
+          target: "< $15"
+          unit: "USD"
+          baseline: "$21"
+        stakeholder: motivation.stakeholder.cfo
+
+  stakeholders:
+    - id: motivation.stakeholder.cfo
+      type: stakeholder
+      name: CFO
+      description: Chief Financial Officer
+
+# Business Layer
+business:
+  services:
+    - id: business.service.automated-support
+      type: service
+      name: Automated Support Service
+      description: Provides automated customer support to reduce costs
+      properties:
+        supports-goals:
+          - motivation.goal.reduce-support-costs
+        realizedBy:
+          - application.service.chatbot
+          - application.service.knowledge-base
+
+# Application Layer
+application:
+  services:
+    - id: application.service.chatbot
+      type: service
+      name: AI Chatbot Service
+      description: AI-powered chatbot for customer support
+      properties:
+        realizes: business.service.automated-support
+        supports-goals:
+          - motivation.goal.reduce-support-costs
+        deployedTo: technology.node.chatbot-server
+        instrumentedBy:
+          - apm.trace.chatbot-interactions
+          - apm.metric.chatbot-resolution-rate
+
+    - id: application.service.knowledge-base
+      type: service
+      name: Knowledge Base Service
+      description: Self-service knowledge base
+      properties:
+        realizes: business.service.automated-support
+        deployedTo: technology.node.kb-server
+        instrumentedBy:
+          - apm.metric.kb-hit-rate
+
+# Technology Layer
+technology:
+  nodes:
+    - id: technology.node.chatbot-server
+      type: node
+      name: Chatbot Server
+      properties:
+        type: container
+        runtime: python
+        hosts:
+          - application.service.chatbot
+
+    - id: technology.node.kb-server
+      type: node
+      name: Knowledge Base Server
+      properties:
+        type: container
+        runtime: nodejs
+        hosts:
+          - application.service.knowledge-base
+
+# APM Layer
+apm:
+  traces:
+    - id: apm.trace.chatbot-interactions
+      name: Chatbot Interaction Trace
+      type: distributed
+      instruments:
+        - application.service.chatbot
+
+  metrics:
+    - id: apm.metric.chatbot-resolution-rate
+      name: Chatbot Resolution Rate
+      description: Percentage of issues resolved by chatbot without human intervention
+      type: gauge
+      unit: percentage
+      instruments:
+        - application.service.chatbot
+      measures-goal: motivation.goal.reduce-support-costs
+      target: 70
+      current-value: 65
+
+    - id: apm.metric.kb-hit-rate
+      name: Knowledge Base Hit Rate
+      description: Percentage of searches that find relevant articles
+      type: gauge
+      unit: percentage
+      instruments:
+        - application.service.knowledge-base
+      measures-goal: motivation.goal.reduce-support-costs
+      target: 85
+      current-value: 82
+
+    - id: apm.metric.cost-per-ticket
+      name: Support Cost per Ticket
+      description: Average cost to resolve a support ticket
+      type: gauge
+      unit: USD
+      measures-goal: motivation.goal.reduce-support-costs
+      target: 15
+      current-value: 18
+
+# Expected Validation Results:
+# ✓ Upward traceability: All implementation elements trace to motivation.goal.reduce-support-costs
+# ✓ Bidirectional consistency: realizes <-> realizedBy, instruments <-> instrumentedBy, hosts <-> deployedTo
+# ✓ Goal-to-metric traceability: Goal has KPI and is measured by multiple APM metrics
+# ✓ Security integration: N/A (public knowledge base)
+# ✓ Semantic validation: All rules pass

@@ -1,0 +1,75 @@
+# E-Commerce Example - Strategic Goals
+
+- id: motivation.goal.increase-revenue
+  type: goal
+  name: Increase Revenue
+  description: Grow Gross Merchandise Value (GMV) by 30% year-over-year
+  properties:
+    priority: critical
+    category: financial
+    stakeholder: motivation.stakeholder.ceo
+    kpi:
+      metric: "Gross Merchandise Value (GMV)"
+      target: "+30% YoY"
+      unit: "USD"
+      baseline: "$50M"
+      target-value: "$65M"
+    measurable-outcome: "Achieve $65M GMV by end of fiscal year"
+    success-criteria:
+      - "Monthly GMV growth >=2.5%"
+      - "New customer acquisition +25%"
+      - "Repeat purchase rate >=40%"
+
+- id: motivation.goal.improve-conversion
+  type: goal
+  name: Improve Conversion Rate
+  description: Increase website conversion rate from 3% to 5%
+  properties:
+    priority: high
+    category: customer-experience
+    stakeholder: motivation.stakeholder.cmo
+    kpi:
+      metric: "Conversion Rate"
+      target: ">=5%"
+      unit: "percentage"
+      baseline: "3%"
+    success-criteria:
+      - "Checkout abandonment <60%"
+      - "Product page bounce rate <40%"
+      - "Average session duration >5 minutes"
+
+- id: motivation.goal.enhance-trust
+  type: goal
+  name: Enhance Platform Trust
+  description: Build customer trust through seller quality and fast support
+  properties:
+    priority: high
+    category: platform-quality
+    stakeholder: motivation.stakeholder.ceo
+    kpi:
+      metric: "Average Seller Rating"
+      target: ">=4.5"
+      unit: "stars"
+      baseline: "4.1"
+    success-criteria:
+      - "Seller rating >=4.5 stars"
+      - "Support response time <2 hours"
+      - "Order dispute rate <1%"
+
+- id: motivation.goal.reduce-support-costs
+  type: goal
+  name: Reduce Support Costs
+  description: Decrease customer support operational costs by 20% through automation
+  properties:
+    priority: medium
+    category: operational-efficiency
+    stakeholder: motivation.stakeholder.cfo
+    kpi:
+      metric: "Support Cost per Ticket"
+      target: "<$12"
+      unit: "USD"
+      baseline: "$15"
+    success-criteria:
+      - "Self-service resolution rate >=60%"
+      - "Chatbot resolution rate >=40%"
+      - "Average handle time <10 minutes"

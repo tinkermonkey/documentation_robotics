@@ -19,7 +19,7 @@ class Layer:
     querying, and validation.
     """
 
-    def __init__(self, name: str, path: Path, config: Dict[str, Any]):
+    def __init__(self, name: str, path: Path, config: Dict[str, Any], cache=None):
         """
         Initialize layer.
 
@@ -27,11 +27,13 @@ class Layer:
             name: Layer name (e.g., 'business', 'application')
             path: Path to layer directory
             config: Layer configuration from manifest
+            cache: Optional ModelCache instance for caching
         """
         self.name = name
         self.path = path
         self.config = config
         self.schema_path = config.get("schema")
+        self._cache = cache
         self.elements: Dict[str, Element] = {}
         self._load_elements()
 
@@ -256,9 +258,20 @@ class Layer:
                 yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
     @classmethod
-    def load(cls, name: str, path: Path, config: Dict[str, Any]) -> "Layer":
-        """Load layer from directory."""
-        return cls(name, path, config)
+    def load(cls, name: str, path: Path, config: Dict[str, Any], cache=None) -> "Layer":
+        """
+        Load layer from directory.
+
+        Args:
+            name: Layer name
+            path: Path to layer directory
+            config: Layer configuration
+            cache: Optional ModelCache instance
+
+        Returns:
+            Loaded Layer instance
+        """
+        return cls(name, path, config, cache=cache)
 
     def __repr__(self) -> str:
         return f"Layer(name='{self.name}', elements={len(self.elements)})"

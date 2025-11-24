@@ -1,0 +1,30 @@
+# Minimal Example - UX Layer
+# Single screen
+
+version: "0.1.0"
+application: minimal-app
+
+screens:
+  - id: ux.screen.main
+    name: Main Screen
+    type: page
+    description: Main application screen
+    layout: default
+
+    components:
+      - id: data-display
+        type: container
+        children:
+          - type: text
+            content: "Data Display"
+
+    actions:
+      - id: load-data
+        type: api-call
+        operationId: getData
+        trigger: on-load
+
+    security:
+      requiresAuth: true
+      roles:
+        - security.role.user

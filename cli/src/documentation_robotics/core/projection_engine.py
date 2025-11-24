@@ -4,10 +4,112 @@ Projection engine - automatically creates elements across layers.
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import yaml
 from jinja2 import Template
+
+
+@dataclass
+class ProjectionCondition:
+    """Advanced condition for projection rules."""
+
+    field: str
+    operator: str  # equals, not_equals, contains, matches, exists, gt, lt, in
+    value: Optional[Any] = None
+    pattern: Optional[str] = None
+
+    def evaluate(self, element: Any) -> bool:
+        """Evaluate condition against element."""
+        # Get field value from element
+        if "." in self.field:
+            # Nested property access
+            field_value = self._get_nested(element.data, self.field)
+        else:
+            field_value = element.data.get(self.field)
+
+        # Evaluate based on operator
+        if self.operator == "exists":
+            return field_value is not None
+        elif self.operator == "equals":
+            return field_value == self.value
+        elif self.operator == "not_equals":
+            return field_value != self.value
+        elif self.operator == "contains":
+            return self.value in str(field_value) if field_value else False
+        elif self.operator == "matches":
+            import re
+
+            return (
+                bool(re.match(self.pattern, str(field_value)))
+                if field_value and self.pattern
+                else False
+            )
+        elif self.operator == "gt":
+            return field_value > self.value if field_value else False
+        elif self.operator == "lt":
+            return field_value < self.value if field_value else False
+        elif self.operator == "in":
+            return field_value in self.value if isinstance(self.value, list) else False
+
+        return False
+
+    def _get_nested(self, data: Dict, path: str) -> Any:
+        """Get nested property using dot notation."""
+        parts = path.split(".")
+        current = data
+        for part in parts:
+            if isinstance(current, dict):
+                current = current.get(part)
+            else:
+                return None
+        return current
+
+
+@dataclass
+class PropertyTransform:
+    """Transform for property values."""
+
+    type: str  # uppercase, lowercase, kebab, snake, pascal, prefix, suffix, template
+    value: Optional[str] = None  # For prefix/suffix/template
+
+    def apply(self, value: Any) -> Any:
+        """Apply transformation to value."""
+        if value is None:
+            return None
+
+        str_value = str(value)
+
+        if self.type == "uppercase":
+            return str_value.upper()
+        elif self.type == "lowercase":
+            return str_value.lower()
+        elif self.type == "kebab":
+            return str_value.lower().replace(" ", "-").replace("_", "-")
+        elif self.type == "snake":
+            return str_value.lower().replace(" ", "_").replace("-", "_")
+        elif self.type == "pascal":
+            words = str_value.replace("-", " ").replace("_", " ").split()
+            return "".join(w.capitalize() for w in words)
+        elif self.type == "prefix" and self.value:
+            return f"{self.value}{str_value}"
+        elif self.type == "suffix" and self.value:
+            return f"{str_value}{self.value}"
+        elif self.type == "template" and self.value:
+            return self.value.format(value=str_value)
+
+        return value
+
+
+@dataclass
+class PropertyMapping:
+    """Enhanced property mapping with transformations."""
+
+    source: str
+    target: str
+    default: Optional[Any] = None
+    required: bool = False
+    transform: Optional[PropertyTransform] = None
 
 
 @dataclass
@@ -20,9 +122,15 @@ class ProjectionRule:
     to_layer: str
     to_type: str
     name_template: str
-    property_mappings: Dict[str, str]
-    conditions: Optional[Dict[str, Any]] = None
+    property_mappings: Union[Dict[str, str], List[PropertyMapping]]  # Support both formats
+    conditions: List[ProjectionCondition] = None  # Optional conditions for projection
     template_file: Optional[str] = None
+    create_bidirectional: bool = True  # Auto-create reverse relationships
+
+    def __post_init__(self):
+        """Initialize default values for mutable fields."""
+        if self.conditions is None:
+            self.conditions = []
 
 
 class ProjectionEngine:
@@ -76,6 +184,42 @@ class ProjectionEngine:
         # Get first rule (simplified - could support multiple)
         rule_details = rule_data["rules"][0] if "rules" in rule_data else {}
 
+        # Parse conditions
+        conditions = []
+        for cond_data in rule_data.get("conditions", []):
+            conditions.append(
+                ProjectionCondition(
+                    field=cond_data["field"],
+                    operator=cond_data.get("operator", "equals"),
+                    value=cond_data.get("value"),
+                    pattern=cond_data.get("pattern"),
+                )
+            )
+
+        # Parse property mappings
+        mappings = []
+        for source, target_spec in rule_details.get("properties", {}).items():
+            if isinstance(target_spec, dict):
+                # Advanced mapping with transform
+                transform = None
+                if "transform" in target_spec:
+                    transform = PropertyTransform(
+                        type=target_spec["transform"], value=target_spec.get("transform_value")
+                    )
+
+                mappings.append(
+                    PropertyMapping(
+                        source=source,
+                        target=target_spec.get("target", source),
+                        default=target_spec.get("default"),
+                        required=target_spec.get("required", False),
+                        transform=transform,
+                    )
+                )
+            else:
+                # Simple mapping (target property path)
+                mappings.append(PropertyMapping(source=source, target=target_spec))
+
         return ProjectionRule(
             name=rule_data.get("name", f"{from_layer}-to-{to_layer}"),
             from_layer=from_layer,
@@ -83,9 +227,10 @@ class ProjectionEngine:
             to_layer=to_layer,
             to_type=rule_details.get("create_type", to_type),
             name_template=rule_details.get("name_template", "{source.name}"),
-            property_mappings=rule_details.get("properties", {}),
-            conditions=rule_data.get("conditions"),
+            property_mappings=mappings,
+            conditions=conditions,
             template_file=rule_details.get("template"),
+            create_bidirectional=rule_details.get("create_bidirectional", True),
         )
 
     def find_applicable_rules(
@@ -117,25 +262,35 @@ class ProjectionEngine:
                 continue
 
             # Check conditions
-            if rule.conditions and not self._check_conditions(source, rule.conditions):
+            if rule.conditions and not all(cond.evaluate(source) for cond in rule.conditions):
                 continue
 
             applicable.append(rule)
 
         return applicable
 
-    def _check_conditions(self, element: Any, conditions: Dict[str, Any]) -> bool:
+    def _check_conditions(
+        self, element: Any, conditions: Union[Dict[str, Any], List[ProjectionCondition]]
+    ) -> bool:
         """Check if element meets projection conditions."""
-        for key, expected_value in conditions.items():
-            actual_value = element.get(key)
+        # Handle dict format (for simpler condition specifications)
+        if isinstance(conditions, dict):
+            condition_list = []
+            for field, value in conditions.items():
+                if isinstance(value, list):
+                    # Check if field value is in the list
+                    condition_list.append(
+                        ProjectionCondition(field=field, operator="in", value=value)
+                    )
+                else:
+                    # Check if field value equals the value
+                    condition_list.append(
+                        ProjectionCondition(field=field, operator="equals", value=value)
+                    )
+        else:
+            condition_list = conditions
 
-            if isinstance(expected_value, list):
-                if actual_value not in expected_value:
-                    return False
-            elif actual_value != expected_value:
-                return False
-
-        return True
+        return all(cond.evaluate(element) for cond in condition_list)
 
     def project_element(
         self,
@@ -208,10 +363,53 @@ class ProjectionEngine:
             "name": name,
         }
 
-        # Add mapped properties
-        for target_prop, source_template in rule.property_mappings.items():
-            value = self._render_template(source_template, source)
-            self._set_nested_property(data, target_prop, value)
+        # Add mapped properties (handle both dict and List[PropertyMapping])
+        if isinstance(rule.property_mappings, dict):
+            # Old dict-based format
+            # In dict format: key is target property, value is source (template or property path)
+            for target_key, source_spec in rule.property_mappings.items():
+                if source_spec.startswith("{") or source_spec.startswith("{{"):
+                    value = self._render_template(source_spec, source)
+                else:
+                    value = self._get_nested_property(source.data, source_spec)
+
+                if value is not None:
+                    self._set_nested_property(data, target_key, value)
+        else:
+            # New List[PropertyMapping] format
+            for mapping in rule.property_mappings:
+                # Get source value
+                if mapping.source.startswith("{") or mapping.source.startswith("{{"):
+                    # Template
+                    value = self._render_template(mapping.source, source)
+                else:
+                    # Direct property access - check element attributes first
+                    if mapping.source in ("id", "layer", "type", "name"):
+                        value = getattr(source, mapping.source, None)
+                    else:
+                        value = self._get_nested_property(source.data, mapping.source)
+
+                # Use default if value is None
+                if value is None:
+                    value = mapping.default
+
+                # Check required
+                if mapping.required and value is None:
+                    raise ValueError(f"Required property '{mapping.source}' is missing")
+
+                # Apply transformation
+                if value is not None and mapping.transform:
+                    value = mapping.transform.apply(value)
+
+                # Set target property
+                if value is not None:
+                    self._set_nested_property(data, mapping.target, value)
+
+        # Create bidirectional relationship
+        if rule.create_bidirectional:
+            if "properties" not in data:
+                data["properties"] = {}
+            data["properties"]["realizes"] = source.id
 
         # Create element
         return Element(id=element_id, element_type=rule.to_type, layer=rule.to_layer, data=data)
@@ -269,6 +467,19 @@ class ProjectionEngine:
         from ..utils.id_generator import to_kebab_case
 
         return to_kebab_case(text).replace("-", "_")
+
+    def _get_nested_property(self, data: dict, path: str) -> Any:
+        """Get a nested property using dot notation."""
+        keys = path.split(".")
+        current = data
+
+        for key in keys:
+            if isinstance(current, dict):
+                current = current.get(key)
+            else:
+                return None
+
+        return current
 
     def _set_nested_property(self, data: dict, path: str, value: Any) -> None:
         """Set a nested property using dot notation."""

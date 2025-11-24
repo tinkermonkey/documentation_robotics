@@ -1,14 +1,43 @@
 """Integration tests for export command."""
 
+import os
+
 import pytest
 from click.testing import CliRunner
 from documentation_robotics.cli import cli
 
 
+class CwdCliRunner(CliRunner):
+    """CLI runner that supports cwd parameter."""
+
+    def invoke(
+        self,
+        cli,
+        args=None,
+        input=None,
+        env=None,
+        catch_exceptions=True,
+        color=False,
+        cwd=None,
+        **extra,
+    ):
+        """Invoke CLI with optional cwd support."""
+        if cwd is not None:
+            # Save current directory
+            original_cwd = os.getcwd()
+            try:
+                os.chdir(cwd)
+                return super().invoke(cli, args, input, env, catch_exceptions, color, **extra)
+            finally:
+                os.chdir(original_cwd)
+        else:
+            return super().invoke(cli, args, input, env, catch_exceptions, color, **extra)
+
+
 @pytest.fixture
 def runner():
     """Create CLI runner."""
-    return CliRunner()
+    return CwdCliRunner()
 
 
 def test_export_command_help(runner):

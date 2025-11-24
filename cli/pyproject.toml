@@ -55,6 +55,11 @@ dr = "documentation_robotics.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+documentation_robotics = [
+    "schemas/bundled/*.json",
+]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
@@ -71,7 +76,9 @@ include = '\.pyi?$'
 line-length = 100
 target-version = "py39"
 select = ["E", "F", "I", "N", "W"]
-ignore = []
+# Ignore E501 (line too long) - Black handles line length, and E501 is not auto-fixable
+# Black will break lines when safe, but some lines must remain long for readability
+ignore = ["E501"]
 
 [tool.mypy]
 python_version = "3.9"

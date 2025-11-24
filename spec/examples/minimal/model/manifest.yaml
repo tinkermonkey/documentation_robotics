@@ -1,0 +1,45 @@
+# Minimal Example - Manifest
+# The smallest conformant model
+
+version: "0.1.0"
+project: "minimal-example"
+description: "Minimal conformant architecture model"
+
+layers:
+  motivation:
+    path: "model/01_motivation"
+    enabled: true
+  business:
+    path: "model/02_business"
+    enabled: true
+  security:
+    path: "model/03_security"
+    enabled: true
+  application:
+    path: "model/04_application"
+    enabled: true
+  technology:
+    path: "model/05_technology"
+    enabled: true
+  api:
+    path: "model/06_api"
+    enabled: true
+  data_model:
+    path: "model/07_data_model"
+    enabled: true
+  datastore:
+    path: "model/08_datastore"
+    enabled: true
+  ux:
+    path: "model/09_ux"
+    enabled: true
+  navigation:
+    path: "model/10_navigation"
+    enabled: true
+  apm:
+    path: "model/11_apm"
+    enabled: true
+
+statistics:
+  total_elements: 15
+  last_updated: "2025-11-24"

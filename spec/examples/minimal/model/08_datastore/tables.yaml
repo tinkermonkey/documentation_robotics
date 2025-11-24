@@ -1,0 +1,16 @@
+# Minimal Example - Datastore Layer
+# Single database table
+
+database: minimal_db
+tables:
+  - name: data
+    id: datastore.table.data
+    description: Data storage table
+    x-json-schema: data_model.schema.data
+    columns:
+      - name: id
+        type: VARCHAR(36)
+        primary_key: true
+      - name: value
+        type: TEXT
+        nullable: false

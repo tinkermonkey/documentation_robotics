@@ -1,0 +1,20 @@
+# Minimal Example - Configuration
+
+version: "0.1.0"
+
+paths:
+  model: "./model"
+  specs: "./specs"
+  templates: "./.dr/templates"
+  schemas: "./.dr/schemas"
+
+defaults:
+  output_format: "yaml"
+  validation_mode: "standard"
+  auto_project: false
+
+validation:
+  strict_naming: true
+  require_documentation: false
+  check_cross_refs: true
+  fail_on_warning: false

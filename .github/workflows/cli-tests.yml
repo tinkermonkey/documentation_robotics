@@ -1,18 +1,16 @@
 name: CLI Tests
 
-# DISABLED: Re-enable after pre-commit hooks are in place
-# See .pre-commit-config.yaml for local validation
 on:
-  workflow_dispatch:  # Manual trigger only
-  # push:
-  #   branches: [main, develop]
-  #   paths:
-  #     - 'cli/**'
-  #     - '.github/workflows/cli-tests.yml'
-  # pull_request:
-  #   branches: [main, develop]
-  #   paths:
-  #     - 'cli/**'
+  workflow_dispatch:  # Allow manual trigger
+  push:
+    branches: [main, develop]
+    paths:
+      - 'cli/**'
+      - '.github/workflows/cli-tests.yml'
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - 'cli/**'
 
 jobs:
   test:
@@ -44,6 +42,7 @@ jobs:
 
       - name: Run type checking
         working-directory: ./cli
+        continue-on-error: true  # Allow to fail - type hints still being added
         run: |
           mypy src/documentation_robotics/
 

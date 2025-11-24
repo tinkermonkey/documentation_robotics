@@ -2,7 +2,7 @@
 ArchiMate XML exporter.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 from lxml import etree as ET
@@ -74,6 +74,12 @@ class ArchiMateExporter(BaseExporter):
         ("technology", "event"): "TechnologyEvent",
         ("technology", "service"): "TechnologyService",
         ("technology", "artifact"): "Artifact",
+        # Security layer (using implementation layer concepts)
+        ("security", "policy"): "Principle",  # Map policies to principles
+        ("security", "role"): "BusinessRole",  # Security roles
+        ("security", "permission"): "Contract",  # Permissions as contracts
+        ("security", "resource"): "Resource",  # Protected resources
+        ("security", "control"): "Constraint",  # Security controls
     }
 
     # Relationship type mapping
@@ -165,7 +171,7 @@ class ArchiMateExporter(BaseExporter):
 
         # Created
         created = ET.SubElement(metadata, "created")
-        created.text = datetime.utcnow().isoformat() + "Z"
+        created.text = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         # Name
         name = ET.SubElement(root, "name")

@@ -1,0 +1,26 @@
+# Minimal Example - Navigation Layer
+# Single route
+
+version: "0.1.0"
+application: minimal-app
+
+routes:
+  - identifier: main
+    name: Main
+    type: experience
+    experience: ux.screen.main
+    addressing:
+      url: "/"
+    meta:
+      requiresAuth: true
+      roles:
+        - security.role.user
+
+guards:
+  - name: authenticated
+    type: authentication
+    condition:
+      expression: user.isAuthenticated()
+    onDeny:
+      action: redirect
+      target: login

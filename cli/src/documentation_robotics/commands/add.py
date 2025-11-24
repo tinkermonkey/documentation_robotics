@@ -17,25 +17,27 @@ console = Console()
 
 
 @click.command()
-@click.argument("layer")
-@click.argument("element-type")
-@click.option("--name", required=True, help="Element name")
+@click.argument("layer", required=False)
+@click.argument("element-type", required=False)
+@click.option("--name", help="Element name")
 @click.option("--spec", type=click.File("r"), help="YAML/JSON spec file")
 @click.option("--id", "custom_id", help="Custom element ID")
 @click.option("--description", help="Element description")
 @click.option("--property", "-p", multiple=True, help="Additional properties (key=value)")
 @click.option("--project-to", help="Comma-separated list of layers to project to")
 @click.option("--dry-run", is_flag=True, help="Show what would be created")
+@click.option("--interactive", "-i", is_flag=True, help="Use interactive wizard")
 def add(
-    layer: str,
-    element_type: str,
-    name: str,
+    layer: Optional[str],
+    element_type: Optional[str],
+    name: Optional[str],
     spec: Optional[click.File],
     custom_id: Optional[str],
     description: Optional[str],
     property: tuple,
     project_to: Optional[str],
     dry_run: bool,
+    interactive: bool,
 ):
     """Add an element to a layer."""
 
@@ -47,6 +49,32 @@ def add(
         console.print("   Run 'dr init <project-name>' first")
         raise click.Abort()
 
+    # Interactive mode
+    if interactive:
+        from ..interactive.wizard import ElementWizard
+
+        wizard = ElementWizard(model)
+        result = wizard.run()
+
+        if result is None:
+            return
+
+        layer = result["layer"]
+        element_type = result["element_type"]
+        element_data = result["data"]
+        name = element_data.get("name")
+        custom_id = element_data.get("id")
+    else:
+        # Validate required arguments in non-interactive mode
+        if not layer or not element_type:
+            console.print("✗ Error: layer and element-type are required", style="red bold")
+            console.print("   Use --interactive/-i for guided creation")
+            raise click.Abort()
+
+        if not name:
+            console.print("✗ Error: --name is required", style="red bold")
+            raise click.Abort()
+
     # Validate layer exists
     if not model.get_layer(layer):
         console.print(f"✗ Error: Layer '{layer}' not found", style="red bold")
@@ -54,29 +82,32 @@ def add(
         console.print(f"   Available layers: {available}")
         raise click.Abort()
 
-    # Parse spec if provided
-    element_data = {}
-    if spec:
-        element_data = yaml.safe_load(spec)
+    # Parse spec if provided (only in non-interactive mode)
+    if not interactive:
+        element_data = {}
+        if spec:
+            element_data = yaml.safe_load(spec)
 
-    # Add basic attributes
-    element_data["name"] = name
-    if description:
-        element_data["description"] = description
+        # Add basic attributes
+        element_data["name"] = name
+        if description:
+            element_data["description"] = description
 
-    # Parse additional properties
-    for prop in property:
-        if "=" not in prop:
-            console.print(f"✗ Error: Invalid property format: {prop}", style="red bold")
-            console.print("   Expected format: key=value")
-            raise click.Abort()
+        # Parse additional properties
+        for prop in property:
+            if "=" not in prop:
+                console.print(f"✗ Error: Invalid property format: {prop}", style="red bold")
+                console.print("   Expected format: key=value")
+                raise click.Abort()
 
-        key, value = prop.split("=", 1)
-        element_data[key] = value
+            key, value = prop.split("=", 1)
+            element_data[key] = value
 
-    # Generate or use custom ID
-    element_id = custom_id or generate_element_id(layer, element_type, name)
-    element_data["id"] = element_id
+        # Generate or use custom ID
+        element_id = custom_id or generate_element_id(layer, element_type, name)
+        element_data["id"] = element_id
+    else:
+        element_id = element_data.get("id")
 
     # Create element
     element = Element(id=element_id, element_type=element_type, layer=layer, data=element_data)

@@ -1,0 +1,14 @@
+# Minimal Example - Motivation Layer
+# Single goal that drives the entire system
+
+- id: motivation.goal.deliver-value
+  type: goal
+  name: Deliver Value to Users
+  description: Create a simple system that delivers value to users
+  properties:
+    priority: high
+    category: business-value
+    kpi:
+      metric: "System Availability"
+      target: ">=99%"
+      unit: "percentage"

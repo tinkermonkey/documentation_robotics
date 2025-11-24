@@ -1,0 +1,56 @@
+# Valid application layer fixture - Service with complete dependencies and traceability
+# Tests: Schema validation, realization, technology mapping, security integration
+
+- id: application.service.ticket-management
+  type: service
+  name: Ticket Management Service
+  description: Manages customer support tickets
+  properties:
+    service-type: business-logic
+    runtime: java-spring-boot
+    version: "2.1.0"
+    realizes: business.service.customer-support
+    supports-goals:
+      - motivation.goal.improve-customer-satisfaction
+    deployedTo: technology.node.app-server-1
+    uses:
+      - application.service.notification
+      - application.service.user-profile
+    accessedBy:
+      - application.component.web-ui
+      - application.component.mobile-app
+    securedBy:
+      - security.policy.authenticated-access
+    instrumentedBy:
+      - apm.trace.ticket-operations
+  api-endpoints:
+    - api.operation.create-ticket
+    - api.operation.get-ticket
+    - api.operation.update-ticket
+    - api.operation.delete-ticket
+  data-access:
+    - datastore.table.tickets
+    - datastore.table.ticket-comments
+  documentation: |
+    The Ticket Management Service provides:
+    - Ticket CRUD operations
+    - Assignment and routing
+    - Status tracking
+    - SLA monitoring
+
+- id: application.service.notification
+  type: service
+  name: Notification Service
+  description: Sends notifications via multiple channels
+  properties:
+    service-type: infrastructure
+    runtime: nodejs
+    version: "1.5.0"
+    deployedTo: technology.node.app-server-2
+    securedBy:
+      - security.policy.authenticated-access
+  channels:
+    - email
+    - sms
+    - push-notification
+    - in-app

@@ -19,7 +19,9 @@ console = Console()
 @click.option(
     "--format",
     "format_name",
-    type=click.Choice(["archimate", "openapi", "schema", "plantuml", "markdown", "graphml", "all"]),
+    type=click.Choice(
+        ["archimate", "openapi", "schema", "plantuml", "markdown", "graphml", "navigation", "all"]
+    ),
     default="all",
     help="Export format",
 )

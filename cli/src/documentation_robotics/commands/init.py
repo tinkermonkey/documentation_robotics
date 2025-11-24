@@ -9,6 +9,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
 from ..core.manifest import Manifest
+from ..schemas import copy_schemas_to_project
 from ..utils.file_io import create_directory_structure
 
 console = Console()
@@ -39,6 +40,11 @@ class ModelInitializer:
             # Create directory structure
             task = progress.add_task("Creating directory structure...", total=None)
             self._create_directories()
+            progress.update(task, completed=True)
+
+            # Copy schemas
+            task = progress.add_task("Copying schema files...", total=None)
+            self._create_schemas()
             progress.update(task, completed=True)
 
             # Create manifest
@@ -105,6 +111,17 @@ class ModelInitializer:
 
         create_directory_structure(self.root_path, directories)
 
+    def _create_schemas(self) -> None:
+        """Copy bundled schema files to .dr/schemas/."""
+        schemas_dir = self.root_path / ".dr" / "schemas"
+
+        try:
+            copied_count = copy_schemas_to_project(schemas_dir, overwrite=False)
+            console.print(f"   Copied {copied_count} schema files", style="dim")
+        except Exception as e:
+            console.print(f"   [yellow]Warning: Failed to copy schemas: {e}[/yellow]")
+            console.print("   You may need to manually copy schema files to .dr/schemas/")
+
     def _create_manifest(self) -> None:
         """Create manifest.yaml."""
         Manifest.create(
@@ -157,7 +174,7 @@ For more information, see the Documentation Robotics documentation.
 
     def _create_config(self) -> None:
         """Create dr.config.yaml."""
-        config_content = """version: "1.0.0"
+        config_content = """version: "0.1.0"
 
 # Model paths
 paths:
@@ -192,7 +209,7 @@ logging:
     def _create_projection_rules(self) -> None:
         """Create projection-rules.yaml with default rules."""
         projection_rules_content = """# Projection rules for cross-layer element generation
-version: "1.0.0"
+version: "0.1.0"
 
 projections:
   # Business Service -> Application Service
@@ -262,13 +279,42 @@ CustomerManagement:
 
 
 @click.command()
-@click.argument("project-name")
+@click.argument("project-name", required=False)
 @click.option("--template", default="basic", help="Template to use")
 @click.option("--minimal", is_flag=True, help="Create minimal structure")
 @click.option("--with-examples", is_flag=True, help="Include example elements")
 @click.option("--path", type=click.Path(), default=".", help="Target directory")
-def init(project_name: str, template: str, minimal: bool, with_examples: bool, path: str):
+@click.option("--interactive", "-i", is_flag=True, help="Use interactive wizard")
+def init(
+    project_name: str,
+    template: str,
+    minimal: bool,
+    with_examples: bool,
+    path: str,
+    interactive: bool,
+):
     """Initialize a new architecture model."""
+    # Interactive mode
+    if interactive:
+        from ..interactive.wizard import InitWizard
+
+        wizard = InitWizard()
+        result = wizard.run()
+
+        if result is None:
+            return
+
+        project_name = result["project_name"]
+        template = result["template"]
+        with_examples = result["with_examples"]
+        path = result["path"]
+
+    # Validate project name
+    if not project_name:
+        console.print("✗ Error: project-name is required", style="red bold")
+        console.print("   Use --interactive/-i for guided setup")
+        raise click.Abort()
+
     root_path = Path(path).resolve()
 
     # Check if directory already has a model

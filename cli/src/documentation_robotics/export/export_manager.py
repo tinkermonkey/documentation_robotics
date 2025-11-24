@@ -17,6 +17,7 @@ class ExportFormat(Enum):
     PLANTUML = "plantuml"
     MARKDOWN = "markdown"
     GRAPHML = "graphml"
+    NAVIGATION = "navigation"
 
 
 @dataclass
@@ -131,6 +132,13 @@ class ExportManager:
         except ImportError:
             pass
 
+        try:
+            from .navigation_exporter import NavigationExporter
+
+            self.exporters[ExportFormat.NAVIGATION] = NavigationExporter
+        except ImportError:
+            pass
+
     def export(self, format: ExportFormat, output_path: Optional[Path] = None, **kwargs) -> Path:
         """
         Export model to specified format.
@@ -182,6 +190,7 @@ class ExportManager:
             ExportFormat.PLANTUML: base_path / "diagrams",
             ExportFormat.MARKDOWN: base_path / "docs",
             ExportFormat.GRAPHML: base_path / "graphs" / "model.graphml",
+            ExportFormat.NAVIGATION: base_path / "navigation",
         }
 
         return format_paths.get(format, base_path)

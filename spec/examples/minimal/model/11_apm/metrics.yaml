@@ -1,0 +1,17 @@
+# Minimal Example - APM Layer
+# Single metric measuring the goal
+
+version: "0.1.0"
+application: minimal-app
+
+metrics:
+  - id: apm.metric.availability
+    name: System Availability
+    description: System uptime percentage
+    type: gauge
+    unit: percentage
+    instruments:
+      - application.service.app-service
+    measures-goal: motivation.goal.deliver-value
+    target: 99
+    current-value: 99.5

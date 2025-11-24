@@ -1,0 +1,358 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/08-datastore-layer.json",
+  "title": "Data Store Layer Schema",
+  "description": "Database DDL metadata and physical data storage definitions",
+  "type": "object",
+  "required": ["database"],
+  "properties": {
+    "database": {
+      "$ref": "#/definitions/Database"
+    }
+  },
+  "definitions": {
+    "Database": {
+      "type": "object",
+      "required": ["name", "type", "schemas"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["PostgreSQL", "MySQL", "SQLite", "MariaDB", "Oracle", "SQL Server"]
+        },
+        "version": {
+          "type": "string"
+        },
+        "charset": {
+          "type": "string",
+          "default": "UTF8"
+        },
+        "collation": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "x-archimate-ref": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-owner": {
+              "type": "string"
+            },
+            "x-purpose": {
+              "type": "string"
+            }
+          }
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/DatabaseSchema"
+          },
+          "minItems": 1
+        }
+      }
+    },
+    "DatabaseSchema": {
+      "type": "object",
+      "required": ["name", "tables"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "owner": {
+          "type": "string"
+        },
+        "tables": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Table"
+          }
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/View"
+          }
+        },
+        "functions": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "sequences": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      }
+    },
+    "Table": {
+      "type": "object",
+      "required": ["name", "columns"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "schema": {
+          "type": "string"
+        },
+        "tablespace": {
+          "type": "string"
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "x-json-schema": {
+              "type": "string",
+              "description": "Path to JSON Schema"
+            },
+            "x-archimate-ref": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "x-owner": {
+              "type": "string"
+            },
+            "x-retention": {
+              "type": "string"
+            },
+            "x-pii": {
+              "type": "boolean"
+            },
+            "x-governed-by-constraints": {
+              "type": "array",
+              "items": { "type": "string", "format": "uuid" },
+              "description": "Motivation Layer Constraint IDs governing this table"
+            },
+            "x-governed-by-requirements": {
+              "type": "array",
+              "items": { "type": "string", "format": "uuid" },
+              "description": "Motivation Layer Requirement IDs governing this table"
+            },
+            "x-governed-by-principles": {
+              "type": "array",
+              "items": { "type": "string", "format": "uuid" },
+              "description": "Motivation Layer Principle IDs governing this table"
+            },
+            "x-apm-performance-metrics": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "APM Layer Metric IDs for table performance monitoring"
+            },
+            "x-apm-data-quality-metrics": {
+              "type": "array",
+              "items": { "type": "string" },
+              "description": "APM Layer Metric IDs for data integrity monitoring"
+            }
+          }
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Column"
+          },
+          "minItems": 1
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Constraint"
+          }
+        },
+        "indexes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Index"
+          }
+        },
+        "triggers": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Trigger"
+          }
+        }
+      }
+    },
+    "Column": {
+      "type": "object",
+      "required": ["name", "dataType"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "dataType": {
+          "type": "string"
+        },
+        "nullable": {
+          "type": "boolean",
+          "default": true
+        },
+        "defaultValue": {},
+        "generated": {
+          "type": "string",
+          "enum": ["ALWAYS", "BY_DEFAULT"]
+        },
+        "metadata": {
+          "type": "object",
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "x-json-schema-path": {
+              "type": "string",
+              "description": "JSONPath to schema property"
+            },
+            "x-pii": {
+              "type": "boolean"
+            },
+            "x-encrypted": {
+              "type": "boolean"
+            },
+            "x-sensitive": {
+              "type": "boolean"
+            }
+          }
+        }
+      }
+    },
+    "Constraint": {
+      "type": "object",
+      "required": ["name", "type"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK", "EXCLUSION"]
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "referencedTable": {
+          "type": "string"
+        },
+        "referencedColumns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "onDelete": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
+        },
+        "onUpdate": {
+          "type": "string",
+          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
+        },
+        "checkExpression": {
+          "type": "string",
+          "description": "SQL boolean expression for CHECK constraint"
+        }
+      }
+    },
+    "Index": {
+      "type": "object",
+      "required": ["name", "columns"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "columns": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "unique": {
+          "type": "boolean",
+          "default": false
+        },
+        "method": {
+          "type": "string",
+          "enum": ["BTREE", "HASH", "GIN", "GIST", "BRIN", "SP-GIST"]
+        },
+        "where": {
+          "type": "string",
+          "description": "Partial index predicate"
+        },
+        "include": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Included columns for covering index"
+        }
+      }
+    },
+    "Trigger": {
+      "type": "object",
+      "required": ["name", "timing", "event", "function"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "timing": {
+          "type": "string",
+          "enum": ["BEFORE", "AFTER", "INSTEAD OF"]
+        },
+        "event": {
+          "type": "string",
+          "enum": ["INSERT", "UPDATE", "DELETE"]
+        },
+        "function": {
+          "type": "string"
+        },
+        "forEach": {
+          "type": "string",
+          "enum": ["ROW", "STATEMENT"]
+        },
+        "when": {
+          "type": "string",
+          "description": "Conditional trigger expression"
+        }
+      }
+    },
+    "View": {
+      "type": "object",
+      "required": ["name", "definition"],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "definition": {
+          "type": "string",
+          "description": "SELECT statement"
+        },
+        "materialized": {
+          "type": "boolean",
+          "default": false
+        },
+        "refresh": {
+          "type": "object",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["ON_COMMIT", "ON_DEMAND", "SCHEDULED"]
+            },
+            "schedule": {
+              "type": "string",
+              "description": "Cron expression"
+            }
+          }
+        }
+      }
+    }
+  }
+}

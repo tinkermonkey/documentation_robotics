@@ -1,0 +1,21 @@
+# Minimal Example - Data Model Layer
+# Single data schema
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "data_model.schema.data",
+  "title": "Data",
+  "type": "object",
+  "x-security-classification": "public",
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Unique identifier"
+    },
+    "value": {
+      "type": "string",
+      "description": "Data value"
+    }
+  },
+  "required": ["id", "value"]
+}

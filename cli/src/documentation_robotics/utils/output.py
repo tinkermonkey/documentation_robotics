@@ -63,3 +63,23 @@ def print_warning(message: str) -> None:
 def print_info(message: str) -> None:
     """Print info message."""
     console.print(f"[blue]ℹ {message}[/blue]")
+
+
+def print_table(headers: List[str], rows: List[List[str]], title: str = None) -> None:
+    """
+    Print data in a table format.
+
+    Args:
+        headers: List of column headers
+        rows: List of rows (each row is a list of values)
+        title: Optional table title
+    """
+    table = Table(title=title)
+
+    for header in headers:
+        table.add_column(header, style="cyan")
+
+    for row in rows:
+        table.add_row(*[str(cell) for cell in row])
+
+    console.print(table)

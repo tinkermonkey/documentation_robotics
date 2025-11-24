@@ -1,0 +1,42 @@
+# Minimal Example - API Layer
+# Single API operation
+
+openapi: 3.0.0
+info:
+  title: Minimal API
+  version: 1.0.0
+
+paths:
+  /data:
+    get:
+      operationId: getData
+      summary: Get data
+      description: Retrieve data from the system
+      x-application-service: application.service.app-service
+      security:
+        - oauth2: []
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DataResponse'
+
+components:
+  schemas:
+    DataResponse:
+      type: object
+      properties:
+        data:
+          type: string
+
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.example.com/oauth/authorize
+          tokenUrl: https://auth.example.com/oauth/token
+          scopes:
+            read:data: Read data

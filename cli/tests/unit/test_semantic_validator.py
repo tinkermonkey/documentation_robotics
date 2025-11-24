@@ -188,7 +188,7 @@ class TestSemanticValidator:
         validator = SemanticValidator(initialized_model)
 
         assert validator.model == initialized_model
-        assert len(validator.rules) == 4
+        assert len(validator.rules) == 11
 
     def test_validate_empty_model(self, initialized_model):
         """Test validating empty model."""

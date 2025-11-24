@@ -1,0 +1,16 @@
+# Minimal Example - Application Layer
+# Single application service
+
+- id: application.service.app-service
+  type: service
+  name: Application Service
+  description: Core application service
+  properties:
+    realizes: business.service.core-service
+    supports-goals:
+      - motivation.goal.deliver-value
+    deployedTo: technology.node.app-server
+    securedBy:
+      - security.policy.authenticated-access
+    instrumentedBy:
+      - apm.metric.availability

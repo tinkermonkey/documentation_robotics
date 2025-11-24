@@ -1,0 +1,15 @@
+# Invalid fixture - Invalid enum value for policy type
+# Should fail: Schema validation
+# Error: Invalid value for 'type' (must be one of allowed values)
+
+version: "0.1.0"
+security-model:
+  policies:
+    - id: security.policy.invalid-type
+      name: Invalid Policy Type
+      description: This policy has an invalid type
+      type: invalid-type  # Should be 'access-control', 'authorization', 'audit', etc.
+      scope: global
+      rules:
+        - condition: user.isAuthenticated()
+          action: allow

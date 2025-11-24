@@ -30,7 +30,7 @@ repos:
       - id: prettier
         types_or: [markdown]
         args: [--write, --prose-wrap=preserve]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md)
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md)
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -61,21 +61,27 @@ repos:
         files: ^cli/
         args: [--ignore=F821,--ignore=N812]
 
-  # Python type checking (for CLI) - disabled for now, re-enable when codebase is more type-complete
-  # - repo: https://github.com/pre-commit/mirrors-mypy
-  #   rev: v1.8.0
-  #   hooks:
-  #     - id: mypy
-  #       files: ^cli/src/
-  #       args: [--python-version=3.9, --ignore-missing-imports, --no-strict-optional]
-  #       additional_dependencies:
-  #         - types-PyYAML
-  #         - types-python-dateutil
-  #         - click
-  #         - pyyaml
-  #         - jsonschema
-  #         - pydantic
-  #         - rich
+  # Python type checking (for CLI) - runs like CI but doesn't block (informational only)
+  - repo: local
+    hooks:
+      - id: mypy-check
+        name: mypy (type checking - informational)
+        entry: bash -c 'source .venv/bin/activate && cd cli && mypy src/documentation_robotics/ || echo "⚠️  Type checking found issues (not blocking)"'
+        language: system
+        pass_filenames: false
+        files: ^cli/src/
+        types: [python]
+
+  # Python testing (for CLI) - runs ALL tests like CI pipeline
+  - repo: local
+    hooks:
+      - id: pytest-all
+        name: pytest (all tests with coverage)
+        entry: bash -c 'source .venv/bin/activate && cd cli && pytest --cov=documentation_robotics --cov-report=term -v'
+        language: system
+        pass_filenames: false
+        files: ^cli/(src|tests)/
+        types: [python]
 
   # JSON Schema validation
   - repo: https://github.com/python-jsonschema/check-jsonschema

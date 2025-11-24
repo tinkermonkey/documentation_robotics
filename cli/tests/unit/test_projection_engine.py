@@ -2,7 +2,13 @@
 
 import pytest
 from documentation_robotics.core.element import Element
-from documentation_robotics.core.projection_engine import ProjectionEngine, ProjectionRule
+from documentation_robotics.core.projection_engine import (
+    ProjectionCondition,
+    ProjectionEngine,
+    ProjectionRule,
+    PropertyMapping,
+    PropertyTransform,
+)
 
 
 class TestProjectionRule:
@@ -297,3 +303,431 @@ projections:
 
         assert engine._to_snake_case("Customer Management") == "customer_management"
         assert engine._to_snake_case("OrderProcessing") == "order_processing"
+
+
+class TestProjectionCondition:
+    """Tests for enhanced projection conditions."""
+
+    def test_exists_operator(self):
+        """Test exists operator."""
+        condition = ProjectionCondition(field="properties.criticality", operator="exists")
+
+        element_with_field = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"properties": {"criticality": "high"}},
+        )
+
+        element_without_field = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="application",
+            data={"properties": {}},
+        )
+
+        assert condition.evaluate(element_with_field) is True
+        assert condition.evaluate(element_without_field) is False
+
+    def test_equals_operator(self):
+        """Test equals operator."""
+        condition = ProjectionCondition(
+            field="properties.criticality", operator="equals", value="high"
+        )
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"properties": {"criticality": "high"}},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="application",
+            data={"properties": {"criticality": "low"}},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_not_equals_operator(self):
+        """Test not_equals operator."""
+        condition = ProjectionCondition(field="status", operator="not_equals", value="inactive")
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"status": "active"},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="application",
+            data={"status": "inactive"},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_contains_operator(self):
+        """Test contains operator."""
+        condition = ProjectionCondition(
+            field="description", operator="contains", value="processing"
+        )
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="business",
+            data={"description": "Payment processing service"},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="business",
+            data={"description": "User authentication"},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_matches_operator(self):
+        """Test matches operator with regex."""
+        condition = ProjectionCondition(
+            field="name", operator="matches", pattern=r"^Payment.*Service$"
+        )
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"name": "Payment Processing Service"},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="application",
+            data={"name": "User Service"},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_gt_operator(self):
+        """Test greater than operator."""
+        condition = ProjectionCondition(field="properties.priority", operator="gt", value=5)
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="goal",
+            layer="motivation",
+            data={"properties": {"priority": 10}},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="goal",
+            layer="motivation",
+            data={"properties": {"priority": 3}},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_lt_operator(self):
+        """Test less than operator."""
+        condition = ProjectionCondition(field="properties.cost", operator="lt", value=1000)
+
+        element_match = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"properties": {"cost": 500}},
+        )
+
+        element_no_match = Element(
+            id="test.element.2",
+            element_type="service",
+            layer="application",
+            data={"properties": {"cost": 1500}},
+        )
+
+        assert condition.evaluate(element_match) is True
+        assert condition.evaluate(element_no_match) is False
+
+    def test_nested_property_access(self):
+        """Test nested property access with dot notation."""
+        condition = ProjectionCondition(
+            field="properties.security.level", operator="equals", value="high"
+        )
+
+        element = Element(
+            id="test.element.1",
+            element_type="service",
+            layer="application",
+            data={"properties": {"security": {"level": "high"}}},
+        )
+
+        assert condition.evaluate(element) is True
+
+
+class TestPropertyTransform:
+    """Tests for property transformations."""
+
+    def test_uppercase_transform(self):
+        """Test uppercase transformation."""
+        transform = PropertyTransform(type="uppercase")
+        assert transform.apply("hello") == "HELLO"
+        assert transform.apply("Hello World") == "HELLO WORLD"
+
+    def test_lowercase_transform(self):
+        """Test lowercase transformation."""
+        transform = PropertyTransform(type="lowercase")
+        assert transform.apply("HELLO") == "hello"
+        assert transform.apply("Hello World") == "hello world"
+
+    def test_kebab_transform(self):
+        """Test kebab-case transformation."""
+        transform = PropertyTransform(type="kebab")
+        assert transform.apply("Hello World") == "hello-world"
+        assert transform.apply("hello_world") == "hello-world"
+        assert transform.apply("helloWorld") == "helloworld"
+
+    def test_snake_transform(self):
+        """Test snake_case transformation."""
+        transform = PropertyTransform(type="snake")
+        assert transform.apply("Hello World") == "hello_world"
+        assert transform.apply("hello-world") == "hello_world"
+        assert transform.apply("helloWorld") == "helloworld"
+
+    def test_pascal_transform(self):
+        """Test PascalCase transformation."""
+        transform = PropertyTransform(type="pascal")
+        assert transform.apply("hello world") == "HelloWorld"
+        assert transform.apply("hello-world") == "HelloWorld"
+        assert transform.apply("hello_world") == "HelloWorld"
+
+    def test_prefix_transform(self):
+        """Test prefix transformation."""
+        transform = PropertyTransform(type="prefix", value="API_")
+        assert transform.apply("endpoint") == "API_endpoint"
+        assert transform.apply("service") == "API_service"
+
+    def test_suffix_transform(self):
+        """Test suffix transformation."""
+        transform = PropertyTransform(type="suffix", value="_Service")
+        assert transform.apply("User") == "User_Service"
+        assert transform.apply("Payment") == "Payment_Service"
+
+    def test_template_transform(self):
+        """Test template transformation."""
+        transform = PropertyTransform(type="template", value="v1/{value}")
+        assert transform.apply("users") == "v1/users"
+        assert transform.apply("products") == "v1/products"
+
+    def test_none_value_handling(self):
+        """Test transformation with None value."""
+        transform = PropertyTransform(type="uppercase")
+        assert transform.apply(None) is None
+
+
+class TestPropertyMapping:
+    """Tests for property mapping."""
+
+    def test_simple_mapping(self):
+        """Test simple property mapping without transform."""
+        mapping = PropertyMapping(source="name", target="title")
+        assert mapping.source == "name"
+        assert mapping.target == "title"
+        assert mapping.default is None
+        assert mapping.required is False
+        assert mapping.transform is None
+
+    def test_mapping_with_default(self):
+        """Test mapping with default value."""
+        mapping = PropertyMapping(source="runtime", target="properties.runtime", default="java")
+        assert mapping.default == "java"
+
+    def test_mapping_with_transform(self):
+        """Test mapping with transformation."""
+        transform = PropertyTransform(type="snake")
+        mapping = PropertyMapping(source="name", target="service_name", transform=transform)
+        assert mapping.transform.type == "snake"
+
+    def test_required_mapping(self):
+        """Test required mapping."""
+        mapping = PropertyMapping(source="id", target="element_id", required=True)
+        assert mapping.required is True
+
+    def test_complex_mapping(self):
+        """Test complex mapping with all options."""
+        transform = PropertyTransform(type="uppercase")
+        mapping = PropertyMapping(
+            source="properties.status",
+            target="metadata.current_status",
+            default="PENDING",
+            required=True,
+            transform=transform,
+        )
+
+        assert mapping.source == "properties.status"
+        assert mapping.target == "metadata.current_status"
+        assert mapping.default == "PENDING"
+        assert mapping.required is True
+        assert mapping.transform.type == "uppercase"
+
+
+class TestEnhancedProjectionEngine:
+    """Integration tests for enhanced projection features."""
+
+    @pytest.fixture
+    def engine_with_enhanced_rule(self, initialized_model):
+        """Create engine with enhanced projection rule."""
+        engine = ProjectionEngine(initialized_model)
+
+        # Create enhanced rule with conditions and transforms
+        rule = ProjectionRule(
+            name="enhanced-projection",
+            from_layer="business",
+            from_type="service",
+            to_layer="application",
+            to_type="service",
+            name_template="{source.name_pascal}Service",
+            property_mappings=[
+                PropertyMapping(
+                    source="name", target="name", transform=PropertyTransform(type="pascal")
+                ),
+                PropertyMapping(
+                    source="properties.runtime",
+                    target="properties.runtime",
+                    default="java-spring-boot",
+                    transform=PropertyTransform(type="lowercase"),
+                ),
+                PropertyMapping(source="id", target="properties.realizes", required=True),
+            ],
+            conditions=[
+                ProjectionCondition(
+                    field="properties.criticality", operator="equals", value="critical"
+                )
+            ],
+            create_bidirectional=True,
+        )
+
+        engine.rules.append(rule)
+        return engine
+
+    def test_projection_with_conditions(self, initialized_model, engine_with_enhanced_rule):
+        """Test projection with conditions filtering."""
+        # Critical element - should be projected
+        critical_element = Element(
+            id="business.service.payment",
+            element_type="service",
+            layer="business",
+            data={"name": "Payment Processing", "properties": {"criticality": "critical"}},
+        )
+
+        # Non-critical element - should not be projected
+        normal_element = Element(
+            id="business.service.user",
+            element_type="service",
+            layer="business",
+            data={"name": "User Service", "properties": {"criticality": "normal"}},
+        )
+
+        initialized_model.add_element("business", critical_element)
+        initialized_model.add_element("business", normal_element)
+
+        # Only critical element should have applicable rules
+        critical_rules = engine_with_enhanced_rule.find_applicable_rules(
+            critical_element, "application"
+        )
+        normal_rules = engine_with_enhanced_rule.find_applicable_rules(
+            normal_element, "application"
+        )
+
+        assert len(critical_rules) == 1
+        assert len(normal_rules) == 0
+
+    def test_projection_with_transforms(self, initialized_model, engine_with_enhanced_rule):
+        """Test projection with property transformations."""
+        source = Element(
+            id="business.service.payment",
+            element_type="service",
+            layer="business",
+            data={
+                "name": "payment processing",
+                "properties": {"criticality": "critical", "runtime": "JAVA"},
+            },
+        )
+
+        initialized_model.add_element("business", source)
+
+        projected = engine_with_enhanced_rule.project_element(source, "application", dry_run=True)
+
+        # Check transformations were applied
+        assert projected.name == "PaymentProcessing"  # Pascal case transform
+        assert projected.data["properties"]["runtime"] == "java"  # Lowercase transform
+
+    def test_projection_with_default_values(self, initialized_model, engine_with_enhanced_rule):
+        """Test projection uses default values when property missing."""
+        source = Element(
+            id="business.service.payment",
+            element_type="service",
+            layer="business",
+            data={
+                "name": "Payment Processing",
+                "properties": {
+                    "criticality": "critical"
+                    # Note: no runtime property
+                },
+            },
+        )
+
+        initialized_model.add_element("business", source)
+
+        projected = engine_with_enhanced_rule.project_element(source, "application", dry_run=True)
+
+        # Check default was applied and transformed
+        assert projected.data["properties"]["runtime"] == "java-spring-boot"
+
+    def test_bidirectional_relationship_creation(
+        self, initialized_model, engine_with_enhanced_rule
+    ):
+        """Test bidirectional relationship is created."""
+        source = Element(
+            id="business.service.payment",
+            element_type="service",
+            layer="business",
+            data={"name": "Payment Processing", "properties": {"criticality": "critical"}},
+        )
+
+        initialized_model.add_element("business", source)
+
+        projected = engine_with_enhanced_rule.project_element(source, "application", dry_run=True)
+
+        # Check "realizes" relationship was created
+        assert "realizes" in projected.data.get("properties", {})
+        assert projected.data["properties"]["realizes"] == source.id
+
+    def test_nested_property_operations(self, initialized_model):
+        """Test nested property get and set operations."""
+        engine = ProjectionEngine(initialized_model)
+
+        # Test setting nested properties
+        data = {}
+        engine._set_nested_property(data, "properties.security.level", "high")
+        assert data == {"properties": {"security": {"level": "high"}}}
+
+        # Test getting nested properties
+        value = engine._get_nested_property(data, "properties.security.level")
+        assert value == "high"
+
+        # Test getting non-existent nested property
+        value = engine._get_nested_property(data, "properties.missing.path")
+        assert value is None

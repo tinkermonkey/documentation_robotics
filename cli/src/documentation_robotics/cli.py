@@ -9,6 +9,7 @@ from rich.console import Console
 # Phase 3 commands
 from .commands import (
     add,
+    claude,
     conformance,
     export,
     find,
@@ -65,6 +66,8 @@ cli.add_command(trace.trace)
 # Phase 3 commands
 cli.add_command(export.export)
 cli.add_command(conformance.conformance)
+# Claude Code integration
+cli.add_command(claude.claude)
 
 
 def main() -> None:

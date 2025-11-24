@@ -1,96 +1,193 @@
-# Minimal Example Model
+# Minimal Example
 
-**Conformance Level:** Basic (Layers 01-04)
-**Status:** Template - Customize for your project
+The smallest conformant model demonstrating all 11 layers of the Federated Architecture Metadata Model.
 
-## Overview
+## Purpose
 
-This is the smallest valid architecture model conforming to the Federated Architecture Metadata Model specification at the Basic conformance level.
+This example demonstrates the **minimum** elements required for a conformant model:
 
-## Learning Objectives
+- One element per layer
+- Complete traceability chain from motivation to APM
+- All validation rules pass
 
-After studying this example, you'll understand:
+## Architecture
 
-- Required directory structure
-- Minimal required entities per layer
-- How to reference between layers
-- Basic validation requirements
+```
+Motivation: Single goal (deliver value to users)
+     ↓
+Business: Single service (core business capability)
+     ↓
+Application: Single service (realizes business service)
+     ↓
+Technology: Single node (hosts application service)
+     ↓
+API: Single operation (exposes functionality)
+     ↓
+Data Model: Single schema (data structure)
+     ↓
+Datastore: Single table (persists data)
+     ↓
+UX: Single screen (user interface)
+     ↓
+Navigation: Single route (access screen)
+     ↓
+APM: Single metric (measures goal)
+```
+
+## Traceability
+
+- **Goal**: Deliver Value to Users (99% availability)
+- **Business Service**: Core Business Service
+- **Application Service**: Application Service
+- **API**: GET /data
+- **Data**: Data schema and table
+- **UX**: Main screen
+- **Navigation**: / route
+- **Metric**: System availability (measures goal)
+
+## Security
+
+- Single authentication policy
+- Single user role
+- OAuth2 authentication
 
 ## Model Structure
 
 ```
 minimal/
-├── README.md                   # This file
-├── dr.config.yaml              # Model configuration
-├── model/                      # Architecture model
-│   ├── manifest.yaml           # Model metadata
+├── dr.config.yaml              # Project configuration
+├── model/
+│   ├── manifest.yaml           # Layer manifest
 │   ├── 01_motivation/
-│   │   ├── goals.yaml
-│   │   └── requirements.yaml
+│   │   └── goals.yaml          # Single goal
 │   ├── 02_business/
-│   │   └── services.yaml
+│   │   └── services.yaml       # Single service
 │   ├── 03_security/
-│   │   └── roles.yaml
-│   └── 04_application/
-│       └── components.yaml
-└── specs/                      # Generated specs (empty for minimal)
+│   │   └── policies.yaml       # Auth policy
+│   ├── 04_application/
+│   │   └── services.yaml       # Single service
+│   ├── 05_technology/
+│   │   └── nodes.yaml          # Single server
+│   ├── 06_api/
+│   │   └── operations.yaml     # Single endpoint
+│   ├── 07_data_model/
+│   │   └── schemas.yaml        # Single schema
+│   ├── 08_datastore/
+│   │   └── tables.yaml         # Single table
+│   ├── 09_ux/
+│   │   └── screens.yaml        # Single screen
+│   ├── 10_navigation/
+│   │   └── routes.yaml         # Single route
+│   └── 11_apm/
+│       └── metrics.yaml        # Single metric
+└── README.md                   # This file
 ```
 
-## Entities Included
+## Element Count
 
-### Layer 01: Motivation
+- **Total Elements**: 15 (one per layer + security role + data elements)
+- **Layers**: 11 (all layers)
+- **Traceability Links**: Complete chain
+- **Validation**: Passes all rules
 
-- 1 Goal
-- 1 Requirement
+## Validation
 
-### Layer 02: Business
+This model passes:
 
-- 1 Business Service
-
-### Layer 03: Security
-
-- 1 Role
-- 1 Permission
-
-### Layer 04: Application
-
-- 1 Application Component
-- 1 Application Service
-
-## Cross-Layer References
-
-Demonstrates:
-
-- Application Service → Business Service (realization)
-- Application Component → Goal (supports)
-- Business Service → Requirement (fulfills)
+✅ Schema validation (all layers)
+✅ Cross-layer reference validation
+✅ Semantic validation (11 rules)
+✅ Upward traceability (application → business → motivation)
+✅ Security integration (policies enforced)
+✅ Bidirectional consistency (all relationships)
+✅ Goal-to-metric traceability (goal measured by APM)
 
 ## Usage
 
-### Validate
+### Validate the Model
 
 ```bash
-cd spec/examples/minimal
-dr validate --all
+cd minimal
+dr validate --strict
 ```
 
-### Use as Template
+Expected output:
+
+```
+✓ Validation passed
+  - 15 elements validated
+  - 0 errors
+  - 0 warnings
+```
+
+### Export
 
 ```bash
-cp -r spec/examples/minimal my-project
-cd my-project
+# Export to all formats
+dr export all --output specs/
 
-# Edit model/01_motivation/goals.yaml with your goals
-# Edit other files as needed
-# ...
-
-dr validate --all
+# Export specific format
+dr export --format markdown --output specs/docs/
 ```
+
+### Explore
+
+```bash
+# List all elements
+dr list --all
+
+# Find traceability
+dr trace motivation.goal.deliver-value
+
+# View conformance
+dr conformance
+```
+
+## Learning Path
+
+After understanding this minimal model:
+
+1. **E-commerce Example**: See a realistic multi-user system
+2. **Microservices Example**: See distributed architecture
+3. **Full Spec**: Read the complete specification
+
+## Key Concepts
+
+This minimal model demonstrates:
+
+1. **All 11 Layers**: Every layer is represented
+2. **Traceability**: Complete chain from goal to metric
+3. **Security**: Authentication and authorization
+4. **API-First**: OpenAPI-based API definition
+5. **Data Modeling**: JSON Schema + SQL DDL
+6. **Multi-Channel**: Navigation supports web
+7. **Observability**: Metrics measure goals
+
+## Conformance Level
+
+This model achieves **Full Conformance**:
+
+- ✅ Basic Conformance (schema + references)
+- ✅ Standard Conformance (+ semantic rules)
+- ✅ Full Conformance (+ strict validation)
 
 ## Next Steps
 
-After understanding this minimal example:
+1. Clone this model: `dr init --template minimal`
+2. Add more elements to each layer
+3. Add relationships between elements
+4. Export to your preferred format
+5. Integrate with your tools
 
-1. Review [../e-commerce/README.md](../e-commerce/README.md) for a realistic example
-2. See [../../guides/getting-started.md](../../guides/getting-started.md) for a full tutorial
-3. Read layer specifications in [../../layers/](../../layers/)
+## Questions
+
+- What is the minimum viable model? **This one**
+- Do I need all 11 layers? **Yes, for full conformance**
+- Can I disable layers? **Yes, but you lose conformance**
+- How do I extend this? **Add more elements, maintain traceability**
+
+---
+
+**Spec Version**: 0.1.0
+**Conformance Level**: Full
+**Last Updated**: 2025-11-24
