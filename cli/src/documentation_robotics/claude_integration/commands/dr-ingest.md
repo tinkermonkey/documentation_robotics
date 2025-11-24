@@ -26,7 +26,7 @@ This command launches a specialized model extraction agent to analyze code and g
 Check that a DR model exists:
 
 ```bash
-ls -la model/manifest.yaml 2>/dev/null
+ls -la documentation-robotics/model/manifest.yaml 2>/dev/null
 ```
 
 If no model exists:
@@ -241,11 +241,11 @@ Confidence:
 ❌ Low: 3% (manual review needed)
 
 Files Modified:
-- model/02_business/services.yaml
-- model/04_application/services.yaml
-- model/04_application/components.yaml
-- model/06_api/operations.yaml
-- model/07_data_model/schemas.yaml
+- documentation-robotics/model/02_business/services.yaml (3 elements)
+- documentation-robotics/model/04_application/services.yaml (8 elements)
+- documentation-robotics/model/04_application/components.yaml (3 elements)
+- documentation-robotics/model/06_api/operations.yaml (25 elements)
+- documentation-robotics/model/07_data_model/schemas.yaml (12 elements)
 ```
 
 ### Step 6: Validation & Review
@@ -538,7 +538,7 @@ Created:
 
 Validation: ✓ Passed
 
-Next: Review model/04_application/ and model/06_api/
+Next: Review documentation-robotics/model/04_application/ and documentation-robotics/model/06_api/
 ```
 
 ### Example 2: With Technology Hints

@@ -428,9 +428,9 @@ Documentation Warnings (5):
 
 ## Files Modified (13 files)
 
-- model/02_business/services.yaml (3 updates)
-- model/04_application/services.yaml (7 updates)
-- model/03_security/policies.yaml (3 additions)
+- documentation-robotics/model/02_business/services.yaml (3 updates)
+- documentation-robotics/model/04_application/services.yaml (7 updates)
+- documentation-robotics/model/03_security/policies.yaml (3 additions)
 
 ## Validation Details
 

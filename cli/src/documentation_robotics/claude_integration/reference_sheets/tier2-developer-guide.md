@@ -253,7 +253,7 @@ model.save()
 from documentation_robotics.core import Layer
 
 # Load specific layer
-layer = Layer.load(name="business", path="./model/02_business")
+layer = Layer.load(name="business", path="./documentation-robotics/model/02_business")
 
 # Find elements in layer
 services = layer.find_elements(element_type="service")
@@ -513,27 +513,32 @@ else:
 
 ```
 project-root/
-├── model/                      # Architecture model
-│   ├── manifest.yaml          # Model metadata
-│   ├── 01_motivation/         # Goals, requirements
-│   ├── 02_business/           # Services, processes
-│   ├── 03_security/           # Policies, controls
-│   ├── 04_application/        # Components, services
-│   ├── 05_technology/         # Infrastructure
-│   ├── 06_api/                # API specs
-│   ├── 07_data_model/         # Data schemas
-│   ├── 08_datastore/          # Database design
-│   ├── 09_ux/                 # UI components
-│   ├── 10_navigation/         # Routes, menus
-│   └── 11_apm/                # Metrics, logs
-├── dr.config.yaml             # DR configuration
-├── projection-rules.yaml      # Projection rules
-├── .dr/                       # Tool files
-│   └── schemas/               # JSON Schemas
-└── specs/                     # Generated specs
-    ├── archimate/             # ArchiMate exports
-    ├── openapi/               # OpenAPI specs
-    └── markdown/              # Documentation
+├── .dr/                           # Tool configuration and schemas
+│   ├── schemas/                   # JSON Schema definitions for each layer
+│   ├── examples/                  # Example elements
+│   └── README.md                  # Model documentation
+├── documentation-robotics/        # Main project directory
+│   ├── model/                     # The canonical architecture model
+│   │   ├── manifest.yaml          # Model metadata and registry
+│   │   ├── 01_motivation/         # Motivation layer elements
+│   │   ├── 02_business/           # Business layer elements
+│   │   ├── 03_security/           # Security layer elements
+│   │   ├── 04_application/        # Application layer elements
+│   │   ├── 05_technology/         # Technology layer elements
+│   │   ├── 06_api/                # API layer elements
+│   │   ├── 07_data_model/         # Data model layer elements
+│   │   ├── 08_datastore/          # Datastore layer elements
+│   │   ├── 09_ux/                 # UX layer elements
+│   │   ├── 10_navigation/         # Navigation layer elements
+│   │   └── 11_apm/                # APM layer elements
+│   ├── specs/                     # Generated/exported specifications
+│   │   ├── archimate/             # ArchiMate XML exports
+│   │   ├── openapi/               # OpenAPI 3.0 specs
+│   │   ├── schemas/               # JSON Schema files
+│   │   ├── diagrams/              # PlantUML diagrams
+│   │   └── docs/                  # Markdown documentation
+│   └── projection-rules.yaml      # Cross-layer projection rules
+└── dr.config.yaml                 # Configuration
 ```
 
 ## Export Formats

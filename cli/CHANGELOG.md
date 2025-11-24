@@ -5,6 +5,21 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-11-24
+
+### Fixed
+
+- **Claude Code Integration**: Updated all integration documentation to use correct file structure
+  - Fixed file path references to use `./documentation-robotics/model/` for user models
+  - Fixed file path references to use `./documentation-robotics/specs/` for exported specs
+  - Fixed file path references to use `./.dr/` for tool configuration and schemas
+  - Updated all command documentation (dr-init, dr-ingest, dr-validate, dr-project)
+  - Updated reference sheets (tier1-essentials, tier2-developer-guide)
+  - Updated agent documentation (dr-extractor, dr-validator, dr-documenter)
+  - Updated workflow examples with correct paths
+- Updated specification version from v0.1.0 to v0.1.1
+- Updated README.md to have fully qualified urls for all docs links to it function on pypi.org
+
 ## [0.3.1] - 2025-11-24
 
 ### Fixed

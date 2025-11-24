@@ -67,7 +67,7 @@ Summary:
 Errors (must fix):
 
 1. ❌ business.service.orders
-   Location: model/02_business/services.yaml:15
+   Location: documentation-robotics/model/02_business/services.yaml:15
    Issue: Missing 'realizes' cross-layer reference
    Impact: No traceability to application layer
 
@@ -77,7 +77,7 @@ Errors (must fix):
      --property realizes=application.service.order-api
 
 2. ❌ application.service.payment-api
-   Location: model/04_application/services.yaml:23
+   Location: documentation-robotics/model/04_application/services.yaml:23
    Issue: Critical service has no security policy
    Impact: High-risk service is unsecured
 
@@ -315,7 +315,7 @@ You: Running validation before commit...
      ✓ Model is valid and ready to commit!
 
      Suggested commit workflow:
-     1. git add model/
+     1. git add documentation-robotics/
      2. git commit -m "Add payment service with full traceability"
      3. git push
 ```
@@ -433,8 +433,8 @@ Fix: Initialize a model first:
 Error: Validation command failed
 
 Troubleshooting:
-1. Check model structure: ls -la model/
-2. Check manifest: cat model/manifest.yaml
+1. Check model structure: ls -la documentation-robotics/model/
+2. Check manifest: cat documentation-robotics/model/manifest.yaml
 3. Verify DR installation: dr --version
 4. Check logs: cat .dr/logs/dr.log
 ```

@@ -231,16 +231,16 @@ Summary:
 Created Elements:
 1. application.service.order-management
    - realizes: business.service.order-management
-   - Location: model/04_application/services.yaml:15
+   - Location: documentation-robotics/model/04_application/services.yaml:15
 
 2. application.service.payment-processing
    - realizes: business.service.payment-processing
    - Properties inherited: criticality=critical
-   - Location: model/04_application/services.yaml:28
+   - Location: documentation-robotics/model/04_application/services.yaml:28
 
 3. application.service.inventory-management
    - realizes: business.service.inventory-management
-   - Location: model/04_application/services.yaml:41
+   - Location: documentation-robotics/model/04_application/services.yaml:41
 
 Next Steps:
 1. Review projected elements: dr find application.service.*

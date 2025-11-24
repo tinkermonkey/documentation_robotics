@@ -24,10 +24,10 @@ When the user runs this command, follow these steps:
 
 ### Step 1: Check for Existing Model
 
-First, check if a DR model already exists:
+First, check if a DR project already exists:
 
 ```bash
-ls -la model/manifest.yaml 2>/dev/null
+ls -la dr.config.yaml 2>/dev/null
 ```
 
 If the file exists:
@@ -85,9 +85,9 @@ dr init "My Project" --template minimal
 Check that the model was created successfully:
 
 ```bash
-ls -la model/
-ls -la model/manifest.yaml
-cat model/manifest.yaml
+ls -la documentation-robotics/
+ls -la documentation-robotics/model/manifest.yaml
+cat documentation-robotics/model/manifest.yaml
 ```
 
 Show the user:
@@ -127,7 +127,7 @@ Display a helpful summary:
 ✓ Documentation Robotics model initialized successfully!
 
 Project: <project-name>
-Location: ./model/
+Location: ./documentation-robotics/model/
 
 Next steps:
 1. Add your first element:
@@ -185,12 +185,12 @@ For more information, run: dr --help
 
 **You should:**
 
-1. Check `model/manifest.yaml` exists
+1. Check `dr.config.yaml` exists
 2. Inform user: "A DR model already exists in this directory"
 3. Show current model info:
 
    ```bash
-   cat model/manifest.yaml | grep -E "name|version"
+   cat documentation-robotics/model/manifest.yaml | grep -E "name|version"
    dr validate
    ```
 
@@ -204,7 +204,7 @@ For more information, run: dr --help
 ### Error: Directory not writable
 
 ```
-Error: Permission denied creating directory ./model/
+Error: Permission denied creating configuration
 
 Suggested fix: Check directory permissions
 chmod +w .

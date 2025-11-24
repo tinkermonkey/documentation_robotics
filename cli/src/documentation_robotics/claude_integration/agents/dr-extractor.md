@@ -378,11 +378,11 @@ Components:
 
 ## Files Modified
 
-- model/02_business/services.yaml (5 elements)
-- model/04_application/services.yaml (8 elements)
-- model/04_application/components.yaml (3 elements)
-- model/06_api/operations.yaml (35 elements)
-- model/07_data_model/schemas.yaml (12 elements)
+- documentation-robotics/model/02_business/services.yaml (5 elements)
+- documentation-robotics/model/04_application/services.yaml (8 elements)
+- documentation-robotics/model/04_application/components.yaml (3 elements)
+- documentation-robotics/model/06_api/operations.yaml (35 elements)
+- documentation-robotics/model/07_data_model/schemas.yaml (12 elements)
 
 ## Next Steps
 

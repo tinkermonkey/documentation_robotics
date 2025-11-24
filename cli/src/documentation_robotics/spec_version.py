@@ -6,7 +6,7 @@ this CLI implementation conforms to.
 """
 
 # Specification version implemented
-SPEC_VERSION = "0.1.0"
+SPEC_VERSION = "0.1.1"
 
 # Conformance level
 CONFORMANCE_LEVEL = "full"  # basic, standard, or full

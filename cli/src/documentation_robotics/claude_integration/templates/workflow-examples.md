@@ -35,7 +35,7 @@ dr init
 **Output:**
 
 ```
-✓ Created model/ directory structure
+✓ Created documentation-robotics/ directory structure
 ✓ Initialized manifest.yaml
 ✓ Copied JSON schemas
 ```
@@ -70,7 +70,7 @@ I'm starting a new e-commerce project. Let me define the business goals first.
 
 **Result:**
 
-- Creates 3 goals in `model/01_motivation/goals.yaml`
+- Creates 3 goals in `documentation-robotics/model/01_motivation/goals.yaml`
 - Each with ID like `motivation.goal.increase-conversion`
 - Adds KPI properties
 
@@ -347,7 +347,7 @@ dr export --format plantuml \
 ### 5. Review and Commit
 
 ```bash
-git add model/ docs/
+git add documentation-robotics/ docs/
 git commit -m "Add payment processing feature to architecture model
 
 Includes:
@@ -875,7 +875,7 @@ dr export --format markdown \
 
 ```bash
 # Create a "target" version of the model
-cp -r model/ model-target/
+cp -r documentation-robotics/ documentation-robotics-target/
 
 # Or use branching in manifest
 dr init --version target-state
@@ -947,7 +947,7 @@ Phase 3: [continue...]
 
 ```bash
 # Compare current vs target
-dr diff model/ model-target/ --output docs/refactoring/comparison.md
+dr diff documentation-robotics/ documentation-robotics-target/ --output docs/refactoring/comparison.md
 
 # Generate migration guide
 dr export --format markdown \

@@ -67,10 +67,10 @@ properties:
 
 ## File Locations
 
-- Model: `./model/{layer}/`
-- Config: `./dr.config.yaml`
-- Projection rules: `./projection-rules.yaml`
+- Model: `./documentation-robotics/model/{layer}/`
+- Exported specs: `./documentation-robotics/specs/`
 - Schemas: `./.dr/schemas/`
+- Config: `./dr.config.yaml`
 
 ## Python API (for complex operations)
 
