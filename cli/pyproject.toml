@@ -75,10 +75,14 @@ include = '\.pyi?$'
 [tool.ruff]
 line-length = 100
 target-version = "py39"
+
+[tool.ruff.lint]
 select = ["E", "F", "I", "N", "W"]
-# Ignore E501 (line too long) - Black handles line length, and E501 is not auto-fixable
-# Black will break lines when safe, but some lines must remain long for readability
-ignore = ["E501"]
+# Ignore rules:
+# E501: Line too long - Black handles line length, and E501 is not auto-fixable
+# F821: Undefined name - Allow forward references in type hints (e.g., "ValidationResult", "networkx.DiGraph")
+# N812: Lowercase imported as non-lowercase - Common convention for libraries like lxml (etree as ET)
+ignore = ["E501", "F821", "N812"]
 
 [tool.mypy]
 python_version = "3.9"

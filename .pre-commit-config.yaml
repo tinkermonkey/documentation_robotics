@@ -53,13 +53,12 @@ repos:
     hooks:
       - id: ruff
         files: ^cli/
-        args: [--fix, --ignore=F821,--ignore=N812]
+        args: [--fix]
 
       # Also run ruff in check mode (no auto-fix) to catch remaining issues
       - id: ruff
         name: ruff-check
         files: ^cli/
-        args: [--ignore=F821,--ignore=N812]
 
   # Python type checking (for CLI) - runs like CI but doesn't block (informational only)
   - repo: local
