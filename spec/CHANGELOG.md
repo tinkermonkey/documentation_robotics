@@ -5,16 +5,14 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [0.1.1] - 2025-12-15
 
-### Added
-### Changed
-### Deprecated
-### Removed
 ### Fixed
-### Security
+- Updated README.md to more accurately reflect the vision
+- Normalized the name for the spec (Documentation Robotics) used throughout
+- Cleaned up documentation links and references in prep for making repo public
 
-## [0.1.1] - 2025-11-23
+## [0.1.0] - 2025-11-23
 
 ### Added
 - Initial stable release of the Federated Architecture Metadata Model specification
@@ -73,5 +71,4 @@ Examples:
 - `1.1.0` - New feature (e.g., add new entity type, new optional attribute)
 - `1.0.1` - Clarification (e.g., fix typo, clarify documentation)
 
-[Unreleased]: https://github.com/tinkermonkey/documentation_robotics/compare/v0.1.1...HEAD
-[0.1.1]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/v0.1.1
+[0.1.0]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/v0.1.0

@@ -5,19 +5,13 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
-
-### Added
-
-### Changed
-
-### Deprecated
-
-### Removed
+## [0.3.1] - 2025-11-24
 
 ### Fixed
 
-### Security
+- Updated README.md to more accurately reflect the vision
+- Normalized the name for the spec (Documentation Robotics) used throughout
+- Cleaned up documentation links and references in prep for making repo public
 
 ## [0.3.0] - 2025-11-24
 
@@ -243,5 +237,4 @@ Examples:
 - [0.3.0 Release Notes](https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.0)
 - [All CLI Releases](https://github.com/tinkermonkey/documentation_robotics/releases?q=cli)
 
-[Unreleased]: https://github.com/tinkermonkey/documentation_robotics/compare/cli-v0.3.0...HEAD
 [0.3.0]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.0
