@@ -3,7 +3,7 @@ Base validation classes and structures.
 """
 
 from dataclasses import dataclass, field
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 @dataclass
@@ -90,7 +90,7 @@ class ValidationResult:
 
     def add_error(
         self,
-        layer_or_issue: str | ValidationIssue,
+        layer_or_issue: Union[str, ValidationIssue],
         message: Optional[str] = None,
         element_id: Optional[str] = None,
         location: Optional[str] = None,
@@ -120,7 +120,7 @@ class ValidationResult:
 
     def add_warning(
         self,
-        layer_or_issue: str | ValidationIssue,
+        layer_or_issue: Union[str, ValidationIssue],
         message: Optional[str] = None,
         element_id: Optional[str] = None,
         location: Optional[str] = None,
