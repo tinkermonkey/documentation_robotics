@@ -55,20 +55,35 @@ ElementID:
 
 ### 03. Security Layer (WHO CAN)
 
-**Purpose:** Authentication, authorization, security controls
+**Purpose:** Authentication, authorization, access control, and security governance using STS-ml inspired model
 
 **Top Types:**
 
-- `AuthenticationScheme` - How users authenticate (OAuth2, SAML, etc.)
-- `AuthorizationPolicy` - Access control rules
-- `SecurityControl` - Security measures
-- `Threat` - Security threats
-- `SecurityRequirement` - Security requirements
+- `Role` - User role with permissions and inheritance
+- `Permission` - Specific access permission (scope, resource, action)
+- `SecureResource` - Protected resource with operations and field access
+- `SecurityPolicy` - Declarative security policy with rules
+- `Actor` - Security actor (role, agent, organization, system) with objectives
+- `ActorObjective` - Security-related goals for actors
+- `InformationEntity` - Information asset with fine-grained rights
+- `Delegation` - Permission/goal delegation between actors
+- `SeparationOfDuty` - Different actors must perform related tasks
+- `BindingOfDuty` - Same actor must complete related tasks
+- `NeedToKnow` - Access based on objective requirements
+- `Threat` - Security threat with countermeasures
+- `AccountabilityRequirement` - Non-repudiation and audit requirements
+- `Evidence` - Proof for accountability (signatures, timestamps, etc.)
+- `DataClassification` - Data classification levels and protection requirements
+
+_Note: See tier3 for complete security model (28+ types)_
 
 **Key Properties:**
 
-- `applies_to`: [element.id, ...]
-- `type`: authentication | authorization | encryption | monitoring
+- `Role`: name, displayName, inheritsFrom[], permissions[], isSystemRole
+- `Permission`: name, scope (global | resource | attribute | owner), resource, action
+- `SecureResource`: resource, type (api | screen | data | file | service), operations[]
+- `Actor`: type (role | agent | organization | system), trustLevel, objectives[]
+- `Threat`: threatens[], likelihood, impact, threatActors[], countermeasures[]
 
 ### 04. Application Layer (HOW)
 
@@ -125,84 +140,116 @@ ElementID:
 
 ### 07. Data Model Layer (STRUCTURE)
 
-**Purpose:** Logical data structures
+**Purpose:** Logical data structures using JSON Schema Draft 7
 
 **Top Types:**
 
-- `Schema` - Entity definitions (JSON Schema)
-- `Property` - Entity fields
-- `Relationship` - Entity associations
+- `ObjectSchema` - Defines object structure and required properties
+- `ArraySchema` - Defines array items and constraints (minItems, maxItems, uniqueItems)
+- `StringSchema` - String validation (length, pattern, format like email/uuid/date-time)
+- `NumericSchema` - Number validation (min, max, multipleOf)
+- `SchemaComposition` - Combines schemas (allOf, anyOf, oneOf, not)
+- `Reference` - Links to other schemas ($ref)
 
 **Key Properties:**
 
-- `type`: object | array | string | number | boolean
+- `type`: object | array | string | number | integer | boolean | null
 - `required`: [field1, field2, ...]
+- `properties`: {field definitions}
+- Custom extensions: `x-database`, `x-ui`, `x-security`, `x-apm-data-quality-metrics`
 
 ### 08. Datastore Layer (STORAGE)
 
-**Purpose:** Physical database design
+**Purpose:** Physical database design using SQL DDL
 
 **Top Types:**
 
-- `Database` - Database instances
-- `Schema` - Database schemas
-- `Table` - Database tables
-- `Column` - Table columns
-- `Index` - Database indexes
+- `Database` - Database instance with schemas
+- `DatabaseSchema` - Logical grouping of tables (distinct from JSON Schema)
+- `Table` - Database table with columns and constraints
+- `Column` - Table column with data type and constraints
+- `Index` - Query optimization indexes (BTREE, HASH, GIN, etc.)
+- `Constraint` - PRIMARY_KEY, UNIQUE, FOREIGN_KEY, CHECK, EXCLUSION
+- `Trigger` - Database triggers (BEFORE/AFTER/INSTEAD OF on INSERT/UPDATE/DELETE)
+- `View` - Database views (regular or materialized)
 
 **Key Properties:**
 
-- `stores`: data_model.schema.id
-- `type`: postgresql | mysql | mongodb | redis
+- `Database`: type (PostgreSQL | MySQL | SQLite | etc.), version, charset
+- `Table`: schema, columns[], constraints[], indexes[], triggers[]
+- `Column`: dataType, nullable, defaultValue, x-pii, x-encrypted
+- Custom extensions: `x-json-schema`, `x-governed-by-*`, `x-apm-performance-metrics`
 
 ### 09. UX Layer (PRESENTATION)
 
-**Purpose:** User interfaces
+**Purpose:** User experience across multiple channels (visual, voice, chat, SMS)
 
 **Top Types:**
 
-- `Screen` - Application screens/pages
-- `Component` - UI components
-- `Layout` - Screen layouts
-- `State` - UI state management
+- `View` - Routable screen/page with components (not "Screen")
+- `ExperienceState` - Distinct state the experience can be in (not just "State")
+- `Component` - Atomic UI element (form-field, table, chart, card, etc.)
+- `SubView` - Reusable grouping of components within a view
+- `ActionComponent` - Interactive element (button, menu-item, link, voice-command)
+- `ValidationRule` - Client-side validation (required, minLength, pattern, email, etc.)
+- `StateAction` - Action executed during state lifecycle (fetchData, saveData, validateForm, etc.)
+- `StateTransition` - Transition between states (on success, failure, submit, etc.)
+
+_Note: Layout is a property of View (LayoutStyle config), not a standalone entity_
 
 **Key Properties:**
 
-- `calls`: [api.operation.id, ...]
-- `displays`: [data_model.schema.id, ...]
+- `View`: type (form | list | detail | dashboard | wizard | conversational), layout, subViews[], components[]
+- `ExperienceState`: initial, onEnter[], onExit[], transitions[]
+- `Component`: type, dataBinding (schemaRef, defaultValue), security (fieldAccess, visibleToRoles)
+- `StateAction`: action (fetchData | saveData | callAPI | navigateTo), api.operationId
 
 ### 10. Navigation Layer (FLOW)
 
-**Purpose:** Application navigation
+**Purpose:** Application routing, flows, and business process orchestration
 
 **Top Types:**
 
-- `Route` - URL routes
-- `NavigationMenu` - Menu structures
-- `Guard` - Route guards
-- `Breadcrumb` - Navigation breadcrumbs
+- `Route` - Single destination (url for visual, intent for voice, event for chat, keyword for SMS)
+- `NavigationGuard` - Access control (authentication, authorization, validation, data-loaded)
+- `NavigationTransition` - Transition between routes (trigger: user-action, submit, success, failure, etc.)
+- `NavigationFlow` - Sequence of routes realizing business process
+- `FlowStep` - One step in navigation flow with data transfer and compensation
+- `ContextVariable` - Shared variable across flow steps (scope: flow | session | user)
+
+_Note: NavigationMenu, Breadcrumb, and Sitemap are NOT entity types in the schema_
 
 **Key Properties:**
 
-- `path`: "/app/feature"
-- `rendersScreen`: ux.screen.id
-- `requiresAuth`: boolean
+- `Route`: type (experience | redirect | external), meta (requiresAuth, roles[], permissions[])
+- `NavigationGuard`: type (authentication | authorization | validation | custom), condition, onDeny
+- `NavigationFlow`: steps[], sharedContext[], processTracking, analytics
+- `FlowStep`: sequence, route, experience (entryState, exitTrigger), dataTransfer (inputs[], outputs[])
+- `ContextVariable`: schemaRef, scope, persistedIn (memory | session-storage | database)
 
 ### 11. APM/Observability Layer (OBSERVE)
 
-**Purpose:** Monitoring and observability
+**Purpose:** Monitoring and observability using OpenTelemetry 1.0+ standard
 
 **Top Types:**
 
-- `Metric` - Performance metrics
-- `Log` - Log configurations
-- `Trace` - Distributed tracing
-- `Alert` - Alert definitions
+- `Span` - Unit of work in distributed tracing (spanKind: INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER)
+- `SpanEvent` - Timestamped event during span execution
+- `LogRecord` - OpenTelemetry log entry (severityNumber, severityText, body)
+- `InstrumentConfig` - Metric instrument (type: counter, updowncounter, gauge, histogram)
+- `TraceConfiguration` - Distributed tracing config (serviceName, sampler, propagators, exporters)
+- `LogConfiguration` - Logging config (serviceName, logLevel, processors, exporters)
+- `MetricConfiguration` - Metrics config (serviceName, meters, exporters)
+- `DataQualityMetric` - Data quality monitoring (type: completeness, accuracy, freshness, consistency, etc.)
+
+_Note: "Alert" and "Dashboard" are NOT entity types in the OpenTelemetry schema_
 
 **Key Properties:**
 
-- `instruments`: [application.service.id, ...]
-- `type`: availability | latency | throughput | error_rate
+- `Span`: traceId, spanId, name, startTimeUnixNano, endTimeUnixNano, attributes[], events[], status
+- `LogRecord`: timeUnixNano, severityNumber, severityText (TRACE | DEBUG | INFO | WARN | ERROR | FATAL), body
+- `InstrumentConfig`: type, name, unit, description, motivationMapping (contributesToGoal, measuresOutcome)
+- Custom extensions: operationId, archimateService, businessProcess for cross-layer integration
 
 ## Python API
 

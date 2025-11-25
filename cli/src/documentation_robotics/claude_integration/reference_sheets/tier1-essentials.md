@@ -17,9 +17,9 @@ Example: business.service.order-management
 6. **api** - REST/GraphQL endpoints, operations (INTERFACE)
 7. **data_model** - Logical data structures (STRUCTURE)
 8. **datastore** - Physical databases, tables (STORAGE)
-9. **ux** - Screens, components, flows (PRESENTATION)
-10. **navigation** - Routes, menus, guards (FLOW)
-11. **apm** - Metrics, logs, traces (OBSERVE)
+9. **ux** - Views, components, experience states (PRESENTATION)
+10. **navigation** - Routes, flows, guards (FLOW)
+11. **apm** - Spans, logs, metrics (OBSERVE)
 
 ## Essential CLI Commands
 
@@ -84,14 +84,40 @@ model.add_element(layer, element_dict)
 result = model.validate(strict=True)
 ```
 
-## Common Entity Types by Layer
+## Complete Entity Types by Layer
 
-- **motivation**: Goal, Requirement, Stakeholder
-- **business**: BusinessService, BusinessProcess, BusinessActor
-- **application**: ApplicationService, ApplicationComponent
-- **api**: Operation (OpenAPI paths/operations)
-- **data_model**: Schema (JSON Schema entities)
-- **datastore**: Database, Table, Column
+**motivation** (10 types - Strategic):
+assessment, constraint, driver, goal, meaning, outcome, principle, requirement, stakeholder, value
+
+**business** (13 types - ArchiMate):
+actor, collaboration, contract, event, function, interaction, interface, object, process, product, representation, role, service
+
+**security** (15 types - STS-ml):
+accountability, actor, authentication, dataclassification, delegation, informationentity, permission, policy, resource, role, securityconstraint, socialdependency, threat
+
+**application** (9 types - ArchiMate):
+collaboration, component, dataobject, event, function, interaction, interface, process, service
+
+**technology** (13 types - ArchiMate):
+artifact, collaboration, communicationnetwork, device, event, function, interaction, interface, node, path, process, service, systemsoftware
+
+**api** (6 types - OpenAPI 3.0.3):
+component, operation, path, schema, security-scheme, server
+
+**data_model** (4 types - JSON Schema):
+attribute, entity, relationship, schema
+
+**datastore** (1 type):
+database
+
+**ux** (13 types - Multi-channel):
+apispec, apm, channel, dataschema, experience, globalaction, security, state, title, view
+
+**navigation** (7 types - Routing):
+flow, guard, route, transition
+
+**apm** (10 types - OpenTelemetry):
+dataquality, log, logging, metric, motivationmapping, resource, span, tracing
 
 ## Need More Detail?
 

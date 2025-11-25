@@ -117,6 +117,15 @@ class Model:
 
         return self.layers.get(layer_name)
 
+    def list_layers(self) -> List[str]:
+        """
+        Get list of all layer names in the model.
+
+        Returns:
+            List of layer names
+        """
+        return list(self.layers.keys())
+
     def get_element(self, element_id: str) -> Optional[Element]:
         """
         Get element by ID across all layers (with caching).

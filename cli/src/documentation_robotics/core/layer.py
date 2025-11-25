@@ -103,6 +103,15 @@ class Layer:
         """Get element by ID."""
         return self.elements.get(element_id)
 
+    def list_elements(self) -> List[Element]:
+        """
+        Get list of all elements in this layer.
+
+        Returns:
+            List of all elements
+        """
+        return list(self.elements.values())
+
     def find_elements(
         self, element_type: Optional[str] = None, name_pattern: Optional[str] = None, **properties
     ) -> List[Element]:

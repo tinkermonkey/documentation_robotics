@@ -5,7 +5,35 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.3.2] - 2025-11-24
+## [0.3.2] - 2025-11-25
+
+### Added
+
+- **Validation System**: Comprehensive schema-driven entity type validation
+  - `EntityTypeRegistry` class for extracting and validating entity types from JSON schemas
+  - Entity type validation in `add` command (rejects invalid types before creation)
+  - Entity type validation in interactive wizard (shows only valid types per layer)
+  - Helpful error messages showing valid entity types when validation fails
+  - Support for all 11 layers with 101 entity types validated
+- **New API Methods**:
+  - `Layer.list_elements()` - Get list of all elements in a layer
+  - `Model.list_layers()` - Get list of all layer names in the model
+- **Documentation**:
+  - `VALIDATION_SYSTEM.md` - Comprehensive validation system architecture documentation
+  - `cli/docs/validation-loop.md` - Detailed validation loop documentation
+- **Testing**:
+  - `test_entity_type_registry.py` - 16 unit tests for EntityTypeRegistry (92% coverage)
+  - `test_add_validation.py` - Integration tests for add command validation
+  - `test_layer.py` - Unit tests for Layer class new methods
+  - `test_model.py` - Unit tests for Model class new methods
+  - `cli/tests/validation/` - Validation system test suite
+
+### Changed
+
+- **Claude Code Integration**: Updated reference sheets with improved validation guidance
+  - Enhanced tier1-essentials.md with entity type validation examples
+  - Enhanced tier2-developer-guide.md with validation system details
+  - Enhanced tier3-complete-reference.md with complete validation reference
 
 ### Fixed
 
@@ -18,7 +46,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Updated agent documentation (dr-extractor, dr-validator, dr-documenter)
   - Updated workflow examples with correct paths
 - Updated specification version from v0.1.0 to v0.1.1
-- Updated README.md to have fully qualified urls for all docs links to it function on pypi.org
+- Updated README.md to have fully qualified urls for all docs links to function on pypi.org
 
 ## [0.3.1] - 2025-11-24
 

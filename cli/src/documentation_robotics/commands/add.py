@@ -11,6 +11,8 @@ from rich.console import Console
 
 from ..core.element import Element
 from ..core.model import Model
+from ..schemas.bundler import get_bundled_schemas_dir
+from ..schemas.registry import EntityTypeRegistry
 from ..utils.id_generator import generate_element_id
 
 console = Console()
@@ -80,6 +82,25 @@ def add(
         console.print(f"✗ Error: Layer '{layer}' not found", style="red bold")
         available = ", ".join(model.layers.keys())
         console.print(f"   Available layers: {available}")
+        raise click.Abort()
+
+    # Validate entity type is valid for this layer
+    registry = EntityTypeRegistry()
+    schema_dir = get_bundled_schemas_dir()
+    registry.build_from_schemas(schema_dir)
+
+    if not registry.is_valid_type(layer, element_type):
+        console.print(
+            f"✗ Error: Invalid entity type '{element_type}' for layer '{layer}'",
+            style="red bold",
+        )
+        valid_types = registry.get_valid_types(layer)
+        if valid_types:
+            console.print(f"\n   Valid entity types for '{layer}' layer:")
+            for vtype in sorted(valid_types):
+                console.print(f"     • {vtype}")
+        else:
+            console.print(f"\n   No entity types found for layer '{layer}'")
         raise click.Abort()
 
     # Parse spec if provided (only in non-interactive mode)

@@ -10,6 +10,8 @@ from rich.panel import Panel
 from rich.table import Table
 
 from ..core.model import Model
+from ..schemas.bundler import get_bundled_schemas_dir
+from ..schemas.registry import EntityTypeRegistry
 from ..utils.id_generator import generate_element_id
 
 console = Console()
@@ -147,6 +149,11 @@ class ElementWizard(WizardBase):
         self.element_type = None
         self.template = None
 
+        # Initialize entity type registry
+        self.registry = EntityTypeRegistry()
+        schema_dir = get_bundled_schemas_dir()
+        self.registry.build_from_schemas(schema_dir)
+
     def run(self) -> Dict[str, Any]:
         """
         Run the element creation wizard.
@@ -211,21 +218,20 @@ class ElementWizard(WizardBase):
 
     def _select_element_type(self) -> str:
         """Select element type."""
-        # Get element types from schema if available
-        layer_obj = self.model.get_layer(self.layer)
-        if layer_obj and layer_obj.schema_path:
-            # TODO: Parse schema to get valid types
-            # For now, use common types
-            pass
+        # Get valid entity types from registry
+        valid_types = self.registry.get_valid_types(self.layer)
 
-        # Use template types if available
-        if self.layer in self.TEMPLATES:
-            types = list(self.TEMPLATES[self.layer].keys())
-        else:
-            types = ["service", "component", "entity", "policy", "operation"]
+        if not valid_types:
+            # Fallback to template types if registry has none
+            if self.layer in self.TEMPLATES:
+                valid_types = list(self.TEMPLATES[self.layer].keys())
+            else:
+                valid_types = ["service", "component", "entity", "policy", "operation"]
 
         console.print("\n[bold]Step 2:[/bold] Select element type")
-        element_type = self.select("What type of element is this?", types + ["Other"])
+        console.print(f"[dim]Available types for {self.layer} layer:[/dim]")
+
+        element_type = self.select("What type of element is this?", valid_types + ["Other"])
 
         if element_type == "Other":
             element_type = self.text_input("Enter custom element type:")

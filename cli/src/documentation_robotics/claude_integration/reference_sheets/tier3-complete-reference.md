@@ -76,33 +76,165 @@ business.service.order-management:
     sla: "99.9% availability"
 ```
 
-### Layer 03: Security (Custom)
+### Layer 03: Security (STS-ml Security Model)
 
-| Type                     | Description            | Required Fields | Key Properties                           |
-| ------------------------ | ---------------------- | --------------- | ---------------------------------------- |
-| **AuthenticationScheme** | How users authenticate | id, name        | type: oauth2\|saml\|jwt\|basic, provider |
-| **AuthorizationPolicy**  | Access control rules   | id, name        | rules, applies_to                        |
-| **SecurityControl**      | Security measure       | id, name        | type: preventive\|detective\|corrective  |
-| **Threat**               | Potential harm         | id, name        | severity, likelihood, mitigation         |
-| **Vulnerability**        | Weakness               | id, name        | cvss-score, affected-components          |
-| **SecurityRequirement**  | Security need          | id, name        | compliance-standard, applies_to          |
+Complete Socio-Technical Security (STS-ml) model with role-based access control, security policies, and social relationships.
+
+**Role-Based Access Control:**
+
+| Type                   | Description                     | Required Fields | Key Properties                                               |
+| ---------------------- | ------------------------------- | --------------- | ------------------------------------------------------------ |
+| **Role**               | User role with permissions      | id, name        | permissions, inheritsFrom, assignedActors                    |
+| **Permission**         | Specific access permission      | id, name        | scope: read\|write\|delete\|execute, resource, action        |
+| **SecureResource**     | Protected resource              | id, name        | operations, fieldAccess, dataClassification                  |
+| **ResourceOperation**  | Operation on secure resource    | id, name        | operation: create\|read\|update\|delete, requiredPermissions |
+| **FieldAccessControl** | Fine-grained field-level access | id, name        | resource, field, permissions, conditions                     |
+
+**Authentication & Authorization:**
+
+| Type                     | Description                     | Required Fields | Key Properties                                       |
+| ------------------------ | ------------------------------- | --------------- | ---------------------------------------------------- |
+| **AuthenticationConfig** | Authentication configuration    | id, name        | methods, providers, mfaRequired, sessionTimeout      |
+| **PasswordPolicy**       | Password requirements           | id, name        | minLength, requireUppercase, requireSymbols, maxAge  |
+| **SecurityPolicy**       | Declarative security policy     | id, name        | rules, appliesTo, enforcement: strict\|permissive    |
+| **PolicyRule**           | Individual policy rule          | id, name        | condition, action, priority                          |
+| **PolicyAction**         | Action when rule matches        | id, name        | type: allow\|deny\|log\|alert, parameters            |
+| **AccessCondition**      | Condition for policy evaluation | id, name        | type: time\|location\|device\|risk-score, parameters |
+
+**STS-ml Social Actors:**
+
+| Type                | Description                            | Required Fields | Key Properties                                           |
+| ------------------- | -------------------------------------- | --------------- | -------------------------------------------------------- |
+| **Actor**           | Security actor (role/agent/org/system) | id, name        | type: role\|agent\|organization\|system, objectives      |
+| **ActorObjective**  | Security-related goal for actor        | id, name        | actor, objectiveType, priority                           |
+| **ActorDependency** | One actor depends on another           | id, name        | depender, dependee, type: goal\|softgoal\|task\|resource |
+
+**Information & Access Control:**
+
+| Type                   | Description                   | Required Fields | Key Properties                                                        |
+| ---------------------- | ----------------------------- | --------------- | --------------------------------------------------------------------- |
+| **InformationEntity**  | Information asset             | id, name        | owner, classification, rights                                         |
+| **InformationRight**   | Specific right on information | id, name        | type: read\|modify\|produce\|distribute, conditions                   |
+| **DataClassification** | Data classification level     | id, name        | level: public\|internal\|confidential\|secret, protectionRequirements |
+
+**Social Security Mechanisms:**
+
+| Type                 | Description                        | Required Fields | Key Properties                                        |
+| -------------------- | ---------------------------------- | --------------- | ----------------------------------------------------- |
+| **Delegation**       | Permission/goal delegation         | id, name        | delegator, delegatee, delegatedPermission, conditions |
+| **SeparationOfDuty** | Different actors for related tasks | id, name        | tasks, minimumActors, enforcement                     |
+| **BindingOfDuty**    | Same actor for related tasks       | id, name        | tasks, enforcement                                    |
+| **NeedToKnow**       | Access based on objective needs    | id, name        | actor, information, requiredForObjective              |
+| **SocialDependency** | Social relationship for security   | id, name        | depender, dependee, type: trust\|authorization        |
+
+**Threats & Countermeasures:**
+
+| Type                    | Description                  | Required Fields | Key Properties                                                              |
+| ----------------------- | ---------------------------- | --------------- | --------------------------------------------------------------------------- |
+| **Threat**              | Security threat              | id, name        | targets, severity: low\|medium\|high\|critical, likelihood, countermeasures |
+| **Countermeasure**      | Security countermeasure      | id, name        | mitigates, type: preventive\|detective\|corrective, effectiveness           |
+| **SecurityConstraints** | Security-related constraints | id, name        | constrains, type: integrity\|confidentiality\|availability                  |
+
+**Accountability & Compliance:**
+
+| Type                          | Description              | Required Fields | Key Properties                                                  |
+| ----------------------------- | ------------------------ | --------------- | --------------------------------------------------------------- |
+| **AccountabilityRequirement** | Non-repudiation & audit  | id, name        | type: non-repudiation\|audit-trail, appliesTo, evidenceRequired |
+| **Evidence**                  | Proof for accountability | id, name        | type: signature\|timestamp\|log\|witness, format                |
 
 **Common Properties:**
 
 ```yaml
+# Role-Based Access Control Example
+security.role.order-manager:
+  id: security.role.order-manager
+  name: "Order Manager"
+  description: "Manages customer orders"
+  properties:
+    permissions:
+      - security.permission.read-orders
+      - security.permission.update-order-status
+      - security.permission.refund-order
+    inheritsFrom: [security.role.customer-service]
+    assignedActors:
+      - security.actor.operations-team
+
+security.permission.update-order-status:
+  id: security.permission.update-order-status
+  name: "Update Order Status"
+  properties:
+    scope: write
+    resource: security.resource.order
+    action: update-status
+    conditions:
+      - security.condition.valid-status-transition
+
+# Security Policy Example
 security.policy.authenticated-access:
   id: security.policy.authenticated-access
   name: "Authenticated Access Policy"
   description: "Requires authentication for all API endpoints"
   properties:
-    type: authorization
-    applies_to:
+    appliesTo:
       - application.service.order-api
       - application.service.payment-api
+    enforcement: strict
     rules:
-      - require: jwt-token
-      - validate: token-expiry
-      - enforce: rate-limiting
+      - security.rule.require-jwt-token
+      - security.rule.validate-token-expiry
+      - security.rule.enforce-rate-limiting
+
+# STS-ml Social Mechanism Example
+security.separation-of-duty.financial-approval:
+  id: security.separation-of-duty.financial-approval
+  name: "Financial Approval Separation"
+  description: "Refunds require approval from different person"
+  properties:
+    tasks:
+      - business.process.initiate-refund
+      - business.process.approve-refund
+    minimumActors: 2
+    enforcement: strict
+
+security.delegation.vacation-coverage:
+  id: security.delegation.vacation-coverage
+  name: "Vacation Coverage Delegation"
+  properties:
+    delegator: security.actor.order-manager-alice
+    delegatee: security.actor.order-manager-bob
+    delegatedPermission: security.permission.approve-large-orders
+    conditions:
+      - startDate: 2025-12-01
+      - endDate: 2025-12-15
+
+# Threat & Countermeasure Example
+security.threat.order-tampering:
+  id: security.threat.order-tampering
+  name: "Order Tampering"
+  description: "Unauthorized modification of order details"
+  properties:
+    targets: [datastore.table.orders]
+    severity: high
+    likelihood: medium
+    countermeasures:
+      - security.countermeasure.field-access-control
+      - security.countermeasure.audit-logging
+      - security.countermeasure.digital-signatures
+
+# Data Classification Example
+security.data-classification.customer-pii:
+  id: security.data-classification.customer-pii
+  name: "Customer PII"
+  properties:
+    level: confidential
+    protectionRequirements:
+      - encryption-at-rest
+      - encryption-in-transit
+      - access-logging
+      - data-masking
+    appliesTo:
+      - data_model.schema.customer
+      - datastore.table.customers
 ```
 
 ### Layer 04: Application (ArchiMate 3.2)
@@ -174,17 +306,76 @@ technology.node.k8s-cluster:
 
 ### Layer 06: API (OpenAPI 3.0.3)
 
-| Type               | Description        | Required Fields  | Key Properties                                |
-| ------------------ | ------------------ | ---------------- | --------------------------------------------- |
-| **Operation**      | API endpoint       | id, path, method | operationId, securedBy, applicationServiceRef |
-| **Parameter**      | Request parameter  | id, name         | in: path\|query\|header\|body, type, required |
-| **Schema**         | Data structure     | id, name         | type, properties, required                    |
-| **Response**       | Operation response | id, status       | content-type, schema                          |
-| **SecurityScheme** | API security       | id, name         | type: http\|apiKey\|oauth2                    |
+Complete OpenAPI 3.0.3 specification for REST APIs.
+
+**API Structure:**
+
+| Type            | Description                | Required Fields | Key Properties                                                     |
+| --------------- | -------------------------- | --------------- | ------------------------------------------------------------------ |
+| **Info**        | API metadata               | id, name        | title, version, description, contact, license, termsOfService      |
+| **Server**      | API server configuration   | id, name        | url, description, variables                                        |
+| **PathItem**    | API path with operations   | id, path        | get, post, put, patch, delete, parameters, servers                 |
+| **Operation**   | Single API operation       | id, name        | operationId, summary, parameters, requestBody, responses, security |
+| **Parameter**   | Request parameter          | id, name        | in: path\|query\|header\|cookie, schema, required, deprecated      |
+| **RequestBody** | Request body specification | id, name        | content, required, description                                     |
+| **Response**    | Operation response         | id, name        | statusCode, description, content, headers, links                   |
+| **MediaType**   | Content type specification | contentType     | schema, examples, encoding                                         |
+
+**Reusable Components:**
+
+| Type               | Description                         | Required Fields | Key Properties                                                 |
+| ------------------ | ----------------------------------- | --------------- | -------------------------------------------------------------- |
+| **Components**     | Reusable component collection       | id, name        | schemas, responses, parameters, requestBodies, securitySchemes |
+| **SecurityScheme** | Authentication/authorization scheme | id, name        | type: apiKey\|http\|oauth2\|openIdConnect, scheme, flows       |
+| **OAuth2Flows**    | OAuth2 flow configurations          | id, name        | implicit, authorizationCode, clientCredentials, password       |
+| **Callback**       | Asynchronous callback operation     | id, name        | expression, pathItem                                           |
+| **Link**           | Link between operations             | id, name        | operationRef, operationId, parameters                          |
+| **Example**        | Example value                       | id, name        | summary, description, value, externalValue                     |
+| **Header**         | Response header                     | id, name        | schema, required, deprecated                                   |
+| **Tag**            | Operation grouping tag              | id, name        | name, description, externalDocs                                |
+| **ExternalDocs**   | External documentation reference    | url             | description                                                    |
 
 **Common Properties:**
 
 ```yaml
+api.info.order-api:
+  id: api.info.order-api
+  name: "Order API Info"
+  properties:
+    title: "Order Management API"
+    version: "2.1.0"
+    description: "REST API for managing customer orders"
+    contact:
+      name: "API Support"
+      email: "api-support@example.com"
+      url: "https://support.example.com"
+    license:
+      name: "Apache 2.0"
+      url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+
+api.server.production:
+  id: api.server.production
+  name: "Production Server"
+  properties:
+    url: "https://api.example.com/v1"
+    description: "Production API server"
+    variables:
+      version:
+        default: v1
+        enum: [v1, v2]
+        description: "API version"
+
+api.path-item.orders:
+  id: api.path-item.orders
+  name: "/orders"
+  properties:
+    path: "/orders"
+    get: api.operation.list-orders
+    post: api.operation.create-order
+    parameters:
+      - api.parameter.page
+      - api.parameter.limit
+
 api.operation.create-order:
   id: api.operation.create-order
   name: "Create Order"
@@ -192,101 +383,409 @@ api.operation.create-order:
     path: "/api/v1/orders"
     method: POST
     operationId: createOrder
-    securedBy: [security.scheme.bearer-auth]
+    summary: "Create a new order"
+    description: "Creates a new customer order with validation"
+    tags: [orders]
+    securedBy:
+      - api.security-scheme.bearer-auth: []
     applicationServiceRef: application.service.order-api
+    parameters:
+      - api.parameter.idempotency-key
     requestBody:
-      schema: data_model.schema.order-create-request
+      description: "Order creation request"
+      required: true
+      content:
+        "application/json":
+          schema: data_model.object-schema.order-create-request
+          examples:
+            standard-order: api.example.standard-order
     responses:
-      "201": data_model.schema.order
-      "400": data_model.schema.error
+      "201":
+        description: "Order created successfully"
+        content:
+          "application/json":
+            schema: data_model.object-schema.order
+        headers:
+          Location: api.header.location
+          X-Request-Id: api.header.request-id
+      "400":
+        description: "Invalid request"
+        content:
+          "application/json":
+            schema: data_model.object-schema.error
+      "401":
+        description: "Unauthorized"
+        content:
+          "application/json":
+            schema: data_model.object-schema.error
+      "429":
+        description: "Rate limit exceeded"
+        content:
+          "application/json":
+            schema: data_model.object-schema.error
+
+api.parameter.idempotency-key:
+  id: api.parameter.idempotency-key
+  name: "Idempotency-Key"
+  properties:
+    in: header
+    required: false
+    schema:
+      type: string
+      format: uuid
+    description: "Unique key for idempotent requests"
+
+api.security-scheme.bearer-auth:
+  id: api.security-scheme.bearer-auth
+  name: "Bearer Authentication"
+  properties:
+    type: http
+    scheme: bearer
+    bearerFormat: JWT
+    description: "JWT bearer token authentication"
+
+api.security-scheme.oauth2:
+  id: api.security-scheme.oauth2
+  name: "OAuth2 Authentication"
+  properties:
+    type: oauth2
+    flows:
+      authorizationCode:
+        authorizationUrl: "https://auth.example.com/oauth/authorize"
+        tokenUrl: "https://auth.example.com/oauth/token"
+        scopes:
+          "orders:read": "Read orders"
+          "orders:write": "Create and update orders"
+          "orders:delete": "Delete orders"
+
+api.components.order-api:
+  id: api.components.order-api
+  name: "Order API Components"
+  properties:
+    schemas:
+      - data_model.object-schema.order
+      - data_model.object-schema.order-create-request
+      - data_model.object-schema.error
+    responses:
+      - api.response.not-found
+      - api.response.unauthorized
+    parameters:
+      - api.parameter.page
+      - api.parameter.limit
+    securitySchemes:
+      - api.security-scheme.bearer-auth
+      - api.security-scheme.oauth2
 ```
 
 ### Layer 07: Data Model (JSON Schema Draft 7)
 
-| Type             | Description       | Required Fields | Key Properties                     |
-| ---------------- | ----------------- | --------------- | ---------------------------------- |
-| **Schema**       | Entity definition | id, name        | type, properties, required, usedBy |
-| **Property**     | Field definition  | name, type      | format, constraints                |
-| **Relationship** | Association       | id, name        | from, to, cardinality              |
+Complete JSON Schema Draft 7 with custom extensions for cross-layer integration.
+
+**Core Schema Types:**
+
+| Type              | Description                                      | Required Fields | Key Properties                                                     |
+| ----------------- | ------------------------------------------------ | --------------- | ------------------------------------------------------------------ |
+| **ObjectSchema**  | Defines object structure and required properties | id, name        | properties, required, additionalProperties, patternProperties      |
+| **ArraySchema**   | Defines array items and constraints              | id, name        | items, minItems, maxItems, uniqueItems, contains                   |
+| **StringSchema**  | String validation (length, pattern, format)      | id, name        | minLength, maxLength, pattern, format: email\|uuid\|date-time\|uri |
+| **NumericSchema** | Number validation (min, max, multipleOf)         | id, name        | minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf   |
+| **BooleanSchema** | Boolean type definition                          | id, name        | const, default                                                     |
+| **NullSchema**    | Null type definition                             | id, name        | const                                                              |
+
+**Schema Composition:**
+
+| Type                  | Description                                 | Required Fields | Key Properties                            |
+| --------------------- | ------------------------------------------- | --------------- | ----------------------------------------- |
+| **SchemaComposition** | Combines schemas (allOf, anyOf, oneOf, not) | id, name        | allOf, anyOf, oneOf, not, discriminator   |
+| **Reference**         | Links to other schemas ($ref)               | $ref            | $ref: "#/definitions/..." or external URL |
+
+**Validation & Metadata:**
+
+| Type                  | Description                           | Required Fields | Key Properties                  |
+| --------------------- | ------------------------------------- | --------------- | ------------------------------- |
+| **EnumSchema**        | Enumerated values                     | id, name        | enum, enumNames (display names) |
+| **ConstSchema**       | Single constant value                 | id, name        | const                           |
+| **ConditionalSchema** | Conditional validation (if/then/else) | id, name        | if, then, else                  |
+
+**Custom Extensions (x-\*):**
+
+| Extension                      | Description             | Example                                    |
+| ------------------------------ | ----------------------- | ------------------------------------------ |
+| **x-database**                 | Database mapping        | `table: orders, column: order_id`          |
+| **x-ui**                       | UI rendering hints      | `widget: date-picker, label: "Order Date"` |
+| **x-security**                 | Security annotations    | `classification: confidential, pii: true`  |
+| **x-apm-data-quality-metrics** | Data quality monitoring | `[completeness, accuracy, freshness]`      |
 
 **Common Properties:**
 
 ```yaml
-data_model.schema.order:
-  id: data_model.schema.order
+# ObjectSchema Example
+data_model.object-schema.order:
+  id: data_model.object-schema.order
   name: "Order"
   description: "Customer order entity"
   properties:
     type: object
     required: [id, customer_id, items, total, status]
     properties:
-      id: { type: string, format: uuid }
-      customer_id: { type: string, format: uuid }
-      items: { type: array, items: { $ref: "#/OrderItem" } }
-      total: { type: number, format: currency }
-      status: { type: string, enum: [pending, confirmed, shipped, delivered] }
+      id:
+        type: string
+        format: uuid
+        x-database: { table: orders, column: id, pk: true }
+      customer_id:
+        type: string
+        format: uuid
+        x-database: { table: orders, column: customer_id, fk: customers.id }
+      items:
+        type: array
+        items: { $ref: "#/definitions/OrderItem" }
+        minItems: 1
+      total:
+        type: number
+        minimum: 0
+        multipleOf: 0.01
+        x-ui: { widget: currency, format: "$0,0.00" }
+      status:
+        type: string
+        enum: [pending, confirmed, shipped, delivered, cancelled]
+        x-ui: { widget: select, label: "Order Status" }
+    additionalProperties: false
+    x-security:
+      classification: internal
+      pii: false
+    x-apm-data-quality-metrics:
+      - apm.data-quality-metric.order-completeness
+      - apm.data-quality-metric.order-accuracy
     usedBy:
       - api.operation.create-order
       - api.operation.get-order
     stored-in: datastore.table.orders
+
+# StringSchema Example with Validation
+data_model.string-schema.email:
+  id: data_model.string-schema.email
+  name: "Email Address"
+  properties:
+    type: string
+    format: email
+    minLength: 5
+    maxLength: 255
+    pattern: "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+    x-ui: { widget: email-input, placeholder: "user@example.com" }
+    x-security: { pii: true, classification: confidential }
+
+# ArraySchema Example
+data_model.array-schema.order-items:
+  id: data_model.array-schema.order-items
+  name: "Order Items"
+  properties:
+    type: array
+    items: { $ref: "#/definitions/OrderItem" }
+    minItems: 1
+    maxItems: 100
+    uniqueItems: false
+    x-database: { table: order_items, fk: order_id }
+
+# SchemaComposition Example (allOf)
+data_model.composition.premium-customer:
+  id: data_model.composition.premium-customer
+  name: "Premium Customer"
+  description: "Customer with premium features"
+  properties:
+    allOf:
+      - $ref: "#/definitions/Customer"
+      - type: object
+        properties:
+          premiumTier: { type: string, enum: [gold, platinum, diamond] }
+          lifetimeValue: { type: number, minimum: 10000 }
+        required: [premiumTier, lifetimeValue]
+
+# ConditionalSchema Example (if/then/else)
+data_model.conditional.shipping-address:
+  id: data_model.conditional.shipping-address
+  name: "Shipping Address"
+  properties:
+    type: object
+    properties:
+      country: { type: string }
+      state: { type: string }
+      zipCode: { type: string }
+    if:
+      properties:
+        country: { const: "USA" }
+    then:
+      properties:
+        state: { type: string, minLength: 2, maxLength: 2 }
+        zipCode: { type: string, pattern: "^\\d{5}(-\\d{4})?$" }
+      required: [state, zipCode]
+    else:
+      properties:
+        state: { type: string }
+        zipCode: { type: string }
 ```
 
 ### Layer 08: Datastore (Custom)
 
-| Type           | Description       | Required Fields | Key Properties              |
-| -------------- | ----------------- | --------------- | --------------------------- |
-| **Database**   | Database instance | id, name        | type, version, stores       |
-| **Schema**     | Database schema   | id, name        | database                    |
-| **Table**      | Database table    | id, name        | stores, columns             |
-| **Column**     | Table column      | id, name        | type, nullable, default     |
-| **Index**      | Database index    | id, name        | columns, unique             |
-| **Constraint** | Data constraint   | id, name        | type: pk\|fk\|unique\|check |
-| **View**       | Database view     | id, name        | query, base-tables          |
-| **Procedure**  | Stored procedure  | id, name        | parameters, returns         |
+Physical database structures and storage mechanisms.
+
+| Type               | Description                                 | Required Fields | Key Properties                                                        |
+| ------------------ | ------------------------------------------- | --------------- | --------------------------------------------------------------------- |
+| **Database**       | Database instance                           | id, name        | type: postgres\|mysql\|mongodb\|etc, version, stores                  |
+| **DatabaseSchema** | Database schema (namespace within database) | id, name        | database, tables, views                                               |
+| **Table**          | Database table                              | id, name        | stores, columns, indexes, constraints                                 |
+| **Column**         | Table column                                | id, name        | type, nullable, default, references                                   |
+| **Index**          | Database index                              | id, name        | table, columns, unique, type: btree\|hash\|gin                        |
+| **Constraint**     | Data constraint                             | id, name        | type: pk\|fk\|unique\|check, definition                               |
+| **View**           | Database view (virtual table)               | id, name        | query, baseTables, materialized                                       |
+| **Trigger**        | Database trigger                            | id, name        | table, event: INSERT\|UPDATE\|DELETE, timing: BEFORE\|AFTER, function |
+| **Partition**      | Table partition                             | id, name        | table, strategy: range\|list\|hash, key                               |
+| **Sequence**       | Database sequence                           | id, name        | start, increment, usedBy                                              |
+
+_Note: "DatabaseSchema" distinguishes from JSON Schema in data_model layer. "Trigger" is used instead of "Procedure"._
 
 **Common Properties:**
 
 ```yaml
+datastore.database.main-db:
+  id: datastore.database.main-db
+  name: "Main Database"
+  description: "Primary PostgreSQL database"
+  properties:
+    type: postgres
+    version: "15.3"
+    host: db.example.com
+    port: 5432
+    stores:
+      - data_model.schema.order
+      - data_model.schema.customer
+      - data_model.schema.product
+
+datastore.database-schema.public:
+  id: datastore.database-schema.public
+  name: "public"
+  description: "Default public schema"
+  properties:
+    database: datastore.database.main-db
+    tables:
+      - datastore.table.orders
+      - datastore.table.customers
+      - datastore.table.products
+
 datastore.table.orders:
   id: datastore.table.orders
   name: "orders"
   description: "Stores customer orders"
   properties:
-    stores: data_model.schema.order
+    stores: data_model.object-schema.order
     database: datastore.database.main-db
+    schema: datastore.database-schema.public
     columns:
-      - { name: id, type: uuid, pk: true }
-      - { name: customer_id, type: uuid, fk: customers.id }
-      - { name: total, type: decimal(10, 2) }
-      - { name: status, type: varchar(20) }
-      - { name: created_at, type: timestamp }
+      - datastore.column.orders-id
+      - datastore.column.orders-customer-id
+      - datastore.column.orders-total
+      - datastore.column.orders-status
+      - datastore.column.orders-created-at
     indexes:
-      - { name: idx_customer, columns: [customer_id] }
-      - { name: idx_status, columns: [status] }
+      - datastore.index.idx-orders-customer
+      - datastore.index.idx-orders-status
+    constraints:
+      - datastore.constraint.orders-pk
+      - datastore.constraint.orders-customer-fk
+    triggers:
+      - datastore.trigger.orders-audit
+
+datastore.column.orders-customer-id:
+  id: datastore.column.orders-customer-id
+  name: "customer_id"
+  properties:
+    table: datastore.table.orders
+    type: uuid
+    nullable: false
+    references:
+      table: datastore.table.customers
+      column: datastore.column.customers-id
+      onDelete: CASCADE
+
+datastore.index.idx-orders-customer:
+  id: datastore.index.idx-orders-customer
+  name: "idx_orders_customer"
+  properties:
+    table: datastore.table.orders
+    columns: [customer_id]
+    type: btree
+    unique: false
+
+datastore.constraint.orders-customer-fk:
+  id: datastore.constraint.orders-customer-fk
+  name: "orders_customer_fk"
+  properties:
+    type: fk
+    table: datastore.table.orders
+    columns: [customer_id]
+    referencesTable: datastore.table.customers
+    referencesColumns: [id]
+    onDelete: CASCADE
+    onUpdate: RESTRICT
+
+datastore.trigger.orders-audit:
+  id: datastore.trigger.orders-audit
+  name: "orders_audit_trigger"
+  description: "Audit trail for order changes"
+  properties:
+    table: datastore.table.orders
+    event: UPDATE
+    timing: AFTER
+    function: audit_order_changes()
+    enabled: true
+
+datastore.view.customer-orders-summary:
+  id: datastore.view.customer-orders-summary
+  name: "customer_orders_summary"
+  properties:
+    baseTables:
+      - datastore.table.orders
+      - datastore.table.customers
+    query: |
+      SELECT c.id, c.name, COUNT(o.id) as order_count, SUM(o.total) as lifetime_value
+      FROM customers c
+      LEFT JOIN orders o ON c.id = o.customer_id
+      GROUP BY c.id, c.name
+    materialized: false
 ```
 
 ### Layer 09: UX (Custom)
 
-| Type                  | Description       | Required Fields | Key Properties                 |
-| --------------------- | ----------------- | --------------- | ------------------------------ |
-| **Screen**            | Application page  | id, name        | route, layout, calls, displays |
-| **Component**         | UI component      | id, name        | type, props                    |
-| **Layout**            | Screen structure  | id, name        | regions, responsive            |
-| **State**             | UI state          | id, name        | scope, lifecycle               |
-| **Transition**        | Screen transition | id, name        | from, to, trigger              |
-| **Theme**             | Visual styling    | id, name        | colors, fonts, spacing         |
-| **AccessibilitySpec** | A11y requirements | id, name        | wcag-level, requirements       |
+| Type                  | Description                                                       | Required Fields | Key Properties                                                          |
+| --------------------- | ----------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
+| **View**              | Routable screen/page with components                              | id, name        | route, layout: LayoutStyle, calls, displays, components, accessibility  |
+| **SubView**           | Reusable grouping of components within a view                     | id, name        | components, props, usedInViews                                          |
+| **Component**         | Atomic UI element (form-field, table, chart, card, etc.)          | id, name        | type, props, validators, dataBindings                                   |
+| **ActionComponent**   | Interactive element (button, menu-item, link, voice-command)      | id, name        | type, trigger, action, confirmation, successTransition, errorTransition |
+| **ValidationRule**    | Client-side validation rule                                       | id, name        | type: required\|minLength\|maxLength\|pattern\|email\|custom, params    |
+| **ExperienceState**   | Distinct state the experience can be in                           | id, name        | scope: global\|view\|component, onEnter, onExit, allowedTransitions     |
+| **StateAction**       | Action executed during state lifecycle                            | id, name        | trigger: onEnter\|onExit, type: fetchData\|saveData\|validateForm, etc. |
+| **StateTransition**   | Transition between states                                         | id, name        | from, to, trigger: success\|failure\|submit\|cancel, guard              |
+| **LayoutStyle**       | Layout configuration for a view (property, not standalone entity) | -               | type: single-column\|two-column\|dashboard\|master-detail, responsive   |
+| **Theme**             | Visual styling                                                    | id, name        | colors, fonts, spacing, breakpoints                                     |
+| **AccessibilitySpec** | A11y requirements                                                 | id, name        | wcag-level: A\|AA\|AAA, requirements, ariaLabels                        |
+| **LocalizationSpec**  | i18n configuration                                                | id, name        | supportedLocales, defaultLocale, translationKeys                        |
+| **ResponsiveConfig**  | Responsive behavior configuration                                 | id, name        | breakpoints, layoutChanges, componentVisibility                         |
+
+_Note: Layout is a property of View (LayoutStyle config), not a standalone entity type._
 
 **Common Properties:**
 
 ```yaml
-ux.screen.order-history:
-  id: ux.screen.order-history
+ux.view.order-history:
+  id: ux.view.order-history
   name: "Order History"
   description: "Customer order history view"
   properties:
     route: navigation.route.order-history
-    layout: ux.layout.dashboard
+    layout:
+      type: dashboard
+      responsive: true
+      regions: [header, filters, content, pagination]
     calls:
       - api.operation.list-orders
       - api.operation.get-order-details
@@ -295,18 +794,38 @@ ux.screen.order-history:
       - ux.component.order-list
       - ux.component.order-filters
       - ux.component.pagination
+    state: ux.state.order-history-loaded
     accessibility: ux.accessibility.wcag-aa
+
+ux.experience-state.order-history-loaded:
+  id: ux.experience-state.order-history-loaded
+  name: "Order History Loaded"
+  properties:
+    scope: view
+    onEnter:
+      - ux.state-action.fetch-order-history
+      - ux.state-action.initialize-filters
+    allowedTransitions:
+      - ux.state.order-history-loading
+      - ux.state.order-detail-view
 ```
 
-### Layer 10: Navigation (Custom)
+### Layer 10: Navigation (Custom - Multi-Modal)
 
-| Type               | Description      | Required Fields | Key Properties                            |
-| ------------------ | ---------------- | --------------- | ----------------------------------------- |
-| **Route**          | URL route        | id, path        | rendersScreen, guard, params              |
-| **Guard**          | Route guard      | id, name        | type: auth\|role\|subscription, validates |
-| **NavigationMenu** | Menu structure   | id, name        | items, layout                             |
-| **Breadcrumb**     | Breadcrumb trail | id, name        | path, dynamic                             |
-| **Sitemap**        | Site structure   | id, name        | pages, hierarchy                          |
+Supports visual (URL), voice (intent), chat (event), SMS (keyword), and API (operation) navigation modes.
+
+| Type                     | Description                                | Required Fields | Key Properties                                                                |
+| ------------------------ | ------------------------------------------ | --------------- | ----------------------------------------------------------------------------- |
+| **Route**                | Destination in any modality                | id, name        | url, intent, event, keyword, operation, rendersView, guards                   |
+| **NavigationTransition** | Transition between routes                  | id, name        | from, to, trigger, dataMapping, compensationRoute                             |
+| **NavigationGuard**      | Access control for routes                  | id, name        | type: authentication\|authorization\|validation\|data-loaded, validationRules |
+| **NavigationFlow**       | Sequence of routes realizing process       | id, name        | steps, realizesProcess, startRoute, errorHandling                             |
+| **FlowStep**             | One step in navigation flow                | id, name        | route, order, requiredData, compensation                                      |
+| **ContextVariable**      | Shared variable across flow steps          | id, name        | scope: flow\|session\|user, type, defaultValue                                |
+| **DataMapping**          | Maps data between routes/steps             | id, name        | sourceRoute, targetRoute, mappingRules                                        |
+| **ProcessTracking**      | Links navigation to business process steps | id, name        | navigationFlow, businessProcess, stepMappings                                 |
+| **FlowAnalytics**        | Analytics for navigation flows             | id, name        | flow, metrics: completion-rate\|drop-off\|time, instruments                   |
+| **NotificationAction**   | Triggered notification during flow         | id, name        | trigger, type: email\|sms\|push\|webhook, template, recipients                |
 
 **Common Properties:**
 
@@ -315,40 +834,149 @@ navigation.route.order-history:
   id: navigation.route.order-history
   name: "Order History Route"
   properties:
-    path: "/app/orders/history"
-    rendersScreen: ux.screen.order-history
-    guard: navigation.guard.authenticated
+    # Multi-modal support
+    url: "/app/orders/history" # Visual (web/mobile)
+    intent: "show order history" # Voice
+    event: "order_history_requested" # Chat
+    keyword: "ORDERS" # SMS
+
+    # Route configuration
+    rendersView: ux.view.order-history
+    guards:
+      - navigation.guard.authenticated
+      - navigation.guard.customer-role
     params: []
     meta:
       title: "Order History"
       requiresAuth: true
+
+navigation.flow.checkout-flow:
+  id: navigation.flow.checkout-flow
+  name: "Checkout Flow"
+  description: "Multi-step checkout process"
+  properties:
+    realizesProcess: business.process.order-checkout
+    steps:
+      - navigation.step.cart-review
+      - navigation.step.shipping-info
+      - navigation.step.payment
+      - navigation.step.confirmation
+    errorHandling:
+      compensation: navigation.route.cart
+      notification: navigation.notification.checkout-failed
 ```
 
 ### Layer 11: APM/Observability (OpenTelemetry 1.0+)
 
-| Type          | Description          | Required Fields | Key Properties                 |
-| ------------- | -------------------- | --------------- | ------------------------------ |
-| **Metric**    | Performance metric   | id, name        | type, instruments, threshold   |
-| **Log**       | Log configuration    | id, name        | level, format, instruments     |
-| **Trace**     | Distributed trace    | id, name        | spans, instruments             |
-| **Span**      | Trace segment        | id, name        | operation, duration            |
-| **Alert**     | Alert definition     | id, name        | condition, threshold, notifies |
-| **Dashboard** | Monitoring dashboard | id, name        | widgets, metrics               |
+Full OpenTelemetry specification for distributed tracing, logging, and metrics.
+
+**Tracing Types:**
+
+| Type           | Description                             | Required Fields | Key Properties                                                                         |
+| -------------- | --------------------------------------- | --------------- | -------------------------------------------------------------------------------------- |
+| **Span**       | Unit of work in distributed trace       | id, name        | spanKind: INTERNAL\|SERVER\|CLIENT\|PRODUCER\|CONSUMER, startTime, endTime, attributes |
+| **SpanEvent**  | Timestamped event during span execution | id, name        | timestamp, attributes, attachedToSpan                                                  |
+| **SpanLink**   | Link between spans (causality)          | id, name        | sourceSpan, targetSpan, attributes                                                     |
+| **SpanStatus** | Status of span execution                | -               | code: UNSET\|OK\|ERROR, message                                                        |
+
+**Logging Types:**
+
+| Type          | Description             | Required Fields | Key Properties                                            |
+| ------------- | ----------------------- | --------------- | --------------------------------------------------------- |
+| **LogRecord** | OpenTelemetry log entry | id, name        | timestamp, severityNumber, severityText, body, attributes |
+
+**Resource & Context Types:**
+
+| Type                     | Description                           | Required Fields | Key Properties                  |
+| ------------------------ | ------------------------------------- | --------------- | ------------------------------- |
+| **Resource**             | Describes source of telemetry         | id, name        | attributes: service.name, etc.  |
+| **InstrumentationScope** | Identifies instrumentation library    | id, name        | name, version, schemaUrl        |
+| **Attribute**            | Key-value pair for telemetry metadata | key, value      | type: string\|int\|double\|bool |
+
+**Configuration Types:**
+
+| Type                    | Description                       | Required Fields | Key Properties                               |
+| ----------------------- | --------------------------------- | --------------- | -------------------------------------------- |
+| **APMConfiguration**    | Top-level APM configuration       | id, name        | tracing, logging, metrics, resource          |
+| **TraceConfiguration**  | Distributed tracing configuration | id, name        | serviceName, sampler, propagators, exporters |
+| **LogConfiguration**    | Logging configuration             | id, name        | serviceName, logLevel, processors, exporters |
+| **MetricConfiguration** | Metrics collection configuration  | id, name        | serviceName, readers, exporters, meters      |
+
+**Metrics Types:**
+
+| Type                 | Description         | Required Fields | Key Properties                                                    |
+| -------------------- | ------------------- | --------------- | ----------------------------------------------------------------- |
+| **MeterConfig**      | Meter configuration | id, name        | name, version, instruments                                        |
+| **InstrumentConfig** | Metric instrument   | id, name        | type: counter\|updowncounter\|gauge\|histogram, unit, description |
+
+**Data Quality Types:**
+
+| Type                   | Description                    | Required Fields | Key Properties                                                                        |
+| ---------------------- | ------------------------------ | --------------- | ------------------------------------------------------------------------------------- |
+| **DataQualityMetrics** | Collection of DQ metrics       | id, name        | appliesTo: data_model element, metrics                                                |
+| **DataQualityMetric**  | Individual data quality metric | id, name        | type: completeness\|accuracy\|consistency\|timeliness\|validity\|freshness, threshold |
+
+_Note: "Alert" and "Dashboard" are NOT entity types in the OpenTelemetry schema. Use external tools or custom extensions._
 
 **Common Properties:**
 
 ```yaml
-apm.metric.order-api-latency:
-  id: apm.metric.order-api-latency
-  name: "Order API Latency"
-  description: "P95 latency for order API operations"
+# Distributed Tracing Example
+apm.span.order-api-request:
+  id: apm.span.order-api-request
+  name: "POST /api/v1/orders"
   properties:
-    type: latency
-    instruments: [application.service.order-api]
-    aggregation: p95
-    threshold: "200ms"
+    spanKind: SERVER
+    startTime: 1634567890123
+    endTime: 1634567890456
+    duration: 333 # milliseconds
+    attributes:
+      http.method: POST
+      http.route: "/api/v1/orders"
+      http.status_code: 201
+    events:
+      - apm.span-event.validation-completed
+      - apm.span-event.database-write
+    status:
+      code: OK
+    resource: apm.resource.order-service
+
+# Logging Example
+apm.log-record.order-created:
+  id: apm.log-record.order-created
+  name: "Order Created"
+  properties:
+    timestamp: 1634567890456
+    severityNumber: 9 # INFO
+    severityText: "INFO"
+    body: "Order created successfully"
+    attributes:
+      order.id: "123e4567-e89b-12d3-a456-426614174000"
+      customer.id: "customer-789"
+    resource: apm.resource.order-service
+
+# Metrics Example
+apm.instrument-config.order-api-latency:
+  id: apm.instrument-config.order-api-latency
+  name: "Order API Latency"
+  description: "Histogram of order API response times"
+  properties:
+    type: histogram
     unit: milliseconds
-    alerts: [apm.alert.high-latency]
+    buckets: [10, 50, 100, 200, 500, 1000, 2000, 5000]
+    instruments: [application.service.order-api]
+    meter: apm.meter.order-service
+
+# Data Quality Example
+apm.data-quality-metric.order-completeness:
+  id: apm.data-quality-metric.order-completeness
+  name: "Order Data Completeness"
+  properties:
+    type: completeness
+    appliesTo: data_model.schema.order
+    threshold: 0.95 # 95% completeness required
+    checkFields: [customer_id, items, total, status]
+    alertOn: below-threshold
 ```
 
 ---
