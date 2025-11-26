@@ -1,10 +1,17 @@
 """Integration tests for entity type validation in add command."""
 
 import os
+import re
 
 import pytest
 from click.testing import CliRunner
 from documentation_robotics.cli import cli
+
+
+def strip_ansi(text):
+    """Remove ANSI escape codes from text."""
+    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+    return ansi_escape.sub("", text)
 
 
 class CwdCliRunner(CliRunner):
@@ -88,8 +95,9 @@ class TestAddEntityTypeValidation:
 
         # Should fail
         assert result.exit_code != 0
-        assert "Invalid entity type 'unicorn'" in result.output
-        assert "business" in result.output
+        output = strip_ansi(result.output)
+        assert "Invalid entity type 'unicorn'" in output
+        assert "business" in output
 
     def test_add_error_shows_valid_types(self, runner, initialized_project):
         """Test that error message shows list of valid entity types."""
@@ -107,11 +115,10 @@ class TestAddEntityTypeValidation:
 
         # Should show valid types
         assert result.exit_code != 0
-        assert "Valid entity types for 'business' layer:" in result.output
+        output = strip_ansi(result.output)
+        assert "Valid entity types for 'business' layer:" in output
         # Business layer should have these types from schema
-        assert any(
-            t in result.output for t in ["service", "process", "actor", "role", "event", "object"]
-        )
+        assert any(t in output for t in ["service", "process", "actor", "role", "event", "object"])
 
     def test_add_application_component_succeeds(self, runner, initialized_project):
         """Test that add command works for application layer."""
@@ -147,8 +154,9 @@ class TestAddEntityTypeValidation:
 
         # Should fail with helpful message
         assert result.exit_code != 0
-        assert "Invalid entity type 'widget'" in result.output
-        assert "application" in result.output
+        output = strip_ansi(result.output)
+        assert "Invalid entity type 'widget'" in output
+        assert "application" in output
 
     def test_add_validation_is_case_insensitive(self, runner, initialized_project):
         """Test that entity type validation is case-insensitive."""

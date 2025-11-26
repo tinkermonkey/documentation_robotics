@@ -2,6 +2,7 @@
 Tests for changeset CLI commands.
 """
 
+import re
 import tempfile
 from pathlib import Path
 
@@ -20,6 +21,12 @@ from documentation_robotics.commands.changeset import (
 )
 from documentation_robotics.core.changeset import Change
 from documentation_robotics.core.changeset_manager import ChangesetManager
+
+
+def strip_ansi(text):
+    """Remove ANSI escape codes from text."""
+    ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+    return ansi_escape.sub("", text)
 
 
 class TestCreateCommand:
@@ -53,8 +60,9 @@ class TestCreateCommand:
                 )
 
                 assert result.exit_code == 0
-                assert "Created changeset" in result.output
-                assert "use 'dr changeset switch" in result.output.lower()
+                output = strip_ansi(result.output).lower()
+                assert "created changeset" in output
+                assert "use 'dr changeset switch" in output
 
     def test_create_sets_active_by_default(self):
         """Test that create sets changeset as active by default."""
