@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.3.3] - 2025-11-26
 
+### Breaking Changes
+
+- **Dropped Python 3.9 support** - Minimum required Python version is now 3.10
+  - Python 3.10+ is required for modern type hint syntax (`type | None`)
+  - CI/CD pipeline now tests against Python 3.10, 3.11, 3.12, and 3.13
+  - Resolves type errors in Python 3.9 related to union type operators
+
 ### Added
 
 - **Changeset Management System**: Complete isolated workspace functionality for safe architecture experimentation

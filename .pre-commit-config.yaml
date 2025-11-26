@@ -46,7 +46,7 @@ repos:
     hooks:
       - id: black
         files: ^cli/
-        args: [--line-length=100, --target-version=py39]
+        args: [--line-length=100, --target-version=py310]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.1.15
