@@ -47,22 +47,23 @@ Complete documentation for the Documentation Robotics CLI tool.
 
 ---
 
-## What's New in v0.3.1
+## What's New in v0.3.3
 
-### New Validation Capabilities
+### Changeset Management
+
+- ✅ **Isolated Workspaces** - Explore changes without affecting main model (like Git branches)
+- ✅ **Compare and Diff** - Compare changesets or with main model
+- ✅ **Apply or Abandon** - Merge changes when ready or discard experiments
+- ✅ **Claude Integration** - Natural language changeset management via `/dr-changeset`
+- ✅ **Comprehensive Testing** - 75 tests with 90%+ coverage
+
+### Additional Features
 
 - ✅ **Upward Traceability** - Validate implementation traces to goals
 - ✅ **Security Integration** - Cross-layer security enforcement
 - ✅ **11 Semantic Rules** - Enhanced semantic validation
-- ✅ **Bidirectional Consistency** - Two-way relationship validation
-- ✅ **Goal-to-Metric Traceability** - Measure goal achievement
-- ✅ **Data Quality Metrics** - Track data quality dimensions
-
-### New Features
-
 - ✅ **Schema Bundling** - Schemas auto-copy during init
 - ✅ **Enhanced Conformance** - Detailed conformance reporting
-- ✅ **Comprehensive Testing** - Unit + integration tests
 
 See [CHANGELOG](../CHANGELOG.md) for full details.
 

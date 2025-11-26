@@ -5,7 +5,7 @@ A command-line tool for managing federated architecture data models across 11 la
 > **Part of [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)** - For project overview, motivation, and full context, see the [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.3.2-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.3.3-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
 [![Specification](https://img.shields.io/badge/Specification-v0.1.1-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tinkermonkey/documentation_robotics/blob/main/LICENSE)
 
@@ -32,12 +32,13 @@ Run `dr conformance` to see detailed conformance information.
 
 ## Status
 
-**Current Version:** v0.3.2
+**Current Version:** v0.3.3
 **Specification Version:** v0.1.1
 
 This is the alpha release of the `dr` CLI tool, implementing most core features to prove out the concept:
 
 - **Model CRUD** - Model initialization, element management, validation
+- **Changeset Management** - Isolated workspaces for exploring changes before committing (like Git branches)
 - **Validation & Integrity** - Cross-layer references, projection, dependency tracking
 - **Export** - Export to ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML
 
@@ -63,6 +64,7 @@ For the broader motivation and context, see [The Need](https://github.com/tinker
 
 - Model initialization with 11-layer structure
 - Element management (add, update, remove) across all layers
+- **Changeset management** - Create isolated workspaces to explore, compare, and apply changes
 - Query and search capabilities
 - Basic validation (schema, naming, cross-references)
 - Manifest tracking and statistics
@@ -309,9 +311,9 @@ MIT License - see LICENSE file for details.
 
 ## Version
 
-Current: v0.3.2 (MVP Complete)
+Current: v0.3.3 (MVP Complete + Changesets)
 
 - Phase 1 (Core): v0.1.0
 - Phase 2 (Validation): v0.2.0
 - Phase 3 (Export): v0.3.0
-- Phase 3 Patches: v0.3.1, v0.3.2
+- Phase 3 Patches: v0.3.1, v0.3.2, v0.3.3

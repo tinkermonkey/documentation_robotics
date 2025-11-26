@@ -828,7 +828,7 @@ When a test fails, report with:
 **Environment:**
 
 - OS: macOS 14.1
-- DR Version: 0.3.1
+- DR Version: 0.3.3
 - Python: 3.11.5
 
 **Steps:**

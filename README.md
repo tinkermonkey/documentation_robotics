@@ -173,8 +173,6 @@ This project maximizes use of existing standards:
 
 ## Getting Started
 
-### For Architects
-
 Want to use this for modeling your project?
 
 1. **Understand the Approach**
@@ -199,30 +197,6 @@ Want to use this for modeling your project?
 4. **Learn More**
    - Browse [spec/examples/](spec/examples/)
    - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-
-### For Tool Vendors
-
-Want to build a conformant tool?
-
-1. **Read the Specification**
-   - Start with [spec/README.md](spec/README.md)
-   - Review [spec/conformance/conformance-levels.md](spec/conformance/conformance-levels.md)
-
-2. **Choose Conformance Level**
-   - Basic (Layers 01-04)
-   - Standard (Layers 01-08)
-   - Full (All 11 layers)
-
-3. **Implement & Test**
-   - Use [spec/schemas/](spec/schemas/) for validation
-   - Test with [spec/test-fixtures/](spec/test-fixtures/)
-   - Follow [spec/conformance/test-suite.md](spec/conformance/test-suite.md)
-
-4. **Claim Conformance**
-   - Follow [spec/conformance/certification-process.md](spec/conformance/certification-process.md)
-   - Submit conformance statement
-
-### For Researchers
 
 Evaluating this approach?
 
@@ -260,7 +234,7 @@ We welcome contributions! See:
 | Component         | Current Version | Status       |
 | ----------------- | --------------- | ------------ |
 | **Specification** | 0.1.1           | Stable       |
-| **CLI Tool**      | 0.3.1           | MVP Complete |
+| **CLI Tool**      | 0.3.3           | MVP Complete |
 
 ## License
 

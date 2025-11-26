@@ -83,7 +83,8 @@ This installs:
 │   ├── dr-model.md
 │   ├── dr-ingest.md
 │   ├── dr-project.md
-│   └── dr-validate.md
+│   ├── dr-validate.md
+│   └── dr-changeset.md
 └── agents/
     ├── dr-extractor.md
     ├── dr-validator.md
@@ -101,14 +102,14 @@ Expected output:
 
 ```
 Installation Status
-Version: 0.3.1
-Installed: 2025-01-24T10:30:00
+Version: 0.3.3
+Installed: 2025-01-26T10:30:00
 
 ┌──────────────────┬───────┬──────────┐
 │ Component        │ Files │ Modified │
 ├──────────────────┼───────┼──────────┤
 │ reference_sheets │   3   │    -     │
-│ commands         │   5   │    -     │
+│ commands         │   6   │    -     │
 │ agents           │   3   │    -     │
 └──────────────────┴───────┴──────────┘
 ```
@@ -255,6 +256,58 @@ You don't need to think about this—Claude manages it.
 ## Slash Commands
 
 Slash commands provide quick access to common DR workflows.
+
+### `/dr-changeset` - Changeset Management
+
+**Purpose**: Manage isolated workspaces for exploring changes
+
+**Usage**:
+
+```
+/dr-changeset <natural language request>
+```
+
+**Examples**:
+
+**Create changeset**:
+
+```
+/dr-changeset Create a new changeset for exploring the payment API redesign
+```
+
+**Check status**:
+
+```
+/dr-changeset What changes have I made?
+```
+
+**Compare with main**:
+
+```
+/dr-changeset Show me what's different from the main model
+```
+
+**Apply changes**:
+
+```
+/dr-changeset Apply these changes to the main model
+```
+
+**What it does**:
+
+1. Interprets your natural language intent
+2. Executes appropriate changeset operations
+3. Provides clear feedback and guidance
+4. Helps you work safely with isolated changes
+
+**Key operations**:
+
+- Create new changesets for exploration
+- Check active changeset status
+- Compare changesets or with main model
+- Apply changes when ready
+- Abandon changes if not needed
+- Switch between multiple changesets
 
 ### `/dr-init` - Initialize Model
 
@@ -974,6 +1027,7 @@ The Claude Code integration makes architecture modeling:
 
 **Key commands**:
 
+- `/dr-changeset` - Manage isolated workspaces
 - `/dr-model` - Interactive modeling
 - `/dr-ingest` - Extract from code
 - `/dr-validate` - Validate and fix

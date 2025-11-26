@@ -139,6 +139,34 @@ supports-goals:
 
 ## Common Workflows
 
+### Workflow 0: Using Changesets for Exploration
+
+Work on isolated changes before committing to the main model:
+
+```bash
+# 1. Create a changeset for exploration
+dr changeset create "api-redesign" --type exploration
+
+# 2. Make changes (all tracked in changeset)
+dr add api operation --name "GetOrders"
+dr update api.operation.get-orders --set description="Retrieve order list"
+
+# 3. Review changes
+dr changeset status --verbose
+
+# 4. Compare with main model
+dr changeset diff
+
+# 5. Validate before applying
+dr validate
+
+# 6. Apply to main model when satisfied
+dr changeset apply --yes
+
+# Or abandon if not satisfied
+dr changeset abandon --yes
+```
+
 ### Workflow 1: Top-Down Design
 
 Start from strategic goals and work down:
