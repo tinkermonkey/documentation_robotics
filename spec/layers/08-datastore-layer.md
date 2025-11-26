@@ -780,6 +780,8 @@ Naming Convention:
 
 ## Integration Points
 
+**For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
+
 ### To Motivation Layer
 
 - **Constraints drive retention**: x-governed-by-constraints links table retention policies to regulatory Constraints

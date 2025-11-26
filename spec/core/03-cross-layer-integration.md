@@ -4,6 +4,8 @@
 
 The 11 layers work together through well-defined integration patterns and reference mechanisms. This document describes how layers reference each other and maintain consistency.
 
+**For the complete catalog of 60+ cross-layer reference patterns**, see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md). This document provides an overview and integration patterns; the registry provides the authoritative, machine-readable definitions.
+
 ## Integration Mechanisms
 
 ### 1. ArchiMate Properties
@@ -51,6 +53,8 @@ states:
 ```
 
 ## Cross-Layer Reference Types
+
+**Note:** This table shows common reference patterns. For the complete catalog of 60+ reference types across 9 categories, see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md).
 
 | Source Layer    | Target Layer     | Reference Type         | Example                              |
 | --------------- | ---------------- | ---------------------- | ------------------------------------ |
@@ -207,6 +211,8 @@ metrics:
 
 ## Validation Rules
 
+**For comprehensive link validation including type compatibility, cardinality, and format validation**, see [Validation Strategy - Level 4: Link Validation](05-validation-strategy.md#level-4-link-validation-v020).
+
 ### 1. Reference Existence
 
 All references must point to existing elements:
@@ -324,10 +330,17 @@ Layer 04 (Application)
 # Validate all cross-layer references
 dr validate --cross-layer
 
-# Check specific reference types
-dr validate --references operationId
-dr validate --references schemaRef
-dr validate --references x-archimate-ref
+# Validate using link registry (v0.2.0+)
+dr validate --validate-links
+
+# Strict mode - treat link warnings as errors
+dr validate --validate-links --strict-links
+
+# Discover all links in the model
+dr links list
+
+# Analyze specific link type usage
+dr links analyze --type x-archimate-ref
 ```
 
 ### Traceability Queries
@@ -357,9 +370,11 @@ dr impact schema.Checkout
 
 1. **Use Standard References** - Prefer `$ref`, `operationId` over custom references
 2. **Validate Early** - Check references during development, not deployment
-3. **Bidirectional Consistency** - Maintain both forward and backward references
-4. **Document Intent** - Explain why layers are connected, not just that they are
-5. **Automate Validation** - Use CI/CD to catch broken references
+3. **Use Link Validation** - Enable `--validate-links` to catch type mismatches and broken references
+4. **Bidirectional Consistency** - Maintain both forward and backward references
+5. **Document Intent** - Explain why layers are connected, not just that they are
+6. **Automate Validation** - Use CI/CD with `--strict-links` to catch broken references
+7. **Follow Registry Patterns** - Use patterns from the Link Registry for consistency
 
 ---
 

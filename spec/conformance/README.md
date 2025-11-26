@@ -65,7 +65,7 @@ implementation:
   url: "https://yourtool.com"
 
 specification:
-  version: "0.1.1"
+  version: "0.2.0"
   conformanceLevel: "full" # basic, standard, or full
 
 layers:
@@ -84,6 +84,7 @@ layers:
 validation:
   schemaValidation: true
   crossLayerReferences: true
+  linkValidation: true # v0.2.0+
   semanticValidation: true
 
 testSuite:
@@ -102,7 +103,7 @@ attestation: "We certify that this implementation conforms to the specification.
 
 | Implementation   | Version | Conformance Level | Spec Version |
 | ---------------- | ------- | ----------------- | ------------ |
-| dr CLI           | 0.3.1   | Full              | 0.1.1        |
+| dr CLI           | 0.4.0   | Full              | 0.2.0        |
 | (Add yours here) | -       | -                 | -            |
 
 ## Questions

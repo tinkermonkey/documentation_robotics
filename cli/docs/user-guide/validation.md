@@ -20,6 +20,26 @@ This performs:
 - ✅ Cross-layer reference checking
 - ✅ Semantic validation (11 rules)
 
+### Link Validation (Recommended)
+
+Validate cross-layer links with:
+
+```bash
+# Enable link validation
+dr validate --validate-links
+
+# Strict mode (treat warnings as errors)
+dr validate --validate-links --strict-links
+```
+
+This performs all basic validation plus:
+
+- ✅ Link existence checking (targets exist)
+- ✅ Type compatibility validation (correct element types)
+- ✅ Cardinality enforcement (single vs array values)
+- ✅ Format validation (UUID, path, duration patterns)
+- ✅ Typo suggestions using Levenshtein distance
+
 ### Strict Validation (Full Spec Compliance)
 
 Run comprehensive validation with:
@@ -205,7 +225,52 @@ This performs all basic validation plus:
 
 ---
 
-### 4. Upward Traceability Validation (--strict only)
+### 4. Link Validation (--validate-links)
+
+**What it checks**: Validates all cross-layer references using the link registry.
+
+**Types of validation:**
+
+1. **Link Existence**: Target elements must exist in the model
+2. **Type Compatibility**: Targets must be correct element types
+3. **Cardinality**: Single vs array values match link definition
+4. **Format**: UUIDs, paths, durations match expected patterns
+
+**Example errors:**
+
+```
+✗ [LINK] business.service.order-management → motivation.goal.nonexistent
+  Issue: Link target does not exist
+  Suggestion: Did you mean 'motivation.goal.improve-customer-satisfaction'?
+
+✗ [LINK] application.service.order-service: business.realizes-services
+  Issue: Expected array, got single value "business.service.order-management"
+  Fix: Change to array: ["business.service.order-management"]
+
+✗ [LINK] api.operation.get-orders: x-app-service-ref
+  Issue: Target 'application.service.order' is not a valid element type
+  Expected: 'service' but got 'component'
+```
+
+**How to fix:**
+
+- **Broken references**: Update IDs to point to existing elements
+- **Cardinality issues**: Wrap single values in arrays or unwrap arrays
+- **Type mismatches**: Reference correct element types
+- **Format errors**: Follow format specifications (e.g., UUIDs)
+
+**CI/CD Integration:**
+
+```bash
+# In your CI pipeline
+dr validate --validate-links --strict-links || exit 1
+```
+
+See [Link Management Guide](link-management.md) for complete documentation.
+
+---
+
+### 5. Upward Traceability Validation (--strict only)
 
 **What it checks**: Ensures implementation elements trace back to motivation layer (goals, requirements).
 
@@ -224,7 +289,7 @@ This performs all basic validation plus:
 
 ---
 
-### 5. Security Integration Validation (--strict only)
+### 6. Security Integration Validation (--strict only)
 
 **What it checks**: Ensures security policies are enforced across layers.
 

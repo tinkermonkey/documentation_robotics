@@ -31,7 +31,7 @@ Cross-layer links are references that connect elements across the 11 architectur
 
 ## Migration from Existing Models
 
-If you have an existing Documentation Robotics model that uses non-standard or inconsistent cross-layer references, you can migrate it to use standardized patterns in preparation for the v1.0 specification release.
+If you have an existing Documentation Robotics model that uses non-standard or inconsistent cross-layer references, you can migrate it to use standardized patterns in preparation for the v0.2.0 specification release.
 
 ### Quick Start
 
@@ -107,7 +107,7 @@ Latest Available Version: 1.0.0
 
 ╭─ Migration Check ────────────────────────────────────╮
 │ 1 migration(s) needed to upgrade from v0.1.1 to     │
-│ v1.0.0                                               │
+│ v0.2.0                                               │
 ╰──────────────────────────────────────────────────────╯
 
 Migration Path
@@ -136,7 +136,7 @@ Output:
 
 ```
 ╭─ Dry Run ────────────────────────────────────────────╮
-│ Preview: 1 migration(s) from v0.1.1 to v1.0.0       │
+│ Preview: 1 migration(s) from v0.1.1 to v0.2.0       │
 ╰──────────────────────────────────────────────────────╯
 
 Step 1: 0.1.0 → 1.0.0
@@ -167,7 +167,7 @@ You'll be prompted to confirm:
 
 ```
 ╭─ Applying Migrations ────────────────────────────────╮
-│ Migrating from v0.1.1 to v1.0.0                      │
+│ Migrating from v0.1.1 to v0.2.0                      │
 │ 1 migration step(s) will be applied                  │
 ╰──────────────────────────────────────────────────────╯
 
@@ -181,7 +181,7 @@ Applying migrations...
   1. 0.1.0 → 1.0.0
      Modified 8 file(s), 15 change(s)
 
-✓ Updated manifest to v1.0.0
+✓ Updated manifest to v0.2.0
 
 Next steps:
   1. Review changes: git diff
@@ -195,7 +195,7 @@ Next steps:
 You can also migrate to a specific version instead of the latest:
 
 ```bash
-dr migrate --apply --to-version 1.0.0
+dr migrate --apply --to-version 0.2.0
 ```
 
 #### 5. Validate Migrated Model
@@ -229,7 +229,7 @@ git diff
 git add documentation-robotics/
 
 # Commit with meaningful message
-git commit -m "Migrate cross-layer references to v1.0 standards
+git commit -m "Migrate cross-layer references to v0.2.0 standards
 
 - Fixed naming conventions (camelCase → kebab-case)
 - Fixed cardinality mismatches
@@ -269,13 +269,13 @@ git diff
 
 # If satisfied, commit
 git add .
-git commit -m "Migrate to v1.0 specification
+git commit -m "Migrate to v0.2.0 specification
 
 Applied automated migrations:
 - Standardized cross-layer reference patterns
 - Fixed naming conventions (camelCase → kebab-case)
 - Fixed cardinality mismatches
-- Updated manifest to v1.0.0"
+- Updated manifest to v0.2.0"
 
 # Merge to main
 git checkout main

@@ -8,6 +8,8 @@ Complete documentation for the Documentation Robotics CLI tool.
 
 - **[Getting Started](user-guide/getting-started.md)** - Quick start guide (5 minutes)
 - **[Validation Guide](user-guide/validation.md)** - Comprehensive validation documentation
+- **[Link Management Guide](user-guide/link-management.md)** - Cross-layer link registry and validation
+- **[Claude Code Integration](user-guide/claude-code-integration.md)** - AI-powered modeling
 - Command Reference (Coming soon)
 - Troubleshooting Guide (Coming soon)
 
@@ -47,23 +49,26 @@ Complete documentation for the Documentation Robotics CLI tool.
 
 ---
 
-## What's New in v0.3.3
+## What's New in v0.4.0
 
-### Changeset Management
+### Link Management System
 
-- ✅ **Isolated Workspaces** - Explore changes without affecting main model (like Git branches)
-- ✅ **Compare and Diff** - Compare changesets or with main model
-- ✅ **Apply or Abandon** - Merge changes when ready or discard experiments
-- ✅ **Claude Integration** - Natural language changeset management via `/dr-changeset`
-- ✅ **Comprehensive Testing** - 75 tests with 90%+ coverage
+- ✅ **Link Registry** - Machine-readable catalog of 60+ cross-layer reference patterns
+- ✅ **Link Discovery** - Automatic detection and graph building
+- ✅ **Link Validation** - Existence, type, cardinality, format checking
+- ✅ **Link Documentation** - Generate Markdown, HTML, Mermaid diagrams
+- ✅ **Link Navigation** - Query, filter, and trace paths between elements
+- ✅ **CLI Commands** - Full `dr links` command suite
+- ✅ **Comprehensive Testing** - 100+ tests with 95%+ coverage
 
-### Additional Features
+### Managed Upgrades
 
-- ✅ **Upward Traceability** - Validate implementation traces to goals
-- ✅ **Security Integration** - Cross-layer security enforcement
-- ✅ **11 Semantic Rules** - Enhanced semantic validation
-- ✅ **Schema Bundling** - Schemas auto-copy during init
-- ✅ **Enhanced Conformance** - Detailed conformance reporting
+- ✅ **Version Migration** - Automated migration between spec versions
+- ✅ **Pattern Analysis** - Detect non-standard reference patterns
+- ✅ **Dry Run Mode** - Preview changes before applying
+- ✅ **Naming Fixes** - Correct camelCase → kebab-case automatically
+- ✅ **Cardinality Fixes** - Fix single/array mismatches
+- ✅ **CLI Commands** - `dr migrate [--check|--dry-run|--apply]`
 
 See [CHANGELOG](../CHANGELOG.md) for full details.
 
@@ -71,14 +76,16 @@ See [CHANGELOG](../CHANGELOG.md) for full details.
 
 ## Documentation Status
 
-| Guide             | Status      | Completeness |
-| ----------------- | ----------- | ------------ |
-| Getting Started   | ✅ Complete | 100%         |
-| Validation Guide  | ✅ Complete | 100%         |
-| Command Reference | ⏳ Planned  | 0%           |
-| Troubleshooting   | ⏳ Planned  | 0%           |
-| Examples          | ⏳ Planned  | 0%           |
-| API Reference     | ⏳ Planned  | 0%           |
+| Guide                   | Status      | Completeness |
+| ----------------------- | ----------- | ------------ |
+| Getting Started         | ✅ Complete | 100%         |
+| Validation Guide        | ✅ Complete | 100%         |
+| Link Management         | ✅ Complete | 100%         |
+| Claude Code Integration | ✅ Complete | 100%         |
+| Command Reference       | ⏳ Planned  | 0%           |
+| Troubleshooting         | ⏳ Planned  | 0%           |
+| Examples                | ⏳ Planned  | 0%           |
+| API Reference           | ⏳ Planned  | 0%           |
 
 ---
 

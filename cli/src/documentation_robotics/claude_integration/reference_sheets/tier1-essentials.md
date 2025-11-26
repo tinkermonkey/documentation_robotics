@@ -40,7 +40,17 @@ dr changeset apply                    # Merge to main model
 
 # Validate & export
 dr validate --strict                  # Full validation
+dr validate --validate-links          # Include link validation
 dr export --format {archimate|markdown|plantuml}
+
+# Cross-layer links
+dr links types --from {layer} --to {layer}  # Query link patterns
+dr links find {element-id}            # Find element's links
+dr validate --validate-links          # Validate all links
+
+# Migration
+dr migrate                            # Check migration needs
+dr migrate --apply                    # Upgrade to latest spec
 
 # Cross-layer operations
 dr project {source-layer}→{target-layer} [--element-id id]
@@ -51,23 +61,39 @@ dr project {source-layer}→{target-layer} [--element-id id]
 **Traceability (bottom-up):**
 
 ```yaml
-properties:
-  realizes: business.service.order-mgmt # App → Business
-  supports-goals: [motivation.goal.improve-ux] # Business → Goals
+# Pattern: Dot-notation
+motivation:
+  supports-goals: [motivation.goal.improve-ux] # Upward to motivation
+  governed-by-principles: [motivation.principle.api-first]
+business:
+  realizes-services: [business.service.order-mgmt] # App → Business
+```
+
+**API Layer (x-extensions):**
+
+```yaml
+# Pattern: X-extensions (OpenAPI)
+x-archimate-ref: application.service.order-api
+x-supports-goals: [motivation.goal.revenue]
+x-required-permissions: [security.permission.create-order]
 ```
 
 **Security (cross-cutting):**
 
 ```yaml
-properties:
-  securedBy: [security.policy.authenticated-access]
+security:
+  resourceRef: security.resource.order-data
+  requiredRoles: [security.role.order-manager]
+  requiredPermissions: [security.permission.create-order]
 ```
 
 **Observability (cross-cutting):**
 
 ```yaml
-properties:
-  instrumentedBy: [apm.metric.service-availability]
+apm:
+  business-metrics: [apm.metric.order-rate]
+  sla-target-latency: 200ms
+  traced: true
 ```
 
 ## File Locations
@@ -124,8 +150,89 @@ flow, guard, route, transition
 **apm** (10 types - OpenTelemetry):
 dataquality, log, logging, metric, motivationmapping, resource, span, tracing
 
+## Cross-Layer Link Types (62 total)
+
+**4 Reference Pattern Types:**
+
+1. **X-Extensions** - `x-archimate-ref`, `x-supports-goals` (OpenAPI/JSON Schema)
+2. **Dot-Notation** - `motivation.supports-goals`, `business.realizes-services` (Upward refs)
+3. **Nested Objects** - `motivationAlignment: {supportsGoals, deliversValue}`
+4. **Direct Fields** - `operationId`, `$ref`, `schemaRef` (Standard fields)
+
+**Common Link Types:**
+
+- `motivation.supports-goals` - Link to strategic goals (Array of UUIDs)
+- `motivation.fulfills-requirements` - Link to requirements (Array)
+- `motivation.governed-by-principles` - Link to principles (Array)
+- `realizes` - Implementation realizes higher-level service (Single UUID)
+- `x-archimate-ref` - API operation → ApplicationService (Single UUID)
+- `security.requiredPermissions` - Required permissions (Array of strings)
+- `apm.business-metrics` - Observability metrics (Array of strings)
+
+**Query Available Links:**
+
+```bash
+dr links types --from api --to application     # Show API → App patterns
+dr links registry                              # Complete catalog
+```
+
+## Link Validation
+
+```bash
+# Validate all cross-layer links
+dr validate --validate-links
+
+# Strict mode (warnings → errors)
+dr validate --validate-links --strict-links
+
+# Check what needs migration (v0.1.x → v0.2.0)
+dr migrate
+dr migrate --apply
+```
+
+**Common validation errors:**
+
+- Broken references (target doesn't exist)
+- Type mismatches (wrong target type)
+- Cardinality errors (single vs array)
+- Format errors (invalid UUID, path, etc.)
+
+## Need Help?
+
+**DR Helper Agent (NEW in v0.4.0):**
+
+Ask questions and get expert guidance on DR concepts, modeling decisions, and workflows.
+
+**Launch with:** Task tool, agent type: `dr-helper`
+
+**The helper agent can:**
+
+- Explain DR concepts and philosophy
+- Guide you through modeling decisions
+- Help with CLI commands and workflows
+- Assist with upgrades and maintenance
+- Explain cross-layer links and validation
+- Share best practices and patterns
+
+**DR Ideation Agent (NEW in v0.4.0):**
+
+Explore architectural ideas safely in changesets with research-driven guidance.
+
+**Launch with:** Task tool, agent type: `dr-ideator`
+
+**The ideation agent can:**
+
+- Create and manage exploration changesets
+- Ask probing questions to refine ideas
+- Research technologies using web search
+- Use Context-7 for library/framework details
+- Model ideas collaboratively across layers
+- Compare multiple approaches side-by-side
+- Guide merge or abandon decisions
+
 ## Need More Detail?
 
 - Tier 2 Guide: `.claude/knowledge/dr-tier2-developer-guide.md`
 - Full Reference: `.claude/knowledge/dr-tier3-complete-reference.md`
+- Link Management: Run `dr links --help` or `/dr-links` slash command
 - Documentation: Run `dr --help` or check `/cli/docs/`

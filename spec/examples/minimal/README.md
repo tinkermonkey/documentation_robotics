@@ -96,6 +96,7 @@ This model passes:
 
 ✅ Schema validation (all layers)
 ✅ Cross-layer reference validation
+✅ Link validation (60+ link types from link registry)
 ✅ Semantic validation (11 rules)
 ✅ Upward traceability (application → business → motivation)
 ✅ Security integration (policies enforced)
@@ -108,7 +109,15 @@ This model passes:
 
 ```bash
 cd minimal
-dr validate --strict
+
+# Basic validation
+dr validate
+
+# With link validation (recommended)
+dr validate --validate-links
+
+# Full strict validation
+dr validate --strict --validate-links --strict-links
 ```
 
 Expected output:
@@ -116,6 +125,7 @@ Expected output:
 ```
 ✓ Validation passed
   - 15 elements validated
+  - 60+ cross-layer links validated
   - 0 errors
   - 0 warnings
 ```
@@ -135,6 +145,9 @@ dr export --format markdown --output specs/docs/
 ```bash
 # List all elements
 dr list --all
+
+# Discover cross-layer links
+dr links list
 
 # Find traceability
 dr trace motivation.goal.deliver-value
@@ -188,6 +201,6 @@ This model achieves **Full Conformance**:
 
 ---
 
-**Spec Version**: 0.1.1
+**Spec Version**: 0.2.0
 **Conformance Level**: Full
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-11-26

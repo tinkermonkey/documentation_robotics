@@ -62,7 +62,7 @@ MUST pass:
 ```yaml
 conformanceLevel: "basic"
 layers: [motivation, business, security, application]
-specVersion: "0.1.1"
+specVersion: "0.2.0"
 ```
 
 ---
@@ -138,7 +138,7 @@ MUST pass:
 ```yaml
 conformanceLevel: "standard"
 layers: [motivation, business, security, application, technology, api, data-model, datastore]
-specVersion: "0.1.1"
+specVersion: "0.2.0"
 ```
 
 ---
@@ -230,7 +230,7 @@ layers:
     navigation,
     apm,
   ]
-specVersion: "0.1.1"
+specVersion: "0.2.0"
 ```
 
 ---

@@ -2,6 +2,11 @@
 
 ## Quick Start (5 Minutes)
 
+### Prerequisites
+
+- **Python 3.10 or higher**
+- **pip** (Python package manager)
+
 ### 1. Install
 
 ```bash
@@ -62,6 +67,33 @@ dr add application service \
 dr validate
 ```
 
+### 4a. Validate Cross-Layer Links
+
+Ensure all references between layers are valid:
+
+```bash
+# Validate schema and links
+dr validate --validate-links
+
+# Strict mode (treat warnings as errors)
+dr validate --validate-links --strict-links
+
+# List all link types
+dr links types
+
+# Validate specific layer
+dr links validate --layer 06-api
+```
+
+**Why validate links?**
+
+- Ensures references point to valid elements
+- Catches typos and broken references early
+- Maintains model integrity across layers
+- Required for reliable exports and documentation
+
+See [Link Management Guide](link-management.md) for complete link validation documentation.
+
 ### 5. View Your Model
 
 ```bash
@@ -87,6 +119,31 @@ dr export markdown --output specs/docs/
 # Export all formats
 dr export all --output specs/
 ```
+
+### 7. Working with Spec Versions
+
+Migrate your model to the latest specification version:
+
+```bash
+# Check if migration is needed
+dr migrate
+
+# Preview migration changes
+dr migrate --dry-run
+
+# Apply migration to latest spec version
+dr migrate --apply
+
+# Re-validate after migration
+dr validate --validate-links --strict-links
+```
+
+**When to migrate?**
+
+- After updating the DR CLI to a new version
+- When spec introduces new standards or link patterns
+- To use new link registry features
+- See [Link Management Guide - Migration](link-management.md#migration-from-existing-models)
 
 ---
 
@@ -134,6 +191,37 @@ realizes: business.service.order-management
 supports-goals:
   - motivation.goal.improve-customer-satisfaction
 ```
+
+### Cross-Layer Links
+
+Elements can reference elements in other layers, creating a traceable architecture:
+
+```yaml
+# Business service references motivation layer
+business:
+  service:
+    order-management:
+      name: "Order Management"
+      motivation:
+        supports-goals: ["goal.improve-customer-satisfaction"]
+
+# Application service references business layer
+application:
+  service:
+    order-service:
+      name: "Order Service"
+      business:
+        realizes-services: ["business.service.order-management"]
+```
+
+**Link Types:**
+
+- **Upward Traceability**: Implementation → Goals (realizes, supports)
+- **Security Integration**: Any layer → Security (securedBy, requiredRoles)
+- **Observability**: Any layer → APM (instrumentedBy, traces)
+- **Data Flow**: API → Data Model (uses, returns)
+
+See [Link Management Guide](link-management.md) for complete reference of 60+ link types.
 
 ---
 

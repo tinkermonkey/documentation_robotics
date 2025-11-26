@@ -5,14 +5,75 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.1.1] - 2025-12-15
+## [0.2.0] - 2025-01-15
+
+### Added
+
+- **Cross-Layer Reference Registry** ([spec/core/06-cross-layer-reference-registry.md](core/06-cross-layer-reference-registry.md))
+  - Complete catalog of 60+ cross-layer reference patterns
+  - 4 reference pattern types: x-extensions, dot-notation, nested objects, direct fields
+  - 9 categories: motivation, business, security, application, api, data, ux, navigation, apm
+  - Comprehensive naming conventions and validation rules
+  - Migration guide from organic patterns to standardized patterns
+
+- **Machine-Readable Registry** ([spec/schemas/link-registry.json](schemas/link-registry.json))
+  - 520-line JSON catalog of all valid link types
+  - Queryable by category, source layer, target layer, field path
+  - Enables automated validation and tooling
+  - Each link type includes: ID, name, category, layers, field paths, cardinality, format, validation rules
+
+- **Shared References Schema** ([spec/schemas/shared-references.schema.json](schemas/shared-references.schema.json))
+  - Centralized definitions for common reference patterns
+  - Reusable across all layer schemas
+  - Consistent validation rules for cross-layer references
+
+### Changed
+
+- **Navigation Layer Schema** (`10-navigation-layer.schema.json`):
+  - Added `experience` field to Route for UX layer references
+  - Added `motivationAlignment.fulfillsRequirements` to Route for tracing navigation to requirements
+  - Added `motivationAlignment.enforcesRequirement` to NavigationGuard for requirement enforcement
+  - Added `api.operationId` and `api.method` to NavigationGuard for API operation references
+  - Enhanced NavigationFlow with motivation alignment
+
+- **APM Layer Schema** (`11-apm-observability-layer.schema.json`):
+  - Added `dataModelSchemaId` field to distinguish JSON Schema `$id` from file path
+  - Clarified distinction between schema reference (file path) and schema identifier (JSON Schema $id)
+  - Improves accuracy when referencing data model schemas in observability context
+
+### Migration Path
+
+Models on specification v0.1.x can migrate to v0.2.0 using the Documentation Robotics CLI:
+
+```bash
+# Check what migrations are needed
+dr migrate
+
+# Preview changes without applying
+dr migrate --dry-run
+
+# Apply migrations to latest specification
+dr migrate --apply
+
+# Re-validate with link checking
+dr validate --validate-links
+```
+
+**What Gets Migrated**:
+- Naming conventions: camelCase → kebab-case in relationship fields
+- Cardinality: Single values → arrays where specification requires arrays
+- Format: Validation of UUID, path, duration, and percentage formats
+
+See [CLI Link Management Guide](../cli/docs/user-guide/link-management.md) for detailed migration documentation.
+
+## [0.1.1] - 2024-12-15
 
 ### Fixed
 - Updated README.md to more accurately reflect the vision
 - Normalized the name for the spec (Documentation Robotics) used throughout
 - Cleaned up documentation links and references in prep for making repo public
 
-## [0.1.0] - 2025-11-23
+## [0.1.0] - 2024-11-23
 
 ### Added
 - Initial stable release of the Federated Architecture Metadata Model specification

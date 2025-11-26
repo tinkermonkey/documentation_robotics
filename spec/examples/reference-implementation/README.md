@@ -47,7 +47,15 @@ This model is guaranteed to validate successfully:
 
 ```bash
 cd spec/examples/reference-implementation
-dr validate --all
+
+# Basic validation
+dr validate
+
+# With link validation (recommended)
+dr validate --validate-links
+
+# Full strict validation
+dr validate --strict --validate-links --strict-links
 ```
 
 Expected result:
@@ -55,6 +63,7 @@ Expected result:
 ```
 ✓ All layers valid
 ✓ All cross-layer references valid
+✓ All 60+ link types validated
 ✓ No validation errors
 ✓ Full conformance level
 ```
@@ -95,5 +104,9 @@ While comprehensive, this model can be simplified for smaller projects. See [../
 This model is maintained alongside the `dr` CLI tool and is updated when new features are added to the specification.
 
 ---
+
+**Spec Version**: 0.2.0
+**Conformance Level**: Full
+**Last Updated**: 2025-11-26
 
 **Note:** This is a comprehensive example. For learning, start with [../minimal/](../minimal/)

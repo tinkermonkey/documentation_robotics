@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.1.1-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.3.1-green)](../cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](.)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.4.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.1.1
+**Version:** 0.2.0
 **Status:** Draft
-**Last Updated:** 2025-11-23
+**Last Updated:** 2025-11-26
 
 ## Overview
 
@@ -17,6 +17,7 @@ This directory contains the complete Documentation Robotics Specification, a sta
 ## Quick Links
 
 - **[Read the Spec](#how-to-read-this-specification)** - Start with [core/00-overview.md](core/00-overview.md)
+- **[Cross-Layer Reference Registry](core/06-cross-layer-reference-registry.md)** - Complete link catalog (NEW in v0.2.0)
 - **[Implement a Tool](conformance/conformance-levels.md)** - Conformance requirements
 - **[Browse Examples](examples/)** - Practical patterns
 - **[Use the CLI](../cli/)** - Reference implementation
@@ -218,6 +219,25 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 ✅ **Traceable** - Cross-layer references enable requirements traceability
 ✅ **Pragmatic** - Layer ordering matches real-world workflows
 
+## Recent Enhancements (v0.2.0)
+
+### Cross-Layer Reference Registry
+
+The specification now includes a comprehensive, machine-readable catalog of all cross-layer reference patterns:
+
+- **📖 Complete Catalog** - 60+ reference patterns across 9 categories documented in [core/06-cross-layer-reference-registry.md](core/06-cross-layer-reference-registry.md)
+- **🔧 Machine-Readable** - JSON registry at [schemas/link-registry.json](schemas/link-registry.json) enables automated tooling
+- **📋 4 Pattern Types** - X-extensions, dot-notation, nested objects, and direct fields
+- **✅ Validation Support** - Each link type includes cardinality, format, and validation rules
+- **🔄 Migration Guidance** - Clear upgrade path from organic patterns (v0.1.x) to standardized patterns (v0.2.0)
+
+**Schema Updates:**
+
+- **Navigation Layer**: Added `experience` field for UX references, `motivationAlignment` for requirements tracing
+- **APM Layer**: Added `dataModelSchemaId` to distinguish JSON Schema $id from file path
+
+See [CHANGELOG.md](CHANGELOG.md) for complete details.
+
 ## Conformance Levels
 
 Implementations can claim three conformance levels:
@@ -270,10 +290,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.1.1
-**Release Date:** 2025-11-23
-**Status:** Draft
-**Next Review:** 2026-05-23
+**Current Version:** 0.2.0
+**Release Date:** 2025-01-15
+**Status:** Stable
+**Next Review:** 2025-07-15
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 

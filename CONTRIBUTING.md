@@ -2,6 +2,14 @@
 
 Thank you for your interest in contributing!
 
+## Prerequisites
+
+Before contributing, ensure you have:
+
+- **Python 3.10 or higher**
+- **pip** (Python package manager)
+- **Git**
+
 ## Important: Pre-commit Hooks Required
 
 **Before contributing, set up pre-commit hooks:**

@@ -4,8 +4,8 @@ A comprehensive toolkit for managing federated data models for modeling large so
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
-[![Specification](https://img.shields.io/badge/Specification-v0.1.1-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.3.1-green)](cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.4.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -32,6 +32,29 @@ The vision is to be able to explore adding functionality to a system at any leve
 
 The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, etc.) to manage these models in a collaborative manner. From the CLI, tools like sub-agents, custom commands, and other automation can be built to further streamline the process of managing system models in a way that is not tied to a specific ecosystem or vendor. We've started with a Claude Code integration to enable natural language interaction with the models, but the vision is to enable a wide variety of integrations and automation around this unified data model.
 
+### Recent Major Additions
+
+**Link Registry & Validation (Spec v0.2.0 / CLI v0.4.0)**
+
+- 📖 **Comprehensive Catalog** - 60+ cross-layer reference patterns across 9 categories
+- 🔍 **Automated Discovery** - Automatically detect and analyze all cross-layer links in your model
+- ✅ **Link Validation** - Verify existence, type compatibility, cardinality, and format of all references
+- 📊 **Interactive Documentation** - Generate searchable HTML documentation with Mermaid diagrams
+- 🔄 **Path Tracing** - Find and visualize paths between any two elements across layers
+- 🚀 **CI/CD Ready** - Strict mode for treating warnings as errors in automated pipelines
+
+See [Link Management Guide](cli/docs/user-guide/link-management.md) for complete documentation.
+
+**Managed Upgrades (CLI v0.4.0)**
+
+- 🔄 **Automated Migration** - Seamlessly migrate models between specification versions
+- 🔧 **Pattern Detection** - Automatically identify and fix non-standard reference patterns
+- 📋 **Dry-Run Preview** - See exactly what will change before applying migrations
+- ✏️ **Smart Fixes** - Correct naming conventions (camelCase → kebab-case) and cardinality mismatches
+- 📈 **Version Tracking** - Maintain upgrade history in your model's manifest
+
+See `dr migrate --help` for usage details.
+
 ## Quick Links
 
 - **[Read the Specification](spec/)** - Complete specification with all 11 layers
@@ -44,7 +67,7 @@ The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, 
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 0.1.1 (Stable)
+**Version:** 0.2.0 (Stable)
 **Status:** Complete
 
 The Documentation Robotics specification defines a standards-based approach to modeling software across 11 interconnected layers.
@@ -68,8 +91,8 @@ The Documentation Robotics specification defines a standards-based approach to m
 ### 2. The CLI Tool (`dr`)
 
 **Location:** [`cli/`](cli/)
-**Version:** 0.3.1
-**Status:** MVP Complete
+**Version:** 0.4.0
+**Status:** Feature Complete
 
 A command-line tool for managing project models conforming to the specification.
 
@@ -77,9 +100,11 @@ A command-line tool for managing project models conforming to the specification.
 
 - ✅ **Full Conformance** - Implements all 11 layers
 - ✅ **Model Management** - Initialize, add, update, validate
-- ✅ **Cross-Layer References** - Track and validate relationships
+- ✅ **Link Registry** - 60+ cross-layer reference patterns with automated validation
+- ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
+- ✅ **Managed Upgrades** - Automated migration between specification versions
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Standards-Based** - Uses specification v0.1.1
+- ✅ **Standards-Based** - Uses specification v0.2.0
 
 **Quick Start:**
 
@@ -93,8 +118,12 @@ dr init my-project
 # Add elements
 dr add motivation goal --name "Improve Customer Satisfaction"
 
-# Validate
-dr validate
+# Validate (with link checking)
+dr validate --validate-links
+
+# Migrate model to latest spec version
+dr migrate --dry-run  # Preview changes
+dr migrate --apply    # Apply migration
 
 # Check conformance
 dr conformance
@@ -231,10 +260,10 @@ We welcome contributions! See:
 
 ## Versions
 
-| Component         | Current Version | Status       |
-| ----------------- | --------------- | ------------ |
-| **Specification** | 0.1.1           | Stable       |
-| **CLI Tool**      | 0.3.3           | MVP Complete |
+| Component         | Current Version | Status                    |
+| ----------------- | --------------- | ------------------------- |
+| **Specification** | 0.2.0           | Stable                    |
+| **CLI Tool**      | 0.4.0           | Feature Complete + Agents |
 
 ## License
 

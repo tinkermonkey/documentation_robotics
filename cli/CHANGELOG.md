@@ -5,9 +5,36 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.4.0] - TBD
+## [0.4.0] - 2025-01-15
 
 ### Added
+
+- **Claude Code Integration Enhancements**: New specialized agents and comprehensive documentation
+  - **DR Helper Agent** (`dr-helper`)
+    - Expert guidance companion for understanding and working with DR
+    - Explains DR philosophy, concepts, and architectural principles
+    - Guides modeling decisions with decision trees and best practices
+    - Assists with CLI navigation, upgrades, and maintenance
+    - Adapts explanations to user's expertise level (beginner/intermediate/advanced)
+    - Educational approach focused on teaching architectural thinking
+  - **DR Ideation Agent** (`dr-ideator`)
+    - Collaborative architectural exploration in changesets
+    - Question-driven, research-oriented approach (Socratic method)
+    - WebSearch integration for technology and pattern research
+    - Context-7 integration for library/framework documentation (when available)
+    - Multi-changeset awareness and management
+    - Comparative analysis (model multiple approaches side-by-side)
+    - Merge/abandon guidance based on validation and analysis
+  - **Updated Reference Sheets**: All 3 tiers updated with new agents
+    - `tier1-essentials.md` - Quick reference for helper and ideation agents
+    - `tier2-developer-guide.md` - Complete agent descriptions and use cases
+    - `tier3-complete-reference.md` - Comprehensive agent documentation with workflows
+  - **Command Documentation**: New slash command for link management
+    - `dr-links.md` - Complete `/dr-links` command guide (600+ lines)
+    - Query link types, validate links, trace paths, generate documentation
+    - Migration guidance for v0.1.x → v0.2.0
+
+### Added (continued)
 
 - **Cross-Layer Link Management System**: Complete infrastructure for managing and validating inter-layer references
   - **Link Registry** (`LinkRegistry` class):
@@ -98,7 +125,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `links --check` - Analyze what needs migration
   - `links --dry-run` - Preview changes without applying
   - `links --apply` - Apply migrations to model files
-- Prepares models for v1.0 specification standards
+- Prepares models for v0.2.0 specification standards
 
 ### Implementation Details
 
@@ -122,10 +149,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Version Strategy
 
 - **Specification v0.1.1** (current): Initial specification with organic link patterns
-- **Specification v1.0** (future): First stable release with standardized link patterns and strict enforcement
-- **CLI v0.4.0** (this release): Tools to help migrate models from v0.x to v1.0 standards
+- **Specification v0.2.0** (next): Backward-compatible addition with standardized link patterns and optional strict enforcement
+- **CLI v0.4.0** (this release): Tools to help migrate models from v0.1.x to v0.2.0 standards
 
-## [0.3.3] - 2025-11-26
+## [0.3.3] - 2024-11-26
 
 ### Breaking Changes
 
@@ -229,7 +256,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Delete operations: Store element backup
   - Timestamp and metadata for all changes
 
-## [0.3.2] - 2025-11-25
+## [0.3.2] - 2024-11-25
 
 ### Added
 
@@ -272,7 +299,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Updated specification version from v0.1.0 to v0.1.1
 - Updated README.md to have fully qualified urls for all docs links to function on pypi.org
 
-## [0.3.1] - 2025-11-24
+## [0.3.1] - 2024-11-24
 
 ### Fixed
 
@@ -280,7 +307,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Normalized the name for the spec (Documentation Robotics) used throughout
 - Cleaned up documentation links and references in prep for making repo public
 
-## [0.3.0] - 2025-11-24
+## [0.3.0] - 2024-11-24
 
 ### Added
 

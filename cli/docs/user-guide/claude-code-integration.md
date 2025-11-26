@@ -758,21 +758,48 @@ All microservices must include:
 
 ## Best Practices
 
-### 1. Validate Frequently
+### 1. Validate Frequently with Link Checking
 
-Run validation after significant changes:
+Run validation with link checking after significant changes:
 
 ```
-/dr-validate
+/dr-validate with link validation enabled
+```
+
+Or use the CLI directly:
+
+```bash
+dr validate --validate-links --strict-links
 ```
 
 Best: Enable auto-validation in workflow:
 
 ```
-After each change, run validation to catch issues early.
+After each change, run validation with link checking to catch broken references early.
 ```
 
-### 2. Commit Model with Code
+**Why link validation matters:**
+
+- Catches broken cross-layer references before they become issues
+- Ensures model integrity across all 11 layers
+- Required for reliable exports and documentation generation
+
+### 2. Use Migration Workflow for Spec Updates
+
+When upgrading to new spec versions:
+
+```
+Help me migrate my model to spec v0.2.0
+```
+
+Claude Code will:
+
+1. Check what migrations are needed
+2. Preview changes with `dr migrate --dry-run`
+3. Apply migrations with your approval
+4. Re-validate with link checking
+
+### 3. Commit Model with Code
 
 Keep architecture docs in sync:
 
@@ -1030,7 +1057,9 @@ The Claude Code integration makes architecture modeling:
 - `/dr-changeset` - Manage isolated workspaces
 - `/dr-model` - Interactive modeling
 - `/dr-ingest` - Extract from code
-- `/dr-validate` - Validate and fix
+- `/dr-validate` - Validate and fix (with link validation)
+- `dr links` - Manage cross-layer links
+- `dr migrate` - Migrate between spec versions
 - `dr claude install` - Install integration
 - `dr claude status` - Check installation
 

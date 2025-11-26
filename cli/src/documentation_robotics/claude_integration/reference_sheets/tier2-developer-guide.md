@@ -2,6 +2,80 @@
 
 _For active modeling work. See tier1-essentials.md for quick reference._
 
+## Available Agents (NEW in v0.4.0)
+
+Documentation Robotics includes specialized agents to help with different tasks:
+
+### dr-helper (Expert Guidance)
+
+**Purpose:** Answer questions, explain concepts, guide modeling decisions
+
+**When to use:**
+
+- Learning DR concepts
+- Making modeling decisions ("How do I model X?")
+- Understanding workflows
+- Needing guidance on upgrades or maintenance
+- Want to understand the "why" behind DR
+
+**Launch:** Task tool, agent type: `dr-helper`
+
+### dr-ideator (Collaborative Exploration)
+
+**Purpose:** Explore architectural ideas safely in changesets with research-driven approach
+
+**When to use:**
+
+- Exploring "what if" architectural ideas
+- Evaluating technology choices (GraphQL vs REST, MongoDB vs PostgreSQL)
+- Comparing multiple approaches side-by-side
+- Need research on technologies/patterns
+- Want to model ideas before committing to main
+- Deciding whether to merge, keep, or abandon explorations
+
+**Key features:**
+
+- Always works in changesets (safe exploration)
+- Asks probing questions to understand context
+- Researches using WebSearch and Context-7
+- Models ideas collaboratively with you
+- Guides merge/abandon decisions
+- Manages multiple changesets intelligently
+
+**Launch:** Task tool, agent type: `dr-ideator`
+
+### dr-extractor (Model Extraction)
+
+**Purpose:** Extract DR model from existing codebase
+
+**When to use:**
+
+- Creating initial model from code
+- Re-ingesting code changes
+- Analyzing new codebases
+
+### dr-validator (Validation & Fixing)
+
+**Purpose:** Validate model and suggest/apply fixes
+
+**When to use:**
+
+- Fixing validation errors
+- Improving model quality
+- Batch fixing similar issues
+
+### dr-documenter (Documentation Generation)
+
+**Purpose:** Generate comprehensive documentation
+
+**When to use:**
+
+- Creating architecture documentation
+- Generating diagrams and matrices
+- Preparing for reviews
+
+---
+
 ## Element Structure
 
 ```yaml
@@ -555,6 +629,428 @@ else:
     for error in result.errors:
         print(f"  - {error.message}")
 ```
+
+### Working with Cross-Layer Links
+
+**Cross-layer links** connect elements across the 11 architectural layers, enabling traceability from strategic goals to implementation details. The link management system (spec v0.2.0+, CLI v0.4.0+) provides comprehensive tools for creating, validating, and documenting these connections.
+
+**Key Concepts:**
+
+- **Link Registry**: Catalog of 62+ standardized cross-layer reference patterns
+- **Link Types**: 4 pattern categories (x-extensions, dot-notation, nested objects, direct fields)
+- **Link Validation**: Automated checking of references, types, cardinality, and formats
+- **Link Migration**: Tools to upgrade from v0.1.x to standardized v0.2.0 patterns
+
+#### Understanding Link Patterns
+
+**Pattern A: X-Extensions (OpenAPI/JSON Schema)**
+
+Used in external standard specifications (OpenAPI 3.0, JSON Schema Draft 7):
+
+```yaml
+# In OpenAPI operation
+paths:
+  /orders:
+    post:
+      operationId: createOrder
+      x-archimate-ref: application.service.order-api
+      x-supports-goals: [motivation.goal.improve-revenue]
+      x-required-permissions: [security.permission.create-order]
+
+# In JSON Schema
+properties:
+  customer_id:
+    type: string
+    format: uuid
+    x-archimate-ref: business.actor.customer
+    x-security:
+      classification: confidential
+      pii: true
+```
+
+**Pattern B: Dot-Notation (Upward References)**
+
+Used when implementation layers reference strategic/higher layers:
+
+```yaml
+# In Application Service
+application.service.order-api:
+  name: "Order Management API"
+  properties:
+    realizes: business.service.order-management
+    motivation:
+      supports-goals: [motivation.goal.improve-revenue]
+      governed-by-principles: [motivation.principle.api-first]
+      fulfills-requirements: [motivation.requirement.order-tracking]
+    apm:
+      business-metrics: [apm.metric.order-processing-time]
+      sla-target-latency: 200ms
+```
+
+**Pattern C: Nested Objects (Complex Relationships)**
+
+Used for grouping related references or channel-specific overrides:
+
+```yaml
+# In Navigation Route
+navigation.route.order-history:
+  name: "Order History Route"
+  properties:
+    motivationAlignment:
+      supportsGoals: [motivation.goal.customer-satisfaction]
+      deliversValue: [motivation.value.transparency]
+      governedByPrinciples: [motivation.principle.user-centric]
+    business:
+      supportsProcesses: [business.process.order-inquiry]
+      targetActors: [business.actor.customer]
+    security:
+      resourceRef: security.resource.order-data
+      requiredRoles: [security.role.customer]
+      requiredPermissions: [security.permission.view-own-orders]
+    api:
+      operationId: listOrders
+      method: GET
+      endpoint: /api/v1/orders
+```
+
+**Pattern D: Direct Fields (Standard References)**
+
+Native specification fields:
+
+```yaml
+# OpenAPI operationId
+api.operation.create-order:
+  properties:
+    operationId: createOrder # Native OpenAPI field
+
+# JSON Schema $ref
+data_model.object-schema.order-item:
+  properties:
+    items:
+      $ref: "#/definitions/OrderItem" # Native JSON Schema $ref
+```
+
+#### Querying Link Types
+
+Before creating cross-layer references, query available link types:
+
+```bash
+# List all link types
+dr links types
+
+# Filter by category
+dr links types --category motivation  # Links to/from motivation layer
+dr links types --category security    # Security-related links
+dr links types --category api         # API layer links
+
+# Filter by source/target layers
+dr links types --from application --to motivation
+dr links types --from api --to application
+dr links types --to business
+
+# Get JSON for programmatic use
+dr links types --json
+```
+
+**Example workflow:**
+
+```bash
+User: How do I link my API operation to the application service it implements?
+
+You: Query the relevant link type:
+$ dr links types --from api --to application
+
+Result shows:
+📋 application-service-ref
+   Field: x-archimate-ref (in x-extensions)
+   Cardinality: Single (one application service per operation)
+   Format: UUID (element ID)
+   Description: Links API operation to implementing ApplicationService
+   Example:
+     x-archimate-ref: application.service.order-api
+```
+
+#### Discovering Links in Your Model
+
+Find links for specific elements or search across the model:
+
+```bash
+# Find all links for an element
+dr links find business.service.order-management
+
+# Find only outgoing links
+dr links find business.service.order-management --direction outgoing
+
+# Find only incoming links
+dr links find business.service.order-management --direction incoming
+
+# List all links in model
+dr links list
+
+# Filter by link type
+dr links list --type motivation.supports-goals
+
+# Filter by layer
+dr links list --layer application
+
+# Show only broken links
+dr links list --broken-only
+```
+
+**Example:**
+
+```bash
+$ dr links find business.service.order-management
+
+Links for business.service.order-management:
+
+Outgoing Links (4):
+→ motivation.goal.improve-revenue (via motivation.supports-goals)
+→ motivation.principle.api-first (via motivation.governed-by-principles)
+→ business.actor.operations-team (via owner)
+→ apm.metric.order-processing-time (via apm.business-metrics)
+
+Incoming Links (3):
+← application.service.order-api (via realizes)
+← application.service.order-worker (via realizes)
+← navigation.flow.order-fulfillment (via realizesProcess)
+
+Total: 7 links
+```
+
+#### Validating Cross-Layer Links
+
+Link validation checks for:
+
+1. **Existence**: Target elements exist in the model
+2. **Type Compatibility**: Targets are the correct element type
+3. **Cardinality**: Single vs array values match definition
+4. **Format**: UUID, path, duration formats are valid
+
+```bash
+# Basic link validation
+dr validate --validate-links
+
+# Strict mode (warnings become errors)
+dr validate --validate-links --strict-links
+
+# Validate specific layer
+dr validate --layer application --validate-links
+
+# Get JSON report
+dr validate --validate-links --format json --output validation-report.json
+```
+
+**Common validation issues:**
+
+```yaml
+# Issue 1: Broken reference (target doesn't exist)
+Error: business.service.orders
+→ motivation.supports-goals references 'motivation.goal.missing' (not found)
+Suggestion: Did you mean 'motivation.goal.improve-efficiency'?
+
+# Issue 2: Type mismatch
+Error: api.operation.create-order
+→ x-archimate-ref expects ApplicationService, got BusinessService
+
+# Issue 3: Cardinality error
+Error: business.service.orders
+→ motivation.supports-goals expects array, got single string
+Fix: Use array syntax: supports-goals: ["motivation.goal.revenue"]
+
+# Issue 4: Format error
+Error: api.operation.create-order
+→ x-archimate-ref expects UUID format, got 'app-service-123'
+Fix: Use proper element ID: application.service.order-api
+```
+
+**Best practices:**
+
+- Validate links during development
+- Use `--strict-links` in CI/CD pipelines
+- Validate before applying changesets
+- Address warnings to maintain model quality
+
+#### Tracing Paths Between Elements
+
+Find how elements are connected through links:
+
+```bash
+# Find shortest path
+dr links trace api.operation.create-order motivation.goal.revenue
+
+# Find all paths
+dr links trace api.operation.create-order motivation.goal.revenue --all-paths
+
+# Trace impact (downstream)
+dr links trace motivation.goal.revenue --direction downstream
+
+# Trace dependencies (upstream)
+dr links trace datastore.table.orders --direction upstream
+
+# Limit depth
+dr links trace api.operation.create-order motivation.goal.revenue --max-depth 5
+```
+
+**Example:**
+
+```bash
+$ dr links trace api.operation.create-order motivation.goal.improve-revenue --all-paths
+
+Path 1 (shortest - 3 hops):
+api.operation.create-order
+  → application.service.order-api (via x-archimate-ref)
+  → business.service.order-management (via realizes)
+  → motivation.goal.improve-revenue (via motivation.supports-goals)
+
+Path 2 (4 hops):
+api.operation.create-order
+  → ux.view.checkout (via usedBy)
+  → navigation.route.checkout (via route)
+  → business.process.order-checkout (via realizesProcess)
+  → motivation.goal.improve-revenue (via motivation.supports-goals)
+```
+
+#### Generating Link Documentation
+
+Create comprehensive link documentation for reviews and onboarding:
+
+```bash
+# Generate Markdown summary
+dr links docs --format markdown --output ./docs/links-summary.md
+
+# Generate detailed reference
+dr links docs --format markdown --detail full --output ./docs/links-reference.md
+
+# Generate interactive HTML
+dr links docs --format html --output ./docs/links.html
+
+# Generate Mermaid diagram
+dr links docs --format mermaid --output ./docs/link-diagram.mmd
+
+# Generate all formats
+dr links docs --format all --output ./docs/
+```
+
+#### Migrating from v0.1.x to v0.2.0
+
+If you have an existing model using non-standard link patterns, migrate to v0.2.0 standards:
+
+```bash
+# Check what needs migration
+dr migrate
+
+# Preview changes without applying
+dr migrate --dry-run
+
+# Apply all migrations
+dr migrate --apply
+
+# Validate migrated model
+dr validate --validate-links
+```
+
+**What gets migrated:**
+
+1. **Naming conventions**: camelCase → kebab-case
+   - `supportGoals` → `supports-goals`
+   - `realizesService` → `realizes-services`
+
+2. **Cardinality fixes**: Single values → arrays where needed
+   - `supports-goals: "goal-1"` → `supports-goals: ["goal-1"]`
+
+3. **Format corrections**: Invalid UUIDs, paths, durations
+
+**Migration workflow:**
+
+```bash
+# Create migration branch
+git checkout -b migrate-to-v0.2.0
+
+# Check and preview
+dr migrate
+dr migrate --dry-run
+
+# Apply migration
+dr migrate --apply
+
+# Validate result
+dr validate --validate-links --strict-links
+
+# Review changes
+git diff
+
+# Commit if satisfied
+git add .
+git commit -m "Migrate cross-layer links to v0.2.0 standards"
+git checkout main
+git merge migrate-to-v0.2.0
+```
+
+#### Python API for Link Management
+
+```python
+from documentation_robotics.core import Model
+from documentation_robotics.validation.link_registry import LinkRegistry
+from documentation_robotics.validation.link_analyzer import LinkAnalyzer
+from documentation_robotics.validation.link_validator import LinkValidator
+
+# Load model
+model = Model.load("./")
+
+# Load link registry
+registry = LinkRegistry()
+
+# Get link types for a pattern
+link_types = registry.get_link_types(
+    category="motivation",
+    source_layer="application"
+)
+for link_type in link_types:
+    print(f"{link_type.name}: {link_type.field_path}")
+
+# Analyze links in model
+analyzer = LinkAnalyzer(model, registry)
+links = analyzer.discover_all_links()
+print(f"Found {len(links)} link instances")
+
+# Build link graph
+graph = analyzer.build_link_graph()
+print(f"Nodes: {graph.number_of_nodes()}, Edges: {graph.number_of_edges()}")
+
+# Find path between elements
+path = analyzer.find_path(
+    "api.operation.create-order",
+    "motivation.goal.revenue"
+)
+if path:
+    print(f"Path length: {len(path)}")
+    print(" → ".join(path))
+
+# Validate all links
+validator = LinkValidator(model, registry)
+result = validator.validate_all()
+
+print(f"Total links validated: {result.total_links}")
+print(f"Errors: {len(result.errors)}")
+print(f"Warnings: {len(result.warnings)}")
+
+for error in result.errors:
+    print(f"Error in {error.element_id}: {error.message}")
+    if error.suggestion:
+        print(f"  Suggestion: {error.suggestion}")
+```
+
+#### Link Management Best Practices
+
+1. **Query before creating**: Use `dr links types` to understand valid patterns
+2. **Maintain traceability**: Link implementation to motivation layer
+3. **Validate regularly**: Run `dr validate --validate-links` frequently
+4. **Use strict mode in CI/CD**: `--strict-links` catches all issues
+5. **Document connections**: Use `dr links docs` for stakeholder reviews
+6. **Monitor link health**: Check `dr links stats` for model insights
+7. **Follow naming conventions**: Use kebab-case, proper plurals
+8. **Choose appropriate patterns**: X-extensions for OpenAPI, dot-notation for upward refs
 
 ### Working with Changesets
 

@@ -21,7 +21,7 @@ This specification provides a comprehensive, standards-based approach to modelin
 **In Scope:**
 
 - Metadata model definitions for 11 architectural layers
-- Cross-layer integration patterns and reference types
+- Cross-layer integration patterns and reference types (see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md))
 - Validation requirements and conformance criteria
 - Export formats and transformation rules
 - Extension mechanisms for domain-specific needs
@@ -98,7 +98,7 @@ The specification is built on these foundational principles:
 ┌─────────────────────────────────────────────────┐
 │          ArchiMate Model (Spine)                │
 │   - Structural relationships                     │
-│   - Cross-layer traceability                    │
+│   - Cross-layer traceability (60+ link types)   │
 │   - Architectural rules                         │
 │   - References to external specs                │
 └─────────────────────────────────────────────────┘

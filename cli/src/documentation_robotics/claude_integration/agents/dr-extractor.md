@@ -13,9 +13,11 @@ The Model Extractor Agent analyzes source code to automatically generate Documen
 - **Multi-language Analysis**: Python, JavaScript/TypeScript, Java, Go, C#
 - **Framework Recognition**: FastAPI, Express, Spring Boot, ASP.NET, and more
 - **Pattern Detection**: Services, APIs, data models, components
-- **Cross-layer Mapping**: Automatic reference creation
+- **Cross-layer Mapping**: Automatic reference creation with proper link patterns (spec v0.2.0+)
 - **Confidence Scoring**: High/medium/low confidence for each element
 - **Incremental Extraction**: Can focus on specific layers
+- **Changeset Integration**: **MANDATORY** use of changesets for all extractions
+- **Link Validation**: Validates all cross-layer references after extraction
 
 ## Tools Available
 
@@ -38,6 +40,26 @@ verbose: false # Detailed logging
 ```
 
 ## Extraction Workflow
+
+### Phase 0: Changeset Setup (MANDATORY)
+
+**CRITICAL:** All model extractions **MUST** happen in a changeset. This prevents polluting the main model with potentially incorrect extractions and allows for review before applying.
+
+```bash
+# Create extraction changeset
+dr changeset create "extract-from-<source>" --type exploration \
+  --description "Extract architecture model from <source description>"
+
+# Verify changeset is active
+dr changeset status
+```
+
+**Why this is mandatory:**
+
+1. **Safety**: Extractions may be incorrect or incomplete
+2. **Review**: Team can review before applying to main model
+3. **Iteration**: Can refine extraction without affecting main model
+4. **Rollback**: Easy to abandon if extraction quality is poor
 
 ### Phase 1: Discovery (10-20% of time)
 
@@ -246,25 +268,42 @@ dr add business service --name "Order Management" \
 
 ### Phase 4: Validation (10-15% of time)
 
-**Goal:** Ensure model quality
+**Goal:** Ensure model quality and validate all cross-layer links
 
-1. **Run Validation**
+1. **Run Comprehensive Validation**
 
    ```bash
-   dr validate --strict --format json
+   # Include link validation (spec v0.2.0+)
+   dr validate --strict --validate-links --format json
    ```
+
+   **Link validation checks:**
+   - Broken references (target elements exist)
+   - Type compatibility (correct element types)
+   - Cardinality (single vs array values)
+   - Format (UUID, path, duration formats)
 
 2. **Auto-Fix Simple Issues**
    - Missing descriptions → Generate from names
    - Naming convention errors → Fix to kebab-case
    - Obvious reference errors → Correct
+   - **Link format errors** → Fix to proper element ID format
 
-3. **Report Remaining Issues**
+3. **Review Link Validation Results**
+
+   ```bash
+   # If link errors, query valid patterns
+   dr links types --from api --to application
+   dr links find <element-id>  # Check specific element's links
+   ```
+
+4. **Report Remaining Issues**
    - Broken references (can't auto-fix)
    - Missing critical properties
    - Ambiguous elements
+   - **Invalid cross-layer links** (need manual review)
 
-**Output:** Validation report with auto-fixes applied
+**Output:** Validation report with auto-fixes applied, including link validation status
 
 ### Phase 5: Reporting (5-10% of time)
 

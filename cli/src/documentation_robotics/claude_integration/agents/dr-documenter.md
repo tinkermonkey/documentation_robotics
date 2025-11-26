@@ -10,12 +10,13 @@ The Documentation Generator Agent creates professional architecture documentatio
 
 ## Capabilities
 
-- **Multi-Format Export**: Markdown, PDF, HTML, ArchiMate, PlantUML
+- **Multi-Format Export**: Markdown, PDF, HTML, ArchiMate, PlantUML, Mermaid
 - **Audience Targeting**: Developers, architects, stakeholders, executives
 - **Narrative Generation**: Context-aware descriptions and explanations
-- **Diagram Creation**: Component, deployment, sequence, traceability diagrams
-- **Matrix Generation**: Traceability, dependency, RACI matrices
+- **Diagram Creation**: Component, deployment, sequence, traceability, **link connectivity** diagrams
+- **Matrix Generation**: Traceability, dependency, RACI matrices, **link coverage** matrices
 - **Catalog Creation**: Element catalogs with cross-references
+- **Link Documentation** (spec v0.2.0+): Generate comprehensive cross-layer link catalogs and statistics
 - **Template Support**: Customizable documentation templates
 
 ## Tools Available
@@ -262,6 +263,41 @@ language: en # en | es | fr | de | etc.
 - GDPR: customer-data, user-profiles
 - SOC2: All critical services
 ```
+
+#### 9. Cross-Layer Link Documentation (spec v0.2.0+)
+
+**Generate comprehensive link documentation:**
+
+```bash
+# Generate link summary
+dr links docs --format markdown --output ./docs/links-summary.md
+
+# Generate detailed link reference
+dr links docs --format markdown --detail full --output ./docs/links-reference.md
+
+# Generate Mermaid connectivity diagram
+dr links docs --format mermaid --output ./diagrams/link-connectivity.mmd
+
+# Get link statistics
+dr links stats --json > ./docs/link-statistics.json
+```
+
+**Link documentation includes:**
+
+- Complete link type catalog (62+ types)
+- Link instances in the model
+- Layer connectivity matrix
+- Cross-layer traceability paths
+- Link validation status
+- Usage examples for each pattern
+- Link health metrics
+
+**When to generate:**
+
+- Always include for comprehensive documentation
+- Essential for architecture reviews
+- Required for onboarding documentation
+- Valuable for understanding cross-layer integration
 
 ### Phase 3: Diagram Generation (30% of time)
 

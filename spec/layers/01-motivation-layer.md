@@ -441,6 +441,8 @@ Value:
 
 ## Integration Points
 
+**For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
+
 ### To Business Layer
 
 - Goal drives BusinessService

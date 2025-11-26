@@ -57,7 +57,7 @@ Create a conformance statement file:
 conformanceStatement:
   implementation:
     name: "Your Tool Name"
-    version: "0.1.1"
+    version: "0.2.0"
     vendor: "Your Organization"
     website: "https://yourtool.com"
     documentation: "https://docs.yourtool.com"
@@ -66,7 +66,7 @@ conformanceStatement:
 
   specification:
     name: "Documentation Robotics"
-    version: "0.1.1"
+    version: "0.2.0"
     conformanceLevel: "full" # basic, standard, or full
     url: "https://github.com/tinkermonkey/documentation_robotics/tree/main/spec"
 
@@ -121,7 +121,7 @@ Publish your conformance statement:
    ```markdown
    ## Conformance
 
-   This tool conforms to the [Documentation Robotics Specification v0.1.1]
+   This tool conforms to the [Documentation Robotics Specification v0.2.0]
    (https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
    at the **Full Conformance** level.
 

@@ -328,6 +328,7 @@ This model passes all validation checks:
 
 ✅ **Schema Validation**: All 293 elements conform to their schemas
 ✅ **Cross-References**: All references resolve correctly
+✅ **Link Validation**: 60+ link types validated across all layers
 ✅ **Semantic Rules**: All 11 semantic rules pass
 ✅ **Upward Traceability**: Complete chains from implementation to goals
 ✅ **Security Integration**: All sensitive operations are secured
@@ -340,7 +341,15 @@ This model passes all validation checks:
 
 ```bash
 cd e-commerce
-dr validate --strict
+
+# Basic validation
+dr validate
+
+# With link validation (recommended)
+dr validate --validate-links
+
+# Full strict validation
+dr validate --strict --validate-links --strict-links
 ```
 
 ### Export
@@ -364,6 +373,12 @@ dr export openapi --output specs/openapi/
 ```bash
 # Find all services supporting revenue goal
 dr trace motivation.goal.increase-revenue
+
+# Discover all cross-layer links
+dr links list
+
+# Analyze specific link types
+dr links analyze --type x-archimate-ref
 
 # List all authenticated routes
 dr list navigation --filter authenticated
@@ -406,8 +421,8 @@ After studying this example, you'll understand:
 
 ---
 
-**Spec Version**: 0.1.1
+**Spec Version**: 0.2.0
 **Conformance Level**: Full
 **Industry**: E-Commerce
 **Complexity**: Medium
-**Last Updated**: 2025-11-24
+**Last Updated**: 2025-11-26

@@ -41,7 +41,7 @@ const results = {
 
 ### Level 2: Cross-Layer Reference Validation
 
-Validate that references between layers are consistent:
+Validate that references between layers are consistent using the Link Registry (see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md)):
 
 ```javascript
 const crossLayerResults = {
@@ -81,6 +81,53 @@ const semanticResults = {
   requirementCoverage: validateRequirementCoverage(model),
 };
 ```
+
+### Level 4: Link Validation (v0.2.0+)
+
+Validate cross-layer references using the comprehensive Link Registry:
+
+```javascript
+const linkValidationResults = {
+  // Validate link existence - all targets must exist
+  existence: validateLinkExistence(model, linkRegistry),
+
+  // Validate type compatibility - targets must be correct element types
+  typeCompatibility: validateLinkTypes(model, linkRegistry),
+
+  // Validate cardinality - single vs array values match link definitions
+  cardinality: validateLinkCardinality(model, linkRegistry),
+
+  // Validate format - UUIDs, paths, durations match expected patterns
+  format: validateLinkFormats(model, linkRegistry),
+
+  // Detect broken links with typo suggestions
+  brokenLinks: detectBrokenLinks(model, linkRegistry),
+};
+```
+
+**Link Validation Strategy:**
+
+1. **Existence Checking**: Verify all referenced element IDs exist in the model
+2. **Type Compatibility**: Ensure targets match expected element types from link registry
+3. **Cardinality Enforcement**: Validate single/array values match link definitions
+4. **Format Validation**: Check UUID, path, duration, percentage formats using regex patterns
+5. **Typo Detection**: Use Levenshtein distance to suggest corrections for broken references
+
+**Validation Modes:**
+
+- **Warning Mode** (default): Report link issues as warnings
+- **Strict Mode** (CI/CD): Treat link warnings as errors, fail build on issues
+
+**Implementation:**
+
+Conformant implementations MUST:
+
+- Load link definitions from `/spec/schemas/link-registry.json`
+- Validate all 60+ link types across 9 categories
+- Support both warning and strict validation modes
+- Provide actionable error messages with suggestions
+
+See [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md) for complete link catalog.
 
 ## Validation Tools
 

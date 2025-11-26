@@ -969,6 +969,8 @@ x-security:
 
 ## Integration Points
 
+**For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
+
 ### To Motivation Layer
 
 - **Security governance**: x-security.governedBy.constraintRefs, requirementRefs, principleRefs link field-level security policies to Motivation Layer

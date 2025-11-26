@@ -10,13 +10,14 @@ The Architecture Validator Agent performs multi-level validation of Documentatio
 
 ## Capabilities
 
-- **Multi-Level Validation**: Schema, naming, references, semantic, traceability
+- **Multi-Level Validation**: Schema, naming, references, semantic, traceability, **cross-layer links**
 - **Pattern Detection**: Identifies common issue patterns across model
-- **Intelligent Fix Suggestions**: Context-aware recommendations
+- **Intelligent Fix Suggestions**: Context-aware recommendations (including link suggestions with Levenshtein distance)
 - **Confidence Scoring**: High/medium/low confidence for each fix
 - **Safe Auto-Fixing**: Applies high-confidence fixes automatically
 - **Impact Analysis**: Assesses fix consequences
 - **Batch Operations**: Fixes multiple similar issues efficiently
+- **Link Validation** (spec v0.2.0+): Validates cross-layer references for existence, type, cardinality, and format
 
 ## Tools Available
 
@@ -46,7 +47,11 @@ max_auto_fixes: 50 # Safety limit
 1. **Run Multi-Level Validation**
 
    ```bash
-   dr validate --strict --format json
+   # Standard validation with link validation enabled
+   dr validate --strict --validate-links --format json
+
+   # For strict link checking (warnings → errors)
+   dr validate --strict --validate-links --strict-links --format json
    ```
 
 2. **Parse Results**
@@ -62,6 +67,11 @@ max_auto_fixes: 50 # Safety limit
    - Semantic rule violations
    - Security gaps
    - Monitoring gaps
+   - **Link validation errors** (spec v0.2.0+):
+     - Broken cross-layer links (target doesn't exist)
+     - Type mismatches (wrong target element type)
+     - Cardinality errors (single vs array)
+     - Format errors (invalid UUID, path, duration)
 
 4. **Analyze Patterns**
 
