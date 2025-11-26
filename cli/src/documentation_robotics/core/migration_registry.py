@@ -37,13 +37,13 @@ class MigrationRegistry:
 
     def _register_migrations(self):
         """Register all available migrations."""
-        # Migration from v0.1.x to v1.0.0: Standardize cross-layer links
+        # Migration from v0.1.x to v0.2.0: Standardize cross-layer links
         self.migrations.append(
             Migration(
                 from_version="0.1.0",
-                to_version="1.0.0",
+                to_version="0.2.0",
                 description="Standardize cross-layer reference patterns",
-                apply_fn=self._migrate_0_1_to_1_0,
+                apply_fn=self._migrate_0_1_to_0_2,
             )
         )
 
@@ -62,7 +62,7 @@ class MigrationRegistry:
             Latest version string
         """
         if not self.migrations:
-            return "0.1.1"
+            return "0.2.0"
 
         versions = [Version(m.to_version) for m in self.migrations]
         return str(max(versions))
@@ -178,8 +178,8 @@ class MigrationRegistry:
 
     # Migration implementation functions
 
-    def _migrate_0_1_to_1_0(self, model_path: Path) -> dict:
-        """Migrate from v0.1.x to v1.0.0.
+    def _migrate_0_1_to_0_2(self, model_path: Path) -> dict:
+        """Migrate from v0.1.x to v0.2.0.
 
         This migration standardizes cross-layer reference patterns.
 

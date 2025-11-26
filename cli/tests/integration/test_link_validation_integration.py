@@ -158,7 +158,8 @@ class TestLinkValidationIntegration:
 
         # Check for migrations
         migration_registry = MigrationRegistry()
-        summary = migration_registry.get_migration_summary("0.1.0", "1.0.0")
+        latest = migration_registry.get_latest_version()
+        summary = migration_registry.get_migration_summary("0.1.0", latest)
 
         assert summary["migrations_needed"] > 0
 
@@ -180,8 +181,9 @@ class TestLinkValidationIntegration:
 
         # Run dry-run migration
         migration_registry = MigrationRegistry()
+        latest = migration_registry.get_latest_version()
         _result = migration_registry.apply_migrations(
-            model_path=model_dir, from_version="0.1.0", to_version="1.0.0", dry_run=True
+            model_path=model_dir, from_version="0.1.0", to_version=latest, dry_run=True
         )
 
         # File should not be modified
@@ -206,12 +208,13 @@ class TestLinkValidationIntegration:
 
         # Apply migration
         migration_registry = MigrationRegistry()
+        latest = migration_registry.get_latest_version()
         result = migration_registry.apply_migrations(
-            model_path=model_dir, from_version="0.1.0", to_version="1.0.0", dry_run=False
+            model_path=model_dir, from_version="0.1.0", to_version=latest, dry_run=False
         )
 
         # Check that migration was applied
-        assert result["target_version"] == "1.0.0"
+        assert result["target_version"] == latest
 
         # Verify file was updated to kebab-case
         new_content = service_file.read_text()
