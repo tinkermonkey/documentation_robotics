@@ -2,9 +2,13 @@
 CLI entry point for dr tool.
 """
 
+import os
+from pathlib import Path
+
 import click
 from rich.console import Console
 
+from . import __version__
 from .commands import (
     add,
     changeset,
@@ -13,23 +17,28 @@ from .commands import (
     export,
     find,
     init,
+    links,
     list_cmd,
+    migrate,
     project,
     remove,
     search,
     trace,
     update,
+    upgrade,
     validate,
 )
+from .core.upgrade_manager import UpgradeManager
 
 console = Console()
 
 
 @click.group()
-@click.version_option(version="0.1.0")
+@click.version_option(version=__version__)
 @click.option("--verbose", is_flag=True, help="Verbose output")
+@click.option("--no-upgrade-check", is_flag=True, help="Skip automatic upgrade check")
 @click.pass_context
-def cli(ctx: click.Context, verbose: bool) -> None:
+def cli(ctx: click.Context, verbose: bool, no_upgrade_check: bool) -> None:
     """Documentation Robotics - Architecture model management tool.
 
     The dr tool helps you manage federated architecture data models
@@ -47,6 +56,23 @@ def cli(ctx: click.Context, verbose: bool) -> None:
     """
     ctx.ensure_object(dict)
     ctx.obj["verbose"] = verbose
+    ctx.obj["no_upgrade_check"] = no_upgrade_check
+
+    # Check for upgrades (skip for init, upgrade, version commands and if explicitly disabled)
+    if not no_upgrade_check and ctx.invoked_subcommand not in ["init", "upgrade", "version"]:
+        # Only check if we're in a DR project directory
+        manifest_path = Path.cwd() / "documentation-robotics" / "model" / "manifest.yaml"
+        if manifest_path.exists():
+            try:
+                manager = UpgradeManager()
+                # Check silently - only prompt if upgrade is needed
+                # Set auto=True to upgrade automatically without prompting
+                # (can be controlled via environment variable)
+                auto_upgrade = os.getenv("DR_AUTO_UPGRADE", "false").lower() == "true"
+                manager.check_and_upgrade(auto=auto_upgrade)
+            except Exception as e:
+                if verbose:
+                    console.print(f"[yellow]⚠[/] Upgrade check failed: {e}")
 
 
 # Register commands
@@ -69,6 +95,13 @@ cli.add_command(conformance.conformance)
 cli.add_command(changeset.changeset)
 # Claude Code integration
 cli.add_command(claude.claude)
+# Upgrade management
+cli.add_command(upgrade.upgrade)
+cli.add_command(upgrade.version_info)
+# Link management
+cli.add_command(links.links_group)
+# Migration management
+cli.add_command(migrate.migrate)
 
 
 def main() -> None:

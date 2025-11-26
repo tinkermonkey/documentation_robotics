@@ -64,9 +64,9 @@ class ReferenceValidator(BaseValidator):
                     fix_msg = f"Did you mean: {', '.join(suggestions[:3])}?"
 
                 result.add_error(
-                    layer=element.layer,
-                    element_id=element.id,
+                    element.layer,
                     message=f"Invalid reference to '{ref}' - element does not exist",
+                    element_id=element.id,
                     fix=fix_msg,
                 )
 

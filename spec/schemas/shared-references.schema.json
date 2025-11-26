@@ -1,0 +1,559 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/shared-references.json",
+  "title": "Shared Cross-Layer Reference Definitions",
+  "description": "Reusable reference patterns for inter-layer links. Import these definitions into layer schemas to ensure consistent cross-layer reference validation.",
+  "definitions": {
+    "UUID": {
+      "type": "string",
+      "format": "uuid",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "UUID format for element identifiers"
+    },
+    "UUIDArray": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/UUID" },
+      "description": "Array of UUID references"
+    },
+    "FilePath": {
+      "type": "string",
+      "pattern": "^[^\\0]+$",
+      "description": "Relative file path from spec root"
+    },
+    "Duration": {
+      "type": "string",
+      "pattern": "^\\d+(ms|s|m|h)$",
+      "description": "Duration in format: number + unit (ms, s, m, h). Examples: '200ms', '2s', '5m'"
+    },
+    "Percentage": {
+      "type": "string",
+      "pattern": "^\\d+(\\.\\d+)?%$",
+      "description": "Percentage in format: number + '%'. Examples: '99.9%', '99.95%'"
+    },
+    "MotivationReferences": {
+      "type": "object",
+      "description": "References to Motivation Layer (01) elements - goals, requirements, principles, constraints, values, outcomes",
+      "properties": {
+        "supports-goals": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Goal IDs this element supports"
+        },
+        "fulfills-requirements": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Requirement IDs this element fulfills"
+        },
+        "governed-by-principles": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Principle IDs that govern this element"
+        },
+        "constrained-by": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Constraint IDs that limit this element"
+        },
+        "delivers-value": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Value IDs this element delivers"
+        },
+        "measures-outcome": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Outcome IDs this element measures"
+        }
+      }
+    },
+    "MotivationAlignment": {
+      "type": "object",
+      "description": "Nested object form of motivation references (used in UX, Navigation layers)",
+      "properties": {
+        "supportsGoals": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Goal IDs this element supports"
+        },
+        "fulfillsRequirements": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Requirement IDs this element fulfills"
+        },
+        "governedByPrinciples": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Principle IDs that govern this element"
+        },
+        "deliversValue": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Value IDs this element delivers"
+        },
+        "enforcesRequirement": {
+          "$ref": "#/definitions/UUID",
+          "description": "Single Requirement ID enforced (used by NavigationGuard)"
+        }
+      }
+    },
+    "BusinessReferences": {
+      "type": "object",
+      "description": "References to Business Layer (02) elements - actors, roles, processes, services, interfaces, objects",
+      "properties": {
+        "supportsProcesses": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of BusinessProcess IDs supported"
+        },
+        "realizesServices": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of BusinessService IDs realized"
+        },
+        "realizesProcess": {
+          "$ref": "#/definitions/UUID",
+          "description": "Single BusinessProcess ID realized (used by NavigationFlow)"
+        },
+        "targetActors": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of BusinessActor IDs targeted"
+        },
+        "targetRoles": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of BusinessRole IDs targeted"
+        },
+        "businessActorRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to BusinessActor (used by Security Layer)"
+        },
+        "businessProcessRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to BusinessProcess (used by APM Layer)"
+        },
+        "processStepName": {
+          "type": "string",
+          "description": "Name of business process step (used by APM Layer)"
+        }
+      }
+    },
+    "SecurityReferences": {
+      "type": "object",
+      "description": "References to Security Layer (03) elements - models, resources, roles, permissions, threats, controls",
+      "properties": {
+        "model": {
+          "type": "string",
+          "description": "Security model identifier"
+        },
+        "resourceRef": {
+          "type": "string",
+          "description": "SecureResource.resource identifier"
+        },
+        "requiredRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of Role names required"
+        },
+        "requiredPermissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of Permission names required"
+        },
+        "defaultRequiredRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Default roles for access"
+        },
+        "visibleToRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Roles that can view"
+        },
+        "editableByRoles": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Roles that can edit"
+        },
+        "fieldAccess": {
+          "type": "array",
+          "description": "Field-level access control rules"
+        },
+        "stakeholderRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to Motivation Layer Stakeholder"
+        },
+        "motivationGoalRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to Motivation Layer Goal"
+        },
+        "assessmentRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to Motivation Layer Assessment (threat analysis)"
+        },
+        "mitigatedByRequirements": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Requirement IDs that mitigate threat"
+        },
+        "commitmentRefs": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Constraint IDs (regulatory/contractual commitments)"
+        },
+        "securityThreatRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to Security Threat"
+        },
+        "securityControlRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to Security Control"
+        },
+        "accountabilityRequirementRefs": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of AccountabilityRequirement IDs"
+        },
+        "securityAccountabilityRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to AccountabilityRequirement"
+        }
+      }
+    },
+    "ApiReferences": {
+      "type": "object",
+      "description": "References to API Layer (06) elements - operations, endpoints, methods",
+      "properties": {
+        "operationId": {
+          "type": "string",
+          "description": "OpenAPI operation identifier"
+        },
+        "method": {
+          "type": "string",
+          "enum": ["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"],
+          "description": "HTTP method"
+        },
+        "endpoint": {
+          "type": "string",
+          "description": "API endpoint path"
+        }
+      }
+    },
+    "DataReferences": {
+      "type": "object",
+      "description": "References to Data Model Layer (07) and Datastore Layer (08) elements",
+      "properties": {
+        "schemaRef": {
+          "$ref": "#/definitions/FilePath",
+          "description": "Path to JSON Schema file"
+        },
+        "dataModelSchemaId": {
+          "type": "string",
+          "description": "JSON Schema $id value (formal schema identifier)"
+        },
+        "tableRef": {
+          "type": "string",
+          "description": "Database table name"
+        },
+        "spec": {
+          "type": "object",
+          "properties": {
+            "schema": {
+              "$ref": "#/definitions/FilePath",
+              "description": "Path to JSON Schema file"
+            },
+            "schema-id": {
+              "$ref": "#/definitions/UUID",
+              "description": "Formal schema ID reference"
+            }
+          }
+        }
+      }
+    },
+    "UxReferences": {
+      "type": "object",
+      "description": "References to UX Layer (09) elements - components, views, states, actions",
+      "properties": {
+        "uxComponentRef": {
+          "type": "string",
+          "description": "UX component identifier"
+        },
+        "experience": {
+          "$ref": "#/definitions/FilePath",
+          "description": "Path to UX experience specification"
+        },
+        "entryState": {
+          "type": "string",
+          "description": "Initial state identifier in UX spec"
+        },
+        "route": {
+          "type": "string",
+          "description": "Navigation route path"
+        }
+      }
+    },
+    "NavigationReferences": {
+      "type": "object",
+      "description": "References to Navigation Layer (10) elements - routes, flows, guards",
+      "properties": {
+        "navigationRouteRef": {
+          "type": "string",
+          "description": "Navigation route identifier"
+        },
+        "funnelMetrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Funnel conversion metric IDs"
+        }
+      }
+    },
+    "ApmReferences": {
+      "type": "object",
+      "description": "References to APM/Observability Layer (11) elements - metrics, traces, SLAs, health checks",
+      "properties": {
+        "traced": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable distributed tracing"
+        },
+        "business-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Array of business metric IDs"
+        },
+        "sla-target-latency": {
+          "$ref": "#/definitions/Duration",
+          "description": "Target response time (e.g., '200ms', '2s')"
+        },
+        "sla-target-availability": {
+          "$ref": "#/definitions/Percentage",
+          "description": "Target uptime percentage (e.g., '99.9%', '99.95%')"
+        },
+        "health-monitored": {
+          "type": "boolean",
+          "description": "Enable health monitoring"
+        },
+        "health-check-endpoint": {
+          "type": "string",
+          "format": "uri",
+          "description": "Health check endpoint URL"
+        },
+        "measuredByMetrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Metrics that measure this element"
+        },
+        "performanceTargets": {
+          "type": "object",
+          "description": "Performance target values"
+        },
+        "performance-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Performance metric IDs"
+        },
+        "data-quality-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data quality metric IDs"
+        }
+      }
+    },
+    "ApmMotivationMapping": {
+      "type": "object",
+      "description": "APM-specific motivation mapping (nested in instruments)",
+      "properties": {
+        "contributesToGoal": {
+          "$ref": "#/definitions/UUID",
+          "description": "Goal ID this metric contributes to"
+        },
+        "measuresOutcome": {
+          "$ref": "#/definitions/UUID",
+          "description": "Outcome ID this metric measures"
+        },
+        "fulfillsRequirements": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Requirement IDs fulfilled"
+        },
+        "governedByPrinciples": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Array of Principle IDs that govern measurement"
+        },
+        "kpiFormula": {
+          "type": "string",
+          "description": "Formula for calculating KPI from metric"
+        }
+      }
+    },
+    "ArchimateReferences": {
+      "type": "object",
+      "description": "References to ArchiMate Application Layer (04) elements - the architectural 'spine'",
+      "properties": {
+        "x-archimate-ref": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to ArchiMate element (ApplicationService, ApplicationComponent, DataObject)"
+        },
+        "archimateRef": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to ArchiMate element (alternative form)"
+        },
+        "archimateElement": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to ArchiMate element (alternative form)"
+        },
+        "archimateService": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to ApplicationService (used by APM spans)"
+        }
+      }
+    },
+    "OpenApiExtensions": {
+      "type": "object",
+      "description": "OpenAPI x-extension references for cross-layer integration",
+      "properties": {
+        "x-archimate-ref": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to ApplicationService element"
+        },
+        "x-business-service-ref": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to BusinessService ID from Business Layer"
+        },
+        "x-business-interface-ref": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to BusinessInterface ID from Business Layer"
+        },
+        "x-business-object-ref": {
+          "$ref": "#/definitions/UUID",
+          "description": "Reference to BusinessObject ID from Business Layer"
+        },
+        "x-supports-goals": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Goal IDs this operation supports"
+        },
+        "x-fulfills-requirements": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Requirement IDs this operation fulfills"
+        },
+        "x-governed-by-principles": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Principle IDs governing this operation"
+        },
+        "x-constrained-by": {
+          "$ref": "#/definitions/UUIDArray",
+          "description": "Constraint IDs for regulatory/compliance"
+        },
+        "x-security-resource": {
+          "type": "string",
+          "description": "SecureResource.resource from Security Layer"
+        },
+        "x-required-permissions": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Permission.name[] required for this operation"
+        },
+        "x-apm-trace": {
+          "type": "boolean",
+          "default": true,
+          "description": "Enable operation-level tracing"
+        },
+        "x-apm-sla-target-latency": {
+          "$ref": "#/definitions/Duration",
+          "description": "Target response time (e.g., '200ms', '500ms')"
+        },
+        "x-apm-sla-target-availability": {
+          "$ref": "#/definitions/Percentage",
+          "description": "Target uptime percentage (e.g., '99.95%', '99.99%')"
+        },
+        "x-apm-business-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Metric IDs this operation affects"
+        },
+        "x-apm-criticality": {
+          "type": "string",
+          "enum": ["low", "medium", "high", "critical"],
+          "description": "Operation importance for monitoring prioritization"
+        },
+        "x-apm-performance-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Performance metric IDs"
+        },
+        "x-apm-data-quality-metrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Data quality metric IDs"
+        },
+        "x-json-schema": {
+          "type": "string",
+          "format": "uri",
+          "description": "JSON Schema URI reference"
+        }
+      }
+    },
+    "DataGovernanceReferences": {
+      "type": "object",
+      "description": "Data governance references (used in Data Model Layer)",
+      "properties": {
+        "governedBy": {
+          "type": "object",
+          "properties": {
+            "principleRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Data governance principle IDs"
+            },
+            "requirementRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Data protection requirement IDs"
+            },
+            "constraintRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Retention/compliance constraint IDs"
+            }
+          }
+        }
+      }
+    },
+    "SecurityGovernanceReferences": {
+      "type": "object",
+      "description": "Security governance references (used in Data Model Layer)",
+      "properties": {
+        "governedBy": {
+          "type": "object",
+          "properties": {
+            "principleRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Security design principle IDs"
+            },
+            "requirementRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Security requirement IDs"
+            },
+            "constraintRefs": {
+              "$ref": "#/definitions/UUIDArray",
+              "description": "Security constraint IDs"
+            }
+          }
+        }
+      }
+    },
+    "DataBinding": {
+      "type": "object",
+      "description": "Data binding configuration (used in UX Layer)",
+      "properties": {
+        "schemaRef": {
+          "$ref": "#/definitions/FilePath",
+          "description": "Path to JSON Schema for data binding"
+        },
+        "field": {
+          "type": "string",
+          "description": "Field name in schema"
+        },
+        "validation": {
+          "type": "object",
+          "description": "Validation rules"
+        }
+      }
+    },
+    "AnalyticsReferences": {
+      "type": "object",
+      "description": "Analytics and funnel metric references (used in Navigation Layer)",
+      "properties": {
+        "funnelMetrics": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Funnel conversion metric IDs"
+        },
+        "eventTracking": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Analytics event IDs"
+        }
+      }
+    }
+  }
+}

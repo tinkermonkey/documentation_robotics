@@ -32,6 +32,17 @@ class Manifest:
         self.statistics = data.get("statistics", {})
         self.conventions = data.get("conventions", {})
 
+    @property
+    def specification_version(self) -> str:
+        """Get the specification version."""
+        return self.data.get("spec_version", "0.1.0")
+
+    @specification_version.setter
+    def specification_version(self, value: str) -> None:
+        """Set the specification version."""
+        self.data["spec_version"] = value
+        self._update_timestamp()
+
     @classmethod
     def load(cls, path: Path) -> "Manifest":
         """Load manifest from file."""
@@ -63,11 +74,15 @@ class Manifest:
         Returns:
             New Manifest instance
         """
+        from .. import __spec_version__, __version__
+
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         data = {
             "version": "0.1.0",
             "schema": "documentation-robotics-v1",
+            "cli_version": __version__,
+            "spec_version": __spec_version__,
             "created": now,
             "updated": now,
             "project": {
@@ -96,6 +111,7 @@ class Manifest:
                     "ux": "{screen-name}.ux.yaml",
                 },
             },
+            "upgrade_history": [],
         }
 
         manifest = cls(path, data)
@@ -249,3 +265,55 @@ class Manifest:
 
         with open(self.path, "w") as f:
             yaml.dump(self.data, f, default_flow_style=False, sort_keys=False)
+
+
+class ManifestManager:
+    """Manager for loading and saving manifest files.
+
+    Provides a simplified interface for working with manifest files,
+    handling path resolution and file operations.
+    """
+
+    def __init__(self, model_dir: Optional[Path] = None):
+        """Initialize manager with model directory.
+
+        Args:
+            model_dir: Path to model directory (defaults to ./documentation-robotics/model)
+        """
+        if model_dir is None:
+            model_dir = Path.cwd() / "documentation-robotics" / "model"
+        elif isinstance(model_dir, str):
+            model_dir = Path(model_dir)
+
+        self.model_dir = model_dir
+        self.manifest_path = self.model_dir / "manifest.yaml"
+        self._manifest: Optional[Manifest] = None
+
+    def load(self) -> Manifest:
+        """Load manifest from YAML file.
+
+        Returns:
+            Manifest object
+
+        Raises:
+            FileNotFoundError: If manifest doesn't exist
+            ValueError: If manifest is invalid
+        """
+        if not self.manifest_path.exists():
+            raise FileNotFoundError(f"Manifest not found: {self.manifest_path}")
+
+        self._manifest = Manifest.load(self.manifest_path)
+        return self._manifest
+
+    def save(self, manifest: Optional[Manifest] = None) -> None:
+        """Save manifest to YAML file.
+
+        Args:
+            manifest: Manifest to save (if None, uses the last loaded manifest)
+        """
+        if manifest is None:
+            if self._manifest is None:
+                raise ValueError("No manifest to save. Call load() first or provide a manifest.")
+            manifest = self._manifest
+
+        manifest.save()

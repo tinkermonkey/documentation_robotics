@@ -44,9 +44,9 @@ class SchemaValidator(BaseValidator):
 
         if not self.schema:
             result.add_warning(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message="No schema available for validation",
+                element_id=element.id,
             )
             return result
 
@@ -56,16 +56,18 @@ class SchemaValidator(BaseValidator):
 
         except jsonschema.ValidationError as e:
             result.add_error(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message=f"Schema validation failed: {e.message}",
+                element_id=element.id,
                 location=f"$.{'.'.join(str(p) for p in e.path)}",
                 fix=self._suggest_fix(e),
             )
 
         except jsonschema.SchemaError as e:
             result.add_error(
-                layer=element.layer, element_id=element.id, message=f"Invalid schema: {e.message}"
+                element.layer,
+                message=f"Invalid schema: {e.message}",
+                element_id=element.id,
             )
 
         # Additional strict checks
@@ -79,17 +81,17 @@ class SchemaValidator(BaseValidator):
         # Check for required fields
         if not element.description:
             result.add_warning(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message="Missing description (recommended in strict mode)",
+                element_id=element.id,
             )
 
         # Check naming conventions
         if not element.name or not element.name[0].isupper():
             result.add_warning(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message="Element name should start with uppercase letter",
+                element_id=element.id,
             )
 
     def _suggest_fix(self, error: jsonschema.ValidationError) -> Optional[str]:

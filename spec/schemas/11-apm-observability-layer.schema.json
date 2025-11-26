@@ -787,7 +787,11 @@
       "properties": {
         "schemaRef": {
           "type": "string",
-          "description": "Reference to Data Model Layer schema ID"
+          "description": "Reference to Data Model Layer schema file path"
+        },
+        "dataModelSchemaId": {
+          "type": "string",
+          "description": "JSON Schema $id value (formal schema identifier) - distinct from file path"
         },
         "monitoringEnabled": {
           "type": "boolean",

@@ -35,24 +35,26 @@ class NamingValidator(BaseValidator):
         # Validate ID format
         if not self._validate_id_format(element.id):
             result.add_error(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message=f"Element ID doesn't match expected format: {self.id_format}",
+                element_id=element.id,
                 fix="Ensure ID follows pattern: {layer}.{type}.{kebab-case-name}",
             )
 
         # Validate name is not empty
         if not element.name:
             result.add_error(
-                layer=element.layer, element_id=element.id, message="Element name is required"
+                element.layer,
+                message="Element name is required",
+                element_id=element.id,
             )
 
         # Validate name doesn't contain special characters
         if element.name and not re.match(r"^[a-zA-Z0-9\s\-_]+$", element.name):
             result.add_warning(
-                layer=element.layer,
-                element_id=element.id,
+                element.layer,
                 message="Element name contains special characters",
+                element_id=element.id,
             )
 
         return result

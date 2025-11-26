@@ -5,6 +5,126 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - TBD
+
+### Added
+
+- **Cross-Layer Link Management System**: Complete infrastructure for managing and validating inter-layer references
+  - **Link Registry** (`LinkRegistry` class):
+    - Machine-readable catalog of 60+ cross-layer reference patterns
+    - Loads from `/spec/schemas/link-registry.json`
+    - Query by category, source layer, target layer, or field path
+    - Export to JSON, Markdown table, or full documentation
+    - Statistics and metadata tracking
+  - **Link Analyzer** (`LinkAnalyzer` class):
+    - Automatic discovery of link instances in models
+    - Builds multi-graph of inter-layer connections
+    - BFS path-finding between elements
+    - Broken link detection
+    - Orphaned element identification
+    - Link statistics and reporting
+  - **Link Validator** (`LinkValidator` class):
+    - Validates link existence, type compatibility, cardinality, and format
+    - Levenshtein distance for typo suggestions
+    - Configurable severity (warning vs. error)
+    - Strict mode for CI/CD pipelines
+    - Detailed issue reporting with suggestions
+  - **Link Documentation Generator** (`LinkDocGenerator` class):
+    - Generate Markdown summaries and detailed references
+    - Create interactive HTML documentation with search
+    - Generate Mermaid diagrams showing layer relationships
+    - Quick reference guides for common patterns
+  - **CLI Commands**: Full command suite under `dr links` group
+    - `types` - List available link types with filtering
+    - `registry` - Display or export complete link registry
+    - `stats` - Show link registry and model statistics
+    - `docs` - Generate comprehensive documentation (MD, HTML, Mermaid)
+    - `list` - List all link instances in model (pending)
+    - `find` - Find links for specific element (pending)
+    - `validate` - Validate all model links (pending)
+    - `trace` - Find paths between elements (pending)
+  - **Validation Integration**:
+    - `dr validate --validate-links` - Enable cross-layer link validation
+    - `dr validate --strict-links` - Treat link warnings as errors
+    - Link validation results in both text and JSON output
+    - Integrated with manifest validation status
+
+- **Cross-Layer Reference Registry Documentation**:
+  - Complete catalog in `/spec/core/06-cross-layer-reference-registry.md`
+  - Shared JSON Schema definitions in `/spec/schemas/shared-references.schema.json`
+  - Machine-readable registry in `/spec/schemas/link-registry.json`
+  - Documentation includes naming conventions, examples, and migration guide
+
+- **Schema Enhancements**:
+  - **Navigation Layer** (`10-navigation-layer.schema.json`):
+    - Added `experience` field to Route for UX layer references
+    - Added `motivationAlignment.fulfillsRequirements` to Route
+    - Added `motivationAlignment.enforcesRequirement` to NavigationGuard
+    - Added `api.operationId` and `api.method` to NavigationGuard
+    - Enhanced NavigationFlow with motivation alignment
+  - **APM Layer** (`11-apm-observability-layer.schema.json`):
+    - Added `dataModelSchemaId` to distinguish JSON Schema $id from file path
+    - Clarified distinction between schema reference and schema identifier
+
+- **Comprehensive Testing**: 100+ tests for link management functionality
+  - `test_link_registry.py` - 24 tests for LinkRegistry class
+  - `test_link_analyzer.py` - 22 tests for LinkAnalyzer class
+  - `test_link_validator.py` - 27 tests for LinkValidator class
+  - Tests cover valid/invalid links, type checking, path finding, validation
+
+- **Documentation**:
+  - Comprehensive [Link Management Guide](./docs/user-guide/link-management.md)
+  - Command reference with examples
+  - Best practices and troubleshooting
+  - CI/CD integration examples
+
+### Changed
+
+- **dr validate command** now supports optional link validation:
+  - Use `--validate-links` to enable cross-layer link checking
+  - Use `--strict-links` to treat link warnings as errors
+  - Link validation results displayed separately from schema validation
+  - Exit code reflects both schema and link validation status
+
+### Migration Tools
+
+- **Link Migrator** (`LinkMigrator` class):
+  - Scans models for non-standard reference patterns
+  - Detects naming convention issues (camelCase → kebab-case)
+  - Identifies cardinality mismatches
+  - Can apply migrations automatically with confirmation
+- **CLI Commands**: `dr migrate` group
+  - `check-version` - Check model specification version
+  - `links --check` - Analyze what needs migration
+  - `links --dry-run` - Preview changes without applying
+  - `links --apply` - Apply migrations to model files
+- Prepares models for v1.0 specification standards
+
+### Implementation Details
+
+- Four reference pattern types supported:
+  1. X-extensions (e.g., `x-business-service-ref`)
+  2. Dot-notation properties (e.g., `motivation.supports-goals`)
+  3. Nested objects (e.g., `motivationAlignment.supportsGoals`)
+  4. Direct field names (e.g., `operationId`, `$ref`)
+- Link validation checks:
+  - **Existence**: Target elements exist in the model
+  - **Type Compatibility**: Targets are correct element type
+  - **Cardinality**: Single vs. array values match definition
+  - **Format**: UUID, path, duration formats are valid
+- Documentation generator creates:
+  - Markdown summary tables by category
+  - Detailed reference with all metadata
+  - Interactive HTML with search and filtering
+  - Mermaid diagrams showing layer relationships
+  - Quick reference for common patterns
+
+### Version Strategy
+
+- **Specification v0.1.1** (current): Initial specification with organic link patterns
+- **Specification v1.0** (future): First stable release with standardized link patterns and strict enforcement
+- **CLI v0.4.0** (this release): Tools to help migrate models from v0.x to v1.0 standards
+
 ## [0.3.3] - 2025-11-26
 
 ### Breaking Changes

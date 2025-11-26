@@ -74,7 +74,22 @@
         },
         "experience": {
           "type": "string",
-          "description": "UX spec reference"
+          "pattern": "^[^\\0]+\\.ya?ml$|^[^\\0]+\\.json$",
+          "description": "Path to UX experience specification (YAML or JSON file)"
+        },
+        "motivationAlignment": {
+          "type": "object",
+          "description": "Motivation layer alignment for this route",
+          "properties": {
+            "fulfillsRequirements": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Array of Requirement IDs this route fulfills"
+            }
+          }
         },
         "archimateRef": {
           "type": "string",
@@ -218,6 +233,32 @@
         },
         "onDeny": {
           "$ref": "#/definitions/GuardAction"
+        },
+        "motivationAlignment": {
+          "type": "object",
+          "description": "Motivation layer alignment for this guard",
+          "properties": {
+            "enforcesRequirement": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Single Requirement ID enforced by this guard"
+            }
+          }
+        },
+        "api": {
+          "type": "object",
+          "description": "API integration for guard validation",
+          "properties": {
+            "operationId": {
+              "type": "string",
+              "description": "OpenAPI operation ID to call for validation"
+            },
+            "method": {
+              "type": "string",
+              "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"],
+              "description": "HTTP method for validation call"
+            }
+          }
         }
       }
     },
@@ -274,15 +315,42 @@
         },
         "business": {
           "type": "object",
+          "description": "Business layer integration",
           "properties": {
             "realizesProcess": {
               "type": "string",
+              "format": "uuid",
               "description": "BusinessProcess ID this flow realizes"
             },
             "realizesServices": {
               "type": "array",
-              "items": { "type": "string" },
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
               "description": "BusinessService IDs this flow realizes"
+            }
+          }
+        },
+        "motivationAlignment": {
+          "type": "object",
+          "description": "Motivation layer alignment for this flow",
+          "properties": {
+            "supportsGoals": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Array of Goal IDs this flow supports"
+            },
+            "deliversValue": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "description": "Array of Value IDs this flow delivers"
             }
           }
         },
