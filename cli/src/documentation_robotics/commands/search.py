@@ -7,7 +7,6 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from ..core.model import Model
 from ..utils.output import print_element_table
 
 console = Console()
@@ -25,9 +24,11 @@ def search(
 ):
     """Search for elements across layers."""
 
-    # Load model
+    # Load model (with changeset context if active)
     try:
-        model = Model(Path.cwd())
+        from .utils import load_model_with_changeset_context
+
+        model = load_model_with_changeset_context(Path.cwd())
     except FileNotFoundError:
         console.print("✗ Error: No model found in current directory", style="red bold")
         raise click.Abort()

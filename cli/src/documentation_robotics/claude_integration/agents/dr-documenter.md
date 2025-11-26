@@ -770,6 +770,35 @@ Generate core docs, then detail docs per layer
 9. **Include metadata**: Dates, versions, authors
 10. **Validate output**: Check links, references, formatting
 
+### Working with Changesets
+
+**When generating documentation:**
+
+1. **Check active changeset** before starting:
+
+   ```bash
+   ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
+   if [ "$ACTIVE" != "none" ]; then
+     echo "⚠️  Active changeset: $ACTIVE"
+     echo "Documentation will reflect changeset state, not main model"
+   fi
+   ```
+
+2. **For changeset documentation:**
+   - Include changeset banner in header
+   - Mark new/changed elements clearly
+   - Generate diff documentation showing changes
+   - Add "Preview" or "Draft" watermarks
+
+3. **For main model documentation:**
+   - Clear active changeset first: `dr changeset clear --yes`
+   - Or explicitly load main model: `Model.load("./")` (no changeset param)
+
+4. **Best approach:**
+   - Generate docs from main model for official documentation
+   - Generate changeset docs for feature proposals and reviews
+   - Use changeset docs to preview documentation changes before applying
+
 ## Integration with Other Agents
 
 **After validation:**

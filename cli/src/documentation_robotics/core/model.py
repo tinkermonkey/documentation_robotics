@@ -464,6 +464,26 @@ class Model:
             layer.save()
         self.manifest.save()
 
+    @staticmethod
+    def load(root_path: Path, changeset: Optional[str] = None, **kwargs) -> "Model":
+        """
+        Factory method to load a model with optional changeset context.
+
+        Args:
+            root_path: Path to the model root directory
+            changeset: Optional changeset ID to work in
+            **kwargs: Additional arguments passed to Model constructor
+
+        Returns:
+            Model instance (or ChangesetModel if changeset specified)
+        """
+        if changeset:
+            from .changeset_model import ChangesetModel
+
+            return ChangesetModel(root_path, changeset, **kwargs)
+        else:
+            return Model(root_path, **kwargs)
+
     @classmethod
     def create(cls, root_path: Path, project_name: str, **options) -> "Model":
         """

@@ -5,6 +5,103 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2025-11-26
+
+### Added
+
+- **Changeset Management System**: Complete isolated workspace functionality for safe architecture experimentation
+  - **Core Implementation**:
+    - `Changeset` class for tracking changes (add/update/delete operations)
+    - `ChangesetManager` class for lifecycle management
+    - `ChangesetModel` class extending Model with transparent change tracking
+    - `Model.load()` factory method supporting changeset context
+  - **CLI Commands**: Full command suite under `dr changeset` group
+    - `create` - Create new changesets with types (feature/bugfix/exploration)
+    - `list` - List all changesets with filtering by status
+    - `status` - Show detailed changeset information and changes
+    - `switch` - Switch between changesets or return to main model
+    - `apply` - Apply changeset changes to main model with preview
+    - `abandon` - Mark changesets as abandoned
+    - `clear` - Deactivate current changeset
+    - `delete` - Permanently delete changesets
+    - `diff` - Compare changesets or with main model
+  - **Python API**:
+    - `ChangesetManager` for programmatic changeset operations
+    - `Model.load(root_path, changeset=changeset_id)` for context loading
+    - Change tracking classes: `Change`, `ChangesetMetadata`
+    - Diff and conflict detection capabilities
+  - **Automatic Integration**:
+    - All modeling commands (`add`, `update`, `remove`) work transparently in changeset context
+    - Changes tracked automatically with before/after snapshots
+    - Active changeset indicator in command output
+  - **File Structure**:
+    - `.dr/changesets/` directory for changeset storage
+    - `registry.yaml` for changeset metadata tracking
+    - Individual changeset directories with metadata and change logs
+
+- **Comprehensive Testing**: 75 tests for changeset functionality with excellent coverage
+  - `test_changeset.py` - 15 tests for core changeset classes (97% coverage)
+  - `test_changeset_manager.py` - 18 tests for manager operations (94% coverage)
+  - `test_changeset_model.py` - 16 tests for model integration (90% coverage)
+  - `test_changeset_commands.py` - 26 tests for CLI commands (68% coverage)
+  - All 75 tests passing with comprehensive edge case coverage
+
+- **Claude Code Integration Documentation**:
+  - **Reference Sheets** (all 3 tiers updated):
+    - `tier1-essentials.md` - Basic changeset commands (create, status, apply)
+    - `tier2-developer-guide.md` - Complete "Working with Changesets" section
+      - When to use changesets guidance
+      - Basic and advanced workflows
+      - Python API examples
+      - Best practices for lifecycle management
+    - `tier3-complete-reference.md` - Extensive changeset documentation
+      - Core concepts and lifecycle
+      - Complete command reference
+      - Python API documentation
+      - Four detailed use case examples
+      - File structure and format specifications
+      - Troubleshooting guide
+      - Integration with version control
+  - **Command Documentation**:
+    - `dr-changeset.md` - Complete slash command guide for Claude Code
+      - Critical decision points: when to create, check, switch, apply
+      - Detailed workflow for each operation
+      - Safety protocols for applying changesets
+      - Error handling and recovery guidance
+      - Integration with other DR commands
+      - Quick reference section
+  - **Agent Integration**:
+    - Updated `dr-documenter.md` - Changeset-aware documentation generation
+    - Updated `dr-extractor.md` - **Mandatory changeset usage** for extractions
+    - Updated `dr-validator.md` - Changeset-aware validation and fixing
+    - Each agent includes specific guidance on when and how to use changesets
+
+### Changed
+
+- **Model Loading**: Enhanced `Model.load()` to support optional changeset context
+- **Command Integration**: All modeling commands now detect and work with active changesets
+- **Validation**: Validation now runs against changeset state when active
+
+### Technical Details
+
+- **Architecture**: Lightweight change tracking (not copy-on-write)
+  - Changes tracked as operations with metadata
+  - Virtual application of changes on top of main model
+  - Efficient storage and fast changeset switching
+- **Isolation**: Full branch-like isolation for safe experimentation
+  - Changes invisible to main model until applied
+  - Multiple changesets can exist in parallel
+  - Atomic apply/abandon operations
+- **Persistence**: File-based storage in `.dr/changesets/`
+  - YAML format for metadata and changes
+  - Persistent across sessions
+  - Git-friendly structure
+- **Change Tracking**:
+  - Add operations: Store complete element data
+  - Update operations: Store before/after snapshots
+  - Delete operations: Store element backup
+  - Timestamp and metadata for all changes
+
 ## [0.3.2] - 2025-11-25
 
 ### Added
@@ -277,7 +374,13 @@ Examples:
 
 ## Release Notes Links
 
+- [0.3.3 Release Notes](https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.3)
+- [0.3.2 Release Notes](https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.2)
+- [0.3.1 Release Notes](https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.1)
 - [0.3.0 Release Notes](https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.0)
 - [All CLI Releases](https://github.com/tinkermonkey/documentation_robotics/releases?q=cli)
 
+[0.3.3]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.3
+[0.3.2]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.2
+[0.3.1]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.1
 [0.3.0]: https://github.com/tinkermonkey/documentation_robotics/releases/tag/cli-v0.3.0

@@ -10,7 +10,6 @@ import yaml
 from rich.console import Console
 
 from ..core.element import Element
-from ..core.model import Model
 from ..schemas.bundler import get_bundled_schemas_dir
 from ..schemas.registry import EntityTypeRegistry
 from ..utils.id_generator import generate_element_id
@@ -43,9 +42,11 @@ def add(
 ):
     """Add an element to a layer."""
 
-    # Load model
+    # Load model (with changeset context if active)
     try:
-        model = Model(Path.cwd())
+        from .utils import load_model_with_changeset_context
+
+        model = load_model_with_changeset_context(Path.cwd())
     except FileNotFoundError:
         console.print("✗ Error: No model found in current directory", style="red bold")
         console.print("   Run 'dr init <project-name>' first")

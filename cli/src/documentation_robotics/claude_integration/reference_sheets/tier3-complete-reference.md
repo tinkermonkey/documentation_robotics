@@ -1077,6 +1077,414 @@ dr validate --auto-fix
 dr validate --warnings-only
 ```
 
+### Changeset Management
+
+**Changesets** provide isolated workspaces for architecture changes, similar to Git branches. They enable safe experimentation, incremental feature development, and collaborative design exploration.
+
+#### Core Concepts
+
+**Changeset Types:**
+
+- `feature` - New functionality or capabilities
+- `bugfix` - Corrections to existing elements
+- `exploration` - Speculative designs and experiments
+
+**Changeset Lifecycle:**
+
+1. **active** - Currently being worked on
+2. **applied** - Merged to main model (historical record)
+3. **abandoned** - Discarded changes (kept for reference)
+
+**Change Operations:**
+
+- `add` - New elements created
+- `update` - Existing elements modified
+- `delete` - Elements removed
+
+#### Basic Commands
+
+```bash
+# Create new changeset
+dr changeset create "feature-name" \
+  --type feature \
+  --description "Add payment processing"
+
+# Create without auto-activating
+dr changeset create "experiment" --type exploration --no-activate
+
+# List all changesets
+dr changeset list
+dr changeset list --status active     # Filter by status
+dr changeset list --json              # JSON output
+
+# Check current status
+dr changeset status                   # Active changeset
+dr changeset status changeset-id      # Specific changeset
+dr changeset status --verbose         # Detailed view
+
+# Switch between changesets
+dr changeset switch changeset-id      # Activate different changeset
+dr changeset clear --yes              # Return to main model
+
+# Apply changeset to main
+dr changeset apply --preview          # Preview changes
+dr changeset apply --yes              # Apply to main model
+dr changeset apply changeset-id --yes # Apply specific changeset
+
+# Discard changes
+dr changeset abandon changeset-id --yes    # Mark as abandoned
+dr changeset delete changeset-id --yes     # Permanent deletion
+```
+
+#### Advanced Operations
+
+```bash
+# Compare changesets
+dr changeset diff                     # Current vs main
+dr changeset diff changeset-a changeset-b  # Compare two changesets
+dr changeset diff --json              # JSON output for parsing
+
+# Query and statistics
+dr changeset list --status applied    # History of applied changesets
+dr changeset list --status abandoned  # Discarded work
+
+# Changeset summary
+dr changeset status changeset-id
+# Shows:
+# - Metadata (name, type, created date)
+# - Change counts (added, updated, deleted)
+# - Affected layers
+# - Recent change history
+```
+
+#### Working in Changeset Context
+
+**All commands work transparently in changeset context:**
+
+```bash
+# Activate changeset
+dr changeset create "new-api-layer"
+
+# Standard commands work normally - changes tracked in changeset
+dr add api operation --name "Create Order" \
+  --property method=POST \
+  --property path=/orders
+
+dr update api.operation.create-order \
+  --property authenticated=true
+
+dr list api operation
+# Shows both main model + changeset elements
+
+# Return to main model
+dr changeset clear --yes
+```
+
+**Automatic change tracking:**
+
+- All `dr add` operations tracked as "add" changes
+- All `dr update` operations tracked as "update" changes with before/after snapshots
+- All `dr remove` operations tracked as "delete" changes with element backup
+- Changes persist across sessions (saved to `.dr/changesets/`)
+
+#### Python API
+
+```python
+from documentation_robotics.core import Model
+from documentation_robotics.core.changeset_manager import ChangesetManager
+from documentation_robotics.core.changeset import Change
+
+# Initialize manager
+manager = ChangesetManager("./")
+
+# Create changeset
+changeset_id = manager.create(
+    name="feature-api-redesign",
+    changeset_type="feature",
+    description="Redesign REST API structure",
+    set_active=True
+)
+
+# Load model in changeset context
+model = Model.load("./", changeset=changeset_id)
+
+# Make changes - automatically tracked
+element = {
+    "id": "api.operation.get-orders",
+    "name": "Get Orders",
+    "properties": {"method": "GET", "path": "/orders"}
+}
+model.add_element("api", element)
+
+# Changes isolated to changeset
+main_model = Model.load("./")  # No changeset param
+# Won't see api.operation.get-orders
+
+# Query changeset
+changeset = manager.load_changeset(changeset_id)
+print(f"Changes: {changeset.get_element_count()}")
+print(f"Affected layers: {changeset.get_affected_layers()}")
+
+# Get detailed change list
+for change in changeset.get_changes():
+    print(f"{change.operation}: {change.element_id}")
+
+# Compare changesets
+diff = manager.diff_changesets(changeset_id, None)  # None = main
+if diff['has_conflicts']:
+    print("Conflicts detected!")
+    for conflict in diff['modified_in_both']:
+        print(f"  {conflict['element_id']}")
+
+# Apply to main model (programmatic)
+main_model = Model.load("./")
+for change in changeset.get_changes():
+    if change.operation == "add":
+        main_model.add_element(change.layer, change.data)
+    elif change.operation == "update":
+        main_model.update_element(change.element_id, change.after)
+    elif change.operation == "delete":
+        main_model.remove_element(change.element_id)
+main_model.save()
+
+# Update status
+manager.update_changeset_status(changeset_id, "applied")
+```
+
+#### Use Cases
+
+**1. Feature Development**
+
+```bash
+# Start feature work
+dr changeset create "feature-payment-gateway"
+
+# Incrementally build feature
+dr add business service --name "Payment Processing"
+dr add application service --name "Payment Gateway"
+dr add api operation --name "Process Payment"
+
+# Review and refine
+dr changeset status --verbose
+dr validate
+
+# Apply when ready
+dr changeset apply --yes
+```
+
+**2. Speculative Design**
+
+```bash
+# Explore alternative approaches
+dr changeset create "explore-microservices" --type exploration
+
+# Try microservices approach
+dr add application service --name "Order Service"
+dr add application service --name "Payment Service"
+dr add application service --name "Inventory Service"
+
+# Compare with current monolith
+dr changeset diff
+
+# Decide: apply or abandon
+dr changeset abandon explore-microservices --yes  # Not adopting
+```
+
+**3. Parallel Development**
+
+```bash
+# Feature A team
+dr changeset create "feature-a"
+# ... work on feature A ...
+
+# Feature B team
+dr changeset switch feature-b  # Or create new
+# ... work on feature B ...
+
+# Compare approaches
+dr changeset diff feature-a feature-b
+
+# Apply both in sequence
+dr changeset apply feature-a --yes
+dr changeset apply feature-b --yes
+```
+
+**4. Safe Experimentation**
+
+```bash
+# Try potentially breaking change
+dr changeset create "experiment-api-v2"
+
+# Make aggressive changes
+dr remove api.path.legacy-endpoint
+dr add api.path.new-endpoint
+
+# Validate impact
+dr validate
+dr trace api.path.legacy-endpoint --direction downstream
+
+# If problems found
+dr changeset abandon experiment-api-v2 --yes  # No harm done
+```
+
+#### Best Practices
+
+**When to use changesets:**
+
+- ✓ Building new features incrementally
+- ✓ Exploring design alternatives
+- ✓ Making experimental changes
+- ✓ Working on multiple features in parallel
+- ✓ Collaborative design sessions
+- ✓ Large refactoring efforts
+- ✓ Extracting models from external sources
+
+**When NOT to use changesets:**
+
+- ✗ Simple, obvious corrections
+- ✗ Fixing typos
+- ✗ Single, atomic changes
+- ✗ Emergency hotfixes (unless review needed)
+
+**Workflow recommendations:**
+
+1. **Create descriptive names**: `feature-oauth-integration` not `test1`
+2. **One feature per changeset**: Focused, reviewable changes
+3. **Review before applying**: Use `--preview` and `diff`
+4. **Validate before applying**: Catch issues early
+5. **Keep changesets short-lived**: Apply or abandon promptly
+6. **Document in description**: Explain intent and context
+7. **Clean up regularly**: Delete applied/abandoned changesets
+
+**Integration with version control:**
+
+- Changesets are **separate from Git**
+- Complement Git with architecture-specific versioning
+- Commit applied changesets to Git for team sharing
+- Use `.gitignore` to exclude active exploration changesets
+
+#### File Structure
+
+```
+project-root/
+└── .dr/
+    └── changesets/
+        ├── active                    # Current active changeset ID
+        ├── registry.yaml             # Changeset metadata registry
+        └── feature-payment-2024-01-15-001/
+            ├── metadata.yaml         # Changeset info
+            ├── changes.yaml          # Change log
+            └── elements/             # Changeset-specific elements (optional)
+```
+
+**Registry format:**
+
+```yaml
+version: "1.0"
+changesets:
+  feature-payment-2024-01-15-001:
+    name: "Payment Gateway"
+    status: active
+    type: feature
+    created_at: "2024-01-15T10:30:00Z"
+    elements_count: 5
+```
+
+**Metadata format:**
+
+```yaml
+id: feature-payment-2024-01-15-001
+name: "Payment Gateway"
+description: "Add Stripe payment gateway integration"
+type: feature
+status: active
+workflow: direct-cli
+created_at: "2024-01-15T10:30:00Z"
+updated_at: "2024-01-15T11:45:00Z"
+summary:
+  elements_added: 3
+  elements_updated: 1
+  elements_deleted: 0
+```
+
+**Changes log format:**
+
+```yaml
+- timestamp: "2024-01-15T10:31:00Z"
+  operation: add
+  element_id: business.service.payment-processing
+  layer: business
+  element_type: service
+  data:
+    name: "Payment Processing"
+    description: "Handles payment transactions"
+
+- timestamp: "2024-01-15T10:35:00Z"
+  operation: update
+  element_id: application.service.order-management
+  layer: application
+  element_type: service
+  before:
+    dependencies: []
+  after:
+    dependencies: [business.service.payment-processing]
+```
+
+#### Troubleshooting
+
+**Issue: Changes not tracked**
+
+```bash
+# Verify active changeset
+cat .dr/changesets/active
+
+# If empty, create or activate changeset
+dr changeset create "my-feature"
+```
+
+**Issue: Can't apply changeset**
+
+```bash
+# Check for validation errors
+dr validate
+
+# Check for conflicts
+dr changeset diff
+
+# Resolve conflicts manually, then reapply
+```
+
+**Issue: Lost changeset**
+
+```bash
+# List all changesets (including abandoned)
+dr changeset list
+
+# Changeset files location
+ls -la .dr/changesets/
+
+# Restore from backup if needed
+```
+
+**Issue: Changeset merge conflicts**
+
+```bash
+# View conflicting changes
+dr changeset diff
+
+# Options:
+# 1. Apply anyway (overwrites main)
+dr changeset apply --yes
+
+# 2. Manually resolve in changeset
+dr changeset switch conflicting-changeset
+# Edit elements to resolve
+dr changeset apply --yes
+
+# 3. Abandon conflicting changeset
+dr changeset abandon changeset-id --yes
+```
+
 ---
 
 ## Projection Rules Reference

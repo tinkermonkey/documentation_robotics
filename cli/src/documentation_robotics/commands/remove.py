@@ -7,8 +7,6 @@ from pathlib import Path
 import click
 from rich.console import Console
 
-from ..core.model import Model
-
 console = Console()
 
 
@@ -21,9 +19,11 @@ console = Console()
 def remove(element_id: str, force: bool, cascade: bool, dry_run: bool, yes: bool):
     """Remove an element from the model."""
 
-    # Load model
+    # Load model (with changeset context if active)
     try:
-        model = Model(Path.cwd())
+        from .utils import load_model_with_changeset_context
+
+        model = load_model_with_changeset_context(Path.cwd())
     except FileNotFoundError:
         console.print("✗ Error: No model found in current directory", style="red bold")
         raise click.Abort()

@@ -594,6 +594,64 @@ Recommendation: Option 2, flag others
 9. **Report progress** (user feedback)
 10. **Clean up on failure** (rollback partial changes)
 
+### Working with Changesets
+
+**ALWAYS use changesets for extraction work** to allow review before committing:
+
+1. **Create changeset at start:**
+
+   ```bash
+   dr changeset create "extract-from-{source}" --type exploration
+   ```
+
+2. **Why use changesets for extraction:**
+   - Extracted models are speculative and need review
+   - Allows comparison with existing model
+   - Easy to discard bad extractions
+   - Can iterate on extraction rules without affecting main model
+   - Safe to experiment with different extraction strategies
+
+3. **Workflow:**
+
+   ```bash
+   # 1. Create exploration changeset
+   dr changeset create "extract-openapi" --type exploration
+
+   # 2. Extract and add elements
+   # ... your extraction logic ...
+
+   # 3. Review results
+   dr changeset status --verbose
+   dr validate
+
+   # 4. Show user and get approval
+   dr changeset diff
+
+   # 5. Apply if approved
+   dr changeset apply --yes
+   # Or discard if rejected
+   dr changeset abandon $ID --yes
+   ```
+
+4. **Benefits:**
+   - User can review extracted elements before accepting
+   - Multiple extraction attempts without cluttering main model
+   - Compare different extraction strategies
+   - Document what was extracted in changeset metadata
+
+5. **Inform the user:**
+
+   ```
+   ✓ Created exploration changeset for extraction
+   All extracted elements will be tracked here.
+
+   After extraction completes:
+   - Review: dr changeset status
+   - Compare: dr changeset diff
+   - Apply: dr changeset apply (if satisfied)
+   - Discard: dr changeset abandon (if not satisfied)
+   ```
+
 ## Output Format
 
 Always return structured report with:

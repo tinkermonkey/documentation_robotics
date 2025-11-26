@@ -33,6 +33,11 @@ dr search {pattern}                   # Search across layers
 dr add {layer} {type} --name "..." --property key=value
 dr update {element-id} --property key=value
 
+# Changesets (isolated changes)
+dr changeset create "feature-name"    # Start new changeset
+dr changeset status                   # View current changes
+dr changeset apply                    # Merge to main model
+
 # Validate & export
 dr validate --strict                  # Full validation
 dr export --format {archimate|markdown|plantuml}

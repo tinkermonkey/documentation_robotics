@@ -7,6 +7,7 @@ from rich.console import Console
 
 from .commands import (
     add,
+    changeset,
     claude,
     conformance,
     export,
@@ -64,6 +65,8 @@ cli.add_command(trace.trace)
 # Phase 3 commands
 cli.add_command(export.export)
 cli.add_command(conformance.conformance)
+# Changeset management
+cli.add_command(changeset.changeset)
 # Claude Code integration
 cli.add_command(claude.claude)
 

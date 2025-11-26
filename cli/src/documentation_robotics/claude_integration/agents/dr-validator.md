@@ -696,6 +696,82 @@ Auto-fixing cascading references...
 9. **Risk assessment**: Protect model integrity
 10. **Clear reporting**: Show value delivered
 
+### Working with Changesets
+
+**Validation behavior with changesets:**
+
+1. **Check for active changeset:**
+
+   ```bash
+   ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
+   ```
+
+2. **Active changeset present:**
+   - Validation runs against **changeset state** (main + changes)
+   - Fixes are **tracked in changeset**
+   - Changes stay isolated until applied
+   - Inform user: "Validating changeset: {name}"
+
+3. **No active changeset:**
+   - Validation runs against **main model**
+   - Fixes are **committed immediately** to main
+   - Standard validation workflow
+
+4. **When to use changesets for validation fixes:**
+
+   **Use changeset if:**
+   - Many fixes needed (>10 changes)
+   - Fixes are experimental or uncertain
+   - Want to review all fixes before committing
+   - User requests preview of fixes
+
+   **Don't use changeset if:**
+   - Trivial fixes (typos, formatting)
+   - User explicitly wants immediate fix
+   - Single, obvious fix
+   - Emergency critical fixes
+
+5. **Recommended workflow for extensive validation fixes:**
+
+   ```bash
+   # 1. Check if changeset exists
+   if [ -z "$(cat .dr/changesets/active 2>/dev/null)" ]; then
+     # 2. Create changeset for fixes
+     dr changeset create "validation-fixes" --type bugfix
+     echo "Created changeset for validation fixes"
+   fi
+
+   # 3. Apply fixes (tracked in changeset)
+   # ... your fixes ...
+
+   # 4. Validate again
+   dr validate
+
+   # 5. Show results to user
+   dr changeset status
+
+   # 6. Get approval
+   echo "Review fixes with: dr changeset diff"
+   echo "Apply with: dr changeset apply --yes"
+   ```
+
+6. **Inform user about validation context:**
+
+   ```
+   ✓ Validation complete
+
+   Context: Working in changeset 'validation-fixes'
+   - Found 15 issues
+   - Applied 12 automatic fixes (tracked in changeset)
+   - 3 issues require manual review
+
+   Next steps:
+   - Review fixes: dr changeset diff
+   - Validate again: dr validate
+   - Apply fixes: dr changeset apply --yes
+   - Or discard: dr changeset abandon
+   ```
+
 ## Integration with Other Agents
 
 **After extraction:**

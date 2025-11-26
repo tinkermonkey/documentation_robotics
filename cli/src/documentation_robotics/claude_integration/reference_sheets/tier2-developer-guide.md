@@ -556,6 +556,83 @@ else:
         print(f"  - {error.message}")
 ```
 
+### Working with Changesets
+
+**Changesets** provide isolated workspaces for exploring ideas, building features, or testing changes without affecting the main model. Think of them like Git branches for your architecture.
+
+**When to use changesets:**
+
+- Exploring speculative designs or "what-if" scenarios
+- Building new features incrementally
+- Making experimental changes you might want to discard
+- Working on multiple independent features in parallel
+- Collaborating with agents to iterate on designs
+
+**Basic workflow:**
+
+```bash
+# 1. Create and activate a changeset
+dr changeset create "new-payment-feature" --type feature
+
+# 2. Make changes (all commands work in changeset context)
+dr add business service --name "Crypto Payments"
+dr add application service --name "Blockchain Adapter"
+dr update business.service.crypto-payments --property status=experimental
+
+# 3. Review changes
+dr changeset status              # See what changed
+dr changeset diff                # Compare with main model
+
+# 4. Apply or abandon
+dr changeset apply --yes         # Merge to main model
+# OR
+dr changeset abandon changeset-id --yes  # Discard changes
+```
+
+**Managing multiple changesets:**
+
+```bash
+# List all changesets
+dr changeset list                # See all changesets
+dr changeset list --status active  # Filter by status
+
+# Switch between changesets
+dr changeset switch changeset-id  # Activate different changeset
+dr changeset clear --yes          # Return to main model
+
+# Compare changesets
+dr changeset diff changeset-a changeset-b  # Compare two changesets
+```
+
+**Python API for changesets:**
+
+```python
+from documentation_robotics.core import Model
+from documentation_robotics.core.changeset_manager import ChangesetManager
+
+# Create changeset
+manager = ChangesetManager("./")
+changeset_id = manager.create(name="new-feature", changeset_type="feature")
+
+# Load model in changeset context
+model = Model.load("./", changeset=changeset_id)
+
+# Make changes - all tracked automatically
+model.add_element("business", {"id": "business.service.new", ...})
+model.update_element("business.service.existing", {"status": "updated"})
+
+# Changes are isolated to this changeset
+# Main model remains unchanged until you apply
+```
+
+**Best practices:**
+
+- Create descriptive changeset names: `feature-crypto-payments` not `test1`
+- Review changes with `dr changeset status` before applying
+- Use `--preview` flag when applying to see what will change
+- Keep changesets focused on a single feature or experiment
+- Delete or abandon changesets when done to keep workspace clean
+
 ## File Locations
 
 ```
