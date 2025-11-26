@@ -148,8 +148,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Version Strategy
 
-- **Specification v0.1.1** (current): Initial specification with organic link patterns
-- **Specification v0.2.0** (next): Backward-compatible addition with standardized link patterns and optional strict enforcement
+- **Specification v0.1.1** (previous): Initial specification with organic link patterns
+- **Specification v0.2.0** (current): Backward-compatible addition with standardized link patterns and optional strict enforcement
 - **CLI v0.4.0** (this release): Tools to help migrate models from v0.1.x to v0.2.0 standards
 
 ## [0.3.3] - 2024-11-26

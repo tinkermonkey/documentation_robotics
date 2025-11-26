@@ -23,14 +23,14 @@ class TestMigrationRegistry:
 
     def test_registry_loads_migrations(self, registry):
         """Test all migrations are registered."""
-        # Registry should have at least the 0.1.0 → 1.0.0 migration
+        # Registry should have at least one migration
         assert registry.migrations is not None
         assert len(registry.migrations) > 0
 
-        # Check that the first migration is 0.1.0 → 1.0.0
+        # Check that the first migration starts from 0.1.0
         migration = registry.migrations[0]
         assert migration.from_version == "0.1.0"
-        assert migration.to_version == "1.0.0"
+        assert migration.to_version == registry.get_latest_version()
         assert migration.description is not None
         assert migration.apply_fn is not None
 
@@ -41,18 +41,19 @@ class TestMigrationRegistry:
         # Should return the highest version from migrations
         assert latest is not None
         assert isinstance(latest, str)
-        # Currently should be 1.0.0
-        assert latest == "1.0.0"
+        # Should match the latest migration's to_version
+        assert latest == registry.migrations[-1].to_version
 
     def test_get_migration_path_simple(self, registry):
         """Test path finding for single migration."""
-        # Migration from 0.1.0 to 1.0.0
-        path = registry.get_migration_path("0.1.0", "1.0.0")
+        # Migration from 0.1.0 to latest
+        latest = registry.get_latest_version()
+        path = registry.get_migration_path("0.1.0", latest)
 
         assert path is not None
         assert len(path) == 1
         assert path[0].from_version == "0.1.0"
-        assert path[0].to_version == "1.0.0"
+        assert path[0].to_version == latest
 
     def test_get_migration_path_multi_step(self, registry):
         """Test path finding across multiple versions."""
@@ -92,8 +93,8 @@ class TestMigrationRegistry:
 
     # Application tests (3 tests)
 
-    def test_apply_migrations_0_1_to_1_0(self, registry, temp_model_dir):
-        """Test v0.1.0 → v1.0.0 migration."""
+    def test_apply_migrations_0_1_to_latest(self, registry, temp_model_dir):
+        """Test v0.1.0 → latest migration."""
         # Create a simple model structure
         layer_dir = temp_model_dir / "02_business"
         layer_dir.mkdir()
@@ -107,14 +108,15 @@ class TestMigrationRegistry:
 """
         )
 
+        latest = registry.get_latest_version()
         result = registry.apply_migrations(
-            model_path=temp_model_dir, from_version="0.1.0", to_version="1.0.0", dry_run=False
+            model_path=temp_model_dir, from_version="0.1.0", to_version=latest, dry_run=False
         )
 
         assert result is not None
         assert "applied" in result
         assert "target_version" in result
-        assert result["target_version"] == "1.0.0"
+        assert result["target_version"] == latest
 
     def test_apply_migrations_dry_run(self, registry, temp_model_dir):
         """Test dry-run doesn't modify model."""
@@ -128,8 +130,9 @@ class TestMigrationRegistry:
 """
         service_file.write_text(original_content)
 
+        latest = registry.get_latest_version()
         result = registry.apply_migrations(
-            model_path=temp_model_dir, from_version="0.1.0", to_version="1.0.0", dry_run=True
+            model_path=temp_model_dir, from_version="0.1.0", to_version=latest, dry_run=True
         )
 
         assert result is not None
@@ -142,8 +145,9 @@ class TestMigrationRegistry:
 
     def test_apply_migrations_returns_results(self, registry, temp_model_dir):
         """Test result dictionary structure."""
+        latest = registry.get_latest_version()
         result = registry.apply_migrations(
-            model_path=temp_model_dir, from_version="0.1.0", to_version="1.0.0", dry_run=True
+            model_path=temp_model_dir, from_version="0.1.0", to_version=latest, dry_run=True
         )
 
         # Check result structure
@@ -154,13 +158,14 @@ class TestMigrationRegistry:
         assert "total_changes" in result
 
         assert result["current_version"] == "0.1.0"
-        assert result["target_version"] == "1.0.0"
+        assert result["target_version"] == latest
 
     # Summary tests (2 tests)
 
     def test_get_migration_summary(self, registry):
         """Test summary generation."""
-        summary = registry.get_migration_summary("0.1.0", "1.0.0")
+        latest = registry.get_latest_version()
+        summary = registry.get_migration_summary("0.1.0", latest)
 
         assert summary is not None
         assert isinstance(summary, dict)
@@ -170,7 +175,7 @@ class TestMigrationRegistry:
         assert "migrations" in summary
 
         assert summary["current_version"] == "0.1.0"
-        assert summary["target_version"] == "1.0.0"
+        assert summary["target_version"] == latest
         assert summary["migrations_needed"] > 0
 
         # Check migrations list
@@ -178,7 +183,7 @@ class TestMigrationRegistry:
         assert isinstance(migrations, list)
         assert len(migrations) > 0
         assert migrations[0]["from"] == "0.1.0"
-        assert migrations[0]["to"] == "1.0.0"
+        assert migrations[0]["to"] == latest
 
     def test_migration_summary_no_migrations_needed(self, registry):
         """Test summary when no migrations needed."""
