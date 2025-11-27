@@ -2,6 +2,66 @@
 
 This directory contains assets for integrating Documentation Robotics with Claude Code.
 
+## ⚠️ Version 0.4.1+ Format Update
+
+**As of v0.4.1**, all agents and commands use YAML frontmatter for Claude Code discovery. If you installed these files before v0.4.1:
+
+```bash
+# Update to latest format
+dr claude update --force
+```
+
+**What changed:**
+
+- Agents now require YAML frontmatter with `name`, `description`, and `tools` fields
+- Commands now include YAML frontmatter with `description` and `argument-hint` fields
+- Old inline metadata format has been removed
+
+See templates for examples of the new format.
+
+## 🚀 Quick Start
+
+After running `dr claude install`, you have access to:
+
+### Specialized Agents (Launch with Task tool)
+
+- `dr-helper` - Ask questions about DR concepts and CLI usage
+- `dr-ideator` - Brainstorm architecture ideas using changesets
+- `dr-validator` - Validate model and get fix suggestions
+- `dr-extractor` - Extract models from existing codebases
+- `dr-documenter` - Generate documentation in multiple formats
+- `dr-schema-migrator` - **NEW** Migrate models from v0.1.x to v0.2.0
+- `dr-link-validator` - **NEW** Validate cross-layer links
+- `dr-security-reviewer` - **NEW** Security and compliance analysis
+
+### Slash Commands (Type in chat)
+
+- `/dr-model <request>` - Add/update/query model elements
+- `/dr-changeset <request>` - Manage isolated model changes
+- `/dr-links <request>` - Work with cross-layer references
+- `/dr-validate` - Validate model quality
+- `/dr-project <source>→<target>` - Project elements across layers
+- `/dr-ingest <path>` - Extract model from code
+- `/dr-init [name]` - Initialize new model
+
+### Auto-Activating Skills ✨
+
+Skills automatically suggest when relevant:
+
+- **Schema validation** - When editing models or mentioning errors
+- **Link validation** - When working across multiple layers
+- **Migration assistance** - When model uses old spec version
+- **Changeset review** - Before applying changeset changes
+
+### Reference Sheets
+
+Press `Ctrl+K` and type `@dr` to see available reference sheets:
+
+- DR Specification Summary
+- CLI Command Reference
+- Layer Definitions
+- Cross-Layer Projections
+
 ## Structure
 
 - **reference_sheets/** - Documentation for agents (three tiers)

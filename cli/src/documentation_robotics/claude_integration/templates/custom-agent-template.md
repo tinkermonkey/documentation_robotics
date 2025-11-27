@@ -5,15 +5,18 @@ This template helps you create custom specialized agents for Documentation Robot
 ## Template Structure
 
 ````markdown
-# [Agent Name]
+---
+name: your-agent-name
+description:
+  [One-line description of what this agent does and why it's useful. Be concise but descriptive.]
+tools: Read, Write, Bash, Grep, Glob
+---
 
-**Agent Type:** `your-agent-name`
-**Purpose:** [One-line description]
-**Autonomy Level:** [Low/Medium/High] ([explanation])
+# [Agent Name]
 
 ## Overview
 
-[Detailed description of what this agent does and why it's useful]
+[Detailed description of what this agent does, why it's useful, and when to use it]
 
 ## Capabilities
 
@@ -29,9 +32,22 @@ This template helps you create custom specialized agents for Documentation Robot
 - **Tool 3**: [When to use]
   [List tools the agent needs]
 
+## Frontmatter Fields
+
+**Required fields:**
+
+- `name`: Agent identifier (lowercase, hyphens only, matches filename without .md)
+- `description`: Natural language description of purpose and capabilities
+
+**Optional fields:**
+
+- `tools`: Comma-separated list of tools the agent can use (e.g., `Read, Write, Bash, Grep, Glob, WebSearch`)
+- `model`: Specific AI model to use (e.g., `sonnet`, `opus`, `haiku`)
+- `permissionMode`: How the agent handles permissions
+
 ## Input Parameters
 
-When launched, the agent receives:
+When launched, the agent can receive parameters via the Task tool:
 
 ```yaml
 parameter1: value # Description

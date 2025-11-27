@@ -1,3 +1,8 @@
+---
+description: Analyze an existing codebase and automatically generate a Documentation Robotics architecture model
+argument-hint: "<path> [--layers <layers>] [--tech <technology>]"
+---
+
 # Extract Architecture Model from Codebase
 
 Analyze an existing codebase and automatically generate a Documentation Robotics architecture model.

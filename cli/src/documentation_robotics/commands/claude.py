@@ -37,18 +37,35 @@ class ClaudeIntegrationManager:
             "target": KNOWLEDGE_DIR,
             "description": "Reference documentation for agents",
             "prefix": "dr-",
+            "type": "files",
         },
         "commands": {
             "source": "commands",
             "target": COMMANDS_DIR,
             "description": "Slash commands for DR workflows",
             "prefix": "",
+            "type": "files",
         },
         "agents": {
             "source": "agents",
             "target": AGENTS_DIR,
             "description": "Specialized sub-agent definitions",
             "prefix": "",
+            "type": "files",
+        },
+        "skills": {
+            "source": "skills",
+            "target": CLAUDE_DIR / "skills",
+            "description": "Auto-activating capabilities",
+            "prefix": "",
+            "type": "directories",
+        },
+        "templates": {
+            "source": "templates",
+            "target": CLAUDE_DIR / "templates",
+            "description": "Customization templates and examples",
+            "prefix": "",
+            "type": "mixed",
         },
     }
 
@@ -120,6 +137,7 @@ class ClaudeIntegrationManager:
         source_dir = INTEGRATION_ROOT / config["source"]
         target_dir = self.root_path / config["target"]
         prefix = config["prefix"]
+        install_type = config.get("type", "files")
 
         # Create target directory
         if not target_dir.exists():
@@ -131,19 +149,70 @@ class ClaudeIntegrationManager:
             return 0
 
         count = 0
-        for source_file in source_dir.glob("*.md"):
-            target_file = target_dir / f"{prefix}{source_file.name}"
 
-            # Check if file exists
-            if target_file.exists() and not force:
-                if not Confirm.ask(f"  {target_file.name} exists. Overwrite?", default=False):
-                    console.print(f"  Skipped {source_file.name}", style="dim")
-                    continue
+        # Handle different installation types
+        if install_type == "directories":
+            # Install directory structures (e.g., skills with subdirectories)
+            for skill_dir in source_dir.iterdir():
+                if skill_dir.is_dir():
+                    target_skill = target_dir / skill_dir.name
+                    target_skill.mkdir(parents=True, exist_ok=True)
 
-            # Copy file
-            shutil.copy2(source_file, target_file)
-            console.print(f"  [green]✓[/] {source_file.name}")
-            count += 1
+                    for skill_file in skill_dir.iterdir():
+                        target_file = target_skill / skill_file.name
+
+                        # Check if file exists
+                        if target_file.exists() and not force:
+                            if not Confirm.ask(
+                                f"  {skill_dir.name}/{skill_file.name} exists. Overwrite?",
+                                default=False,
+                            ):
+                                continue
+
+                        # Copy file
+                        shutil.copy2(skill_file, target_file)
+                        console.print(f"  [green]✓[/] {skill_dir.name}/{skill_file.name}")
+                        count += 1
+
+        elif install_type == "mixed":
+            # Install all files (mixed types: .md, .json, .sh, etc.)
+            for source_file in source_dir.rglob("*"):
+                if source_file.is_file():
+                    # Calculate relative path
+                    rel_path = source_file.relative_to(source_dir)
+                    target_file = target_dir / rel_path
+
+                    # Create parent directories
+                    target_file.parent.mkdir(parents=True, exist_ok=True)
+
+                    # Check if file exists
+                    if target_file.exists() and not force:
+                        if not Confirm.ask(f"  {rel_path} exists. Overwrite?", default=False):
+                            continue
+
+                    # Copy file
+                    shutil.copy2(source_file, target_file)
+                    # Make shell scripts executable
+                    if source_file.suffix == ".sh":
+                        target_file.chmod(target_file.stat().st_mode | 0o111)
+                    console.print(f"  [green]✓[/] {rel_path}")
+                    count += 1
+
+        else:  # "files" - default behavior
+            # Install .md files
+            for source_file in source_dir.glob("*.md"):
+                target_file = target_dir / f"{prefix}{source_file.name}"
+
+                # Check if file exists
+                if target_file.exists() and not force:
+                    if not Confirm.ask(f"  {target_file.name} exists. Overwrite?", default=False):
+                        console.print(f"  Skipped {source_file.name}", style="dim")
+                        continue
+
+                # Copy file
+                shutil.copy2(source_file, target_file)
+                console.print(f"  [green]✓[/] {source_file.name}")
+                count += 1
 
         return count
 

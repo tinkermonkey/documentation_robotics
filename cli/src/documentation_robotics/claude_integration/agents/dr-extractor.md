@@ -1,8 +1,10 @@
-# Model Extractor Agent
+---
+name: dr-extractor
+description: Extract architecture models from existing codebases. Analyzes source code in multiple languages (Python, JavaScript/TypeScript, Java, Go, C#) to automatically create DR elements across all 11 layers. High autonomy with mandatory changeset usage.
+tools: Glob, Grep, Read, Bash, Write
+---
 
-**Agent Type:** `dr-extractor`
-**Purpose:** Extract architecture model from existing codebase
-**Autonomy Level:** High (makes decisions about element creation)
+# Model Extractor Agent
 
 ## Overview
 
@@ -690,6 +692,410 @@ Recommendation: Option 2, flag others
    - Apply: dr changeset apply (if satisfied)
    - Discard: dr changeset abandon (if not satisfied)
    ```
+
+## Autonomous Multi-Pass Extraction (ADVANCED)
+
+For comprehensive codebase documentation that runs autonomously for 1-2 hours:
+
+### Phase 6: Self-Assessment & Iteration
+
+**Goal:** Identify gaps and plan next extraction pass
+
+After each extraction cycle, perform self-assessment:
+
+1. **Completeness Check**
+
+   ```bash
+   # Count elements by layer
+   dr list --count --layer business,application,api,data,implementation,technology
+
+   # Identify missing layers
+   # Typical ratios:
+   # - Business: 10-20% of application
+   # - Application: 1x
+   # - API: 2-3x application (CRUD ops)
+   # - Data: 0.5-1x application
+   # - Implementation: 1-2x application
+   # - Technology: 0.3-0.5x application
+   ```
+
+2. **Coverage Analysis**
+
+   ```bash
+   # Check what's been extracted
+   EXTRACTED_FILES=$(dr list --property source-file | wc -l)
+   TOTAL_CODE_FILES=$(find src -type f \( -name "*.py" -o -name "*.ts" -o -name "*.java" \) | wc -l)
+   COVERAGE=$((EXTRACTED_FILES * 100 / TOTAL_CODE_FILES))
+
+   # Target: >80% coverage for comprehensive documentation
+   ```
+
+3. **Link Completeness**
+
+   ```bash
+   # Check cross-layer link density
+   dr links validate --stats
+
+   # Expected patterns:
+   # - Every application service should link to business
+   # - Every API operation should link to application
+   # - Most data models should link to datastores
+   ```
+
+4. **Validation Gap Analysis**
+
+   ```bash
+   dr validate --strict --format json | jq '.errors | group_by(.category)'
+
+   # Common gaps to identify:
+   # - Missing descriptions (can auto-generate)
+   # - Orphaned elements (need links)
+   # - Incomplete properties (extract more)
+   # - Missing cross-layer refs
+   ```
+
+5. **Identify Next Actions**
+
+   Based on gaps, determine next extraction targets:
+
+   ```python
+   if business_layer_empty:
+       next_pass = "Extract business services from top-level modules"
+   elif missing_links > 20:
+       next_pass = "Establish cross-layer references"
+   elif technology_layer_empty:
+       next_pass = "Extract deployment and infrastructure"
+   elif implementation_coverage < 50:
+       next_pass = "Deep dive into implementation details"
+   elif security_elements == 0:
+       next_pass = "Extract security controls and policies"
+   else:
+       next_pass = "Refinement and enhancement"
+   ```
+
+### Autonomous Workflow Loop
+
+**For multi-hour autonomous operation:**
+
+```python
+# Pseudo-code for autonomous extraction
+max_iterations = 10  # Prevent infinite loops
+max_duration = 7200  # 2 hours
+iteration = 0
+start_time = time.now()
+
+while iteration < max_iterations and (time.now() - start_time) < max_duration:
+    iteration += 1
+
+    # Phase 1-5: Standard extraction cycle
+    extraction_result = run_extraction_pass(iteration)
+
+    # Phase 6: Self-assessment
+    assessment = assess_model_completeness()
+
+    # Decision point: Continue or stop?
+    if assessment.completion_score >= 85 and assessment.validation_errors == 0:
+        report("✓ Model is comprehensive and valid. Stopping.")
+        break
+
+    if assessment.no_progress_made:
+        report("⚠️ No new elements in last 2 passes. Stopping.")
+        break
+
+    # Identify next target
+    next_target = identify_highest_value_target(assessment)
+
+    if not next_target:
+        report("✓ No more high-value targets identified. Stopping.")
+        break
+
+    # Report progress
+    report_iteration_summary(iteration, assessment, next_target)
+
+    # Brief pause to allow interruption
+    if user_interrupted():
+        report("User requested stop. Finalizing...")
+        break
+
+    # Continue to next pass
+    report(f"→ Starting pass {iteration + 1}: {next_target.description}")
+
+# Final report
+generate_comprehensive_report(all_passes)
+```
+
+### Iteration Targets (Priority Order)
+
+**Pass 1: Core Layer Extraction**
+
+- Target: Application, API, Data layers
+- Coverage: 40-60%
+- Duration: 15-25 minutes
+- Success: Basic model structure exists
+
+**Pass 2: Business Layer Inference**
+
+- Target: Business services from app services
+- Coverage: 50-70%
+- Duration: 10-15 minutes
+- Success: Business justification for technical elements
+
+**Pass 3: Cross-Layer Linking**
+
+- Target: Establish references between layers
+- Coverage: 60-80%
+- Duration: 10-15 minutes
+- Success: >90% elements have cross-layer links
+
+**Pass 4: Implementation Details**
+
+- Target: Classes, modules, components
+- Coverage: 70-85%
+- Duration: 15-20 minutes
+- Success: Implementation layer populated
+
+**Pass 5: Technology Stack**
+
+- Target: Frameworks, libraries, tools
+- Coverage: 75-90%
+- Duration: 10-15 minutes
+- Success: Technology decisions documented
+
+**Pass 6: Physical/Deployment**
+
+- Target: Infrastructure, deployment config
+- Coverage: 80-92%
+- Duration: 10-15 minutes
+- Success: Deployment architecture captured
+
+**Pass 7: Security & Compliance**
+
+- Target: Auth, encryption, policies
+- Coverage: 85-95%
+- Duration: 10-15 minutes
+- Success: Security posture documented
+
+**Pass 8-10: Refinement**
+
+- Target: Fill gaps, enhance descriptions
+- Coverage: 95-98%
+- Duration: 5-10 minutes each
+- Success: Minimal validation errors
+
+### Completion Criteria
+
+Stop autonomous extraction when ANY of:
+
+1. **Completeness threshold reached:**
+   - ≥85% code coverage
+   - All 7 core layers have elements
+   - <10 validation errors
+   - > 90% elements have cross-layer links
+
+2. **Diminishing returns:**
+   - Last 2 passes added <5% new elements
+   - No validation errors fixed in last pass
+   - Confidence scores not improving
+
+3. **Time/iteration limits:**
+   - Max duration exceeded (2 hours)
+   - Max iterations exceeded (10 passes)
+
+4. **User intervention:**
+   - User cancels operation
+   - User requests review
+
+5. **Blocking issues:**
+   - Validation errors can't be auto-fixed
+   - Ambiguous patterns need manual review
+   - Missing critical information
+
+### Progress Tracking
+
+Track progress across iterations:
+
+```json
+{
+  "extraction_session": {
+    "start_time": "2025-01-27T10:00:00Z",
+    "current_iteration": 3,
+    "max_iterations": 10,
+    "max_duration": 7200,
+    "elapsed_time": 2100,
+
+    "passes": [
+      {
+        "iteration": 1,
+        "target": "Core layers (application, api, data)",
+        "elements_created": 45,
+        "duration": 18.5,
+        "validation_errors": 12,
+        "coverage": 42
+      },
+      {
+        "iteration": 2,
+        "target": "Business layer inference",
+        "elements_created": 15,
+        "duration": 12.3,
+        "validation_errors": 8,
+        "coverage": 58
+      },
+      {
+        "iteration": 3,
+        "target": "Cross-layer linking",
+        "elements_created": 0,
+        "links_created": 48,
+        "duration": 10.1,
+        "validation_errors": 3,
+        "coverage": 65
+      }
+    ],
+
+    "current_state": {
+      "total_elements": 60,
+      "elements_by_layer": {
+        "business": 15,
+        "application": 18,
+        "api": 22,
+        "data": 5,
+        "implementation": 0,
+        "technology": 0,
+        "physical": 0
+      },
+      "total_links": 48,
+      "validation_errors": 3,
+      "coverage_percent": 65,
+      "completion_score": 62
+    },
+
+    "next_target": {
+      "iteration": 4,
+      "focus": "Implementation layer - classes and modules",
+      "expected_elements": 25,
+      "priority": "high",
+      "reason": "Implementation layer empty, need code-level detail"
+    }
+  }
+}
+```
+
+### Iteration Report Template
+
+After each pass, report:
+
+```markdown
+## Pass {N} Complete
+
+**Target:** {target_description}
+**Duration:** {duration} minutes
+**Status:** {✓ Success | ⚠️ Partial | ❌ Failed}
+
+### Changes
+
+- Created: {X} elements
+- Updated: {Y} elements
+- Links added: {Z}
+
+### Progress
+
+- Coverage: {prev}% → {new}% (+{delta}%)
+- Validation errors: {prev} → {new} ({delta})
+- Completion score: {score}/100
+
+### Next Pass
+
+**Target:** {next_target}
+**Reason:** {why_this_target}
+**Expected:** ~{N} elements, {M} minutes
+
+---
+
+Continuing autonomous extraction... (Press Ctrl+C to stop and review)
+```
+
+### Self-Recovery Patterns
+
+Handle common issues autonomously:
+
+**Issue: Extraction stalled (no new elements)**
+
+```python
+if elements_created_this_pass == 0:
+    # Try alternative extraction pattern
+    if current_strategy == "top-down":
+        next_strategy = "bottom-up"
+    elif current_strategy == "bottom-up":
+        next_strategy = "layer-by-layer"
+    else:
+        # No progress with all strategies
+        stop_with_report("Unable to extract more elements")
+```
+
+**Issue: Validation errors not decreasing**
+
+```python
+if validation_errors >= previous_validation_errors:
+    # Focus next pass on fixing validation
+    next_pass = "validation_fix"
+    # Use dr-validator agent for intelligent fixes
+    launch_validator_agent(auto_fix=True)
+```
+
+**Issue: Low confidence scores**
+
+```python
+if avg_confidence < 0.6:
+    # Need more context - expand search
+    search_paths.append("docs/", "README.md", "docker-compose.yml")
+    # Look for architectural docs that provide context
+```
+
+### Example: 2-Hour Autonomous Session
+
+```
+[00:00] Starting autonomous extraction for ./src
+[00:00] Pass 1: Core layers (application, api, data)
+[00:18]   ✓ Created 45 elements | Coverage: 42% | Errors: 12
+[00:18]   → Next: Business layer inference
+
+[00:18] Pass 2: Business layer inference
+[00:30]   ✓ Created 15 elements | Coverage: 58% | Errors: 8
+[00:30]   → Next: Cross-layer linking
+
+[00:30] Pass 3: Cross-layer linking
+[00:40]   ✓ Added 48 links | Coverage: 65% | Errors: 3
+[00:40]   → Next: Implementation layer
+
+[00:40] Pass 4: Implementation layer
+[00:58]   ✓ Created 28 elements | Coverage: 78% | Errors: 5
+[00:58]   → Next: Technology stack
+
+[00:58] Pass 5: Technology stack
+[01:10]   ✓ Created 12 elements | Coverage: 84% | Errors: 3
+[01:10]   → Next: Physical/deployment
+
+[01:10] Pass 6: Physical/deployment
+[01:22]   ✓ Created 8 elements | Coverage: 88% | Errors: 2
+[01:22]   → Next: Security & compliance
+
+[01:22] Pass 7: Security & compliance
+[01:35]   ✓ Created 6 elements | Coverage: 91% | Errors: 1
+[01:35]   → Next: Refinement pass
+
+[01:35] Pass 8: Refinement - descriptions
+[01:45]   ✓ Updated 42 descriptions | Coverage: 93% | Errors: 0
+[01:45]   → Next: Final validation
+
+[01:45] Pass 9: Final validation & linking
+[01:55]   ✓ Added 15 links, fixed 3 elements | Coverage: 95% | Errors: 0
+[01:55]   ✓ Completion threshold reached (≥85% coverage, 0 errors)
+
+[01:55] Autonomous extraction complete!
+        Total: 114 elements, 111 links across 7 layers
+        Duration: 1h 55m
+        Coverage: 95%
+        Validation: ✓ Passed
+```
 
 ## Output Format
 

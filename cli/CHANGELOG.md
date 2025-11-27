@@ -5,6 +5,92 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.1] - 2025-01-27
+
+### Added
+
+- **New Claude Code Agents**: Specialized agents for advanced workflows
+  - **DR Link Validator Agent** (`dr-link-validator`)
+    - Automated link validation and broken reference detection
+    - Cross-layer reference integrity checks
+    - Typo detection with suggestions using Levenshtein distance
+  - **DR Schema Migrator Agent** (`dr-schema-migrator`)
+    - Guided migration between specification versions
+    - Automated schema transformation and validation
+    - Migration path planning and conflict resolution
+  - **DR Security Reviewer Agent** (`dr-security-reviewer`)
+    - Security-focused code and configuration review
+    - OWASP top 10 vulnerability detection
+    - Security best practices validation
+
+- **New Claude Code Skills**: Reusable workflows for common tasks
+  - **CHANGESET_REVIEWER**: Automated changeset review and validation
+  - **LINK_VALIDATION**: Comprehensive link validation workflows
+  - **MIGRATION_ASSISTANT**: Step-by-step migration guidance
+  - **SCHEMA_VALIDATION**: Schema compliance checking
+
+- **New Commands**:
+  - `/dr-release-prep` - Automated release preparation workflow
+    - Version updates, changelog generation, validation, testing
+    - Comprehensive release checklist generation
+    - Spec/CLI compatibility verification
+
+- **Documentation Enhancements**:
+  - **USER_GUIDE.md** - Comprehensive Claude Code integration user guide (500+ lines)
+    - Installation and setup instructions
+    - Agent and command usage examples
+    - Best practices and troubleshooting
+  - **CHANGESET_FILE_SPEC.md** - Complete changeset file format specification (550+ lines)
+    - JSON schema and validation rules
+    - File format examples and migration guides
+  - **Example Templates**:
+    - `example-settings.json` - Claude Code settings reference
+    - `example-validation-hook.sh` - Pre-commit hook example
+
+### Changed
+
+- **Claude Code Compliance Update**: All agents and slash commands now use YAML frontmatter format required by Claude Code
+  - **Agent Files** (8 files total: 5 updated + 3 new):
+    - Added YAML frontmatter with `name`, `description`, and `tools` fields
+    - Removed inline metadata (`**Agent Type:**`, `**Purpose:**`, `**Autonomy Level:**`)
+    - Agents now properly discovered by Claude Code (fixes "agent not found" errors)
+    - Updated: `dr-helper.md`, `dr-ideator.md`, `dr-documenter.md`, `dr-extractor.md`, `dr-validator.md`
+    - New: `dr-link-validator.md`, `dr-schema-migrator.md`, `dr-security-reviewer.md`
+  - **Command Files** (8 files total: 7 updated + 1 new):
+    - Added YAML frontmatter with `description` and `argument-hint` fields
+    - Improves discoverability in `/help` command
+    - Better auto-completion hints
+    - Updated: `dr-init.md`, `dr-model.md`, `dr-ingest.md`, `dr-project.md`, `dr-validate.md`, `dr-changeset.md`, `dr-links.md`
+    - New: `dr-release-prep.md`
+  - **Template Updates** (2 files updated):
+    - `custom-agent-template.md` - Now shows YAML frontmatter format with required/optional fields
+    - `custom-command-template.md` - Now shows YAML frontmatter format with field descriptions
+  - **Documentation Updates**:
+    - `04_claude_code_integration_design.md` - New comprehensive format specification section (170+ lines)
+    - `claude_integration/README.md` - Migration notice and new features documentation
+    - Validation examples and best practices added
+
+- **Enhanced DR Extractor Agent**: Significant functionality expansion (390+ lines added)
+  - Improved element extraction workflows
+  - Better cross-layer reference handling
+  - Enhanced validation integration
+
+### Fixed
+
+- Agent discovery issues in Claude Code (agents were not being recognized)
+- Command auto-completion and help text display
+- Package data configuration updated to include skills and new templates
+
+### Migration
+
+For existing installations, update to the new format with:
+
+```bash
+dr claude update --force
+```
+
+This will automatically update all installed agents and commands to the YAML frontmatter format, and install the new agents, skills, and documentation.
+
 ## [0.4.0] - 2025-01-15
 
 ### Added

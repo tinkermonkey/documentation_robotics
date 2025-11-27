@@ -5,7 +5,7 @@ This package provides tools for managing project models across 11 layers of a so
 implementing the Documentation Robotics Specification.
 """
 
-__version__ = "0.4.0"
+__version__ = "0.4.1"
 __spec_version__ = "0.2.0"
 
 # Core exports for programmatic use
