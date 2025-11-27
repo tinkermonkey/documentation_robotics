@@ -5,7 +5,7 @@ A command-line tool for managing federated architecture data models across 11 la
 > **Part of [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)** - For project overview, motivation, and full context, see the [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.4.0-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.4.1-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
 [![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tinkermonkey/documentation_robotics/blob/main/LICENSE)
 
@@ -32,10 +32,10 @@ Run `dr conformance` to see detailed conformance information.
 
 ## Status
 
-**Current Version:** v0.4.0
+**Current Version:** v0.4.1
 **Specification Version:** v0.2.0
 
-This release adds comprehensive link management and migration capabilities:
+This release focuses on Claude Code integration enhancements and compliance:
 
 - **Model CRUD** - Model initialization, element management, validation
 - **Changeset Management** - Isolated workspaces for exploring changes before committing (like Git branches)
@@ -344,10 +344,11 @@ MIT License - see LICENSE file for details.
 
 ## Version
 
-Current: v0.4.0 (Feature Complete + Link Management + Claude Agents)
+Current: v0.4.1 (Claude Code Compliance + Enhanced Integration)
 
 - Phase 1 (Core): v0.1.0
 - Phase 2 (Validation): v0.2.0
 - Phase 3 (Export): v0.3.0
 - Phase 3 Patches: v0.3.1, v0.3.2, v0.3.3
 - Phase 4 (Link Management + Claude Agents): v0.4.0
+- Phase 4 Patch (Claude Code Compliance): v0.4.1

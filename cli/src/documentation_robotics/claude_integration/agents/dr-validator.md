@@ -1,8 +1,10 @@
-# Architecture Validator Agent
+---
+name: dr-validator
+description: Comprehensive validation with intelligent fix suggestions. Multi-level validation (schema, naming, references, semantic, traceability, cross-layer links) with confidence-scored fixes. Medium autonomy that suggests fixes and applies with confirmation.
+tools: Bash, Read, Edit, Write
+---
 
-**Agent Type:** `dr-validator`
-**Purpose:** Comprehensive validation with intelligent fix suggestions
-**Autonomy Level:** Medium (suggests fixes, applies with confirmation)
+# Architecture Validator Agent
 
 ## Overview
 

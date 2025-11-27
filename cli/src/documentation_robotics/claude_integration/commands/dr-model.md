@@ -1,3 +1,8 @@
+---
+description: Use natural language to add, update, or query architecture model elements across all 11 layers
+argument-hint: "<natural language request>"
+---
+
 # Interactive Architecture Modeling
 
 Use natural language to add, update, or query architecture model elements.

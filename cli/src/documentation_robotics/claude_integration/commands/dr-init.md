@@ -1,3 +1,8 @@
+---
+description: Initialize a new Documentation Robotics architecture model in the current project
+argument-hint: "[project-name]"
+---
+
 # Initialize Documentation Robotics Model
 
 Initialize a new Documentation Robotics architecture model in the current project.

@@ -1,8 +1,10 @@
-# Documentation Generator Agent
+---
+name: dr-documenter
+description: Generate comprehensive architecture documentation from DR models. Multi-format export (Markdown, PDF, HTML, ArchiMate, PlantUML, Mermaid) tailored for different audiences. High autonomy with complete documentation generation.
+tools: Bash, Read, Write
+---
 
-**Agent Type:** `dr-documenter`
-**Purpose:** Generate comprehensive architecture documentation
-**Autonomy Level:** High (generates complete documentation automatically)
+# Documentation Generator Agent
 
 ## Overview
 

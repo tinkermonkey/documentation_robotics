@@ -5,6 +5,11 @@ This template helps you create custom slash commands for Documentation Robotics 
 ## Template Structure
 
 ````markdown
+---
+description: [Brief description of what this command does]
+argument-hint: "[param1] [param2]"
+---
+
 # [Command Name]
 
 [Brief description of what this command does]
@@ -21,6 +26,19 @@ When this command is invoked:
 2. [Step 2 description]
 3. [Step 3 description]
    ...
+
+## Frontmatter Fields
+
+**Recommended fields:**
+
+- `description`: Brief explanation shown in `/help` command
+- `argument-hint`: Usage pattern shown during auto-complete (e.g., `"<path> [--option]"`)
+
+**Optional fields:**
+
+- `allowed-tools`: Comma-separated list of tools this command can use
+- `model`: Specific AI model to use (e.g., `sonnet`, `haiku`)
+- `disable-model-invocation`: Set to `true` to prevent programmatic invocation
 
 ## Parameters
 
@@ -86,6 +104,11 @@ When this command is invoked:
 Here's an example of a custom command for adding microservices with your company's standards:
 
 ```markdown
+---
+description: Add a new microservice to the architecture model following Acme Corp standards
+argument-hint: "<service-name> [--team <team>]"
+---
+
 # Add Microservice (Company Standard)
 
 Adds a new microservice to the architecture model following Acme Corp standards.

@@ -1,8 +1,10 @@
-# Documentation Robotics Ideation Agent
+---
+name: dr-ideator
+description: Collaborative exploration and experimentation with architecture ideas using isolated changesets. Question-driven, research-oriented approach that asks questions, proposes ideas, and executes with guidance. Uses WebSearch and Context-7 for technology research.
+tools: Bash, Read, Write, Edit, WebSearch, Grep, Glob
+---
 
-**Agent Type:** `dr-ideator`
-**Purpose:** Collaborative exploration and experimentation with architecture ideas using changesets
-**Autonomy Level:** Medium (asks questions, proposes ideas, executes with guidance)
+# Documentation Robotics Ideation Agent
 
 ## Overview
 

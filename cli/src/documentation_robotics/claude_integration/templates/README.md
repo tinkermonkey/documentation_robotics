@@ -1,495 +1,307 @@
 # Customization Templates
 
-This directory contains templates for creating custom slash commands, agents, and workflows tailored to your organization's needs.
+This directory contains templates and examples for customizing your DR + Claude Code integration.
 
 ## Available Templates
 
-### 1. [custom-command-template.md](custom-command-template.md)
+### Custom Agents
 
-Template for creating custom slash commands that automate organization-specific workflows.
+- **`custom-agent-template.md`** - Template for creating new DR-specific agents
+  - Use when you need specialized assistance for domain-specific tasks
+  - Agents run in separate contexts with focused expertise
 
-**Use when:**
+### Custom Commands
 
-- You have repetitive architecture modeling tasks
-- Your organization has specific standards or patterns
-- You want to encode best practices as commands
+- **`custom-command-template.md`** - Template for creating new slash commands
+  - Use for frequently-used operations you want quick access to
+  - Commands are user-invoked (you type `/command-name`)
 
-**Example use cases:**
+### Example Files
 
-- Add microservice with company standards (security, monitoring, deployment)
-- Create API with organization's conventions
-- Add compliance controls for your industry
-- Generate feature with full traceability
+#### Hooks
 
-**How to use:**
+- **`example-validation-hook.sh`** - Pre-tool-use validation hook
+  - Validates JSON syntax before writing files
+  - Prevents invalid DR model files
+  - Checks required fields for DR elements
+  - **NEW in v0.5.0**
 
-1. Copy the template
-2. Fill in your workflow details
-3. Save to `.claude/commands/your-command.md`
-4. Test with Claude Code: `/your-command`
+#### Settings
 
-### 2. [custom-agent-template.md](custom-agent-template.md)
+- **`example-settings.json`** - Comprehensive settings for DR projects
+  - Permission management (allow/ask/deny)
+  - Hook configuration (SessionStart, PreToolUse, UserPromptSubmit)
+  - Customization examples for different modes (strict, exploration, team)
+  - **ENHANCED in v0.5.0**
 
-Template for creating specialized sub-agents for complex, multi-step operations.
+#### Workflows
 
-**Use when:**
+- **`workflow-examples.md`** - Collection of complete workflow examples
+  - New project setup, code extraction, feature addition
+  - Microservices, security audit, API-first development
+  - Goal-driven architecture, refactoring, compliance
 
-- Task requires autonomous decision-making
-- Multiple phases with different strategies
-- Complex analysis or validation needed
-- Integration with external tools
-
-**Example use cases:**
-
-- Compliance validation agent (SOC2, HIPAA, GDPR)
-- Cost optimization analyzer
-- Technical debt detector
-- Architecture pattern enforcer
-- Custom code-to-model extractor
-
-**How to use:**
-
-1. Copy the template
-2. Define agent capabilities and workflow
-3. Save to `.claude/agents/your-agent.md`
-4. Launch via: `Task(subagent_type="your-agent", prompt="...")`
-
-### 3. [workflow-examples.md](workflow-examples.md)
-
-Collection of complete workflow examples showing how to use DR + Claude Code for common scenarios.
-
-**Includes:**
-
-- New project setup
-- Extracting model from existing codebase
-- Adding new features
-- Microservices documentation
-- Security audit & remediation
-- API-first development
-- Goal-driven architecture
-- Refactoring documentation
-- Compliance documentation
-- Team onboarding
-
-**How to use:**
-
-1. Find a workflow matching your needs
-2. Follow step-by-step instructions
-3. Adapt to your specific context
-4. Share successful workflows with your team
+---
 
 ## Quick Start
 
-### Creating a Custom Command
-
-```bash
-# 1. Copy template
-cp .claude/templates/custom-command-template.md .claude/commands/my-command.md
-
-# 2. Edit the file
-# - Replace [Command Name] with your command name
-# - Define the workflow steps
-# - Add examples
-
-# 3. Test in Claude Code
-/my-command
-```
-
 ### Creating a Custom Agent
 
-```bash
-# 1. Copy template
-cp .claude/templates/custom-agent-template.md .claude/agents/my-agent.md
+1. **Copy the template:**
 
-# 2. Edit the file
-# - Define agent capabilities
-# - Outline the workflow phases
-# - Specify tools needed
+   ```bash
+   cp .claude/templates/custom-agent-template.md .claude/agents/my-agent.md
+   ```
 
-# 3. Test by launching from Claude Code
-# (Agent will be available via Task tool)
-```
+2. **Edit the YAML frontmatter:**
 
-## Template Structure
+   ```yaml
+   ---
+   name: my-domain-expert
+   description: Expert in [your domain] architecture patterns
+   tools: Read, Write, Bash, Grep, Glob
+   ---
+   ```
 
-### Command Template Structure
+3. **Fill in the content**:
+   - Overview of what the agent does
+   - Capabilities and expertise
+   - When to use this agent
+   - Example workflows
 
-```markdown
-# Command Name
+4. **Test it:**
 
-Brief description
+   ```
+   User: Use my-domain-expert to analyze the architecture
+   ```
 
-## Purpose
+### Creating a Custom Command
 
-Detailed explanation
+1. **Copy the template:**
 
-## Workflow
+   ```bash
+   cp .claude/templates/custom-command-template.md .claude/commands/my-command.md
+   ```
 
-Phase-by-phase breakdown
+2. **Edit the YAML frontmatter:**
 
-## Parameters
+   ```yaml
+   ---
+   description: Brief description of what this command does
+   argument-hint: "[param1] [param2]"
+   ---
+   ```
 
-Expected inputs
+3. **Write the command instructions:**
+   - What the command should do
+   - Expected parameters
+   - Output format
 
-## Expected Behavior
+4. **Use it:**
 
-What the agent should do
+   ```
+   /my-command argument1 argument2
+   ```
 
-## Output Format
+### Using Validation Hooks
 
-What user should see
+1. **Copy validation hook to hooks directory:**
 
-## Integration
+   ```bash
+   mkdir -p .claude/hooks
+   cp .claude/templates/example-validation-hook.sh .claude/hooks/validate-json.sh
+   chmod +x .claude/hooks/validate-json.sh
+   ```
 
-How it chains with other commands
-```
+2. **Configure in settings.json:**
 
-### Agent Template Structure
+   ```json
+   {
+     "hooks": {
+       "PreToolUse": [
+         {
+           "matcher": "Write(.*\\.json$)",
+           "hook": {
+             "type": "command",
+             "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-json.sh"
+           }
+         }
+       ]
+     }
+   }
+   ```
 
-```markdown
-# Agent Name
+3. **Test the hook:**
+   - Try to write invalid JSON
+   - Hook should block the operation with clear error message
 
-**Agent Type:** identifier
-**Purpose:** one-line description
-**Autonomy Level:** Low/Medium/High
+### Customizing Settings
 
-## Overview
+1. **Review the example:**
 
-Detailed description
+   ```bash
+   cat .claude/templates/example-settings.json
+   ```
 
-## Capabilities
+2. **Copy relevant sections to your `.claude/settings.json`:**
+   - Start with basic permissions
+   - Add hooks as needed
+   - Customize for your workflow
 
-List of what it can do
+3. **Choose a mode:**
+   - **Strict mode:** Ask before any changes (production models)
+   - **Exploration mode:** Allow more operations (experimental projects)
+   - **Team mode:** Enforce validation before prompts
 
-## Tools Available
-
-Tools the agent needs
-
-## Input Parameters
-
-Configuration options
-
-## Workflow
-
-Phase-by-phase with percentages
-
-## Strategies/Patterns
-
-Approaches the agent uses
-
-## Error Handling
-
-Common scenarios and recovery
+---
 
 ## Best Practices
 
-Guidelines for effectiveness
+### For Custom Agents
 
-## Integration
+- **Be specific:** Narrow focus = better expertise
+- **Define clear boundaries:** When to use vs other agents
+- **Document workflows:** Show example interactions
+- **Test thoroughly:** Ensure agent behaves as expected
+- **Share with team:** Useful agents benefit everyone
 
-Chaining with other agents
+### For Custom Commands
 
-## Output Example
+- **Keep it simple:** Commands should do one thing well
+- **Clear names:** Use descriptive, memorable names
+- **Good hints:** argument-hint helps users know what to pass
+- **Error handling:** Handle missing/invalid arguments gracefully
+- **Documentation:** Explain what the command does and why
 
-Sample final result
+### For Hooks
+
+- **Start simple:** Add hooks incrementally
+- **Test in isolation:** Verify each hook works independently
+- **Clear error messages:** Help users understand what went wrong
+- **Performance:** Keep hooks fast (< 1 second)
+- **Fail gracefully:** Don't break Claude Code if hook fails
+
+### For Settings
+
+- **Start permissive:** Begin with basic allows, add restrictions as needed
+- **Document why:** Comment complex permission rules
+- **Team alignment:** Ensure team members have compatible settings
+- **Version control:** Commit `.claude/settings.json` for team projects
+- **Regular review:** Update as project evolves
+
+---
+
+## Examples by Use Case
+
+### Use Case 1: Strict Production Model
+
+```json
+{
+  "permissions": {
+    "ask": ["Write(**/*)", "Edit(**/*)", "Bash(dr *)"],
+    "allow": ["Read(**/*)", "Grep(*)", "Glob(*)"]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Write(*)",
+        "hook": { "type": "command", "command": ".claude/hooks/validate-all.sh" }
+      }
+    ]
+  }
+}
 ```
 
-## Best Practices
+### Use Case 2: Experimental/Exploration Mode
 
-### For Commands
-
-1. **Focus on one workflow**: Don't try to do everything
-2. **Make it interactive**: Ask for required information
-3. **Validate thoroughly**: Check model after creation
-4. **Provide clear output**: Show what was created
-5. **Suggest next steps**: Guide user workflow
-6. **Handle errors gracefully**: Anticipate common issues
-7. **Document examples**: Show typical usage
-8. **Test with real scenarios**: Verify it works
-9. **Keep it maintainable**: Use clear structure
-10. **Share with team**: Collaborate on improvements
-
-### For Agents
-
-1. **Define clear autonomy level**: Set expectations
-2. **Break into phases**: Make workflow understandable
-3. **Provide confidence scores**: Help users trust decisions
-4. **Handle errors gracefully**: Anticipate common issues
-5. **Generate actionable reports**: Don't just identify problems
-6. **Integrate well**: Chain with existing agents
-7. **Document strategies**: Explain decision logic
-8. **Test thoroughly**: Validate with real scenarios
-9. **Optimize token usage**: Keep prompts concise but complete
-10. **Iterate based on feedback**: Refine after real usage
-
-## Example: Company-Specific Command
-
-Let's say your company always adds microservices with specific standards:
-
-````markdown
-# Add Acme Corp Microservice
-
-Adds a microservice following Acme Corp standards.
-
-## Purpose
-
-Creates a complete microservice with:
-
-- Standard Kubernetes deployment (3 replicas)
-- OAuth2 + API Gateway authentication
-- PostgreSQL database
-- Redis cache
-- RabbitMQ messaging
-- Standard monitoring (availability, latency, errors)
-- PagerDuty alerting
-- Datadog APM
-
-## Workflow
-
-### Phase 1: Gather Information
-
-- Service name
-- Business domain
-- Criticality level
-- Data sensitivity
-
-### Phase 2: Create Model Elements
-
-```bash
-# Business service
-dr add business service --name "$SERVICE" \
-  --property domain="$DOMAIN" \
-  --property criticality="$CRITICALITY"
-
-# Application service
-dr add application service --name "$SERVICE" \
-  --property realizes=business.service.$SERVICE \
-  --property technology=java-spring-boot \
-  --property team=$TEAM
-
-# Standard CRUD API operations
-dr add api operation --name "Create $RESOURCE" \
-  --property path="/api/v1/$RESOURCE" \
-  --property method=POST
-
-# Continue with more operations...
-```
-````
-
-### Phase 3: Add Acme Corp Standards
-
-```bash
-# OAuth2 via API Gateway
-dr add security policy --name "$SERVICE OAuth2" \
-  --property type=oauth2 \
-  --property provider=okta \
-  --property applies_to=application.service.$SERVICE
-
-# Kubernetes deployment
-dr add technology node --name "$SERVICE pod" \
-  --property type=kubernetes-pod \
-  --property namespace=production \
-  --property replicas=3
-
-# PostgreSQL database
-dr add datastore database --name "$SERVICE db" \
-  --property type=postgresql \
-  --property cluster=acme-db-prod
-
-# Redis cache
-dr add technology software --name "$SERVICE cache" \
-  --property type=redis \
-  --property cluster=acme-cache-prod
-
-# Standard monitoring
-dr add apm metric --name "$SERVICE availability" \
-  --property type=availability \
-  --property target=99.9
-
-dr add apm metric --name "$SERVICE latency" \
-  --property type=latency \
-  --property percentile=95 \
-  --property target=200ms
-
-dr add apm metric --name "$SERVICE errors" \
-  --property type=error-rate \
-  --property target=1.0
+```json
+{
+  "permissions": {
+    "allow": ["Bash(dr *)", "Write(*.dr/*)", "Edit(*.dr/*)"],
+    "deny": ["Bash(rm -rf:*)", "Bash(sudo:*)"]
+  }
+}
 ```
 
-### Phase 4: Validate and Document
+### Use Case 3: Team Collaboration
 
-```bash
-# Validate
-dr validate --strict
-
-# Generate service docs
-dr export --format markdown \
-  --filter "service=$SERVICE" \
-  --output docs/services/$SERVICE.md
+```json
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "hook": {
+          "type": "command",
+          "command": "dr validate --strict && dr links validate"
+        }
+      }
+    ]
+  }
+}
 ```
 
-## Output Format
-
-```
-✓ Microservice created: order-processing
-
-Elements:
-  ✓ business.service.order-processing
-  ✓ application.service.order-processing
-  ✓ api.operation.create-order
-  ✓ api.operation.get-order
-  ✓ api.operation.update-order
-  ✓ api.operation.delete-order
-  ✓ security.policy.order-processing-oauth2
-  ✓ technology.node.order-processing-pod
-  ✓ datastore.database.order-processing-db
-  ✓ technology.software.order-processing-cache
-  ✓ apm.metric.order-processing-availability
-  ✓ apm.metric.order-processing-latency
-  ✓ apm.metric.order-processing-errors
-
-Validation: ✓ Passed
-
-Documentation: docs/services/order-processing.md
-
-Next steps:
-1. Review service docs
-2. Add to CI/CD pipeline
-3. Create Jira epic
-4. Begin implementation
-```
-
-## Integration
-
-Works well with:
-
-- `/dr-validate` - Validate after creation
-- `/dr-project` - Project to additional layers
-- `dr export` - Generate diagrams
-
-Suggested workflow:
-
-```
-1. /add-acme-microservice payment-processing --criticality=critical
-2. /dr-model Link payment-processing to business goals
-3. /dr-validate --fix
-4. dr export --format plantuml
-```
-
-```
-
-Save this to `.claude/commands/add-acme-microservice.md` and it's ready to use!
-
-## Sharing Templates
-
-### Within Your Team
-
-1. **Commit to repository**: Add custom commands/agents to version control
-2. **Document in team wiki**: Link to templates and examples
-3. **Conduct training**: Show team how to create and use custom workflows
-4. **Iterate together**: Gather feedback and improve templates
-5. **Create library**: Build collection of team-specific patterns
-
-### With the Community
-
-Consider contributing your templates back to the DR project if they're:
-- Generally useful across organizations
-- Well-documented and tested
-- Follow DR conventions
-- Include good examples
-
-Submit via pull request to the [DR GitHub repository](https://github.com/yourusername/documentation-robotics).
-
-## Testing Your Customizations
-
-### For Commands
-
-1. **Create test project**: Set up a clean environment
-2. **Run the command**: Test with Claude Code
-3. **Verify output**: Check model files created
-4. **Validate model**: Run `dr validate --strict`
-5. **Check exports**: Generate docs and diagrams
-6. **Test error cases**: Try invalid inputs
-7. **Get team feedback**: Have others use it
-
-### For Agents
-
-1. **Define test scenarios**: Create example inputs
-2. **Launch agent**: Use Task tool
-3. **Monitor execution**: Watch the workflow
-4. **Verify results**: Check agent output
-5. **Test edge cases**: Try unusual situations
-6. **Measure performance**: Check execution time
-7. **Iterate**: Refine based on results
+---
 
 ## Troubleshooting
 
-### Command not found
+### Custom Agent Not Found
 
-```
+**Problem:** Agent doesn't appear when invoked
 
-Error: Command '/my-command' not found
+**Solutions:**
 
-```
+- Check YAML frontmatter is valid (use online YAML validator)
+- Ensure `name` field matches filename (e.g., `my-agent.md` → `name: my-agent`)
+- Verify file is in `.claude/agents/` directory
+- Restart Claude Code to reload agents
 
-**Fix:**
-- Ensure file is in `.claude/commands/`
-- Check filename matches command name
-- Restart Claude Code session
+### Custom Command Not Working
 
-### Agent not available
+**Problem:** `/my-command` doesn't autocomplete or run
 
-```
+**Solutions:**
 
-Error: Unknown subagent_type 'my-agent'
+- Check YAML frontmatter exists and is valid
+- Ensure file is in `.claude/commands/` directory
+- Verify description field is present
+- Try restarting Claude Code
 
-```
+### Hook Not Executing
 
-**Fix:**
-- Ensure file is in `.claude/agents/`
-- Check agent type matches filename
-- Verify agent markdown format
+**Problem:** Hook doesn't run when expected
 
-### Command executes but doesn't work
+**Solutions:**
 
-**Debug:**
-1. Check Claude Code output for errors
-2. Verify DR CLI commands are correct
-3. Test DR commands manually
-4. Check model validation
-5. Review command prompt clarity
+- Verify hook script is executable (`chmod +x hook.sh`)
+- Check hook path in settings.json is correct
+- Test hook manually: `cat input.json | ./hook.sh`
+- Check matcher pattern (e.g., `Write(.*\\.json$)` for JSON files)
+- Review Claude Code logs: `claude --debug`
 
-### Agent produces unexpected results
+### Permission Denied Errors
 
-**Debug:**
-1. Review agent workflow definition
-2. Check input parameters
-3. Test with simpler scenarios first
-4. Add more specific instructions
-5. Reduce autonomy level if needed
+**Problem:** Operations blocked unexpectedly
+
+**Solutions:**
+
+- Review `deny` rules in settings.json
+- Check if operation is in `ask` list (requires approval)
+- Use more specific patterns (avoid overly broad denies)
+- Test with minimal permissions first, then restrict
+
+---
 
 ## Resources
 
-- [Design Document](/cli/docs/04_claude_code_integration_design.md) - Overall architecture
-- [User Guide](/cli/docs/user-guide/) - DR CLI documentation
-- [Reference Sheets](../reference_sheets/) - Quick reference for agents
+- [Design Document](../../../docs/04_claude_code_integration_design.md) - Overall architecture
+- [Developer Guide](../../../docs/claude-code-improvements-for-developers.md) - Improvement roadmap
+- [User Guide](../USER_GUIDE.md) - Complete user guide
+- [Reference Sheets](../reference_sheets/) - Quick reference
 - [Existing Commands](../commands/) - Built-in command examples
 - [Existing Agents](../agents/) - Built-in agent examples
+- [Skills](../skills/) - Auto-activating capabilities
 
-## Support
+---
 
-- **Documentation issues**: Open issue on GitHub
-- **Template questions**: Ask in Discussions
-- **Feature requests**: Submit feature request
-- **Bug reports**: Include command/agent file and error output
-
-## Contributing
-
-We welcome contributions of:
-- New templates for common patterns
-- Improvements to existing templates
-- Example workflows from real projects
-- Documentation enhancements
-
-See [CONTRIBUTING.md](/CONTRIBUTING.md) for guidelines.
-```
+**Last Updated:** 2025-01-27
+**Version:** 0.5.0+

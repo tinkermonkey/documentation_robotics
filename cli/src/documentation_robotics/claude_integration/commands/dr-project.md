@@ -1,3 +1,8 @@
+---
+description: Automatically create architecture elements across layers using projection rules
+argument-hint: "<source>→<target> [--element <id>] [--dry-run]"
+---
+
 # Automated Cross-Layer Projection
 
 Automatically create architecture elements across layers using projection rules.

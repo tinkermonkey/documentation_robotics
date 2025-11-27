@@ -1,3 +1,8 @@
+---
+description: Use natural language to query, validate, and document cross-layer references in the architecture model
+argument-hint: "<natural language request>"
+---
+
 # Cross-Layer Link Management
 
 Use natural language to query, validate, and document cross-layer references (links) in the architecture model.

@@ -839,6 +839,182 @@ Task(
 
 ---
 
+## Agent and Command Format Specification
+
+### Overview
+
+As of v0.4.1, all agents and slash commands use **YAML frontmatter** for Claude Code discovery and configuration. This aligns with Claude Code's native format requirements.
+
+### Agent File Format
+
+**Required structure:**
+
+```markdown
+---
+name: agent-identifier
+description: Natural language description of what the agent does
+tools: Read, Write, Bash, Grep, Glob
+---
+
+# Agent Title
+
+## Overview
+
+[Agent content...]
+```
+
+**Frontmatter fields:**
+
+| Field            | Required | Type   | Description                                                             |
+| ---------------- | -------- | ------ | ----------------------------------------------------------------------- |
+| `name`           | Yes      | string | Agent identifier (lowercase, hyphens only, must match filename pattern) |
+| `description`    | Yes      | string | Natural language description of purpose and capabilities                |
+| `tools`          | No       | string | Comma-separated list of accessible tools                                |
+| `model`          | No       | string | Specific AI model to use (`sonnet`, `opus`, `haiku`)                    |
+| `permissionMode` | No       | string | Permission handling configuration                                       |
+
+**Example:**
+
+```yaml
+---
+name: dr-helper
+description: Expert guidance for building, maintaining, and understanding DR models. Deep knowledge of DR CLI, spec v0.2.0+, and architectural modeling principles.
+tools: Read, Bash, Grep, Glob, WebFetch
+---
+```
+
+### Command File Format
+
+**Required structure:**
+
+```markdown
+---
+description: Brief explanation of what the command does
+argument-hint: "<arg1> [--option]"
+---
+
+# Command Title
+
+[Command content...]
+```
+
+**Frontmatter fields:**
+
+| Field                      | Required    | Type    | Description                                        |
+| -------------------------- | ----------- | ------- | -------------------------------------------------- |
+| `description`              | Recommended | string  | Brief explanation shown in `/help` command         |
+| `argument-hint`            | Recommended | string  | Usage pattern shown during auto-complete           |
+| `allowed-tools`            | No          | string  | Comma-separated list of tools this command can use |
+| `model`                    | No          | string  | Specific AI model override                         |
+| `disable-model-invocation` | No          | boolean | Prevent programmatic invocation                    |
+
+**Example:**
+
+```yaml
+---
+description: Use natural language to add, update, or query architecture model elements across all 11 layers
+argument-hint: "<natural language request>"
+---
+```
+
+### Discovery Mechanism
+
+Claude Code automatically discovers agents and commands by:
+
+1. **Scanning directories:**
+   - Agents: `.claude/agents/*.md`
+   - Commands: `.claude/commands/*.md`
+
+2. **Parsing frontmatter:** YAML frontmatter at the beginning of each file (must be first content)
+
+3. **Registering:** Makes agents/commands available for use
+
+**Critical requirements:**
+
+- Frontmatter must be at line 0 (very first content in file)
+- Agent `name` must match filename pattern (e.g., `dr-helper.md` → `name: dr-helper`)
+- YAML must be valid (syntax errors will prevent discovery)
+- Closing `---` must have blank line after it
+
+### Migration from Pre-0.4.1 Format
+
+**Old format (no longer supported):**
+
+```markdown
+# Agent Name
+
+**Agent Type:** `agent-name`
+**Purpose:** Description here
+**Autonomy Level:** Low
+
+## Overview
+
+...
+```
+
+**New format (required):**
+
+```markdown
+---
+name: agent-name
+description: Description here
+---
+
+# Agent Name
+
+## Overview
+
+...
+```
+
+**Migration steps:**
+
+1. Add YAML frontmatter at line 0
+2. Remove inline metadata (`**Agent Type:**`, `**Purpose:**`, `**Autonomy Level:**`)
+3. Keep all other content
+4. Validate YAML syntax
+
+**Automated migration:**
+
+```bash
+dr claude update --force
+```
+
+### Validation
+
+Validate agent/command format:
+
+```python
+# Check for frontmatter
+with open('.claude/agents/dr-helper.md') as f:
+    content = f.read()
+
+# Must start with ---
+assert content.startswith('---\n')
+
+# Must have closing ---
+assert '\n---\n' in content
+
+# Parse YAML
+import yaml
+frontmatter = content.split('\n---\n')[0].replace('---\n', '')
+metadata = yaml.safe_load(frontmatter)
+
+# Validate required fields
+assert 'name' in metadata
+assert 'description' in metadata
+```
+
+### Best Practices
+
+1. **Keep descriptions concise but informative** (1-2 sentences)
+2. **List tools explicitly** in agent frontmatter for clarity
+3. **Use argument hints** in commands to guide users
+4. **Match naming conventions**: lowercase, hyphens only
+5. **Test discovery**: Install and verify agents/commands appear in Claude Code
+
+---
+
 ## Implementation Plan
 
 ### Phase 1: Foundation (Week 1)

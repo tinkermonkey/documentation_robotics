@@ -1,3 +1,8 @@
+---
+description: Validate the Documentation Robotics model and optionally suggest or apply fixes
+argument-hint: "[--strict] [--fix] [--layer <layer>]"
+---
+
 # Validate Architecture Model
 
 Validate the Documentation Robotics model and optionally suggest or apply fixes.

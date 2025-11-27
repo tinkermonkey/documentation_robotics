@@ -49,6 +49,19 @@ Complete documentation for the Documentation Robotics CLI tool.
 
 ---
 
+## What's New in v0.4.1
+
+### Claude Code Compliance & Enhanced Integration
+
+- ✅ **YAML Frontmatter Migration** - All agents and commands now use Claude Code's required format
+- ✅ **3 New Agents** - Link validator, schema migrator, security reviewer
+- ✅ **4 New Skills** - Reusable workflows for common tasks
+- ✅ **Release Automation** - New `/dr-release-prep` command
+- ✅ **Comprehensive User Guide** - 500+ lines of integration documentation
+- ✅ **Example Templates** - Settings and validation hook examples
+
+See [CHANGELOG.md](../CHANGELOG.md) for complete details.
+
 ## What's New in v0.4.0
 
 ### Link Management System

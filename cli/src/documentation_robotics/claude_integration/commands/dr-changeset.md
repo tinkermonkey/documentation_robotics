@@ -1,3 +1,8 @@
+---
+description: Use natural language to create, manage, and apply isolated changes to the architecture model using changesets
+argument-hint: "<natural language request>"
+---
+
 # Changeset Management
 
 Use natural language to create, manage, and apply isolated changes to the architecture model using changesets.

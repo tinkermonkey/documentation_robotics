@@ -1,8 +1,10 @@
-# Documentation Robotics Helper Agent
+---
+name: dr-helper
+description: Expert guidance for building, maintaining, and understanding DR models. Deep knowledge of DR CLI, spec v0.2.0+, and architectural modeling principles. Advisory support that explains and guides rather than executes.
+tools: Read, Bash, Grep, Glob, WebFetch
+---
 
-**Agent Type:** `dr-helper`
-**Purpose:** Expert guidance for building, maintaining, and understanding DR models
-**Autonomy Level:** Low (advisory, explains and guides rather than executes)
+# Documentation Robotics Helper Agent
 
 ## Overview
 
