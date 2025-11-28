@@ -19,7 +19,7 @@ This skill should activate when:
 
 ## Tools Available
 
-- Bash (for `dr links *` commands: validate, show, add, etc.)
+- Bash (for `dr links *` commands: validate, find, trace, etc.)
 - Read (to examine element references and understand relationships)
 - Grep (to find related elements by ID or name)
 - Write (to update link registry if needed)
@@ -51,7 +51,7 @@ This skill should activate when:
 5. **Visualize relationships:**
 
    ```bash
-   dr links show <query>
+   dr links find <element-id>
    ```
 
 ## Example Interaction
@@ -114,7 +114,7 @@ The skill uses these patterns to suggest links:
 
 - Always validate links after bulk operations
 - Explain why a link is broken (target missing vs not registered)
-- Show traceability chains when helpful (`dr links show`)
+- Show traceability chains when helpful (`dr links trace`)
 - Don't auto-add low-confidence semantic links without asking
 - Verify bidirectional consistency (if A→B exists, should B→A?)
 - Group link issues by layer for easier understanding

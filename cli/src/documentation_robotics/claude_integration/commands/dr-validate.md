@@ -33,19 +33,19 @@ Determine the validation level based on command flags:
 **Basic validation** (default):
 
 ```bash
-dr validate --format json
+dr validate
 ```
 
 **Strict validation** (comprehensive):
 
 ```bash
-dr validate --strict --format json
+dr validate --strict
 ```
 
 **Layer-specific validation**:
 
 ```bash
-dr validate --layer business --format json
+dr validate --layer business
 ```
 
 ### Step 2: Parse and Categorize Results
@@ -168,7 +168,7 @@ dr update business.service.shipping \
 # ... continue for all safe fixes
 
 # Re-validate
-dr validate --format json
+dr validate
 
 # Report
 "✓ Applied 5 fixes
@@ -313,7 +313,7 @@ User: /dr-validate
 
 You: Running validation before commit...
 
-     dr validate --strict --format json
+     dr validate --strict
 
      [show results]
 
@@ -354,7 +354,7 @@ User: /dr-validate --report
 
 You: Generating comprehensive validation report...
 
-     dr validate --strict --format json > validation-report.json
+     dr validate --strict > validation-report.json
 
      ✓ Report saved to: validation-report.json
 
@@ -453,7 +453,7 @@ User: /dr-validate
 
 You: Running model validation...
 
-     dr validate --format json
+     dr validate
 
      ✓ Validation passed!
 
@@ -474,7 +474,7 @@ User: /dr-validate --fix
 
 You: Running validation with auto-fix...
 
-     dr validate --strict --format json
+     dr validate --strict
 
      Found 5 issues (3 safe to fix):
 
@@ -501,7 +501,7 @@ User: /dr-validate --strict
 
 You: Running comprehensive validation...
 
-     dr validate --strict --format json
+     dr validate --strict
 
      Validation Summary:
      ❌ 2 errors (must fix)

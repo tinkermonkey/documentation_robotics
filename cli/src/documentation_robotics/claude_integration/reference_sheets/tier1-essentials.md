@@ -31,7 +31,7 @@ dr search {pattern}                   # Search across layers
 
 # Modify elements
 dr add {layer} {type} --name "..." --property key=value
-dr update {element-id} --property key=value
+dr update {element-id} --set key=value
 
 # Changesets (isolated changes)
 dr changeset create "feature-name"    # Start new changeset
@@ -44,7 +44,7 @@ dr validate --validate-links          # Include link validation
 dr export --format {archimate|markdown|plantuml}
 
 # Cross-layer links
-dr links types --from {layer} --to {layer}  # Query link patterns
+dr links types --layer {layer}  # Query link patterns
 dr links find {element-id}            # Find element's links
 dr validate --validate-links          # Validate all links
 
@@ -53,7 +53,7 @@ dr migrate                            # Check migration needs
 dr migrate --apply                    # Upgrade to latest spec
 
 # Cross-layer operations
-dr project {source-layer}→{target-layer} [--element-id id]
+dr project {element-id} --to {target-layer}
 ```
 
 ## Key Cross-Layer Patterns
@@ -172,7 +172,7 @@ dataquality, log, logging, metric, motivationmapping, resource, span, tracing
 **Query Available Links:**
 
 ```bash
-dr links types --from api --to application     # Show API → App patterns
+dr links types --layer api     # Show API → App patterns
 dr links registry                              # Complete catalog
 ```
 

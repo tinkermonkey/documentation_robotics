@@ -50,10 +50,10 @@ max_auto_fixes: 50 # Safety limit
 
    ```bash
    # Standard validation with link validation enabled
-   dr validate --strict --validate-links --format json
+   dr validate --strict --validate-links --output json
 
    # For strict link checking (warnings → errors)
-   dr validate --strict --validate-links --strict-links --format json
+   dr validate --strict --validate-links --strict-links --output json
    ```
 
 2. **Parse Results**
@@ -244,7 +244,7 @@ For each issue:
 1. **Run Validation Again**
 
    ```bash
-   dr validate --strict --format json
+   dr validate --strict --output json
    ```
 
 2. **Compare Results**
@@ -659,7 +659,7 @@ Risk: Low (additive references)
 Error: Failed to apply fix #7
 
 Fix: Update application.service.payment-api
-Command: dr update application.service.payment-api --property securedBy=security.policy.oauth2
+Command: dr update application.service.payment-api --set securedBy=security.policy.oauth2
 Error: Referenced policy 'security.policy.oauth2' does not exist
 
 Recovery:

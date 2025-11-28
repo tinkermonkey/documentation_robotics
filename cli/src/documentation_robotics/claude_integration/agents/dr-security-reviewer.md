@@ -67,7 +67,9 @@ Invoke this agent when:
 
    ```bash
    dr search "auth" "security" "encrypt" "access"
-   dr list --layer application,api,data
+   dr list application
+   dr list api
+   dr list data
    ```
 
 2. **Check compliance requirements:**

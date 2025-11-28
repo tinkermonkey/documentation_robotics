@@ -477,11 +477,11 @@ dr model --help
 dr changeset --help
 dr links --help
 
-# List everything in your model
-dr list --tree
+# List elements in a layer
+dr list <layer>
 
 # Check spec version
-dr list --version
+dr --version
 ```
 
 ### Documentation
@@ -542,7 +542,7 @@ Key features:
 ```bash
 dr --help                    # General help
 dr <command> --help          # Command-specific help
-dr list --tree               # See your model structure
+dr list <layer>              # List elements in a layer
 dr validate --strict         # Check for issues
 ```
 

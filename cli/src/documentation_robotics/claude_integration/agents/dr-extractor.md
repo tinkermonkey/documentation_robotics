@@ -276,7 +276,7 @@ dr add business service --name "Order Management" \
 
    ```bash
    # Include link validation (spec v0.2.0+)
-   dr validate --strict --validate-links --format json
+   dr validate --strict --validate-links --output json
    ```
 
    **Link validation checks:**
@@ -295,7 +295,7 @@ dr add business service --name "Order Management" \
 
    ```bash
    # If link errors, query valid patterns
-   dr links types --from api --to application
+   dr links types --layer api
    dr links find <element-id>  # Check specific element's links
    ```
 
@@ -707,7 +707,7 @@ After each extraction cycle, perform self-assessment:
 
    ```bash
    # Count elements by layer
-   dr list --count --layer business,application,api,data,implementation,technology
+   dr list business,application,api,data,implementation,technology
 
    # Identify missing layers
    # Typical ratios:
@@ -734,7 +734,7 @@ After each extraction cycle, perform self-assessment:
 
    ```bash
    # Check cross-layer link density
-   dr links validate --stats
+   dr links validate
 
    # Expected patterns:
    # - Every application service should link to business
@@ -745,7 +745,7 @@ After each extraction cycle, perform self-assessment:
 4. **Validation Gap Analysis**
 
    ```bash
-   dr validate --strict --format json | jq '.errors | group_by(.category)'
+   dr validate --strict --output json | jq '.errors | group_by(.category)'
 
    # Common gaps to identify:
    # - Missing descriptions (can auto-generate)
