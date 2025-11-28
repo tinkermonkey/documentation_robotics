@@ -255,7 +255,7 @@ User: /dr-model Show me all critical services
 
 You should:
 1. Search:
-   dr search --property criticality=critical --format json
+   dr search --property criticality=critical --output json
 2. Parse and display:
    "Found 3 critical services:
 
@@ -445,7 +445,7 @@ User: /dr-model Show me services without security policies
 
 You: Searching for unsecured services...
 
-     dr search --layer application --type service --format json
+     dr search --layer application --type service --output json
 
      (analyzing results...)
 

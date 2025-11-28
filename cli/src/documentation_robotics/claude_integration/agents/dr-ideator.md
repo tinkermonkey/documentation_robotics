@@ -754,7 +754,7 @@ if [ "$confirmation" = "yes" ]; then
 
   2. Share with team:
      - Export architecture docs: dr export --format markdown
-     - Generate diagrams: dr links docs --format mermaid
+     - Generate diagrams: dr links docs --formats mermaid
 
   3. Plan implementation:
      - Break down into implementation tasks

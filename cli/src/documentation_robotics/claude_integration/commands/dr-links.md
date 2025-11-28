@@ -30,7 +30,7 @@ When the user runs this command, interpret their intent and execute the appropri
 
 1. **Understand Intent**: Determine what link operation they need
 2. **Check Context**: Verify model state and active changeset
-3. **Execute**: Run appropriate `dr links` or `dr validate --validate-links` commands
+3. **Execute**: Run appropriate link management commands (e.g. `dr links` or `dr validate`)
 4. **Present Results**: Format output clearly with insights
 5. **Guide Next Steps**: Suggest follow-up actions or fixes
 
@@ -95,16 +95,9 @@ dr links types --category motivation
 dr links types --category security
 dr links types --category api
 
-# Filter by source layer
-dr links types --from application
-dr links types --from navigation
-
-# Filter by target layer
-dr links types --to motivation
-dr links types --to business
-
-# Get JSON output for parsing
-dr links types --json
+# Filter by layer
+dr links types --layer application
+dr links types --layer navigation
 ```
 
 **Example:**
@@ -114,9 +107,9 @@ User: /dr-links How do I link my API operations to application services?
 
 You should:
 1. Query relevant link types:
-   dr links types --from api --to application
+   dr links types --layer api
 2. Format results clearly:
-   "Link types from API → Application:
+   "Link types for API layer:
 
    📋 application-service-ref
       Field: x-archimate-ref (in x-extensions)
@@ -147,13 +140,13 @@ You should:
 
 ```bash
 # Display registry as table
-dr links registry
+dr links types
 
 # Export as JSON
-dr links registry --format json --output links.json
+dr links types --format json
 
 # Export as Markdown
-dr links registry --format markdown --output links.md
+dr links types --format markdown
 
 # Get registry stats
 dr links stats
@@ -166,7 +159,7 @@ User: /dr-links Show me the link registry
 
 You should:
 1. Display registry:
-   dr links registry
+   dr links types
 2. Also show stats for context:
    dr links stats
 3. Format output:
@@ -178,7 +171,7 @@ You should:
 
    [Display formatted table of link types]
 
-   For detailed reference: dr links registry --format markdown --output link-reference.md"
+   For detailed reference: dr links types --format markdown"
 ```
 
 #### 3. Validate Cross-Layer Links
@@ -200,7 +193,7 @@ dr validate --validate-links
 dr validate --validate-links --strict-links
 
 # Get JSON output
-dr validate --validate-links --format json --output validation-report.json
+dr validate --validate-links --output validation-report.json
 ```
 
 **Example:**
@@ -272,7 +265,7 @@ dr links find business.service.orders --direction outgoing
 dr links find business.service.orders --direction incoming
 
 # Get JSON output
-dr links find business.service.orders --json
+dr links find business.service.orders --format json
 ```
 
 **Example:**
@@ -315,11 +308,8 @@ You should:
 # Find shortest path
 dr links trace api.operation.create-order motivation.goal.revenue
 
-# Find all paths (up to depth N)
-dr links trace api.operation.create-order motivation.goal.revenue --all-paths --max-depth 5
-
-# Trace impact (downstream)
-dr links trace motivation.goal.revenue --direction downstream --max-depth 3
+# Find paths (up to depth N)
+dr links trace api.operation.create-order motivation.goal.revenue --max-hops 5
 ```
 
 **Example:**
@@ -329,7 +319,7 @@ User: /dr-links How is api.operation.create-order connected to our business goal
 
 You should:
 1. Run trace:
-   dr links trace api.operation.create-order motivation.goal.improve-revenue --all-paths
+   dr links trace api.operation.create-order motivation.goal.improve-revenue
 2. Display paths clearly:
    "Tracing paths from api.operation.create-order to motivation.goal.improve-revenue
 
@@ -370,11 +360,8 @@ dr links list --type motivation.supports-goals
 # Filter by layer
 dr links list --layer application
 
-# Show only broken links
-dr links list --broken-only
-
 # Export as CSV
-dr links list --format csv --output links.csv
+dr links list --format csv
 ```
 
 **Example:**
@@ -384,9 +371,9 @@ User: /dr-links Show me all links to motivation layer
 
 You should:
 1. Query links:
-   dr links list --target-layer motivation
+   dr links list --layer motivation
 2. Format results:
-   "Links targeting Motivation Layer (18 total):
+   "Links involving Motivation Layer (18 total):
 
    Supports Goals (12):
    - business.service.order-mgmt → motivation.goal.improve-efficiency
@@ -419,19 +406,19 @@ You should:
 
 ```bash
 # Generate Markdown summary
-dr links docs --format markdown --output ./docs/links-summary.md
+dr links docs --formats markdown --output-dir ./docs/
 
 # Generate detailed reference
-dr links docs --format markdown --detail full --output ./docs/links-reference.md
+dr links docs --formats markdown --output-dir ./docs/
 
 # Generate interactive HTML
-dr links docs --format html --output ./docs/links.html
+dr links docs --formats html --output-dir ./docs/
 
 # Generate Mermaid diagram
-dr links docs --format mermaid --output ./docs/link-diagram.mmd
+dr links docs --formats mermaid --output-dir ./docs/
 
 # Generate all formats
-dr links docs --format all --output ./docs/
+dr links docs --formats all --output-dir ./docs/
 ```
 
 **Example:**
@@ -441,14 +428,13 @@ User: /dr-links Create documentation for all links in the model
 
 You should:
 1. Generate comprehensive docs:
-   dr links docs --format markdown --detail full --output ./documentation-robotics/specs/docs/link-reference.md
-   dr links docs --format mermaid --output ./documentation-robotics/specs/diagrams/link-diagram.mmd
+   dr links docs --formats markdown,mermaid --output-dir ./documentation-robotics/specs/docs/
 2. Confirm:
    "✓ Generated Link Documentation
 
    Created:
    - ./documentation-robotics/specs/docs/link-reference.md (Complete reference)
-   - ./documentation-robotics/specs/diagrams/link-diagram.mmd (Visual diagram)
+   - ./documentation-robotics/specs/docs/link-diagram.mmd (Visual diagram)
 
    The documentation includes:
    - Complete link type catalog (62 types)
@@ -474,9 +460,6 @@ You should:
 ```bash
 # Get comprehensive stats
 dr links stats
-
-# Get JSON for parsing
-dr links stats --json
 ```
 
 **Example:**
@@ -621,9 +604,9 @@ dr validate --layer application --validate-links
    1. Create the missing goal:
       dr add motivation goal --name "Missing Goal"
    2. Remove the reference:
-      dr update application.service.orders --remove motivation.supports-goals
+      dr update application.service.orders --set motivation.supports-goals=
    3. Fix the typo:
-      dr links find --suggest motivation.goal.missing
+      dr links find motivation.goal.missing
    ```
 
 2. **Type mismatch:**
@@ -689,7 +672,7 @@ dr validate --layer application --validate-links
 ```bash
 # Query and explore
 dr links types                          # All link types
-dr links types --from api --to application  # Filtered
+dr links types --layer api  # Filtered
 dr links registry                       # Full registry
 dr links stats                          # Statistics
 
@@ -699,12 +682,12 @@ dr validate --validate-links --strict-links  # Strict mode
 
 # Discovery
 dr links find business.service.orders   # Links for element
-dr links list --target-layer motivation # All links to layer
+dr links list --layer motivation # All links to layer
 dr links trace elem-a elem-b            # Path between elements
 
 # Documentation
-dr links docs --format markdown --output ./docs/  # Generate docs
-dr links docs --format mermaid --output diagram.mmd  # Diagram
+dr links docs --formats markdown --output-dir ./docs/  # Generate docs
+dr links docs --formats mermaid --output-dir ./docs/  # Diagram
 
 # Migration
 dr migrate                              # Check needs

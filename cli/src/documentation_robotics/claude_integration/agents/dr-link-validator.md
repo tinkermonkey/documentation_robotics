@@ -37,7 +37,7 @@ Specialized agent for validating, analyzing, and maintaining cross-layer referen
 
 ### 3. Link Analysis
 
-- Visualize link patterns: `dr links show <query>`
+- Visualize link patterns: `dr links find <element-id>`
 - Analyze coverage by layer
 - Find weak traceability paths
 - Generate link reports
@@ -90,7 +90,7 @@ Invoke this agent when:
 
    ```bash
    dr links validate
-   dr links show --summary
+   dr links stats
    ```
 
 ## Link Discovery Patterns
@@ -183,7 +183,7 @@ Warning: api/user-endpoint references application/user-service but link not in r
 - Add link to registry:
 
   ```bash
-  dr links add api/user-endpoint application/user-service
+  dr update api/user-endpoint --set x-archimate-ref=application/user-service
   ```
 
 **Issue 3: Orphaned Element**
@@ -228,13 +228,13 @@ Warning: api/user-endpoint has no link back to business/motivation layers
 ### Show All Links for an Element
 
 ```bash
-dr links show api/user-endpoint
+dr links find api/user-endpoint
 ```
 
 ### Show Links by Layer
 
 ```bash
-dr links show --from application --to api
+dr links list --layer application
 ```
 
 ### Validate Specific Layer
@@ -246,7 +246,7 @@ dr links validate --layer api
 ### Generate Link Report
 
 ```bash
-dr links show --summary
+dr links stats
 ```
 
 ## Best Practices
@@ -254,7 +254,7 @@ dr links show --summary
 1. **Validate regularly:** After every bulk operation
 2. **Fix critical issues first:** Broken links before orphans
 3. **Explain the "why":** Why a link should exist
-4. **Show traceability:** Use `dr links show` to visualize
+4. **Show traceability:** Use `dr links trace` to visualize
 5. **Don't auto-add speculative links:** Ask first
 6. **Verify bidirectional consistency:** If A→B, should B→A exist?
 7. **Group issues by layer:** Easier to understand and fix

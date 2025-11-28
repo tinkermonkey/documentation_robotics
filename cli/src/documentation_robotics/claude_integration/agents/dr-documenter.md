@@ -271,17 +271,14 @@ language: en # en | es | fr | de | etc.
 **Generate comprehensive link documentation:**
 
 ```bash
-# Generate link summary
-dr links docs --format markdown --output ./docs/links-summary.md
-
-# Generate detailed link reference
-dr links docs --format markdown --detail full --output ./docs/links-reference.md
+# Generate link documentation (Markdown)
+dr links docs --formats markdown --output-dir ./docs/
 
 # Generate Mermaid connectivity diagram
-dr links docs --format mermaid --output ./diagrams/link-connectivity.mmd
+dr links docs --formats mermaid --output-dir ./diagrams/
 
 # Get link statistics
-dr links stats --json > ./docs/link-statistics.json
+dr links stats > ./docs/link-statistics.txt
 ```
 
 **Link documentation includes:**

@@ -426,7 +426,7 @@ schemaRef: data_model.object-schema.order # DR native field
 1. **Query available patterns:**
 
    ```bash
-   dr links types --from api --to application
+   dr links types --layer api
    ```
 
 2. **Explain the result:**
@@ -559,7 +559,7 @@ dr changeset create "explore-caching" --type exploration
 ```bash
 # All commands work in changeset context
 dr add application service --name "Cache Service"
-dr update application.service.order-api --property cache=redis
+dr update application.service.order-api --set cache=redis
 dr validate --validate-links
 ```
 
@@ -667,7 +667,7 @@ dr changeset clear           # Return to main model
 
    ```bash
    # Extract only what changed (e.g., API layer)
-   dr ingest ./src/api --target-layers api,application
+   dr ingest ./src/api
    ```
 
 3. **Review changes:**
@@ -720,7 +720,7 @@ dr changeset clear           # Return to main model
 1. **Find what references it:**
 
    ```bash
-   dr links find api.operation.deprecated-endpoint --direction incoming
+   dr links find api.operation.deprecated-endpoint
 
    # Shows:
    # ← navigation.route.old-checkout (via api.operationId)
@@ -730,7 +730,7 @@ dr changeset clear           # Return to main model
 2. **Update referencing elements:**
 
    ```bash
-   dr update navigation.route.old-checkout --property api.operationId=newOperation
+   dr update navigation.route.old-checkout --set api.operationId=newOperation
    ```
 
 3. **Remove the element:**
@@ -771,7 +771,7 @@ dr changeset clear           # Return to main model
 
    ```bash
    dr list motivation goal        # What goals exist?
-   dr links types --to motivation # What link patterns are valid?
+   dr links types --layer motivation # What link patterns are valid?
    ```
 
 4. **Fix the issue:**
@@ -785,7 +785,7 @@ dr changeset clear           # Return to main model
    dr add motivation goal --name "Missing Goal"
 
    # Option 3: Remove the invalid reference
-   dr update business.service.orders --remove motivation.supports-goals
+   dr update business.service.orders --set motivation.supports-goals=[]
    ```
 
 #### Issue: "Can't find where to model something"
@@ -1101,7 +1101,7 @@ This is an **x-extension pattern** (Pattern A), used in OpenAPI specifications.
 **Query the link type:**
 
 ```bash
-dr links types --from api --to application
+dr links types --layer api
 ```
 
 Output shows:
@@ -1206,7 +1206,7 @@ dr migrate --apply
 **Step 4: Validate with strict mode**
 
 ```bash
-dr validate --validate-links --strict-links --format json > validation-report.json
+dr validate --validate-links --strict-links --output json > validation-report.json
 ```
 
 **Step 5: Fix remaining issues**
@@ -1232,7 +1232,7 @@ For each error:
 
    ```bash
    # Query correct type
-   dr links types --from api --to application
+   dr links types --layer api
    # Update reference
    dr update api.operation.create-order \
      --property x-archimate-ref=application.service.correct-target
@@ -1276,7 +1276,7 @@ git merge migrate-to-v0.2.0
 **Pro tips:**
 
 - Use `dr links stats` to monitor link health
-- Run `dr links list --broken-only` to find issues quickly
+- Run `dr validate --validate-links` to find issues quickly
 - Consider CI/CD integration with `--strict-links` for ongoing quality
 
 ## Response Style Guidelines

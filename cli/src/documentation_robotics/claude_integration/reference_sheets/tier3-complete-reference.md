@@ -1130,9 +1130,9 @@ dr search --property criticality=high
 dr search --layer application --type service --property environment=production
 
 # Output formats
-dr search "API" --format json
-dr search "API" --format yaml
-dr search "API" --format table
+dr search "API" --output json
+dr search "API" --output yaml
+dr search "API" --output table
 ```
 
 ### Projection Options
@@ -1142,10 +1142,10 @@ dr search "API" --format table
 dr project business.service.orders --to application
 
 # Project with rules file
-dr project business.service.orders --to application --rules custom-rules.yaml
+dr project business.service.orders --to application --rule custom-rules.yaml
 
 # Project all matching elements
-dr project-all --from business --to application --type service
+dr project-all --from business --to application
 
 # Preview projection (dry-run)
 dr project business.service.orders --to application --dry-run
@@ -1167,10 +1167,10 @@ dr trace application.service.order-api --direction upstream
 dr trace business.service.orders --direction both
 
 # Trace to specific depth
-dr trace business.service.orders --depth 3
+dr trace business.service.orders --max-depth 3
 
 # Output as graph
-dr trace business.service.orders --format graphml
+dr trace business.service.orders --output tree
 ```
 
 ### Export Options
@@ -1180,7 +1180,7 @@ dr trace business.service.orders --format graphml
 dr export --format archimate --layer business
 
 # Export with filter
-dr export --format markdown --type service
+dr export --format markdown --filter "type=service"
 
 # Export to custom path
 dr export --format openapi --output ./docs/api-specs/
@@ -1198,17 +1198,8 @@ dr export --format archimate --validate
 # Validate specific layer
 dr validate --layer business
 
-# Validate with specific rules
-dr validate --rules semantic,references,traceability
-
 # Output validation report
-dr validate --output validation-report.json --format json
-
-# Fix common issues automatically
-dr validate --auto-fix
-
-# Validate and show warnings only
-dr validate --warnings-only
+dr validate --output json > validation-report.json
 ```
 
 ### Changeset Management
@@ -1305,7 +1296,7 @@ dr add api operation --name "Create Order" \
   --property path=/orders
 
 dr update api.operation.create-order \
-  --property authenticated=true
+  --set authenticated=true
 
 dr list api operation
 # Shows both main model + changeset elements
@@ -1862,24 +1853,8 @@ dr links types --category ux             # UX layer links
 dr links types --category navigation     # Navigation layer links
 dr links types --category apm            # APM/observability links
 
-# Filter by source layer
-dr links types --from application        # All links FROM application layer
-dr links types --from api                # All links FROM API layer
-dr links types --from navigation         # All links FROM navigation layer
-
-# Filter by target layer
-dr links types --to motivation           # All links TO motivation layer
-dr links types --to business             # All links TO business layer
-dr links types --to application          # All links TO application layer
-
-# Combined filters
-dr links types --from api --to application
-dr links types --from application --to motivation
-dr links types --category security --from application
-
 # JSON output for programmatic use
-dr links types --json
-dr links types --from api --to application --json
+dr links types --format json
 ```
 
 **Example output:**
@@ -1919,13 +1894,10 @@ View or export the complete link registry:
 dr links registry
 
 # Export as JSON
-dr links registry --format json --output link-registry.json
+dr links registry --format json > link-registry.json
 
 # Export as Markdown
-dr links registry --format markdown --output link-registry.md
-
-# Display with full details
-dr links registry --detail full
+dr links registry --format markdown > link-registry.md
 ```
 
 #### Get Link Statistics
@@ -1936,8 +1908,6 @@ View statistics about the link registry and model:
 # Get comprehensive stats
 dr links stats
 
-# JSON output
-dr links stats --json
 ```
 
 **Example output:**
@@ -1995,14 +1965,8 @@ Discover all links (incoming and outgoing) for a specific element:
 # Find all links for element
 dr links find business.service.order-management
 
-# Find only outgoing links (references TO other elements)
-dr links find business.service.order-management --direction outgoing
-
-# Find only incoming links (references FROM other elements)
-dr links find business.service.order-management --direction incoming
-
 # JSON output
-dr links find business.service.order-management --json
+dr links find business.service.order-management --format json
 ```
 
 **Example output:**
@@ -2044,18 +2008,8 @@ dr links list --type realizes
 dr links list --layer application
 dr links list --layer api
 
-# Filter by target layer
-dr links list --target-layer motivation
-dr links list --target-layer business
-
-# Show only broken links
-dr links list --broken-only
-
-# Export as CSV
-dr links list --format csv --output links.csv
-
 # Export as JSON
-dr links list --format json --output links.json
+dr links list --format json > links.json
 ```
 
 **Example output:**
@@ -2083,25 +2037,9 @@ Find connectivity paths through the link graph:
 # Find shortest path
 dr links trace api.operation.create-order motivation.goal.improve-revenue
 
-# Find all paths (up to depth N)
-dr links trace api.operation.create-order motivation.goal.improve-revenue \
-  --all-paths --max-depth 5
-
-# Trace impact downstream (what depends on this?)
-dr links trace motivation.goal.improve-revenue --direction downstream
-
-# Trace dependencies upstream (what does this depend on?)
-dr links trace datastore.table.orders --direction upstream
-
-# Both directions
-dr links trace business.service.orders --direction both
-
 # Custom depth limit
 dr links trace api.operation.create-order motivation.goal.improve-revenue \
-  --max-depth 3
-
-# JSON output
-dr links trace api.operation.create-order motivation.goal.improve-revenue --json
+  --max-hops 3
 ```
 
 **Example output:**
@@ -2160,7 +2098,7 @@ dr changeset switch feature-new-api
 dr validate --validate-links
 
 # JSON output
-dr validate --validate-links --format json --output validation-report.json
+dr validate --validate-links --output json > validation-report.json
 ```
 
 #### Validation Checks
@@ -2228,11 +2166,10 @@ business.service.orders:
 dr add motivation goal --name "Missing Goal"
 
 # FIX Option 2: Remove invalid reference
-dr update business.service.orders --remove motivation.supports-goals
+dr update business.service.orders --set motivation.supports-goals=
 
 # FIX Option 3: Correct typo (get suggestions)
 dr links types --category motivation  # See valid targets
-dr links find --suggest motivation.goal.missing  # Get suggestions
 ```
 
 **Error 2: Type Mismatch**
@@ -2281,19 +2218,16 @@ Generate comprehensive documentation for cross-layer links.
 
 ```bash
 # Markdown summary (quick overview)
-dr links docs --format markdown --output ./docs/links-summary.md
-
-# Markdown detailed reference (complete catalog)
-dr links docs --format markdown --detail full --output ./docs/links-reference.md
+dr links docs --formats markdown --output-dir ./docs/
 
 # Interactive HTML documentation
-dr links docs --format html --output ./docs/links.html
+dr links docs --formats html --output-dir ./docs/
 
 # Mermaid diagram (layer connectivity)
-dr links docs --format mermaid --output ./docs/link-diagram.mmd
+dr links docs --formats mermaid --output-dir ./docs/
 
 # All formats
-dr links docs --format all --output ./docs/
+dr links docs --formats all --output-dir ./docs/
 ```
 
 **Generated documentation includes:**
@@ -2570,7 +2504,7 @@ Always query available link types before creating references:
 
 ```bash
 # Before adding a link, check what's available
-dr links types --from application --to motivation
+dr links types --layer application
 
 # This shows valid patterns, cardinality, and format
 ```
@@ -2599,7 +2533,7 @@ dr validate --validate-links
 dr validate --validate-links --strict-links
 
 # In CI/CD
-dr validate --validate-links --strict-links --format json
+dr validate --validate-links --strict-links --output json
 ```
 
 #### 4. Use Strict Mode in CI/CD
@@ -2618,10 +2552,10 @@ Generate link documentation for reviews:
 
 ```bash
 # For architecture reviews
-dr links docs --format markdown --detail full --output ./review/
+dr links docs --formats markdown --output-dir ./review/
 
 # For diagrams in presentations
-dr links docs --format mermaid --output ./diagrams/
+dr links docs --formats mermaid --output-dir ./diagrams/
 ```
 
 #### 6. Monitor Link Health
@@ -2875,7 +2809,7 @@ dr find motivation.goal.missing-goal
 # Fix by creating target or removing reference
 dr add motivation goal --name "Missing Goal"
 # OR
-dr update business.service.orders --remove-property supports-goals
+dr update business.service.orders --set supports-goals=
 ```
 
 **Issue: "Projection failed"**
@@ -2897,9 +2831,6 @@ cat projection-rules.yaml
 # Validate model first
 dr validate --strict
 
-# Fix validation errors
-dr validate --auto-fix
-
 # Export specific layer
 dr export --format archimate --layer business
 
@@ -2917,7 +2848,7 @@ dr --verbose validate
 cat .dr/logs/dr.log
 
 # Validate specific element
-dr find business.service.orders --validate
+dr validate --element business.service.orders
 ```
 
 ### Performance Issues

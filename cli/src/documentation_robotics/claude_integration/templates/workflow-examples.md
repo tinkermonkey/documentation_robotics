@@ -576,7 +576,7 @@ dr export --format plantuml \
 
 ```bash
 # Generate tickets for remaining issues
-dr validate --format json | \
+dr validate --output json | \
   jq '.warnings[] | "JIRA-\(.severity): \(.message) [\(.element)]"'
 ```
 
@@ -788,7 +788,7 @@ Analytics Service:
 
 ```bash
 # Check goal coverage
-dr validate --check traceability
+dr validate --validate-links
 
 # Generate traceability matrix
 dr export --format markdown \
@@ -946,9 +946,6 @@ Phase 3: [continue...]
 ### 6. Generate Comparison
 
 ```bash
-# Compare current vs target
-dr diff documentation-robotics/ documentation-robotics-target/ --output docs/refactoring/comparison.md
-
 # Generate migration guide
 dr export --format markdown \
   --version target-state \
@@ -1340,7 +1337,7 @@ dr search <keyword>
 
 ```
 dr add <layer> <type> --batch-file elements.yaml
-dr update <pattern> --property key=value
+dr update <pattern> --set key=value
 ```
 
 ### Validation
@@ -1348,7 +1345,6 @@ dr update <pattern> --property key=value
 ```
 dr validate                    # Basic
 dr validate --strict           # Comprehensive
-dr validate --fix              # Auto-fix issues
 dr validate --layer security   # Focus on one layer
 ```
 

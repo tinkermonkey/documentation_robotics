@@ -165,7 +165,7 @@ For the changeset overall:
 **Issue 2: Missing link registration**
 
 - Cross-layer references not in link registry
-- **Fix:** Register links with `dr links add`
+- **Fix:** Register links with `dr update ...`
 
 **Issue 3: Inconsistent naming**
 

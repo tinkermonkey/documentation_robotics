@@ -258,7 +258,7 @@ Files Modified:
 After extraction, run validation:
 
 ```bash
-dr validate --strict --format json
+dr validate --strict
 ```
 
 Present results and ask user to review:
