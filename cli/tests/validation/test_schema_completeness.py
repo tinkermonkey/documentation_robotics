@@ -20,7 +20,7 @@ class TestSchemaCompleteness:
         return SchemaCompletenessValidator()
 
     def test_all_11_layers_present(self, validator):
-        """Test that all 11 expected layers are in registry."""
+        """Test that all 12 expected layers are in registry."""
         expected_layers = {
             "motivation",
             "business",
@@ -33,6 +33,7 @@ class TestSchemaCompleteness:
             "ux",
             "navigation",
             "apm_observability",
+            "testing",
         }
 
         validator.validate_all()
@@ -229,10 +230,10 @@ class TestEntityTypeRegistry:
         return registry
 
     def test_registry_has_all_layers(self, registry):
-        """Test registry contains all 11 layers."""
+        """Test registry contains all 12 layers."""
         layers = registry.get_all_layers()
 
-        assert len(layers) == 11, f"Expected 11 layers, found {len(layers)}: {layers}"
+        assert len(layers) == 12, f"Expected 12 layers, found {len(layers)}: {layers}"
 
     def test_all_layers_have_entity_types(self, registry):
         """Test that every layer has at least one entity type."""

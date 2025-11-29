@@ -4,7 +4,7 @@
 
 The Testing Layer defines **test coverage requirements** rather than test execution details. This is a **custom specification** that models what should be tested and why, enabling traceability from business requirements through coverage targets to abstract test cases.
 
-**Key Distinction**: This layer models the *coverage space* (what combinations of inputs, contexts, and outcomes need testing) rather than *test instances* (specific test cases with concrete values). Concrete test implementations can be linked via references to external formats (Gherkin, Postman, etc.).
+**Key Distinction**: This layer models the _coverage space_ (what combinations of inputs, contexts, and outcomes need testing) rather than _test instances_ (specific test cases with concrete values). Concrete test implementations can be linked via references to external formats (Gherkin, Postman, etc.).
 
 **Layer Integration**: Testing Layer integrates with Motivation Layer for requirements traceability (WHY), Business Layer for workflow coverage (WHAT processes), UX Layer for form coverage (WHAT interfaces), API Layer for endpoint coverage (WHAT services), and Data Model Layer for input constraints (HOW to partition).
 
@@ -88,20 +88,20 @@ TestCoverageTarget:
 
   enums:
     TargetType:
-      - workflow          # Business process or workflow
-      - workflow-step     # Specific step within a workflow
-      - form              # UI form submission
-      - api-operation     # API endpoint operation
-      - data-transform    # Data transformation or business rule
-      - navigation-path   # Navigation sequence through UI
-      - integration       # Integration between systems
-      - composite         # Combination of multiple targets
+      - workflow # Business process or workflow
+      - workflow-step # Specific step within a workflow
+      - form # UI form submission
+      - api-operation # API endpoint operation
+      - data-transform # Data transformation or business rule
+      - navigation-path # Navigation sequence through UI
+      - integration # Integration between systems
+      - composite # Combination of multiple targets
 
     Priority:
-      - critical          # Must have full coverage
-      - high              # Should have strong coverage
-      - medium            # Normal coverage expectations
-      - low               # Best-effort coverage
+      - critical # Must have full coverage
+      - high # Should have strong coverage
+      - medium # Normal coverage expectations
+      - low # Best-effort coverage
 
   examples:
     # Workflow target
@@ -150,9 +150,9 @@ TargetInputField:
 
   enums:
     FieldRelevance:
-      - primary           # Core to the functionality
-      - secondary         # Affects behavior but not central
-      - contextual        # Only relevant in certain contexts
+      - primary # Core to the functionality
+      - secondary # Affects behavior but not central
+      - contextual # Only relevant in certain contexts
 
   example:
     - fieldRef: "order.lineItems"
@@ -184,9 +184,9 @@ InputSpacePartition:
 
   enums:
     PresenceRule:
-      - required          # Field must always be present
-      - optional          # Field presence is a dimension to test
-      - conditional       # Presence depends on other fields
+      - required # Field must always be present
+      - optional # Field presence is a dimension to test
+      - conditional # Presence depends on other fields
 
   examples:
     # Presence partition
@@ -243,11 +243,11 @@ PartitionValue:
 
   enums:
     PartitionCategory:
-      - typical           # Normal/common case
-      - boundary          # Edge case at limits
-      - invalid           # Should be rejected
-      - null              # Null or missing value
-      - special           # Special handling required
+      - typical # Normal/common case
+      - boundary # Edge case at limits
+      - invalid # Should be rejected
+      - null # Null or missing value
+      - special # Special handling required
 
   examples:
     - id: "valid-email"
@@ -276,10 +276,10 @@ PartitionDependency:
 
   enums:
     DependencyEffect:
-      - requires          # If A, then must have B
-      - excludes          # If A, then cannot have B
-      - enables           # If A, then B becomes available
-      - modifies          # If A, then B's meaning changes
+      - requires # If A, then must have B
+      - excludes # If A, then cannot have B
+      - enables # If A, then B becomes available
+      - modifies # If A, then B's meaning changes
 
   example:
     - dependsOnPartition: "payment-method"
@@ -311,11 +311,11 @@ ContextVariation:
 
   enums:
     ContextType:
-      - ui-entry          # Entry via UI navigation
-      - api-entry         # Entry via API call
-      - event-triggered   # Triggered by system event
-      - scheduled         # Triggered by scheduler
-      - integration       # Triggered by external system
+      - ui-entry # Entry via UI navigation
+      - api-entry # Entry via API call
+      - event-triggered # Triggered by system event
+      - scheduled # Triggered by scheduler
+      - integration # Triggered by external system
 
   examples:
     # Customer UI context
@@ -385,15 +385,15 @@ OutcomeCategory:
 
   enums:
     OutcomeType:
-      - success           # Operation completed successfully
-      - validation-error  # Input validation failed
-      - authorization-denied  # Permission denied
-      - not-found         # Resource not found
-      - conflict          # State conflict (e.g., already exists)
-      - precondition-failed  # Precondition not met
-      - idempotent-noop   # Already in target state
-      - partial-success   # Some items succeeded, some failed
-      - error             # Unexpected error
+      - success # Operation completed successfully
+      - validation-error # Input validation failed
+      - authorization-denied # Permission denied
+      - not-found # Resource not found
+      - conflict # State conflict (e.g., already exists)
+      - precondition-failed # Precondition not met
+      - idempotent-noop # Already in target state
+      - partial-success # Some items succeeded, some failed
+      - error # Unexpected error
 
   examples:
     - id: "order-created"
@@ -433,13 +433,13 @@ CoverageRequirement:
 
   enums:
     CoverageCriteria:
-      - exhaustive        # All combinations
-      - pairwise          # All pairs of values
-      - each-choice       # At least one test per partition value
-      - boundary          # Focus on boundary values
-      - risk-based        # Priority based on risk assessment
-      - happy-path        # Only success scenarios
-      - error-path        # Only error scenarios
+      - exhaustive # All combinations
+      - pairwise # All pairs of values
+      - each-choice # At least one test per partition value
+      - boundary # Focus on boundary values
+      - risk-based # Priority based on risk assessment
+      - happy-path # Only success scenarios
+      - error-path # Only error scenarios
 
   examples:
     # Comprehensive coverage requirement
@@ -495,7 +495,7 @@ InputPartitionSelection:
   example:
     - partitionRef: "line-items-count"
       coverValues: ["single", "multiple", "boundary-max"]
-      excludeValues: ["empty"]  # Covered by separate error-path requirement
+      excludeValues: ["empty"] # Covered by separate error-path requirement
 ```
 
 ### CoverageExclusion
@@ -540,23 +540,23 @@ TestCaseSketch:
 
   enums:
     SketchStatus:
-      - planned           # Not yet implemented
-      - implemented       # Has concrete implementation
-      - automated         # Automated and in CI/CD
-      - manual            # Requires manual execution
-      - blocked           # Cannot be implemented currently
-      - deprecated        # No longer relevant
+      - planned # Not yet implemented
+      - implemented # Has concrete implementation
+      - automated # Automated and in CI/CD
+      - manual # Requires manual execution
+      - blocked # Cannot be implemented currently
+      - deprecated # No longer relevant
 
     ImplementationFormat:
-      - gherkin           # Cucumber/Gherkin feature file
-      - postman           # Postman collection
-      - jest              # Jest test file
-      - pytest            # pytest test file
-      - playwright        # Playwright test
-      - cypress           # Cypress test
-      - robot             # Robot Framework
-      - manual            # Manual test procedure
-      - other             # Other format
+      - gherkin # Cucumber/Gherkin feature file
+      - postman # Postman collection
+      - jest # Jest test file
+      - pytest # pytest test file
+      - playwright # Playwright test
+      - cypress # Cypress test
+      - robot # Robot Framework
+      - manual # Manual test procedure
+      - other # Other format
 
   examples:
     # Implemented test case sketch
@@ -637,10 +637,10 @@ CoverageGap:
 
   enums:
     GapSeverity:
-      - critical          # Missing critical coverage
-      - high              # Significant gap
-      - medium            # Notable gap
-      - low               # Minor gap
+      - critical # Missing critical coverage
+      - high # Significant gap
+      - medium # Notable gap
+      - low # Minor gap
 ```
 
 ## Complete Example: Order Management Test Coverage
@@ -747,7 +747,7 @@ inputSpacePartitions:
         label: "Single Item"
         constraint: "length = 1"
         category: typical
-        representativeValue: [{"productId": "prod-1", "quantity": 1}]
+        representativeValue: [{ "productId": "prod-1", "quantity": 1 }]
       - id: "few"
         label: "Few Items (2-5)"
         constraint: "length in [2, 5]"
@@ -941,7 +941,7 @@ coverageRequirements:
       - partitionRef: "price-partition"
         coverValues: ["zero", "minimum", "maximum"]
     contextSelections:
-      - "api-direct"  # API is best for boundary testing
+      - "api-direct" # API is best for boundary testing
     outcomeSelections:
       - "created"
       - "validation-failed"

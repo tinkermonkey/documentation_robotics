@@ -145,7 +145,7 @@ specVersion: "0.2.0"
 
 ## Level 3: Full Conformance
 
-**Scope:** All 11 layers
+**Scope:** All 12 layers
 
 **Use Case:** Enterprise projects, complete traceability, multi-channel UX, observability
 
@@ -189,7 +189,7 @@ Beyond Standard level, implementations MUST:
    - Support bidirectional traceability queries
 
 5. **Complete Validation**
-   - Validate all 11 layers
+   - Validate all 12 layers
    - Validate complete reference chains
    - Validate end-to-end consistency
    - Validate observability coverage

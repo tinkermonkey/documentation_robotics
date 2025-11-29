@@ -9,7 +9,7 @@ This document describes the comprehensive validation loop that ensures the Docum
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                       INPUT: Spec Schemas                        │
-│              (JSON Schema files for 11 layers)                   │
+│              (JSON Schema files for 12 layers)                   │
 └──────────────────────┬──────────────────────────────────────────┘
                        │
                        ▼
@@ -53,7 +53,7 @@ This document describes the comprehensive validation loop that ensures the Docum
 │  │  Level 2: Pytest Test Suite                              │  │
 │  │  • 14 automated tests                                    │  │
 │  │  • Enforces 100% entity type coverage                    │  │
-│  │  • Validates all 11 layers                               │  │
+│  │  • Validates all 12 layers                               │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │  ┌───────────────────────────────────────────────────────────┐  │
 │  │  Level 3: Manual CLI Testing                             │  │
@@ -73,7 +73,7 @@ This document describes the comprehensive validation loop that ensures the Docum
 │  • Markdown validation report                                    │
 │  • pytest results (14 tests)                                     │
 │  • Coverage metrics (94.1% pass rate)                            │
-│  • Entity type coverage table (100% match all 11 layers)         │
+│  • Entity type coverage table (100% match all 12 layers)         │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -108,7 +108,7 @@ This document describes the comprehensive validation loop that ensures the Docum
 
 - ✓ All entity types from schema are in CLI
 - ✓ No extra types in CLI not in schema
-- ✓ Perfect 1:1 match for all 11 layers
+- ✓ Perfect 1:1 match for all 12 layers
 
 #### Property Coverage
 
@@ -427,7 +427,7 @@ def validate_claude_integration():
 
 ### 4. **Comprehensive Coverage**
 
-- ✅ All 11 layers validated
+- ✅ All 12 layers validated
 - ✅ All 101 entity types checked
 - ✅ Both positive and negative cases
 - ✅ Integration and unit tests
@@ -508,7 +508,7 @@ This validation loop provides **mathematical proof** that the CLI implements the
 
 - ✅ Every entity type in schemas is supported by CLI
 - ✅ CLI rejects all invalid entity types
-- ✅ All 11 layers are 100% accurate
+- ✅ All 12 layers are 100% accurate
 - ✅ Future schema changes automatically propagate
 - ✅ Regressions are caught immediately
 

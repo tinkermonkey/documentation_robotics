@@ -1,12 +1,12 @@
 # Documentation Robotics (`dr`) CLI Tool
 
-A command-line tool for managing federated architecture data models across 11 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
+A command-line tool for managing federated architecture data models across 12 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
 
 > **Part of [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)** - For project overview, motivation, and full context, see the [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.4.1-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
-[![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.5.0-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
+[![Specification](https://img.shields.io/badge/Specification-v0.3.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tinkermonkey/documentation_robotics/blob/main/LICENSE)
 
 ## Installation
@@ -25,17 +25,17 @@ pip install documentation-robotics
 
 ## Specification Conformance
 
-**Implements:** [Documentation Robotics Specification v0.2.0](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
-**Conformance Level:** Full (All 11 layers)
+**Implements:** [Documentation Robotics Specification v0.3.0](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
+**Conformance Level:** Full (All 12 layers)
 
 Run `dr conformance` to see detailed conformance information.
 
 ## Status
 
-**Current Version:** v0.4.1
-**Specification Version:** v0.2.0
+**Current Version:** v0.5.0
+**Specification Version:** v0.3.0
 
-This release focuses on Claude Code integration enhancements and compliance:
+This release adds the Testing Layer and updates all integrations:
 
 - **Model CRUD** - Model initialization, element management, validation
 - **Changeset Management** - Isolated workspaces for exploring changes before committing (like Git branches)
@@ -64,7 +64,7 @@ For the broader motivation and context, see [The Need](https://github.com/tinker
 
 ### Foundation
 
-- Model initialization with 11-layer structure
+- Model initialization with 12-layer structure
 - Element management (add, update, remove) across all layers
 - **Changeset management** - Create isolated workspaces to explore, compare, and apply changes
 - Query and search capabilities
@@ -221,7 +221,7 @@ See [Claude Code Integration Guide](https://github.com/tinkermonkey/documentatio
 
 ## Architecture Model Structure
 
-The `dr` tool manages models with 11 layers as defined in the [Documentation Robotics Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec). For a complete overview of all layers and their relationships, see [The 11 Layers](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md#the-11-layers) in the main README.
+The `dr` tool manages models with 12 layers as defined in the [Documentation Robotics Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec). For a complete overview of all layers and their relationships, see [The 12 Layers](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md#the-12-layers) in the main README.
 
 1. **Motivation** - Stakeholders, goals, requirements, principles ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/01-motivation-layer.md))
 2. **Business** - Business services, processes, actors, roles ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/02-business-layer.md))
@@ -234,6 +234,7 @@ The `dr` tool manages models with 11 layers as defined in the [Documentation Rob
 9. **UX** - Screens, layouts, components, states ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/09-ux-layer.md))
 10. **Navigation** - Routes, guards, transitions, menus ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/10-navigation-layer.md))
 11. **APM/Observability** - Traces, logs, metrics (OpenTelemetry) ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/11-apm-observability-layer.md))
+12. **Testing** - Test coverage modeling, requirements traceability ([spec](https://github.com/tinkermonkey/documentation_robotics/blob/main/spec/layers/12-testing-layer.md))
 
 For detailed layer specifications, see [spec/layers/](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec/layers)
 

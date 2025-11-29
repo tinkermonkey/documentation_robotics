@@ -13,6 +13,13 @@ import inflect
 # Special case entity types for layers with non-standard schema structures
 API_LAYER_TYPES = ["operation", "path", "schema", "security-scheme", "server", "component"]
 DATA_MODEL_LAYER_TYPES = ["schema", "entity", "attribute", "relationship"]
+TESTING_LAYER_TYPES = [
+    "coverage-target",
+    "input-space-partition",
+    "context-variation",
+    "coverage-requirement",
+    "test-case-sketch",
+]
 
 
 class EntityTypeRegistry:
@@ -106,6 +113,8 @@ class EntityTypeRegistry:
             return API_LAYER_TYPES
         elif layer_name == "data_model":
             return DATA_MODEL_LAYER_TYPES
+        elif layer_name == "testing":
+            return TESTING_LAYER_TYPES
 
         # Load schema
         with open(schema_file) as f:

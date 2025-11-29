@@ -1113,6 +1113,207 @@ apm.data-quality-metric.order-completeness:
     alertOn: below-threshold
 ```
 
+### Layer 12: Testing (Custom)
+
+Custom specification for test coverage modeling and requirements traceability. Models **what should be tested** (coverage space) rather than concrete test instances.
+
+**Coverage Planning Types:**
+
+| Type                      | Description                               | Required Fields | Key Properties                                                                                            |
+| ------------------------- | ----------------------------------------- | --------------- | --------------------------------------------------------------------------------------------------------- |
+| **coverage-target**       | Artifact that requires test coverage      | id, name        | targetType: workflow\|form\|api-operation\|navigation-path, priority: critical\|high\|medium\|low         |
+| **input-space-partition** | Partitioning of input dimension           | id, name        | fieldRef, presenceRule: required\|optional\|conditional, partitions: PartitionValue[]                     |
+| **context-variation**     | Different contexts for same functionality | id, name        | contextType: ui-entry\|api-entry\|event-triggered\|scheduled\|integration, entryPointRef, securityRoleRef |
+| **coverage-requirement**  | Coverage requirement for target           | id, name        | targetRef, coverageCriteria: exhaustive\|pairwise\|boundary\|risk-based\|each-choice, priority            |
+| **test-case-sketch**      | Abstract test case specification          | id, name        | status: planned\|implemented\|automated\|manual\|blocked, implementationRef, implementationFormat         |
+
+**Nested Types:**
+
+| Type                        | Description                     | Key Properties                                                             |
+| --------------------------- | ------------------------------- | -------------------------------------------------------------------------- |
+| **TargetInputField**        | Input field for coverage target | fieldRef, partitionRef, relevance: primary\|secondary\|contextual          |
+| **PartitionValue**          | Specific partition value        | id, label, constraint, category: typical\|boundary\|invalid\|null\|special |
+| **OutcomeCategory**         | Expected outcome category       | id, outcomeType: success\|validation-error\|authorization-denied\|error    |
+| **InputPartitionSelection** | Partition values to cover       | partitionRef, coverValues[], excludeValues[]                               |
+| **CoverageExclusion**       | Explicit coverage exclusion     | description, reason, riskAccepted                                          |
+| **InputSelection**          | Specific value for test case    | partitionRef, selectedValue                                                |
+| **EnvironmentFactor**       | Environmental condition         | factor, value, description                                                 |
+
+**Integration Points:**
+
+```yaml
+# Cross-layer references
+coverage-target:
+  businessProcessRef: business.process.{id}           # Link to Business Layer
+  formRef: ux.form.{id}                               # Link to UX Layer
+  apiOperationRef: api.operation.{id}                 # Link to API Layer
+  navigationRouteRef: navigation.route.{id}           # Link to Navigation Layer
+
+context-variation:
+  actorRef: security.actor.{id}                       # Link to Security Layer
+  securityRoleRef: security.role.{id}                 # Link to Security Layer
+
+coverage-requirement:
+  requirementRefs: [motivation.requirement.{id}]      # Link to Motivation Layer
+  riskAssessmentRef: motivation.assessment.{id}       # Link to Motivation Layer
+
+input-space-partition:
+  dataModelFieldRef: data_model.attribute.{id}        # Link to Data Model
+  formFieldRef: ux.field.{id}                         # Link to UX Layer
+  apiParameterRef: api.parameter.{id}                 # Link to API Layer
+```
+
+**Common Properties:**
+
+```yaml
+# Coverage Target Example (Workflow)
+testing.coverage-target.order-creation:
+  id: testing.coverage-target.order-creation
+  name: "Order Creation Coverage"
+  description: "Test coverage for end-to-end order creation"
+  properties:
+    targetType: workflow
+    priority: critical
+    targetRef: "business://process/create-order"
+    businessProcessRef: business.process.create-order
+    applicableContexts:
+      - testing.context-variation.customer-ui
+      - testing.context-variation.admin-ui
+      - testing.context-variation.api
+    inputFields:
+      - fieldRef: "order.lineItems"
+        partitionRef: testing.input-space-partition.line-items-count
+        relevance: primary
+      - fieldRef: "order.shippingAddress"
+        partitionRef: testing.input-space-partition.shipping-address
+        relevance: primary
+    outcomeCategories:
+      - id: "success"
+        outcomeType: success
+        httpStatusRange: "201"
+      - id: "validation-error"
+        outcomeType: validation-error
+        httpStatusRange: "400"
+
+# Input Space Partition Example (Value Range)
+testing.input-space-partition.line-items-count:
+  id: testing.input-space-partition.line-items-count
+  name: "Line Items Count Partition"
+  description: "Partitioning of order line item count"
+  properties:
+    fieldRef: "order.lineItems"
+    presenceRule: required
+    dataModelFieldRef: data_model.attribute.order-line-items
+    partitions:
+      - id: "single"
+        label: "Single Item"
+        constraint: "length = 1"
+        category: typical
+        representativeValue: [{"sku": "ABC123", "qty": 1}]
+      - id: "multiple"
+        label: "Multiple Items (2-10)"
+        constraint: "length in [2, 10]"
+        category: typical
+      - id: "boundary-max"
+        label: "Maximum Items"
+        constraint: "length = 100"
+        category: boundary
+      - id: "empty"
+        label: "No Items"
+        constraint: "length = 0"
+        category: invalid
+
+# Context Variation Example (UI Entry)
+testing.context-variation.customer-ui:
+  id: testing.context-variation.customer-ui
+  name: "Customer Self-Service UI"
+  description: "Customer entering orders through web portal"
+  properties:
+    contextType: ui-entry
+    entryPointRef: "navigation://customer-portal#new-order"
+    actorRef: security.actor.customer
+    securityRoleRef: security.role.customer
+    preconditions:
+      - "user is authenticated"
+      - "user has active account"
+    environmentFactors:
+      - factor: "user-experience-level"
+        value: "novice"
+        description: "First-time order placement"
+
+# Coverage Requirement Example (Pairwise)
+testing.coverage-requirement.order-pairwise:
+  id: testing.coverage-requirement.order-pairwise
+  name: "Order Creation Pairwise Coverage"
+  description: "Cover all pairs of input partition values"
+  properties:
+    coverageCriteria: pairwise
+    priority: critical
+    targetRef: testing.coverage-target.order-creation
+    requirementRefs:
+      - motivation.requirement.order-validation
+      - motivation.requirement.multi-channel-support
+    inputPartitionSelections:
+      - partitionRef: testing.input-space-partition.line-items-count
+        coverValues: ["single", "multiple", "boundary-max"]
+      - partitionRef: testing.input-space-partition.shipping-address
+        coverValues: ["present", "absent"]
+      - partitionRef: testing.input-space-partition.payment-method
+        coverValues: ["credit-card", "invoice", "prepaid"]
+    contextSelections:
+      - testing.context-variation.customer-ui
+      - testing.context-variation.api
+    outcomeSelections:
+      - "success"
+      - "validation-error"
+
+# Test Case Sketch Example (Automated)
+testing.test-case-sketch.order-single-item-customer:
+  id: testing.test-case-sketch.order-single-item-customer
+  name: "Customer creates single-item order"
+  description: "Happy path: customer orders one item with shipping"
+  properties:
+    status: automated
+    coverageReqRef: testing.coverage-requirement.order-pairwise
+    inputSelections:
+      - partitionRef: testing.input-space-partition.line-items-count
+        selectedValue: "single"
+      - partitionRef: testing.input-space-partition.shipping-address
+        selectedValue: "present"
+      - partitionRef: testing.input-space-partition.payment-method
+        selectedValue: "credit-card"
+    contextSelection: testing.context-variation.customer-ui
+    expectedOutcome: "success"
+    implementationRef: "gherkin://features/orders.feature#customer-single-item"
+    implementationFormat: gherkin
+    notes: "Validates end-to-end flow with payment gateway integration"
+
+# CLI Examples
+# Add coverage target for a workflow
+dr add testing coverage-target \
+  --name "Order Creation Coverage" \
+  --set targetType=workflow \
+  --set businessProcessRef=business.process.create-order
+
+# Add input space partition
+dr add testing input-space-partition \
+  --name "Line Items Count" \
+  --set fieldRef=order.lineItems \
+  --set presenceRule=required
+
+# Add context variation
+dr add testing context-variation \
+  --name "Customer UI Context" \
+  --set contextType=ui-entry \
+  --set securityRoleRef=security.role.customer
+
+# List all test coverage targets
+dr list testing coverage-target
+
+# Find coverage for specific business process
+dr search --layer testing --property businessProcessRef=business.process.create-order
+```
+
 ---
 
 ## Advanced CLI Commands

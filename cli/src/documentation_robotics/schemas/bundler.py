@@ -30,6 +30,7 @@ LAYER_SCHEMAS = [
     "09-ux-layer.schema.json",
     "10-navigation-layer.schema.json",
     "11-apm-observability-layer.schema.json",
+    "12-testing-layer.schema.json",
 ]
 
 # Master schema

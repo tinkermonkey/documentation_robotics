@@ -7,7 +7,7 @@
 Example: business.service.order-management
 ```
 
-## 11 Architecture Layers
+## 12 Architecture Layers
 
 1. **motivation** - Strategic goals, requirements, stakeholders (WHY)
 2. **business** - Business processes, services, actors (WHAT)
@@ -20,6 +20,7 @@ Example: business.service.order-management
 9. **ux** - Views, components, experience states (PRESENTATION)
 10. **navigation** - Routes, flows, guards (FLOW)
 11. **apm** - Spans, logs, metrics (OBSERVE)
+12. **testing** - Test coverage, input partitions, context variations (VERIFY)
 
 ## Essential CLI Commands
 
