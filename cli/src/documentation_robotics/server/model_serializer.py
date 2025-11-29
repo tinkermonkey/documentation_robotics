@@ -5,12 +5,17 @@ Converts the DR model objects to JSON-serializable dictionaries
 for transmission to browser clients via WebSocket.
 """
 
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+from rich.console import Console
 
 from ..core.element import Element
 from ..core.layer import Layer
 from ..core.model import Model
+
+console = Console()
 
 
 class ModelSerializer:
@@ -181,8 +186,6 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
         metadata_file = changeset_dir / "changeset.yaml"
         if metadata_file.exists():
             try:
-                import yaml
-
                 with open(metadata_file, "r") as f:
                     metadata = yaml.safe_load(f)
 
@@ -196,9 +199,9 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
                         "status": metadata.get("status", "active"),
                     }
                 )
-            except Exception as e:
+            except (FileNotFoundError, yaml.YAMLError, KeyError, OSError) as e:
                 # Log error but continue
-                print(f"Warning: Failed to load changeset {changeset_dir.name}: {e}")
+                console.print(f"[yellow]Warning: Failed to load changeset {changeset_dir.name}: {e}[/yellow]")
 
     return sorted(changesets, key=lambda x: x.get("created", ""))
 

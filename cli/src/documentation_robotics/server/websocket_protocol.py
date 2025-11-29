@@ -2,6 +2,7 @@
 WebSocket protocol message definitions for client/server communication.
 """
 
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 # Message type constants
@@ -125,6 +126,4 @@ def create_error_message(error: str, details: Optional[str] = None) -> Dict[str,
 
 def _get_timestamp() -> str:
     """Get current timestamp in ISO format."""
-    from datetime import datetime, timezone
-
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

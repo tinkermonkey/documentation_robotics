@@ -8,11 +8,13 @@ for real-time model updates.
 import asyncio
 import json
 import signal
+import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 
 import aiohttp
 from aiohttp import web
+from rich.console import Console
 
 from ..core.model import Model
 from .file_monitor import FileMonitor
@@ -23,6 +25,8 @@ from .websocket_protocol import (
     create_error_message,
     create_initial_state_message,
 )
+
+console = Console()
 
 
 class VisualizationServer:
@@ -96,12 +100,11 @@ class VisualizationServer:
         site = web.TCPSite(self.runner, self.host, self.port)
         await site.start()
 
-        print(f"Server started at http://{self.host}:{self.port}")
+        console.print(f"[green]Server started at http://{self.host}:{self.port}[/green]")
 
-        # Start file monitoring
-        model_dir = self.model_path / "documentation-robotics" / "model"
+        # Start file monitoring using model's actual model_path
         self.file_monitor = FileMonitor(
-            model_dir, self._handle_file_change, debounce_seconds=0.2
+            self.model.model_path, self._handle_file_change, debounce_seconds=0.2
         )
         self.file_monitor.start()
 
@@ -199,11 +202,11 @@ class VisualizationServer:
                 if msg.type == aiohttp.WSMsgType.TEXT:
                     await self._handle_websocket_message(ws, msg.data)
                 elif msg.type == aiohttp.WSMsgType.ERROR:
-                    print(f"WebSocket error: {ws.exception()}")
+                    console.print(f"[red]WebSocket error: {ws.exception()}[/red]")
                     break
 
-        except Exception as e:
-            print(f"WebSocket handler error: {e}")
+        except (OSError, RuntimeError, ValueError) as e:
+            console.print(f"[red]WebSocket handler error: {e}[/red]")
             await self._send_error(ws, str(e))
 
         finally:
@@ -234,8 +237,8 @@ class VisualizationServer:
             # Send to client
             await ws.send_json(message)
 
-        except Exception as e:
-            print(f"Error sending initial state: {e}")
+        except (OSError, RuntimeError, ValueError, KeyError) as e:
+            console.print(f"[red]Error sending initial state: {e}[/red]")
             await self._send_error(ws, f"Failed to send initial state: {e}")
 
     async def _handle_websocket_message(
@@ -253,11 +256,13 @@ class VisualizationServer:
             message_type = data.get("type")
 
             # Future: Handle client commands (changeset switching, etc.)
-            print(f"Received message type: {message_type}")
+            console.print(f"[dim]Received message type: {message_type}[/dim]")
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            console.print(f"[red]Invalid JSON from WebSocket client: {e}[/red]")
             await self._send_error(ws, "Invalid JSON")
-        except Exception as e:
+        except (KeyError, ValueError) as e:
+            console.print(f"[red]Error processing WebSocket message: {e}[/red]")
             await self._send_error(ws, str(e))
 
     async def _send_error(self, ws: web.WebSocketResponse, error: str) -> None:
@@ -271,8 +276,8 @@ class VisualizationServer:
         try:
             message = create_error_message(error)
             await ws.send_json(message)
-        except Exception as e:
-            print(f"Failed to send error message: {e}")
+        except (OSError, RuntimeError) as e:
+            console.print(f"[red]Failed to send error message: {e}[/red]")
 
     def _handle_file_change(self, event_type: str, layer: str, file_path: Path) -> None:
         """
@@ -321,8 +326,8 @@ class VisualizationServer:
                 # Broadcast to all connected clients
                 await self.broadcast_update(message)
 
-        except Exception as e:
-            print(f"Error broadcasting file change: {e}")
+        except (OSError, ValueError, RuntimeError) as e:
+            console.print(f"[red]Error broadcasting file change: {e}[/red]")
 
     async def _load_element_from_file(self, file_path: Path) -> Optional[Dict[str, Any]]:
         """
@@ -335,13 +340,11 @@ class VisualizationServer:
             Element data or None if load fails
         """
         try:
-            import yaml
-
             with open(file_path, "r") as f:
                 data = yaml.safe_load(f)
             return data
-        except Exception as e:
-            print(f"Error loading element from {file_path}: {e}")
+        except (FileNotFoundError, yaml.YAMLError, OSError) as e:
+            console.print(f"[yellow]Error loading element from {file_path}: {e}[/yellow]")
             return None
 
     def _extract_element_id(self, file_path: Path) -> Optional[str]:
@@ -371,8 +374,8 @@ class VisualizationServer:
         for ws in self.websockets:
             try:
                 await ws.send_json(message)
-            except Exception as e:
-                print(f"Error sending to client: {e}")
+            except (OSError, RuntimeError) as e:
+                console.print(f"[yellow]Error sending to client: {e}[/yellow]")
                 disconnected.add(ws)
 
         # Clean up disconnected clients
@@ -387,7 +390,7 @@ class VisualizationServer:
 
     async def shutdown(self) -> None:
         """Gracefully shutdown the server."""
-        print("\nShutting down server...")
+        console.print("\n[yellow]Shutting down server...[/yellow]")
 
         # Stop file monitoring
         if self.file_monitor:
@@ -406,4 +409,4 @@ class VisualizationServer:
         # Signal shutdown complete
         self._shutdown_event.set()
 
-        print("Server shutdown complete")
+        console.print("[green]Server shutdown complete[/green]")
