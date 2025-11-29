@@ -6,8 +6,13 @@ and serializes it for transmission to the browser client.
 """
 
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List
+
+from rich.console import Console
+
+console = Console()
 
 
 class SpecificationLoader:
@@ -88,9 +93,9 @@ class SpecificationLoader:
                         "schema": schema_data,
                     }
                 )
-            except Exception as e:
+            except (FileNotFoundError, json.JSONDecodeError, KeyError, OSError) as e:
                 # Log error but continue loading other schemas
-                print(f"Warning: Failed to load schema {schema_file}: {e}")
+                console.print(f"[yellow]Warning: Failed to load schema {schema_file}: {e}[/yellow]")
                 continue
 
         return sorted(layer_schemas, key=lambda x: x["order"])
@@ -120,8 +125,8 @@ class SpecificationLoader:
                     # Use filename without extension as key
                     key = filename.replace(".schema.json", "").replace(".json", "")
                     shared_schemas[key] = schema_data
-                except Exception as e:
-                    print(f"Warning: Failed to load shared schema {filename}: {e}")
+                except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
+                    console.print(f"[yellow]Warning: Failed to load shared schema {filename}: {e}[/yellow]")
 
         return shared_schemas
 
@@ -161,8 +166,6 @@ class SpecificationLoader:
 
     def _get_timestamp(self) -> str:
         """Get current timestamp in ISO format."""
-        from datetime import datetime, timezone
-
         return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
 
@@ -170,17 +173,22 @@ def serialize_specification(spec_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Serialize specification data for WebSocket transmission.
 
-    This function can be extended to filter or transform the specification
-    data before sending to the client.
+    This function provides a hook for future transformations of specification
+    data before it is sent to the browser client. Currently returns data as-is,
+    but exists as a separate function to enable future enhancements such as
+    filtering internal metadata, compressing schema definitions, or adapting
+    to client capabilities without modifying the core loader logic.
 
     Args:
-        spec_data: Raw specification data
+        spec_data: Raw specification data from SpecificationLoader
 
     Returns:
-        Serialized specification ready for transmission
+        Serialized specification ready for WebSocket transmission
+
+    Future Enhancements:
+        - Remove internal metadata not needed by clients
+        - Compress or minify schema definitions
+        - Filter based on client capabilities or permissions
+        - Apply versioning transformations for backward compatibility
     """
-    # For now, return as-is. Future enhancements could include:
-    # - Removing internal metadata
-    # - Compressing schema definitions
-    # - Filtering based on client capabilities
     return spec_data

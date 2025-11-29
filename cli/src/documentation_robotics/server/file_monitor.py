@@ -8,10 +8,13 @@ and notify the server for broadcasting to connected clients.
 import asyncio
 import time
 from pathlib import Path
-from typing import Callable, Optional, Set
+from typing import Callable, Dict, Optional, Set, Tuple
 
+from rich.console import Console
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
 from watchdog.observers import Observer
+
+console = Console()
 
 
 class ModelFileEventHandler(FileSystemEventHandler):
@@ -35,7 +38,7 @@ class ModelFileEventHandler(FileSystemEventHandler):
         self.model_path = model_path
         self.callback = callback
         self.debounce_seconds = debounce_seconds
-        self._pending_events: dict[str, tuple[float, str, str, Path]] = {}
+        self._pending_events: Dict[str, Tuple[float, str, str, Path]] = {}
         self._debounce_task: Optional[asyncio.Task] = None
 
     def on_created(self, event: FileSystemEvent) -> None:
@@ -105,11 +108,11 @@ class ModelFileEventHandler(FileSystemEventHandler):
         """Schedule debounce processing task."""
         # Create event loop task if not already scheduled
         try:
-            loop = asyncio.get_event_loop()
+            loop = asyncio.get_running_loop()
             if self._debounce_task is None or self._debounce_task.done():
                 self._debounce_task = loop.create_task(self._process_debounced_events())
         except RuntimeError:
-            # No event loop available, process synchronously
+            # No event loop running, process synchronously
             self._process_events_sync()
 
     async def _process_debounced_events(self) -> None:
@@ -131,8 +134,8 @@ class ModelFileEventHandler(FileSystemEventHandler):
         for event_type, layer, path in events_to_process:
             try:
                 self.callback(event_type, layer, path)
-            except Exception as e:
-                print(f"Error processing file event: {e}")
+            except (OSError, ValueError, RuntimeError) as e:
+                console.print(f"[red]Error processing file event: {e}[/red]")
 
     def _process_events_sync(self) -> None:
         """Process events synchronously (fallback)."""
@@ -153,8 +156,8 @@ class ModelFileEventHandler(FileSystemEventHandler):
         for event_type, layer, path in events_to_process:
             try:
                 self.callback(event_type, layer, path)
-            except Exception as e:
-                print(f"Error processing file event: {e}")
+            except (OSError, ValueError, RuntimeError) as e:
+                console.print(f"[red]Error processing file event: {e}[/red]")
 
     def _extract_layer(self, file_path: Path) -> Optional[str]:
         """
