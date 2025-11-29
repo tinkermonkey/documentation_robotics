@@ -32,9 +32,9 @@ class TestSpecificationConformance:
         assert CONFORMANCE_LEVEL in ["basic", "standard", "full"]
 
     def test_full_conformance_has_all_layers(self):
-        """Test that full conformance implements all 11 layers."""
+        """Test that full conformance implements all 12 layers."""
         if CONFORMANCE_LEVEL == "full":
-            assert len(IMPLEMENTED_LAYERS) == 11
+            assert len(IMPLEMENTED_LAYERS) == 12
             assert all(layer["implemented"] for layer in IMPLEMENTED_LAYERS.values())
 
     def test_conformance_statement_structure(self):

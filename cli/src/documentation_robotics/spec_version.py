@@ -6,7 +6,7 @@ this CLI implementation conforms to.
 """
 
 # Specification version implemented
-SPEC_VERSION = "0.2.0"
+SPEC_VERSION = "0.3.0"
 
 # Conformance level
 CONFORMANCE_LEVEL = "full"  # basic, standard, or full
@@ -24,6 +24,7 @@ IMPLEMENTED_LAYERS = {
     "09_ux": {"implemented": True, "standard": "Custom"},
     "10_navigation": {"implemented": True, "standard": "Custom"},
     "11_apm": {"implemented": True, "standard": "OpenTelemetry 1.0+"},
+    "12_testing": {"implemented": True, "standard": "Custom"},
 }
 
 # Capabilities
