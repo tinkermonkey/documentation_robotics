@@ -40,6 +40,9 @@ dependencies = [
     "questionary>=2.0.0",
     # Entity type registry
     "inflect>=7.0.0",
+    # Visualization server
+    "aiohttp>=3.9.0",
+    "watchdog>=3.0.0",
 ]
 
 [project.optional-dependencies]
