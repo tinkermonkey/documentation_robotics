@@ -345,7 +345,7 @@ MIT License - see LICENSE file for details.
 
 ## Version
 
-Current: v0.4.1 (Claude Code Compliance + Enhanced Integration)
+Current: v0.5.0 (Testing Layer + Spec v0.3.0)
 
 - Phase 1 (Core): v0.1.0
 - Phase 2 (Validation): v0.2.0
@@ -353,3 +353,4 @@ Current: v0.4.1 (Claude Code Compliance + Enhanced Integration)
 - Phase 3 Patches: v0.3.1, v0.3.2, v0.3.3
 - Phase 4 (Link Management + Claude Agents): v0.4.0
 - Phase 4 Patch (Claude Code Compliance): v0.4.1
+- Phase 5 (Testing Layer): v0.5.0

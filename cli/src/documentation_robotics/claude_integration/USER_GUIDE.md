@@ -2,7 +2,7 @@
 
 **For:** CLI users who have installed the DR Claude Code toolset
 **Last Updated:** 2025-01-27
-**CLI Version:** 0.4.1+
+**CLI Version:** 0.5.0+
 
 Welcome! This guide shows you how to get the most out of Documentation Robotics with Claude Code.
 
@@ -571,6 +571,6 @@ dr validate --strict         # Check for issues
 
 ---
 
-**Version:** 0.4.1
+**Version:** 0.5.0
 **Last Updated:** 2025-01-27
 **Feedback:** [Your feedback channel]
