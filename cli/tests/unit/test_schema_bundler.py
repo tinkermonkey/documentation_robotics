@@ -40,8 +40,8 @@ class TestSchemaBundler:
             get_bundled_schema_path("nonexistent.schema.json")
 
     def test_all_layer_schemas_exist(self):
-        """Test that all 11 layer schemas are bundled."""
-        assert len(LAYER_SCHEMAS) == 11, "Should have 11 layer schemas"
+        """Test that all 12 layer schemas are bundled."""
+        assert len(LAYER_SCHEMAS) == 12, "Should have 12 layer schemas"
 
         for schema_filename in LAYER_SCHEMAS:
             schema_path = get_bundled_schema_path(schema_filename)
@@ -84,7 +84,7 @@ class TestSchemaBundler:
             ), "Existing file should not be overwritten"
 
             # Other schemas should still be copied
-            assert copied_count >= 10, "Should copy other schemas"
+            assert copied_count >= 11, "Should copy other schemas"
 
     def test_copy_schemas_with_overwrite(self):
         """Test that existing schemas are overwritten when requested."""
@@ -102,7 +102,7 @@ class TestSchemaBundler:
 
             # Verify dummy file was overwritten
             assert dummy_schema.read_text() != dummy_content, "Existing file should be overwritten"
-            assert copied_count >= 11, "Should copy all schemas"
+            assert copied_count >= 12, "Should copy all schemas"
 
     def test_bundled_schemas_are_valid_json(self):
         """Test that all bundled schemas are valid JSON."""

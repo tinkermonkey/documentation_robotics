@@ -100,6 +100,7 @@ class ModelInitializer:
             "documentation-robotics/model/09_ux",
             "documentation-robotics/model/10_navigation",
             "documentation-robotics/model/11_apm",
+            "documentation-robotics/model/12_testing",
             "documentation-robotics/specs/archimate",
             "documentation-robotics/specs/openapi",
             "documentation-robotics/specs/schemas",

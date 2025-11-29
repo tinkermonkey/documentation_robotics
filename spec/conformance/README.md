@@ -12,7 +12,7 @@ Implementations can claim conformance at three levels:
 
 - **[Level 1: Basic](conformance-levels.md#level-1-basic)** - Layers 01-04 (Motivation through Application)
 - **[Level 2: Standard](conformance-levels.md#level-2-standard)** - Layers 01-08 (through Datastore)
-- **[Level 3: Full](conformance-levels.md#level-3-full)** - All 11 layers
+- **[Level 3: Full](conformance-levels.md#level-3-full)** - All 12 layers
 
 See [conformance-levels.md](conformance-levels.md) for detailed requirements for each level.
 

@@ -198,7 +198,7 @@ The reference sheets provide Claude with knowledge about DR concepts.
 
 **Contents**:
 
-- 11 layer definitions
+- 12 layer definitions
 - Element ID format
 - 5 essential CLI commands
 - Key cross-layer patterns
@@ -781,7 +781,7 @@ After each change, run validation with link checking to catch broken references 
 **Why link validation matters:**
 
 - Catches broken cross-layer references before they become issues
-- Ensures model integrity across all 11 layers
+- Ensures model integrity across all 12 layers
 - Required for reliable exports and documentation generation
 
 ### 2. Use Migration Workflow for Spec Updates

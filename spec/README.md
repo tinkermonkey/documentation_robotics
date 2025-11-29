@@ -2,17 +2,17 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.4.0-green)](../cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.3.0-blue)](.)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.5.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.2.0
+**Version:** 0.3.0
 **Status:** Draft
-**Last Updated:** 2025-11-26
+**Last Updated:** 2025-11-29
 
 ## Overview
 
-This directory contains the complete Documentation Robotics Specification, a standards-based approach to modeling enterprise and software architecture as a federated architecture data model across 11 interconnected layers.
+This directory contains the complete Documentation Robotics Specification, a standards-based approach to modeling enterprise and software architecture as a federated architecture data model across 12 interconnected layers.
 
 ## Quick Links
 
@@ -53,7 +53,8 @@ spec/
 │   ├── 08-datastore-layer.md       # STORAGE - Database schemas
 │   ├── 09-ux-layer.md              # PRESENTATION - User experience
 │   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
-│   └── 11-apm-observability-layer.md   # OBSERVE - Monitoring
+│   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring
+│   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
 │
 ├── schemas/                    # JSON Schemas (normative)
 │   ├── README.md
@@ -149,15 +150,15 @@ This specification **leverages existing standards** for most of its layers:
 | JSON Schema Draft 7 | 07             | Established |
 | OpenTelemetry 1.0+  | 11             | Established |
 | SQL DDL             | 08             | Established |
-| **Custom**          | 03, 09, 10     | New         |
+| **Custom**          | 03, 09, 10, 12 | New         |
 
-**Result:** Maximum tool ecosystem compatibility with only 27% custom invention.
+**Result:** Maximum tool ecosystem compatibility with only 33% custom invention.
 
 For more details, see [Standards Leveraged](../README.md#standards-leveraged) in the main README.
 
-### 11 Interconnected Layers
+### 12 Interconnected Layers
 
-The specification defines 11 layers that cover the complete software system lifecycle:
+The specification defines 12 layers that cover the complete software system lifecycle:
 
 ```
 01. Motivation       WHY        Goals, requirements, stakeholders
@@ -171,9 +172,10 @@ The specification defines 11 layers that cover the complete software system life
 09. UX               PRESENT    User experience specifications
 10. Navigation       FLOW       Navigation and routing
 11. APM              OBSERVE    Monitoring and tracing (OTel)
+12. Testing          VERIFY     Test coverage modeling
 ```
 
-For detailed layer descriptions and relationships, see [The 11 Layers](../README.md#the-11-layers) in the main README.
+For detailed layer descriptions and relationships, see [The 12 Layers](../README.md#the-12-layers) in the main README.
 
 Each layer specification includes:
 
@@ -219,24 +221,35 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 ✅ **Traceable** - Cross-layer references enable requirements traceability
 ✅ **Pragmatic** - Layer ordering matches real-world workflows
 
-## Recent Enhancements (v0.2.0)
+## Recent Enhancements (v0.3.0)
 
-### Cross-Layer Reference Registry
+### Testing Coverage Layer (NEW)
 
-The specification now includes a comprehensive, machine-readable catalog of all cross-layer reference patterns:
+The specification now includes a comprehensive Testing Layer for modeling test coverage requirements and traceability:
 
-- **📖 Complete Catalog** - 60+ reference patterns across 9 categories documented in [core/06-cross-layer-reference-registry.md](core/06-cross-layer-reference-registry.md)
-- **🔧 Machine-Readable** - JSON registry at [schemas/link-registry.json](schemas/link-registry.json) enables automated tooling
+- **📊 Test Coverage Modeling** - Define what should be tested, not just test instances
+- **🎯 Coverage Targets** - Link tests to workflows, forms, APIs, and data models
+- **🔀 Input Space Partitioning** - Model test input variations systematically
+- **🌐 Context Variations** - Same functionality via different entry points (UI, API, events)
+- **✅ Coverage Requirements** - Pairwise, boundary, exhaustive, risk-based criteria
+- **🔗 Full Traceability** - Link from requirements through coverage to test implementations
+- **📋 Implementation References** - Optional links to Gherkin, Postman, Playwright, etc.
+
+**Complete Specification:**
+
+- **Layer 12 Specification**: [layers/12-testing-layer.md](layers/12-testing-layer.md)
+- **JSON Schema**: [schemas/12-testing-layer.schema.json](schemas/12-testing-layer.schema.json)
+- **Integration Points**: Links to Motivation, Business, UX, API, Data Model, Security, and Navigation layers
+
+### Previous Enhancements (v0.2.0)
+
+**Cross-Layer Reference Registry:**
+
+- **📖 Complete Catalog** - 60+ reference patterns across 9 categories
+- **🔧 Machine-Readable** - JSON registry for automated tooling
 - **📋 4 Pattern Types** - X-extensions, dot-notation, nested objects, and direct fields
-- **✅ Validation Support** - Each link type includes cardinality, format, and validation rules
-- **🔄 Migration Guidance** - Clear upgrade path from organic patterns (v0.1.x) to standardized patterns (v0.2.0)
 
-**Schema Updates:**
-
-- **Navigation Layer**: Added `experience` field for UX references, `motivationAlignment` for requirements tracing
-- **APM Layer**: Added `dataModelSchemaId` to distinguish JSON Schema $id from file path
-
-See [CHANGELOG.md](CHANGELOG.md) for complete details.
+See [CHANGELOG.md](CHANGELOG.md) for complete version history.
 
 ## Conformance Levels
 
@@ -246,7 +259,7 @@ Implementations can claim three conformance levels:
 | ------------ | ------ | ---------------------------------------------- |
 | **Basic**    | 01-04  | Small projects, motivation through application |
 | **Standard** | 01-08  | Most projects, through database design         |
-| **Full**     | 01-11  | Enterprise projects, complete traceability     |
+| **Full**     | 01-12  | Enterprise projects, complete traceability     |
 
 See [conformance/conformance-levels.md](conformance/conformance-levels.md) for details.
 
@@ -290,10 +303,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.2.0
-**Release Date:** 2025-01-15
-**Status:** Stable
-**Next Review:** 2025-07-15
+**Current Version:** 0.3.0
+**Release Date:** 2025-11-29
+**Status:** Draft
+**Next Review:** 2025-05-29
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -343,7 +356,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.1.1},
+  version = {0.3.0},
   year = {2025},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

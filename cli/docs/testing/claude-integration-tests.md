@@ -48,7 +48,7 @@ Check each tier contains required information:
 
 ```bash
 # Tier 1 must have:
-grep -q "11 layers" .claude/knowledge/dr-tier1-essentials.md || echo "FAIL: Missing layers"
+grep -q "12 layers" .claude/knowledge/dr-tier1-essentials.md || echo "FAIL: Missing layers"
 grep -q "Element ID format" .claude/knowledge/dr-tier1-essentials.md || echo "FAIL: Missing ID format"
 grep -q "dr add" .claude/knowledge/dr-tier1-essentials.md || echo "FAIL: Missing dr add command"
 ```

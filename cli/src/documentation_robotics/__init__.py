@@ -1,12 +1,12 @@
 """
 Documentation Robotics CLI Implementation.
 
-This package provides tools for managing project models across 11 layers of a software system,
+This package provides tools for managing project models across 12 layers of a software system,
 implementing the Documentation Robotics Specification.
 """
 
-__version__ = "0.4.1"
-__spec_version__ = "0.2.0"
+__version__ = "0.5.0"
+__spec_version__ = "0.3.0"
 
 # Core exports for programmatic use
 from .core.element import Element

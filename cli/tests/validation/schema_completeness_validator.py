@@ -383,12 +383,18 @@ class SchemaCompletenessValidator:
     def _extract_entity_types_from_schema(self, schema: Dict, layer_name: str) -> Set[str]:
         """Extract entity type names from schema properties."""
         # Use registry's extraction logic for consistency
-        from documentation_robotics.schemas.registry import API_LAYER_TYPES, DATA_MODEL_LAYER_TYPES
+        from documentation_robotics.schemas.registry import (
+            API_LAYER_TYPES,
+            DATA_MODEL_LAYER_TYPES,
+            TESTING_LAYER_TYPES,
+        )
 
         if layer_name == "api":
             return set(API_LAYER_TYPES)
         elif layer_name == "data_model":
             return set(DATA_MODEL_LAYER_TYPES)
+        elif layer_name == "testing":
+            return set(TESTING_LAYER_TYPES)
 
         properties = schema.get("properties", {})
         entity_types = set()

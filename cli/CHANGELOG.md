@@ -5,6 +5,63 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-11-29
+
+### Added
+
+- **Testing Layer Support (Layer 12)**:
+  - Added Testing layer to manifest default layers configuration
+  - Bundled Testing Layer schema (`12-testing-layer.schema.json`)
+  - Full support for test coverage modeling entities:
+    - TestCoverageModel, TestCoverageTarget, InputSpacePartition
+    - ContextVariation, CoverageRequirement, TestCaseSketch
+    - Coverage gap analysis and traceability
+  - Entity type registry automatically recognizes Testing layer types
+
+- **Specification v0.3.0 Support**:
+  - Updated to support specification version 0.3.0
+  - All 12 layers now fully supported (previously 11)
+  - Complete integration with Testing Layer cross-layer references
+
+### Changed
+
+- **Version Updates**:
+  - CLI version bumped to 0.5.0
+  - Specification version updated to 0.3.0
+  - Conformance level updated to "Full (All 12 layers)"
+
+- **Documentation Updates**:
+  - Updated all documentation references from "11 layers" to "12 layers"
+  - Updated CLI README.md with Testing Layer description
+  - Updated user guides (getting-started.md, claude-code-integration.md)
+  - Updated conformance documentation
+
+- **Test Updates**:
+  - Updated schema bundler tests to expect 12 layer schemas
+  - All 419 unit tests passing with new layer configuration
+
+### Fixed
+
+- Schema bundler layer count validation (now expects 12 schemas)
+- Documentation accuracy across all user-facing files
+
+### Migration
+
+For existing models, the Testing Layer will be automatically available. To start using it:
+
+```bash
+# Initialize Testing layer in existing model
+dr init --add-layer testing
+
+# Add a test coverage target
+dr add testing coverage-target --name "Order Creation Coverage" \
+  --target-type workflow \
+  --business-process-ref "business.process.create-order"
+
+# Validate with Testing layer
+dr validate --layers testing
+```
+
 ## [0.4.1] - 2025-01-27
 
 ### Added

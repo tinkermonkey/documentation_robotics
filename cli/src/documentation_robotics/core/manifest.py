@@ -210,6 +210,14 @@ class Manifest:
                 "enabled": True,
                 "elements": {},
             },
+            "testing": {
+                "order": 12,
+                "name": "Testing",
+                "path": "documentation-robotics/model/12_testing/",
+                "schema": ".dr/schemas/12-testing-layer.schema.json",
+                "enabled": True,
+                "elements": {},
+            },
         }
 
     def increment_element_count(self, layer: str, element_type: str) -> None:

@@ -5,6 +5,62 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2025-11-29
+
+### Added
+
+- **Testing Layer** ([spec/layers/12-testing-layer.md](layers/12-testing-layer.md))
+  - NEW Layer 12: Test Coverage Modeling for requirements traceability
+  - Test coverage targets (workflows, forms, APIs, data models)
+  - Input space partitioning for systematic test input variation modeling
+  - Context variations (UI, API, event-triggered, scheduled, integration)
+  - Coverage requirements (pairwise, boundary, exhaustive, risk-based criteria)
+  - Test case sketches (abstract test definitions)
+  - Outcome categories for expected result partitions
+  - Complete traceability from requirements through coverage to test implementations
+  - Integration with Motivation, Business, UX, API, Data Model, Security, and Navigation layers
+  - Optional references to test implementations (Gherkin, Postman, Playwright, etc.)
+
+- **Testing Layer Schema** ([spec/schemas/12-testing-layer.schema.json](schemas/12-testing-layer.schema.json))
+  - Complete JSON Schema for testing layer validation
+  - Entity types: TestCoverageModel, TestCoverageTarget, InputSpacePartition, ContextVariation, CoverageRequirement, TestCaseSketch
+  - Cross-layer reference patterns for test-to-requirement traceability
+
+### Changed
+
+- **Conformance Levels**:
+  - Full conformance now requires all 12 layers (previously 11)
+  - Updated conformance documentation to reflect Testing Layer
+  - All conformance tests and validation rules updated
+
+- **Documentation**:
+  - Updated all references from "11 layers" to "12 layers" throughout specification
+  - Updated layer ordering documentation to include Testing Layer
+  - Updated standards mapping (33% custom vs 67% established standards)
+
+### Migration Path
+
+Models on specification v0.2.x can migrate to v0.3.0 using the Documentation Robotics CLI:
+
+```bash
+# Check what migrations are needed
+dr migrate
+
+# Preview changes without applying
+dr migrate --dry-run
+
+# Apply migrations to latest specification
+dr migrate --apply
+
+# Re-validate with link checking
+dr validate --validate-links
+```
+
+**What Gets Migrated**:
+- Layer 12 (Testing) schema will be added to `.dr/schemas/`
+- Manifest will be updated with Testing layer configuration
+- No breaking changes to existing layers
+
 ## [0.2.0] - 2025-01-15
 
 ### Added

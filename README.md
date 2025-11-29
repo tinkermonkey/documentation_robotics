@@ -57,7 +57,7 @@ See `dr migrate --help` for usage details.
 
 ## Quick Links
 
-- **[Read the Specification](spec/)** - Complete specification with all 11 layers
+- **[Read the Specification](spec/)** - Complete specification with all 12 layers
 - **[Use the CLI Tool](cli/)** - Install and use the `dr` command
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Release Process](RELEASE_PROCESS.md)** - How releases work
@@ -98,7 +98,7 @@ A command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
-- ✅ **Full Conformance** - Implements all 11 layers
+- ✅ **Full Conformance** - Implements all 12 layers
 - ✅ **Model Management** - Initialize, add, update, validate
 - ✅ **Link Registry** - 60+ cross-layer reference patterns with automated validation
 - ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
@@ -142,7 +142,7 @@ documentation_robotics/
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
 │   ├── core/                    # Core specification documents
-│   ├── layers/                  # 11 layer specifications
+│   ├── layers/                  # 12 layer specifications
 │   ├── schemas/                 # JSON Schema definitions
 │   ├── conformance/             # Conformance requirements
 │   ├── guides/                  # Implementation guides

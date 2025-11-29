@@ -325,6 +325,69 @@ _Note: "Alert" and "Dashboard" are NOT entity types in the OpenTelemetry schema_
 - `InstrumentConfig`: type, name, unit, description, motivationMapping (contributesToGoal, measuresOutcome)
 - Custom extensions: operationId, archimateService, businessProcess for cross-layer integration
 
+### 12. Testing Layer (VERIFY)
+
+**Purpose:** Test coverage modeling and requirements traceability (Custom specification)
+
+**Top Types:**
+
+- `CoverageTarget` - Artifact requiring test coverage (workflow, form, API, data transformation)
+- `InputSpacePartition` - Partitioning of input dimensions into testable categories
+- `ContextVariation` - Different contexts for invoking functionality (UI, API, event-triggered, scheduled)
+- `CoverageRequirement` - Required test coverage with criteria (pairwise, boundary, exhaustive, risk-based)
+- `TestCaseSketch` - Abstract test case selecting specific partition values
+
+**Key Properties:**
+
+- `CoverageTarget`: targetType (workflow | form | api-operation | data-transform), businessProcessRef, formRef, apiOperationRef
+- `InputSpacePartition`: presenceRule (required | optional | conditional), partitions[] (typical | boundary | invalid | null | special)
+- `ContextVariation`: contextType (ui-entry | api-entry | event-triggered | scheduled), securityRoleRef, entryPointRef
+- `CoverageRequirement`: coverageCriteria (exhaustive | pairwise | each-choice | boundary | risk-based), targetRef, requirementRefs[]
+- `TestCaseSketch`: status (planned | implemented | automated | manual), implementationRef (gherkin:// | postman:// | playwright://)
+
+**Integration Points:**
+
+- Links to Motivation layer for requirements traceability
+- Links to Business layer for workflow coverage
+- Links to UX layer for form coverage
+- Links to API layer for endpoint coverage
+- Links to Data Model layer for input constraints
+- Links to Security layer for actor/role context
+- Links to Navigation layer for route entry points
+
+**Example Usage:**
+
+```bash
+# Create coverage target for workflow
+dr add testing coverage-target \
+  --name "Order Creation Coverage" \
+  --set targetType=workflow \
+  --set businessProcessRef=business.process.create-order
+
+# Define input partition
+dr add testing input-space-partition \
+  --name "Line Items Count" \
+  --set presenceRule=required
+
+# Define context variation
+dr add testing context-variation \
+  --name "Customer UI Context" \
+  --set contextType=ui-entry \
+  --set securityRoleRef=security.role.customer
+
+# Create coverage requirement
+dr add testing coverage-requirement \
+  --name "Order Primary Coverage" \
+  --set coverageCriteria=pairwise \
+  --set targetRef=testing.coverage-target.order-creation-coverage
+
+# Define test case sketch
+dr add testing test-case-sketch \
+  --name "Single Item Order Test" \
+  --set status=planned \
+  --set expectedOutcome=order-created
+```
+
 ## Python API
 
 ### Model Class

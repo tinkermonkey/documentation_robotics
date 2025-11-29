@@ -25,7 +25,7 @@ This creates:
 
 ```
 my-architecture/
-├── model/              # Your architecture model (11 layers)
+├── model/              # Your architecture model (12 layers)
 ├── specs/              # Generated specifications
 ├── .dr/                # CLI configuration and schemas
 ├── dr.config.yaml      # Project configuration
@@ -151,7 +151,7 @@ dr validate --validate-links --strict-links
 
 ### The 11 Layers
 
-Your model is organized into 11 layers, each representing a different architectural concern:
+Your model is organized into 12 layers, each representing a different architectural concern:
 
 1. **Motivation** (WHY) - Goals, requirements, stakeholders
 2. **Business** (WHAT) - Business processes and services
