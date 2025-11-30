@@ -155,7 +155,7 @@ class TestModelFileEventHandler:
         layer = handler._extract_layer(nested_file)
         assert layer == "business"
 
-    def test_on_created_event(self, tmp_path):
+    async def test_on_created_event(self, tmp_path):
         """Test file created event is scheduled."""
         model_path = tmp_path / "model"
         model_path.mkdir()
@@ -175,10 +175,16 @@ class TestModelFileEventHandler:
 
         handler.on_created(event)
 
-        # Verify event was scheduled
+        # Verify event was scheduled (check immediately after scheduling)
         assert len(handler._pending_events) > 0
 
-    def test_on_modified_event(self, tmp_path):
+        # Wait for debounce processing
+        await asyncio.sleep(0.15)
+
+        # Verify callback was invoked after debounce
+        callback.assert_called_once()
+
+    async def test_on_modified_event(self, tmp_path):
         """Test file modified event is scheduled."""
         model_path = tmp_path / "model"
         model_path.mkdir()
@@ -197,9 +203,16 @@ class TestModelFileEventHandler:
 
         handler.on_modified(event)
 
+        # Verify event was scheduled (check immediately after scheduling)
         assert len(handler._pending_events) > 0
 
-    def test_on_deleted_event(self, tmp_path):
+        # Wait for debounce processing
+        await asyncio.sleep(0.15)
+
+        # Verify callback was invoked after debounce
+        callback.assert_called_once()
+
+    async def test_on_deleted_event(self, tmp_path):
         """Test file deleted event is scheduled."""
         model_path = tmp_path / "model"
         model_path.mkdir()
@@ -218,7 +231,14 @@ class TestModelFileEventHandler:
 
         handler.on_deleted(event)
 
+        # Verify event was scheduled (check immediately after scheduling)
         assert len(handler._pending_events) > 0
+
+        # Wait for debounce processing
+        await asyncio.sleep(0.15)
+
+        # Verify callback was invoked after debounce
+        callback.assert_called_once()
 
     def test_directory_events_ignored(self, tmp_path):
         """Test directory events are ignored."""

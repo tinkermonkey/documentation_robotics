@@ -9,6 +9,7 @@ import asyncio
 import json
 import mimetypes
 import signal
+import time
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
@@ -211,7 +212,7 @@ class VisualizationServer:
         path = request.match_info.get("path", "")
 
         # For SPA routing, serve index.html for non-asset requests
-        if not path or (not "." in path and path not in ["health", "ws"]):
+        if not path or ("." not in path and path not in ["health", "ws"]):
             return await self._handle_index(request)
 
         try:
@@ -304,8 +305,6 @@ class VisualizationServer:
             ws: WebSocket connection
         """
         try:
-            import time
-
             # Check if cache is valid (not invalidated by file changes)
             if self._cached_initial_state is None:
                 # Generate and cache initial state

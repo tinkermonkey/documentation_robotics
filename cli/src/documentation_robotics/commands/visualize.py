@@ -147,14 +147,14 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
         console.print("\n[dim]Received shutdown signal[/dim]")
     except OSError as e:
         if "Address already in use" in str(e) or "address already in use" in str(e):
-            console.print(f"\n✗ Port {port} is already in use", style="red bold")
+            console.print(f"\n✗ Error: Port {port} is already in use", style="red bold")
             console.print(f"   Try a different port with: dr visualize --port {port + 1}", style="dim")
             console.print("   Or find the process using this port:", style="dim")
             console.print(f"     macOS/Linux: lsof -i :{port}", style="dim")
             console.print(f"     Windows: netstat -ano | findstr :{port}", style="dim")
         else:
-            console.print(f"\n✗ Server error: {e}", style="red bold")
+            console.print(f"\n✗ Error: Server error: {e}", style="red bold")
         raise click.Abort()
     except Exception as e:
-        console.print(f"\n✗ Server error: {e}", style="red bold")
+        console.print(f"\n✗ Error: Server error: {e}", style="red bold")
         raise click.Abort()
