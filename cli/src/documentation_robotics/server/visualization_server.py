@@ -71,6 +71,9 @@ class VisualizationServer:
         self.specification: Optional[Dict[str, Any]] = None
         self.model_serializer: Optional[ModelSerializer] = None
 
+        # Event loop reference for cross-thread task scheduling
+        self._loop: Optional[asyncio.AbstractEventLoop] = None
+
         # Shutdown flag
         self._shutdown_event = asyncio.Event()
 
@@ -81,6 +84,9 @@ class VisualizationServer:
         Loads model and specification, configures routes, starts HTTP server,
         and begins file monitoring.
         """
+        # Store event loop reference for cross-thread task scheduling
+        self._loop = asyncio.get_running_loop()
+
         # Load specification
         spec_loader = SpecificationLoader(self.spec_path)
         self.specification = spec_loader.load_specification()
@@ -281,13 +287,24 @@ class VisualizationServer:
         """
         Handle file system change event.
 
+        Called from watchdog observer thread, so must safely schedule async work.
+
         Args:
             event_type: Type of change (created, modified, deleted)
             layer: Layer name
             file_path: Changed file path
         """
-        # Schedule async broadcast
-        asyncio.create_task(self._broadcast_file_change(event_type, layer, file_path))
+        if self._loop and self._loop.is_running():
+            # Schedule task creation in the event loop thread (thread-safe)
+            self._loop.call_soon_threadsafe(
+                lambda: asyncio.create_task(
+                    self._broadcast_file_change(event_type, layer, file_path)
+                )
+            )
+        else:
+            console.print(
+                f"[yellow]Warning: Event loop not running, cannot broadcast file change[/yellow]"
+            )
 
     async def _broadcast_file_change(self, event_type: str, layer: str, file_path: Path) -> None:
         """
