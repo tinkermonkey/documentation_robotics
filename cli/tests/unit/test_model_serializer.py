@@ -257,7 +257,10 @@ class TestChangesetSerialization:
         assert changesets == []
 
     def test_load_changesets_with_metadata(self, temp_dir, initialized_model):
-        """Test loading changesets with metadata files."""
+        """Test loading changesets with metadata and changes files."""
+        from datetime import datetime, timezone
+        from documentation_robotics.core.changeset import Changeset, Change
+
         # Create changeset directory structure
         changesets_dir = temp_dir / ".dr" / "changesets"
         changesets_dir.mkdir(parents=True, exist_ok=True)
@@ -265,17 +268,25 @@ class TestChangesetSerialization:
         changeset_dir = changesets_dir / "test-changeset-1"
         changeset_dir.mkdir()
 
-        # Create changeset metadata
-        metadata = {
-            "name": "Test Changeset 1",
-            "description": "A test changeset",
-            "created": "2024-01-15T10:30:00Z",
-            "author": "test@example.com",
-            "status": "active",
-        }
+        # Create changeset using Changeset class
+        changeset = Changeset("test-changeset-1", changeset_dir)
+        changeset.metadata.name = "Test Changeset 1"
+        changeset.metadata.description = "A test changeset"
+        changeset.metadata.type = "feature"
+        changeset.metadata.status = "active"
+        changeset.metadata.workflow = "direct-cli"
 
-        with open(changeset_dir / "changeset.yaml", "w") as f:
-            yaml.dump(metadata, f)
+        # Add a test change
+        change = Change(
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            operation="add",
+            element_id="business.service.test",
+            layer="business",
+            element_type="service",
+            data={"name": "Test Service", "description": "Test"},
+        )
+        changeset.add_change(change)
+        changeset.save()
 
         # Load changesets
         changesets = load_changesets(temp_dir)
@@ -284,34 +295,46 @@ class TestChangesetSerialization:
         assert changesets[0]["id"] == "test-changeset-1"
         assert changesets[0]["name"] == "Test Changeset 1"
         assert changesets[0]["description"] == "A test changeset"
-        assert changesets[0]["author"] == "test@example.com"
+        assert changesets[0]["type"] == "feature"
         assert changesets[0]["status"] == "active"
+        assert changesets[0]["workflow"] == "direct-cli"
+        assert "created_at" in changesets[0]
+        assert "updated_at" in changesets[0]
+        assert "summary" in changesets[0]
+        assert changesets[0]["summary"]["elements_added"] == 1
+        assert "changes" in changesets[0]
+        assert len(changesets[0]["changes"]) == 1
+        assert changesets[0]["changes"][0]["operation"] == "add"
+        assert changesets[0]["changes"][0]["element_id"] == "business.service.test"
 
     def test_load_changesets_sorted_by_created(self, temp_dir):
         """Test changesets are sorted by creation date."""
+        from datetime import datetime, timezone, timedelta
+        from documentation_robotics.core.changeset import Changeset
+
         changesets_dir = temp_dir / ".dr" / "changesets"
         changesets_dir.mkdir(parents=True, exist_ok=True)
 
         # Create multiple changesets with different dates
-        for i, date in enumerate(["2024-01-10T10:00:00Z", "2024-01-15T10:00:00Z", "2024-01-12T10:00:00Z"]):
+        base_time = datetime(2024, 1, 10, 10, 0, 0, tzinfo=timezone.utc)
+        dates = [base_time, base_time + timedelta(days=5), base_time + timedelta(days=2)]
+
+        for i, created_time in enumerate(dates):
             changeset_dir = changesets_dir / f"changeset-{i}"
             changeset_dir.mkdir()
 
-            metadata = {
-                "name": f"Changeset {i}",
-                "description": f"Test {i}",
-                "created": date,
-                "status": "active",
-            }
-
-            with open(changeset_dir / "changeset.yaml", "w") as f:
-                yaml.dump(metadata, f)
+            changeset = Changeset(f"changeset-{i}", changeset_dir)
+            changeset.metadata.name = f"Changeset {i}"
+            changeset.metadata.description = f"Test {i}"
+            changeset.metadata.created_at = created_time
+            changeset.metadata.updated_at = created_time
+            changeset.save()
 
         changesets = load_changesets(temp_dir)
 
         assert len(changesets) == EXPECTED_CHANGESET_COUNT
-        # Verify sorted by created date
-        dates = [cs["created"] for cs in changesets]
+        # Verify sorted by created_at date
+        dates = [cs["created_at"] for cs in changesets]
         assert dates == sorted(dates)
 
     def test_load_changesets_handles_missing_metadata(self, temp_dir):
@@ -323,9 +346,118 @@ class TestChangesetSerialization:
         changeset_dir = changesets_dir / "broken-changeset"
         changeset_dir.mkdir()
 
-        # Should not crash, just skip the broken changeset
+        # Should not crash, creates changeset with defaults
         changesets = load_changesets(temp_dir)
-        assert changesets == []
+        assert len(changesets) == 1
+        assert changesets[0]["id"] == "broken-changeset"
+        assert changesets[0]["name"] == ""
+        assert changesets[0]["status"] == "active"
+        assert len(changesets[0]["changes"]) == 0
+
+    def test_load_changesets_with_multiple_changes(self, temp_dir):
+        """Test loading changeset with multiple changes of different types."""
+        from datetime import datetime, timezone
+        from documentation_robotics.core.changeset import Changeset, Change
+
+        changesets_dir = temp_dir / ".dr" / "changesets"
+        changesets_dir.mkdir(parents=True, exist_ok=True)
+
+        changeset_dir = changesets_dir / "multi-change-test"
+        changeset_dir.mkdir()
+
+        changeset = Changeset("multi-change-test", changeset_dir)
+        changeset.metadata.name = "Multi-Change Test"
+        changeset.metadata.description = "Testing multiple change types"
+
+        # Add changes of different types
+        changes = [
+            Change(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                operation="add",
+                element_id="business.service.new-service",
+                layer="business",
+                element_type="service",
+                data={"name": "New Service"},
+            ),
+            Change(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                operation="update",
+                element_id="business.service.existing-service",
+                layer="business",
+                element_type="service",
+                before={"name": "Old Name"},
+                after={"name": "New Name"},
+            ),
+            Change(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                operation="delete",
+                element_id="business.service.removed-service",
+                layer="business",
+                element_type="service",
+            ),
+        ]
+
+        for change in changes:
+            changeset.add_change(change)
+
+        changeset.save()
+
+        # Load and verify
+        loaded_changesets = load_changesets(temp_dir)
+
+        assert len(loaded_changesets) == 1
+        assert len(loaded_changesets[0]["changes"]) == 3
+        assert loaded_changesets[0]["summary"]["elements_added"] == 1
+        assert loaded_changesets[0]["summary"]["elements_updated"] == 1
+        assert loaded_changesets[0]["summary"]["elements_deleted"] == 1
+
+        # Verify change details are preserved
+        change_ops = [c["operation"] for c in loaded_changesets[0]["changes"]]
+        assert "add" in change_ops
+        assert "update" in change_ops
+        assert "delete" in change_ops
+
+    def test_load_changesets_preserves_change_data(self, temp_dir):
+        """Test that all change data fields are preserved during loading."""
+        from datetime import datetime, timezone
+        from documentation_robotics.core.changeset import Changeset, Change
+
+        changesets_dir = temp_dir / ".dr" / "changesets"
+        changesets_dir.mkdir(parents=True, exist_ok=True)
+
+        changeset_dir = changesets_dir / "detailed-change-test"
+        changeset_dir.mkdir()
+
+        changeset = Changeset("detailed-change-test", changeset_dir)
+        changeset.metadata.name = "Detailed Change Test"
+
+        # Add change with full data
+        change = Change(
+            timestamp="2024-01-15T10:30:00Z",
+            operation="add",
+            element_id="application.component.test",
+            layer="application",
+            element_type="component",
+            data={
+                "name": "Test Component",
+                "description": "A test component",
+                "properties": {"version": "1.0", "status": "active"},
+            },
+        )
+        changeset.add_change(change)
+        changeset.save()
+
+        # Load and verify all fields
+        loaded = load_changesets(temp_dir)
+        loaded_change = loaded[0]["changes"][0]
+
+        assert loaded_change["timestamp"] == "2024-01-15T10:30:00Z"
+        assert loaded_change["operation"] == "add"
+        assert loaded_change["element_id"] == "application.component.test"
+        assert loaded_change["layer"] == "application"
+        assert loaded_change["element_type"] == "component"
+        assert loaded_change["data"]["name"] == "Test Component"
+        assert loaded_change["data"]["properties"]["version"] == "1.0"
 
 
 class TestModelStateSerialization:

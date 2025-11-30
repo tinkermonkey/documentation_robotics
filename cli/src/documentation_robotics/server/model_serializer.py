@@ -11,6 +11,7 @@ from typing import Any, Dict, List, Optional
 import yaml
 from rich.console import Console
 
+from ..core.changeset import Changeset
 from ..core.element import Element
 from ..core.layer import Layer
 from ..core.model import Model
@@ -192,20 +193,24 @@ class ModelSerializer:
 
 def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
     """
-    Load changeset metadata from .dr/changesets directory.
+    Load changeset metadata and changes from .dr/changesets directory.
 
     Args:
         root_path: Model root directory path
 
     Returns:
-        List of changeset metadata dictionaries, sorted by creation date.
+        List of changeset dictionaries, sorted by creation date.
         Each dictionary contains:
-            - id: Changeset directory name
+            - id: Changeset unique identifier
             - name: Display name from metadata
             - description: Changeset description
-            - created: ISO timestamp
-            - author: Author name/email
-            - status: Changeset status (active, merged, etc.)
+            - type: Changeset type (feature, bugfix, exploration)
+            - status: Changeset status (active, applied, abandoned)
+            - created_at: ISO timestamp of creation
+            - updated_at: ISO timestamp of last update
+            - workflow: Workflow type (direct-cli, requirements, agent-conversation)
+            - summary: Summary of changes (elements_added, elements_updated, elements_deleted)
+            - changes: List of Change objects with full details
 
     Raises:
         No exceptions raised - errors are logged and skipped
@@ -217,9 +222,13 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
             "id": "20240101-feature",
             "name": "New Feature",
             "description": "Add visualization",
-            "created": "2024-01-01T12:00:00Z",
-            "author": "user@example.com",
-            "status": "active"
+            "type": "feature",
+            "status": "active",
+            "created_at": "2024-01-01T12:00:00Z",
+            "updated_at": "2024-01-01T13:00:00Z",
+            "workflow": "direct-cli",
+            "summary": {"elements_added": 3, "elements_updated": 1, "elements_deleted": 0},
+            "changes": [...]
         }
     """
     changesets_path = root_path / ".dr" / "changesets"
@@ -234,30 +243,34 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
         if not changeset_dir.is_dir():
             continue
 
-        # Load changeset metadata
-        metadata_file = changeset_dir / "changeset.yaml"
-        if metadata_file.exists():
-            try:
-                with open(metadata_file, "r") as f:
-                    metadata = yaml.safe_load(f)
+        # Load changeset using Changeset class
+        try:
+            changeset = Changeset(changeset_dir.name, changeset_dir)
 
-                changesets.append(
-                    {
-                        "id": changeset_dir.name,
-                        "name": metadata.get("name", changeset_dir.name),
-                        "description": metadata.get("description", ""),
-                        "created": metadata.get("created"),
-                        "author": metadata.get("author"),
-                        "status": metadata.get("status", "active"),
-                    }
-                )
-            except (FileNotFoundError, yaml.YAMLError, KeyError, OSError) as e:
-                # Log error but continue
-                console.print(
-                    f"[yellow]Warning: Failed to load changeset {changeset_dir.name}: {e}[/yellow]"
-                )
+            # Convert to dictionary with all required fields
+            changeset_dict = {
+                "id": changeset.metadata.id,
+                "name": changeset.metadata.name,
+                "description": changeset.metadata.description,
+                "type": changeset.metadata.type,
+                "status": changeset.metadata.status,
+                "created_at": changeset.metadata.created_at.isoformat(),
+                "updated_at": changeset.metadata.updated_at.isoformat(),
+                "workflow": changeset.metadata.workflow,
+                "summary": changeset.metadata.summary,
+                "changes": [change.to_dict() for change in changeset.get_changes()],
+            }
 
-    return sorted(changesets, key=lambda x: x.get("created", ""))
+            changesets.append(changeset_dict)
+
+        except (FileNotFoundError, yaml.YAMLError, KeyError, OSError, ValueError) as e:
+            # Log error but continue - allows partial loading
+            console.print(
+                f"[yellow]Warning: Failed to load changeset {changeset_dir.name}: {e}[/yellow]"
+            )
+
+    # Sort by creation date
+    return sorted(changesets, key=lambda x: x.get("created_at", ""))
 
 
 def serialize_model_state(model: Model, root_path: Path) -> Dict[str, Any]:
