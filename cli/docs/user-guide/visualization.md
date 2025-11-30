@@ -117,9 +117,9 @@ When a browser connects to the visualization server:
 
 1. WebSocket connection established
 2. Server sends initial state message containing:
-   - **Specification**: DR spec from `.dr/specification/`
+   - **Specification**: DR spec from `spec/` directory (or bundled schemas)
    - **Model**: Complete model data from `documentation-robotics/model/`
-   - **Changesets**: List of available changesets from `.dr/changesets/`
+   - **Changesets**: List of available changesets from `documentation-robotics/changesets/`
 
 ## Usage Patterns
 
@@ -168,7 +168,7 @@ The server monitors these file types in the `documentation-robotics/model/` dire
 
 **Excluded from monitoring**:
 - `manifest.yaml` - Manifest changes require server restart
-- `.dr/specification/` - Specification is static per CLI version
+- `spec/` directory - Specification is static per CLI version
 - Non-YAML files
 
 ### Debouncing
