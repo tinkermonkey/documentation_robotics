@@ -299,19 +299,22 @@ class VisualizationServer:
             file_path: Changed file path
         """
         try:
-            # Determine change type
+            # Determine change type and load element data
             if event_type == "deleted":
                 change_type = "removed"
                 element_data = None
+                # For deletions, try to extract ID from filename as fallback
+                element_id = file_path.stem
             elif event_type == "created":
                 change_type = "added"
                 element_data = await self._load_element_from_file(file_path)
+                # Extract ID from loaded data
+                element_id = element_data.get("id") if element_data else file_path.stem
             else:  # modified
                 change_type = "updated"
                 element_data = await self._load_element_from_file(file_path)
-
-            # Extract element ID from file path (if possible)
-            element_id = self._extract_element_id(file_path)
+                # Extract ID from loaded data
+                element_id = element_data.get("id") if element_data else file_path.stem
 
             if element_id:
                 # Create update message
@@ -345,7 +348,7 @@ class VisualizationServer:
 
     def _extract_element_id(self, file_path: Path) -> Optional[str]:
         """
-        Extract element ID from file path.
+        Extract element ID from file content.
 
         Args:
             file_path: Element file path
@@ -353,8 +356,17 @@ class VisualizationServer:
         Returns:
             Element ID or None if not determinable
         """
-        # Element ID is typically embedded in the file content
-        # For now, return filename without extension as placeholder
+        try:
+            # Try to read ID from file content
+            if file_path.exists():
+                with open(file_path, "r") as f:
+                    data = yaml.safe_load(f)
+                    if data and isinstance(data, dict):
+                        return data.get("id")
+        except (FileNotFoundError, yaml.YAMLError, OSError) as e:
+            console.print(f"[yellow]Error extracting element ID from {file_path}: {e}[/yellow]")
+
+        # Fallback: return filename without extension
         return file_path.stem
 
     async def broadcast_update(self, message: Dict[str, Any]) -> None:
