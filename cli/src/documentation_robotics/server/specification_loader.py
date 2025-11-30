@@ -36,10 +36,19 @@ class SpecificationLoader:
 
         Returns:
             Dictionary containing:
-                - version: Specification version
-                - layers: Layer schema definitions
-                - shared_schemas: Shared reference schemas
-                - metadata: Additional metadata
+                - version: Specification version string from VERSION file
+                - layers: List of layer schema objects sorted by order
+                - shared_schemas: Dictionary of shared reference schemas
+                - metadata: Additional metadata including spec path and load timestamp
+
+        Raises:
+            No exceptions raised - errors in individual files are logged and skipped
+
+        Example:
+            >>> loader = SpecificationLoader(Path("/workspace/spec"))
+            >>> spec = loader.load_specification()
+            >>> spec.keys()
+            dict_keys(['version', 'layers', 'shared_schemas', 'metadata'])
         """
         version = self._load_version()
         layer_schemas = self._load_layer_schemas()
@@ -67,7 +76,16 @@ class SpecificationLoader:
         Load all layer schema definitions.
 
         Returns:
-            List of layer schema objects with metadata
+            List of layer schema objects sorted by order, each containing:
+                - name: Layer identifier (extracted from filename)
+                - order: Display order (from filename prefix)
+                - schema_file: Original filename
+                - title: Schema title
+                - description: Schema description
+                - schema: Complete JSON schema definition
+
+        Raises:
+            No exceptions raised - errors logged and invalid schemas skipped
         """
         layer_schemas = []
 
@@ -93,8 +111,13 @@ class SpecificationLoader:
                         "schema": schema_data,
                     }
                 )
-            except (FileNotFoundError, json.JSONDecodeError, KeyError, OSError) as e:
-                # Log error but continue loading other schemas
+            except FileNotFoundError as e:
+                console.print(f"[yellow]Warning: Schema file not found {schema_file}: {e}[/yellow]")
+                continue
+            except json.JSONDecodeError as e:
+                console.print(f"[yellow]Warning: Invalid JSON in {schema_file}: {e}[/yellow]")
+                continue
+            except (KeyError, OSError) as e:
                 console.print(f"[yellow]Warning: Failed to load schema {schema_file}: {e}[/yellow]")
                 continue
 
@@ -105,7 +128,13 @@ class SpecificationLoader:
         Load shared reference schemas.
 
         Returns:
-            Dictionary of shared schema definitions
+            Dictionary mapping schema names to their JSON definitions:
+                - shared-references: Common element reference patterns
+                - link-registry: Link type definitions
+                - federated-architecture: Federated model schemas
+
+        Raises:
+            No exceptions raised - errors logged and invalid schemas skipped
         """
         shared_schemas = {}
 
@@ -125,10 +154,12 @@ class SpecificationLoader:
                     # Use filename without extension as key
                     key = filename.replace(".schema.json", "").replace(".json", "")
                     shared_schemas[key] = schema_data
-                except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
-                    console.print(
-                        f"[yellow]Warning: Failed to load shared schema {filename}: {e}[/yellow]"
-                    )
+                except FileNotFoundError as e:
+                    console.print(f"[yellow]Warning: Shared schema file not found {filename}: {e}[/yellow]")
+                except json.JSONDecodeError as e:
+                    console.print(f"[yellow]Warning: Invalid JSON in {filename}: {e}[/yellow]")
+                except OSError as e:
+                    console.print(f"[yellow]Warning: Failed to load shared schema {filename}: {e}[/yellow]")
 
         return shared_schemas
 

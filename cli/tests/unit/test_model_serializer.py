@@ -8,7 +8,10 @@ for WebSocket transmission to visualization clients.
 import json
 from pathlib import Path
 
+import yaml
+
 import pytest
+
 from documentation_robotics.core.element import Element
 from documentation_robotics.core.layer import Layer
 from documentation_robotics.core.model import Model
@@ -17,6 +20,10 @@ from documentation_robotics.server.model_serializer import (
     load_changesets,
     serialize_model_state,
 )
+
+# Test constants
+EXPECTED_LAYER_COUNT = 12  # Total number of layer types (ArchiMate + OpenAPI + JSON Schema + Custom)
+EXPECTED_CHANGESET_COUNT = 3  # Number of changesets in multi-changeset tests
 
 
 class TestElementSerialization:
@@ -259,8 +266,6 @@ class TestChangesetSerialization:
         changeset_dir.mkdir()
 
         # Create changeset metadata
-        import yaml
-
         metadata = {
             "name": "Test Changeset 1",
             "description": "A test changeset",
@@ -287,8 +292,6 @@ class TestChangesetSerialization:
         changesets_dir = temp_dir / ".dr" / "changesets"
         changesets_dir.mkdir(parents=True, exist_ok=True)
 
-        import yaml
-
         # Create multiple changesets with different dates
         for i, date in enumerate(["2024-01-10T10:00:00Z", "2024-01-15T10:00:00Z", "2024-01-12T10:00:00Z"]):
             changeset_dir = changesets_dir / f"changeset-{i}"
@@ -306,7 +309,7 @@ class TestChangesetSerialization:
 
         changesets = load_changesets(temp_dir)
 
-        assert len(changesets) == 3
+        assert len(changesets) == EXPECTED_CHANGESET_COUNT
         # Verify sorted by created date
         dates = [cs["created"] for cs in changesets]
         assert dates == sorted(dates)
@@ -359,6 +362,83 @@ class TestModelStateSerialization:
         parsed = json.loads(json_str)
         assert "model" in parsed
         assert "changesets" in parsed
+
+
+class TestEdgeCases:
+    """Test edge cases and special scenarios."""
+
+    def test_serialize_element_with_unicode_characters(self):
+        """Test serialization handles Unicode and special characters."""
+        element = Element(
+            id="test.unicode.element",
+            element_type="test",
+            layer="test",
+            data={
+                "id": "test.unicode.element",
+                "name": "Test Element 测试 🚀",
+                "description": "Element with émojis 👍 and special chars: ñ, é, ü, 中文",
+                "tags": ["unicode", "国际化", "emoji-✨"],
+            },
+        )
+
+        serializer = ModelSerializer(model=None)
+        result = serializer._serialize_element(element)
+
+        assert result["name"] == "Test Element 测试 🚀"
+        assert "émojis 👍" in result["data"]["description"]
+        assert "国际化" in result["data"]["tags"]
+
+        # Verify JSON serializability
+        json_str = json.dumps(result)
+        assert json_str is not None
+
+    def test_serialize_empty_model(self, temp_dir):
+        """Test serialization of empty model with no elements."""
+        from documentation_robotics.commands.init import ModelInitializer
+
+        initializer = ModelInitializer(
+            root_path=temp_dir,
+            project_name="empty-project",
+            template="basic",
+            minimal=True,
+            with_examples=False,
+        )
+        initializer.create()
+
+        model = Model(temp_dir)
+        serializer = ModelSerializer(model)
+        result = serializer.serialize_model()
+
+        assert "manifest" in result
+        assert "layers" in result
+        assert isinstance(result["layers"], list)
+
+    def test_serialize_element_with_deep_nested_data(self):
+        """Test serialization handles deeply nested element data."""
+        nested_data = {
+            "id": "test.nested.element",
+            "name": "Nested Element",
+            "level1": {
+                "level2": {
+                    "level3": {
+                        "level4": {"level5": {"value": "deep", "list": [1, 2, 3, {"nested": "dict"}]}}
+                    }
+                }
+            },
+        }
+
+        element = Element(id="test.nested.element", element_type="test", layer="test", data=nested_data)
+
+        serializer = ModelSerializer(model=None)
+        result = serializer._serialize_element(element)
+
+        # Verify deep nesting is preserved
+        assert result["data"]["level1"]["level2"]["level3"]["level4"]["level5"]["value"] == "deep"
+        assert result["data"]["level1"]["level2"]["level3"]["level4"]["level5"]["list"][3]["nested"] == "dict"
+
+        # Verify JSON serializability
+        json_str = json.dumps(result)
+        assert json_str is not None
 
 
 class TestLayerTypeSupport:

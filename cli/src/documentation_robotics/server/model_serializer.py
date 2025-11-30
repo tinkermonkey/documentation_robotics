@@ -47,7 +47,18 @@ class ModelSerializer:
         }
 
     def _serialize_manifest(self) -> Dict[str, Any]:
-        """Serialize model manifest."""
+        """
+        Serialize model manifest.
+
+        Returns:
+            Dictionary containing manifest metadata:
+                - version: Model version string
+                - spec_version: Specification version
+                - project: Project configuration dict
+                - conventions: Project conventions dict
+                - created: ISO timestamp of model creation
+                - updated: ISO timestamp of last update
+        """
         manifest = self.model.manifest
 
         return {
@@ -84,11 +95,18 @@ class ModelSerializer:
         Serialize a single layer.
 
         Args:
-            layer_name: Layer name
-            layer: Layer instance
+            layer_name: Layer name from manifest
+            layer: Layer instance containing elements
 
         Returns:
-            Layer object with metadata and elements
+            Dictionary containing layer metadata and elements:
+                - name: Layer identifier
+                - display_name: Human-readable layer name
+                - order: Layer display order (lower first)
+                - path: Layer directory path
+                - enabled: Whether layer is enabled
+                - element_counts: Count of elements by type
+                - elements: List of serialized element objects
         """
         layer_config = self.model.manifest.layers.get(layer_name, {})
 
@@ -124,10 +142,24 @@ class ModelSerializer:
         Serialize a single element.
 
         Args:
-            element: Element instance
+            element: Element instance to serialize
 
         Returns:
-            Serialized element data
+            Dictionary containing element data:
+                - id: Unique element identifier
+                - type: Element type (e.g., 'BusinessActor', 'ApplicationComponent')
+                - name: Element name
+                - data: Element attributes and relationships
+                - file_path: Source file path or None if not file-backed
+
+        Example:
+            {
+                "id": "elem-123",
+                "type": "BusinessActor",
+                "name": "Customer",
+                "data": {"description": "End user", "references": [...]},
+                "file_path": "business/actors/customer.yaml"
+            }
         """
         return {
             "id": element.id,
@@ -163,10 +195,32 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
     Load changeset metadata from .dr/changesets directory.
 
     Args:
-        root_path: Model root path
+        root_path: Model root directory path
 
     Returns:
-        List of changeset metadata objects
+        List of changeset metadata dictionaries, sorted by creation date.
+        Each dictionary contains:
+            - id: Changeset directory name
+            - name: Display name from metadata
+            - description: Changeset description
+            - created: ISO timestamp
+            - author: Author name/email
+            - status: Changeset status (active, merged, etc.)
+
+    Raises:
+        No exceptions raised - errors are logged and skipped
+
+    Example:
+        >>> changesets = load_changesets(Path("/workspace"))
+        >>> changesets[0]
+        {
+            "id": "20240101-feature",
+            "name": "New Feature",
+            "description": "Add visualization",
+            "created": "2024-01-01T12:00:00Z",
+            "author": "user@example.com",
+            "status": "active"
+        }
     """
     changesets_path = root_path / ".dr" / "changesets"
 
@@ -210,12 +264,23 @@ def serialize_model_state(model: Model, root_path: Path) -> Dict[str, Any]:
     """
     Serialize complete model state including changesets.
 
+    This is the primary function for creating the initial state
+    transmitted to browser clients via WebSocket.
+
     Args:
-        model: Model instance
-        root_path: Model root path
+        model: Model instance containing layers and elements
+        root_path: Model root directory path
 
     Returns:
-        Complete model state for initial WebSocket transmission
+        Dictionary containing complete model state:
+            - model: Serialized model with manifest, layers, and statistics
+            - changesets: List of available changeset metadata
+
+    Example:
+        >>> model = Model.load(Path("/workspace"))
+        >>> state = serialize_model_state(model, Path("/workspace"))
+        >>> state.keys()
+        dict_keys(['model', 'changesets'])
     """
     serializer = ModelSerializer(model)
 
