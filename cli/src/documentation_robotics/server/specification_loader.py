@@ -126,7 +126,9 @@ class SpecificationLoader:
                     key = filename.replace(".schema.json", "").replace(".json", "")
                     shared_schemas[key] = schema_data
                 except (FileNotFoundError, json.JSONDecodeError, OSError) as e:
-                    console.print(f"[yellow]Warning: Failed to load shared schema {filename}: {e}[/yellow]")
+                    console.print(
+                        f"[yellow]Warning: Failed to load shared schema {filename}: {e}[/yellow]"
+                    )
 
         return shared_schemas
 

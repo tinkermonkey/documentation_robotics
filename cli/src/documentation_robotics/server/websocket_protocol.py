@@ -76,9 +76,7 @@ def create_element_update_message(
     return message
 
 
-def create_layer_update_message(
-    layer: str, layer_data: Dict[str, Any]
-) -> Dict[str, Any]:
+def create_layer_update_message(layer: str, layer_data: Dict[str, Any]) -> Dict[str, Any]:
     """
     Create layer update message for complete layer changes.
 

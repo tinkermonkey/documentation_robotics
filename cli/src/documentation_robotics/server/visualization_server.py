@@ -8,11 +8,11 @@ for real-time model updates.
 import asyncio
 import json
 import signal
-import yaml
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Set
+from typing import Any, Dict, Optional, Set
 
 import aiohttp
+import yaml
 from aiohttp import web
 from rich.console import Console
 
@@ -241,9 +241,7 @@ class VisualizationServer:
             console.print(f"[red]Error sending initial state: {e}[/red]")
             await self._send_error(ws, f"Failed to send initial state: {e}")
 
-    async def _handle_websocket_message(
-        self, ws: web.WebSocketResponse, message: str
-    ) -> None:
+    async def _handle_websocket_message(self, ws: web.WebSocketResponse, message: str) -> None:
         """
         Handle incoming WebSocket message from client.
 
@@ -291,9 +289,7 @@ class VisualizationServer:
         # Schedule async broadcast
         asyncio.create_task(self._broadcast_file_change(event_type, layer, file_path))
 
-    async def _broadcast_file_change(
-        self, event_type: str, layer: str, file_path: Path
-    ) -> None:
+    async def _broadcast_file_change(self, event_type: str, layer: str, file_path: Path) -> None:
         """
         Broadcast file change to all connected clients.
 
