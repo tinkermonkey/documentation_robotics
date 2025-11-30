@@ -27,6 +27,7 @@ from .commands import (
     update,
     upgrade,
     validate,
+    visualize,
 )
 from .core.upgrade_manager import UpgradeManager
 
@@ -102,6 +103,8 @@ cli.add_command(upgrade.version_info)
 cli.add_command(links.links_group)
 # Migration management
 cli.add_command(migrate.migrate)
+# Visualization
+cli.add_command(visualize.visualize)
 
 
 def main() -> None:
