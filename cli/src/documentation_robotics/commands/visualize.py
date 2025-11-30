@@ -3,6 +3,7 @@ Visualize model command - starts interactive visualization server.
 """
 
 import asyncio
+import os
 import webbrowser
 from pathlib import Path
 from typing import Optional
@@ -11,6 +12,7 @@ import click
 from rich.console import Console
 
 from ..core.model import Model
+from ..schemas.bundler import get_bundled_schemas_dir
 from ..server.visualization_server import VisualizationServer
 
 console = Console()
@@ -49,7 +51,30 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     # Validate model directory exists
     root_path = Path.cwd()
     model_path = root_path / "documentation-robotics" / "model"
-    spec_path = root_path.parent.parent / "spec"  # Assuming workspace structure
+
+    # Resolve spec path for visualization
+    # The spec defines the metamodel structure (layer schemas, relationship types, etc.)
+    # Priority:
+    #   1. DR_SPEC_PATH environment variable (explicit override)
+    #   2. Workspace spec/ directory (development mode)
+    #   3. Bundled schemas package directory (production, to be implemented in Phase 5)
+    spec_path_env = os.getenv("DR_SPEC_PATH")
+    if spec_path_env:
+        spec_path = Path(spec_path_env)
+    else:
+        # Check for workspace spec/ directory (typical in development)
+        workspace_spec = root_path / "spec"
+        # Also check parent directories up to 3 levels for spec/
+        if not workspace_spec.exists():
+            current = root_path.parent
+            for _ in range(3):
+                candidate = current / "spec"
+                if candidate.exists() and (candidate / "VERSION").exists():
+                    workspace_spec = candidate
+                    break
+                current = current.parent
+
+        spec_path = workspace_spec
 
     if not model_path.exists():
         console.print("✗ Error: No model found in current directory", style="red bold")
@@ -65,13 +90,14 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
 
     # Validate spec directory exists
     if not spec_path.exists():
-        console.print(
-            "✗ Error: Specification directory not found", style="red bold"
-        )
+        console.print("✗ Error: Specification directory not found", style="red bold")
         console.print(f"   Expected: {spec_path}", style="dim")
-        console.print(
-            "   The visualization requires the DR specification files", style="dim"
-        )
+        console.print("   The visualization requires the DR specification files", style="dim")
+        if not spec_path_env:
+            console.print(
+                "   Hint: Set DR_SPEC_PATH environment variable to specify spec location",
+                style="dim",
+            )
         raise click.Abort()
 
     # Display startup message
@@ -80,9 +106,7 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     # Load model to validate it before starting server
     try:
         model = Model(root_path)
-        console.print(
-            f"✓ [green]Model loaded successfully[/green] ({len(model.layers)} layers)"
-        )
+        console.print(f"✓ [green]Model loaded successfully[/green] ({len(model.layers)} layers)")
     except FileNotFoundError as e:
         console.print(f"✗ Error loading model: {e}", style="red bold")
         raise click.Abort()
@@ -113,9 +137,7 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
             console.print("[dim]Opening browser...[/dim]")
             webbrowser.open(server_url)
         except Exception as e:
-            console.print(
-                f"[yellow]⚠ Could not open browser automatically: {e}[/yellow]"
-            )
+            console.print(f"[yellow]⚠ Could not open browser automatically: {e}[/yellow]")
             console.print(f"[dim]Please open {server_url} manually[/dim]")
 
     # Start server (blocks until Ctrl+C)
