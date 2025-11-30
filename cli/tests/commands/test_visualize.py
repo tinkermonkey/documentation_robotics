@@ -13,6 +13,7 @@ from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
 from click.testing import CliRunner
 
 from documentation_robotics.commands.visualize import visualize
+from documentation_robotics.core.model import Model
 from documentation_robotics.server.visualization_server import VisualizationServer
 
 
@@ -21,8 +22,16 @@ class TestVisualizationServer(AioHTTPTestCase):
 
     async def get_application(self):
         """Create test application."""
-        self.model_path = Path("/tmp/test-model")
-        self.vis_server = VisualizationServer(self.model_path, "localhost", 8080)
+        # Create a mock model for testing
+        mock_model = MagicMock(spec=Model)
+        mock_model.model_path = Path("/tmp/test-model")
+        mock_model.root_path = Path("/tmp/test-root")
+        mock_model.layers = {}
+        mock_model.manifest = MagicMock()
+        mock_model.manifest.version = "1.0.0"
+        mock_model.manifest.layers = {}
+
+        self.vis_server = VisualizationServer(mock_model, "localhost", 8080)
         # Don't call start() - just return the app
         # The test framework will handle starting it
         self.vis_server.app = web.Application(middlewares=[self.vis_server.auth_middleware])
@@ -145,8 +154,9 @@ class TestVisualizationServer(AioHTTPTestCase):
 
     def test_token_generation(self):
         """Test that tokens are cryptographically secure."""
-        server1 = VisualizationServer(Path("/tmp/test"), "localhost", 8080)
-        server2 = VisualizationServer(Path("/tmp/test"), "localhost", 8080)
+        mock_model = MagicMock(spec=Model)
+        server1 = VisualizationServer(mock_model, "localhost", 8080)
+        server2 = VisualizationServer(mock_model, "localhost", 8080)
 
         # Tokens should be different for different instances
         assert server1.token != server2.token
@@ -160,7 +170,8 @@ class TestVisualizationServer(AioHTTPTestCase):
 
     def test_magic_link_generation(self):
         """Test that magic links are correctly formatted."""
-        server = VisualizationServer(Path("/tmp/test"), "localhost", 8080)
+        mock_model = MagicMock(spec=Model)
+        server = VisualizationServer(mock_model, "localhost", 8080)
         magic_link = server.get_magic_link()
 
         assert magic_link.startswith("http://localhost:8080/?token=")
@@ -168,7 +179,8 @@ class TestVisualizationServer(AioHTTPTestCase):
 
     def test_token_validation_timing_safe(self):
         """Test that token validation uses constant-time comparison."""
-        server = VisualizationServer(Path("/tmp/test"), "localhost", 8080)
+        mock_model = MagicMock(spec=Model)
+        server = VisualizationServer(mock_model, "localhost", 8080)
 
         # Create mock request with invalid token
         request = MagicMock()
@@ -188,8 +200,12 @@ class TestVisualizationServer(AioHTTPTestCase):
 class TestVisualizeCommand:
     """Test cases for the visualize CLI command."""
 
-    def test_visualize_command_no_model(self, tmp_path):
+    @patch("documentation_robotics.commands.visualize.load_model_with_changeset_context")
+    def test_visualize_command_no_model(self, mock_load_model, tmp_path):
         """Test that visualize command fails gracefully without a model."""
+        # Mock model loading to raise FileNotFoundError
+        mock_load_model.side_effect = FileNotFoundError("Model not found")
+
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
             result = runner.invoke(visualize)
@@ -197,17 +213,20 @@ class TestVisualizeCommand:
             assert "No model found" in result.output
 
     @patch("documentation_robotics.commands.visualize.VisualizationServer")
-    def test_visualize_command_with_model(self, mock_server_class, tmp_path):
+    @patch("documentation_robotics.commands.visualize.load_model_with_changeset_context")
+    def test_visualize_command_with_model(self, mock_load_model, mock_server_class, tmp_path):
         """Test that visualize command starts server when model exists."""
+        # Mock model
+        mock_model = MagicMock(spec=Model)
+        mock_model.model_path = Path("/tmp/test-model")
+        mock_load_model.return_value = mock_model
+
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            # Create model directory structure
-            model_path = Path.cwd() / "documentation-robotics" / "model"
-            model_path.mkdir(parents=True)
-
             # Mock server instance
             mock_server = MagicMock()
             mock_server.get_magic_link.return_value = "http://localhost:8080/?token=abc123"
+            mock_server.model = mock_model
 
             # Mock async methods
             async def mock_start():
@@ -230,17 +249,20 @@ class TestVisualizeCommand:
             assert "Visualization server started" in result.output or result.exit_code == 0
 
     @patch("documentation_robotics.commands.visualize.VisualizationServer")
-    def test_visualize_command_custom_port(self, mock_server_class, tmp_path):
+    @patch("documentation_robotics.commands.visualize.load_model_with_changeset_context")
+    def test_visualize_command_custom_port(self, mock_load_model, mock_server_class, tmp_path):
         """Test that visualize command accepts custom port."""
+        # Mock model
+        mock_model = MagicMock(spec=Model)
+        mock_model.model_path = Path("/tmp/test-model")
+        mock_load_model.return_value = mock_model
+
         runner = CliRunner()
         with runner.isolated_filesystem(temp_dir=tmp_path):
-            # Create model directory
-            model_path = Path.cwd() / "documentation-robotics" / "model"
-            model_path.mkdir(parents=True)
-
             # Mock server
             mock_server = MagicMock()
             mock_server.get_magic_link.return_value = "http://localhost:9000/?token=abc123"
+            mock_server.model = mock_model
 
             async def mock_start():
                 pass
@@ -267,8 +289,16 @@ pytestmark = pytest.mark.asyncio
 @pytest.mark.skip(reason="Integration test requires full server setup - run manually if needed")
 async def test_full_authentication_flow():
     """Integration test for complete authentication flow."""
-    model_path = Path("/tmp/test-integration-model")
-    server = VisualizationServer(model_path, "localhost", 8091)
+    # Create mock model
+    mock_model = MagicMock(spec=Model)
+    mock_model.model_path = Path("/tmp/test-integration-model")
+    mock_model.root_path = Path("/tmp/test-integration-root")
+    mock_model.layers = {}
+    mock_model.manifest = MagicMock()
+    mock_model.manifest.version = "1.0.0"
+    mock_model.manifest.layers = {}
+
+    server = VisualizationServer(mock_model, "localhost", 8091)
 
     try:
         await server.start()
