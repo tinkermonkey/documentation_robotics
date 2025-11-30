@@ -5,10 +5,10 @@ Converts the DR model objects to JSON-serializable dictionaries
 for transmission to browser clients via WebSocket.
 """
 
-import yaml
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import yaml
 from rich.console import Console
 
 from ..core.element import Element
@@ -141,9 +141,7 @@ class ModelSerializer:
         """Serialize model statistics."""
         return self.model.manifest.statistics.copy()
 
-    def serialize_element_update(
-        self, element_id: str
-    ) -> Optional[Dict[str, Any]]:
+    def serialize_element_update(self, element_id: str) -> Optional[Dict[str, Any]]:
         """
         Serialize a single element update.
 
@@ -201,14 +199,14 @@ def load_changesets(root_path: Path) -> List[Dict[str, Any]]:
                 )
             except (FileNotFoundError, yaml.YAMLError, KeyError, OSError) as e:
                 # Log error but continue
-                console.print(f"[yellow]Warning: Failed to load changeset {changeset_dir.name}: {e}[/yellow]")
+                console.print(
+                    f"[yellow]Warning: Failed to load changeset {changeset_dir.name}: {e}[/yellow]"
+                )
 
     return sorted(changesets, key=lambda x: x.get("created", ""))
 
 
-def serialize_model_state(
-    model: Model, root_path: Path
-) -> Dict[str, Any]:
+def serialize_model_state(model: Model, root_path: Path) -> Dict[str, Any]:
     """
     Serialize complete model state including changesets.
 

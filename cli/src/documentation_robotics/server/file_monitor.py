@@ -8,7 +8,7 @@ and notify the server for broadcasting to connected clients.
 import asyncio
 import time
 from pathlib import Path
-from typing import Callable, Dict, Optional, Set, Tuple
+from typing import Callable, Dict, Optional, Tuple
 
 from rich.console import Console
 from watchdog.events import FileSystemEvent, FileSystemEventHandler
@@ -123,9 +123,7 @@ class ModelFileEventHandler(FileSystemEventHandler):
         events_to_process = []
 
         # Collect events older than debounce window
-        for event_key, (timestamp, event_type, layer, path) in list(
-            self._pending_events.items()
-        ):
+        for event_key, (timestamp, event_type, layer, path) in list(self._pending_events.items()):
             if current_time - timestamp >= self.debounce_seconds:
                 events_to_process.append((event_type, layer, path))
                 del self._pending_events[event_key]
@@ -145,9 +143,7 @@ class ModelFileEventHandler(FileSystemEventHandler):
         events_to_process = []
 
         # Collect events older than debounce window
-        for event_key, (timestamp, event_type, layer, path) in list(
-            self._pending_events.items()
-        ):
+        for event_key, (timestamp, event_type, layer, path) in list(self._pending_events.items()):
             if current_time - timestamp >= self.debounce_seconds:
                 events_to_process.append((event_type, layer, path))
                 del self._pending_events[event_key]
@@ -221,9 +217,7 @@ class FileMonitor:
         )
 
         self.observer = Observer()
-        self.observer.schedule(
-            self.event_handler, str(self.model_path), recursive=True
-        )
+        self.observer.schedule(self.event_handler, str(self.model_path), recursive=True)
         self.observer.start()
 
     def stop(self) -> None:
