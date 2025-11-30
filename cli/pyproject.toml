@@ -43,6 +43,7 @@ dependencies = [
     # Visualization server
     "aiohttp>=3.9.0",
     "watchdog>=3.0.0",
+    # "documentation-robotics-viewer>=0.1.0",  # To be published in future release
 ]
 
 [project.optional-dependencies]

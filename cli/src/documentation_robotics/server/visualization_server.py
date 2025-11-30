@@ -7,7 +7,9 @@ for real-time model updates.
 
 import asyncio
 import json
+import mimetypes
 import signal
+from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
 
@@ -71,6 +73,10 @@ class VisualizationServer:
         self.specification: Optional[Dict[str, Any]] = None
         self.model_serializer: Optional[ModelSerializer] = None
 
+        # Performance: Cache serialized initial state
+        self._cached_initial_state: Optional[Dict[str, Any]] = None
+        self._cache_timestamp: float = 0.0
+
         # Event loop reference for cross-thread task scheduling
         self._loop: Optional[asyncio.AbstractEventLoop] = None
 
@@ -128,9 +134,9 @@ class VisualizationServer:
         # WebSocket endpoint
         self.app.router.add_get("/ws", self._handle_websocket)
 
-        # Static file serving (placeholder - will be implemented in Phase 5)
-        # For now, we just serve a simple index page
+        # Static file serving from viewer package
         self.app.router.add_get("/", self._handle_index)
+        self.app.router.add_get("/{path:.*}", self._handle_static_file)
 
     async def _handle_health(self, request: web.Request) -> web.Response:
         """
@@ -164,24 +170,91 @@ class VisualizationServer:
         Returns:
             HTML response
         """
-        # Placeholder HTML - will be replaced with actual viewer in Phase 5
-        html = """
-        <!DOCTYPE html>
-        <html>
-        <head>
-            <title>Documentation Robotics Visualization</title>
-        </head>
-        <body>
-            <h1>Documentation Robotics Visualization Server</h1>
-            <p>Server is running. WebSocket endpoint: ws://{host}:{port}/ws</p>
-            <p>Visualization UI will be integrated in Phase 5.</p>
-        </body>
-        </html>
-        """.format(
-            host=self.host, port=self.port
-        )
+        try:
+            # Try to load index.html from viewer package
+            return await self._serve_static_file("index.html")
+        except (FileNotFoundError, ModuleNotFoundError, ImportError):
+            # Fallback to placeholder HTML if viewer package not available
+            console.print(
+                "[yellow]Warning: documentation-robotics-viewer package not available, "
+                "serving placeholder HTML[/yellow]"
+            )
+            html = """
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Documentation Robotics Visualization</title>
+            </head>
+            <body>
+                <h1>Documentation Robotics Visualization Server</h1>
+                <p>Server is running. WebSocket endpoint: ws://{host}:{port}/ws</p>
+                <p><strong>Note:</strong> The documentation-robotics-viewer package is not installed.</p>
+                <p>Install it with: <code>pip install documentation-robotics-viewer</code></p>
+            </body>
+            </html>
+            """.format(
+                host=self.host, port=self.port
+            )
 
-        return web.Response(text=html, content_type="text/html")
+            return web.Response(text=html, content_type="text/html")
+
+    async def _handle_static_file(self, request: web.Request) -> web.Response:
+        """
+        Handle static file requests from viewer package.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            Static file response or 404
+        """
+        path = request.match_info.get("path", "")
+
+        # For SPA routing, serve index.html for non-asset requests
+        if not path or (not "." in path and path not in ["health", "ws"]):
+            return await self._handle_index(request)
+
+        try:
+            return await self._serve_static_file(path)
+        except (FileNotFoundError, ModuleNotFoundError):
+            raise web.HTTPNotFound(text=f"File not found: {path}")
+
+    async def _serve_static_file(self, file_path: str) -> web.Response:
+        """
+        Serve static file from viewer package resources.
+
+        Args:
+            file_path: Relative file path within viewer package
+
+        Returns:
+            File response
+
+        Raises:
+            FileNotFoundError: If file not found
+            ModuleNotFoundError: If viewer package not installed
+        """
+        try:
+            # Try to import viewer package and get file content
+            # This will be replaced with actual package import once it's published
+            import documentation_robotics_viewer
+
+            # Use importlib.resources to access package data
+            if hasattr(resources, "files"):  # Python 3.9+
+                package_files = resources.files(documentation_robotics_viewer)
+                file_resource = package_files / file_path
+                content = file_resource.read_bytes()
+            else:  # Python 3.8 fallback
+                content = resources.read_binary(documentation_robotics_viewer, file_path)
+
+            # Determine content type
+            content_type, _ = mimetypes.guess_type(file_path)
+            if not content_type:
+                content_type = "application/octet-stream"
+
+            return web.Response(body=content, content_type=content_type)
+
+        except (ModuleNotFoundError, ImportError, FileNotFoundError) as e:
+            raise FileNotFoundError(f"Viewer package file not found: {file_path}") from e
 
     async def _handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
         """
@@ -225,23 +298,31 @@ class VisualizationServer:
         """
         Send initial model state to newly connected client.
 
+        Uses cached state if available and valid, otherwise regenerates.
+
         Args:
             ws: WebSocket connection
         """
         try:
-            # Serialize model state
-            model_data = self.model_serializer.serialize_model()
-            changesets = load_changesets(self.model_path)
+            import time
 
-            # Create initial state message
-            message = create_initial_state_message(
-                specification=self.specification,
-                model=model_data,
-                changesets=changesets,
-            )
+            # Check if cache is valid (not invalidated by file changes)
+            if self._cached_initial_state is None:
+                # Generate and cache initial state
+                model_data = self.model_serializer.serialize_model()
+                changesets = load_changesets(self.model_path)
 
-            # Send to client
-            await ws.send_json(message)
+                self._cached_initial_state = create_initial_state_message(
+                    specification=self.specification,
+                    model=model_data,
+                    changesets=changesets,
+                )
+                self._cache_timestamp = time.time()
+
+                console.print("[dim]Initial state cached for future connections[/dim]")
+
+            # Send cached state
+            await ws.send_json(self._cached_initial_state)
 
         except (OSError, RuntimeError, ValueError, KeyError) as e:
             console.print(f"[red]Error sending initial state: {e}[/red]")
@@ -316,6 +397,9 @@ class VisualizationServer:
             file_path: Changed file path
         """
         try:
+            # Invalidate cached initial state on any file change
+            self._cached_initial_state = None
+
             # Determine change type and load element data
             if event_type == "deleted":
                 change_type = "removed"
