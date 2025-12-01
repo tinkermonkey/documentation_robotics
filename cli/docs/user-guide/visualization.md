@@ -38,12 +38,12 @@ dr visualize [OPTIONS]
 
 ### Options
 
-| Option | Type | Default | Description |
-|--------|------|---------|-------------|
-| `--port` | Integer | 8080 | Port number for the HTTP server |
-| `--host` | String | localhost | Host address to bind to |
-| `--no-browser` | Flag | False | Don't automatically open browser |
-| `--help` | Flag | - | Show help message and exit |
+| Option         | Type    | Default   | Description                      |
+| -------------- | ------- | --------- | -------------------------------- |
+| `--port`       | Integer | 8080      | Port number for the HTTP server  |
+| `--host`       | String  | localhost | Host address to bind to          |
+| `--no-browser` | Flag    | False     | Don't automatically open browser |
+| `--help`       | Flag    | -         | Show help message and exit       |
 
 ### Examples
 
@@ -167,6 +167,7 @@ The server monitors these file types in the `documentation-robotics/model/` dire
 - `*.yml` - Alternative YAML extension
 
 **Excluded from monitoring**:
+
 - `manifest.yaml` - Manifest changes require server restart
 - `spec/` directory - Specification is static per CLI version
 - Non-YAML files
@@ -180,6 +181,7 @@ File change events are debounced with a 200ms window to prevent duplicate update
 The server uses a JSON-based WebSocket protocol:
 
 **Initial State Message**:
+
 ```json
 {
   "type": "initial_state",
@@ -190,6 +192,7 @@ The server uses a JSON-based WebSocket protocol:
 ```
 
 **Element Update Messages**:
+
 ```json
 {
   "type": "element_added|element_updated|element_removed",
@@ -208,6 +211,7 @@ The server uses a JSON-based WebSocket protocol:
 **Problem**: Error message "Address already in use"
 
 **Solution**: Port is occupied by another process
+
 ```bash
 # Use a different port
 dr visualize --port 9090
@@ -220,6 +224,7 @@ netstat -ano | findstr :8080  # On Windows
 **Problem**: "No model found in current directory"
 
 **Solution**: Run from project root directory or initialize a model
+
 ```bash
 # Check current directory
 pwd
@@ -233,6 +238,7 @@ dr visualize
 **Problem**: "Specification directory not found"
 
 **Solution**: The CLI needs access to the specification directory
+
 ```bash
 # Reinstall CLI to ensure spec is available
 pip install --upgrade documentation-robotics
@@ -243,6 +249,7 @@ pip install --upgrade documentation-robotics
 **Problem**: Placeholder HTML shown instead of visualization UI
 
 **Solution**: Install viewer package
+
 ```bash
 pip install documentation-robotics-viewer
 ```
@@ -250,6 +257,7 @@ pip install documentation-robotics-viewer
 **Problem**: Blank page or 404 errors
 
 **Solution**: Clear browser cache and reload
+
 - Chrome/Edge: `Ctrl+Shift+R` (Windows/Linux) or `Cmd+Shift+R` (macOS)
 - Firefox: `Ctrl+F5` or `Cmd+Shift+R`
 
@@ -258,6 +266,7 @@ pip install documentation-robotics-viewer
 **Problem**: Changes to files not reflected in browser
 
 **Solution**: Check file monitor status
+
 1. Visit `http://localhost:8080/health`
 2. Verify `file_monitor_running: true`
 3. Check console output for error messages
@@ -265,6 +274,7 @@ pip install documentation-robotics-viewer
 **Problem**: Specific files not triggering updates
 
 **Solution**: Ensure files are in correct location
+
 - Must be under `documentation-robotics/model/`
 - Must have `.yaml` or `.yml` extension
 - Must not be `manifest.yaml`
@@ -274,23 +284,27 @@ pip install documentation-robotics-viewer
 **Problem**: Slow initial load
 
 **Solution**: Large models may take time to serialize
+
 - Expected: < 2 seconds for models with < 1000 elements
 - If slower, check model size with `dr stats`
 
 **Problem**: High memory usage
 
 **Solution**: Server holds entire model in memory
+
 - Expected: ~1-10 MB for typical models
 - Large models (>10,000 elements) may use more memory
 
 ### Browser Compatibility
 
 **Supported Browsers**:
+
 - Chrome/Edge 90+
 - Firefox 88+
 - Safari 14+
 
 **Known Issues**:
+
 - Internet Explorer: Not supported
 - Older browsers: WebSocket support required
 
@@ -403,6 +417,7 @@ curl http://localhost:8080/health
 ```
 
 Expected memory usage:
+
 - Base server: ~30-50 MB
 - Model data: ~1-10 MB (depends on model size)
 - Per WebSocket: ~10-50 KB

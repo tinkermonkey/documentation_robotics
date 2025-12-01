@@ -7,7 +7,6 @@ Tests message creation functions for client/server communication.
 from datetime import datetime
 
 import pytest
-
 from documentation_robotics.server.websocket_protocol import (
     MESSAGE_TYPES,
     create_element_update_message,
@@ -67,9 +66,7 @@ class TestCreateInitialStateMessage:
             "layers": [
                 {
                     "name": "business",
-                    "elements": [
-                        {"id": "business.service.customer", "name": "Customer Service"}
-                    ],
+                    "elements": [{"id": "business.service.customer", "name": "Customer Service"}],
                 }
             ],
         }
@@ -125,7 +122,9 @@ class TestCreateElementUpdateMessage:
             "type": "BusinessService",
         }
 
-        message = create_element_update_message("added", "business", "business.service.new", element_data)
+        message = create_element_update_message(
+            "added", "business", "business.service.new", element_data
+        )
 
         assert message["type"] == "element_added"
         assert "timestamp" in message
@@ -172,9 +171,7 @@ class TestCreateElementUpdateMessage:
         layers = ["business", "application", "api", "datamodel"]
 
         for layer in layers:
-            message = create_element_update_message(
-                "updated", layer, f"{layer}.elem.test", {}
-            )
+            message = create_element_update_message("updated", layer, f"{layer}.elem.test", {})
 
             assert message["data"]["layer"] == layer
 

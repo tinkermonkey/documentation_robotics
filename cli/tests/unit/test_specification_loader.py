@@ -6,14 +6,17 @@ from the spec directory for transmission to visualization clients.
 """
 
 import json
-from pathlib import Path
 
 import pytest
-
-from documentation_robotics.server.specification_loader import SpecificationLoader, serialize_specification
+from documentation_robotics.server.specification_loader import (
+    SpecificationLoader,
+    serialize_specification,
+)
 
 # Test constants
-EXPECTED_SHARED_SCHEMA_COUNT = 3  # Number of shared schemas (shared-references, link-registry, federated-architecture)
+EXPECTED_SHARED_SCHEMA_COUNT = (
+    3  # Number of shared schemas (shared-references, link-registry, federated-architecture)
+)
 EXPECTED_LAYER_SCHEMA_COUNT = 3  # Number of layer schemas in test fixtures
 EXPECTED_REAL_SPEC_LAYER_COUNT = 12  # Total number of layers in real DR specification
 
@@ -63,7 +66,10 @@ def spec_with_schemas(spec_path):
                 "description": "Defines elements for the Business layer",
                 "$schema": "http://json-schema.org/draft-07/schema#",
                 "type": "object",
-                "properties": {"business_process": {"type": "object"}, "business_service": {"type": "object"}},
+                "properties": {
+                    "business_process": {"type": "object"},
+                    "business_service": {"type": "object"},
+                },
             },
         },
         {
@@ -87,7 +93,9 @@ def spec_with_schemas(spec_path):
     shared_refs = {
         "title": "Shared References Schema",
         "description": "Common reference types",
-        "definitions": {"element_ref": {"type": "string", "pattern": "^[a-z_]+\\.[a-z_]+\\.[a-z0-9-]+$"}},
+        "definitions": {
+            "element_ref": {"type": "string", "pattern": "^[a-z_]+\\.[a-z_]+\\.[a-z0-9-]+$"}
+        },
     }
 
     with open(schemas_dir / "shared-references.schema.json", "w") as f:

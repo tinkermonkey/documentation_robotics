@@ -167,7 +167,11 @@ class ModelSerializer:
             "type": element.type,
             "name": element.name,
             "data": element.data,
-            "file_path": str(element.file_path) if hasattr(element, "file_path") and element.file_path else None,
+            "file_path": (
+                str(element.file_path)
+                if hasattr(element, "file_path") and element.file_path
+                else None
+            ),
         }
 
     def _serialize_statistics(self) -> Dict[str, Any]:

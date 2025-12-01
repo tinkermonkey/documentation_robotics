@@ -55,17 +55,20 @@ Tokens are generated using `secrets.token_urlsafe(32)`, providing cryptographica
 ### Token Validation
 
 The server validates tokens on:
+
 - All HTTP requests (except `/health`)
 - WebSocket upgrade handshakes
 
 ### Providing Tokens
 
 **Query Parameter (recommended for browser access):**
+
 ```
 http://localhost:8080/?token=YOUR_TOKEN_HERE
 ```
 
 **Authorization Header (recommended for API clients):**
+
 ```
 Authorization: Bearer YOUR_TOKEN_HERE
 ```
@@ -79,6 +82,7 @@ Authorization: Bearer YOUR_TOKEN_HERE
 ## API Endpoints
 
 ### `GET /`
+
 Main visualization interface (HTML page)
 
 **Authentication**: Required
@@ -86,11 +90,13 @@ Main visualization interface (HTML page)
 **Response**: HTML page with visualization UI
 
 ### `GET /health`
+
 Health check endpoint
 
 **Authentication**: Not required
 
 **Response**:
+
 ```json
 {
   "status": "healthy"
@@ -98,11 +104,13 @@ Health check endpoint
 ```
 
 ### `GET /api/model`
+
 Retrieve model data
 
 **Authentication**: Required
 
 **Response**:
+
 ```json
 {
   "model_path": "/path/to/model",
@@ -111,6 +119,7 @@ Retrieve model data
 ```
 
 ### `WS /ws`
+
 WebSocket connection for real-time updates
 
 **Authentication**: Required (during handshake)
@@ -143,6 +152,7 @@ pytest tests/commands/test_visualize.py -v
 ```
 
 Test coverage includes:
+
 - Token generation and validation
 - HTTP authentication middleware
 - WebSocket authentication

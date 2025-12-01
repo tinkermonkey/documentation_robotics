@@ -5,7 +5,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from documentation_robotics.cli import cli
 
 
@@ -99,9 +98,7 @@ class TestVisualizeCommand:
         """Test visualize command fails without spec directory."""
         # The visualize command expects spec directory at ../../spec relative to project
         # This test validates error handling when spec is missing
-        result = runner.invoke(
-            cli, ["visualize", "--no-browser"], cwd=str(initialized_project)
-        )
+        result = runner.invoke(cli, ["visualize", "--no-browser"], cwd=str(initialized_project))
         # Should fail because spec directory doesn't exist in tmp_path
         assert result.exit_code == 1
         output = strip_ansi(result.output)
@@ -127,7 +124,9 @@ class TestVisualizeCommand:
         # Command should attempt to start (may fail due to spec path issues in test env)
         output = strip_ansi(result.output)
         # Just verify the command was invoked
-        assert "visualize" in output.lower() or "server" in output.lower() or "error" in output.lower()
+        assert (
+            "visualize" in output.lower() or "server" in output.lower() or "error" in output.lower()
+        )
 
 
 # Note: Integration tests for VisualizationServer functionality are in test_file_monitor_integration.py

@@ -7,11 +7,9 @@ and debouncing file system events in the model directory.
 
 import asyncio
 import time
-from pathlib import Path
 from unittest.mock import Mock
 
 import pytest
-
 from documentation_robotics.server.file_monitor import FileMonitor, ModelFileEventHandler
 
 

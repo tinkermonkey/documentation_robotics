@@ -8,8 +8,6 @@ model objects to JSON-serializable dictionaries.
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-import pytest
-
 from documentation_robotics.core.element import Element
 from documentation_robotics.core.layer import Layer
 from documentation_robotics.core.manifest import Manifest

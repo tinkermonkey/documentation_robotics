@@ -6,13 +6,11 @@ Tests file system monitoring, event detection, debouncing, and filtering logic.
 
 import asyncio
 import time
-from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import Mock
 
 import pytest
-from watchdog.events import FileSystemEvent
-
 from documentation_robotics.server.file_monitor import FileMonitor, ModelFileEventHandler
+from watchdog.events import FileSystemEvent
 
 
 class TestModelFileEventHandler:
@@ -269,9 +267,7 @@ class TestFileMonitor:
         """Test monitor initializes correctly."""
         callback = Mock()
 
-        monitor = FileMonitor(
-            model_path=tmp_path, callback=callback, debounce_seconds=0.2
-        )
+        monitor = FileMonitor(model_path=tmp_path, callback=callback, debounce_seconds=0.2)
 
         assert monitor.model_path == tmp_path
         assert monitor.callback == callback

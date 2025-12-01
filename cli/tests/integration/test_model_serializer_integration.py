@@ -9,8 +9,6 @@ import json
 from pathlib import Path
 
 import pytest
-
-from documentation_robotics.core.model import Model
 from documentation_robotics.server.model_serializer import serialize_model_state
 from documentation_robotics.server.specification_loader import SpecificationLoader
 

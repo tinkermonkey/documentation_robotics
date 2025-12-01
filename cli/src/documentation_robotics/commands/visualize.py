@@ -6,13 +6,12 @@ import asyncio
 import os
 import webbrowser
 from pathlib import Path
-from typing import Optional
 
 import click
 from rich.console import Console
+from rich.panel import Panel
 
 from ..core.model import Model
-from ..schemas.bundler import get_bundled_schemas_dir
 from ..server.visualization_server import VisualizationServer
 
 console = Console()
@@ -126,19 +125,35 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
         console.print(f"✗ Error initializing server: {e}", style="red bold")
         raise click.Abort()
 
-    # Display server URL
-    server_url = f"http://{host}:{port}"
-    console.print(f"\n[bold cyan]Server URL:[/bold cyan] {server_url}")
-    console.print("[dim]Press Ctrl+C to stop the server[/dim]\n")
+    # Display magic link with authentication token
+    magic_link = server.get_magic_link()
+    console.print()
+    console.print("[green bold]✓[/] Visualization server started")
+    console.print()
+
+    # Display magic link in a panel
+    link_panel = Panel(
+        f"[bold cyan]{magic_link}[/]\n\n"
+        "[dim]This link includes a secure authentication token[/]",
+        title="[bold]Open in browser[/]",
+        border_style="green",
+    )
+    console.print(link_panel)
+    console.print()
+    console.print(f"[dim]Server: {host}:{port}[/]")
+    console.print(f"[dim]Model:  {model_path}[/]")
+    console.print()
+    console.print("[yellow]Press Ctrl+C to stop the server[/]")
+    console.print()
 
     # Open browser if requested
     if not no_browser:
         try:
-            console.print("[dim]Opening browser...[/dim]")
-            webbrowser.open(server_url)
+            console.print("[dim]Opening browser with authentication...[/dim]")
+            webbrowser.open(magic_link)
         except Exception as e:
             console.print(f"[yellow]⚠ Could not open browser automatically: {e}[/yellow]")
-            console.print(f"[dim]Please open {server_url} manually[/dim]")
+            console.print("[dim]Please open the link above manually[/dim]")
 
     # Start server (blocks until Ctrl+C)
     try:
@@ -148,7 +163,9 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     except OSError as e:
         if "Address already in use" in str(e) or "address already in use" in str(e):
             console.print(f"\n✗ Error: Port {port} is already in use", style="red bold")
-            console.print(f"   Try a different port with: dr visualize --port {port + 1}", style="dim")
+            console.print(
+                f"   Try a different port with: dr visualize --port {port + 1}", style="dim"
+            )
             console.print("   Or find the process using this port:", style="dim")
             console.print(f"     macOS/Linux: lsof -i :{port}", style="dim")
             console.print(f"     Windows: netstat -ano | findstr :{port}", style="dim")

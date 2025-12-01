@@ -8,12 +8,7 @@ for WebSocket transmission to visualization clients.
 import json
 from pathlib import Path
 
-import yaml
-
-import pytest
-
 from documentation_robotics.core.element import Element
-from documentation_robotics.core.layer import Layer
 from documentation_robotics.core.model import Model
 from documentation_robotics.server.model_serializer import (
     ModelSerializer,
@@ -22,7 +17,9 @@ from documentation_robotics.server.model_serializer import (
 )
 
 # Test constants
-EXPECTED_LAYER_COUNT = 12  # Total number of layer types (ArchiMate + OpenAPI + JSON Schema + Custom)
+EXPECTED_LAYER_COUNT = (
+    12  # Total number of layer types (ArchiMate + OpenAPI + JSON Schema + Custom)
+)
 EXPECTED_CHANGESET_COUNT = 3  # Number of changesets in multi-changeset tests
 
 
@@ -88,7 +85,10 @@ class TestElementSerialization:
             "method": "GET",
             "path": "/api/users",
             "description": "Retrieve all users",
-            "parameters": [{"name": "limit", "type": "integer"}, {"name": "offset", "type": "integer"}],
+            "parameters": [
+                {"name": "limit", "type": "integer"},
+                {"name": "offset", "type": "integer"},
+            ],
             "responses": {"200": {"description": "Success", "schema": "UserList"}},
             "security": ["bearer"],
             "tags": ["users", "read"],
@@ -217,7 +217,9 @@ class TestModelSerialization:
         result = serializer.serialize_model()
 
         enabled_layers = [
-            name for name, config in initialized_model.manifest.layers.items() if config.get("enabled", True)
+            name
+            for name, config in initialized_model.manifest.layers.items()
+            if config.get("enabled", True)
         ]
 
         serialized_layer_names = [layer["name"] for layer in result["layers"]]
@@ -228,7 +230,9 @@ class TestModelSerialization:
     def test_serialize_element_update(self, initialized_model):
         """Test serialization of individual element update."""
         # Add an element to the model
-        element = Element.create(layer="motivation", element_type="stakeholder", name="test-stakeholder")
+        element = Element.create(
+            layer="motivation", element_type="stakeholder", name="test-stakeholder"
+        )
 
         initialized_model.add_element("motivation", element)
 
@@ -259,7 +263,8 @@ class TestChangesetSerialization:
     def test_load_changesets_with_metadata(self, temp_dir, initialized_model):
         """Test loading changesets with metadata and changes files."""
         from datetime import datetime, timezone
-        from documentation_robotics.core.changeset import Changeset, Change
+
+        from documentation_robotics.core.changeset import Change, Changeset
 
         # Create changeset directory structure
         changesets_dir = temp_dir / ".dr" / "changesets"
@@ -309,7 +314,8 @@ class TestChangesetSerialization:
 
     def test_load_changesets_sorted_by_created(self, temp_dir):
         """Test changesets are sorted by creation date."""
-        from datetime import datetime, timezone, timedelta
+        from datetime import datetime, timedelta, timezone
+
         from documentation_robotics.core.changeset import Changeset
 
         changesets_dir = temp_dir / ".dr" / "changesets"
@@ -357,7 +363,8 @@ class TestChangesetSerialization:
     def test_load_changesets_with_multiple_changes(self, temp_dir):
         """Test loading changeset with multiple changes of different types."""
         from datetime import datetime, timezone
-        from documentation_robotics.core.changeset import Changeset, Change
+
+        from documentation_robotics.core.changeset import Change, Changeset
 
         changesets_dir = temp_dir / ".dr" / "changesets"
         changesets_dir.mkdir(parents=True, exist_ok=True)
@@ -419,8 +426,7 @@ class TestChangesetSerialization:
 
     def test_load_changesets_preserves_change_data(self, temp_dir):
         """Test that all change data fields are preserved during loading."""
-        from datetime import datetime, timezone
-        from documentation_robotics.core.changeset import Changeset, Change
+        from documentation_robotics.core.changeset import Change, Changeset
 
         changesets_dir = temp_dir / ".dr" / "changesets"
         changesets_dir.mkdir(parents=True, exist_ok=True)
@@ -553,20 +559,27 @@ class TestEdgeCases:
             "level1": {
                 "level2": {
                     "level3": {
-                        "level4": {"level5": {"value": "deep", "list": [1, 2, 3, {"nested": "dict"}]}}
+                        "level4": {
+                            "level5": {"value": "deep", "list": [1, 2, 3, {"nested": "dict"}]}
+                        }
                     }
                 }
             },
         }
 
-        element = Element(id="test.nested.element", element_type="test", layer="test", data=nested_data)
+        element = Element(
+            id="test.nested.element", element_type="test", layer="test", data=nested_data
+        )
 
         serializer = ModelSerializer(model=None)
         result = serializer._serialize_element(element)
 
         # Verify deep nesting is preserved
         assert result["data"]["level1"]["level2"]["level3"]["level4"]["level5"]["value"] == "deep"
-        assert result["data"]["level1"]["level2"]["level3"]["level4"]["level5"]["list"][3]["nested"] == "dict"
+        assert (
+            result["data"]["level1"]["level2"]["level3"]["level4"]["level5"]["list"][3]["nested"]
+            == "dict"
+        )
 
         # Verify JSON serializability
         json_str = json.dumps(result)

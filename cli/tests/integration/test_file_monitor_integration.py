@@ -8,15 +8,10 @@ Tests the end-to-end flow of:
 """
 
 import asyncio
-import json
-from pathlib import Path
-from unittest.mock import AsyncMock, Mock, patch
+from unittest.mock import AsyncMock, Mock
 
 import pytest
-import yaml
 from aiohttp import web
-
-from documentation_robotics.core.model import Model
 from documentation_robotics.server.file_monitor import FileMonitor
 from documentation_robotics.server.visualization_server import VisualizationServer
 
@@ -51,8 +46,8 @@ def initialized_server(initialized_model, temp_dir):
     )
 
     # Load model and spec manually instead of calling start()
-    from documentation_robotics.server.specification_loader import SpecificationLoader
     from documentation_robotics.server.model_serializer import ModelSerializer
+    from documentation_robotics.server.specification_loader import SpecificationLoader
 
     spec_loader = SpecificationLoader(spec_path)
     server.specification = spec_loader.load_specification()

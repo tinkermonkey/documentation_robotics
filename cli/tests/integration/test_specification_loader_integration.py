@@ -9,7 +9,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from documentation_robotics.server.specification_loader import SpecificationLoader
 
 # Test constants
@@ -36,7 +35,9 @@ class TestRealSpecificationIntegration:
         # Verify structure
         assert "version" in spec_data
         assert "layers" in spec_data
-        assert len(spec_data["layers"]) == EXPECTED_REAL_SPEC_LAYER_COUNT  # Should have all 12 layers
+        assert (
+            len(spec_data["layers"]) == EXPECTED_REAL_SPEC_LAYER_COUNT
+        )  # Should have all 12 layers
 
     def test_real_specification_layer_order(self, real_spec_path):
         """Test real specification has correct layer ordering."""
@@ -63,7 +64,9 @@ class TestRealSpecificationIntegration:
         ]
 
         for expected_layer in expected_layers:
-            assert expected_layer in layer_names, f"Layer {expected_layer} not found in {layer_names}"
+            assert (
+                expected_layer in layer_names
+            ), f"Layer {expected_layer} not found in {layer_names}"
 
     def test_real_specification_json_serializable(self, real_spec_path):
         """Test real specification is JSON-serializable."""
