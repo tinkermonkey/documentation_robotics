@@ -206,11 +206,12 @@ class TestVisualizeCommand:
             assert result.exit_code != 0
             assert "No model found" in result.output or "Error" in result.output
 
+    @patch("documentation_robotics.commands.visualize.webbrowser.open")
     @patch("documentation_robotics.commands.visualize.asyncio.run")
     @patch("documentation_robotics.commands.visualize.VisualizationServer")
     @patch("documentation_robotics.commands.visualize.Model")
     def test_visualize_command_with_model(
-        self, mock_model_class, mock_server_class, mock_asyncio_run, tmp_path
+        self, mock_model_class, mock_server_class, mock_asyncio_run, mock_webbrowser, tmp_path
     ):
         """Test that visualize command starts server when model exists."""
         # Create mock model directory structure
@@ -251,11 +252,12 @@ class TestVisualizeCommand:
                 or result.exit_code == 0
             )
 
+    @patch("documentation_robotics.commands.visualize.webbrowser.open")
     @patch("documentation_robotics.commands.visualize.asyncio.run")
     @patch("documentation_robotics.commands.visualize.VisualizationServer")
     @patch("documentation_robotics.commands.visualize.Model")
     def test_visualize_command_custom_port(
-        self, mock_model_class, mock_server_class, mock_asyncio_run, tmp_path
+        self, mock_model_class, mock_server_class, mock_asyncio_run, mock_webbrowser, tmp_path
     ):
         """Test that visualize command accepts custom port."""
         runner = CliRunner()

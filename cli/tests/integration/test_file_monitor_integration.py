@@ -39,10 +39,10 @@ def initialized_server(initialized_model, temp_dir):
     (spec_path / "schemas").mkdir(exist_ok=True)
 
     server = VisualizationServer(
-        model_path=temp_dir / "documentation-robotics",
-        spec_path=spec_path,
-        host="localhost",
-        port=8080,
+        temp_dir / "documentation-robotics",
+        spec_path,
+        "localhost",
+        8080,
     )
 
     # Load model and spec manually instead of calling start()

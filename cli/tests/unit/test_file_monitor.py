@@ -174,7 +174,6 @@ class TestModelFileEventHandler:
         test_file.parent.mkdir(parents=True)
         test_file.touch()
 
-        before_time = time.time()
         handler._schedule_event("created", str(test_file))
 
         # Check pending events immediately after scheduling (before debounce completes)

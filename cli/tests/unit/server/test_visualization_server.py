@@ -23,10 +23,10 @@ class TestVisualizationServerInitialization:
         spec_path.mkdir(parents=True)
 
         server = VisualizationServer(
-            model_path=model_path,
-            spec_path=spec_path,
-            host="localhost",
-            port=8080,
+            model_path,
+            spec_path,
+            "localhost",
+            8080,
         )
 
         assert server.model_path == model_path
@@ -45,10 +45,10 @@ class TestVisualizationServerInitialization:
         spec_path.mkdir(parents=True)
 
         server = VisualizationServer(
-            model_path=model_path,
-            spec_path=spec_path,
-            host="127.0.0.1",
-            port=9090,
+            model_path,
+            spec_path,
+            "127.0.0.1",
+            9090,
         )
 
         assert server.host == "127.0.0.1"
@@ -66,9 +66,7 @@ class TestHealthEndpoint:
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
         server.specification = {"version": "0.5.0"}
         server.file_monitor = Mock()
         server.file_monitor.is_running.return_value = True
@@ -97,9 +95,7 @@ class TestHealthEndpoint:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
         server.specification = {"version": "0.5.0"}
 
         # Add mock WebSocket connections
@@ -128,9 +124,7 @@ class TestIndexEndpoint:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
 
@@ -142,7 +136,7 @@ class TestIndexEndpoint:
 
         assert response.status == 200
         assert "text/html" in response.content_type
-        assert "Documentation Robotics Visualization Server" in response.text
+        assert "Documentation Robotics - Model Visualization Server" in response.text
         assert "documentation-robotics-viewer package is not installed" in response.text
 
 
@@ -157,9 +151,7 @@ class TestStaticFileServing:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
         request.match_info = {"path": "nonexistent.js"}
@@ -175,9 +167,7 @@ class TestStaticFileServing:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
         request.match_info = {"path": "some-route"}  # No file extension
@@ -201,9 +191,7 @@ class TestWebSocketHandling:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Verify WebSocket set starts empty
         assert len(server.websockets) == 0
@@ -232,9 +220,7 @@ class TestWebSocketHandling:
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Mock dependencies
         server.specification = {"version": "0.5.0"}
@@ -275,9 +261,7 @@ class TestBroadcasting:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
         ws.send_json = AsyncMock()
@@ -297,9 +281,7 @@ class TestBroadcasting:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws1 = AsyncMock(spec=web.WebSocketResponse)
         ws1.send_json = AsyncMock()
@@ -328,9 +310,7 @@ class TestBroadcasting:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws_working = AsyncMock(spec=web.WebSocketResponse)
         ws_working.send_json = AsyncMock()
@@ -364,9 +344,7 @@ class TestErrorHandling:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
         ws.send_json = AsyncMock()
@@ -393,9 +371,7 @@ class TestErrorHandling:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create invalid YAML file
         invalid_file = model_path / "invalid.yaml"
@@ -414,9 +390,7 @@ class TestErrorHandling:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         missing_file = model_path / "nonexistent.yaml"
 
@@ -437,9 +411,7 @@ class TestShutdown:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Add mock WebSocket connections
         ws1 = AsyncMock(spec=web.WebSocketResponse)
@@ -467,9 +439,7 @@ class TestShutdown:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
-        server = VisualizationServer(
-            model_path=model_path, spec_path=spec_path, host="localhost", port=8080
-        )
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Mock file monitor
         server.file_monitor = Mock()
