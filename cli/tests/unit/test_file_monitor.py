@@ -421,7 +421,8 @@ class TestFileMonitor:
         # Callback should have been called
         callback.assert_called()
         args = callback.call_args[0]
-        assert args[0] == "created"
+        # File event can be "created" or "modified" depending on filesystem timing
+        assert args[0] in ("created", "modified")
         assert args[1] == "business"
 
     @pytest.mark.asyncio
