@@ -236,7 +236,7 @@ dr find application.service.order-api
 ### 6. Validate and Fix
 
 ```
-/dr-validate --fix
+/dr-validate --strict --validate-links
 ```
 
 **Result:**

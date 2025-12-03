@@ -388,7 +388,7 @@ Next steps:
 ```
 1. /dr-add-microservice my-service --criticality=high
 2. /dr-model Add goal references for my-service
-3. /dr-validate --fix
+3. /dr-validate --strict --validate-links
 4. dr export --format archimate
 ```
 

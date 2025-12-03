@@ -1,26 +1,35 @@
 ---
-description: Validate the Documentation Robotics model and optionally suggest or apply fixes
-argument-hint: "[--strict] [--fix] [--layer <layer>]"
+description: Comprehensive validation of DR model including schema, references, semantic rules, and cross-layer links
+argument-hint: "[--strict] [--validate-links] [--strict-links]"
 ---
 
 # Validate Architecture Model
 
-Validate the Documentation Robotics model and optionally suggest or apply fixes.
+Comprehensive validation of the Documentation Robotics model including schema, naming, references, semantic rules, and cross-layer link validation.
 
 ## What This Command Does
 
-1. Runs comprehensive validation on the architecture model
+1. Runs comprehensive validation on the architecture model:
+   - Schema validation (JSON schema compliance)
+   - Naming conventions (kebab-case, valid IDs)
+   - Reference integrity (broken references)
+   - Semantic rules (business logic, best practices)
+   - **Cross-layer link validation** (existence, type, cardinality, format)
 2. Reports errors, warnings, and informational messages
-3. Analyzes issues and suggests fixes
-4. Optionally applies safe fixes automatically
-5. Re-validates after fixes to confirm resolution
-6. Provides actionable recommendations
+3. Analyzes issues and suggests fixes with confidence scores
+4. Provides actionable recommendations for fixes
 
 ## Usage
 
 ```
-/dr-validate [--strict] [--fix] [--layer <layer>]
+/dr-validate [--strict] [--validate-links] [--strict-links]
 ```
+
+**Options:**
+
+- `--strict`: Enable strict validation with comprehensive semantic rules
+- `--validate-links`: Include comprehensive cross-layer link validation (recommended)
+- `--strict-links`: Treat link warnings as errors (use with --validate-links)
 
 ## Instructions for Claude Code
 
@@ -28,7 +37,11 @@ When the user runs this command, perform intelligent validation with helpful sug
 
 ### Step 1: Run Initial Validation
 
-Determine the validation level based on command flags:
+**RECOMMENDED: Always include link validation**
+
+```bash
+dr validate --strict --validate-links
+```
 
 **Basic validation** (default):
 
@@ -36,17 +49,26 @@ Determine the validation level based on command flags:
 dr validate
 ```
 
-**Strict validation** (comprehensive):
+**Comprehensive validation with link checking**:
 
 ```bash
-dr validate --strict
+dr validate --strict --validate-links --strict-links
 ```
 
-**Layer-specific validation**:
+**Most thorough validation**:
 
 ```bash
-dr validate --layer business
+dr validate --strict --validate-links --strict-links
 ```
+
+### Link Validation
+
+Cross-layer link validation checks:
+
+1. **Existence**: Target elements exist
+2. **Type**: Correct element types referenced
+3. **Cardinality**: Single values vs arrays correct
+4. **Format**: Valid element ID format (UUID, paths, durations)
 
 ### Step 2: Parse and Categorize Results
 
@@ -133,12 +155,12 @@ For each issue, provide:
 
 ### Step 5: Apply Fixes (if requested)
 
-If user included `--fix` flag or requests fixes:
+When user requests fixes:
 
 1. **Show fix plan**: List all fixes to be applied
 2. **Separate by risk**: Group safe vs. risky fixes
-3. **Get confirmation**: Ask before applying (unless --fix flag used)
-4. **Apply fixes**: Execute commands sequentially
+3. **Get confirmation**: Always ask before applying changes
+4. **Apply approved fixes**: Execute commands sequentially
 5. **Re-validate**: Confirm fixes resolved issues
 6. **Report results**: Show what was fixed and what remains
 
@@ -287,7 +309,7 @@ Next steps:
 
 Priority 1 (Critical):
 1. Fix broken references (3 errors)
-   → I can help: /dr-validate --fix
+   → I can help fix these (ask me to apply fixes)
 
 Priority 2 (Security):
 2. Add security policies to critical services
@@ -299,7 +321,7 @@ Priority 3 (Monitoring):
 
 Priority 4 (Documentation):
 4. Add descriptions to 5 elements
-   → Auto-fixable: /dr-validate --fix
+   → I can help fix these with high confidence
 ```
 
 ## Advanced Features
@@ -470,7 +492,7 @@ You: Running model validation...
 ### Example 2: With Fixes
 
 ```
-User: /dr-validate --fix
+User: /dr-validate --strict --validate-links
 
 You: Running validation with auto-fix...
 

@@ -659,7 +659,7 @@ Recommendation: Option 1 (OAuth2 for payment services)
 
 ```
 Audit preparation workflow:
-1. /dr-validate --fix (clean up model)
+1. /dr-validate --strict --validate-links (clean up model)
 2. Launch acme-compliance-validator (check compliance)
 3. Apply remediation fixes
 4. Launch dr-documenter --template=audit (generate docs)

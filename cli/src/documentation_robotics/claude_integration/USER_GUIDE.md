@@ -12,22 +12,22 @@ Welcome! This guide shows you how to get the most out of Documentation Robotics 
 
 When you run `dr claude install`, you get a complete Claude Code integration:
 
-### 🤖 Specialized Agents
+### 🤖 The DR Architect Agent
 
-Agents are like specialized assistants that run independently to help with specific tasks:
+A single, comprehensive agent that handles all DR-related tasks through intelligent workflow routing:
 
-| Agent                    | When to Use                                               | How to Invoke                                               |
-| ------------------------ | --------------------------------------------------------- | ----------------------------------------------------------- |
-| **dr-helper**            | Questions about DR concepts, CLI usage, or best practices | "Use dr-helper agent to explain cross-layer projections"    |
-| **dr-ideator**           | Brainstorming architecture ideas in isolated changesets   | "Use dr-ideator to explore adding a caching layer"          |
-| **dr-validator**         | Deep validation with intelligent fix suggestions          | "Use dr-validator to check my model"                        |
-| **dr-extractor**         | Extract architecture model from existing code             | "Use dr-extractor to analyze my Python codebase"            |
-| **dr-documenter**        | Generate comprehensive documentation                      | "Use dr-documenter to create PDF architecture docs"         |
-| **dr-schema-migrator**   | Migrate models from v0.1.x to v0.2.0 safely               | "Use dr-schema-migrator to upgrade my model to spec v0.2.0" |
-| **dr-link-validator**    | Validate and fix cross-layer references                   | "Use dr-link-validator to check all my cross-layer links"   |
-| **dr-security-reviewer** | Security and compliance analysis                          | "Use dr-security-reviewer to check for GDPR compliance"     |
+| Task                | Example                                             | What It Does                                          |
+| ------------------- | --------------------------------------------------- | ----------------------------------------------------- |
+| **Validation**      | "Check my model", "Validate with fixes"             | Multi-level validation with confidence-scored fixes   |
+| **Extraction**      | "Analyze my Python code", "Extract from codebase"   | Automatically creates DR model from source code       |
+| **Documentation**   | "Generate PDF docs", "Create architecture diagrams" | Comprehensive documentation in multiple formats       |
+| **Security Review** | "Check for security gaps", "GDPR compliance"        | Analyzes model for security and compliance issues     |
+| **Migration**       | "Upgrade to v0.2.0", "Migrate spec version"         | Safe spec version upgrades with validation            |
+| **Ideation**        | "Explore adding Redis", "Compare GraphQL vs REST"   | Collaborative exploration with research in changesets |
+| **Education**       | "How do I model microservices?", "Explain links"    | Expert guidance and DR concept teaching               |
+| **Modeling**        | "Add a REST API endpoint", "Link to business goal"  | Natural language element creation and updates         |
 
-**💡 Tip:** Agents run in separate contexts and can do deep exploration without cluttering your main conversation.
+**💡 Tip:** The dr-architect agent intelligently detects your intent and routes to the appropriate workflow. You just describe what you need.
 
 ### ⌨️ Slash Commands
 
@@ -37,9 +37,7 @@ Quick shortcuts you type directly in chat:
 | --------------- | ------------------------------------------------ | -------------------------------------------------- |
 | `/dr-model`     | Add/update/query elements using natural language | `/dr-model add a REST API endpoint for user login` |
 | `/dr-changeset` | Manage isolated model changes                    | `/dr-changeset create explore-graphql`             |
-| `/dr-links`     | Work with cross-layer references                 | `/dr-links show all motivation→business links`     |
-| `/dr-validate`  | Quick validation check                           | `/dr-validate --strict`                            |
-| `/dr-project`   | Project elements across layers                   | `/dr-project business→application --dry-run`       |
+| `/dr-validate`  | Comprehensive validation (schema + links)        | `/dr-validate --strict --validate-links`           |
 | `/dr-ingest`    | Extract model from codebase                      | `/dr-ingest src/ --layers api,implementation`      |
 | `/dr-init`      | Initialize new DR model                          | `/dr-init my-new-project`                          |
 
@@ -49,12 +47,10 @@ Quick shortcuts you type directly in chat:
 
 Skills automatically suggest themselves when relevant (no need to ask!):
 
-- **Schema Validation** - Activates when you edit models or mention errors
-- **Link Validation** - Suggests when working across multiple layers
-- **Migration Assistant** - Helps upgrade from older spec versions
-- **Changeset Reviewer** - Reviews changes before you apply them
+- **Link Validation** - Catches broken references when working across layers
+- **Changeset Reviewer** - Reviews changes before you apply them to main model
 
-**💡 Tip:** Skills make Claude Code proactive. Just work naturally and skills will appear when helpful.
+**💡 Tip:** Skills work alongside the dr-architect agent to catch issues proactively. Most validation happens automatically through the agent.
 
 ### 📚 Reference Sheets
 
@@ -90,13 +86,14 @@ Claude: I'll help you build this model. Let me start by adding
 You: I want to experiment with adding Redis caching without
      messing up my current model
 
-Claude: I'll use the dr-ideator agent to help you explore this.
-        [Launches dr-ideator in separate context]
+dr-architect: Great idea! Let me help you explore this safely.
+              Creating changeset "explore-redis-caching"...
 
-dr-ideator: Created changeset "explore-redis-caching"
-            Let me research Redis patterns and propose elements...
-            [Adds cache-related elements to changeset]
-            [Shows you the changes before applying]
+              [Researches Redis patterns with WebSearch]
+              [Proposes cache elements in changeset]
+              [Validates and shows you the changes]
+
+              Would you like to apply, refine, or try alternatives?
 ```
 
 ### Extracting Model from Existing Code
@@ -120,26 +117,27 @@ Claude: Analyzing Python codebase in backend/api...
 ```
 You: Is my model complete and correct?
 
-Claude: [Schema validation skill activates automatically]
+dr-architect: I'll run comprehensive validation.
 
-        Running validation on your model...
+              [Runs validation with link checking]
 
-        Found 3 issues:
+              Found 3 issues:
 
-        1. ❌ business/customer-registration has invalid
-              status value "active" (should be "proposed"
-              or "approved")
+              1. ❌ business/customer-registration has invalid
+                    status value "active" (should be "proposed"
+                    or "approved")
 
-           Fix: Change status to "proposed"
-           Confidence: 95%
+                 Fix: Change status to "proposed"
+                 Confidence: 95%, Risk: Low
 
-        2. ⚠️  api/user-profile-endpoint references
-              data/user-profile but link not registered
+              2. ⚠️  api/user-profile-endpoint references
+                    data/user-profile but link not registered
 
-           Fix: Add link: api/user-profile-endpoint→data/user-profile
-           Confidence: 90%
+                 Fix: Add link: api/user-profile-endpoint→data/user-profile
+                 Confidence: 90%, Risk: Low
 
-        Would you like me to apply these fixes?
+              I can automatically fix these high-confidence, low-risk issues.
+              May I apply these 2 fixes?
 ```
 
 ### Working with Cross-Layer Links
@@ -198,53 +196,56 @@ Claude: Running diff...
 
 ### When to Use Which Tool
 
-**Use Agents when:**
+**Use the dr-architect agent when:**
 
-- You need deep exploration or research
-- Task will take multiple steps
-- You want isolated context (brainstorming, experimentation)
-- You need specialized expertise (validation, documentation)
+- Any DR-related task (it handles everything!)
+- Validation, extraction, documentation, security review
+- Exploring ideas or learning DR concepts
+- Complex multi-step workflows
+- Just describe what you need - it routes intelligently
 
 **Use Commands when:**
 
 - Quick, one-off tasks
 - Simple additions or queries
 - You know exactly what you want
-- You want inline results in current conversation
+- Direct shortcuts to specific operations
 
-**Use Skills when:**
+**Use Skills:**
 
-- You don't! Skills activate automatically when relevant
-- Just work naturally and Claude will suggest skills when helpful
+- You don't actively "use" skills
+- They activate automatically when relevant
+- Work naturally - skills provide guardrails
 
 ### Organizing Your Workflow
 
-**1. Start with Exploration (dr-ideator)**
+**1. Start with Exploration**
 
 ```
-Use dr-ideator when you're not sure exactly what you need yet.
-Let it research, propose, and iterate with you.
+Describe your architectural idea to dr-architect.
+It will research, propose options, and help you model in changesets.
 ```
 
-**2. Build with Commands (/dr-model)**
+**2. Build with Commands or Natural Language**
 
 ```
-Once you know what you want, use commands for quick additions.
-Commands are faster for straightforward tasks.
+Use /dr-model for quick additions, or just describe what you need.
+dr-architect understands natural language and creates elements accordingly.
 ```
 
-**3. Validate Regularly (skills or dr-validator)**
+**3. Validate Continuously**
 
 ```
-Let schema validation skill catch issues as you work, or
-run dr-validator for comprehensive checks before major milestones.
+dr-architect validates automatically after changes.
+Skills catch issues proactively.
+Run /dr-validate --strict before major milestones.
 ```
 
-**4. Document When Stable (dr-documenter)**
+**4. Document When Ready**
 
 ```
-Use dr-documenter to generate stakeholder-facing documentation
-when your model reaches a stable state.
+Ask dr-architect to generate documentation when your model is stable.
+Supports PDF, Markdown, HTML, diagrams, and matrices.
 ```
 
 ### Changesets Best Practices
@@ -556,18 +557,18 @@ dr validate --strict         # Check for issues
 
 ## 📝 Quick Reference Card
 
-| I want to...          | Use this...                                        |
-| --------------------- | -------------------------------------------------- |
-| Add an element        | `/dr-model add <description>`                      |
-| Ask a question        | "Use dr-helper to explain..."                      |
-| Explore an idea       | "Use dr-ideator to explore..."                     |
-| Validate my model     | Let schema validation skill run, or `/dr-validate` |
-| Extract from code     | `/dr-ingest <path>`                                |
-| Try something risky   | `/dr-changeset create <name>` first                |
-| See relationships     | `/dr-links show <query>`                           |
-| Generate docs         | "Use dr-documenter to create..."                   |
-| Fix issues            | Let validation skill suggest fixes                 |
-| Project across layers | `/dr-project <source>→<target>`                    |
+| I want to...        | Use this...                                                  |
+| ------------------- | ------------------------------------------------------------ |
+| Add an element      | `/dr-model add <description>` or describe to dr-architect    |
+| Ask a question      | Describe to dr-architect: "How do I model X?"                |
+| Explore an idea     | Describe to dr-architect: "What if we add caching?"          |
+| Validate my model   | "Check my model" or `/dr-validate --strict --validate-links` |
+| Extract from code   | `/dr-ingest <path>` or "Analyze my codebase"                 |
+| Try something risky | dr-architect will suggest changeset automatically            |
+| See relationships   | "Show me links for..." or "Trace from X to Y"                |
+| Generate docs       | "Generate PDF documentation" or "Create diagrams"            |
+| Fix issues          | dr-architect suggests and applies fixes with confirmation    |
+| Security review     | "Check for security gaps" or "GDPR compliance"               |
 
 ---
 

@@ -175,7 +175,8 @@ def _display_check_results(registry: MigrationRegistry, from_version: str, to_ve
         console.print("\n[bold]Next steps:[/bold]")
         console.print("  1. Preview changes: [cyan]dr migrate --dry-run[/cyan]")
         console.print("  2. Apply migrations: [cyan]dr migrate --apply[/cyan]")
-        console.print("  3. Validate result: [cyan]dr validate --validate-links[/cyan]")
+        console.print("  3. Update Claude integration: [cyan]dr claude update[/cyan]")
+        console.print("  4. Validate result: [cyan]dr validate --validate-links[/cyan]")
 
 
 def _display_dry_run_results(
@@ -314,9 +315,10 @@ def _apply_migrations(
         console.print(f"\n[green]✓ Updated manifest to v{results['target_version']}[/green]")
 
         console.print("\n[bold]Next steps:[/bold]")
-        console.print("  1. Review changes: [cyan]git diff[/cyan]")
-        console.print("  2. Validate model: [cyan]dr validate --validate-links[/cyan]")
-        console.print("  3. Test your application")
-        console.print("  4. Commit changes: [cyan]git add . && git commit[/cyan]")
+        console.print("  1. Update Claude integration: [cyan]dr claude update[/cyan]")
+        console.print("  2. Review changes: [cyan]git diff[/cyan]")
+        console.print("  3. Validate model: [cyan]dr validate --validate-links[/cyan]")
+        console.print("  4. Test your application")
+        console.print("  5. Commit changes: [cyan]git add . && git commit[/cyan]")
     else:
         console.print("[yellow]⚠ No migrations were applied.[/yellow]")

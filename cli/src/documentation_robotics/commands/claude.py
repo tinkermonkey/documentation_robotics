@@ -217,7 +217,7 @@ class ClaudeIntegrationManager:
         return count
 
     def update(self, dry_run: bool = False, force: bool = False) -> None:
-        """Update installed files.
+        """Update installed files and remove obsolete ones.
 
         Args:
             dry_run: Show what would be updated without making changes
@@ -237,24 +237,35 @@ class ClaudeIntegrationManager:
             changes = self._check_updates(component, version_data)
             updates.extend(changes)
 
-        if not updates:
+        # Check for obsolete files to remove
+        obsolete_files = self._detect_obsolete_files()
+
+        if not updates and not obsolete_files:
             console.print("[green]✓[/] All files are up to date")
             return
 
         # Show what will change
-        table = Table(title="Available Updates")
-        table.add_column("File", style="cyan")
-        table.add_column("Status", style="yellow")
-        table.add_column("Action", style="green")
+        if updates or obsolete_files:
+            table = Table(title="Planned Changes")
+            table.add_column("File", style="cyan")
+            table.add_column("Status", style="yellow")
+            table.add_column("Action", style="green")
 
-        for update in updates:
-            table.add_row(
-                update["file"],
-                update["status"],
-                update["action"],
-            )
+            for update in updates:
+                table.add_row(
+                    update["file"],
+                    update["status"],
+                    update["action"],
+                )
 
-        console.print(table)
+            for obsolete in obsolete_files:
+                table.add_row(
+                    obsolete["file"],
+                    "Obsolete",
+                    "Remove",
+                )
+
+            console.print(table)
 
         if dry_run:
             console.print("\n[yellow]Dry run - no changes made[/]")
@@ -270,6 +281,7 @@ class ClaudeIntegrationManager:
             TextColumn("[progress.description]{task.description}"),
             console=console,
         ) as progress:
+            # Update existing files
             for update in updates:
                 if update["action"] == "Skip (keep)":
                     console.print(f"[yellow]⊘[/] Skipped {update['file']} (modified)")
@@ -279,9 +291,22 @@ class ClaudeIntegrationManager:
                 self._apply_update(update, force)
                 progress.update(task, completed=True)
 
+            # Remove obsolete files
+            for obsolete in obsolete_files:
+                task = progress.add_task(f"Removing {obsolete['file']}...", total=None)
+                self._remove_obsolete_file(obsolete)
+                progress.update(task, completed=True)
+
         # Update version file
         self._update_version_file()
-        console.print("\n[green]✓[/] Updates applied successfully")
+
+        summary_parts = []
+        if updates:
+            summary_parts.append(f"{len(updates)} updated")
+        if obsolete_files:
+            summary_parts.append(f"{len(obsolete_files)} removed")
+
+        console.print(f"\n[green]✓[/] Changes applied successfully ({', '.join(summary_parts)})")
 
     def _check_updates(self, component: str, version_data: dict) -> List[Dict[str, str]]:
         """Check for updates in a component.
@@ -532,6 +557,85 @@ class ClaudeIntegrationManager:
 
         current_hash = self._compute_hash(file_path)
         return current_hash != stored_hash
+
+    def _detect_obsolete_files(self) -> List[Dict[str, any]]:
+        """Detect files that exist locally but not in source (obsolete files).
+
+        Returns:
+            List of obsolete file information
+        """
+        obsolete_files = []
+
+        for component, config in self.COMPONENTS.items():
+            target_dir = self.root_path / config["target"]
+            source_dir = INTEGRATION_ROOT / config["source"]
+            prefix = config.get("prefix", "")
+            install_type = config.get("type", "files")
+
+            if not target_dir.exists():
+                continue
+
+            # Get files from source (what should exist)
+            if install_type == "directories":
+                # For skills: check subdirectories
+                if source_dir.exists():
+                    source_dirs = {d.name for d in source_dir.iterdir() if d.is_dir()}
+                else:
+                    source_dirs = set()
+
+                # Check installed directories
+                for installed_dir in target_dir.iterdir():
+                    if installed_dir.is_dir() and installed_dir.name not in source_dirs:
+                        obsolete_files.append(
+                            {
+                                "file": f"{component}/{installed_dir.name}/",
+                                "path": installed_dir,
+                                "type": "directory",
+                                "component": component,
+                            }
+                        )
+
+            elif install_type == "files":
+                # For agents/commands: check .md files
+                if source_dir.exists():
+                    source_files = {f.name for f in source_dir.glob("*.md")}
+                else:
+                    source_files = set()
+
+                # Check installed files (accounting for prefix)
+                for installed_file in target_dir.glob(f"{prefix}*.md"):
+                    # Remove prefix to get the base filename
+                    base_name = (
+                        installed_file.name[len(prefix) :] if prefix else installed_file.name
+                    )
+                    if base_name not in source_files:
+                        obsolete_files.append(
+                            {
+                                "file": installed_file.name,
+                                "path": installed_file,
+                                "type": "file",
+                                "component": component,
+                            }
+                        )
+
+        return obsolete_files
+
+    def _remove_obsolete_file(self, obsolete: dict) -> None:
+        """Remove an obsolete file or directory.
+
+        Args:
+            obsolete: Obsolete file/directory information
+        """
+        path = obsolete["path"]
+
+        if obsolete["type"] == "directory":
+            # Remove directory and contents
+            shutil.rmtree(path)
+            console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
+        else:
+            # Remove file
+            path.unlink()
+            console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
 
     def _print_next_steps(self) -> None:
         """Print helpful next steps."""

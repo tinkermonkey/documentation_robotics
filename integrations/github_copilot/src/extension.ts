@@ -6,13 +6,42 @@ import { TIER1_ESSENTIALS } from './prompts/tier1';
 import { TIER2_DEVELOPER_GUIDE } from './prompts/tier2';
 import { VALIDATOR_AGENT_PROMPT } from './prompts/validator';
 import { runDrCli } from './drCli';
+import { SkillsManager } from './skills/skillsManager';
+import { ConversationContextAnalyzer } from './skills/conversationContext';
+import { IntentDetector } from './modeling/intentDetector';
+import { WORKFLOW_PROMPTS } from './prompts/workflows';
+import { DR_ARCHITECT_CORE } from './prompts/drArchitect';
 
 export function activate(context: vscode.ExtensionContext) {
 
     const handler: vscode.ChatRequestHandler = async (request: vscode.ChatRequest, context: vscode.ChatContext, stream: vscode.ChatResponseStream, token: vscode.CancellationToken) => {
 
-        // 1. System Prompt with Tool Instructions
-        const systemPrompt = TIER2_DEVELOPER_GUIDE + `
+        // 1. Analyze conversation context and activate skills
+        const conversationContext = ConversationContextAnalyzer.analyze(
+            context.history,
+            request.prompt
+        );
+
+        const skillsManager = new SkillsManager();
+        const activatedSkills = await skillsManager.analyzeAndActivate(conversationContext);
+
+        // Show activated skills to user (for transparency)
+        if (activatedSkills.length > 0) {
+            const skillNames = activatedSkills.map(s => s.skillName).join(', ');
+            stream.markdown(`*Skills activated: ${skillNames}*\n\n`);
+        }
+
+        // 2. Build system prompt with TIER2 base + activated skill prompts
+        let systemPrompt = TIER2_DEVELOPER_GUIDE;
+
+        // Inject skill prompts
+        for (const activation of activatedSkills) {
+            systemPrompt += '\n\n' + activation.prompt;
+        }
+
+        // Add tool instructions
+        systemPrompt += `
+
 You are the Documentation Robotics assistant (@dr).
 Your goal is to help the user model, validate, and document their architecture.
 
@@ -68,7 +97,35 @@ Always validate your changes after making them.
             await handleValidateCommand(request, stream, token, messages);
             return;
         } else if (request.command === 'model') {
-            messages.push(vscode.LanguageModelChatMessage.User("The user wants to perform interactive modeling. Interpret their intent and suggest 'dr' commands."));
+            // Detect intent from user's message
+            const intentDetector = new IntentDetector();
+            const intentResult = intentDetector.detect(request.prompt, conversationContext);
+
+            // Show detected intent to user
+            if (intentResult.confidence >= 0.7) {
+                stream.markdown(`*Intent detected: ${intentResult.intent} (${Math.round(intentResult.confidence * 100)}% confidence)*\n\n`);
+            }
+
+            // Inject DR Architect core identity
+            messages.push(vscode.LanguageModelChatMessage.User(DR_ARCHITECT_CORE));
+
+            // Inject workflow-specific prompt if detected
+            if (intentResult.suggestedWorkflow && WORKFLOW_PROMPTS[intentResult.suggestedWorkflow]) {
+                messages.push(vscode.LanguageModelChatMessage.User(
+                    WORKFLOW_PROMPTS[intentResult.suggestedWorkflow]
+                ));
+            }
+
+            // Add context message with detected intent and entities
+            const entitiesStr = Object.keys(intentResult.entities).length > 0
+                ? `Entities: ${JSON.stringify(intentResult.entities)}\n`
+                : '';
+
+            messages.push(vscode.LanguageModelChatMessage.User(
+                `User request: ${request.prompt}\n\n` +
+                `${entitiesStr}` +
+                `Interpret the user's natural language intent and execute appropriate DR commands.`
+            ));
         }
 
         // 4. Add user's message
