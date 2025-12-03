@@ -5,6 +5,96 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-12-03
+
+### Added
+
+- **Visualization Server** - New `dr visualize` command with real-time web-based model visualization:
+  - Real-time WebSocket-based updates as model files change
+  - Interactive React-based UI for exploring architecture models
+  - File monitoring with automatic change detection
+  - Token-based authentication with magic link generation
+  - Specification viewing alongside model exploration
+  - Changeset visualization support
+  - Cross-layer traceability navigation
+  - Comprehensive documentation in `docs/user-guide/visualization.md`
+  - Server components:
+    - `VisualizationServer` - HTTP server with WebSocket support
+    - `FileMonitor` - Real-time file change detection
+    - `SpecificationLoader` - Specification loading and caching
+    - `ModelSerializer` - JSON serialization for web clients
+    - `WebSocketProtocol` - Bidirectional communication protocol
+  - Command options: `--port`, `--host`, `--no-browser`
+  - Extensive test coverage (1000+ lines of tests):
+    - Unit tests for all server components
+    - Integration tests for file monitoring and server lifecycle
+    - Command tests for CLI interface
+
+- **Claude Code Integration Updates**:
+  - **New DR Architect Agent** (`dr-architect`) - Consolidated architectural guidance agent
+  - Updated GitHub Copilot integration with new workflows and intent detection
+
+### Changed
+
+- **Claude Code Integration Overhaul** - Streamlined and modernized agent/command structure:
+  - Consolidated multiple specialized agents into unified `dr-architect` agent
+  - Updated USER_GUIDE.md with improved documentation (147 lines modified)
+  - Updated `dr-validate` command with enhanced validation workflows
+  - Updated template files for custom agents and commands
+  - Modernized `claude.py` command implementation (132 lines modified)
+
+### Removed
+
+- **Deprecated Claude Code Agents** - Removed redundant agents in favor of dr-architect:
+  - `dr-documenter` - Documentation generation agent (882 lines)
+  - `dr-extractor` - Code extraction agent (1133 lines)
+  - `dr-helper` - Helper guidance agent (1369 lines)
+  - `dr-ideator` - Ideation agent (1450 lines)
+  - `dr-link-validator` - Link validation agent (270 lines)
+  - `dr-schema-migrator` - Schema migration agent (213 lines)
+  - `dr-security-reviewer` - Security review agent (374 lines)
+  - `dr-validator` - Validation agent (802 lines)
+
+- **Deprecated Claude Code Commands**:
+  - `dr-links` - Link management command (758 lines)
+  - `dr-project` - Project management command (657 lines)
+
+- **Deprecated Claude Code Skills**:
+  - `MIGRATION_ASSISTANT` - Migration guidance skill (153 lines)
+  - `SCHEMA_VALIDATION` - Schema validation skill (87 lines)
+
+### Fixed
+
+- CI test stability improvements for cross-platform compatibility
+- Test suite reliability enhancements
+- Linting and code quality fixes
+
+### Migration
+
+Users relying on removed Claude Code agents, commands, or skills should transition to the new `dr-architect` agent, which provides consolidated functionality. The `dr validate` command continues to provide validation capabilities with enhanced workflows.
+
+For the new visualization feature:
+
+```bash
+# Start visualization server
+dr visualize
+
+# With custom port
+dr visualize --port 8000
+
+# Don't auto-open browser
+dr visualize --no-browser
+```
+
+### Breaking Changes
+
+This release contains breaking changes for Claude Code integration users:
+- 8 Claude agents removed (replaced by dr-architect)
+- 2 slash commands removed (dr-links, dr-project)
+- 2 skills removed (MIGRATION_ASSISTANT, SCHEMA_VALIDATION)
+
+Users should update their workflows to use the new `dr-architect` agent for architectural guidance and validation tasks.
+
 ## [0.5.0] - 2025-11-29
 
 ### Added
