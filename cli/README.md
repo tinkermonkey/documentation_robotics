@@ -67,6 +67,7 @@ For the broader motivation and context, see [The Need](https://github.com/tinker
 - Model initialization with 12-layer structure
 - Element management (add, update, remove) across all layers
 - **Changeset management** - Create isolated workspaces to explore, compare, and apply changes
+- **Interactive Visualization** - Real-time web-based model visualization with live updates
 - Query and search capabilities
 - Basic validation (schema, naming, cross-references)
 - Manifest tracking and statistics
@@ -182,6 +183,9 @@ dr project business.service.customer-management --to application,api
 # Trace dependencies
 dr trace application.service.customer-service
 
+# Start interactive visualization server
+dr visualize
+
 # Export to various formats
 dr export --format archimate
 dr export --format openapi
@@ -277,6 +281,7 @@ project/
 ### User Guides
 
 - **[Claude Code Integration Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/user-guide/claude-code-integration.md)** - Complete guide to AI-powered modeling
+- **[Visualization Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/user-guide/visualization.md)** - Interactive web-based model visualization
 - [Getting Started](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/user-guide/getting-started.md) - Basic DR usage
 - [Validation Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/user-guide/validation.md) - Model validation and quality
 
