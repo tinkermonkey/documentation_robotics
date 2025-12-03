@@ -30,7 +30,8 @@ class TestMigrationRegistry:
         # Check that the first migration starts from 0.1.0
         migration = registry.migrations[0]
         assert migration.from_version == "0.1.0"
-        assert migration.to_version == registry.get_latest_version()
+        # The last migration should reach the latest version
+        assert registry.migrations[-1].to_version == registry.get_latest_version()
         assert migration.description is not None
         assert migration.apply_fn is not None
 
@@ -45,15 +46,15 @@ class TestMigrationRegistry:
         assert latest == registry.migrations[-1].to_version
 
     def test_get_migration_path_simple(self, registry):
-        """Test path finding for single migration."""
+        """Test path finding for migration chain."""
         # Migration from 0.1.0 to latest
         latest = registry.get_latest_version()
         path = registry.get_migration_path("0.1.0", latest)
 
         assert path is not None
-        assert len(path) == 1
+        assert len(path) > 0
         assert path[0].from_version == "0.1.0"
-        assert path[0].to_version == latest
+        assert path[-1].to_version == latest
 
     def test_get_migration_path_multi_step(self, registry):
         """Test path finding across multiple versions."""
@@ -183,7 +184,7 @@ class TestMigrationRegistry:
         assert isinstance(migrations, list)
         assert len(migrations) > 0
         assert migrations[0]["from"] == "0.1.0"
-        assert migrations[0]["to"] == latest
+        assert migrations[-1]["to"] == latest
 
     def test_migration_summary_no_migrations_needed(self, registry):
         """Test summary when no migrations needed."""

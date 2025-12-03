@@ -5,6 +5,30 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2025-12-03
+
+### Fixed
+
+- **Version Display Issues**:
+  - Fixed `__version__` not being updated in `__init__.py` files (was stuck at 0.5.0)
+  - `dr migrate` and `dr claude upgrade` now display correct CLI version
+  - Updated Claude Code integration version to match CLI version
+
+- **Migration System**:
+  - Added missing migration from spec v0.2.0 to v0.3.0
+  - Fixed `dr migrate` incorrectly reporting "Current Model Version: 0.2.0" when spec v0.3.0 is available
+  - Migration correctly updates models to spec v0.3.0 (Testing layer support)
+
+- **Messaging Improvements**:
+  - Changed "CLI Upgrade Available" to "Component Upgrade Available" for clarity
+  - Better reflects that project components are being upgraded, not the CLI tool itself
+
+### Technical Details
+
+- Spec v0.3.0 migration only updates manifest version field
+- Testing Layer (Layer 12) remains opt-in via `dr init --add-layer testing`
+- No breaking changes to existing models
+
 ## [0.6.0] - 2025-12-03
 
 ### Added
@@ -89,6 +113,7 @@ dr visualize --no-browser
 ### Breaking Changes
 
 This release contains breaking changes for Claude Code integration users:
+
 - 8 Claude agents removed (replaced by dr-architect)
 - 2 slash commands removed (dr-links, dr-project)
 - 2 skills removed (MIGRATION_ASSISTANT, SCHEMA_VALIDATION)

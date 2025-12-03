@@ -47,6 +47,16 @@ class MigrationRegistry:
             )
         )
 
+        # Migration from v0.2.0 to v0.3.0: Update to spec v0.3.0
+        self.migrations.append(
+            Migration(
+                from_version="0.2.0",
+                to_version="0.3.0",
+                description="Update to specification v0.3.0 (Testing layer support)",
+                apply_fn=self._migrate_0_2_to_0_3,
+            )
+        )
+
         # Future migrations would be added here
         # self.migrations.append(Migration(
         #     from_version="1.0.0",
@@ -62,7 +72,7 @@ class MigrationRegistry:
             Latest version string
         """
         if not self.migrations:
-            return "0.2.0"
+            return "0.3.0"
 
         versions = [Version(m.to_version) for m in self.migrations]
         return str(max(versions))
@@ -198,6 +208,30 @@ class MigrationRegistry:
             result = migrator.apply_migrations(dry_run=False)
 
             return result
+        except Exception as e:
+            return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
+
+    def _migrate_0_2_to_0_3(self, model_path: Path) -> dict:
+        """Migrate from v0.2.0 to v0.3.0.
+
+        This migration updates the specification version to 0.3.0, which adds
+        Testing Layer (Layer 12) support. The testing layer is optional and can
+        be added via 'dr init --add-layer testing'.
+
+        Args:
+            model_path: Path to model directory
+
+        Returns:
+            Dictionary with migration statistics
+        """
+        try:
+            # This migration only updates the spec version in the manifest
+            # The testing layer is opt-in and doesn't require model changes
+            return {
+                "migrations_applied": 1,
+                "files_modified": 0,
+                "description": "Spec version updated to 0.3.0 (Testing layer now available)",
+            }
         except Exception as e:
             return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
 

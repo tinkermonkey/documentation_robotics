@@ -226,7 +226,7 @@ class UpgradeManager:
         console.print("\n")
         console.print(
             Panel(
-                f"[bold]CLI Upgrade Available[/]\n\n"
+                f"[bold]Component Upgrade Available[/]\n\n"
                 f"From: {from_version or 'unknown'}\n"
                 f"To:   {to_version}\n\n"
                 f"This will update {len(items)} component(s)",
