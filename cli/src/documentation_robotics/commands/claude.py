@@ -284,7 +284,9 @@ class ClaudeIntegrationManager:
             # Update existing files
             for update in updates:
                 if update["action"] == "Skip (keep)" and not force:
-                    console.print(f"[yellow]⊘[/] Skipped {update['file']} (modified, use --force to update)")
+                    console.print(
+                        f"[yellow]⊘[/] Skipped {update['file']} (modified, use --force to update)"
+                    )
                     continue
 
                 task = progress.add_task(f"Updating {update['file']}...", total=None)
