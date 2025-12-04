@@ -283,8 +283,8 @@ class ClaudeIntegrationManager:
         ) as progress:
             # Update existing files
             for update in updates:
-                if update["action"] == "Skip (keep)":
-                    console.print(f"[yellow]⊘[/] Skipped {update['file']} (modified)")
+                if update["action"] == "Skip (keep)" and not force:
+                    console.print(f"[yellow]⊘[/] Skipped {update['file']} (modified, use --force to update)")
                     continue
 
                 task = progress.add_task(f"Updating {update['file']}...", total=None)
@@ -400,6 +400,9 @@ class ClaudeIntegrationManager:
             backup = target.with_suffix(f"{target.suffix}.bak")
             shutil.copy2(target, backup)
             console.print(f"  [yellow]Backup:[/] {backup.name}", style="dim")
+
+        # Ensure target directory exists
+        target.parent.mkdir(parents=True, exist_ok=True)
 
         # Copy file
         shutil.copy2(source, target)

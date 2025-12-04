@@ -5,6 +5,20 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.2] - 2025-12-03
+
+### Fixed
+
+- **Claude Code Integration Upgrade**:
+  - Fixed `dr claude upgrade` crashing when target directories don't exist
+  - Upgrade process now creates missing directories before copying files
+  - Fixed upgrade process skipping modified files - now updates all files with backups
+  - Resolves "No such file or directory" error when upgrading templates
+
+### Changed
+
+- **Upgrade Behavior**: Claude integration files (reference sheets, commands, agents) are now always updated during `dr claude upgrade` to stay in sync with the CLI version. Modified files are backed up with `.bak` extension before being updated.
+
 ## [0.6.1] - 2025-12-03
 
 ### Fixed
