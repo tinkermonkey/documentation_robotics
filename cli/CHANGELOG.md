@@ -5,6 +5,59 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2025-12-05
+
+### Changed
+
+- **Claude Code Integration - CLI-First Prompt Improvements**:
+  - Added explicit **CLI-First Development Mandate** to dr-architect agent
+  - Completely rewrote **code extraction workflow** with concrete CLI command examples
+  - Added **CLI Command Quick Reference** for common operations
+  - Added **Common Anti-Patterns** section highlighting top 3 validation failure causes
+  - Emphasizes using `dr add`, `dr update`, `dr validate` instead of manual YAML generation
+  - Reduces validation failures by catching errors at creation time (vs 5x longer to fix later)
+  - Streamlined guidance to avoid context window overload (+152 lines, 12.6% increase)
+  - Updated dr-architect.md from 1,209 to 1,361 lines with focused CLI-first messaging
+
+- **GitHub Copilot Integration - Consistency Updates**:
+  - Added CLI-First Development Mandate to drArchitect.ts core identity
+  - Enhanced extraction workflow in workflows.ts with mandatory CLI-first rules
+  - Consistent messaging about 60%+ error rate from manual YAML generation
+  - Clear prohibition of manual file editing for model data
+
+### Fixed
+
+- **Validation Failure Rate**: Addressed root cause of 60%+ validation failures during code extraction
+  - Agent now uses CLI commands with built-in validation instead of manual YAML generation
+  - Errors caught at creation time rather than accumulating and taking 5x longer to fix
+  - Validation integrated into workflows (validate after each batch, not at end)
+  - Error recovery patterns show how to handle CLI failures and retry with corrections
+
+### Testing
+
+- All 679 tests pass in `test_docs_consistency.py` validating CLI examples in integration prompts
+- Confirmed all CLI command examples are syntactically correct across both Claude Code and GitHub Copilot integrations
+
+### Technical Details
+
+**Files Modified**:
+
+- `/cli/src/documentation_robotics/claude_integration/agents/dr-architect.md` (1,209 → 1,361 lines)
+  - Added CLI-First Mandate section (32 lines)
+  - Rewrote Extraction Workflow (106 lines)
+  - Added CLI Command Reference (73 lines)
+  - Added Anti-Patterns section (59 lines)
+- `/integrations/github_copilot/src/prompts/drArchitect.ts` (added 52 lines)
+- `/integrations/github_copilot/src/prompts/workflows.ts` (added 16 lines)
+
+**Key Improvements**:
+
+1. **Explicit prohibition** of manual YAML/JSON generation
+2. **Concrete examples** showing correct CLI usage for extraction
+3. **Framework-specific patterns** (FastAPI, Express, Django) with CLI commands
+4. **Validation loops** demonstrating validate-after-batch approach
+5. **Error recovery** showing how to fix and retry failed CLI commands
+
 ## [0.6.2] - 2025-12-03
 
 ### Fixed

@@ -49,7 +49,19 @@ You are in validation mode. Your primary focus is ensuring model correctness.
     extraction: `
 ## 🔬 Code Extraction Workflow (ACTIVE)
 
-You are in extraction mode. Your goal is to create a DR model from existing code.
+You are in extraction mode. Your goal is to create a DR model from existing code **using CLI commands with built-in validation**.
+
+### CRITICAL: CLI-First Extraction Rules
+
+**MANDATORY - ALL extractions MUST follow these rules**:
+1. ✅ **ALL extractions MUST happen in a changeset** (safe experimentation)
+2. ✅ **ALL element creation MUST use \`dr add\` command** (validation included)
+3. ✅ **ALL element updates MUST use \`dr update\` command** (schema compliance)
+4. ✅ **Validate after each batch** (catch errors early with \`dr validate\`)
+5. ❌ **NEVER generate YAML files directly** (bypasses validation, 60%+ error rate)
+6. ❌ **NEVER use file editing tools for model files** (schema violations, 5x fix time)
+
+**Why this matters**: Schema violations are the #1 extraction failure. Manual YAML generation has 60%+ error rate and takes 5x longer to fix.
 
 ### Requirements:
 

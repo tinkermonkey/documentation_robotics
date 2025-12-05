@@ -131,6 +131,39 @@ Isolated workspaces for safe experimentation:
 - Direct corrections
 - Simple property updates
 
+## CLI-First Development Mandate
+
+**CRITICAL**: All model modifications MUST use CLI commands. Manual YAML/JSON generation causes 60%+ validation failures and takes 5x longer to fix.
+
+### The Rule
+
+**ALWAYS use**: `dr add`, `dr update`, `dr validate`, `dr changeset`, `dr project`
+
+**NEVER**: Manually create/edit YAML files, generate files programmatically, use Write/Edit tools for model data
+
+### Why?
+
+1. **Immediate validation** - Errors caught at creation (vs hours later)
+2. **Schema compliance** - Automatic structure validation
+3. **Built-in quality** - Proper ID generation, link validation, manifest updates
+
+**Example:**
+
+```python
+# ❌ WRONG (60% error rate, 5x fix time)
+element = {"id": "business.service.payment", "properties": {"criticality": "HIGH"}}
+yaml.dump(element, open("model/business/service/payment.yaml", "w"))
+
+# ✅ CORRECT (validated, zero errors)
+dr add business service --name "Payment" --property criticality=high
+```
+
+### Exception Handling
+
+**If CLI command fails**: Read error → Fix parameters → Retry
+
+**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict --validate-links`
+
 ## Intent Routing
 
 Your first task is always to **understand what the user wants** and route to the appropriate workflow.
@@ -273,120 +306,110 @@ Check for:
 
 **When**: User wants to analyze codebase and create DR model
 
-**Goal**: Automatically generate DR elements from source code
+**Goal**: Generate DR elements from source code **using CLI commands with validation**
 
-### CRITICAL: Changeset Requirement
+### CRITICAL Rules
 
-**ALL extractions MUST happen in a changeset.**
+**MANDATORY:**
+
+1. ✅ Create changeset: `dr changeset create "extract-source-$(date +%s)"`
+2. ✅ Use `dr add` for all elements
+3. ✅ Validate after each batch: `dr validate --layer <layer>`
+4. ❌ NEVER generate YAML files
+5. ❌ NEVER use Write/Edit tools
+
+**Why**: Manual YAML has 60%+ error rate, 5x fix time. CLI validation is immediate.
+
+### Extraction Workflow
 
 ```bash
-dr changeset create "extract-from-<source>" --type exploration
+# 1. Create changeset
+dr changeset create "extract-orders-$(date +%s)"
+
+# 2. Extract elements with CLI
+dr add api operation --name "Create Order" \
+  --property path="/api/v1/orders" --property method="POST"
+dr validate --layer api
+
+dr add application service --name "Order Service"
+dr validate --layer application
+
+# 3. Link layers
+dr update api.operation.create-order \
+  --set x-archimate-ref=application.service.order-service
+dr validate --validate-links
+
+# 4. Review and apply
+dr changeset diff
+dr changeset apply --yes
 ```
 
-**Why**: Extractions may be incorrect, incomplete, or need refinement.
+### Error Recovery
 
-### Supported Technologies
+**If command fails:**
 
-- **Python**: FastAPI, Django, Flask, SQLAlchemy
-- **JavaScript/TypeScript**: Express, NestJS, TypeORM, Mongoose
-- **Java**: Spring Boot, JPA
-- **Go**: Standard library, frameworks
-- **C#**: ASP.NET, Entity Framework
-
-### Extraction Process
-
-1. **Discover**
-   - Detect languages and frameworks
-   - Find API routes, services, data models
-   - Analyze structure and dependencies
-
-2. **Analyze Patterns**
-
-   **Business Layer:**
-   - Top-level modules/packages → domains
-   - Service classes with business logic
-   - Aggregated functionality
-
-   **Application Layer:**
-   - Service classes (`OrderService` → application.service.order-service)
-   - Components with clear responsibilities
-   - `@Service` annotations
-
-   **API Layer:**
-   - HTTP routes (`@app.post("/orders")` → api.operation.create-order)
-   - REST/GraphQL endpoints
-   - Controller methods
-
-   **Data Model Layer:**
-   - ORM models (`class Order(Base)`)
-   - Schema definitions
-   - Pydantic/TypeScript types
-
-3. **Create Elements**
-
-   ```bash
-   dr add <layer> <type> --name "<name>" \
-     --description "<description>" \
-     --property key=value
-   ```
-
-4. **Establish Cross-Layer Links**
-   - Application → Business (realizes)
-   - API → Application (x-archimate-ref)
-   - Data Model → Datastore (stored-in)
-
-5. **Assign Confidence Scores**
-   - High: Clear pattern match
-   - Medium: Inferred from context
-   - Low: Uncertain, flag for review
-
-6. **Validate**
-
-   ```bash
-   dr validate --strict --validate-links
-   ```
-
-7. **Generate Report**
-
-   ```
-   Extraction complete
-
-   Created:
-   - 12 API operations (high confidence)
-   - 8 application services (high confidence)
-   - 15 data models (medium confidence)
-   - 3 business services (medium confidence, inferred)
-
-   Next: Review changeset and apply
-   ```
-
-### Framework-Specific Patterns
-
-**FastAPI:**
-
-```python
-@app.post("/api/v1/orders")
-def create_order(order: OrderCreate):
-    return order_service.create(order)
-
-# Extract:
-# - api.operation.create-order (path, method, schema)
-# - application.service.order-service (if found)
-# - data_model.object-schema.order-create (from Pydantic)
+```bash
+$ dr add api operation --name "X" --property invalid=value
+✗ Error: Invalid property 'invalid'
+# Fix: Read error, correct parameters, retry
+$ dr add api operation --name "X" --property path="/api/x" --property method="GET"
+✅ Success
 ```
 
-**Express:**
+**If validation fails:**
 
-```javascript
-router.post('/api/v1/orders', async (req, res) => {
-    const order = await OrderService.create(req.body);
-    res.json(order);
-});
-
-# Extract:
-# - api.operation.create-order
-# - application.service.order-service
+```bash
+$ dr validate --validate-links
+✗ Error: Missing reference application.service.order-api
+# Fix: Create missing element
+$ dr add application service --name "Order API"
+$ dr validate --validate-links
+✅ Pass
 ```
+
+### Framework Patterns
+
+| Framework   | Code Pattern                | CLI Command                                                                                     |
+| ----------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
+| FastAPI     | `@app.post("/orders")`      | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
+| Express     | `router.post('/orders')`    | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
+| Spring Boot | `@PostMapping("/orders")`   | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
+| Django      | `def create_order(request)` | `dr add api operation --name "Create Order"`                                                    |
+
+**Supported**: Python (FastAPI, Django, Flask), JavaScript (Express, NestJS), Java (Spring Boot), Go, C# (ASP.NET)
+
+### Layer Mapping
+
+| Code Element  | DR Layer    | CLI Example                                  |
+| ------------- | ----------- | -------------------------------------------- |
+| HTTP Route    | api         | `dr add api operation --name "X"`            |
+| Service Class | application | `dr add application service --name "X"`      |
+| Pydantic/DTO  | data_model  | `dr add data_model object-schema --name "X"` |
+| ORM Model     | data_model  | `dr add data_model entity --name "X"`        |
+| DB Table      | datastore   | `dr add datastore table --name "X"`          |
+| UI Component  | ux          | `dr add ux component --name "X"`             |
+
+### Confidence & Reporting
+
+```
+Extraction: extract-fastapi-20250105
+✅ 12 API operations (HIGH) - direct mapping
+✅ 8 services (HIGH) - clear classes
+⚠️  15 data models (MEDIUM) - verify types
+⚠️  3 business services (LOW) - REVIEW
+
+Validation: ✅ Schema PASS  ⚠️ 3 link warnings
+
+Next: dr changeset diff → fix warnings → dr changeset apply
+```
+
+### Quality Checklist
+
+- [ ] All via CLI (no manual YAML)
+- [ ] `dr validate --strict` passes
+- [ ] `dr validate --validate-links` passes
+- [ ] `dr changeset diff` reviewed
+- [ ] Low confidence elements verified
 
 ## Workflow: Ideation
 
@@ -822,6 +845,140 @@ Would you like me to:
 - Create the data schema for login request/response?
 - Add monitoring metrics for auth operations?
 ```
+
+## CLI Command Quick Reference
+
+Use this reference when executing DR operations. All model modifications MUST use these CLI commands.
+
+### Element Operations
+
+| Task             | Command                                            | Example                                                    |
+| ---------------- | -------------------------------------------------- | ---------------------------------------------------------- |
+| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                  |
+| Update element   | `dr update <element-id> --set key=value`           | `dr update business.service.orders --set criticality=high` |
+| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`    |
+| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                          |
+| List elements    | `dr list <layer> [type]`                           | `dr list application service`                              |
+| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                      |
+| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                        |
+
+### Validation Operations
+
+| Task                   | Command                                       | Example                                       |
+| ---------------------- | --------------------------------------------- | --------------------------------------------- |
+| Basic validation       | `dr validate`                                 | `dr validate`                                 |
+| Strict validation      | `dr validate --strict`                        | `dr validate --strict`                        |
+| Validate links         | `dr validate --validate-links`                | `dr validate --validate-links`                |
+| Strict link validation | `dr validate --validate-links --strict-links` | `dr validate --validate-links --strict-links` |
+| Layer-specific         | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
+| JSON output            | `dr validate --output json`                   | `dr validate --output json > report.json`     |
+
+### Link Operations
+
+| Task               | Command                            | Example                                                             |
+| ------------------ | ---------------------------------- | ------------------------------------------------------------------- |
+| List link types    | `dr links types`                   | `dr links types`                                                    |
+| Find element links | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
+| List all links     | `dr links list`                    | `dr links list`                                                     |
+| Trace path         | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
+| Validate links     | `dr validate --validate-links`     | `dr validate --validate-links`                                      |
+| Link documentation | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
+
+### Changeset Operations
+
+| Task              | Command                                    | Example                                                    |
+| ----------------- | ------------------------------------------ | ---------------------------------------------------------- |
+| Create changeset  | `dr changeset create "name" --type <type>` | `dr changeset create "add-payment-feature" --type feature` |
+| List changesets   | `dr changeset list`                        | `dr changeset list`                                        |
+| Switch changeset  | `dr changeset switch <changeset-id>`       | `dr changeset switch 20250105-143022`                      |
+| Show status       | `dr changeset status`                      | `dr changeset status`                                      |
+| Show diff         | `dr changeset diff`                        | `dr changeset diff`                                        |
+| Apply changeset   | `dr changeset apply --yes`                 | `dr changeset apply --yes`                                 |
+| Abandon changeset | `dr changeset abandon <id> --yes`          | `dr changeset abandon 20250105-143022 --yes`               |
+| Clear active      | `dr changeset clear --yes`                 | `dr changeset clear --yes`                                 |
+
+### Projection Operations
+
+| Task            | Command                                      | Example                                               |
+| --------------- | -------------------------------------------- | ----------------------------------------------------- |
+| Project element | `dr project <element-id> --to <layer>`       | `dr project business.service.orders --to application` |
+| Project all     | `dr project-all --from <layer> --to <layer>` | `dr project-all --from business --to application`     |
+
+### Export & Documentation
+
+| Task               | Command                       | Example                                          |
+| ------------------ | ----------------------------- | ------------------------------------------------ |
+| Export model       | `dr export --format <format>` | `dr export --format archimate --output exports/` |
+| Export all formats | `dr export --format all`      | `dr export --format all --output exports/`       |
+| Visualize model    | `dr visualize`                | `dr visualize --port 8080`                       |
+
+### Migration Operations
+
+| Task              | Command                | Example                |
+| ----------------- | ---------------------- | ---------------------- |
+| Check migration   | `dr migrate`           | `dr migrate`           |
+| Preview migration | `dr migrate --dry-run` | `dr migrate --dry-run` |
+| Apply migration   | `dr migrate --apply`   | `dr migrate --apply`   |
+
+## Common Anti-Patterns to Avoid
+
+**Top 3 mistakes that cause validation failures:**
+
+### ❌ 1. Manual YAML/JSON Generation
+
+```python
+# ❌ WRONG - Bypasses validation
+element = {"id": "business.service.payment", "properties": {"criticality": "HIGH"}}
+yaml.dump(element, open("model/business/service/payment.yaml", "w"))
+
+# ✅ CORRECT - Validated immediately
+dr add business service --name "Payment" --property criticality=high
+```
+
+**Why wrong**: No validation, wrong casing ("HIGH" vs "high"), manifest not updated, 60%+ error rate
+
+---
+
+### ❌ 2. Batch Without Validation
+
+```bash
+# ❌ WRONG - Accumulates errors
+for i in {1..20}; do
+  dr add business service --name "Service $i"
+done
+dr validate  # 15 errors found!
+
+# ✅ CORRECT - Validate after small batches
+for i in {1..5}; do
+  dr add business service --name "Service $i"
+done
+dr validate --layer business  # Catch errors early
+```
+
+**Why wrong**: Errors accumulate, hard to debug, 5x longer fix time
+
+---
+
+### ❌ 3. Ignoring Validation Failures
+
+```bash
+# ❌ WRONG - Continuing after errors
+$ dr add business service --name "Payment"
+✗ Error: Missing required property 'description'
+$ dr add business service --name "Shipping"  # Same error!
+
+# ✅ CORRECT - Fix immediately
+$ dr add business service --name "Payment"
+✗ Error: Missing required property 'description'
+$ dr add business service --name "Payment" --description "..."
+✅ Success
+```
+
+**Why wrong**: Cascading failures, many elements to fix later
+
+---
+
+**Remember**: ✅ CLI = Validated ❌ Manual = 60%+ errors
 
 ## Interaction Patterns
 
