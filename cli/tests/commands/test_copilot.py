@@ -1,12 +1,9 @@
 """Integration tests for copilot command."""
 
 import re
-import shutil
-from pathlib import Path
 from unittest.mock import patch
 
 import pytest
-import yaml
 from click.testing import CliRunner
 from documentation_robotics.cli import cli
 
@@ -58,17 +55,17 @@ class TestCopilotCommand:
         """Create a dummy integration source directory."""
         source = tmp_path / "integration_source"
         source.mkdir()
-        
+
         # Create knowledge files
         knowledge_dir = source / "knowledge"
         knowledge_dir.mkdir()
         (knowledge_dir / "test-guide.md").write_text("# Test Guide")
-        
+
         # Create agents files
         agents_dir = source / "agents"
         agents_dir.mkdir()
         (agents_dir / "test-agent.md").write_text("# Test Agent")
-        
+
         return source
 
     @pytest.fixture
@@ -81,12 +78,14 @@ class TestCopilotCommand:
     def test_install(self, runner, project_dir, integration_source):
         """Test copilot install command."""
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
-            result = runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
+            result = runner.invoke(
+                cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir)
+            )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "copilot integration installed successfully" in output.lower()
-        
+
         # Verify files installed
         github_dir = project_dir / ".github"
         assert github_dir.exists()
@@ -98,13 +97,13 @@ class TestCopilotCommand:
         """Test installing specific components."""
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             result = runner.invoke(
-                cli, 
-                ["--no-upgrade-check", "copilot", "install", "--knowledge-only"], 
-                cwd=str(project_dir)
+                cli,
+                ["--no-upgrade-check", "copilot", "install", "--knowledge-only"],
+                cwd=str(project_dir),
             )
 
         assert result.exit_code == 0
-        
+
         # Verify only knowledge installed
         github_dir = project_dir / ".github"
         assert (github_dir / "knowledge" / "test-guide.md").exists()
@@ -112,8 +111,10 @@ class TestCopilotCommand:
 
     def test_status_not_installed(self, runner, project_dir):
         """Test status when not installed."""
-        result = runner.invoke(cli, ["--no-upgrade-check", "copilot", "status"], cwd=str(project_dir))
-        
+        result = runner.invoke(
+            cli, ["--no-upgrade-check", "copilot", "status"], cwd=str(project_dir)
+        )
+
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "not installed" in output.lower()
@@ -123,9 +124,11 @@ class TestCopilotCommand:
         # Install first
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
-            
+
             # Check status
-            result = runner.invoke(cli, ["--no-upgrade-check", "copilot", "status"], cwd=str(project_dir))
+            result = runner.invoke(
+                cli, ["--no-upgrade-check", "copilot", "status"], cwd=str(project_dir)
+            )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
@@ -138,9 +141,11 @@ class TestCopilotCommand:
         # Install first
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
-            
+
             # Update
-            result = runner.invoke(cli, ["--no-upgrade-check", "copilot", "update"], cwd=str(project_dir))
+            result = runner.invoke(
+                cli, ["--no-upgrade-check", "copilot", "update"], cwd=str(project_dir)
+            )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
@@ -151,21 +156,19 @@ class TestCopilotCommand:
         # Install first
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
-            
+
             # Modify source file
             (integration_source / "knowledge" / "test-guide.md").write_text("# Updated Guide")
-            
+
             # Update
             result = runner.invoke(
-                cli, 
-                ["--no-upgrade-check", "copilot", "update", "--force"], 
-                cwd=str(project_dir)
+                cli, ["--no-upgrade-check", "copilot", "update", "--force"], cwd=str(project_dir)
             )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "updated test-guide.md" in output.lower()
-        
+
         # Verify file updated
         installed_file = project_dir / ".github" / "knowledge" / "test-guide.md"
         assert installed_file.read_text() == "# Updated Guide"
@@ -175,18 +178,16 @@ class TestCopilotCommand:
         # Install first
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
-            
+
             # Remove
             result = runner.invoke(
-                cli, 
-                ["--no-upgrade-check", "copilot", "remove", "--force"], 
-                cwd=str(project_dir)
+                cli, ["--no-upgrade-check", "copilot", "remove", "--force"], cwd=str(project_dir)
             )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "removed successfully" in output.lower()
-        
+
         # Verify files removed
         github_dir = project_dir / ".github"
         assert not (github_dir / "knowledge" / "test-guide.md").exists()
@@ -196,7 +197,7 @@ class TestCopilotCommand:
     def test_list(self, runner, project_dir):
         """Test list command."""
         result = runner.invoke(cli, ["--no-upgrade-check", "copilot", "list"], cwd=str(project_dir))
-        
+
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "available components" in output.lower()

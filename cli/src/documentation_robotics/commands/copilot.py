@@ -154,7 +154,7 @@ class CopilotIntegrationManager:
             for source_file in source_dir.glob("*"):
                 if not source_file.is_file():
                     continue
-                
+
                 target_file = target_dir / f"{prefix}{source_file.name}"
 
                 # Check if file exists
@@ -515,7 +515,7 @@ class CopilotIntegrationManager:
             target_dir = self.root_path / config["target"]
             source_dir = INTEGRATION_ROOT / config["source"]
             prefix = config.get("prefix", "")
-            
+
             if not target_dir.exists():
                 continue
 
@@ -529,11 +529,9 @@ class CopilotIntegrationManager:
             for installed_file in target_dir.glob(f"{prefix}*"):
                 if not installed_file.is_file():
                     continue
-                    
+
                 # Remove prefix to get the base filename
-                base_name = (
-                    installed_file.name[len(prefix) :] if prefix else installed_file.name
-                )
+                base_name = installed_file.name[len(prefix) :] if prefix else installed_file.name
                 if base_name not in source_files:
                     obsolete_files.append(
                         {
