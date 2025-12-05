@@ -1,5 +1,5 @@
 """
-Manage Claude Code integration files.
+Manage GitHub Copilot integration files.
 """
 
 import hashlib
@@ -18,10 +18,10 @@ from rich.table import Table
 console = Console()
 
 # Determine integration root
-# 1. Check for development environment (files in integrations/claude_code)
-# 2. Fallback to package directory (files in claude_integration)
-DEV_ROOT = Path(__file__).parents[4] / "integrations" / "claude_code"
-PKG_ROOT = Path(__file__).parent.parent / "claude_integration"
+# 1. Check for development environment (files in integrations/github_copilot)
+# 2. Fallback to package directory (files in copilot_integration)
+DEV_ROOT = Path(__file__).parents[4] / "integrations" / "github_copilot"
+PKG_ROOT = Path(__file__).parent.parent / "copilot_integration"
 
 if DEV_ROOT.exists():
     INTEGRATION_ROOT = DEV_ROOT
@@ -29,51 +29,29 @@ else:
     INTEGRATION_ROOT = PKG_ROOT
 
 # Target locations (relative to project root)
-CLAUDE_DIR = Path(".claude")
-KNOWLEDGE_DIR = CLAUDE_DIR / "knowledge"
-COMMANDS_DIR = CLAUDE_DIR / "commands"
-AGENTS_DIR = CLAUDE_DIR / "agents"
-VERSION_FILE = CLAUDE_DIR / ".dr-version"
+GITHUB_DIR = Path(".github")
+KNOWLEDGE_DIR = GITHUB_DIR / "knowledge"
+AGENTS_DIR = GITHUB_DIR / "agents"
+VERSION_FILE = GITHUB_DIR / ".dr-copilot-version"
 
 
-class ClaudeIntegrationManager:
-    """Manages Claude Code integration files."""
+class CopilotIntegrationManager:
+    """Manages GitHub Copilot integration files."""
 
     COMPONENTS = {
-        "reference_sheets": {
-            "source": "reference_sheets",
+        "knowledge": {
+            "source": "knowledge",
             "target": KNOWLEDGE_DIR,
-            "description": "Reference documentation for agents",
-            "prefix": "dr-",
-            "type": "files",
-        },
-        "commands": {
-            "source": "commands",
-            "target": COMMANDS_DIR,
-            "description": "Slash commands for DR workflows",
+            "description": "Knowledge base for Copilot",
             "prefix": "",
             "type": "files",
         },
         "agents": {
             "source": "agents",
             "target": AGENTS_DIR,
-            "description": "Specialized sub-agent definitions",
+            "description": "Agent definitions for Copilot",
             "prefix": "",
             "type": "files",
-        },
-        "skills": {
-            "source": "skills",
-            "target": CLAUDE_DIR / "skills",
-            "description": "Auto-activating capabilities",
-            "prefix": "",
-            "type": "directories",
-        },
-        "templates": {
-            "source": "templates",
-            "target": CLAUDE_DIR / "templates",
-            "description": "Customization templates and examples",
-            "prefix": "",
-            "type": "mixed",
         },
     }
 
@@ -84,7 +62,7 @@ class ClaudeIntegrationManager:
             root_path: Project root directory
         """
         self.root_path = root_path or Path.cwd()
-        self.claude_dir = self.root_path / CLAUDE_DIR
+        self.github_dir = self.root_path / GITHUB_DIR
 
     def install(
         self,
@@ -92,7 +70,7 @@ class ClaudeIntegrationManager:
         force: bool = False,
         show_progress: bool = True,
     ) -> None:
-        """Install Claude integration files.
+        """Install Copilot integration files.
 
         Args:
             components: List of components to install (None = all)
@@ -107,10 +85,10 @@ class ClaudeIntegrationManager:
                 console.print(f"   Valid: {', '.join(self.COMPONENTS.keys())}")
                 return
 
-        # Create .claude directory if needed
-        if not self.claude_dir.exists():
-            self.claude_dir.mkdir(parents=True)
-            console.print("[green]✓[/] Created .claude/ directory")
+        # Create .github directory if needed
+        if not self.github_dir.exists():
+            self.github_dir.mkdir(parents=True)
+            console.print("[green]✓[/] Created .github/ directory")
 
         components = components or list(self.COMPONENTS.keys())
 
@@ -136,7 +114,7 @@ class ClaudeIntegrationManager:
         self._update_version_file()
 
         # Success message
-        console.print("\n[green]✓[/] Claude integration installed successfully!")
+        console.print("\n[green]✓[/] Copilot integration installed successfully!")
         self._print_next_steps()
 
     def _install_component(self, component: str, force: bool) -> int:
@@ -167,56 +145,16 @@ class ClaudeIntegrationManager:
         count = 0
 
         # Handle different installation types
-        if install_type == "directories":
-            # Install directory structures (e.g., skills with subdirectories)
-            for skill_dir in source_dir.iterdir():
-                if skill_dir.is_dir():
-                    target_skill = target_dir / skill_dir.name
-                    target_skill.mkdir(parents=True, exist_ok=True)
-
-                    for skill_file in skill_dir.iterdir():
-                        target_file = target_skill / skill_file.name
-
-                        # Check if file exists
-                        if target_file.exists() and not force:
-                            if not Confirm.ask(
-                                f"  {skill_dir.name}/{skill_file.name} exists. Overwrite?",
-                                default=False,
-                            ):
-                                continue
-
-                        # Copy file
-                        shutil.copy2(skill_file, target_file)
-                        console.print(f"  [green]✓[/] {skill_dir.name}/{skill_file.name}")
-                        count += 1
-
-        elif install_type == "mixed":
-            # Install all files (mixed types: .md, .json, .sh, etc.)
-            for source_file in source_dir.rglob("*"):
-                if source_file.is_file():
-                    # Calculate relative path
-                    rel_path = source_file.relative_to(source_dir)
-                    target_file = target_dir / rel_path
-
-                    # Create parent directories
-                    target_file.parent.mkdir(parents=True, exist_ok=True)
-
-                    # Check if file exists
-                    if target_file.exists() and not force:
-                        if not Confirm.ask(f"  {rel_path} exists. Overwrite?", default=False):
-                            continue
-
-                    # Copy file
-                    shutil.copy2(source_file, target_file)
-                    # Make shell scripts executable
-                    if source_file.suffix == ".sh":
-                        target_file.chmod(target_file.stat().st_mode | 0o111)
-                    console.print(f"  [green]✓[/] {rel_path}")
-                    count += 1
-
-        else:  # "files" - default behavior
-            # Install .md files
-            for source_file in source_dir.glob("*.md"):
+        if install_type == "files":
+            # Install .md files (and potentially others if needed, but sticking to .md for now as per claude.py)
+            # Actually, let's support all files since agents might be json/yaml?
+            # Claude.py used glob("*.md"). Let's stick to that unless I see other files.
+            # Checking integrations/github_copilot... I only saw folders.
+            # Let's assume .md and .json for agents/knowledge.
+            for source_file in source_dir.glob("*"):
+                if not source_file.is_file():
+                    continue
+                
                 target_file = target_dir / f"{prefix}{source_file.name}"
 
                 # Check if file exists
@@ -243,8 +181,8 @@ class ClaudeIntegrationManager:
             show_progress: Show progress bar
         """
         if not self._is_installed():
-            console.print("[red]✗[/] Claude integration not installed")
-            console.print("Run [cyan]dr claude install[/] first")
+            console.print("[red]✗[/] Copilot integration not installed")
+            console.print("Run [cyan]dr copilot install[/] first")
             return
 
         # Load version data
@@ -353,7 +291,10 @@ class ClaudeIntegrationManager:
         if not source_dir.exists():
             return updates
 
-        for source_file in source_dir.glob("*.md"):
+        for source_file in source_dir.glob("*"):
+            if not source_file.is_file():
+                continue
+
             target_file = target_dir / f"{prefix}{source_file.name}"
             target_name = target_file.name
 
@@ -375,7 +316,7 @@ class ClaudeIntegrationManager:
             source_hash = self._compute_hash(source_file)
 
             if source_hash != current_hash:
-                # Update needed (either new version or user modified)
+                # Update needed
                 updates.append(
                     {
                         "file": target_name,
@@ -385,9 +326,6 @@ class ClaudeIntegrationManager:
                         "target": target_file,
                     }
                 )
-            else:
-                # Unchanged
-                pass
 
         return updates
 
@@ -416,7 +354,7 @@ class ClaudeIntegrationManager:
             force: Remove without confirmation
         """
         if not self._is_installed():
-            console.print("[yellow]⚠[/] Claude integration not installed")
+            console.print("[yellow]⚠[/] Copilot integration not installed")
             return
 
         components = components or list(self.COMPONENTS.keys())
@@ -452,15 +390,16 @@ class ClaudeIntegrationManager:
             return
 
         # Remove files with prefix
-        for file in target_dir.glob(f"{prefix}*.md"):
-            file.unlink()
-            console.print(f"  [red]✗[/] Removed {file.name}")
+        for file in target_dir.glob(f"{prefix}*"):
+            if file.is_file():
+                file.unlink()
+                console.print(f"  [red]✗[/] Removed {file.name}")
 
     def status(self) -> None:
         """Show installation status."""
         if not self._is_installed():
-            console.print("[yellow]Claude integration not installed[/]")
-            console.print("Run [cyan]dr claude install[/] to get started")
+            console.print("[yellow]Copilot integration not installed[/]")
+            console.print("Run [cyan]dr copilot install[/] to get started")
             return
 
         version_data = self._load_version_file()
@@ -484,7 +423,8 @@ class ClaudeIntegrationManager:
                 table.add_row(component, "0", "-")
                 continue
 
-            files = list(target_dir.glob(f"{prefix}*.md"))
+            files = list(target_dir.glob(f"{prefix}*"))
+            files = [f for f in files if f.is_file()]
             modified_count = sum(1 for f in files if self._is_modified(f, component, version_data))
 
             table.add_row(
@@ -535,7 +475,9 @@ class ClaudeIntegrationManager:
                 continue
 
             files = {}
-            for file in target_dir.glob(f"{prefix}*.md"):
+            for file in target_dir.glob(f"{prefix}*"):
+                if not file.is_file():
+                    continue
                 files[file.name] = {
                     "hash": self._compute_hash(file),
                     "modified": False,
@@ -573,53 +515,34 @@ class ClaudeIntegrationManager:
             target_dir = self.root_path / config["target"]
             source_dir = INTEGRATION_ROOT / config["source"]
             prefix = config.get("prefix", "")
-            install_type = config.get("type", "files")
-
+            
             if not target_dir.exists():
                 continue
 
             # Get files from source (what should exist)
-            if install_type == "directories":
-                # For skills: check subdirectories
-                if source_dir.exists():
-                    source_dirs = {d.name for d in source_dir.iterdir() if d.is_dir()}
-                else:
-                    source_dirs = set()
+            if source_dir.exists():
+                source_files = {f.name for f in source_dir.glob("*") if f.is_file()}
+            else:
+                source_files = set()
 
-                # Check installed directories
-                for installed_dir in target_dir.iterdir():
-                    if installed_dir.is_dir() and installed_dir.name not in source_dirs:
-                        obsolete_files.append(
-                            {
-                                "file": f"{component}/{installed_dir.name}/",
-                                "path": installed_dir,
-                                "type": "directory",
-                                "component": component,
-                            }
-                        )
-
-            elif install_type == "files":
-                # For agents/commands: check .md files
-                if source_dir.exists():
-                    source_files = {f.name for f in source_dir.glob("*.md")}
-                else:
-                    source_files = set()
-
-                # Check installed files (accounting for prefix)
-                for installed_file in target_dir.glob(f"{prefix}*.md"):
-                    # Remove prefix to get the base filename
-                    base_name = (
-                        installed_file.name[len(prefix) :] if prefix else installed_file.name
+            # Check installed files (accounting for prefix)
+            for installed_file in target_dir.glob(f"{prefix}*"):
+                if not installed_file.is_file():
+                    continue
+                    
+                # Remove prefix to get the base filename
+                base_name = (
+                    installed_file.name[len(prefix) :] if prefix else installed_file.name
+                )
+                if base_name not in source_files:
+                    obsolete_files.append(
+                        {
+                            "file": installed_file.name,
+                            "path": installed_file,
+                            "type": "file",
+                            "component": component,
+                        }
                     )
-                    if base_name not in source_files:
-                        obsolete_files.append(
-                            {
-                                "file": installed_file.name,
-                                "path": installed_file,
-                                "type": "file",
-                                "component": component,
-                            }
-                        )
 
         return obsolete_files
 
@@ -630,64 +553,49 @@ class ClaudeIntegrationManager:
             obsolete: Obsolete file/directory information
         """
         path = obsolete["path"]
-
-        if obsolete["type"] == "directory":
-            # Remove directory and contents
-            shutil.rmtree(path)
-            console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
-        else:
-            # Remove file
-            path.unlink()
-            console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
+        path.unlink()
+        console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
 
     def _print_next_steps(self) -> None:
         """Print helpful next steps."""
         console.print("\n[bold]Next steps:[/]")
-        console.print("1. Reference sheets are available in .claude/knowledge/")
-        console.print("2. Try slash commands: [cyan]/dr-init[/], [cyan]/dr-model[/]")
-        console.print("3. Run [cyan]dr claude status[/] to see what's installed")
-        console.print("\n[dim]Note: Restart Claude Code to load new files[/]")
+        console.print("1. Knowledge base is available in .github/knowledge/")
+        console.print("2. Agents are available in .github/agents/")
+        console.print("3. Run [cyan]dr copilot status[/] to see what's installed")
 
 
 # CLI Commands
 
 
 @click.group()
-def claude():
-    """Manage Claude Code integration."""
+def copilot():
+    """Manage GitHub Copilot integration."""
     pass
 
 
-@claude.command()
+@copilot.command()
 @click.option(
-    "--reference-only",
+    "--knowledge-only",
     is_flag=True,
-    help="Install only reference sheets",
-)
-@click.option(
-    "--commands-only",
-    is_flag=True,
-    help="Install only slash commands",
+    help="Install only knowledge base",
 )
 @click.option(
     "--agents-only",
     is_flag=True,
-    help="Install only agent definitions",
+    help="Install only agents",
 )
 @click.option(
     "--force",
     is_flag=True,
     help="Overwrite existing files without prompting",
 )
-def install(reference_only, commands_only, agents_only, force):
-    """Install Claude Code integration files."""
-    manager = ClaudeIntegrationManager()
+def install(knowledge_only, agents_only, force):
+    """Install GitHub Copilot integration files."""
+    manager = CopilotIntegrationManager()
 
     components = None
-    if reference_only:
-        components = ["reference_sheets"]
-    elif commands_only:
-        components = ["commands"]
+    if knowledge_only:
+        components = ["knowledge"]
     elif agents_only:
         components = ["agents"]
 
@@ -698,7 +606,7 @@ def install(reference_only, commands_only, agents_only, force):
         raise click.Abort()
 
 
-@claude.command()
+@copilot.command()
 @click.option(
     "--dry-run",
     is_flag=True,
@@ -710,8 +618,8 @@ def install(reference_only, commands_only, agents_only, force):
     help="Update all files without prompting",
 )
 def update(dry_run, force):
-    """Update installed Claude integration files."""
-    manager = ClaudeIntegrationManager()
+    """Update installed Copilot integration files."""
+    manager = CopilotIntegrationManager()
 
     try:
         manager.update(dry_run=dry_run, force=force)
@@ -720,39 +628,30 @@ def update(dry_run, force):
         raise click.Abort()
 
 
-@claude.command()
+@copilot.command()
 @click.option(
     "--force",
     is_flag=True,
     help="Remove without confirmation",
 )
 @click.option(
-    "--commands",
-    "component_commands",
+    "--knowledge",
     is_flag=True,
-    help="Remove only slash commands",
-)
-@click.option(
-    "--reference",
-    is_flag=True,
-    help="Remove only reference sheets",
+    help="Remove only knowledge base",
 )
 @click.option(
     "--agents",
-    "component_agents",
     is_flag=True,
     help="Remove only agents",
 )
-def remove(force, component_commands, reference, component_agents):
-    """Remove Claude Code integration files."""
-    manager = ClaudeIntegrationManager()
+def remove(force, knowledge, agents):
+    """Remove GitHub Copilot integration files."""
+    manager = CopilotIntegrationManager()
 
     components = None
-    if component_commands:
-        components = ["commands"]
-    elif reference:
-        components = ["reference_sheets"]
-    elif component_agents:
+    if knowledge:
+        components = ["knowledge"]
+    elif agents:
         components = ["agents"]
 
     try:
@@ -762,15 +661,15 @@ def remove(force, component_commands, reference, component_agents):
         raise click.Abort()
 
 
-@claude.command()
+@copilot.command()
 def status():
-    """Show Claude Code integration status."""
-    manager = ClaudeIntegrationManager()
+    """Show GitHub Copilot integration status."""
+    manager = CopilotIntegrationManager()
     manager.status()
 
 
-@claude.command(name="list")
+@copilot.command(name="list")
 def list_components():
     """List available components."""
-    manager = ClaudeIntegrationManager()
+    manager = CopilotIntegrationManager()
     manager.list_components()

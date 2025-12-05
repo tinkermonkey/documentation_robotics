@@ -1,7 +1,3 @@
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.TIER2_DEVELOPER_GUIDE = void 0;
-exports.TIER2_DEVELOPER_GUIDE = `
 # Documentation Robotics - Developer Guide
 
 _For active modeling work. See tier1-essentials.md for quick reference._
@@ -22,7 +18,7 @@ Documentation Robotics includes specialized agents to help with different tasks:
 - Needing guidance on upgrades or maintenance
 - Want to understand the "why" behind DR
 
-**Launch:** Task tool, agent type: \`dr-helper\`
+**Launch:** Task tool, agent type: `dr-helper`
 
 ### dr-ideator (Collaborative Exploration)
 
@@ -46,7 +42,7 @@ Documentation Robotics includes specialized agents to help with different tasks:
 - Guides merge/abandon decisions
 - Manages multiple changesets intelligently
 
-**Launch:** Task tool, agent type: \`dr-ideator\`
+**Launch:** Task tool, agent type: `dr-ideator`
 
 ### dr-extractor (Model Extraction)
 
@@ -82,7 +78,7 @@ Documentation Robotics includes specialized agents to help with different tasks:
 
 ## Element Structure
 
-\`\`\`yaml
+```yaml
 ElementID:
   id: {layer}.{type}.{kebab-name}
   name: "Human Readable Name"
@@ -91,7 +87,7 @@ ElementID:
   properties:
     # Layer-specific fields
     # Cross-layer references
-\`\`\`
+```
 
 ## Layer Details & Top Entity Types
 
@@ -101,17 +97,17 @@ ElementID:
 
 **Top Types:**
 
-- \`Goal\` - Business objectives with KPIs
-- \`Requirement\` - Functional/non-functional requirements
-- \`Stakeholder\` - Internal/external stakeholders
-- \`Constraint\` - Limitations and boundaries
-- \`Driver\` - Market/regulatory/technology drivers
+- `Goal` - Business objectives with KPIs
+- `Requirement` - Functional/non-functional requirements
+- `Stakeholder` - Internal/external stakeholders
+- `Constraint` - Limitations and boundaries
+- `Driver` - Market/regulatory/technology drivers
 
 **Key Properties:**
 
-- \`priority\`: critical | high | medium | low
-- \`category\`: market | regulatory | technology | operational
-- \`measuredBy\`: Reference to metrics
+- `priority`: critical | high | medium | low
+- `category`: market | regulatory | technology | operational
+- `measuredBy`: Reference to metrics
 
 ### 02. Business Layer (WHAT)
 
@@ -119,17 +115,17 @@ ElementID:
 
 **Top Types:**
 
-- \`BusinessService\` - Business capabilities
-- \`BusinessProcess\` - Workflows and procedures
-- \`BusinessActor\` - Roles and departments
-- \`BusinessFunction\` - Business activities
-- \`Product\` - Offerings to customers
+- `BusinessService` - Business capabilities
+- `BusinessProcess` - Workflows and procedures
+- `BusinessActor` - Roles and departments
+- `BusinessFunction` - Business activities
+- `Product` - Offerings to customers
 
 **Key Properties:**
 
-- \`supports-goals\`: [motivation.goal.id, ...]
-- \`owner\`: business.actor.id
-- \`criticality\`: critical | high | medium | low
+- `supports-goals`: [motivation.goal.id, ...]
+- `owner`: business.actor.id
+- `criticality`: critical | high | medium | low
 
 ### 03. Security Layer (WHO CAN)
 
@@ -137,31 +133,31 @@ ElementID:
 
 **Top Types:**
 
-- \`Role\` - User role with permissions and inheritance
-- \`Permission\` - Specific access permission (scope, resource, action)
-- \`SecureResource\` - Protected resource with operations and field access
-- \`SecurityPolicy\` - Declarative security policy with rules
-- \`Actor\` - Security actor (role, agent, organization, system) with objectives
-- \`ActorObjective\` - Security-related goals for actors
-- \`InformationEntity\` - Information asset with fine-grained rights
-- \`Delegation\` - Permission/goal delegation between actors
-- \`SeparationOfDuty\` - Different actors must perform related tasks
-- \`BindingOfDuty\` - Same actor must complete related tasks
-- \`NeedToKnow\` - Access based on objective requirements
-- \`Threat\` - Security threat with countermeasures
-- \`AccountabilityRequirement\` - Non-repudiation and audit requirements
-- \`Evidence\` - Proof for accountability (signatures, timestamps, etc.)
-- \`DataClassification\` - Data classification levels and protection requirements
+- `Role` - User role with permissions and inheritance
+- `Permission` - Specific access permission (scope, resource, action)
+- `SecureResource` - Protected resource with operations and field access
+- `SecurityPolicy` - Declarative security policy with rules
+- `Actor` - Security actor (role, agent, organization, system) with objectives
+- `ActorObjective` - Security-related goals for actors
+- `InformationEntity` - Information asset with fine-grained rights
+- `Delegation` - Permission/goal delegation between actors
+- `SeparationOfDuty` - Different actors must perform related tasks
+- `BindingOfDuty` - Same actor must complete related tasks
+- `NeedToKnow` - Access based on objective requirements
+- `Threat` - Security threat with countermeasures
+- `AccountabilityRequirement` - Non-repudiation and audit requirements
+- `Evidence` - Proof for accountability (signatures, timestamps, etc.)
+- `DataClassification` - Data classification levels and protection requirements
 
 _Note: See tier3 for complete security model (28+ types)_
 
 **Key Properties:**
 
-- \`Role\`: name, displayName, inheritsFrom[], permissions[], isSystemRole
-- \`Permission\`: name, scope (global | resource | attribute | owner), resource, action
-- \`SecureResource\`: resource, type (api | screen | data | file | service), operations[]
-- \`Actor\`: type (role | agent | organization | system), trustLevel, objectives[]
-- \`Threat\`: threatens[], likelihood, impact, threatActors[], countermeasures[]
+- `Role`: name, displayName, inheritsFrom[], permissions[], isSystemRole
+- `Permission`: name, scope (global | resource | attribute | owner), resource, action
+- `SecureResource`: resource, type (api | screen | data | file | service), operations[]
+- `Actor`: type (role | agent | organization | system), trustLevel, objectives[]
+- `Threat`: threatens[], likelihood, impact, threatActors[], countermeasures[]
 
 ### 04. Application Layer (HOW)
 
@@ -169,18 +165,18 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`ApplicationService\` - Software services
-- \`ApplicationComponent\` - Software modules
-- \`ApplicationInterface\` - Service interfaces
-- \`ApplicationFunction\` - Software functions
-- \`DataObject\` - Application data
+- `ApplicationService` - Software services
+- `ApplicationComponent` - Software modules
+- `ApplicationInterface` - Service interfaces
+- `ApplicationFunction` - Software functions
+- `DataObject` - Application data
 
 **Key Properties:**
 
-- \`realizes\`: business.service.id
-- \`securedBy\`: [security.policy.id, ...]
-- \`deployedTo\`: technology.node.id
-- \`exposes\`: [api.operation.id, ...]
+- `realizes`: business.service.id
+- `securedBy`: [security.policy.id, ...]
+- `deployedTo`: technology.node.id
+- `exposes`: [api.operation.id, ...]
 
 ### 05. Technology Layer (WITH WHAT)
 
@@ -188,16 +184,16 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`Node\` - Servers, VMs, containers
-- \`Device\` - Physical hardware
-- \`SystemSoftware\` - OS, databases, middleware
-- \`TechnologyService\` - Infrastructure services
-- \`Artifact\` - Deployable units
+- `Node` - Servers, VMs, containers
+- `Device` - Physical hardware
+- `SystemSoftware` - OS, databases, middleware
+- `TechnologyService` - Infrastructure services
+- `Artifact` - Deployable units
 
 **Key Properties:**
 
-- \`hosts\`: [application.component.id, ...]
-- \`environment\`: production | staging | development
+- `hosts`: [application.component.id, ...]
+- `environment`: production | staging | development
 
 ### 06. API Layer (INTERFACE)
 
@@ -205,16 +201,16 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`Operation\` - API endpoints (paths + methods)
-- \`Schema\` - Request/response schemas
-- \`Parameter\` - Query/path parameters
+- `Operation` - API endpoints (paths + methods)
+- `Schema` - Request/response schemas
+- `Parameter` - Query/path parameters
 
 **Key Properties:**
 
-- \`path\`: "/api/v1/resource"
-- \`method\`: GET | POST | PUT | DELETE
-- \`securedBy\`: [security.scheme.id, ...]
-- \`operationId\`: Unique operation identifier
+- `path`: "/api/v1/resource"
+- `method`: GET | POST | PUT | DELETE
+- `securedBy`: [security.scheme.id, ...]
+- `operationId`: Unique operation identifier
 
 ### 07. Data Model Layer (STRUCTURE)
 
@@ -222,19 +218,19 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`ObjectSchema\` - Defines object structure and required properties
-- \`ArraySchema\` - Defines array items and constraints (minItems, maxItems, uniqueItems)
-- \`StringSchema\` - String validation (length, pattern, format like email/uuid/date-time)
-- \`NumericSchema\` - Number validation (min, max, multipleOf)
-- \`SchemaComposition\` - Combines schemas (allOf, anyOf, oneOf, not)
-- \`Reference\` - Links to other schemas ($ref)
+- `ObjectSchema` - Defines object structure and required properties
+- `ArraySchema` - Defines array items and constraints (minItems, maxItems, uniqueItems)
+- `StringSchema` - String validation (length, pattern, format like email/uuid/date-time)
+- `NumericSchema` - Number validation (min, max, multipleOf)
+- `SchemaComposition` - Combines schemas (allOf, anyOf, oneOf, not)
+- `Reference` - Links to other schemas ($ref)
 
 **Key Properties:**
 
-- \`type\`: object | array | string | number | integer | boolean | null
-- \`required\`: [field1, field2, ...]
-- \`properties\`: {field definitions}
-- Custom extensions: \`x-database\`, \`x-ui\`, \`x-security\`, \`x-apm-data-quality-metrics\`
+- `type`: object | array | string | number | integer | boolean | null
+- `required`: [field1, field2, ...]
+- `properties`: {field definitions}
+- Custom extensions: `x-database`, `x-ui`, `x-security`, `x-apm-data-quality-metrics`
 
 ### 08. Datastore Layer (STORAGE)
 
@@ -242,21 +238,21 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`Database\` - Database instance with schemas
-- \`DatabaseSchema\` - Logical grouping of tables (distinct from JSON Schema)
-- \`Table\` - Database table with columns and constraints
-- \`Column\` - Table column with data type and constraints
-- \`Index\` - Query optimization indexes (BTREE, HASH, GIN, etc.)
-- \`Constraint\` - PRIMARY_KEY, UNIQUE, FOREIGN_KEY, CHECK, EXCLUSION
-- \`Trigger\` - Database triggers (BEFORE/AFTER/INSTEAD OF on INSERT/UPDATE/DELETE)
-- \`View\` - Database views (regular or materialized)
+- `Database` - Database instance with schemas
+- `DatabaseSchema` - Logical grouping of tables (distinct from JSON Schema)
+- `Table` - Database table with columns and constraints
+- `Column` - Table column with data type and constraints
+- `Index` - Query optimization indexes (BTREE, HASH, GIN, etc.)
+- `Constraint` - PRIMARY_KEY, UNIQUE, FOREIGN_KEY, CHECK, EXCLUSION
+- `Trigger` - Database triggers (BEFORE/AFTER/INSTEAD OF on INSERT/UPDATE/DELETE)
+- `View` - Database views (regular or materialized)
 
 **Key Properties:**
 
-- \`Database\`: type (PostgreSQL | MySQL | SQLite | etc.), version, charset
-- \`Table\`: schema, columns[], constraints[], indexes[], triggers[]
-- \`Column\`: dataType, nullable, defaultValue, x-pii, x-encrypted
-- Custom extensions: \`x-json-schema\`, \`x-governed-by-*\`, \`x-apm-performance-metrics\`
+- `Database`: type (PostgreSQL | MySQL | SQLite | etc.), version, charset
+- `Table`: schema, columns[], constraints[], indexes[], triggers[]
+- `Column`: dataType, nullable, defaultValue, x-pii, x-encrypted
+- Custom extensions: `x-json-schema`, `x-governed-by-*`, `x-apm-performance-metrics`
 
 ### 09. UX Layer (PRESENTATION)
 
@@ -264,23 +260,23 @@ _Note: See tier3 for complete security model (28+ types)_
 
 **Top Types:**
 
-- \`View\` - Routable screen/page with components (not "Screen")
-- \`ExperienceState\` - Distinct state the experience can be in (not just "State")
-- \`Component\` - Atomic UI element (form-field, table, chart, card, etc.)
-- \`SubView\` - Reusable grouping of components within a view
-- \`ActionComponent\` - Interactive element (button, menu-item, link, voice-command)
-- \`ValidationRule\` - Client-side validation (required, minLength, pattern, email, etc.)
-- \`StateAction\` - Action executed during state lifecycle (fetchData, saveData, validateForm, etc.)
-- \`StateTransition\` - Transition between states (on success, failure, submit, etc.)
+- `View` - Routable screen/page with components (not "Screen")
+- `ExperienceState` - Distinct state the experience can be in (not just "State")
+- `Component` - Atomic UI element (form-field, table, chart, card, etc.)
+- `SubView` - Reusable grouping of components within a view
+- `ActionComponent` - Interactive element (button, menu-item, link, voice-command)
+- `ValidationRule` - Client-side validation (required, minLength, pattern, email, etc.)
+- `StateAction` - Action executed during state lifecycle (fetchData, saveData, validateForm, etc.)
+- `StateTransition` - Transition between states (on success, failure, submit, etc.)
 
 _Note: Layout is a property of View (LayoutStyle config), not a standalone entity_
 
 **Key Properties:**
 
-- \`View\`: type (form | list | detail | dashboard | wizard | conversational), layout, subViews[], components[]
-- \`ExperienceState\`: initial, onEnter[], onExit[], transitions[]
-- \`Component\`: type, dataBinding (schemaRef, defaultValue), security (fieldAccess, visibleToRoles)
-- \`StateAction\`: action (fetchData | saveData | callAPI | navigateTo), api.operationId
+- `View`: type (form | list | detail | dashboard | wizard | conversational), layout, subViews[], components[]
+- `ExperienceState`: initial, onEnter[], onExit[], transitions[]
+- `Component`: type, dataBinding (schemaRef, defaultValue), security (fieldAccess, visibleToRoles)
+- `StateAction`: action (fetchData | saveData | callAPI | navigateTo), api.operationId
 
 ### 10. Navigation Layer (FLOW)
 
@@ -288,22 +284,22 @@ _Note: Layout is a property of View (LayoutStyle config), not a standalone entit
 
 **Top Types:**
 
-- \`Route\` - Single destination (url for visual, intent for voice, event for chat, keyword for SMS)
-- \`NavigationGuard\` - Access control (authentication, authorization, validation, data-loaded)
-- \`NavigationTransition\` - Transition between routes (trigger: user-action, submit, success, failure, etc.)
-- \`NavigationFlow\` - Sequence of routes realizing business process
-- \`FlowStep\` - One step in navigation flow with data transfer and compensation
-- \`ContextVariable\` - Shared variable across flow steps (scope: flow | session | user)
+- `Route` - Single destination (url for visual, intent for voice, event for chat, keyword for SMS)
+- `NavigationGuard` - Access control (authentication, authorization, validation, data-loaded)
+- `NavigationTransition` - Transition between routes (trigger: user-action, submit, success, failure, etc.)
+- `NavigationFlow` - Sequence of routes realizing business process
+- `FlowStep` - One step in navigation flow with data transfer and compensation
+- `ContextVariable` - Shared variable across flow steps (scope: flow | session | user)
 
 _Note: NavigationMenu, Breadcrumb, and Sitemap are NOT entity types in the schema_
 
 **Key Properties:**
 
-- \`Route\`: type (experience | redirect | external), meta (requiresAuth, roles[], permissions[])
-- \`NavigationGuard\`: type (authentication | authorization | validation | custom), condition, onDeny
-- \`NavigationFlow\`: steps[], sharedContext[], processTracking, analytics
-- \`FlowStep\`: sequence, route, experience (entryState, exitTrigger), dataTransfer (inputs[], outputs[])
-- \`ContextVariable\`: schemaRef, scope, persistedIn (memory | session-storage | database)
+- `Route`: type (experience | redirect | external), meta (requiresAuth, roles[], permissions[])
+- `NavigationGuard`: type (authentication | authorization | validation | custom), condition, onDeny
+- `NavigationFlow`: steps[], sharedContext[], processTracking, analytics
+- `FlowStep`: sequence, route, experience (entryState, exitTrigger), dataTransfer (inputs[], outputs[])
+- `ContextVariable`: schemaRef, scope, persistedIn (memory | session-storage | database)
 
 ### 11. APM/Observability Layer (OBSERVE)
 
@@ -311,29 +307,92 @@ _Note: NavigationMenu, Breadcrumb, and Sitemap are NOT entity types in the schem
 
 **Top Types:**
 
-- \`Span\` - Unit of work in distributed tracing (spanKind: INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER)
-- \`SpanEvent\` - Timestamped event during span execution
-- \`LogRecord\` - OpenTelemetry log entry (severityNumber, severityText, body)
-- \`InstrumentConfig\` - Metric instrument (type: counter, updowncounter, gauge, histogram)
-- \`TraceConfiguration\` - Distributed tracing config (serviceName, sampler, propagators, exporters)
-- \`LogConfiguration\` - Logging config (serviceName, logLevel, processors, exporters)
-- \`MetricConfiguration\` - Metrics config (serviceName, meters, exporters)
-- \`DataQualityMetric\` - Data quality monitoring (type: completeness, accuracy, freshness, consistency, etc.)
+- `Span` - Unit of work in distributed tracing (spanKind: INTERNAL, SERVER, CLIENT, PRODUCER, CONSUMER)
+- `SpanEvent` - Timestamped event during span execution
+- `LogRecord` - OpenTelemetry log entry (severityNumber, severityText, body)
+- `InstrumentConfig` - Metric instrument (type: counter, updowncounter, gauge, histogram)
+- `TraceConfiguration` - Distributed tracing config (serviceName, sampler, propagators, exporters)
+- `LogConfiguration` - Logging config (serviceName, logLevel, processors, exporters)
+- `MetricConfiguration` - Metrics config (serviceName, meters, exporters)
+- `DataQualityMetric` - Data quality monitoring (type: completeness, accuracy, freshness, consistency, etc.)
 
 _Note: "Alert" and "Dashboard" are NOT entity types in the OpenTelemetry schema_
 
 **Key Properties:**
 
-- \`Span\`: traceId, spanId, name, startTimeUnixNano, endTimeUnixNano, attributes[], events[], status
-- \`LogRecord\`: timeUnixNano, severityNumber, severityText (TRACE | DEBUG | INFO | WARN | ERROR | FATAL), body
-- \`InstrumentConfig\`: type, name, unit, description, motivationMapping (contributesToGoal, measuresOutcome)
+- `Span`: traceId, spanId, name, startTimeUnixNano, endTimeUnixNano, attributes[], events[], status
+- `LogRecord`: timeUnixNano, severityNumber, severityText (TRACE | DEBUG | INFO | WARN | ERROR | FATAL), body
+- `InstrumentConfig`: type, name, unit, description, motivationMapping (contributesToGoal, measuresOutcome)
 - Custom extensions: operationId, archimateService, businessProcess for cross-layer integration
+
+### 12. Testing Layer (VERIFY)
+
+**Purpose:** Test coverage modeling and requirements traceability (Custom specification)
+
+**Top Types:**
+
+- `CoverageTarget` - Artifact requiring test coverage (workflow, form, API, data transformation)
+- `InputSpacePartition` - Partitioning of input dimensions into testable categories
+- `ContextVariation` - Different contexts for invoking functionality (UI, API, event-triggered, scheduled)
+- `CoverageRequirement` - Required test coverage with criteria (pairwise, boundary, exhaustive, risk-based)
+- `TestCaseSketch` - Abstract test case selecting specific partition values
+
+**Key Properties:**
+
+- `CoverageTarget`: targetType (workflow | form | api-operation | data-transform), businessProcessRef, formRef, apiOperationRef
+- `InputSpacePartition`: presenceRule (required | optional | conditional), partitions[] (typical | boundary | invalid | null | special)
+- `ContextVariation`: contextType (ui-entry | api-entry | event-triggered | scheduled), securityRoleRef, entryPointRef
+- `CoverageRequirement`: coverageCriteria (exhaustive | pairwise | each-choice | boundary | risk-based), targetRef, requirementRefs[]
+- `TestCaseSketch`: status (planned | implemented | automated | manual), implementationRef (gherkin:// | postman:// | playwright://)
+
+**Integration Points:**
+
+- Links to Motivation layer for requirements traceability
+- Links to Business layer for workflow coverage
+- Links to UX layer for form coverage
+- Links to API layer for endpoint coverage
+- Links to Data Model layer for input constraints
+- Links to Security layer for actor/role context
+- Links to Navigation layer for route entry points
+
+**Example Usage:**
+
+```bash
+# Create coverage target for workflow
+dr add testing coverage-target \
+  --name "Order Creation Coverage" \
+  --set targetType=workflow \
+  --set businessProcessRef=business.process.create-order
+
+# Define input partition
+dr add testing input-space-partition \
+  --name "Line Items Count" \
+  --set presenceRule=required
+
+# Define context variation
+dr add testing context-variation \
+  --name "Customer UI Context" \
+  --set contextType=ui-entry \
+  --set securityRoleRef=security.role.customer
+
+# Create coverage requirement
+dr add testing coverage-requirement \
+  --name "Order Primary Coverage" \
+  --set coverageCriteria=pairwise \
+  --set targetRef=testing.coverage-target.order-creation-coverage
+
+# Define test case sketch
+dr add testing test-case-sketch \
+  --name "Single Item Order Test" \
+  --set status=planned \
+  --set expectedOutcome=order-created
+```
 
 ## Python API
 
 ### Model Class
 
-\`\`\`python
+```python
 from documentation_robotics.core import Model
 
 # Load model
@@ -370,11 +429,11 @@ if not result.is_valid():
 
 # Save changes (automatic with context manager)
 model.save()
-\`\`\`
+```
 
 ### Layer Class
 
-\`\`\`python
+```python
 from documentation_robotics.core import Layer
 
 # Load specific layer
@@ -389,11 +448,11 @@ critical_services = layer.find_elements(
 
 # Get element from layer
 service = layer.get_element("business.service.orders")
-\`\`\`
+```
 
 ### Element Class
 
-\`\`\`python
+```python
 from documentation_robotics.core import Element
 
 # Access element properties
@@ -406,11 +465,11 @@ props = element.data.get("properties", {})
 # Check properties
 criticality = element.get("properties", {}).get("criticality")
 goals = element.get("properties", {}).get("supports-goals", [])
-\`\`\`
+```
 
 ### Projection Engine
 
-\`\`\`python
+```python
 from documentation_robotics.core.projection_engine import ProjectionEngine
 
 # Load engine with rules
@@ -428,15 +487,15 @@ results = engine.project_all(
 
 # Preview projections (dry-run)
 preview = engine.preview_projection(source, "application")
-\`\`\`
+```
 
 ## Validation Levels
 
 ### Basic (Default)
 
-\`\`\`bash
+```bash
 dr validate
-\`\`\`
+```
 
 - Schema validation (JSON Schema compliance)
 - Naming conventions (kebab-case, format)
@@ -444,9 +503,9 @@ dr validate
 
 ### Standard (Recommended)
 
-\`\`\`bash
+```bash
 dr validate
-\`\`\`
+```
 
 - All Basic checks, plus:
 - Semantic validation (11 rules)
@@ -455,9 +514,9 @@ dr validate
 
 ### Strict (Comprehensive)
 
-\`\`\`bash
+```bash
 dr validate --strict
-\`\`\`
+```
 
 - All Standard checks, plus:
 - Upward traceability (implementation → goals)
@@ -469,37 +528,37 @@ dr validate --strict
 
 **Broken Reference:**
 
-\`\`\`
+```
 Error: business.service.orders references non-existent motivation.goal.missing
 Fix: Remove reference or create the goal
-\`\`\`
+```
 
 **Missing Traceability:**
 
-\`\`\`
+```
 Warning: application.service.order-api has no 'realizes' reference
 Fix: Add realizes: business.service.orders
-\`\`\`
+```
 
 **Naming Convention:**
 
-\`\`\`
+```
 Error: Invalid ID format: business.service.Order_Management
 Fix: Use kebab-case: business.service.order-management
-\`\`\`
+```
 
 **Security Policy Missing:**
 
-\`\`\`
+```
 Warning: Critical service has no security policy
 Fix: Add securedBy: [security.policy.authenticated-access]
-\`\`\`
+```
 
 ## Cross-Layer Traceability Flows
 
 ### Goal → Implementation
 
-\`\`\`yaml
+```yaml
 # Motivation (Goal)
 motivation.goal.improve-conversion:
   name: "Improve Conversion Rate"
@@ -538,60 +597,60 @@ datastore.table.orders:
   name: "orders"
   properties:
     stores: data_model.schema.order
-\`\`\`
+```
 
 ### Security (Cross-Cutting)
 
-\`\`\`yaml
+```yaml
 # Security Policy
 security.policy.authenticated-access:
   type: authorization
   applies_to:
     - application.service.checkout-api
     - api.operation.create-order
-\`\`\`
+```
 
 ### Observability (Cross-Cutting)
 
-\`\`\`yaml
+```yaml
 # Metric
 apm.metric.checkout-latency:
   type: latency
   instruments: [application.service.checkout-api]
   threshold: "200ms"
-\`\`\`
+```
 
 ## Common Operations
 
 ### Add New Feature (Manual)
 
-\`\`\`bash
+```bash
 # 1. Create business service
-dr add business service \\
-  --name "Payment Processing" \\
-  --property criticality=critical \\
+dr add business service \
+  --name "Payment Processing" \
+  --property criticality=critical \
   --property supports-goals=motivation.goal.revenue
 
 # 2. Project to application
 dr project business.service.payment-processing --to application
 
 # 3. Add security
-dr add security policy \\
-  --name "PCI DSS Compliance" \\
+dr add security policy \
+  --name "PCI DSS Compliance" \
   --property applies_to=application.service.payment-processing
 
 # 4. Add monitoring
-dr add apm metric \\
-  --name "payment-availability" \\
+dr add apm metric \
+  --name "payment-availability" \
   --property instruments=application.service.payment-processing
 
 # 5. Validate
 dr validate --strict
-\`\`\`
+```
 
 ### Add New Feature (Python Script)
 
-\`\`\`python
+```python
 from documentation_robotics.core import Model
 from documentation_robotics.core.projection_engine import ProjectionEngine
 
@@ -632,7 +691,7 @@ else:
     print("✗ Validation failed")
     for error in result.errors:
         print(f"  - {error.message}")
-\`\`\`
+```
 
 ### Working with Cross-Layer Links
 
@@ -651,7 +710,7 @@ else:
 
 Used in external standard specifications (OpenAPI 3.0, JSON Schema Draft 7):
 
-\`\`\`yaml
+```yaml
 # In OpenAPI operation
 paths:
   /orders:
@@ -670,13 +729,13 @@ properties:
     x-security:
       classification: confidential
       pii: true
-\`\`\`
+```
 
 **Pattern B: Dot-Notation (Upward References)**
 
 Used when implementation layers reference strategic/higher layers:
 
-\`\`\`yaml
+```yaml
 # In Application Service
 application.service.order-api:
   name: "Order Management API"
@@ -689,13 +748,13 @@ application.service.order-api:
     apm:
       business-metrics: [apm.metric.order-processing-time]
       sla-target-latency: 200ms
-\`\`\`
+```
 
 **Pattern C: Nested Objects (Complex Relationships)**
 
 Used for grouping related references or channel-specific overrides:
 
-\`\`\`yaml
+```yaml
 # In Navigation Route
 navigation.route.order-history:
   name: "Order History Route"
@@ -715,13 +774,13 @@ navigation.route.order-history:
       operationId: listOrders
       method: GET
       endpoint: /api/v1/orders
-\`\`\`
+```
 
 **Pattern D: Direct Fields (Standard References)**
 
 Native specification fields:
 
-\`\`\`yaml
+```yaml
 # OpenAPI operationId
 api.operation.create-order:
   properties:
@@ -732,13 +791,13 @@ data_model.object-schema.order-item:
   properties:
     items:
       $ref: "#/definitions/OrderItem" # Native JSON Schema $ref
-\`\`\`
+```
 
 #### Querying Link Types
 
 Before creating cross-layer references, query available link types:
 
-\`\`\`bash
+```bash
 # List all link types
 dr links types
 
@@ -747,15 +806,18 @@ dr links types --category motivation  # Links to/from motivation layer
 dr links types --category security    # Security-related links
 dr links types --category api         # API layer links
 
-# Filter by layer
+# Filter by source/target layers
 dr links types --layer application
 dr links types --layer api
 dr links types --layer business
-\`\`\`
+
+# Get JSON for programmatic use
+dr links types --format json
+```
 
 **Example workflow:**
 
-\`\`\`bash
+```bash
 User: How do I link my API operation to the application service it implements?
 
 You: Query the relevant link type:
@@ -769,13 +831,13 @@ Result shows:
    Description: Links API operation to implementing ApplicationService
    Example:
      x-archimate-ref: application.service.order-api
-\`\`\`
+```
 
 #### Discovering Links in Your Model
 
 Find links for specific elements or search across the model:
 
-\`\`\`bash
+```bash
 # Find all links for an element (shows both incoming and outgoing)
 dr links find business.service.order-management
 
@@ -787,11 +849,11 @@ dr links list --type motivation.supports-goals
 
 # Filter by layer
 dr links list --layer application
-\`\`\`
+```
 
 **Example:**
 
-\`\`\`bash
+```bash
 $ dr links find business.service.order-management
 
 Links for business.service.order-management:
@@ -808,7 +870,7 @@ Incoming Links (3):
 ← navigation.flow.order-fulfillment (via realizesProcess)
 
 Total: 7 links
-\`\`\`
+```
 
 #### Validating Cross-Layer Links
 
@@ -819,7 +881,7 @@ Link validation checks for:
 3. **Cardinality**: Single vs array values match definition
 4. **Format**: UUID, path, duration formats are valid
 
-\`\`\`bash
+```bash
 # Basic link validation
 dr validate --validate-links
 
@@ -831,11 +893,11 @@ dr validate --layer application --validate-links
 
 # Get JSON report
 dr validate --validate-links --output json > validation-report.json
-\`\`\`
+```
 
 **Common validation issues:**
 
-\`\`\`yaml
+```yaml
 # Issue 1: Broken reference (target doesn't exist)
 Error: business.service.orders
 → motivation.supports-goals references 'motivation.goal.missing' (not found)
@@ -854,12 +916,12 @@ Fix: Use array syntax: supports-goals: ["motivation.goal.revenue"]
 Error: api.operation.create-order
 → x-archimate-ref expects UUID format, got 'app-service-123'
 Fix: Use proper element ID: application.service.order-api
-\`\`\`
+```
 
 **Best practices:**
 
 - Validate links during development
-- Use \`--strict-links\` in CI/CD pipelines
+- Use `--strict-links` in CI/CD pipelines
 - Validate before applying changesets
 - Address warnings to maintain model quality
 
@@ -867,17 +929,17 @@ Fix: Use proper element ID: application.service.order-api
 
 Find how elements are connected through links:
 
-\`\`\`bash
+```bash
 # Find path between elements
 dr links trace api.operation.create-order motivation.goal.revenue
 
 # Limit depth
 dr links trace api.operation.create-order motivation.goal.revenue --max-hops 5
-\`\`\`
+```
 
 **Example:**
 
-\`\`\`bash
+```bash
 $ dr links trace api.operation.create-order motivation.goal.improve-revenue
 
 Path 1 (shortest - 3 hops):
@@ -892,25 +954,25 @@ api.operation.create-order
   → navigation.route.checkout (via route)
   → business.process.order-checkout (via realizesProcess)
   → motivation.goal.improve-revenue (via motivation.supports-goals)
-\`\`\`
+```
 
 #### Generating Link Documentation
 
 Create comprehensive link documentation for reviews and onboarding:
 
-\`\`\`bash
+```bash
 # Generate documentation (Markdown, HTML, Mermaid)
 dr links docs --formats markdown --formats html --formats mermaid --output-dir ./docs/
 
 # Generate only Markdown
 dr links docs --formats markdown --output-dir ./docs/
-\`\`\`
+```
 
 #### Migrating from v0.1.x to v0.2.0
 
 If you have an existing model using non-standard link patterns, migrate to v0.2.0 standards:
 
-\`\`\`bash
+```bash
 # Check what needs migration
 dr migrate
 
@@ -922,22 +984,22 @@ dr migrate --apply
 
 # Validate migrated model
 dr validate --validate-links
-\`\`\`
+```
 
 **What gets migrated:**
 
 1. **Naming conventions**: camelCase → kebab-case
-   - \`supportGoals\` → \`supports-goals\`
-   - \`realizesService\` → \`realizes-services\`
+   - `supportGoals` → `supports-goals`
+   - `realizesService` → `realizes-services`
 
 2. **Cardinality fixes**: Single values → arrays where needed
-   - \`supports-goals: "goal-1"\` → \`supports-goals: ["goal-1"]\`
+   - `supports-goals: "goal-1"` → `supports-goals: ["goal-1"]`
 
 3. **Format corrections**: Invalid UUIDs, paths, durations
 
 **Migration workflow:**
 
-\`\`\`bash
+```bash
 # Create migration branch
 git checkout -b migrate-to-v0.2.0
 
@@ -959,11 +1021,11 @@ git add .
 git commit -m "Migrate cross-layer links to v0.2.0 standards"
 git checkout main
 git merge migrate-to-v0.2.0
-\`\`\`
+```
 
 #### Python API for Link Management
 
-\`\`\`python
+```python
 from documentation_robotics.core import Model
 from documentation_robotics.validation.link_registry import LinkRegistry
 from documentation_robotics.validation.link_analyzer import LinkAnalyzer
@@ -1013,16 +1075,16 @@ for error in result.errors:
     print(f"Error in {error.element_id}: {error.message}")
     if error.suggestion:
         print(f"  Suggestion: {error.suggestion}")
-\`\`\`
+```
 
 #### Link Management Best Practices
 
-1. **Query before creating**: Use \`dr links types\` to understand valid patterns
+1. **Query before creating**: Use `dr links types` to understand valid patterns
 2. **Maintain traceability**: Link implementation to motivation layer
-3. **Validate regularly**: Run \`dr validate --validate-links\` frequently
-4. **Use strict mode in CI/CD**: \`--strict-links\` catches all issues
-5. **Document connections**: Use \`dr links docs\` for stakeholder reviews
-6. **Monitor link health**: Check \`dr links stats\` for model insights
+3. **Validate regularly**: Run `dr validate --validate-links` frequently
+4. **Use strict mode in CI/CD**: `--strict-links` catches all issues
+5. **Document connections**: Use `dr links docs` for stakeholder reviews
+6. **Monitor link health**: Check `dr links stats` for model insights
 7. **Follow naming conventions**: Use kebab-case, proper plurals
 8. **Choose appropriate patterns**: X-extensions for OpenAPI, dot-notation for upward refs
 
@@ -1040,7 +1102,7 @@ for error in result.errors:
 
 **Basic workflow:**
 
-\`\`\`bash
+```bash
 # 1. Create and activate a changeset
 dr changeset create "new-payment-feature" --type feature
 
@@ -1057,11 +1119,11 @@ dr changeset diff                # Compare with main model
 dr changeset apply --yes         # Merge to main model
 # OR
 dr changeset abandon changeset-id --yes  # Discard changes
-\`\`\`
+```
 
 **Managing multiple changesets:**
 
-\`\`\`bash
+```bash
 # List all changesets
 dr changeset list                # See all changesets
 dr changeset list --status active  # Filter by status
@@ -1072,11 +1134,11 @@ dr changeset clear --yes          # Return to main model
 
 # Compare changesets
 dr changeset diff changeset-a changeset-b  # Compare two changesets
-\`\`\`
+```
 
 **Python API for changesets:**
 
-\`\`\`python
+```python
 from documentation_robotics.core import Model
 from documentation_robotics.core.changeset_manager import ChangesetManager
 
@@ -1093,19 +1155,19 @@ model.update_element("business.service.existing", {"status": "updated"})
 
 # Changes are isolated to this changeset
 # Main model remains unchanged until you apply
-\`\`\`
+```
 
 **Best practices:**
 
-- Create descriptive changeset names: \`feature-crypto-payments\` not \`test1\`
-- Review changes with \`dr changeset status\` before applying
-- Use \`--preview\` flag when applying to see what will change
+- Create descriptive changeset names: `feature-crypto-payments` not `test1`
+- Review changes with `dr changeset status` before applying
+- Use `--preview` flag when applying to see what will change
 - Keep changesets focused on a single feature or experiment
 - Delete or abandon changesets when done to keep workspace clean
 
 ## File Locations
 
-\`\`\`
+```
 project-root/
 ├── .dr/                           # Tool configuration and schemas
 │   ├── schemas/                   # JSON Schema definitions for each layer
@@ -1133,11 +1195,11 @@ project-root/
 │   │   └── docs/                  # Markdown documentation
 │   └── projection-rules.yaml      # Cross-layer projection rules
 └── dr.config.yaml                 # Configuration
-\`\`\`
+```
 
 ## Export Formats
 
-\`\`\`bash
+```bash
 # ArchiMate (for Archi, Enterprise Architect)
 dr export --format archimate --output ./specs/archimate/
 
@@ -1152,13 +1214,11 @@ dr export --format plantuml --output ./specs/diagrams/
 
 # All formats
 dr export --format all --output ./specs/
-\`\`\`
+```
 
 ## Next Steps
 
 - **Full Reference:** See tier3-complete-reference.md for complete entity catalog
-- **Slash Commands:** Use \`/dr-init\`, \`/dr-model\`, \`/dr-validate\` for common workflows
-- **CLI Help:** Run \`dr <command> --help\` for detailed command documentation
-- **Documentation:** Check \`/cli/docs/user-guide/\` for tutorials
-`;
-//# sourceMappingURL=tier2.js.map
+- **Slash Commands:** Use `/dr-init`, `/dr-model`, `/dr-validate` for common workflows
+- **CLI Help:** Run `dr <command> --help` for detailed command documentation
+- **Documentation:** Check `/cli/docs/user-guide/` for tutorials

@@ -264,11 +264,11 @@ class UpgradeManager:
                 task = progress.add_task(f"Upgrading {item['type']}...", total=None)
                 try:
                     item["action"](manifest)
-                    progress.update(task, completed=True)
+                    progress.update(task, total=1, completed=1)
                     console.print(f"  [green]✓[/] {item['description']}")
                 except Exception as e:
                     console.print(f"  [red]✗[/] Failed: {e}")
-                    progress.update(task, completed=True)
+                    progress.update(task, total=1, completed=1)
 
         # Update manifest with new version
         manifest.data["cli_version"] = CLI_VERSION
@@ -300,7 +300,7 @@ class UpgradeManager:
         manager = ClaudeIntegrationManager(self.root_path)
 
         # Update installed components
-        manager.update(dry_run=False, force=True)
+        manager.update(dry_run=False, force=True, show_progress=False)
 
     def _upgrade_manifest(self, manifest: Manifest) -> None:
         """Upgrade manifest structure."""

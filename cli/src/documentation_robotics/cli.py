@@ -14,6 +14,7 @@ from .commands import (
     changeset,
     claude,
     conformance,
+    copilot,
     export,
     find,
     init,
@@ -96,6 +97,8 @@ cli.add_command(conformance.conformance)
 cli.add_command(changeset.changeset)
 # Claude Code integration
 cli.add_command(claude.claude)
+# GitHub Copilot integration
+cli.add_command(copilot.copilot)
 # Upgrade management
 cli.add_command(upgrade.upgrade)
 cli.add_command(upgrade.version_info)

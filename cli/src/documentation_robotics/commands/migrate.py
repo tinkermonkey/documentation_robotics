@@ -314,11 +314,21 @@ def _apply_migrations(
 
         console.print(f"\n[green]✓ Updated manifest to v{results['target_version']}[/green]")
 
+        # Update Claude integration if installed
+        try:
+            from .claude import ClaudeIntegrationManager
+
+            claude_mgr = ClaudeIntegrationManager()
+            if claude_mgr._is_installed():
+                console.print("\n[bold]Updating Claude integration...[/bold]")
+                claude_mgr.update(force=True, show_progress=True)
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not update Claude integration: {e}[/yellow]")
+
         console.print("\n[bold]Next steps:[/bold]")
-        console.print("  1. Update Claude integration: [cyan]dr claude update[/cyan]")
-        console.print("  2. Review changes: [cyan]git diff[/cyan]")
-        console.print("  3. Validate model: [cyan]dr validate --validate-links[/cyan]")
-        console.print("  4. Test your application")
-        console.print("  5. Commit changes: [cyan]git add . && git commit[/cyan]")
+        console.print("  1. Review changes: [cyan]git diff[/cyan]")
+        console.print("  2. Validate model: [cyan]dr validate --validate-links[/cyan]")
+        console.print("  3. Test your application")
+        console.print("  4. Commit changes: [cyan]git add . && git commit[/cyan]")
     else:
         console.print("[yellow]⚠ No migrations were applied.[/yellow]")

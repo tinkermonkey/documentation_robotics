@@ -289,9 +289,9 @@ project/
 
 - [Integration Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/user-guide/claude-code-integration.md) - How to use DR with Claude Code
 - [Design Document](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/04_claude_code_integration_design.md) - Architecture and rationale
-- [Workflow Examples](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/src/documentation_robotics/claude_integration/templates/workflow-examples.md) - 10 complete workflows
-- [Custom Command Template](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/src/documentation_robotics/claude_integration/templates/custom-command-template.md)
-- [Custom Agent Template](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/src/documentation_robotics/claude_integration/templates/custom-agent-template.md)
+- [Workflow Examples](https://github.com/tinkermonkey/documentation_robotics/blob/main/integrations/claude_code/templates/workflow-examples.md) - 10 complete workflows
+- [Custom Command Template](https://github.com/tinkermonkey/documentation_robotics/blob/main/integrations/claude_code/templates/custom-command-template.md)
+- [Custom Agent Template](https://github.com/tinkermonkey/documentation_robotics/blob/main/integrations/claude_code/templates/custom-agent-template.md)
 - [Testing Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/testing/claude-integration-tests.md) - Integration testing procedures
 - [Changelog](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/docs/CLAUDE_INTEGRATION_CHANGELOG.md) - What's new in Claude integration
 

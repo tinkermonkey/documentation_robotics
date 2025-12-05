@@ -5,6 +5,30 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2025-12-05
+
+### Added
+
+- **GitHub Copilot Integration**:
+  - Added new `dr copilot` command for managing GitHub Copilot integration files.
+  - Supports `install`, `update`, `remove`, `status`, and `list` subcommands.
+  - Installs knowledge base and agent definitions to `.github/knowledge` and `.github/agents`.
+  - Includes version tracking and automatic updates similar to Claude integration.
+
+### Changed
+
+- **Claude Integration Improvements**:
+  - Moved Claude integration files to `integrations/claude_code` for better organization.
+  - Simplified `dr claude update` logic:
+    - Removed `.bak` file creation (updates now overwrite directly).
+    - Removed "Modified" status check (always updates if source differs).
+    - Removed requirement for `--force` flag on modified files.
+  - Fixed progress bar display issues in `dr claude install/update` and `dr upgrade`.
+
+- **Migration Workflow**:
+  - Integrated Claude integration update into `dr migrate` command.
+  - `dr migrate` now automatically updates installed Claude integration files to the latest version.
+
 ## [0.6.3] - 2025-12-05
 
 ### Changed

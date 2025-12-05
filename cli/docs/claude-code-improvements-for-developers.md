@@ -28,7 +28,7 @@ Skills are model-invoked capabilities that Claude Code automatically suggests wh
 #### 1. Create Skills Directory Structure
 
 ```
-cli/src/documentation_robotics/claude_integration/skills/
+integrations/claude_code/skills/
 ├── SCHEMA_VALIDATION/
 │   └── SKILL.md
 ├── LINK_VALIDATION/
