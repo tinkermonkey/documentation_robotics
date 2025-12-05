@@ -1,0 +1,124 @@
+{
+  "_comment": [
+    "Example Claude Code settings for DR projects",
+    "Copy relevant sections to your .claude/settings.json",
+    "Customize paths and rules for your specific project"
+  ],
+
+  "permissions": {
+    "deny": [
+      "Write(/.*)",
+      "Read(./.env*)",
+      "Read(*.key)",
+      "Read(**/credentials.json)",
+      "Bash(rm -rf:*)",
+      "Bash(sudo:*)",
+      "Bash(curl * | bash:*)",
+      "Bash(dr claude remove)",
+      "Write(*.dr/metadata.json)"
+    ],
+    "ask": [
+      "Write(**/*.json)",
+      "Edit(**/*.json)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(dr changeset apply:*)",
+      "Bash(dr migrate:*)",
+      "Bash(npm install:*)",
+      "Bash(pip install:*)"
+    ],
+    "allow": [
+      "Bash(dr validate:*)",
+      "Bash(dr list:*)",
+      "Bash(dr search:*)",
+      "Bash(dr links:*)",
+      "Bash(dr changeset list:*)",
+      "Bash(dr changeset diff:*)",
+      "Read(*.dr/*)",
+      "Read(**/*.md)",
+      "Bash(source .venv/bin/activate)",
+      "Bash(source */bin/activate)",
+      "Grep(*)",
+      "Glob(*)"
+    ]
+  },
+
+  "hooks": {
+    "SessionStart": [
+      {
+        "hook": {
+          "type": "command",
+          "command": "source .venv/bin/activate",
+          "_comment": "Auto-activate Python virtual environment on session start"
+        }
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Write(.*\\.json$)",
+        "hook": {
+          "type": "command",
+          "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/validate-json.sh",
+          "_comment": "Validate JSON syntax before writing files"
+        }
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hook": {
+          "type": "command",
+          "command": ".claude/hooks/pre-commit.sh",
+          "_comment": "Optional: Validate DR model before processing requests"
+        }
+      }
+    ]
+  },
+
+  "_usage_notes": {
+    "permissions": {
+      "deny": "Block these operations completely - they cannot be executed even if approved",
+      "ask": "Require user approval before executing these operations",
+      "allow": "Execute these operations automatically without asking"
+    },
+    "hooks": {
+      "SessionStart": "Runs when Claude Code starts (e.g., activate venv)",
+      "PreToolUse": "Runs before a tool is executed (e.g., validate before write)",
+      "PostToolUse": "Runs after a tool finishes (e.g., auto-format code)",
+      "UserPromptSubmit": "Runs when user submits a prompt (e.g., validate model)",
+      "PermissionRequest": "Runs when permission is requested (e.g., audit log)",
+      "SubagentStop": "Runs when a subagent completes (e.g., capture results)"
+    }
+  },
+
+  "_customization_examples": {
+    "strict_mode": {
+      "_comment": "For production models - ask before any changes",
+      "ask": [
+        "Write(**/*)",
+        "Edit(**/*)",
+        "Bash(dr *)"
+      ]
+    },
+    "exploration_mode": {
+      "_comment": "For experimental projects - allow more operations",
+      "allow": [
+        "Write(*.dr/*)",
+        "Edit(*.dr/*)",
+        "Bash(dr changeset apply:*)"
+      ]
+    },
+    "team_mode": {
+      "_comment": "For collaborative projects - enforce validation",
+      "hooks": {
+        "UserPromptSubmit": [
+          {
+            "hook": {
+              "type": "command",
+              "command": "dr validate --strict && dr links validate"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

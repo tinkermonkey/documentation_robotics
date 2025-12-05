@@ -113,6 +113,7 @@ class ClaudeIntegrationManager:
             console.print("[green]✓[/] Created .claude/ directory")
 
         components = components or list(self.COMPONENTS.keys())
+        total_installed = 0
 
         # Install each component
         if show_progress:
@@ -123,14 +124,27 @@ class ClaudeIntegrationManager:
             ) as progress:
                 for component in components:
                     task = progress.add_task(f"Installing {component}...", total=None)
-                    count = self._install_component(component, force)
-                    progress.update(task, total=1, completed=1)
-                    console.print(f"   Installed {count} files", style="dim")
+                    try:
+                        count = self._install_component(component, force)
+                        total_installed += count
+                        progress.update(task, total=1, completed=1)
+                        console.print(f"   Installed {count} files", style="dim")
+                    except FileNotFoundError as e:
+                        console.print(f"   [red]✗[/] {e}")
         else:
             for component in components:
                 console.print(f"Installing {component}...")
-                count = self._install_component(component, force)
-                console.print(f"   Installed {count} files", style="dim")
+                try:
+                    count = self._install_component(component, force)
+                    total_installed += count
+                    console.print(f"   Installed {count} files", style="dim")
+                except FileNotFoundError as e:
+                    console.print(f"   [red]✗[/] {e}")
+
+        if total_installed == 0:
+            raise click.ClickException(
+                "Installation failed: No files were installed. Please check your installation."
+            )
 
         # Create version file
         self._update_version_file()
@@ -161,8 +175,7 @@ class ClaudeIntegrationManager:
 
         # Check if source exists
         if not source_dir.exists():
-            console.print(f"[yellow]⚠[/] Source directory not found: {source_dir}")
-            return 0
+            raise FileNotFoundError(f"Source directory not found: {source_dir}")
 
         count = 0
 

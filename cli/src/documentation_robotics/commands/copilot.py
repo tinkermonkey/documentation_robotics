@@ -92,6 +92,9 @@ class CopilotIntegrationManager:
 
         components = components or list(self.COMPONENTS.keys())
 
+        total_installed = 0
+        errors = []
+
         # Install each component
         if show_progress:
             with Progress(
@@ -101,21 +104,39 @@ class CopilotIntegrationManager:
             ) as progress:
                 for component in components:
                     task = progress.add_task(f"Installing {component}...", total=None)
-                    count = self._install_component(component, force)
-                    progress.update(task, total=1, completed=1)
-                    console.print(f"   Installed {count} files", style="dim")
+                    try:
+                        count = self._install_component(component, force)
+                        total_installed += count
+                        progress.update(task, total=1, completed=1)
+                        console.print(f"   Installed {count} files", style="dim")
+                    except Exception as e:
+                        errors.append(f"{component}: {str(e)}")
+                        progress.update(task, total=1, completed=1)
         else:
             for component in components:
                 console.print(f"Installing {component}...")
-                count = self._install_component(component, force)
-                console.print(f"   Installed {count} files", style="dim")
+                try:
+                    count = self._install_component(component, force)
+                    total_installed += count
+                    console.print(f"   Installed {count} files", style="dim")
+                except Exception as e:
+                    errors.append(f"{component}: {str(e)}")
 
         # Create version file
         self._update_version_file()
 
-        # Success message
-        console.print("\n[green]✓[/] Copilot integration installed successfully!")
-        self._print_next_steps()
+        # Report status
+        if errors:
+            console.print("\n[red]✗[/] Installation completed with errors:")
+            for error in errors:
+                console.print(f"  - {error}")
+        elif total_installed == 0:
+            console.print(
+                "\n[yellow]⚠[/] No files were installed. Check your installation or source paths."
+            )
+        else:
+            console.print("\n[green]✓[/] Copilot integration installed successfully!")
+            self._print_next_steps()
 
     def _install_component(self, component: str, force: bool) -> int:
         """Install a specific component.
@@ -140,7 +161,7 @@ class CopilotIntegrationManager:
         # Check if source exists
         if not source_dir.exists():
             console.print(f"[yellow]⚠[/] Source directory not found: {source_dir}")
-            return 0
+            raise FileNotFoundError(f"Source directory not found: {source_dir}")
 
         count = 0
 
