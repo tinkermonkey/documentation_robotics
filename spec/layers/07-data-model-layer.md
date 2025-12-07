@@ -22,7 +22,9 @@ JSON Schema is the standard for JSON data validation:
 - **Tool Support**: Extensive ecosystem for validation and code generation
 - **Self-Documenting**: Schema serves as documentation
 
-## Core JSON Schema Structure
+## Entity Definitions
+
+### Core JSON Schema Structure
 
 ### JSONSchema
 
@@ -30,6 +32,8 @@ JSON Schema is the standard for JSON data validation:
 JSONSchema:
   description: "Root schema document"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     $schema: string (schema version URI, e.g., "http://json-schema.org/draft-07/schema#")
     $id: string (unique schema identifier URI, optional)
     title: string (optional)
@@ -37,8 +41,8 @@ JSONSchema:
     type: JSONType (optional, can be at root or in definitions)
 
   contains:
-    definitions: SchemaDefinition[] (keyed by name, optional)
-    properties: SchemaProperty[] (keyed by name, for object type)
+    - definitions: SchemaDefinition[] (0..*) # keyed by name
+    - properties: SchemaProperty[] (0..*) # keyed by name, for object type
 
   # Custom extensions for federated architecture
   extensions:
@@ -72,6 +76,7 @@ JSONType:
 ```yaml
 StringSchema:
   type: string
+  description: "StringSchema validation rules"
 
   validation:
     minLength: integer (minimum string length)
@@ -109,29 +114,29 @@ StringSchema:
       - credit-card # Credit card number
 
   examples:
-    # Email
-    email:
-      type: string
-      format: email
-      maxLength: 254
+    - # Email
+      email:
+        type: string
+        format: email
+        maxLength: 254
 
-    # UUID
-    productId:
-      type: string
-      format: uuid
-      description: "Unique product identifier"
+    - # UUID
+      productId:
+        type: string
+        format: uuid
+        description: "Unique product identifier"
 
-    # Pattern
-    sku:
-      type: string
-      pattern: "^[A-Z]{2}\\d{4}$"
-      description: "SKU format: AA1234"
+    - # Pattern
+      sku:
+        type: string
+        pattern: "^[A-Z]{2}\\d{4}$"
+        description: "SKU format: AA1234"
 
-    # Enum
-    status:
-      type: string
-      enum: ["draft", "active", "archived"]
-      description: "Product status"
+    - # Enum
+      status:
+        type: string
+        enum: ["draft", "active", "archived"]
+        description: "Product status"
 ```
 
 ### Numeric Validation
@@ -139,6 +144,7 @@ StringSchema:
 ```yaml
 NumericSchema:
   type: number | integer
+  description: "NumericSchema validation rules"
 
   validation:
     minimum: number (inclusive minimum)
@@ -148,32 +154,32 @@ NumericSchema:
     multipleOf: number (must be multiple of this value)
 
   examples:
-    # Price
-    price:
-      type: number
-      minimum: 0
-      multipleOf: 0.01
-      description: "Price in USD"
+    - # Price
+      price:
+        type: number
+        minimum: 0
+        multipleOf: 0.01
+        description: "Price in USD"
 
-    # Percentage
-    discountPercent:
-      type: number
-      minimum: 0
-      maximum: 100
-      description: "Discount percentage"
+    - # Percentage
+      discountPercent:
+        type: number
+        minimum: 0
+        maximum: 100
+        description: "Discount percentage"
 
-    # Quantity
-    quantity:
-      type: integer
-      minimum: 0
-      description: "Stock quantity"
+    - # Quantity
+      quantity:
+        type: integer
+        minimum: 0
+        description: "Stock quantity"
 
-    # Rating
-    rating:
-      type: integer
-      minimum: 1
-      maximum: 5
-      description: "Product rating (1-5 stars)"
+    - # Rating
+      rating:
+        type: integer
+        minimum: 1
+        maximum: 5
+        description: "Product rating (1-5 stars)"
 ```
 
 ### Array Validation
@@ -181,6 +187,7 @@ NumericSchema:
 ```yaml
 ArraySchema:
   type: array
+  description: "ArraySchema validation rules"
 
   validation:
     items: Schema (schema for array items)
@@ -190,33 +197,33 @@ ArraySchema:
     contains: Schema (at least one item must match)
 
   examples:
-    # Simple array
-    tags:
-      type: array
-      items:
-        type: string
-        minLength: 1
-      minItems: 0
-      maxItems: 10
-      uniqueItems: true
-      description: "Product tags"
+    - # Simple array
+      tags:
+        type: array
+        items:
+          type: string
+          minLength: 1
+        minItems: 0
+        maxItems: 10
+        uniqueItems: true
+        description: "Product tags"
 
-    # Array of objects
-    reviews:
-      type: array
-      items:
-        $ref: "#/definitions/Review"
-      description: "Product reviews"
+    - # Array of objects
+      reviews:
+        type: array
+        items:
+          $ref: "#/definitions/Review"
+        description: "Product reviews"
 
-    # Tuple (fixed-length array with typed positions)
-    coordinates:
-      type: array
-      items:
-        - type: number # latitude
-        - type: number # longitude
-      minItems: 2
-      maxItems: 2
-      description: "Geographic coordinates [lat, lon]"
+    - # Tuple (fixed-length array with typed positions)
+      coordinates:
+        type: array
+        items:
+          - type: number # latitude
+          - type: number # longitude
+        minItems: 2
+        maxItems: 2
+        description: "Geographic coordinates [lat, lon]"
 ```
 
 ### Object Validation
@@ -224,9 +231,10 @@ ArraySchema:
 ```yaml
 ObjectSchema:
   type: object
+  description: "ObjectSchema validation rules"
 
-  properties:
-    propertyName: Schema (keyed by property name)
+  contains:
+    - properties: SchemaProperty[] (0..*) # keyed by property name
 
   validation:
     required: string[] (required property names)
@@ -237,42 +245,42 @@ ObjectSchema:
     dependencies: object (property dependencies)
 
   examples:
-    # Basic object
-    Product:
-      type: object
-      required: ["name", "sku", "price"]
-      properties:
-        name:
-          type: string
-          minLength: 1
-          maxLength: 200
-        sku:
-          type: string
-          pattern: "^[A-Z]{2}\\d{4}$"
-        price:
-          type: number
-          minimum: 0
-        description:
-          type: string
-          maxLength: 2000
-      additionalProperties: false
+    - # Basic object
+      Product:
+        type: object
+        required: ["name", "sku", "price"]
+        properties:
+          name:
+            type: string
+            minLength: 1
+            maxLength: 200
+          sku:
+            type: string
+            pattern: "^[A-Z]{2}\\d{4}$"
+          price:
+            type: number
+            minimum: 0
+          description:
+            type: string
+            maxLength: 2000
+        additionalProperties: false
 
-    # With dependencies
-    Address:
-      type: object
-      properties:
-        street:
-          type: string
-        city:
-          type: string
-        state:
-          type: string
-        postalCode:
-          type: string
-        country:
-          type: string
-      dependencies:
-        postalCode: ["country"] # If postalCode exists, country is required
+    - # With dependencies
+      Address:
+        type: object
+        properties:
+          street:
+            type: string
+          city:
+            type: string
+          state:
+            type: string
+          postalCode:
+            type: string
+          country:
+            type: string
+        dependencies:
+          postalCode: ["country"] # If postalCode exists, country is required
 ```
 
 ### Schema Composition
@@ -280,6 +288,9 @@ ObjectSchema:
 ```yaml
 SchemaComposition:
   description: "Combining multiple schemas"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
 
   keywords:
     allOf: Schema[] # Must match ALL schemas
@@ -288,38 +299,38 @@ SchemaComposition:
     not: Schema # Must NOT match this schema
 
   examples:
-    # allOf - combining schemas (like inheritance)
-    DiscountedProduct:
-      allOf:
-        - $ref: "#/definitions/Product"
-        - type: object
-          properties:
-            discountPercent:
-              type: number
-              minimum: 0
-              maximum: 100
-          required: ["discountPercent"]
+    - # allOf - combining schemas (like inheritance)
+      DiscountedProduct:
+        allOf:
+          - $ref: "#/definitions/Product"
+          - type: object
+            properties:
+              discountPercent:
+                type: number
+                minimum: 0
+                maximum: 100
+            required: ["discountPercent"]
 
-    # oneOf - discriminated union
-    PaymentMethod:
-      oneOf:
-        - $ref: "#/definitions/CreditCard"
-        - $ref: "#/definitions/BankTransfer"
-        - $ref: "#/definitions/PayPal"
-      discriminator:
-        propertyName: type
+    - # oneOf - discriminated union
+      PaymentMethod:
+        oneOf:
+          - $ref: "#/definitions/CreditCard"
+          - $ref: "#/definitions/BankTransfer"
+          - $ref: "#/definitions/PayPal"
+        discriminator:
+          propertyName: type
 
-    # anyOf - nullable
-    OptionalString:
-      anyOf:
-        - type: string
-        - type: "null"
+    - # anyOf - nullable
+      OptionalString:
+        anyOf:
+          - type: string
+          - type: "null"
 
-    # not - exclusion
-    NonEmptyString:
-      type: string
-      not:
-        const: ""
+    - # not - exclusion
+      NonEmptyString:
+        type: string
+        not:
+          const: ""
 ```
 
 ### References
@@ -327,6 +338,10 @@ SchemaComposition:
 ```yaml
 Reference:
   description: "Reference to another schema"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
   syntax: "$ref"
 
   examples:
@@ -377,10 +392,9 @@ x-data-governance:
   purpose: "Captures data architecture principles, requirements, and constraints beyond security"
 
   attributes:
-    governedBy:
-      principleRefs: string[] (Principle IDs from Motivation Layer, optional)
-      requirementRefs: string[] (Requirement IDs from Motivation Layer, optional)
-      constraintRefs: string[] (Constraint IDs from Motivation Layer, optional)
+    id: string (UUID) [PK]
+    name: string
+    governedBy: object (optional) # Contains principleRefs, requirementRefs, constraintRefs arrays
 
   rationale: |
     Extends x-security.governedBy to cover broader data architecture concerns:
@@ -420,6 +434,8 @@ x-apm-data-quality-metrics:
   purpose: "Enables data quality monitoring, governance, and SLA tracking"
 
   attributes:
+    id: string (UUID) [PK]
+    name: string
     completenessMetrics: string[] (Metric IDs measuring field completion rates, optional)
     accuracyMetrics: string[] (Metric IDs measuring data accuracy/validity, optional)
     consistencyMetrics: string[] (Metric IDs measuring cross-field validation, optional)
@@ -488,6 +504,8 @@ x-apm-data-quality-metrics:
 x-database:
   description: "Database mapping information"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     table: string (database table name)
     schema: string (database schema, optional)
     engine: string (database engine, optional)
@@ -565,6 +583,8 @@ x-database:
 x-ui:
   description: "UI rendering hints"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     component: UIComponent [enum]
     label: string
     placeholder: string
@@ -614,6 +634,8 @@ x-ui:
 x-security:
   description: "Security and privacy metadata"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     pii: boolean (contains personally identifiable information)
     encrypted: boolean (should be encrypted at rest)
     classification: SecurityClassification [enum]
@@ -1490,6 +1512,6 @@ Metric:
 }
 ```
 
-**Result**: This schema demonstrates complete federated architecture integration across all 11 layers, from business motivation through technical implementation to quality measurement.
+**Result**: This schema demonstrates complete federated architecture integration across all 12 layers, from business motivation through technical implementation to quality measurement.
 
 This Data Model Layer provides a comprehensive, standards-based approach to defining data structures with rich validation and cross-layer integration.

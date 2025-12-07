@@ -1,6 +1,6 @@
 # Minimal Example
 
-The smallest conformant model demonstrating all 11 layers of the Documentation Robotics specification.
+The smallest conformant model demonstrating all 12 layers of the Documentation Robotics specification.
 
 ## Purpose
 
@@ -195,7 +195,7 @@ This model achieves **Full Conformance**:
 ## Questions
 
 - What is the minimum viable model? **This one**
-- Do I need all 11 layers? **Yes, for full conformance**
+- Do I need all 12 layers? **Yes, for full conformance**
 - Can I disable layers? **Yes, but you lose conformance**
 - How do I extend this? **Add more elements, maintain traceability**
 

@@ -1,78 +1,74 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/09-ux-layer.schema.json",
+  "$id": "https://example.com/schemas/09-ux-layer.json",
   "title": "Ux Layer Schema",
-  "description": "Schema for Ux Layer",
   "type": "object",
+  "description": "ArchiMate Ux Layer elements for business services, processes, actors, and objects",
   "properties": {
-    "ux-specs": {
+    "uXSpecs": {
       "type": "array",
-      "description": "Collection of UXSpec entities",
       "items": {
         "$ref": "#/definitions/UXSpec"
       }
     },
-    "experience-states": {
+    "experienceStates": {
       "type": "array",
-      "description": "Collection of ExperienceState entities",
       "items": {
         "$ref": "#/definitions/ExperienceState"
       }
     },
-    "state-actions": {
+    "stateActions": {
       "type": "array",
-      "description": "Collection of StateAction entities",
       "items": {
         "$ref": "#/definitions/StateAction"
       }
     },
-    "state-transitions": {
+    "stateTransitions": {
       "type": "array",
-      "description": "Collection of StateTransition entities",
       "items": {
         "$ref": "#/definitions/StateTransition"
       }
     },
     "conditions": {
       "type": "array",
-      "description": "Collection of Condition entities",
       "items": {
         "$ref": "#/definitions/Condition"
       }
     },
     "views": {
       "type": "array",
-      "description": "Collection of View entities",
       "items": {
         "$ref": "#/definitions/View"
       }
     },
-    "sub-views": {
+    "subViews": {
       "type": "array",
-      "description": "Collection of SubView entities",
       "items": {
         "$ref": "#/definitions/SubView"
       }
     },
     "components": {
       "type": "array",
-      "description": "Collection of Component entities",
       "items": {
         "$ref": "#/definitions/Component"
       }
     },
-    "validation-rules": {
+    "validationRules": {
       "type": "array",
-      "description": "Collection of ValidationRule entities",
       "items": {
         "$ref": "#/definitions/ValidationRule"
       }
     },
-    "action-components": {
+    "actionComponents": {
       "type": "array",
-      "description": "Collection of ActionComponent entities",
       "items": {
         "$ref": "#/definitions/ActionComponent"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Relationship"
       }
     }
   },
@@ -88,52 +84,19 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "version": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "experience": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "channel": {
-          "$ref": "#/definitions/enum"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
-        "states": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "views": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "globalActions": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "ChannelType": {
           "type": "string",
           "enum": [
             "visual",
@@ -142,6 +105,36 @@
             "sms",
             "multimodal"
           ]
+        },
+        "title": {
+          "type": "string"
+        },
+        "states": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "description": "References to ExperienceState IDs"
+        },
+        "views": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "description": "References to View IDs"
+        },
+        "globalActions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to ActionComponent IDs"
         }
       }
     },
@@ -155,8 +148,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
@@ -166,54 +158,64 @@
           "type": "boolean"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "channel": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "onEnter": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to StateAction IDs"
         },
         "onExit": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to StateAction IDs"
         },
         "transitions": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to StateTransition IDs"
         },
         "enabledComponents": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to string IDs"
         },
         "disabledComponents": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to string IDs"
         },
         "hiddenComponents": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to string IDs"
         }
       }
     },
@@ -228,23 +230,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "action": {
-          "$ref": "#/definitions/enum"
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "ActionType": {
           "type": "string",
           "enum": [
             "fetchData",
@@ -259,17 +251,8 @@
             "computeValue"
           ]
         },
-        "DataSource": {
-          "type": "string",
-          "enum": [
-            "api-response",
-            "form-data",
-            "route-params",
-            "query-params",
-            "local-storage",
-            "constant",
-            "computed"
-          ]
+        "description": {
+          "type": "string"
         }
       }
     },
@@ -284,34 +267,16 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "to": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "true": {
-          "$ref": "#/definitions/enum"
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        },
-        "actions": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "TriggerType": {
           "type": "string",
           "enum": [
             "success",
@@ -323,6 +288,18 @@
             "dataReady",
             "custom"
           ]
+        },
+        "description": {
+          "type": "string"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to StateAction IDs"
         }
       }
     },
@@ -336,16 +313,14 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "expression": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -360,55 +335,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "title": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        },
-        "routable": {
-          "type": "boolean"
-        },
-        "layout": {
-          "type": "string",
-          "minLength": 1
-        },
-        "subViews": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "components": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "actions": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "ViewType": {
           "type": "string",
           "enum": [
             "form",
@@ -421,15 +354,44 @@
             "custom"
           ]
         },
-        "LayoutStyle": {
-          "type": "string",
-          "enum": [
-            "grid",
-            "flex",
-            "stack",
-            "flow",
-            "custom"
-          ]
+        "title": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "routable": {
+          "type": "boolean"
+        },
+        "layout": {
+          "type": "string"
+        },
+        "subViews": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SubView IDs"
+        },
+        "components": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Component IDs"
+        },
+        "actions": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to ActionComponent IDs"
         }
       }
     },
@@ -443,20 +405,17 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "title": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "collapsible": {
           "type": "boolean"
@@ -465,25 +424,28 @@
           "type": "boolean"
         },
         "layout": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "order": {
           "type": "integer"
         },
         "components": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Component IDs"
         },
         "subViews": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SubView IDs"
         }
       }
     },
@@ -498,39 +460,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        },
-        "required": {
-          "type": "boolean"
-        },
-        "readonly": {
-          "type": "boolean"
-        },
-        "hidden": {
-          "type": "boolean"
-        },
-        "order": {
-          "type": "integer"
-        }
-      },
-      "definitions": {
-        "ComponentType": {
           "type": "string",
           "enum": [
             "form-field",
@@ -548,6 +484,24 @@
             "tree",
             "custom"
           ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "readonly": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "order": {
+          "type": "integer"
         }
       }
     },
@@ -562,27 +516,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1
-        },
-        "value": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "ValidationType": {
           "type": "string",
           "enum": [
             "required",
@@ -595,6 +535,12 @@
             "max",
             "custom"
           ]
+        },
+        "message": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
         }
       }
     },
@@ -609,45 +555,16 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "label": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "icon": {
-          "type": "string",
-          "minLength": 1
-        },
-        "disabled": {
-          "type": "boolean"
-        },
-        "tooltip": {
-          "type": "string",
-          "minLength": 1
-        },
-        "channel": {
-          "type": "string",
-          "minLength": 1
-        },
-        "children": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "ActionType": {
           "type": "string",
           "enum": [
             "button",
@@ -659,17 +576,61 @@
             "custom"
           ]
         },
-        "ButtonStyle": {
+        "icon": {
+          "type": "string"
+        },
+        "disabled": {
+          "type": "boolean"
+        },
+        "tooltip": {
+          "type": "string"
+        },
+        "channel": {
+          "type": "string"
+        },
+        "children": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to ActionComponent IDs"
+        }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "type",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "type": {
           "type": "string",
           "enum": [
-            "primary",
-            "secondary",
-            "danger",
-            "success",
-            "warning",
-            "ghost",
-            "icon"
+            "Composition",
+            "Aggregation",
+            "Assignment",
+            "Realization",
+            "Triggering",
+            "Flow",
+            "Association",
+            "Access",
+            "Serving"
           ]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
         }
       }
     }

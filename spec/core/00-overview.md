@@ -8,7 +8,7 @@ This specification defines a **federated architecture data model** for complex s
 
 ### Purpose
 
-This specification provides a comprehensive, standards-based approach to modeling enterprise and software architecture across 11 interconnected layers, enabling:
+This specification provides a comprehensive, standards-based approach to modeling enterprise and software architecture across 12 interconnected layers, enabling:
 
 1. **Traceability** - Track relationships from business goals through implementation
 2. **Validation** - Verify architectural integrity using standard validators
@@ -20,7 +20,7 @@ This specification provides a comprehensive, standards-based approach to modelin
 
 **In Scope:**
 
-- Metadata model definitions for 11 architectural layers
+- Metadata model definitions for 12 architectural layers
 - Cross-layer integration patterns and reference types (see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md))
 - Validation requirements and conformance criteria
 - Export formats and transformation rules
@@ -112,7 +112,7 @@ The specification is built on these foundational principles:
 
 ## Layer Overview
 
-The specification defines 11 layers, ordered to balance abstraction hierarchy with pragmatic workflow:
+The specification defines 12 layers, ordered to balance abstraction hierarchy with pragmatic workflow:
 
 | Layer | Name              | Focus        | Standard Used                   |
 | ----- | ----------------- | ------------ | ------------------------------- |
@@ -127,6 +127,7 @@ The specification defines 11 layers, ordered to balance abstraction hierarchy wi
 | 09    | UX                | PRESENTATION | Custom UX Specification         |
 | 10    | Navigation        | FLOW         | Custom Navigation Specification |
 | 11    | APM/Observability | OBSERVE      | OpenTelemetry 1.0+              |
+| 12    | Testing           | VERIFY       | Custom Testing Coverage Model   |
 
 See [02-layering-philosophy.md](02-layering-philosophy.md) for detailed rationale.
 
@@ -151,11 +152,11 @@ Three custom specifications were created for gaps not covered by existing standa
 ## Statistics
 
 ```yaml
-Total Layers: 11
-Total Entity Types: 70+
-Total Attributes: ~430
-Total Enums: 35+
-Cross-Layer References: 65+
+Total Layers: 12
+Total Entity Types: 76+
+Total Attributes: ~450
+Total Enums: 38+
+Cross-Layer References: 70+
 
 Standards Leveraged: 5
 Custom Specifications: 3
@@ -171,7 +172,7 @@ Extension Points: Multiple per layer
 ### Version History
 
 - **0.1.1** (2025-11-23) - Initial stable release
-  - 11 layer specifications complete
+  - 12 layer specifications complete
   - JSON Schemas for all layers
   - Conformance requirements defined
   - Example models provided
@@ -182,7 +183,7 @@ Implementations can claim conformance at three levels:
 
 - **Level 1: Basic** - Layers 1-4 (Motivation through Application)
 - **Level 2: Standard** - Layers 1-8 (through Datastore)
-- **Level 3: Full** - All 11 layers
+- **Level 3: Full** - All 12 layers
 
 See [../conformance/conformance-levels.md](../conformance/conformance-levels.md) for detailed requirements.
 

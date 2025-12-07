@@ -1,106 +1,86 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/11-apm-observability-layer.schema.json",
+  "$id": "https://example.com/schemas/11-apm-observability-layer.json",
   "title": "Apm Observability Layer Schema",
-  "description": "Schema for Apm Observability Layer",
   "type": "object",
+  "description": "ArchiMate Apm Observability Layer elements for business services, processes, actors, and objects",
   "properties": {
     "spans": {
       "type": "array",
-      "description": "Collection of Span entities",
       "items": {
         "$ref": "#/definitions/Span"
       }
     },
-    "span-events": {
+    "spanEvents": {
       "type": "array",
-      "description": "Collection of SpanEvent entities",
       "items": {
         "$ref": "#/definitions/SpanEvent"
       }
     },
-    "span-links": {
+    "spanLinks": {
       "type": "array",
-      "description": "Collection of SpanLink entities",
       "items": {
         "$ref": "#/definitions/SpanLink"
       }
     },
-    "span-statuses": {
+    "spanStatuses": {
       "type": "array",
-      "description": "Collection of SpanStatus entities",
       "items": {
         "$ref": "#/definitions/SpanStatus"
       }
     },
-    "log-records": {
+    "logRecords": {
       "type": "array",
-      "description": "Collection of LogRecord entities",
       "items": {
         "$ref": "#/definitions/LogRecord"
       }
     },
     "resources": {
       "type": "array",
-      "description": "Collection of Resource entities",
       "items": {
         "$ref": "#/definitions/Resource"
       }
     },
-    "instrumentation-scopes": {
+    "instrumentationScopes": {
       "type": "array",
-      "description": "Collection of InstrumentationScope entities",
       "items": {
         "$ref": "#/definitions/InstrumentationScope"
       }
     },
     "attributes": {
       "type": "array",
-      "description": "Collection of Attribute entities",
       "items": {
         "$ref": "#/definitions/Attribute"
       }
     },
-    "apm-configurations": {
+    "aPMConfigurations": {
       "type": "array",
-      "description": "Collection of APMConfiguration entities",
       "items": {
         "$ref": "#/definitions/APMConfiguration"
       }
     },
-    "trace-configurations": {
+    "traceConfigurations": {
       "type": "array",
-      "description": "Collection of TraceConfiguration entities",
       "items": {
         "$ref": "#/definitions/TraceConfiguration"
       }
     },
-    "log-configurations": {
+    "logConfigurations": {
       "type": "array",
-      "description": "Collection of LogConfiguration entities",
       "items": {
         "$ref": "#/definitions/LogConfiguration"
       }
     },
-    "metric-configurations": {
+    "metricConfigurations": {
       "type": "array",
-      "description": "Collection of MetricConfiguration entities",
       "items": {
         "$ref": "#/definitions/MetricConfiguration"
       }
     },
-    "data-quality-metricses": {
+    "relationships": {
       "type": "array",
-      "description": "Collection of DataQualityMetrics entities",
       "items": {
-        "$ref": "#/definitions/DataQualityMetrics"
-      }
-    },
-    "data-quality-metrics": {
-      "type": "array",
-      "description": "Collection of DataQualityMetric entities",
-      "items": {
-        "$ref": "#/definitions/DataQualityMetric"
+        "$ref": "#/definitions/Relationship"
       }
     }
   },
@@ -110,11 +90,11 @@
       "description": "Unit of work in distributed tracing",
       "required": [
         "id",
+        "name",
         "traceId",
         "spanId",
         "traceState",
         "parentSpanId",
-        "name",
         "spanKind",
         "startTimeUnixNano",
         "endTimeUnixNano",
@@ -125,76 +105,25 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "traceId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "spanId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "traceState": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "parentSpanId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "spanKind": {
-          "$ref": "#/definitions/enum"
-        },
-        "startTimeUnixNano": {
-          "type": "string",
-          "minLength": 1
-        },
-        "endTimeUnixNano": {
-          "type": "string",
-          "minLength": 1
-        },
-        "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
-        },
-        "droppedEventsCount": {
-          "type": "string",
-          "minLength": 1
-        },
-        "droppedLinksCount": {
-          "type": "string",
-          "minLength": 1
-        },
-        "attributes": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "events": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
-        "links": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "SpanKind": {
           "type": "string",
           "enum": [
             "INTERNAL",
@@ -203,6 +132,48 @@
             "PRODUCER",
             "CONSUMER"
           ]
+        },
+        "startTimeUnixNano": {
+          "type": "string"
+        },
+        "endTimeUnixNano": {
+          "type": "string"
+        },
+        "droppedAttributesCount": {
+          "type": "string"
+        },
+        "droppedEventsCount": {
+          "type": "string"
+        },
+        "droppedLinksCount": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Attribute IDs"
+        },
+        "events": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SpanEvent IDs"
+        },
+        "links": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SpanLink IDs"
         }
       }
     },
@@ -211,34 +182,33 @@
       "description": "Timestamped event during span execution",
       "required": [
         "id",
-        "timeUnixNano",
         "name",
+        "timeUnixNano",
         "droppedAttributesCount"
       ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "timeUnixNano": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "attributes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Attribute IDs"
         }
       }
     },
@@ -255,35 +225,32 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "traceId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "spanId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "traceState": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "attributes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Attribute IDs"
         }
       }
     },
@@ -298,29 +265,22 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "code": {
-          "$ref": "#/definitions/enum"
-        },
-        "message": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "StatusCode": {
           "type": "string",
           "enum": [
             "UNSET",
             "OK",
             "ERROR"
           ]
+        },
+        "message": {
+          "type": "string"
         }
       }
     },
@@ -340,128 +300,68 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "timeUnixNano": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "observedTimeUnixNano": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "severityNumber": {
-          "$ref": "#/definitions/enum"
+          "type": "string",
+          "enum": [
+            "{'UNSPECIFIED': 0}",
+            "{'TRACE': 1}",
+            "{'TRACE2': 2}",
+            "{'TRACE3': 3}",
+            "{'TRACE4': 4}",
+            "{'DEBUG': 5}",
+            "{'DEBUG2': 6}",
+            "{'DEBUG3': 7}",
+            "{'DEBUG4': 8}",
+            "{'INFO': 9}",
+            "{'INFO2': 10}",
+            "{'INFO3': 11}",
+            "{'INFO4': 12}",
+            "{'WARN': 13}",
+            "{'WARN2': 14}",
+            "{'WARN3': 15}",
+            "{'WARN4': 16}",
+            "{'ERROR': 17}",
+            "{'ERROR2': 18}",
+            "{'ERROR3': 19}",
+            "{'ERROR4': 20}",
+            "{'FATAL': 21}",
+            "{'FATAL2': 22}",
+            "{'FATAL3': 23}",
+            "{'FATAL4': 24}"
+          ]
         },
         "severityText": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "body": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "flags": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "attributes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "SeverityNumber": {
-          "type": "string",
-          "enum": [
-            {
-              "UNSPECIFIED": 0
-            },
-            {
-              "TRACE": 1
-            },
-            {
-              "TRACE2": 2
-            },
-            {
-              "TRACE3": 3
-            },
-            {
-              "TRACE4": 4
-            },
-            {
-              "DEBUG": 5
-            },
-            {
-              "DEBUG2": 6
-            },
-            {
-              "DEBUG3": 7
-            },
-            {
-              "DEBUG4": 8
-            },
-            {
-              "INFO": 9
-            },
-            {
-              "INFO2": 10
-            },
-            {
-              "INFO3": 11
-            },
-            {
-              "INFO4": 12
-            },
-            {
-              "WARN": 13
-            },
-            {
-              "WARN2": 14
-            },
-            {
-              "WARN3": 15
-            },
-            {
-              "WARN4": 16
-            },
-            {
-              "ERROR": 17
-            },
-            {
-              "ERROR2": 18
-            },
-            {
-              "ERROR3": 19
-            },
-            {
-              "ERROR4": 20
-            },
-            {
-              "FATAL": 21
-            },
-            {
-              "FATAL2": 22
-            },
-            {
-              "FATAL3": 23
-            },
-            {
-              "FATAL4": 24
-            }
-          ]
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Attribute IDs"
         }
       }
     },
@@ -476,27 +376,26 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "schemaUrl": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "attributes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "description": "References to Attribute IDs"
         }
       }
     },
@@ -511,31 +410,29 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "version": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "schemaUrl": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "droppedAttributesCount": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "attributes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Attribute IDs"
         }
       }
     },
@@ -551,20 +448,17 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "key": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "value": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -580,20 +474,17 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "version": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "application": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -608,48 +499,20 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "serviceName": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "serviceVersion": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "deploymentEnvironment": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "SamplerType": {
-          "type": "string",
-          "enum": [
-            "always_on",
-            "always_off",
-            "traceidratio",
-            "parentbased_always_on",
-            "parentbased_always_off",
-            "parentbased_traceidratio"
-          ]
-        },
-        "PropagatorType": {
-          "type": "string",
-          "enum": [
-            "w3c-trace-context",
-            "w3c-baggage",
-            "b3",
-            "jaeger",
-            "xray",
-            "ottrace"
-          ]
+          "type": "string"
         }
       }
     },
@@ -657,8 +520,8 @@
       "type": "object",
       "description": "Logging configuration",
       "required": [
-        "name",
         "id",
+        "name",
         "serviceName",
         "logLevel"
       ],
@@ -669,19 +532,12 @@
         },
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "serviceName": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "logLevel": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "LogLevel": {
           "type": "string",
           "enum": [
             "TRACE",
@@ -705,91 +561,52 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "serviceName": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "exportIntervalMillis": {
           "type": "integer"
         }
       }
     },
-    "DataQualityMetrics": {
+    "Relationship": {
       "type": "object",
-      "description": "Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)",
-      "required": [
-        "schemaRef"
-      ],
-      "properties": {
-        "schemaRef": {
-          "type": "string",
-          "minLength": 1
-        },
-        "monitoringEnabled": {
-          "type": "boolean"
-        },
-        "metrics": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      }
-    },
-    "DataQualityMetric": {
-      "type": "object",
-      "description": "Individual data quality metric",
       "required": [
         "type",
-        "name",
-        "measurement",
-        "threshold"
+        "source",
+        "target"
       ],
       "properties": {
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "description": {
-          "type": "string",
-          "minLength": 1
-        },
-        "measurement": {
-          "type": "string",
-          "minLength": 1
-        },
-        "threshold": {
-          "type": "string",
-          "minLength": 1
-        },
-        "alertOnViolation": {
-          "type": "boolean"
-        }
-      },
-      "definitions": {
-        "DataQualityType": {
           "type": "string",
           "enum": [
-            "completeness",
-            "accuracy",
-            "freshness",
-            "consistency",
-            "uniqueness",
-            "validity",
-            "timeliness",
-            "integrity"
+            "Composition",
+            "Aggregation",
+            "Assignment",
+            "Realization",
+            "Triggering",
+            "Flow",
+            "Association",
+            "Access",
+            "Serving"
           ]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
         }
       }
     }

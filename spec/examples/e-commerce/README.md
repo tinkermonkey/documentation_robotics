@@ -1,6 +1,6 @@
 # E-Commerce Example
 
-A realistic e-commerce platform demonstrating comprehensive use of all 11 layers with complex traceability and multi-user scenarios.
+A realistic e-commerce platform demonstrating comprehensive use of all 12 layers with complex traceability and multi-user scenarios.
 
 ## Overview
 

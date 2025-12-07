@@ -21,7 +21,9 @@ OpenAPI is the de facto standard for REST API specification:
 - **Human Friendly**: YAML format is readable and maintainable
 - **Interoperable**: Other systems can consume our API specs
 
-## Core OpenAPI Structure
+## Entity Definitions
+
+### Core OpenAPI Structure
 
 ### OpenAPIDocument
 
@@ -29,6 +31,8 @@ OpenAPI is the de facto standard for REST API specification:
 OpenAPIDocument:
   description: "Root of an OpenAPI specification file"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     openapi: string (version, e.g., "3.0.3") [required]
     info: Info [required]
     servers: Server[] (0..*)
@@ -53,6 +57,8 @@ OpenAPIDocument:
 Info:
   description: "Metadata about the API"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     title: string [required]
     description: string (optional)
     version: string [required] (semantic version)
@@ -79,6 +85,8 @@ Info:
 Server:
   description: "Server where the API is available"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     url: string [required] (URL or URL template)
     description: string (optional)
     variables: ServerVariable[] (keyed by name, optional)
@@ -114,6 +122,8 @@ Paths:
 PathItem:
   description: "Operations available on a path"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     summary: string (optional)
     description: string (optional)
     servers: Server[] (optional, overrides root servers)
@@ -136,18 +146,20 @@ PathItem:
 Operation:
   description: "Single API operation (HTTP method on a path)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     operationId: string [required, unique] # Used for cross-references
     summary: string (optional, short description)
     description: string (optional, detailed description)
     tags: string[] (optional, for grouping)
-    deprecated: boolean (default: false)
+    deprecated: boolean (optional) # default: false
 
   contains:
-    parameters: Parameter[] (optional)
-    requestBody: RequestBody (optional)
-    responses: Responses [required]
-    callbacks: Callback[] (optional)
-    security: SecurityRequirement[] (optional)
+    - parameters: Parameter[] (0..*)
+    - requestBody: RequestBody[] (0..*)
+    - responses: Responses[] (0..*)
+    - callbacks: Callback[] (0..*)
+    - security: SecurityRequirement[] (0..*)
 
   # Custom extensions
   extensions:
@@ -166,7 +178,7 @@ Operation:
     x-constrained-by: string[] (Constraint IDs for regulatory/compliance, optional)
 
     # APM/Observability Layer Integration
-    x-apm-trace: boolean (default: true)
+    x-apm-trace: boolean (optional) # default: true
     x-apm-sla-target-latency: string (e.g., "200ms", "500ms", optional)
     x-apm-sla-target-availability: string (e.g., "99.95%", "99.99%", optional)
     x-apm-business-metrics: string[] (metric IDs this operation affects, optional)
@@ -222,12 +234,13 @@ Operation:
 Parameter:
   description: "Parameter for an operation"
   attributes:
+    id: string (UUID) [PK]
     name: string [required]
     in: ParameterLocation [required]
     description: string (optional)
     required: boolean (required for path params, optional otherwise)
-    deprecated: boolean (default: false)
-    allowEmptyValue: boolean (default: false)
+    deprecated: boolean (optional) # default: false
+    allowEmptyValue: boolean (optional) # default: false
 
   schema:
     schema: Schema [required] # Data type
@@ -237,16 +250,16 @@ Parameter:
 
   enums:
     ParameterLocation:
-      - query      # Query string parameter
-      - header     # HTTP header
-      - path       # Path parameter (always required)
-      - cookie     # Cookie parameter
+      - query # Query string parameter
+      - header # HTTP header
+      - path # Path parameter (always required)
+      - cookie # Cookie parameter
 
     ParameterStyle:
       - matrix
       - label
-      - form       # Default for query
-      - simple     # Default for path/header
+      - form # Default for query
+      - simple # Default for path/header
       - spaceDelimited
       - pipeDelimited
       - deepObject
@@ -286,8 +299,10 @@ Parameter:
 RequestBody:
   description: "Request payload for an operation"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     description: string (optional)
-    required: boolean (default: false)
+    required: boolean (optional) # default: false
 
   content:
     mediaTypes: MediaType[] [required] (keyed by content type)
@@ -332,6 +347,8 @@ Responses:
 Response:
   description: "Single response definition"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     description: string [required]
 
   headers: Header[] (optional, keyed by name)
@@ -339,31 +356,31 @@ Response:
   links: Link[] (optional, keyed by name)
 
   examples:
-    # Success response
-    "200":
-      description: "Successful operation"
-      headers:
-        X-Rate-Limit-Remaining:
-          schema:
-            type: integer
-          description: "Number of requests remaining"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Product"
+    - # Success response
+      "200":
+        description: "Successful operation"
+        headers:
+          X-Rate-Limit-Remaining:
+            schema:
+              type: integer
+            description: "Number of requests remaining"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Product"
 
-    # Error response
-    "400":
-      description: "Invalid request"
-      content:
-        application/json:
-          schema:
-            $ref: "#/components/schemas/Error"
+    - # Error response
+      "400":
+        description: "Invalid request"
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Error"
 
-    # Default response
-    "default":
-      description: "Unexpected error"
-      content:
+    - # Default response
+      "default":
+        description: "Unexpected error"
+        content:
         application/json:
           schema:
             $ref: "#/components/schemas/Error"
@@ -375,12 +392,15 @@ Response:
 MediaType:
   description: "Media type and schema for request/response body"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     contentType: string (key, e.g., "application/json")
+    example: any (optional)
 
-  schema: Schema (optional)
-  example: any (optional)
-  examples: Example[] (optional, keyed by name)
-  encoding: Encoding[] (optional, for multipart/form-data)
+  contains:
+    - schema: Schema[] (0..1)
+    - examples: Example[] (0..*) # keyed by name
+    - encoding: Encoding[] (0..*) # for multipart/form-data
 ```
 
 ### Components
@@ -388,16 +408,20 @@ MediaType:
 ```yaml
 Components:
   description: "Reusable component definitions"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
   contains:
-    schemas: Schema[] (keyed by name)
-    responses: Response[] (keyed by name)
-    parameters: Parameter[] (keyed by name)
-    examples: Example[] (keyed by name)
-    requestBodies: RequestBody[] (keyed by name)
-    headers: Header[] (keyed by name)
-    securitySchemes: SecurityScheme[] (keyed by name)
-    links: Link[] (keyed by name)
-    callbacks: Callback[] (keyed by name)
+    - schemas: Schema[] (0..*)
+    - responses: Response[] (0..*)
+    - parameters: Parameter[] (0..*)
+    - examples: Example[] (0..*)
+    - requestBodies: RequestBody[] (0..*)
+    - headers: Header[] (0..*)
+    - securitySchemes: SecurityScheme[] (0..*)
+    - links: Link[] (0..*)
+    - callbacks: Callback[] (0..*)
 ```
 
 ### Schema
@@ -406,13 +430,15 @@ Components:
 Schema:
   description: "Data type definition (JSON Schema subset)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: JSONType (string, number, integer, boolean, array, object)
     title: string (optional)
     description: string (optional)
     format: string (optional, e.g., "date-time", "email", "uuid")
     default: any (optional)
     enum: any[] (optional)
-    nullable: boolean (default: false, OpenAPI 3.0 extension)
+    nullable: boolean (optional) # default: false, OpenAPI 3.0 extension
 
   # Validation keywords
   validation:
@@ -464,6 +490,7 @@ Schema:
 SecurityScheme:
   description: "Security mechanism for the API"
   attributes:
+    id: string (UUID) [PK]
     type: SecurityType [required]
     description: string (optional)
     name: string (required for apiKey)
@@ -485,31 +512,31 @@ SecurityScheme:
       - openIdConnect
 
   examples:
-    # Bearer token (JWT)
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-      description: "JWT token authentication"
+    - # Bearer token (JWT)
+      bearerAuth:
+        type: http
+        scheme: bearer
+        bearerFormat: JWT
+        description: "JWT token authentication"
 
-    # API Key
-    apiKeyAuth:
-      type: apiKey
-      in: header
-      name: X-API-Key
-      description: "API key authentication"
+    - # API Key
+      apiKeyAuth:
+        type: apiKey
+        in: header
+        name: X-API-Key
+        description: "API key authentication"
 
-    # OAuth2
-    oauth2Auth:
-      type: oauth2
-      description: "OAuth2 authentication"
-      flows:
-        authorizationCode:
-          authorizationUrl: https://auth.example.com/authorize
-          tokenUrl: https://auth.example.com/token
-          scopes:
-            read:products: "Read product data"
-            write:products: "Modify product data"
+    - # OAuth2
+      oauth2Auth:
+        type: oauth2
+        description: "OAuth2 authentication"
+        flows:
+          authorizationCode:
+            authorizationUrl: https://auth.example.com/authorize
+            tokenUrl: https://auth.example.com/token
+            scopes:
+              read:products: "Read product data"
+              write:products: "Modify product data"
 ```
 
 ## Complete Example: Product API
@@ -910,17 +937,17 @@ security:
 - **Operations fulfill Requirements**: x-fulfills-requirements links API endpoints to Requirements they implement
 - **Principles guide API design**: x-governed-by-principles ensures API follows design Principles (REST, versioning, etc.)
 - **Operations constrained by regulatory/compliance**: x-constrained-by links operations to Constraints (GDPR, data retention, audit requirements)
-- **Requirements traceability**: Complete chain from business need → goal → requirement → API operation
+- **Requirements traceability**: Complete chain from business need goal requirement API operation
 - **Architecture decision records**: Principles explain "why" certain API designs were chosen
 
 **Example Traceability Chain**:
 
 ```
 Goal (goal-customer-satisfaction)
-  → BusinessService (business-service-product-catalog)
-    → API Operation (GET /products)
-      → Metrics (metric-catalog-findability)
-        → Outcome validation
+   BusinessService (business-service-product-catalog)
+     API Operation (GET /products)
+       Metrics (metric-catalog-findability)
+         Outcome validation
 ```
 
 ### To Business Layer
@@ -959,18 +986,18 @@ Goal (goal-customer-satisfaction)
 - **Operation security requirements**: Enforce access control via OpenAPI security field
 - **x-security-resource**: Links operation to SecureResource for detailed authorization rules
 - **x-required-permissions**: Explicitly declares Permission.name[] required for operation
-- **Enhanced security traceability**: From operation → required permissions → roles → actors
+- **Enhanced security traceability**: From operation required permissions roles actors
 
 **Security Integration Flow**:
 
-```yaml
+```text
 Operation (createProduct)
-  → x-required-permissions: ["product.create"]
-    → SecureResource (product-api)
-      → ResourceOperation (createProduct)
-        → allowRoles: ["editor", "admin"]
-          → Role definitions
-            → Security Actors
+   x-required-permissions: ["product.create"]
+     SecureResource (product-api)
+       ResourceOperation (createProduct)
+         allowRoles: ["editor", "admin"]
+           Role definitions
+             Security Actors
 ```
 
 ### To APM/Observability Layer
@@ -1093,7 +1120,7 @@ Consistency Checks:
 21. **Link to Requirements**: Use x-fulfills-requirements to show which requirements the operation satisfies
 22. **Declare Governing Principles**: Use x-governed-by-principles to document architectural decisions (API-first, REST conventions, etc.)
 23. **Document Constraints**: Operations with regulatory requirements (GDPR, HIPAA) must use x-constrained-by
-24. **Traceability Chain**: Ensure complete chain: Goal → Requirement → Operation → Metric
+24. **Traceability Chain**: Ensure complete chain: Goal Requirement Operation Metric
 
 #### APM/Observability Integration
 
@@ -1164,7 +1191,7 @@ APIs are the **digital manifestation of business services**. Without explicit co
 
 With business connections:
 
-- ✅ **Business traceability**: Clear path from business capability → API operation → implementation
+- ✅ **Business traceability**: Clear path from business capability API operation implementation
 - ✅ **Impact analysis**: Understand which business services are affected by API changes
 - ✅ **API governance**: Justify each API operation with business value
 - ✅ **Portfolio optimization**: Identify redundant or underutilized APIs based on business usage
@@ -1218,7 +1245,7 @@ With explicit permission references:
 
 - ✅ **Complete security specification**: Authentication (schemes) + Authorization (permissions)
 - ✅ **Automated validation**: Tools can verify user has required permissions before calling operation
-- ✅ **Security audit trail**: Clear path from operation → permissions → roles → actors
+- ✅ **Security audit trail**: Clear path from operation permissions roles actors
 - ✅ **Code generation**: Generate authorization middleware from permission declarations
 
 ### Why APIs Need Constraint References
@@ -1264,7 +1291,7 @@ These extensions align with practices from leading API management platforms:
 
 **For Architects**:
 
-- Complete traceability from goals → APIs → metrics
+- Complete traceability from goals APIs metrics
 - Justify architectural decisions with business context
 - API portfolio management based on business capabilities
 

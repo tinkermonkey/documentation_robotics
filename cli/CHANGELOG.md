@@ -5,6 +5,18 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.5] - 2025-12-06
+
+### Fixed
+
+- **Visualization**: Fixed `dr visualize` command to correctly locate specification files in the `.dr` directory (resolves "Specification directory not found" error in installed projects).
+- **Packaging**: Fixed `Link registry not found` error by ensuring `link-registry.json` is correctly packaged and located at runtime.
+- **Claude Integration**: Fixed silent failure in `dr claude install` command.
+
+### Added
+
+- **Testing**: Added comprehensive test coverage for `dr claude` commands.
+
 ## [0.6.4] - 2025-12-05
 
 ### Added

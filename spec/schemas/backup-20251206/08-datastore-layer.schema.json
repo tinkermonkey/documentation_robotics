@@ -1,57 +1,56 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
+  "$id": "https://example.com/schemas/08-datastore-layer.json",
   "title": "Datastore Layer Schema",
-  "description": "Schema for Datastore Layer",
   "type": "object",
+  "description": "ArchiMate Datastore Layer elements for business services, processes, actors, and objects",
   "properties": {
     "databases": {
       "type": "array",
-      "description": "Collection of Database entities",
       "items": {
         "$ref": "#/definitions/Database"
       }
     },
-    "database-schemas": {
+    "databaseSchemas": {
       "type": "array",
-      "description": "Collection of DatabaseSchema entities",
       "items": {
         "$ref": "#/definitions/DatabaseSchema"
       }
     },
     "tables": {
       "type": "array",
-      "description": "Collection of Table entities",
       "items": {
         "$ref": "#/definitions/Table"
       }
     },
     "columns": {
       "type": "array",
-      "description": "Collection of Column entities",
       "items": {
         "$ref": "#/definitions/Column"
       }
     },
     "constraints": {
       "type": "array",
-      "description": "Collection of Constraint entities",
       "items": {
         "$ref": "#/definitions/Constraint"
       }
     },
     "indexes": {
       "type": "array",
-      "description": "Collection of Index entities",
       "items": {
         "$ref": "#/definitions/Index"
       }
     },
     "views": {
       "type": "array",
-      "description": "Collection of View entities",
       "items": {
         "$ref": "#/definitions/View"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Relationship"
       }
     }
   },
@@ -68,38 +67,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        },
-        "version": {
-          "type": "string",
-          "minLength": 1
-        },
-        "charset": {
-          "type": "string",
-          "minLength": 1
-        },
-        "collation": {
-          "type": "string",
-          "minLength": 1
-        },
-        "schemas": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        }
-      },
-      "definitions": {
-        "DatabaseType": {
           "type": "string",
           "enum": [
             "PostgreSQL",
@@ -109,6 +83,24 @@
             "Oracle",
             "SQL Server"
           ]
+        },
+        "version": {
+          "type": "string"
+        },
+        "charset": {
+          "type": "string"
+        },
+        "collation": {
+          "type": "string"
+        },
+        "schemas": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "description": "References to DatabaseSchema IDs"
         }
       }
     },
@@ -122,44 +114,50 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "owner": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "tables": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Table IDs"
         },
         "views": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to View IDs"
         },
         "functions": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Function IDs"
         },
         "sequences": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Sequence IDs"
         }
       }
     },
@@ -173,48 +171,53 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "schema": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "tablespace": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "columns": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 1,
+          "description": "References to Column IDs"
         },
         "constraints": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Constraint IDs"
         },
         "indexes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Index IDs"
         },
         "triggers": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Trigger IDs"
         }
       }
     },
@@ -229,68 +232,23 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "dataType": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "nullable": {
           "type": "boolean"
         },
         "defaultValue": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "generated": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "SQLDataType": {
-          "type": "string",
-          "enum": [
-            "SMALLINT",
-            "INTEGER",
-            "BIGINT",
-            "SERIAL",
-            "BIGSERIAL",
-            "DECIMAL(precision, scale)",
-            "NUMERIC(precision, scale)",
-            "REAL",
-            "DOUBLE PRECISION",
-            "CHAR(length)",
-            "VARCHAR(length)",
-            "TEXT",
-            "BYTEA",
-            "BLOB",
-            "BOOLEAN",
-            "DATE",
-            "TIME",
-            "TIMESTAMP",
-            "TIMESTAMPTZ",
-            "INTERVAL",
-            "JSON",
-            "JSONB",
-            "UUID",
-            "INTEGER[]",
-            "TEXT[]",
-            "etc.",
-            "ENUM('value1', 'value2', ...)"
-          ]
-        },
-        "GenerationType": {
-          "type": "string",
-          "enum": [
-            "ALWAYS",
-            "BY_DEFAULT"
-          ]
+          "type": "string"
         }
       }
     },
@@ -305,19 +263,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "ConstraintType": {
           "type": "string",
           "enum": [
             "PRIMARY_KEY",
@@ -325,16 +277,6 @@
             "FOREIGN_KEY",
             "CHECK",
             "EXCLUSION"
-          ]
-        },
-        "ReferentialAction": {
-          "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET_NULL",
-            "SET_DEFAULT",
-            "RESTRICT",
-            "NO_ACTION"
           ]
         }
       }
@@ -349,44 +291,26 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "columns": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "unique": {
           "type": "boolean"
         },
         "method": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "where": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "include": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "IndexMethod": {
-          "type": "string",
-          "enum": [
-            "BTREE",
-            "HASH",
-            "GIN",
-            "GIST",
-            "BRIN",
-            "SP-GIST"
-          ]
+          "type": "string"
         }
       }
     },
@@ -400,29 +324,52 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "definition": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "materialized": {
           "type": "boolean"
         }
-      },
-      "definitions": {
-        "RefreshMode": {
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "type",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "type": {
           "type": "string",
           "enum": [
-            "ON_COMMIT",
-            "ON_DEMAND",
-            "SCHEDULED"
+            "Composition",
+            "Aggregation",
+            "Assignment",
+            "Realization",
+            "Triggering",
+            "Flow",
+            "Association",
+            "Access",
+            "Serving"
           ]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
         }
       }
     }

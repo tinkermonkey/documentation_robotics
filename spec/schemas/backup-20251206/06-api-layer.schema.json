@@ -1,106 +1,116 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/06-api-layer.schema.json",
+  "$id": "https://example.com/schemas/06-api-layer.json",
   "title": "Api Layer Schema",
-  "description": "Schema for Api Layer",
   "type": "object",
+  "description": "ArchiMate Api Layer elements for business services, processes, actors, and objects",
   "properties": {
-    "open-api-documents": {
+    "openAPIDocuments": {
       "type": "array",
-      "description": "Collection of OpenAPIDocument entities",
       "items": {
         "$ref": "#/definitions/OpenAPIDocument"
       }
     },
     "infos": {
       "type": "array",
-      "description": "Collection of info entities",
       "items": {
-        "$ref": "#/definitions/info"
+        "$ref": "#/definitions/Info"
       }
     },
     "servers": {
       "type": "array",
-      "description": "Collection of Server entities",
       "items": {
         "$ref": "#/definitions/Server"
       }
     },
     "pathses": {
       "type": "array",
-      "description": "Collection of Paths entities",
       "items": {
         "$ref": "#/definitions/Paths"
       }
     },
-    "path-items": {
+    "pathItems": {
       "type": "array",
-      "description": "Collection of PathItem entities",
       "items": {
         "$ref": "#/definitions/PathItem"
       }
     },
     "operations": {
       "type": "array",
-      "description": "Collection of Operation entities",
       "items": {
         "$ref": "#/definitions/Operation"
       }
     },
     "parameters": {
       "type": "array",
-      "description": "Collection of Parameter entities",
       "items": {
         "$ref": "#/definitions/Parameter"
       }
     },
-    "request-bodies": {
+    "requestBodies": {
       "type": "array",
-      "description": "Collection of RequestBody entities",
       "items": {
         "$ref": "#/definitions/RequestBody"
       }
     },
     "responseses": {
       "type": "array",
-      "description": "Collection of Responses entities",
       "items": {
         "$ref": "#/definitions/Responses"
       }
     },
     "responses": {
       "type": "array",
-      "description": "Collection of Response entities",
       "items": {
         "$ref": "#/definitions/Response"
       }
     },
-    "media-types": {
+    "mediaTypes": {
       "type": "array",
-      "description": "Collection of MediaType entities",
       "items": {
         "$ref": "#/definitions/MediaType"
       }
     },
     "componentses": {
       "type": "array",
-      "description": "Collection of Components entities",
       "items": {
         "$ref": "#/definitions/Components"
       }
     },
     "schemas": {
       "type": "array",
-      "description": "Collection of Schema entities",
       "items": {
         "$ref": "#/definitions/Schema"
       }
     },
-    "security-schemes": {
+    "securitySchemes": {
       "type": "array",
-      "description": "Collection of SecurityScheme entities",
       "items": {
         "$ref": "#/definitions/SecurityScheme"
+      }
+    },
+    "gET /productses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/GET /products"
+      }
+    },
+    "dELETE /customers/{id}s": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/DELETE /customers/{id}"
+      }
+    },
+    "pOST /orderses": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/POST /orders"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Relationship"
       }
     }
   },
@@ -121,41 +131,35 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "openapi": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "info": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "servers": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "paths": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "components": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "security": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "tags": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "externalDocs": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -172,34 +176,29 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "title": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "version": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "termsOfService": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "contact": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "license": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -215,30 +214,30 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "url": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "variables": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
     "Paths": {
       "type": "object",
       "description": "Available API endpoints and operations",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
     },
     "PathItem": {
@@ -253,28 +252,23 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "summary": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "servers": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "parameters": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -292,66 +286,71 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "operationId": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "summary": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "tags": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "deprecated": {
           "type": "boolean"
         },
         "parameters": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Parameter IDs"
         },
         "requestBody": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to RequestBody IDs"
         },
         "responses": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Responses IDs"
         },
         "callbacks": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Callback IDs"
         },
         "security": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SecurityRequirement IDs"
         }
       }
     },
@@ -367,18 +366,17 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
-          "$ref": "#/definitions/required"
-        },
-        "in": {
-          "$ref": "#/definitions/required"
-        },
-        "description": {
           "type": "string",
           "minLength": 1
+        },
+        "in": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
         },
         "required": {
           "type": "boolean"
@@ -388,29 +386,6 @@
         },
         "allowEmptyValue": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "ParameterLocation": {
-          "type": "string",
-          "enum": [
-            "query",
-            "header",
-            "path",
-            "cookie"
-          ]
-        },
-        "ParameterStyle": {
-          "type": "string",
-          "enum": [
-            "matrix",
-            "label",
-            "form",
-            "simple",
-            "spaceDelimited",
-            "pipeDelimited",
-            "deepObject"
-          ]
         }
       }
     },
@@ -424,16 +399,14 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "required": {
           "type": "boolean"
@@ -443,7 +416,10 @@
     "Responses": {
       "type": "object",
       "description": "Possible responses from an operation",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
     },
     "Response": {
@@ -457,15 +433,14 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         }
       }
     },
@@ -480,41 +455,45 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "contentType": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "example": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "schema": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "maxItems": 1,
+          "description": "References to Schema IDs"
         },
         "examples": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Example IDs"
         },
         "encoding": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Encoding IDs"
         }
       }
     },
@@ -528,8 +507,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
@@ -537,66 +515,84 @@
         },
         "schemas": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Schema IDs"
         },
         "responses": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Response IDs"
         },
         "parameters": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Parameter IDs"
         },
         "examples": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Example IDs"
         },
         "requestBodies": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to RequestBody IDs"
         },
         "headers": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Header IDs"
         },
         "securitySchemes": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SecurityScheme IDs"
         },
         "links": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Link IDs"
         },
         "callbacks": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to Callback IDs"
         }
       }
     },
@@ -612,36 +608,29 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "type": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "format": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "default": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "enum": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "nullable": {
           "type": "boolean"
@@ -653,8 +642,8 @@
       "description": "Security mechanism for the API",
       "required": [
         "id",
-        "type",
         "name",
+        "type",
         "in",
         "scheme",
         "bearerFormat"
@@ -662,50 +651,87 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "type": {
-          "$ref": "#/definitions/required"
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "in": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "scheme": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "bearerFormat": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "SecurityType": {
-          "type": "string",
-          "enum": [
-            "apiKey",
-            "http",
-            "oauth2",
-            "openIdConnect"
-          ]
+          "type": "string"
         }
       }
     },
-    "info": {
+    "GET /products": {
       "type": "object",
-      "description": "RESTful API for managing product catalog\n\n## Features\n- CRUD operations for products\n- Product search and filtering\n- Category management\n- Inventory tracking\n",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
+    },
+    "DELETE /customers/{id}": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {}
+    },
+    "POST /orders": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {}
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "type",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Composition",
+            "Aggregation",
+            "Assignment",
+            "Realization",
+            "Triggering",
+            "Flow",
+            "Association",
+            "Access",
+            "Serving"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
+        }
+      }
     }
   }
 }

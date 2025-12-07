@@ -1,106 +1,98 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
+  "$id": "https://example.com/schemas/07-data-model-layer.json",
   "title": "Data Model Layer Schema",
-  "description": "Schema for Data Model Layer",
   "type": "object",
+  "description": "ArchiMate Data Model Layer elements for business services, processes, actors, and objects",
   "properties": {
-    "json-schemas": {
+    "jSONSchemas": {
       "type": "array",
-      "description": "Collection of JSONSchema entities",
       "items": {
         "$ref": "#/definitions/JSONSchema"
       }
     },
-    "json-types": {
+    "jSONTypes": {
       "type": "array",
-      "description": "Collection of JSONType entities",
       "items": {
         "$ref": "#/definitions/JSONType"
       }
     },
-    "string-schemas": {
+    "stringSchemas": {
       "type": "array",
-      "description": "Collection of StringSchema entities",
       "items": {
         "$ref": "#/definitions/StringSchema"
       }
     },
-    "numeric-schemas": {
+    "numericSchemas": {
       "type": "array",
-      "description": "Collection of NumericSchema entities",
       "items": {
         "$ref": "#/definitions/NumericSchema"
       }
     },
-    "array-schemas": {
+    "arraySchemas": {
       "type": "array",
-      "description": "Collection of ArraySchema entities",
       "items": {
         "$ref": "#/definitions/ArraySchema"
       }
     },
-    "object-schemas": {
+    "objectSchemas": {
       "type": "array",
-      "description": "Collection of ObjectSchema entities",
       "items": {
         "$ref": "#/definitions/ObjectSchema"
       }
     },
-    "schema-compositions": {
+    "schemaCompositions": {
       "type": "array",
-      "description": "Collection of SchemaComposition entities",
       "items": {
         "$ref": "#/definitions/SchemaComposition"
       }
     },
     "references": {
       "type": "array",
-      "description": "Collection of Reference entities",
       "items": {
         "$ref": "#/definitions/Reference"
       }
     },
     "x-business-object-refs": {
       "type": "array",
-      "description": "Collection of x-business-object-ref entities",
       "items": {
         "$ref": "#/definitions/x-business-object-ref"
       }
     },
     "x-data-governances": {
       "type": "array",
-      "description": "Collection of x-data-governance entities",
       "items": {
         "$ref": "#/definitions/x-data-governance"
       }
     },
     "x-apm-data-quality-metricses": {
       "type": "array",
-      "description": "Collection of x-apm-data-quality-metrics entities",
       "items": {
         "$ref": "#/definitions/x-apm-data-quality-metrics"
       }
     },
     "x-databases": {
       "type": "array",
-      "description": "Collection of x-database entities",
       "items": {
         "$ref": "#/definitions/x-database"
       }
     },
     "x-uis": {
       "type": "array",
-      "description": "Collection of x-ui entities",
       "items": {
         "$ref": "#/definitions/x-ui"
       }
     },
     "x-securities": {
       "type": "array",
-      "description": "Collection of x-security entities",
       "items": {
         "$ref": "#/definitions/x-security"
+      }
+    },
+    "relationships": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Relationship"
       }
     }
   },
@@ -118,110 +110,99 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "$schema": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "$id": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "title": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "description": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "type": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "definitions": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SchemaDefinition IDs"
         },
         "properties": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SchemaProperty IDs"
         }
       }
     },
     "JSONType": {
       "type": "object",
       "description": "Core JSON data types",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
     },
     "StringSchema": {
       "type": "object",
       "description": "StringSchema validation rules",
-      "required": [],
-      "properties": {},
-      "definitions": {
-        "StringFormat": {
-          "type": "string",
-          "enum": [
-            "date-time",
-            "date",
-            "time",
-            "email",
-            "idn-email",
-            "hostname",
-            "idn-hostname",
-            "ipv4",
-            "ipv6",
-            "uri",
-            "uri-reference",
-            "iri",
-            "iri-reference",
-            "json-pointer",
-            "relative-json-pointer",
-            "regex",
-            "uuid",
-            "phone",
-            "credit-card"
-          ]
-        }
-      }
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {}
     },
     "NumericSchema": {
       "type": "object",
       "description": "NumericSchema validation rules",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
     },
     "ArraySchema": {
       "type": "object",
       "description": "ArraySchema validation rules",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {}
     },
     "ObjectSchema": {
       "type": "object",
       "description": "ObjectSchema validation rules",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "properties": {
           "type": "array",
-          "description": "Contains relationship",
           "items": {
-            "type": "string"
-          }
+            "type": "string",
+            "format": "uuid"
+          },
+          "minItems": 0,
+          "description": "References to SchemaProperty IDs"
         }
       }
     },
@@ -235,8 +216,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
@@ -254,8 +234,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
@@ -266,30 +245,19 @@
     "x-business-object-ref": {
       "type": "object",
       "description": "Reference to BusinessObject this schema implements",
-      "required": [],
-      "properties": {}
-    },
-    "x-data-governance": {
-      "type": "object",
-      "description": "Data model governance metadata (root-level)",
       "required": [
         "id",
         "name"
       ],
-      "properties": {
-        "id": {
-          "type": "string",
-          "format": "uuid",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string",
-          "minLength": 1
-        },
-        "governedBy": {
-          "type": "object"
-        }
-      }
+      "properties": {}
+    },
+    "x-data-governance": {
+      "type": "object",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {}
     },
     "x-apm-data-quality-metrics": {
       "type": "object",
@@ -307,36 +275,29 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "completenessMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "accuracyMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "consistencyMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "freshnessMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "uniquenessMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "integrityMetrics": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         }
       }
     },
@@ -353,75 +314,20 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "table": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "schema": {
-          "type": "string",
-          "minLength": 1
+          "type": "string"
         },
         "engine": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "SQLType": {
-          "type": "string",
-          "enum": [
-            "VARCHAR",
-            "TEXT",
-            "INTEGER",
-            "BIGINT",
-            "SERIAL",
-            "BIGSERIAL",
-            "DECIMAL",
-            "NUMERIC",
-            "BOOLEAN",
-            "DATE",
-            "TIMESTAMP",
-            "TIMESTAMPTZ",
-            "JSON",
-            "JSONB",
-            "UUID",
-            "BYTEA"
-          ]
-        },
-        "ReferentialAction": {
-          "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET_NULL",
-            "RESTRICT",
-            "NO_ACTION",
-            "SET_DEFAULT"
-          ]
-        },
-        "IndexType": {
-          "type": "string",
-          "enum": [
-            "BTREE",
-            "HASH",
-            "GIN",
-            "GIST"
-          ]
-        },
-        "ConstraintType": {
-          "type": "string",
-          "enum": [
-            "PRIMARY_KEY",
-            "UNIQUE",
-            "FOREIGN_KEY",
-            "CHECK"
-          ]
+          "type": "string"
         }
       }
     },
@@ -443,44 +349,13 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "component": {
-          "$ref": "#/definitions/enum"
-        },
-        "label": {
-          "type": "string",
-          "minLength": 1
-        },
-        "placeholder": {
-          "type": "string",
-          "minLength": 1
-        },
-        "helpText": {
-          "type": "string",
-          "minLength": 1
-        },
-        "order": {
-          "type": "integer"
-        },
-        "readOnly": {
-          "type": "boolean"
-        },
-        "hidden": {
-          "type": "boolean"
-        },
-        "group": {
-          "type": "string",
-          "minLength": 1
-        }
-      },
-      "definitions": {
-        "UIComponent": {
           "type": "string",
           "enum": [
             "text-input",
@@ -501,6 +376,27 @@
             "rich-text-editor",
             "color-picker"
           ]
+        },
+        "label": {
+          "type": "string"
+        },
+        "placeholder": {
+          "type": "string"
+        },
+        "helpText": {
+          "type": "string"
+        },
+        "order": {
+          "type": "integer"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "group": {
+          "type": "string"
         }
       }
     },
@@ -520,8 +416,7 @@
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid",
-          "minLength": 1
+          "format": "uuid"
         },
         "name": {
           "type": "string",
@@ -534,21 +429,6 @@
           "type": "boolean"
         },
         "classification": {
-          "$ref": "#/definitions/enum"
-        },
-        "retention": {
-          "type": "string",
-          "minLength": 1
-        },
-        "masking": {
-          "$ref": "#/definitions/enum"
-        },
-        "redaction": {
-          "type": "boolean"
-        }
-      },
-      "definitions": {
-        "SecurityClassification": {
           "type": "string",
           "enum": [
             "public",
@@ -557,7 +437,10 @@
             "restricted"
           ]
         },
-        "MaskingStrategy": {
+        "retention": {
+          "type": "string"
+        },
+        "masking": {
           "type": "string",
           "enum": [
             "none",
@@ -565,6 +448,44 @@
             "full",
             "hash"
           ]
+        },
+        "redaction": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Relationship": {
+      "type": "object",
+      "required": [
+        "type",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": [
+            "Composition",
+            "Aggregation",
+            "Assignment",
+            "Realization",
+            "Triggering",
+            "Flow",
+            "Association",
+            "Access",
+            "Serving"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "target": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "documentation": {
+          "type": "string"
         }
       }
     }

@@ -47,5 +47,18 @@ def main():
         shutil.copytree(source, target)
         print("Done.")
 
+    # Copy link-registry.json
+    print("\nProcessing Link Registry...")
+    spec_root = root.parent / "spec"
+    source_registry = spec_root / "schemas" / "link-registry.json"
+    target_registry = src_root / "schemas" / "link-registry.json"
+
+    if source_registry.exists():
+        print(f"Copying {source_registry} to {target_registry}...")
+        shutil.copy2(source_registry, target_registry)
+        print("Done.")
+    else:
+        print(f"Error: Link registry not found at {source_registry}")
+
 if __name__ == "__main__":
     main()

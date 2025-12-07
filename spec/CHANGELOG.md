@@ -5,6 +5,35 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2025-12-07
+
+### Changed
+
+- **Architecture Refactoring - Entity Standardization**:
+  - ALL entity types across all 12 layers now have explicit `id` and `name` fields
+  - `id` field: UUID format, required, serves as primary key
+  - `name` field: Human-readable string, required, for display
+  - Affects 165 entity types across all layers
+  - Standardizes entity structure for improved tooling
+
+- **Schema Updates**:
+  - All 12 layer schemas regenerated with consistent entity structure
+  - Link registry expanded from ~520 to 968 lines
+  - Auto-generated with `generate_schemas.py --all`
+
+### Migration Path
+
+Models on v0.3.0 can migrate to v0.4.0 using CLI v0.7.0+:
+
+```bash
+dr migrate --apply
+```
+
+**What Gets Migrated**:
+- `id` field: UUID auto-generated deterministically (preserves existing UUIDs)
+- `name` field: Derived from existing name/id/description
+- Backward compatible: existing fields preserved
+
 ## [0.3.0] - 2025-11-29
 
 ### Added
@@ -73,15 +102,11 @@ dr validate --validate-links
   - Migration guide from organic patterns to standardized patterns
 
 - **Machine-Readable Registry** ([spec/schemas/link-registry.json](schemas/link-registry.json))
-  - 520-line JSON catalog of all valid link types
+  - Auto-generated JSON catalog of all valid link types
   - Queryable by category, source layer, target layer, field path
   - Enables automated validation and tooling
   - Each link type includes: ID, name, category, layers, field paths, cardinality, format, validation rules
-
-- **Shared References Schema** ([spec/schemas/shared-references.schema.json](schemas/shared-references.schema.json))
-  - Centralized definitions for common reference patterns
-  - Reusable across all layer schemas
-  - Consistent validation rules for cross-layer references
+  - Generated from markdown layer specifications using `generate_schemas.py --all`
 
 ### Changed
 

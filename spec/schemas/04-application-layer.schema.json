@@ -1,180 +1,286 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/04-application-layer.json",
+  "$id": "https://example.com/schemas/04-application-layer.schema.json",
   "title": "Application Layer Schema",
-  "description": "ArchiMate Application Layer elements for application components, services, and data objects",
+  "description": "Schema for Application Layer",
   "type": "object",
   "properties": {
-    "applicationComponents": {
+    "application-components": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationComponent" }
+      "description": "Collection of ApplicationComponent entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationComponent"
+      }
     },
-    "applicationCollaborations": {
+    "application-collaborations": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationCollaboration" }
+      "description": "Collection of ApplicationCollaboration entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationCollaboration"
+      }
     },
-    "applicationInterfaces": {
+    "application-interfaces": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationInterface" }
+      "description": "Collection of ApplicationInterface entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationInterface"
+      }
     },
-    "applicationFunctions": {
+    "application-functions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationFunction" }
+      "description": "Collection of ApplicationFunction entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationFunction"
+      }
     },
-    "applicationInteractions": {
+    "application-interactions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationInteraction" }
+      "description": "Collection of ApplicationInteraction entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationInteraction"
+      }
     },
-    "applicationProcesses": {
+    "application-processes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationProcess" }
+      "description": "Collection of ApplicationProcess entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationProcess"
+      }
     },
-    "applicationEvents": {
+    "application-events": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationEvent" }
+      "description": "Collection of ApplicationEvent entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationEvent"
+      }
     },
-    "applicationServices": {
+    "application-services": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ApplicationService" }
+      "description": "Collection of ApplicationService entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationService"
+      }
     },
-    "dataObjects": {
+    "data-objects": {
       "type": "array",
-      "items": { "$ref": "#/definitions/DataObject" }
-    },
-    "relationships": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/Relationship" }
+      "description": "Collection of DataObject entities",
+      "items": {
+        "$ref": "#/definitions/DataObject"
+      }
     }
   },
   "definitions": {
     "ApplicationComponent": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Modular, deployable, and replaceable part of a system",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
-          "type": "string",
-          "enum": ["frontend", "backend", "mobile", "desktop", "service"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "implementation.framework": {
-              "type": "string"
+            "implementation": {
+              "type": "object",
+              "properties": {
+                "framework": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "spec.ux": {
-              "type": "string",
-              "description": "Path to UX spec file"
-            },
-            "spec.openapi": {
-              "type": "string",
-              "description": "Path to OpenAPI spec file"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "ux": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "ComponentType": {
+          "type": "string",
+          "enum": [
+            "frontend",
+            "backend",
+            "mobile",
+            "desktop",
+            "service"
+          ]
         }
       }
     },
     "ApplicationCollaboration": {
       "type": "object",
-      "required": ["id", "name", "components"],
+      "description": "Aggregate of application components working together",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "components": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "minItems": 2
+            "type": "string"
+          }
         }
       }
     },
     "ApplicationInterface": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Point of access where application service is available",
+      "required": [
+        "id",
+        "name",
+        "protocol"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "protocol": {
-          "type": "string",
-          "enum": ["REST", "GraphQL", "SOAP", "gRPC", "WebSocket", "Message Queue"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "spec.openapi": {
-              "type": "string"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "interface.endpoint": {
-              "type": "string",
-              "format": "uri"
+            "interface": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "InterfaceProtocol": {
+          "type": "string",
+          "enum": [
+            "REST",
+            "GraphQL",
+            "SOAP",
+            "gRPC",
+            "WebSocket",
+            "Message Queue"
+          ]
         }
       }
     },
     "ApplicationFunction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Automated behavior performed by application component",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "function.async": {
-              "type": "string",
-              "enum": ["true", "false"]
+            "function": {
+              "type": "object",
+              "properties": {
+                "async": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "idempotent": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "function.idempotent": {
-              "type": "string",
-              "enum": ["true", "false"]
-            },
-            "motivation.fulfills-requirements": {
-              "type": "string",
-              "description": "Comma-separated Requirement IDs this function fulfills"
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs that govern this function"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "fulfills-requirements": {
+                  "type": "string",
+                  "description": "optional, comma-separated Requirement IDs this function fulfills"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                }
+              }
             }
           }
         }
@@ -182,48 +288,79 @@
     },
     "ApplicationInteraction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Unit of collective application behavior",
+      "required": [
+        "id",
+        "name",
+        "pattern"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "pattern": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "InteractionPattern": {
           "type": "string",
-          "enum": ["request-response", "publish-subscribe", "async-messaging", "streaming"]
+          "enum": [
+            "request-response",
+            "publish-subscribe",
+            "async-messaging",
+            "streaming"
+          ]
         }
       }
     },
     "ApplicationProcess": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Sequence of application behaviors",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "process.orchestration": {
-              "type": "string"
-            },
-            "process.saga": {
-              "type": "string"
+            "process": {
+              "type": "object",
+              "properties": {
+                "orchestration": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "saga": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
         }
@@ -231,154 +368,217 @@
     },
     "ApplicationEvent": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Application state change notification",
+      "required": [
+        "id",
+        "name",
+        "eventType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "eventType": {
-          "type": "string",
-          "enum": ["domain-event", "integration-event", "system-event", "audit-event"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "event.schema": {
-              "type": "string"
-            },
-            "event.topic": {
-              "type": "string"
+            "event": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "topic": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "ApplicationEventType": {
+          "type": "string",
+          "enum": [
+            "domain-event",
+            "integration-event",
+            "system-event",
+            "audit-event"
+          ]
         }
       }
     },
     "ApplicationService": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Service that exposes application functionality",
+      "required": [
+        "id",
+        "name",
+        "serviceType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "serviceType": {
-          "type": "string",
-          "enum": ["synchronous", "asynchronous", "batch", "streaming"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "spec.openapi": {
-              "type": "string"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "service.version": {
-              "type": "string"
+            "service": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "deprecated": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "service.deprecated": {
-              "type": "string",
-              "enum": ["true", "false"]
+            "apm": {
+              "type": "object",
+              "properties": {
+                "traced": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "business-metrics": {
+                  "type": "string",
+                  "description": "optional, comma-separated business metric IDs this service tracks"
+                },
+                "sla-target-latency": {
+                  "type": "string",
+                  "description": "optional, target response time"
+                },
+                "sla-target-availability": {
+                  "type": "string",
+                  "description": "optional, target uptime percentage"
+                }
+              }
             },
-            "apm.traced": {
-              "type": "string",
-              "enum": ["true", "false"],
-              "description": "Enable distributed tracing for this service"
-            },
-            "apm.business-metrics": {
-              "type": "string",
-              "description": "Comma-separated business metric IDs this service tracks"
-            },
-            "apm.sla-target-latency": {
-              "type": "string",
-              "description": "Target response time (e.g., '200ms', '500ms', '1000ms')"
-            },
-            "apm.sla-target-availability": {
-              "type": "string",
-              "description": "Target uptime percentage (e.g., '99.9%', '99.95%', '99.99%')"
-            },
-            "motivation.supports-goals": {
-              "type": "string",
-              "description": "Comma-separated Goal IDs this service supports"
-            },
-            "motivation.delivers-value": {
-              "type": "string",
-              "description": "Comma-separated Value IDs this service delivers"
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs that govern this service"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "supports-goals": {
+                  "type": "string",
+                  "description": "optional, comma-separated Goal IDs"
+                },
+                "delivers-value": {
+                  "type": "string",
+                  "description": "optional, comma-separated Value IDs"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "ServiceType": {
+          "type": "string",
+          "enum": [
+            "synchronous",
+            "asynchronous",
+            "batch",
+            "streaming"
+          ]
         }
       }
     },
     "DataObject": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Data structured for automated processing",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "spec.schema": {
-              "type": "string"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "database": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "spec.database": {
-              "type": "string"
-            },
-            "data.pii": {
-              "type": "string",
-              "enum": ["true", "false"]
-            },
-            "data.retention": {
-              "type": "string"
+            "data": {
+              "type": "object",
+              "properties": {
+                "pii": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "retention": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
-        }
-      }
-    },
-    "Relationship": {
-      "type": "object",
-      "required": ["type", "source", "target"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["Composition", "Assignment", "Realization", "Triggering", "Flow", "Access", "Serving", "Used By"]
-        },
-        "source": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "target": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "documentation": {
-          "type": "string"
         }
       }
     }

@@ -61,19 +61,26 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     if spec_path_env:
         spec_path = Path(spec_path_env)
     else:
+        # Check for .dr directory (installed project mode)
+        dot_dr_spec = root_path / ".dr"
+
         # Check for workspace spec/ directory (typical in development)
         workspace_spec = root_path / "spec"
-        # Also check parent directories up to 3 levels for spec/
-        if not workspace_spec.exists():
-            current = root_path.parent
-            for _ in range(3):
-                candidate = current / "spec"
-                if candidate.exists() and (candidate / "VERSION").exists():
-                    workspace_spec = candidate
-                    break
-                current = current.parent
 
-        spec_path = workspace_spec
+        if dot_dr_spec.exists() and (dot_dr_spec / "schemas").exists():
+            spec_path = dot_dr_spec
+        else:
+            # Fallback to workspace spec/ directory search
+            if not workspace_spec.exists():
+                current = root_path.parent
+                for _ in range(3):
+                    candidate = current / "spec"
+                    if candidate.exists() and (candidate / "VERSION").exists():
+                        workspace_spec = candidate
+                        break
+                    current = current.parent
+
+            spec_path = workspace_spec
 
     if not model_path.exists():
         console.print("✗ Error: No model found in current directory", style="red bold")
@@ -116,10 +123,10 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     # Initialize server
     try:
         server = VisualizationServer(
-            model_path=root_path,
-            spec_path=spec_path,
-            host=host,
-            port=port,
+            root_path,
+            spec_path,
+            host,
+            port,
         )
     except Exception as e:
         console.print(f"✗ Error initializing server: {e}", style="red bold")

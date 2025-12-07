@@ -57,8 +57,7 @@ spec/
 │   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
 │
 ├── schemas/                    # JSON Schemas (normative)
-│   ├── README.md
-│   ├── federated-architecture.schema.json  # Master schema
+│   ├── link-registry.json           # Cross-layer link registry
 │   ├── 01-motivation-layer.schema.json
 │   ├── 02-business-layer.schema.json
 │   └── ...                     # One schema per layer

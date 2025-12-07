@@ -54,11 +54,12 @@ Our UX spec bridges the gap between design and implementation by:
 UXSpec:
   description: "Complete UX specification for an experience (visual, voice, chat, SMS)"
   attributes:
-    version: string (spec version, e.g., "0.1.1")
-    experience: string (experience identifier, e.g., "product-edit", "order-status-voice")
-    channel: ChannelType [enum] (primary channel for this experience)
+    id: string (UUID) [PK]
+    name: string
+    version: string (optional)
+    experience: string (optional)
+    channel: ChannelType [enum]
     title: string (optional)
-    description: string (optional)
 
   contains:
     - states: ExperienceState[] (1..*)
@@ -116,18 +117,19 @@ UXSpec:
 ExperienceState:
   description: "Distinct state that the experience can be in (works across all channels)"
   attributes:
-    name: string [PK within spec] (e.g., "loading", "viewing", "editing", "listening", "speaking")
-    initial: boolean (default: false) # Exactly one state must be initial
+    id: string (UUID) [PK]
+    name: string
+    initial: boolean (optional)
     description: string (optional)
-    channel: ChannelType (optional, if state is channel-specific)
+    channel: ChannelType (optional)
 
   contains:
-    - onEnter: StateAction[] (0..*) # Actions when entering this state
-    - onExit: StateAction[] (0..*) # Actions when leaving this state
-    - transitions: StateTransition[] (0..*) # Possible transitions to other states
-    - enabledComponents: string[] (component names, optional)
-    - disabledComponents: string[] (component names, optional)
-    - hiddenComponents: string[] (component names, optional)
+    - onEnter: StateAction[] (0..*)
+    - onExit: StateAction[] (0..*)
+    - transitions: StateTransition[] (0..*)
+    - enabledComponents: string[] (0..*)
+    - disabledComponents: string[] (0..*)
+    - hiddenComponents: string[] (0..*)
 
   examples:
     # Visual channel states
@@ -170,6 +172,8 @@ ExperienceState:
 StateAction:
   description: "Action executed during state lifecycle"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     action: ActionType [enum]
     description: string (optional)
 
@@ -188,30 +192,30 @@ StateAction:
   # Error Handling
   errorHandling:
     onError: string (target state on error)
-    showNotification: boolean (default: true)
+    showNotification: boolean (optional)
     errorMessage: string (optional, custom error message)
 
   enums:
     ActionType:
-      - fetchData       # Retrieve data from API
-      - saveData        # Send data to API
-      - deleteData      # Delete via API
-      - validateForm    # Run client-side validation
-      - clearForm       # Reset form to defaults
+      - fetchData # Retrieve data from API
+      - saveData # Send data to API
+      - deleteData # Delete via API
+      - validateForm # Run client-side validation
+      - clearForm # Reset form to defaults
       - showNotification # Display message to user
-      - navigateTo      # Navigate to another screen
-      - callAPI         # Generic API call
-      - updateState     # Update local state
-      - computeValue    # Calculate derived value
+      - navigateTo # Navigate to another screen
+      - callAPI # Generic API call
+      - updateState # Update local state
+      - computeValue # Calculate derived value
 
     DataSource:
-      - api-response    # From API response
-      - form-data       # From form fields
-      - route-params    # From URL parameters
-      - query-params    # From URL query string
-      - local-storage   # From browser storage
-      - constant        # Fixed value
-      - computed        # Calculated value
+      - api-response # From API response
+      - form-data # From form fields
+      - route-params # From URL parameters
+      - query-params # From URL query string
+      - local-storage # From browser storage
+      - constant # Fixed value
+      - computed # Calculated value
 ```
 
 ### StateTransition
@@ -220,25 +224,25 @@ StateAction:
 StateTransition:
   description: "Transition from current state to another state"
   attributes:
-    to: string [FK -> ExperienceState.name]
+    id: string (UUID) [PK]
+    name: string
+    to: string (optional)
     on: TriggerType [enum]
     description: string (optional)
 
   contains:
-    - condition: Condition (optional) # Guard condition
-    - validate: boolean (default: false) # Run validation before transition
-    - actions: StateAction[] (0..*) # Actions during transition
+    - actions: StateAction[] (0..*)
 
   enums:
     TriggerType:
-      - success       # Previous action succeeded
-      - failure       # Previous action failed
-      - submit        # User clicked submit
-      - cancel        # User clicked cancel
-      - click         # User interaction
-      - timeout       # Timer expired
-      - dataReady     # Data loaded
-      - custom        # Custom event
+      - success # Previous action succeeded
+      - failure # Previous action failed
+      - submit # User clicked submit
+      - cancel # User clicked cancel
+      - click # User interaction
+      - timeout # Timer expired
+      - dataReady # Data loaded
+      - custom # Custom event
 ```
 
 ### Condition
@@ -247,8 +251,9 @@ StateTransition:
 Condition:
   description: "Boolean expression for guard conditions"
   attributes:
-    expression: string (JavaScript-like boolean expression)
-    description: string (optional)
+    id: string (UUID) [PK]
+    name: string
+    expression: string (optional)
 
   examples:
     - expression: "data.status === 'draft'"
@@ -267,12 +272,13 @@ Condition:
 View:
   description: "Routable grouping of components (a complete user experience)"
   attributes:
-    name: string [PK within spec]
+    id: string (UUID) [PK]
+    name: string
     type: ViewType [enum]
     title: string (optional)
     description: string (optional)
-    routable: boolean (default: true) # Can be accessed via navigation
-    layout: LayoutStyle (optional) # Grid columns, flex, etc.
+    routable: boolean (optional)
+    layout: LayoutStyle (optional)
 
   contains:
     - subViews: SubView[] (0..*) # Reusable component groupings
@@ -290,26 +296,21 @@ View:
 
   enums:
     ViewType:
-      - form          # Data entry form
-      - list          # List of items
-      - detail        # Single item detail view
-      - dashboard     # Multiple widgets
-      - wizard        # Multi-step process
-      - split         # Split screen (master-detail)
+      - form # Data entry form
+      - list # List of items
+      - detail # Single item detail view
+      - dashboard # Multiple widgets
+      - wizard # Multi-step process
+      - split # Split screen (master-detail)
       - conversational # Chat/voice interface
-      - custom        # Custom layout
+      - custom # Custom layout
 
     LayoutStyle:
-      type: LayoutType [enum]
-      columns: integer (for grid layouts)
-      gap: string (spacing between items)
-
-      LayoutType:
-        - grid
-        - flex
-        - stack
-        - flow
-        - custom
+      - grid
+      - flex
+      - stack
+      - flow
+      - custom
 ```
 
 ### SubView
@@ -318,13 +319,14 @@ View:
 SubView:
   description: "Reusable grouping of components (not directly routable)"
   attributes:
-    name: string [PK within view]
-    title: string
+    id: string (UUID) [PK]
+    name: string
+    title: string (optional)
     description: string (optional)
-    collapsible: boolean (default: false)
-    collapsed: boolean (default: false)
+    collapsible: boolean (optional)
+    collapsed: boolean (optional)
     layout: LayoutStyle (optional)
-    order: integer (optional) # Display order
+    order: integer (optional)
 
   contains:
     - components: Component[] (0..*) # Components in this sub-view
@@ -341,7 +343,7 @@ SubView:
         type: grid
         columns: 2
       components:
-        - # Component definitions here
+        -  # Component definitions here
 
     # Collapsible section
     - name: "advanced-settings"
@@ -356,13 +358,14 @@ SubView:
 Component:
   description: "Atomic UI element (table, form field, graph, custom visualization)"
   attributes:
-    name: string [PK within view/subview]
+    id: string (UUID) [PK]
+    name: string
     type: ComponentType [enum]
     label: string (optional)
     description: string (optional)
-    required: boolean (default: false)
-    readonly: boolean (default: false)
-    hidden: boolean (default: false)
+    required: boolean (optional)
+    readonly: boolean (optional)
+    hidden: boolean (optional)
     order: integer (optional)
 
   # Data Binding
@@ -390,25 +393,25 @@ Component:
 
   enums:
     ComponentType:
-      - form-field      # Individual form input
-      - table           # Data table
-      - chart           # Chart/graph
-      - card            # Content card
-      - list            # Item list
-      - text            # Static text/label
-      - image           # Image display
-      - video           # Video player
-      - audio           # Audio player (for voice channel)
-      - map             # Geographic map
-      - calendar        # Calendar view
-      - timeline        # Timeline view
-      - tree            # Tree structure
-      - custom          # Custom component
+      - form-field # Individual form input
+      - table # Data table
+      - chart # Chart/graph
+      - card # Content card
+      - list # Item list
+      - text # Static text/label
+      - image # Image display
+      - video # Video player
+      - audio # Audio player (for voice channel)
+      - map # Geographic map
+      - calendar # Calendar view
+      - timeline # Timeline view
+      - tree # Tree structure
+      - custom # Custom component
 ```
 
 ### ComponentConfig
 
-```yaml
+```
 ComponentConfig:
   description: "Type-specific configuration for components"
 
@@ -494,9 +497,11 @@ ComponentConfig:
 ValidationRule:
   description: "Client-side validation rule for a field"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: ValidationType [enum]
-    message: string # Error message to display
-    value: any (optional) # Rule-specific value
+    message: string (optional)
+    value: string (optional)
 
   enums:
     ValidationType:
@@ -529,31 +534,29 @@ ValidationRule:
 ActionComponent:
   description: "Interactive element that triggers actions (button, menu, link, voice command)"
   attributes:
-    name: string [PK within view]
-    label: string
+    id: string (UUID) [PK]
+    name: string
+    label: string (optional)
     type: ActionType [enum]
-    icon: string (optional, icon identifier)
-    disabled: boolean (default: false)
+    icon: string (optional)
+    disabled: boolean (optional)
     tooltip: string (optional)
-    channel: ChannelType (optional, if action is channel-specific)
+    channel: ChannelType (optional)
 
   contains:
-    - action: StateAction (1..1) # Action to execute
-    - confirmationPrompt: string (optional) # Confirmation dialog text
-    - enableCondition: Condition (optional) # When action is enabled
-    - children: ActionComponent[] (0..*) # For menus/nested actions
+    - children: ActionComponent[] (0..*)
 
   enums:
     ActionType:
-      - button          # Visual button
-      - menu-item       # Menu option
-      - link            # Hyperlink
-      - voice-command   # Voice intent/command
-      - chat-button     # Chat quick reply
-      - sms-keyword     # SMS keyword trigger
-      - custom          # Custom action type
+      - button # Visual button
+      - menu-item # Menu option
+      - link # Hyperlink
+      - voice-command # Voice intent/command
+      - chat-button # Chat quick reply
+      - sms-keyword # SMS keyword trigger
+      - custom # Custom action type
 
-    ButtonStyle:      # For button type
+    ButtonStyle: # For button type
       - primary
       - secondary
       - danger

@@ -543,31 +543,31 @@ Example: Customer (Stakeholder)
 
 ### Goal Decomposition
 
-```yaml
+```
 Strategic Goal: "Become Market Leader"
-   > Business Goal: "Increase Market Share to 30%"
-        > Goal: "Launch 3 New Products"
-        > Goal: "Enter 5 New Markets"
-   > Business Goal: "Achieve Customer Satisfaction of 90%"
-         > Goal: "Reduce Response Time"
-         > Goal: "Improve Product Quality"
+   > Business Goal: "Increase Market Share to 30%"
+        > Goal: "Launch 3 New Products"
+        > Goal: "Enter 5 New Markets"
+   > Business Goal: "Achieve Customer Satisfaction of 90%"
+         > Goal: "Reduce Response Time"
+         > Goal: "Improve Product Quality"
 ```
 
 ### Requirements Hierarchy
 
-```yaml
+```
 Business Requirement: "Support Mobile Customers"
-   > Functional Requirement: "iOS Application"
-        > Technical Requirement: "Swift Development"
-        > Technical Requirement: "App Store Distribution"
-   > Functional Requirement: "Android Application"
-         > Technical Requirement: "Kotlin Development"
-         > Technical Requirement: "Play Store Distribution"
+   > Functional Requirement: "iOS Application"
+        > Technical Requirement: "Swift Development"
+        > Technical Requirement: "App Store Distribution"
+   > Functional Requirement: "Android Application"
+         > Technical Requirement: "Kotlin Development"
+         > Technical Requirement: "Play Store Distribution"
 ```
 
 ### Principle Application
 
-```yaml
+```
 Principle: "Security by Design"
   Influences:
     - Requirement: "All data encrypted at rest"
@@ -641,7 +641,7 @@ The Motivation Layer serves as the foundation for security modeling by providing
 
 ### Requirements for Security Controls
 
-```yaml
+```
 # Motivation Requirement → Security Implementation
 Requirement:
   id: "req-dual-control-pricing"
@@ -667,7 +667,7 @@ Requirement:
 
 ### Constraints for Compliance Commitments
 
-```yaml
+```
 # Regulatory/Contractual commitments as Constraints
 Constraint:
   id: "gdpr-compliance"

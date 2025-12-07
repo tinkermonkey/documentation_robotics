@@ -5,7 +5,7 @@
 
 ## Overview
 
-This is a complete architecture model used as the reference implementation for testing the `dr` CLI tool. It demonstrates all 11 layers and includes examples of all entity types and cross-layer references.
+This is a complete architecture model used as the reference implementation for testing the `dr` CLI tool. It demonstrates all 12 layers and includes examples of all entity types and cross-layer references.
 
 ## Purpose
 

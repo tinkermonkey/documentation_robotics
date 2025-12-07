@@ -44,6 +44,8 @@ Our Testing spec provides:
 TestCoverageModel:
   description: "Complete test coverage model for application"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     version: string (spec version)
     application: string (application identifier)
     description: string (optional)
@@ -54,8 +56,6 @@ TestCoverageModel:
     - contextVariations: ContextVariation[] (0..*)
     - coverageRequirements: CoverageRequirement[] (1..*)
     - testCaseSketches: TestCaseSketch[] (0..*)
-    - coverageSummary: CoverageSummary (optional)
-
   references:
     - motivationRefs: string[] (optional, Requirement IDs for overall scope)
 ```
@@ -66,7 +66,7 @@ TestCoverageModel:
 TestCoverageTarget:
   description: "An artifact or functionality that requires test coverage"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     targetType: TargetType [enum]
@@ -82,7 +82,7 @@ TestCoverageTarget:
     - navigationRouteRef: string (optional, Navigation Layer route ID)
 
   contains:
-    - applicableContexts: string[] (ContextVariation IDs, optional)
+    - applicableContexts: string[] (0..*)
     - inputFields: TargetInputField[] (0..*)
     - outcomeCategories: OutcomeCategory[] (0..*)
 
@@ -143,6 +143,8 @@ TestCoverageTarget:
 TargetInputField:
   description: "Input field associated with a coverage target"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     fieldRef: string (reference to data model field or form field)
     partitionRef: string (reference to InputSpacePartition)
     description: string (optional)
@@ -166,7 +168,7 @@ TargetInputField:
 InputSpacePartition:
   description: "Partitioning of an input dimension into testable categories"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     fieldRef: string (reference to data model field, form field, or parameter)
@@ -233,7 +235,8 @@ InputSpacePartition:
 PartitionValue:
   description: "A specific partition within the input space"
   attributes:
-    id: string [PK within partition]
+    name: string
+    id: string (UUID) [PK]
     label: string
     description: string (optional)
     constraint: string (human-readable or expression)
@@ -268,6 +271,8 @@ PartitionValue:
 PartitionDependency:
   description: "Constraint between partition values across fields"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     dependsOnPartition: string (InputSpacePartition ID)
     dependsOnValue: string (PartitionValue ID)
     effect: DependencyEffect [enum]
@@ -295,7 +300,7 @@ PartitionDependency:
 ContextVariation:
   description: "Different context in which functionality can be invoked"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     contextType: ContextType [enum]
@@ -353,6 +358,8 @@ ContextVariation:
 EnvironmentFactor:
   description: "Environmental condition that may affect behavior"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     factor: string (factor name)
     value: string (factor value or state)
     description: string (optional)
@@ -373,7 +380,7 @@ EnvironmentFactor:
 OutcomeCategory:
   description: "Category of expected outcomes (not specific assertions)"
   attributes:
-    id: string [PK within target]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     outcomeType: OutcomeType [enum]
@@ -414,7 +421,7 @@ OutcomeCategory:
 CoverageRequirement:
   description: "Requirement for test coverage of a target"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     coverageCriteria: CoverageCriteria [enum]
@@ -427,8 +434,8 @@ CoverageRequirement:
 
   contains:
     - inputPartitionSelections: InputPartitionSelection[] (0..*)
-    - contextSelections: string[] (ContextVariation IDs to cover)
-    - outcomeSelections: string[] (OutcomeCategory IDs to verify)
+    - contextSelections: string[] (0..*)
+    - outcomeSelections: string[] (0..*)
     - exclusions: CoverageExclusion[] (0..*)
 
   enums:
@@ -487,6 +494,8 @@ CoverageRequirement:
 InputPartitionSelection:
   description: "Selection of partition values to include in coverage"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     partitionRef: string (InputSpacePartition ID)
     coverValues: string[] (PartitionValue IDs to cover)
     coverAllCategories: boolean (optional, cover all categories of a type)
@@ -504,6 +513,8 @@ InputPartitionSelection:
 CoverageExclusion:
   description: "Explicit exclusion from coverage with justification"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     description: string (what is excluded)
     reason: string (why it's excluded)
     riskAccepted: boolean (explicitly accepted risk)
@@ -522,7 +533,7 @@ CoverageExclusion:
 TestCaseSketch:
   description: "Abstract test case selecting specific partition values"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     status: SketchStatus [enum]
@@ -534,10 +545,6 @@ TestCaseSketch:
 
   contains:
     - inputSelections: InputSelection[] (1..*)
-    - contextSelection: string (ContextVariation ID)
-    - expectedOutcome: string (OutcomeCategory ID)
-    - notes: string (optional, implementation notes)
-
   enums:
     SketchStatus:
       - planned # Not yet implemented
@@ -595,6 +602,8 @@ TestCaseSketch:
 InputSelection:
   description: "Specific partition value selected for a test case"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     partitionRef: string (InputSpacePartition ID)
     selectedValue: string (PartitionValue ID)
     concreteValue: any (optional, specific value to use)

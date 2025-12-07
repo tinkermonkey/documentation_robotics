@@ -36,7 +36,7 @@ Measure system performance and behavior
 
 Capture detailed event information
 
-## Core OpenTelemetry Entities
+## Entity Definitions
 
 ### Span
 
@@ -44,6 +44,7 @@ Capture detailed event information
 Span:
   description: "Unit of work in distributed tracing"
   attributes:
+    id: string (UUID) [PK]
     traceId: string (hex, 16 bytes) # Globally unique trace identifier
     spanId: string (hex, 8 bytes) # Unique span identifier within trace
     traceState: string (optional, W3C format) # Vendor-specific trace state
@@ -60,7 +61,6 @@ Span:
     - attributes: Attribute[] (0..*) # Key-value metadata
     - events: SpanEvent[] (0..*) # Timestamped events during span
     - links: SpanLink[] (0..*) # Links to other spans
-    - status: SpanStatus (1..1) # Span outcome
 
   # Cross-layer integration
   references:
@@ -116,6 +116,7 @@ Span:
 SpanEvent:
   description: "Timestamped event during span execution"
   attributes:
+    id: string (UUID) [PK]
     timeUnixNano: uint64 # Event timestamp
     name: string # Event name
     droppedAttributesCount: uint32
@@ -151,6 +152,8 @@ SpanEvent:
 SpanLink:
   description: "Link to related span (different trace or parent)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     traceId: string (hex, 16 bytes)
     spanId: string (hex, 8 bytes)
     traceState: string (optional)
@@ -176,6 +179,8 @@ SpanLink:
 SpanStatus:
   description: "Outcome of span execution"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     code: StatusCode [enum]
     message: string (optional) # Error message if ERROR
 
@@ -200,6 +205,8 @@ SpanStatus:
 LogRecord:
   description: "OpenTelemetry log entry"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     timeUnixNano: uint64 # Log creation time
     observedTimeUnixNano: uint64 # Time log was observed by collector
     severityNumber: SeverityNumber [enum]
@@ -210,9 +217,6 @@ LogRecord:
 
   contains:
     - attributes: Attribute[] (0..*) # Log-specific attributes
-    - resource: Resource (1..1) # Resource that generated log
-    - instrumentationScope: InstrumentationScope (1..1) # Instrumentation info
-
   # Trace correlation
   traceContext:
     traceId: string (hex, 16 bytes, optional) # Associated trace
@@ -278,6 +282,8 @@ LogRecord:
 Resource:
   description: "Immutable representation of entity producing telemetry"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     schemaUrl: string (optional) # Schema version URL
     droppedAttributesCount: uint32
 
@@ -356,6 +362,7 @@ Resource:
 InstrumentationScope:
   description: "Logical unit of code that generates telemetry"
   attributes:
+    id: string (UUID) [PK]
     name: string # Instrumentation library name
     version: string (optional) # Library version
     schemaUrl: string (optional)
@@ -378,6 +385,8 @@ InstrumentationScope:
 Attribute:
   description: "Key-value pair metadata"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     key: string # Attribute name
     value: AnyValue # Attribute value
 
@@ -448,7 +457,7 @@ Attribute:
 
 ### Metric Types
 
-```yaml
+```
 MetricTypes:
   Counter:
     description: "Monotonically increasing value"
@@ -486,14 +495,10 @@ MetricTypes:
 APMConfiguration:
   description: "Complete APM configuration for an application"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     version: string (config version)
     application: string (application identifier)
-
-  contains:
-    - tracing: TraceConfiguration (1..1)
-    - logging: LogConfiguration (1..1)
-    - metrics: MetricConfiguration (0..1)
-    - dataQuality: DataQualityMetrics (0..1)
 
   references:
     - archimateElement: Element.id (ApplicationComponent or TechnologyService)
@@ -509,6 +514,8 @@ APMConfiguration:
 TraceConfiguration:
   description: "Distributed tracing configuration"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     serviceName: string # Service name for traces
     serviceVersion: string (optional)
     deploymentEnvironment: string (optional)
@@ -546,31 +553,31 @@ TraceConfiguration:
       - ottrace # OpenTracing
 
   examples:
-    serviceName: "product-service"
-    serviceVersion: "2.1.0"
-    deploymentEnvironment: "production"
-    sampler:
-      type: parentbased_traceidratio
-      config:
-        ratio: 0.1 # Sample 10% of traces
-    propagators:
-      - w3c-trace-context
-      - w3c-baggage
-    exporters:
-      - type: otlp
-        endpoint: "http://otel-collector:4317"
-        protocol: grpc
-        headers:
-          api-key: "${OTLP_API_KEY}"
-    instrumentations:
-      - type: http
+    - serviceName: "product-service"
+      serviceVersion: "2.1.0"
+      deploymentEnvironment: "production"
+      sampler:
+        type: parentbased_traceidratio
         config:
-          recordRequestHeaders: ["x-request-id", "x-tenant-id"]
-          recordResponseHeaders: ["x-response-time"]
-      - type: database
-        config:
-          recordQueries: true
-          sanitizeStatements: true
+          ratio: 0.1
+      propagators:
+        - w3c-trace-context
+        - w3c-baggage
+      exporters:
+        - type: otlp
+          endpoint: "http://otel-collector:4317"
+          protocol: grpc
+          headers:
+            api-key: "${OTLP_API_KEY}"
+      instrumentations:
+        - type: http
+          config:
+            recordRequestHeaders: ["x-request-id", "x-tenant-id"]
+            recordResponseHeaders: ["x-response-time"]
+        - type: database
+          config:
+            recordQueries: true
+            sanitizeStatements: true
 ```
 
 ### LogConfiguration
@@ -579,6 +586,8 @@ TraceConfiguration:
 LogConfiguration:
   description: "Logging configuration"
   attributes:
+    name: string
+    id: string (UUID) [PK]
     serviceName: string
     logLevel: LogLevel [enum]
 
@@ -595,7 +604,7 @@ LogConfiguration:
   auditConfiguration:
     accountabilityRequirementRefs: string[] (AccountabilityRequirement IDs, optional)
     retentionPeriod: string (e.g., "7years", driven by requirements)
-    nonRepudiation: boolean (cryptographic proof of log integrity, default: false)
+    nonRepudiation: boolean (cryptographic proof of log integrity)
 
   enums:
     LogLevel:
@@ -607,26 +616,26 @@ LogConfiguration:
       - FATAL
 
   examples:
-    serviceName: "product-service"
-    logLevel: INFO
-    schema:
-      $ref: "specs/log-schema.json"
-    processors:
-      - type: batch
-        config:
-          maxQueueSize: 2048
-          scheduledDelayMillis: 5000
-          exportTimeoutMillis: 30000
-      - type: resource
-        config:
-          attributes:
-            environment: "production"
-            version: "2.1.0"
-    exporters:
-      - type: otlp
-        endpoint: "http://otel-collector:4317"
-      - type: console
-        enabled: false
+    - serviceName: "product-service"
+      logLevel: INFO
+      schema:
+        $ref: "specs/log-schema.json"
+      processors:
+        - type: batch
+          config:
+            maxQueueSize: 2048
+            scheduledDelayMillis: 5000
+            exportTimeoutMillis: 30000
+        - type: resource
+          config:
+            attributes:
+              environment: "production"
+              version: "2.1.0"
+      exporters:
+        - type: otlp
+          endpoint: "http://otel-collector:4317"
+        - type: console
+          enabled: false
 ```
 
 ### MetricConfiguration
@@ -635,8 +644,10 @@ LogConfiguration:
 MetricConfiguration:
   description: "Metrics configuration"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     serviceName: string
-    exportIntervalMillis: integer (default: 60000)
+    exportIntervalMillis: integer (optional)
 
   meters:
     - MeterConfig[] (1..*)
@@ -645,45 +656,45 @@ MetricConfiguration:
     - ExporterConfig[] (1..*)
 
   examples:
-    serviceName: "product-service"
-    exportIntervalMillis: 60000
-    meters:
-      - name: "http.server"
-        instruments:
-          - type: histogram
-            name: "request.duration"
-            unit: "ms"
-            description: "HTTP request duration"
-            buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
-          - type: counter
-            name: "requests.total"
-            unit: "1"
-            description: "Total HTTP requests"
-      - name: "business"
-        instruments:
-          - type: counter
-            name: "product.views"
-            unit: "1"
-            description: "Product view count"
-            attributes: ["product.id", "product.category"]
-            # Motivation Layer Integration
-            motivationMapping:
-              contributesToGoal: "goal-customer-engagement"
-              measuresOutcome: "outcome-increased-product-discovery"
-              kpiFormula: "COUNT(product.views) GROUP BY product.category"
-          - type: gauge
-            name: "inventory.level"
-            unit: "1"
-            description: "Current inventory level"
-            # Motivation Layer Integration
-            motivationMapping:
-              contributesToGoal: "goal-inventory-accuracy"
-              measuresOutcome: "outcome-reduced-stockouts"
-    exporters:
-      - type: otlp
-        endpoint: "http://otel-collector:4317"
-      - type: prometheus
-        endpoint: "http://localhost:9090"
+    - serviceName: "product-service"
+      exportIntervalMillis: 60000
+      meters:
+        - name: "http.server"
+          instruments:
+            - type: histogram
+              name: "request.duration"
+              unit: "ms"
+              description: "HTTP request duration"
+              buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+            - type: counter
+              name: "requests.total"
+              unit: "1"
+              description: "Total HTTP requests"
+        - name: "business"
+          instruments:
+            - type: counter
+              name: "product.views"
+              unit: "1"
+              description: "Product view count"
+              attributes: ["product.id", "product.category"]
+              # Motivation Layer Integration
+              motivationMapping:
+                contributesToGoal: "goal-customer-engagement"
+                measuresOutcome: "outcome-increased-product-discovery"
+                kpiFormula: "COUNT(product.views) GROUP BY product.category"
+            - type: gauge
+              name: "inventory.level"
+              unit: "1"
+              description: "Current inventory level"
+              # Motivation Layer Integration
+              motivationMapping:
+                contributesToGoal: "goal-inventory-accuracy"
+                measuresOutcome: "outcome-reduced-stockouts"
+      exporters:
+        - type: otlp
+          endpoint: "http://otel-collector:4317"
+        - type: prometheus
+          endpoint: "http://localhost:9090"
 ```
 
 ### DataQualityMetrics
@@ -693,7 +704,7 @@ DataQualityMetrics:
   description: "Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)"
   attributes:
     schemaRef: string (reference to Data Model Layer schema ID)
-    monitoringEnabled: boolean (default: true)
+    monitoringEnabled: boolean (optional)
 
   contains:
     - metrics: DataQualityMetric[] (1..*)
@@ -709,7 +720,7 @@ DataQualityMetric:
     description: string (optional)
     measurement: string (how quality is measured)
     threshold: string (acceptable quality level)
-    alertOnViolation: boolean (default: true)
+    alertOnViolation: boolean (optional)
 
   # Motivation Layer Integration
   motivationMapping:
@@ -719,14 +730,14 @@ DataQualityMetric:
 
   enums:
     DataQualityType:
-      - completeness      # % of required fields populated
-      - accuracy          # % of records passing validation
-      - freshness         # Age of most recent data
-      - consistency       # % of cross-schema constraint violations
-      - uniqueness        # % of duplicate records
-      - validity          # % conforming to business rules
-      - timeliness        # Data arrival within expected timeframe
-      - integrity         # Referential integrity violations
+      - completeness # % of required fields populated
+      - accuracy # % of records passing validation
+      - freshness # Age of most recent data
+      - consistency # % of cross-schema constraint violations
+      - uniqueness # % of duplicate records
+      - validity # % conforming to business rules
+      - timeliness # Data arrival within expected timeframe
+      - integrity # Referential integrity violations
 
   examples:
     # Completeness metric

@@ -2,7 +2,7 @@
 
 ## Introduction
 
-The 11 layers work together through well-defined integration patterns and reference mechanisms. This document describes how layers reference each other and maintain consistency.
+The 12 layers work together through well-defined integration patterns and reference mechanisms. This document describes how layers reference each other and maintain consistency.
 
 **For the complete catalog of 60+ cross-layer reference patterns**, see [Cross-Layer Reference Registry](06-cross-layer-reference-registry.md). This document provides an overview and integration patterns; the registry provides the authoritative, machine-readable definitions.
 

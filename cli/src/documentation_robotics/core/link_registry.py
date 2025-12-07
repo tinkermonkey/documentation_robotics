@@ -63,8 +63,12 @@ class LinkRegistry:
 
     def _get_default_registry_path(self) -> Path:
         """Get the default path to the link registry file."""
-        # Assuming the registry is in spec/schemas relative to the repo root
-        # This will need to be adjusted based on actual project structure
+        # 1. Check package directory (installed mode)
+        pkg_path = Path(__file__).parent.parent / "schemas" / "link-registry.json"
+        if pkg_path.exists():
+            return pkg_path
+
+        # 2. Fallback to repo root (dev mode)
         current_file = Path(__file__)
         repo_root = current_file.parent.parent.parent.parent.parent
         return repo_root / "spec" / "schemas" / "link-registry.json"

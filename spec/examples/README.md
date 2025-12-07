@@ -8,7 +8,7 @@ This directory contains example architecture models demonstrating the Documentat
 
 **Location:** [minimal/](minimal/)
 **Description:** The smallest conformant model with one element per layer
-**Layers:** All 11 layers (minimal configuration)
+**Layers:** All 12 layers (minimal configuration)
 **Elements:** 15 elements total
 **Use Case:** Learning the basics, understanding traceability
 **Complexity:** ⭐ (Low)
@@ -25,7 +25,7 @@ This directory contains example architecture models demonstrating the Documentat
 
 **Location:** [e-commerce/](e-commerce/)
 **Description:** Realistic online retail platform with multi-user system
-**Layers:** All 11 layers (comprehensive)
+**Layers:** All 12 layers (comprehensive)
 **Elements:** 293 elements (7 services, 12 microservices)
 **Use Case:** Production-ready patterns, realistic scenarios
 **Complexity:** ⭐⭐⭐ (Medium)
@@ -51,7 +51,7 @@ This directory contains example architecture models demonstrating the Documentat
 
 **Location:** [microservices/](microservices/)
 **Description:** Enterprise-scale SaaS platform with distributed architecture
-**Layers:** All 11 layers (advanced patterns)
+**Layers:** All 12 layers (advanced patterns)
 **Elements:** 900+ elements (25+ microservices)
 **Use Case:** Large-scale distributed systems, enterprise architecture
 **Complexity:** ⭐⭐⭐⭐⭐ (High)
@@ -79,7 +79,7 @@ This directory contains example architecture models demonstrating the Documentat
 
 **Location:** [reference-implementation/](reference-implementation/)
 **Description:** Complete model used for testing the `dr` CLI tool
-**Layers:** All 11 layers
+**Layers:** All 12 layers
 **Use Case:** Reference for implementers, testing
 **Status:** Complete
 
@@ -103,7 +103,7 @@ This directory contains example architecture models demonstrating the Documentat
 **Recommended progression:**
 
 1. **Start: Minimal Example**
-   - Understand all 11 layers
+   - Understand all 12 layers
    - Learn traceability basics
    - Practice validation
    - **Time**: 1-2 hours

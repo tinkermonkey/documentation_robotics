@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document catalogs all cross-layer reference patterns used throughout the Documentation Robotics specification. Cross-layer references enable integration between the 11 architectural layers, providing traceability from strategic goals down to implementation details.
+This document catalogs all cross-layer reference patterns used throughout the Documentation Robotics specification. Cross-layer references enable integration between the 12 architectural layers, providing traceability from strategic goals down to implementation details.
 
 **Total Reference Patterns:** 60+ distinct patterns
 **Purpose:** Enable discovery, validation, and navigation of inter-layer links
@@ -509,7 +509,7 @@ dr links registry --format html > link-registry.html
 ## Summary Statistics
 
 **Total Link Patterns:** 60+
-**Layers with Links:** All 11 layers
+**Layers with Links:** All 12 layers
 **Most Connected Layer:** Motivation Layer (01) - referenced by all other layers
 **Link Categories:**
 
@@ -524,7 +524,6 @@ dr links registry --format html > link-registry.html
 
 ## Additional Resources
 
-- **JSON Schema:** `/spec/schemas/shared-references.schema.json` - Reusable reference definitions
-- **Machine Registry:** `/spec/schemas/link-registry.json` - Complete link catalog in JSON format
-- **Interactive Docs:** `/spec/docs/link-registry.html` - Browseable HTML documentation
+- **Machine Registry:** `/spec/schemas/link-registry.json` - Complete link catalog in JSON format (auto-generated)
 - **Cross-Layer Integration:** `/spec/core/03-cross-layer-integration.md` - Integration patterns and examples
+- **Schema Generation:** `/scripts/generate_schemas.py` - Auto-generates schemas and link registry from markdown specs

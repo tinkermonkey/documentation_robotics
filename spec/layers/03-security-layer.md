@@ -51,20 +51,22 @@ Our Security spec provides:
 SecurityModel:
   description: "Complete security model for application"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     version: string (spec version)
     application: string (application identifier)
 
   contains:
-    - authentication: AuthenticationConfig (1..1)
+    - authentication: AuthenticationConfig[] (1..1)
     - actors: Actor[] (0..*) # STS-ml inspired
     - roles: Role[] (1..*)
     - permissions: Permission[] (0..*)
     - resources: SecureResource[] (1..*)
     - informationEntities: InformationEntity[] (0..*) # STS-ml inspired
     - delegations: Delegation[] (0..*) # STS-ml inspired
-    - securityConstraints: SecurityConstraints (0..1) # STS-ml inspired
+    - securityConstraints: SecurityConstraints[] (0..1) # STS-ml inspired
     - policies: SecurityPolicy[] (0..*)
-    - dataClassification: DataClassification (1..1)
+    - dataClassification: DataClassification[] (1..1)
     - socialDependencies: SocialDependency[] (0..*) # STS-ml inspired
     - accountability: AccountabilityRequirement[] (0..*) # STS-ml inspired
     - threats: Threat[] (0..*) # STS-ml inspired
@@ -79,9 +81,11 @@ SecurityModel:
 AuthenticationConfig:
   description: "Authentication configuration"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     provider: AuthProvider [enum]
     sessionTimeout: integer (minutes)
-    mfaRequired: boolean (default: false)
+    mfaRequired: boolean (optional) # default: false
     passwordPolicy: PasswordPolicy (optional)
 
   enums:
@@ -95,25 +99,25 @@ AuthenticationConfig:
       - certificate
 
   examples:
-    # OAuth2 with MFA
-    provider: oauth2
-    sessionTimeout: 30
-    mfaRequired: true
-    oauth2:
-      authorizationUrl: "https://auth.example.com/authorize"
-      tokenUrl: "https://auth.example.com/token"
-      userInfoUrl: "https://auth.example.com/userinfo"
-      clientId: "app-client-id"
-      scopes: ["openid", "profile", "email"]
+    - # OAuth2 with MFA
+      provider: oauth2
+      sessionTimeout: 30
+      mfaRequired: true
+      oauth2:
+        authorizationUrl: "https://auth.example.com/authorize"
+        tokenUrl: "https://auth.example.com/token"
+        userInfoUrl: "https://auth.example.com/userinfo"
+        clientId: "app-client-id"
+        scopes: ["openid", "profile", "email"]
 
-    # JWT
-    provider: jwt
-    sessionTimeout: 60
-    jwt:
-      issuer: "https://auth.example.com"
-      audience: "product-api"
-      algorithm: "RS256"
-      publicKeyUrl: "https://auth.example.com/.well-known/jwks.json"
+    - # JWT
+      provider: jwt
+      sessionTimeout: 60
+      jwt:
+        issuer: "https://auth.example.com"
+        audience: "product-api"
+        algorithm: "RS256"
+        publicKeyUrl: "https://auth.example.com/.well-known/jwks.json"
 ```
 
 ### PasswordPolicy
@@ -122,16 +126,18 @@ AuthenticationConfig:
 PasswordPolicy:
   description: "Password requirements"
   attributes:
-    minLength: integer (default: 8)
+    id: string (UUID) [PK]
+    name: string
+    minLength: integer (optional) # default: 8
     maxLength: integer (optional)
-    requireUppercase: boolean (default: true)
-    requireLowercase: boolean (default: true)
-    requireNumbers: boolean (default: true)
-    requireSpecialChars: boolean (default: true)
-    preventReuse: integer (number of previous passwords, default: 5)
+    requireUppercase: boolean (optional) # default: true
+    requireLowercase: boolean (optional) # default: true
+    requireNumbers: boolean (optional) # default: true
+    requireSpecialChars: boolean (optional) # default: true
+    preventReuse: integer (optional) # default: 5
     expiryDays: integer (password expiration, optional)
-    lockoutAttempts: integer (failed login attempts before lockout, default: 5)
-    lockoutDuration: integer (minutes, default: 30)
+    lockoutAttempts: integer (optional) # default: 5
+    lockoutDuration: integer (optional) # default: 30
 
   example:
     minLength: 12
@@ -151,18 +157,19 @@ PasswordPolicy:
 Role:
   description: "User role definition"
   attributes:
-    name: string [PK]
+    id: string (UUID) [PK]
+    name: string
     displayName: string
     description: string (optional)
     level: integer (hierarchy level, optional)
     inheritsFrom: string[] (parent role names, optional)
 
   contains:
-    - permissions: Permission.name[] (0..*)
+    - permissions: Permission[] (0..*)
 
   metadata:
-    isSystemRole: boolean (default: false)
-    assignable: boolean (can be assigned to users, default: true)
+    isSystemRole: boolean (optional) # default: false
+    assignable: boolean (optional) # can be assigned to users, default: true
 
   examples:
     # Admin role
@@ -213,7 +220,8 @@ Role:
 Permission:
   description: "Permission definition"
   attributes:
-    name: string [PK] (format: "resource.action" or "resource.*")
+    name: string [PK]
+    id: string (UUID) [PK] # format: "resource.action" or "resource.*"
     description: string (optional)
     scope: PermissionScope [enum]
     resource: string (resource type)
@@ -221,10 +229,10 @@ Permission:
 
   enums:
     PermissionScope:
-      - global      # Applies to all instances
-      - resource    # Applies to specific resource instances
-      - attribute   # Applies to specific attributes/fields
-      - owner       # Applies to owned resources only
+      - global # Applies to all instances
+      - resource # Applies to specific resource instances
+      - attribute # Applies to specific attributes/fields
+      - owner # Applies to owned resources only
 
   examples:
     # Global permissions
@@ -268,7 +276,9 @@ Permission:
 SecureResource:
   description: "Protected resource definition"
   attributes:
-    resource: string [PK] (resource identifier)
+    resource: string [PK]
+    id: string (UUID) [PK]
+    name: string (resource identifier)
     type: ResourceType [enum]
     description: string (optional)
 
@@ -344,6 +354,8 @@ SecureResource:
 ResourceOperation:
   description: "Operation on a resource"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     operation: string [PK within resource]
     description: string (optional)
 
@@ -351,12 +363,12 @@ ResourceOperation:
     allowRoles: string[] (role names, optional)
     denyRoles: string[] (role names, optional)
     allowPermissions: string[] (permission names, optional)
-    requireAll: boolean (require all permissions, default: false)
+    requireAll: boolean (optional) # require all permissions, default: false
 
   contains:
     - conditions: AccessCondition[] (0..*) # Additional conditions
-    - rateLimit: RateLimit (optional)
-    - audit: AuditConfig (optional)
+    - rateLimit: RateLimit[] (0..1)
+    - audit: AuditConfig[] (0..1)
 
   examples:
     # Simple role-based
@@ -395,6 +407,8 @@ ResourceOperation:
 AccessCondition:
   description: "Conditional access rule"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     field: string (field path in resource)
     operator: ConditionOperator [enum]
     value: any (comparison value, can include templates)
@@ -462,6 +476,8 @@ AccessCondition:
 FieldAccessControl:
   description: "Field-level access control"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     field: string [PK within resource]
     description: string (optional)
 
@@ -525,9 +541,10 @@ FieldAccessControl:
 SecurityPolicy:
   description: "Declarative security policy"
   attributes:
+    id: string (UUID) [PK]
     name: string [PK]
     description: string (optional)
-    enabled: boolean (default: true)
+    enabled: boolean (optional) # default: true
     priority: integer (execution order, higher = first)
     target: PolicyTarget [enum]
 
@@ -536,10 +553,10 @@ SecurityPolicy:
 
   enums:
     PolicyTarget:
-      - all          # Apply to all resources
-      - api          # API endpoints only
-      - data         # Data access only
-      - screen       # UI screens only
+      - all # Apply to all resources
+      - api # API endpoints only
+      - data # Data access only
+      - screen # UI screens only
 
   examples:
     # Data protection policy
@@ -589,6 +606,8 @@ SecurityPolicy:
 PolicyRule:
   description: "Individual policy rule"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     condition: Condition (1..1)
     effect: PolicyEffect [enum]
     message: string (optional)
@@ -633,6 +652,8 @@ PolicyRule:
 PolicyAction:
   description: "Action to take when policy rule matches"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: ActionType [enum]
     parameters: object (action-specific parameters)
 
@@ -765,7 +786,7 @@ Classification:
 Actor:
   description: "Actor in the system (beyond roles)"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     type: ActorType [enum]
     description: string (optional)
@@ -826,7 +847,8 @@ Actor:
 ActorObjective:
   description: "Security-related objective or goal of an actor"
   attributes:
-    id: string [PK within actor]
+    id: string (UUID) [PK]
+    name: string
     description: string
     criticality: Criticality [enum] (optional)
 
@@ -858,6 +880,8 @@ ActorObjective:
 ActorDependency:
   description: "Dependency between actors"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     dependee: string (actor id or resource id)
     resource: string (what resource is needed)
     objective: string (objective id that requires this dependency)
@@ -876,7 +900,7 @@ ActorDependency:
 InformationEntity:
   description: "Information asset with fine-grained rights"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string (optional)
     classification: ClassificationLevel [enum]
@@ -921,6 +945,8 @@ InformationEntity:
 InformationRight:
   description: "Fine-grained information access rights"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     actor: string (actor id or role name)
     constraint: string (optional textual constraint)
 
@@ -955,7 +981,8 @@ InformationRight:
 Delegation:
   description: "Explicit delegation of permissions or goals"
   attributes:
-    id: string [PK] (optional)
+    id: string (UUID) [PK]
+    name: string
     delegator: string (actor/role delegating)
     delegatee: string (actor/role receiving delegation)
     delegationType: DelegationType [enum]
@@ -970,15 +997,15 @@ Delegation:
     retainOversight: boolean (delegator keeps visibility)
     retainControl: boolean (delegator can revoke)
     timebound: string (duration, optional)
-    revocable: boolean (default: true)
+    revocable: boolean (optional) # default: true
     maxDelegationDepth: integer (prevent deep chains, optional)
     excludes: string[] (excluded sub-permissions/resources)
 
   enums:
     DelegationType:
-      - execution     # Delegate task execution only
-      - permission    # Delegate permission (can further delegate)
-      - approval      # Delegate approval authority
+      - execution # Delegate task execution only
+      - permission # Delegate permission (can further delegate)
+      - approval # Delegate approval authority
 
   examples:
     # Product manager delegates to editor
@@ -1023,7 +1050,7 @@ SeparationOfDuty:
   contains:
     - tasks: string[] (task/operation names that must be separated)
     - roles: string[] (roles that cannot both perform these tasks)
-    - mutuallyExclusive: boolean (default: true)
+    - mutuallyExclusive: boolean (optional) # default: true
 
   examples:
     - name: "purchase-approval"
@@ -1086,7 +1113,8 @@ NeedToKnow:
 SocialDependency:
   description: "Dependencies and trust between actors"
   attributes:
-    id: string [PK] (optional)
+    id: string (UUID) [PK]
+    name: string
     depender: string (actor who depends)
     dependee: string (actor depended upon)
     resource: string (what is depended upon)
@@ -1134,7 +1162,8 @@ SocialDependency:
 AccountabilityRequirement:
   description: "Accountability and non-repudiation requirements"
   attributes:
-    id: string [PK] (optional)
+    id: string (UUID) [PK]
+    name: string
     action: string (action requiring accountability)
     resource: string (resource involved, optional)
     nonRepudiation: boolean (cannot deny performing action)
@@ -1187,6 +1216,8 @@ AccountabilityRequirement:
 Evidence:
   description: "Evidence required for accountability"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: EvidenceType [enum]
     strength: EvidenceStrength [enum] (optional)
     source: string (source of evidence, optional)
@@ -1225,7 +1256,7 @@ Evidence:
 Threat:
   description: "Security threat and countermeasures"
   attributes:
-    id: string [PK]
+    id: string (UUID) [PK]
     name: string
     description: string
     threatens: string[] (resources, objectives, or information entities)
@@ -1315,10 +1346,12 @@ Threat:
 Countermeasure:
   description: "Security countermeasure for a threat"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: string (type of countermeasure)
     description: string
     effectiveness: Effectiveness [enum] (optional)
-    implemented: boolean (default: false)
+    implemented: boolean (optional) # default: false
 
   references:
     implementedBy: string[] (security requirements or controls)

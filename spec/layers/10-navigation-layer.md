@@ -37,6 +37,8 @@ Our Navigation spec provides:
 NavigationGraph:
   description: "Complete navigation structure for application"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     version: string (spec version)
     application: string (application identifier)
     description: string (optional)
@@ -59,19 +61,16 @@ NavigationGraph:
 Route:
   description: "Single route/destination in the application (channel-agnostic)"
   attributes:
-    identifier: string [PK] (unique route identifier, e.g., "product-detail")
-    name: string (human-readable route name)
-    title: string (display title)
+    id: string (UUID) [PK]
+    name: string
+    title: string (optional)
     description: string (optional)
     type: RouteType [enum]
-
-  contains:
-    - meta: RouteMeta (optional) # Metadata
 
   references:
     - experience: string (UX spec reference)
     - archimateRef: Element.id (ApplicationComponent)
-    - guards: NavigationGuard.name[] (optional)
+    - guards: NavigationGuard[] (0..*)
     - parent: Route.identifier (for nested routes, optional)
     - redirectTo: Route.identifier (for redirects, optional)
 
@@ -158,12 +157,14 @@ Route:
 RouteMeta:
   description: "Route metadata"
   attributes:
-    requiresAuth: boolean (default: false)
+    id: string (UUID) [PK]
+    name: string
+    requiresAuth: boolean (optional)
     roles: string[] (required roles, optional)
     permissions: string[] (required permissions, optional)
     layout: string (layout component name, optional)
     breadcrumb: BreadcrumbConfig (optional)
-    keepAlive: boolean (cache component, default: false)
+    keepAlive: boolean (cache component)
     transition: string (page transition name, optional)
 
   seo:
@@ -172,10 +173,10 @@ RouteMeta:
     metaKeywords: string[] (optional)
     ogImage: string (Open Graph image URL, optional)
     canonical: string (canonical URL, optional)
-    noIndex: boolean (default: false)
+    noIndex: boolean (optional)
 
   analytics:
-    trackPageView: boolean (default: true)
+    trackPageView: boolean (optional)
     eventCategory: string (optional)
     customDimensions: object (optional)
 ```
@@ -186,13 +187,15 @@ RouteMeta:
 NavigationTransition:
   description: "Transition from one route to another"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     from: string [FK -> Route.identifier]
     to: string [FK -> Route.identifier]
     trigger: NavigationTrigger [enum]
     description: string (optional)
 
   contains:
-    - guards: NavigationGuard.name[] (optional)
+    - guards: NavigationGuard[] (0..*)
 
   enums:
     NavigationTrigger:
@@ -245,14 +248,11 @@ NavigationTransition:
 NavigationGuard:
   description: "Guard condition for route access"
   attributes:
+    id: string (UUID) [PK]
     name: string [PK]
     type: GuardType [enum]
     description: string (optional)
     order: integer (execution order, optional)
-
-  contains:
-    - condition: GuardCondition (1..1)
-    - onDeny: GuardAction (what happens if denied)
 
   # Motivation Layer Integration
   motivation:
@@ -350,8 +350,10 @@ NavigationGuard:
 GuardCondition:
   description: "Condition expression for guard"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     expression: string (boolean expression)
-    async: boolean (default: false, for async checks)
+    async: boolean (optional)
     timeout: integer (milliseconds, for async, optional)
 
   examples:
@@ -377,17 +379,19 @@ GuardCondition:
 GuardAction:
   description: "Action when guard denies access"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     action: GuardActionType [enum]
     target: string (route identifier, for redirect)
     message: string (error message, optional)
-    preserveRoute: boolean (save requested route, default: false)
+    preserveRoute: boolean (save requested route)
 
   enums:
     GuardActionType:
-      - redirect      # Redirect to another route
-      - show-error    # Show error message, stay on current route
+      - redirect # Redirect to another route
+      - show-error # Show error message, stay on current route
       - navigate-back # Go back to previous route
-      - abort         # Abort navigation silently
+      - abort # Abort navigation silently
 
   examples:
     # Redirect to login
@@ -410,6 +414,7 @@ GuardAction:
 NavigationFlow:
   description: "Sequence of routes that realizes a business process"
   attributes:
+    id: string (UUID) [PK]
     name: string [PK]
     description: string (optional)
 
@@ -458,11 +463,12 @@ NavigationFlow:
 FlowStep:
   description: "One step in a navigation flow"
   attributes:
+    id: string (UUID) [PK]
     sequence: integer (step order)
     route: string [FK -> Route.identifier]
     name: string (step name, e.g., "Browse Products")
     description: string (optional)
-    required: boolean (default: true) # Can this step be skipped?
+    required: boolean (optional) # Can this step be skipped?
 
   # Experience Entry/Exit
   experience:
@@ -485,13 +491,13 @@ FlowStep:
 
   # Compensating Transactions (Gap #6)
   compensation:
-    enabled: boolean (default: false)
+    enabled: boolean (optional)
     compensationStep: integer (step to execute for rollback, optional)
     compensationAction: string (API operation or action to undo, optional)
 
   # Async/Long-Running Integration (Gap #7)
   async:
-    longRunning: boolean (default: false)
+    longRunning: boolean (optional)
     pollingInterval: integer (polling interval in ms, optional)
     timeout: integer (timeout in ms, optional)
     statusEndpoint: string (API endpoint to check status, optional)
@@ -505,10 +511,10 @@ FlowStep:
 
   enums:
     WaitType:
-      - user-action       # Waiting for user to act
-      - approval          # Waiting for approval
-      - external-event    # Waiting for external system
-      - timeout           # Time-based wait
+      - user-action # Waiting for user to act
+      - approval # Waiting for approval
+      - external-event # Waiting for external system
+      - timeout # Time-based wait
 
   examples:
     # Simple step
@@ -556,7 +562,7 @@ FlowStep:
           recipients: "$.order.approverEmail"
       nextStep:
         onSuccess: 6
-        onFailure: 2  # Return to edit
+        onFailure: 2 # Return to edit
 
     # Async payment processing
     - sequence: 6
@@ -582,6 +588,7 @@ FlowStep:
 ContextVariable:
   description: "Shared variable across flow steps (Gap #1: Cross-experience state)"
   attributes:
+    id: string (UUID) [PK]
     name: string [PK within flow]
     schemaRef: string (JSON Schema reference)
     scope: ContextScope [enum]
@@ -633,10 +640,12 @@ ContextVariable:
 DataMapping:
   description: "Maps data between flow context and experience (Gap #2: Data handoff)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     source: string (JSONPath to source data)
     target: string (JSONPath to target location)
     transform: string (optional transformation expression)
-    required: boolean (default: false)
+    required: boolean (optional)
 
   examples:
     # Simple mapping
@@ -665,10 +674,12 @@ DataMapping:
 ProcessTracking:
   description: "Tracks business process instance across flow (Gap #3: Process correlation)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     processInstanceId: string (JSONPath to correlation ID)
-    resumable: boolean (default: false)
+    resumable: boolean (optional)
     timeoutMinutes: integer (flow timeout, optional)
-    stateCheckpoint: boolean (save state after each step, default: false)
+    stateCheckpoint: boolean (save state after each step)
 
   examples:
     # Order fulfillment tracking
@@ -688,12 +699,14 @@ ProcessTracking:
 FlowAnalytics:
   description: "Analytics for funnel tracking (Gap #9: Funnel analytics)"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     funnelMetrics: string[] (metric IDs for funnel tracking)
     conversionGoal: string (final step identifier)
     dropoffAlerts: DropoffAlertConfig (optional)
 
   DropoffAlertConfig:
-    enabled: boolean (default: false)
+    enabled: boolean (optional)
     threshold: number (alert if drop-off exceeds %, 0-100)
 
   examples:
@@ -714,6 +727,8 @@ FlowAnalytics:
 NotificationAction:
   description: "Notification to send during flow step"
   attributes:
+    id: string (UUID) [PK]
+    name: string
     type: NotificationType [enum]
     template: string (template identifier)
     recipients: string (JSONPath to recipients)
