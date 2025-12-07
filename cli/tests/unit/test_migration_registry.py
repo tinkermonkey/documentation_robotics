@@ -194,3 +194,255 @@ class TestMigrationRegistry:
         assert summary is not None
         assert summary["migrations_needed"] == 0
         assert len(summary["migrations"]) == 0
+
+    # Error handling tests (6 tests)
+
+    def test_apply_migrations_with_validation_error_before(
+        self, registry, temp_model_dir, monkeypatch
+    ):
+        """Test handling of validation error before migration."""
+        from documentation_robotics.core.transformations import MigrationError
+
+        # Mock validate_model to return False
+        def mock_validate_model(self, model_path, version):
+            return False
+
+        monkeypatch.setattr(
+            "documentation_robotics.core.migration_registry.MigrationRegistry._validate_model",
+            mock_validate_model,
+        )
+
+        latest = registry.get_latest_version()
+
+        with pytest.raises(MigrationError) as exc_info:
+            registry.apply_migrations(
+                model_path=temp_model_dir,
+                from_version="0.1.0",
+                to_version=latest,
+                dry_run=False,
+                validate=True,
+            )
+
+        assert "validation failed" in str(exc_info.value).lower()
+        assert "0.1.0" in str(exc_info.value)
+
+    def test_apply_migrations_with_validation_error_after(
+        self, registry, temp_model_dir, monkeypatch
+    ):
+        """Test handling of validation error after migration."""
+        from documentation_robotics.core.transformations import MigrationError
+
+        # Create model structure
+        layer_dir = temp_model_dir / "02_business"
+        layer_dir.mkdir()
+        service_file = layer_dir / "service.yaml"
+        service_file.write_text("- id: service-1\n  name: Service\n")
+
+        # Mock validate_model to fail after migration
+        call_count = {"count": 0}
+
+        def mock_validate_model(self, model_path, version):
+            call_count["count"] += 1
+            # Pass pre-migration validation but fail post-migration
+            return call_count["count"] == 1
+
+        monkeypatch.setattr(
+            "documentation_robotics.core.migration_registry.MigrationRegistry._validate_model",
+            mock_validate_model,
+        )
+
+        latest = registry.get_latest_version()
+
+        with pytest.raises(MigrationError) as exc_info:
+            registry.apply_migrations(
+                model_path=temp_model_dir,
+                from_version="0.1.0",
+                to_version=latest,
+                dry_run=False,
+                validate=True,
+            )
+
+        assert "validation failed" in str(exc_info.value).lower()
+
+    def test_apply_migrations_handles_exception_in_migration_fn(
+        self, registry, temp_model_dir, monkeypatch
+    ):
+        """Test handling of exception in migration function."""
+        from documentation_robotics.core.transformations import MigrationError
+
+        # Create model structure
+        layer_dir = temp_model_dir / "02_business"
+        layer_dir.mkdir()
+
+        # Mock a migration function that raises an exception
+        def mock_failing_migration(model_path):
+            raise RuntimeError("Simulated migration failure")
+
+        # Replace the migration function
+        if registry.migrations:
+            original_fn = registry.migrations[0].apply_fn
+            registry.migrations[0].apply_fn = mock_failing_migration
+
+        try:
+            latest = registry.get_latest_version()
+
+            with pytest.raises(MigrationError) as exc_info:
+                registry.apply_migrations(
+                    model_path=temp_model_dir,
+                    from_version="0.1.0",
+                    to_version=latest,
+                    dry_run=False,
+                    validate=False,
+                )
+
+            assert "failed" in str(exc_info.value).lower()
+        finally:
+            # Restore original function
+            if registry.migrations:
+                registry.migrations[0].apply_fn = original_fn
+
+    def test_apply_migrations_with_no_path_needed(self, registry, temp_model_dir):
+        """Test apply_migrations when already at target version."""
+        latest = registry.get_latest_version()
+
+        result = registry.apply_migrations(
+            model_path=temp_model_dir,
+            from_version=latest,
+            to_version=latest,
+            dry_run=False,
+            validate=False,
+        )
+
+        assert result is not None
+        assert result["applied"] == []
+        assert result["current_version"] == latest
+        assert result["target_version"] == latest
+        assert result["total_changes"] == 0
+
+    def test_migration_with_error_dict_result(self, registry, temp_model_dir, monkeypatch):
+        """Test migration function that returns error dict."""
+
+        # Create model structure
+        layer_dir = temp_model_dir / "02_business"
+        layer_dir.mkdir()
+
+        # Mock migration function to return error dict
+        def mock_migration_with_error(model_path):
+            return {
+                "error": "Simulated error in migration",
+                "files_modified": 0,
+                "migrations_applied": 0,
+            }
+
+        # Replace the migration function temporarily
+        if registry.migrations:
+            original_fn = registry.migrations[0].apply_fn
+            registry.migrations[0].apply_fn = mock_migration_with_error
+
+        try:
+            latest = registry.get_latest_version()
+
+            # This should not raise but return results with error
+            result = registry.apply_migrations(
+                model_path=temp_model_dir,
+                from_version="0.1.0",
+                to_version=latest,
+                dry_run=False,
+                validate=False,
+            )
+
+            # Check that result includes the applied migration with error
+            assert result is not None
+            assert len(result["applied"]) > 0
+
+        finally:
+            # Restore original function
+            if registry.migrations:
+                registry.migrations[0].apply_fn = original_fn
+
+    # v0.3.0 → v0.4.0 Migration Tests
+
+    def test_apply_migrations_0_3_to_0_4(self, registry, temp_model_dir):
+        """Test v0.3.0 → v0.4.0 migration adds UUID and name fields."""
+        layer_dir = temp_model_dir / "02_business"
+        layer_dir.mkdir()
+
+        yaml_file = layer_dir / "services.yaml"
+        yaml_file.write_text(
+            """- type: service
+  description: Core business capability
+
+- type: service
+  id: customer-service
+  description: Customer management
+"""
+        )
+
+        result = registry.apply_migrations(
+            temp_model_dir, "0.3.0", "0.4.0", dry_run=False, validate=False
+        )
+
+        assert result["total_changes"] > 0
+        assert len(result["applied"]) == 1
+
+        # Verify UUID and name added
+        import yaml
+
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        import uuid
+
+        assert "id" in data[0]
+        assert "name" in data[0]
+        uuid.UUID(data[0]["id"])  # Validates UUID format
+
+    def test_migration_0_3_to_0_4_preserves_existing_uuid(self, registry, temp_model_dir):
+        """Test existing UUIDs are preserved."""
+        layer_dir = temp_model_dir / "01_motivation"
+        layer_dir.mkdir()
+
+        existing_uuid = "550e8400-e29b-41d4-a716-446655440000"
+        yaml_file = layer_dir / "goals.yaml"
+        yaml_file.write_text(
+            f"""- id: {existing_uuid}
+  type: goal
+  description: Business goal
+"""
+        )
+
+        registry.apply_migrations(temp_model_dir, "0.3.0", "0.4.0", dry_run=False, validate=False)
+
+        import yaml
+
+        with open(yaml_file, "r") as f:
+            data = yaml.safe_load(f)
+
+        assert data[0]["id"] == existing_uuid
+        assert "name" in data[0]
+
+    def test_migration_0_3_to_0_4_deterministic_uuids(self, registry, temp_model_dir):
+        """Test UUID generation is deterministic."""
+        layer_dir = temp_model_dir / "02_business"
+        layer_dir.mkdir()
+
+        yaml_file = layer_dir / "services.yaml"
+        original_content = """- type: service
+  id: test-service
+  description: Test
+"""
+
+        # Apply migration twice
+        import yaml
+
+        yaml_file.write_text(original_content)
+        registry.apply_migrations(temp_model_dir, "0.3.0", "0.4.0", dry_run=False, validate=False)
+        with open(yaml_file, "r") as f:
+            first_uuid = yaml.safe_load(f)[0]["id"]
+
+        yaml_file.write_text(original_content)
+        registry.apply_migrations(temp_model_dir, "0.3.0", "0.4.0", dry_run=False, validate=False)
+        with open(yaml_file, "r") as f:
+            second_uuid = yaml.safe_load(f)[0]["id"]
+
+        assert first_uuid == second_uuid  # Deterministic

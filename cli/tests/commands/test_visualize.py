@@ -14,6 +14,19 @@ from documentation_robotics.core.model import Model
 from documentation_robotics.server.visualization_server import VisualizationServer
 
 
+def viewer_is_bundled():
+    """Check if viewer assets are bundled."""
+    import documentation_robotics
+
+    viewer_path = Path(documentation_robotics.__file__).parent / "viewer" / "dist"
+    return viewer_path.exists() and (viewer_path / "index.html").exists()
+
+
+viewer_bundled = pytest.mark.skipif(
+    not viewer_is_bundled(), reason="Viewer assets not bundled - run bundle_viewer.py"
+)
+
+
 class TestVisualizationServer(AioHTTPTestCase):
     """Test cases for the VisualizationServer with authentication."""
 
@@ -62,6 +75,7 @@ class TestVisualizationServer(AioHTTPTestCase):
         data = await resp.json()
         assert "Invalid authentication token" in data["error"]
 
+    @viewer_bundled
     @unittest_run_loop
     async def test_index_with_valid_token_query_param(self):
         """Test that index page works with valid token in query parameter."""
@@ -72,6 +86,7 @@ class TestVisualizationServer(AioHTTPTestCase):
         assert "Documentation Robotics" in text
         assert "Model Visualization" in text
 
+    @viewer_bundled
     @unittest_run_loop
     async def test_index_with_valid_token_auth_header(self):
         """Test that index page works with valid token in Authorization header."""

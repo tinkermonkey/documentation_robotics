@@ -90,6 +90,31 @@ repos:
         files: ^spec/schemas/.*\.schema\.json$
         args: [--schemafile, "https://json-schema.org/draft-07/schema"]
 
+  # Markdown validation and schema generation
+  - repo: local
+    hooks:
+      - id: validate-markdown-specs
+        name: Validate markdown layer specifications
+        entry: python scripts/validate_markdown.py --all
+        language: system
+        files: ^spec/layers/.*\.md$
+        pass_filenames: false
+
+      - id: check-schemas-up-to-date
+        name: Check JSON Schemas match markdown
+        entry: python cli/scripts/generate_schemas.py --check-only
+        language: system
+        files: ^spec/layers/.*\.md$
+        pass_filenames: false
+        always_run: false
+
+      - id: validate-link-registry
+        name: Validate link registry is synchronized
+        entry: python scripts/generators/validate_link_registry.py
+        language: system
+        files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
+        pass_filenames: false
+
   # Spell checking (optional - can be enabled later)
   # - repo: https://github.com/codespell-project/codespell
   #   rev: v2.2.6

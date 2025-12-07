@@ -319,33 +319,8 @@ class VisualizationServer:
         Returns:
             HTML response
         """
-        try:
-            # Try to load index.html from viewer package
-            return await self._serve_static_file("index.html")
-        except (FileNotFoundError, ModuleNotFoundError, ImportError):
-            # Fallback to placeholder HTML if viewer package not available
-            console.print(
-                "[yellow]Warning: documentation-robotics-viewer package not available, "
-                "serving placeholder HTML[/yellow]"
-            )
-            html = """
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Documentation Robotics - Model Visualization</title>
-            </head>
-            <body>
-                <h1>Documentation Robotics - Model Visualization Server</h1>
-                <p>Server is running. WebSocket endpoint: ws://{host}:{port}/ws</p>
-                <p><strong>Note:</strong> The documentation-robotics-viewer package is not installed.</p>
-                <p>Install it with: <code>pip install documentation-robotics-viewer</code></p>
-            </body>
-            </html>
-            """.format(
-                host=self.host, port=self.port
-            )
-
-            return web.Response(text=html, content_type="text/html")
+        # Serve index.html from bundled viewer
+        return await self._serve_static_file("index.html")
 
     async def _handle_static_file(self, request: web.Request) -> web.Response:
         """
@@ -383,17 +358,22 @@ class VisualizationServer:
             ModuleNotFoundError: If viewer package not installed
         """
         try:
-            # Try to import viewer package and get file content
-            # This will be replaced with actual package import once it's published
-            import documentation_robotics_viewer
+            # Load from bundled viewer assets
+            import documentation_robotics
 
-            # Use importlib.resources to access package data
+            # Use importlib.resources to access bundled viewer files
             if hasattr(resources, "files"):  # Python 3.9+
-                package_files = resources.files(documentation_robotics_viewer)
-                file_resource = package_files / file_path
+                package_files = resources.files(documentation_robotics)
+                file_resource = package_files / "viewer" / "dist" / file_path
                 content = file_resource.read_bytes()
             else:  # Python 3.8 fallback
-                content = resources.read_binary(documentation_robotics_viewer, file_path)
+                import pkg_resources
+
+                viewer_path = pkg_resources.resource_filename(
+                    "documentation_robotics", f"viewer/dist/{file_path}"
+                )
+                with open(viewer_path, "rb") as f:
+                    content = f.read()
 
             # Determine content type
             content_type, _ = mimetypes.guess_type(file_path)
@@ -403,7 +383,7 @@ class VisualizationServer:
             return web.Response(body=content, content_type=content_type)
 
         except (ModuleNotFoundError, ImportError, FileNotFoundError) as e:
-            raise FileNotFoundError(f"Viewer package file not found: {file_path}") from e
+            raise FileNotFoundError(f"Viewer file not found: {file_path}") from e
 
     async def _handle_websocket(self, request: web.Request) -> web.WebSocketResponse:
         """

@@ -131,7 +131,6 @@ class SpecificationLoader:
             Dictionary mapping schema names to their JSON definitions:
                 - shared-references: Common element reference patterns
                 - link-registry: Link type definitions
-                - federated-architecture: Federated model schemas
 
         Raises:
             No exceptions raised - errors logged and invalid schemas skipped
@@ -141,7 +140,6 @@ class SpecificationLoader:
         shared_files = [
             "shared-references.schema.json",
             "link-registry.json",
-            "federated-architecture.schema.json",
         ]
 
         for filename in shared_files:

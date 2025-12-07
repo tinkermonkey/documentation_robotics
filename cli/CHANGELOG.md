@@ -5,6 +5,45 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-12-07
+
+### Added
+
+- **Migration v0.3.0 → v0.4.0**:
+  - Automatic migration for spec v0.4.0 entity standardization
+  - Adds `id` (UUID) and `name` (string) fields to all entities
+  - Deterministic UUID generation (preserves existing UUIDs)
+  - Intelligent name derivation from existing data
+  - Safe migration with validation
+
+- **Viewer Bundling**:
+  - Bundled documentation_robotics_viewer v0.1.0 into CLI
+  - No external package installation required
+  - Viewer included at build time
+  - Eliminates "viewer not available" warnings
+
+### Changed
+
+- **Specification Version**: Updated to v0.4.0
+- **Bundled Schemas**: Updated to spec v0.4.0
+- **Visualization Server**: Loads viewer from bundled assets
+
+### Migration Guide
+
+```bash
+# Check migration requirements
+dr migrate
+
+# Preview changes
+dr migrate --dry-run
+
+# Apply migration
+dr migrate --apply
+
+# Validate
+dr validate --validate-links
+```
+
 ## [0.6.5] - 2025-12-06
 
 ### Fixed

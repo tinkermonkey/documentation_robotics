@@ -13,6 +13,7 @@ from rich.table import Table
 
 from ..core.manifest import ManifestManager
 from ..core.migration_registry import MigrationRegistry
+from ..core.transformations import MigrationError
 
 console = Console()
 
@@ -119,8 +120,11 @@ def migrate(mode: str, to_version: str, model_dir: str, output_format: str):
         elif mode == "apply":
             _apply_migrations(registry, manifest_mgr, model_path, current_version, target)
 
+    except MigrationError:
+        # MigrationError already handled above
+        raise click.Abort()
     except Exception as e:
-        console.print(f"[red]Error: {e}[/red]")
+        console.print(f"[red]Unexpected error: {e}[/red]")
         import traceback
 
         traceback.print_exc()
@@ -287,9 +291,29 @@ def _apply_migrations(
     # Apply migrations
     console.print("\n[bold]Applying migrations...[/bold]")
 
-    results = registry.apply_migrations(
-        model_path=model_path, from_version=from_version, to_version=to_version, dry_run=False
-    )
+    try:
+        results = registry.apply_migrations(
+            model_path=model_path,
+            from_version=from_version,
+            to_version=to_version,
+            dry_run=False,
+            validate=True,
+        )
+    except MigrationError as e:
+        console.print(f"\n[red]✗ Migration failed:[/red] {e}")
+        if e.file_path:
+            console.print(f"[yellow]File:[/yellow] {e.file_path}")
+        if e.element_id:
+            console.print(f"[yellow]Element ID:[/yellow] {e.element_id}")
+        if e.transformation:
+            console.print(f"[yellow]Transformation:[/yellow] {e.transformation}")
+
+        console.print("\n[bold]To restore your model:[/bold]")
+        console.print("  [cyan]git restore .[/cyan]")
+        console.print(
+            "\n[dim]Your model has been modified. Use git to restore it before retrying.[/dim]"
+        )
+        raise click.Abort()
 
     # Display results
     if results["applied"]:

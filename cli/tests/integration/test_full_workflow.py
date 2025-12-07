@@ -176,7 +176,7 @@ class TestFullWorkflow:
             "09-ux-layer.schema.json",
             "10-navigation-layer.schema.json",
             "11-apm-observability-layer.schema.json",
-            "federated-architecture.schema.json",
+            "12-testing-layer.schema.json",
         ]
 
         for schema_file in expected_schemas:

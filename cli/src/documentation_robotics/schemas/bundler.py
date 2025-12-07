@@ -33,9 +33,6 @@ LAYER_SCHEMAS = [
     "12-testing-layer.schema.json",
 ]
 
-# Master schema
-MASTER_SCHEMA = "federated-architecture.schema.json"
-
 # GitHub repository information
 GITHUB_REPO = "anthropics/claude-code"  # This should be updated to the actual repo
 GITHUB_API_BASE = "https://api.github.com"
@@ -102,7 +99,7 @@ def copy_schemas_to_project(project_schemas_dir: Path, overwrite: bool = False) 
     copied_count = 0
 
     # Copy all layer schemas
-    for schema_filename in LAYER_SCHEMAS + [MASTER_SCHEMA]:
+    for schema_filename in LAYER_SCHEMAS:
         source_path = bundled_dir / schema_filename
         dest_path = project_schemas_dir / schema_filename
 
@@ -157,7 +154,7 @@ def fetch_schemas_from_release(
     # Format: https://github.com/{owner}/{repo}/releases/download/v{version}/{file}
     base_url = f"https://github.com/{GITHUB_REPO}/releases/download/v{version}"
 
-    for schema_filename in LAYER_SCHEMAS + [MASTER_SCHEMA]:
+    for schema_filename in LAYER_SCHEMAS:
         dest_path = output_dir / schema_filename
 
         # Skip if exists and not overwriting

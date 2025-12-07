@@ -5,11 +5,25 @@ Tests core server functionality including initialization, route configuration,
 WebSocket handling, and shutdown procedures.
 """
 
+from pathlib import Path
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 from aiohttp import web
 from documentation_robotics.server.visualization_server import VisualizationServer
+
+
+def viewer_is_bundled():
+    """Check if viewer assets are bundled."""
+    import documentation_robotics
+
+    viewer_path = Path(documentation_robotics.__file__).parent / "viewer" / "dist"
+    return viewer_path.exists() and (viewer_path / "index.html").exists()
+
+
+viewer_bundled = pytest.mark.skipif(
+    not viewer_is_bundled(), reason="Viewer assets not bundled - run bundle_viewer.py"
+)
 
 
 class TestVisualizationServerInitialization:
@@ -116,6 +130,7 @@ class TestHealthEndpoint:
 class TestIndexEndpoint:
     """Test index page handling and fallback behavior."""
 
+    @viewer_bundled
     @pytest.mark.asyncio
     async def test_index_fallback_without_viewer_package(self, tmp_path):
         """Test index page falls back to placeholder HTML when viewer not available."""

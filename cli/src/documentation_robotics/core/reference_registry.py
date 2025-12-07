@@ -68,40 +68,42 @@ class ReferenceRegistry:
 
     def load_reference_definitions(self, schema_dir: Path) -> None:
         """
-        Load reference definitions from schema files.
+        Load reference definitions from link registry.
 
         Args:
             schema_dir: Directory containing layer schemas
         """
-        # Load from federated-architecture.schema.json if it exists
-        master_schema_path = schema_dir / "federated-architecture.schema.json"
-        if master_schema_path.exists():
+        # Load from link-registry.json if it exists
+        link_registry_path = schema_dir / "link-registry.json"
+        if link_registry_path.exists():
             import json
 
-            with open(master_schema_path, "r") as f:
-                schema = json.load(f)
-                self._extract_reference_definitions(schema)
+            with open(link_registry_path, "r") as f:
+                registry = json.load(f)
+                self._extract_link_definitions(registry)
 
-    def _extract_reference_definitions(self, schema: dict) -> None:
-        """Extract reference definitions from master schema."""
-        if "properties" not in schema:
-            return
-
-        # Extract from cross-layer references section
-        cross_layer = schema.get("crossLayerReferences", [])
-        for ref_def in cross_layer:
-            self.reference_definitions.append(
-                ReferenceDefinition(
-                    layer=ref_def.get("sourceLayer"),
-                    element_type=ref_def.get("sourceType"),
-                    property_path=ref_def.get("propertyPath"),
-                    target_layer=ref_def.get("targetLayer"),
-                    target_type=ref_def.get("targetType"),
-                    reference_type=ref_def.get("referenceType"),
-                    required=ref_def.get("required", False),
-                    cardinality=ref_def.get("cardinality", "0..*"),
+    def _extract_link_definitions(self, registry: dict) -> None:
+        """Extract reference definitions from link registry."""
+        link_types = registry.get("linkTypes", [])
+        for link_type in link_types:
+            # Create a reference definition for each link type
+            for source_layer in link_type.get("sourceLayers", []):
+                self.reference_definitions.append(
+                    ReferenceDefinition(
+                        layer=source_layer,
+                        element_type=None,  # Link registry doesn't specify source element type
+                        property_path=link_type.get("fieldPaths", [None])[
+                            0
+                        ],  # Use first field path
+                        target_layer=link_type.get("targetLayer"),
+                        target_type=link_type.get("targetElementTypes", [None])[
+                            0
+                        ],  # Use first target type
+                        reference_type=link_type.get("id"),
+                        required=False,  # Link registry doesn't specify required
+                        cardinality=link_type.get("cardinality", "single"),
+                    )
                 )
-            )
 
     def register_element(self, element: Any) -> None:
         """

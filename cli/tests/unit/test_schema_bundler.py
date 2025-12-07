@@ -108,7 +108,7 @@ class TestSchemaBundler:
         """Test that all bundled schemas are valid JSON."""
         import json
 
-        for schema_filename in LAYER_SCHEMAS + ["federated-architecture.schema.json"]:
+        for schema_filename in LAYER_SCHEMAS:
             schema_path = get_bundled_schema_path(schema_filename)
 
             try:

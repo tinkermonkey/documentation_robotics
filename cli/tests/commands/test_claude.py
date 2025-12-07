@@ -190,9 +190,7 @@ class TestClaudeCommand:
 
     def test_list(self, runner, project_dir):
         """Test list command."""
-        result = runner.invoke(
-            cli, ["--no-upgrade-check", "claude", "list"], cwd=str(project_dir)
-        )
+        result = runner.invoke(cli, ["--no-upgrade-check", "claude", "list"], cwd=str(project_dir))
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "available components" in output.lower()

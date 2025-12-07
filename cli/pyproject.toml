@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "documentation-robotics"
-version = "0.6.5"
+version = "0.7.0"
 description = "CLI tool for managing federated architecture data models"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -78,6 +78,7 @@ documentation_robotics = [
     "claude_integration/templates/*.sh",
     "copilot_integration/agents/*",
     "copilot_integration/knowledge/*",
+    "viewer/dist/**/*",
 ]
 
 [tool.pytest.ini_options]

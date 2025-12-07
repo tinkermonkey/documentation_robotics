@@ -278,8 +278,7 @@
       "description": "Transition from current state to another state",
       "required": [
         "id",
-        "name",
-        true
+        "name"
       ],
       "properties": {
         "id": {

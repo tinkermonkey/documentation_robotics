@@ -14,9 +14,7 @@ from documentation_robotics.server.specification_loader import (
 )
 
 # Test constants
-EXPECTED_SHARED_SCHEMA_COUNT = (
-    3  # Number of shared schemas (shared-references, link-registry, federated-architecture)
-)
+EXPECTED_SHARED_SCHEMA_COUNT = 2  # Number of shared schemas (shared-references, link-registry)
 EXPECTED_LAYER_SCHEMA_COUNT = 3  # Number of layer schemas in test fixtures
 EXPECTED_REAL_SPEC_LAYER_COUNT = 12  # Total number of layers in real DR specification
 

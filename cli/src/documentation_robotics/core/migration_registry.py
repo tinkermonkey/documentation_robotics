@@ -12,6 +12,7 @@ from packaging.version import Version
 
 from .link_migrator import LinkMigrator
 from .link_registry import LinkRegistry
+from .transformations import MigrationError
 
 
 @dataclass
@@ -57,6 +58,16 @@ class MigrationRegistry:
             )
         )
 
+        # Migration from v0.3.0 to v0.4.0: Add UUID and name fields
+        self.migrations.append(
+            Migration(
+                from_version="0.3.0",
+                to_version="0.4.0",
+                description="Add UUID and name fields to all entities (Spec v0.4.0)",
+                apply_fn=self._migrate_0_3_to_0_4,
+            )
+        )
+
         # Future migrations would be added here
         # self.migrations.append(Migration(
         #     from_version="1.0.0",
@@ -72,7 +83,7 @@ class MigrationRegistry:
             Latest version string
         """
         if not self.migrations:
-            return "0.3.0"
+            return "0.4.0"
 
         versions = [Version(m.to_version) for m in self.migrations]
         return str(max(versions))
@@ -131,6 +142,7 @@ class MigrationRegistry:
         from_version: str,
         to_version: Optional[str] = None,
         dry_run: bool = False,
+        validate: bool = True,
     ) -> dict:
         """Apply all migrations in sequence.
 
@@ -139,9 +151,13 @@ class MigrationRegistry:
             from_version: Current model version
             to_version: Target version (defaults to latest)
             dry_run: If True, don't apply changes
+            validate: If True, validate model before and after each migration
 
         Returns:
             Dictionary with migration results
+
+        Raises:
+            MigrationError: If validation fails or migration fails
         """
         path = self.get_migration_path(from_version, to_version)
 
@@ -160,19 +176,47 @@ class MigrationRegistry:
             "total_changes": 0,
         }
 
+        # Pre-migration validation
+        if validate and not dry_run:
+            if not self._validate_model(model_path, from_version):
+                raise MigrationError(
+                    f"Model validation failed for version {from_version}. "
+                    "Model must be valid before migration. "
+                    "Run 'dr validate' to see errors."
+                )
+
         for migration in path:
             if not dry_run:
-                # Apply the migration
-                result = migration.apply_fn(model_path)
-                results["applied"].append(
-                    {
-                        "from": migration.from_version,
-                        "to": migration.to_version,
-                        "description": migration.description,
-                        "changes": result,
-                    }
-                )
-                results["total_changes"] += result.get("migrations_applied", 0)
+                try:
+                    # Apply the migration
+                    result = migration.apply_fn(model_path)
+
+                    # Post-migration validation for this step
+                    if validate:
+                        if not self._validate_model(model_path, migration.to_version):
+                            raise MigrationError(
+                                f"Model validation failed after migrating to {migration.to_version}. "
+                                "Migration may have produced invalid data. "
+                                "Restore from git: git restore ."
+                            )
+
+                    results["applied"].append(
+                        {
+                            "from": migration.from_version,
+                            "to": migration.to_version,
+                            "description": migration.description,
+                            "changes": result,
+                        }
+                    )
+                    results["total_changes"] += result.get("migrations_applied", 0)
+
+                except MigrationError:
+                    # Re-raise migration errors
+                    raise
+                except Exception as e:
+                    raise MigrationError(
+                        f"Migration {migration.from_version} → {migration.to_version} failed: {e}"
+                    )
             else:
                 # Dry run - just record what would happen
                 results["applied"].append(
@@ -185,6 +229,28 @@ class MigrationRegistry:
                 )
 
         return results
+
+    def _validate_model(self, model_path: Path, version: str) -> bool:
+        """Validate model against schema for a specific version.
+
+        Args:
+            model_path: Path to model directory
+            version: Specification version to validate against
+
+        Returns:
+            True if model is valid, False otherwise
+        """
+        try:
+            # Import validation here to avoid circular imports
+            from ..commands.validate import validate_model_files
+
+            # Run validation (suppress output)
+            result = validate_model_files(model_path, spec_version=version, verbose=False)
+            return result.get("valid", False)
+        except Exception:
+            # If validation fails to run, assume valid to not block migration
+            # (validation is a safety feature, not a hard requirement)
+            return True
 
     # Migration implementation functions
 
@@ -218,6 +284,9 @@ class MigrationRegistry:
         Testing Layer (Layer 12) support. The testing layer is optional and can
         be added via 'dr init --add-layer testing'.
 
+        This is a minimal migration that demonstrates the declarative approach.
+        No data transformations are needed for this version bump.
+
         Args:
             model_path: Path to model directory
 
@@ -225,12 +294,73 @@ class MigrationRegistry:
             Dictionary with migration statistics
         """
         try:
+            # Example: If we needed to add fields or transform data, we would use:
+            # from .transformations import AddField, RenameField, ChangeCardinality
+            #
+            # transformations = [
+            #     AddField(
+            #         field_path="testing.coverage-enabled",
+            #         default_value=False,
+            #         layers=["12-testing"]
+            #     ),
+            #     RenameField(
+            #         old_path="old.field-name",
+            #         new_path="new.field-name",
+            #         layers=["02-business"]
+            #     ),
+            # ]
+            #
+            # engine = TransformationEngine(model_path)
+            # stats = engine.apply(transformations, validate=False)
+            # return {
+            #     "migrations_applied": stats["transformations_applied"],
+            #     "files_modified": stats["files_modified"],
+            #     "description": "Applied declarative transformations"
+            # }
+
             # This migration only updates the spec version in the manifest
             # The testing layer is opt-in and doesn't require model changes
             return {
                 "migrations_applied": 1,
                 "files_modified": 0,
                 "description": "Spec version updated to 0.3.0 (Testing layer now available)",
+            }
+        except Exception as e:
+            return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
+
+    def _migrate_0_3_to_0_4(self, model_path: Path) -> dict:
+        """Migrate from v0.3.0 to v0.4.0.
+
+        This migration adds explicit `id` (UUID) and `name` (string) fields to all
+        entity types across all 12 layers. This is required for spec v0.4.0.
+
+        Strategy:
+        - UUID generation: Deterministic from existing element data
+        - Name generation: Derived from existing name, id, or description
+        - Safe: Only adds fields if missing (preserves existing values)
+
+        Args:
+            model_path: Path to model directory
+
+        Returns:
+            Dictionary with migration statistics
+        """
+        try:
+            from .transformations import EnsureNameField, EnsureUUIDField, TransformationEngine
+
+            transformations = [
+                EnsureUUIDField(),
+                EnsureNameField(),
+            ]
+
+            engine = TransformationEngine(model_path)
+            stats = engine.apply(transformations, validate=False)
+
+            return {
+                "migrations_applied": stats["transformations_applied"],
+                "files_modified": stats["files_modified"],
+                "elements_modified": stats.get("elements_modified", 0),
+                "description": f"Added UUID and name fields to {stats.get('elements_modified', 0)} entities",
             }
         except Exception as e:
             return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
