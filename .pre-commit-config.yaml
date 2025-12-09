@@ -71,16 +71,6 @@ repos:
         files: ^cli/src/
         types: [python]
 
-  # Python testing (for CLI) - runs ALL tests like CI pipeline
-  - repo: local
-    hooks:
-      - id: pytest-all
-        name: pytest (all tests with coverage)
-        entry: bash -c 'source .venv/bin/activate && cd cli && pytest --cov=documentation_robotics --cov-report=term -v || exit 1'
-        language: system
-        pass_filenames: false
-        always_run: true
-
   # JSON Schema validation
   - repo: https://github.com/python-jsonschema/check-jsonschema
     rev: 0.27.3

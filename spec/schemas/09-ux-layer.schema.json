@@ -572,7 +572,7 @@
       "required": [
         "id",
         "name",
-        true
+        "trigger"
       ],
       "properties": {
         "id": {
@@ -588,7 +588,7 @@
           "type": "string",
           "minLength": 1
         },
-        "true": {
+        "trigger": {
           "$ref": "#/definitions/enum"
         },
         "description": {

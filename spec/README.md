@@ -240,12 +240,14 @@ The UX Layer has been redesigned with a three-tier component library architectur
   - Pattern extension binding for state machines
 
 **Benefits:**
+
 - **Design System Alignment** - Maps naturally to Figma/Storybook workflows
 - **Enterprise Scale** - Multiple apps share design system libraries
 - **DRY Principle** - Single source of truth for component behavior
 - **Backward Compatible** - Existing flat UXSpecs continue to work
 
 **Complete Specification:**
+
 - **Layer 09 Specification**: [layers/09-ux-layer.md](layers/09-ux-layer.md)
 - **JSON Schema**: [schemas/09-ux-layer.schema.json](schemas/09-ux-layer.schema.json)
 - **Migration Guide**: Included in layer specification

@@ -100,7 +100,7 @@ UXLibrary:
       description: "Core UI component library"
       author: "Platform Team"
       components:
-        - # LibraryComponent definitions
+        -  # LibraryComponent definitions
 
     - name: "ecommerce-components"
       version: "1.5.0"

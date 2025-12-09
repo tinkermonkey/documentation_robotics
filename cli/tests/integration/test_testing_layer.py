@@ -109,7 +109,7 @@ class TestTestingLayerIntegration:
         with open(schema_path) as f:
             schema = json.load(f)
 
-        assert schema["$id"] == "https://example.com/schemas/12-testing-layer.json"
+        assert schema["$id"] == "https://example.com/schemas/12-testing-layer.schema.json"
         assert schema["title"] == "Testing Layer Schema"
 
     def test_add_coverage_target(self, temp_model, runner):

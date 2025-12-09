@@ -193,7 +193,7 @@ documentation_robotics/
 The specification defines 11 interconnected layers:
 
 | #   | Layer                                                          | Focus        | Standard      |
-| --- | -------------------------------------------------------------- | ------------ | ------------- |
+| --- | -------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
 | 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |
 | 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |
 | 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |
