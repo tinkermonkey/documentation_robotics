@@ -121,6 +121,11 @@ jobs:
         run: |
           python scripts/prepare_build.py --verbose
 
+      - name: Bundle viewer
+        working-directory: ./cli
+        run: |
+          python scripts/bundle_viewer.py
+
       - name: Build package
         working-directory: ./cli
         run: |
