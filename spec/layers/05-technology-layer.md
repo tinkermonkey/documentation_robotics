@@ -1,4 +1,6 @@
-# Technology Layer - ArchiMate Technology Elements
+# Layer 5: Technology Layer
+
+Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.
 
 ## Overview
 

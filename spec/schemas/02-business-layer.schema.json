@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/02-business-layer.schema.json",
   "title": "Business Layer Schema",
-  "description": "Schema for Business Layer",
+  "description": "Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.",
   "type": "object",
   "properties": {
     "business-actors": {

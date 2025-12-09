@@ -1,4 +1,6 @@
-# Business Layer - ArchiMate Business Elements
+# Layer 2: Business Layer
+
+Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.
 
 ## Overview
 

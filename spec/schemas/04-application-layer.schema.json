@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/04-application-layer.schema.json",
   "title": "Application Layer Schema",
-  "description": "Schema for Application Layer",
+  "description": "Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.",
   "type": "object",
   "properties": {
     "application-components": {

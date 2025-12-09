@@ -1,4 +1,6 @@
-# API Layer - OpenAPI 3.0 Specification
+# Layer 6: API Layer
+
+Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.
 
 ## Overview
 
@@ -109,6 +111,10 @@ Server:
 ```yaml
 Paths:
   description: "Available API endpoints and operations"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
   structure: object (keyed by path pattern)
 
   pathPattern:
@@ -334,6 +340,10 @@ RequestBody:
 ```yaml
 Responses:
   description: "Possible responses from an operation"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
   structure: object (keyed by HTTP status code or 'default')
 
   response:
@@ -484,6 +494,443 @@ Schema:
     x-encrypted: boolean
 ```
 
+### Tag
+
+```yaml
+Tag:
+  description: "A metadata label used to group and categorize API operations for documentation organization. Enables logical grouping of endpoints in generated API documentation."
+  attributes:
+    id: string (UUID) [PK]
+    name: string [required]
+    description: string (optional)
+
+  references:
+    externalDocs: ExternalDocumentation (optional)
+
+  examples:
+    - name: "products"
+      description: "Product management operations"
+      externalDocs:
+        description: "Product API documentation"
+        url: "https://docs.example.com/products"
+
+    - name: "orders"
+      description: "Order processing operations"
+
+    - name: "admin"
+      description: "Administrative operations (restricted access)"
+```
+
+### ExternalDocumentation
+
+```yaml
+ExternalDocumentation:
+  description: "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Links API elements to comprehensive documentation."
+  attributes:
+    id: string (UUID) [PK]
+    description: string (optional)
+    url: string [required] (URL to external documentation)
+
+  examples:
+    - description: "Full API documentation"
+      url: "https://docs.example.com/api"
+
+    - description: "Authentication guide"
+      url: "https://docs.example.com/auth"
+
+    - description: "Rate limiting policies"
+      url: "https://docs.example.com/rate-limits"
+```
+
+### Contact
+
+```yaml
+Contact:
+  description: "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (optional)
+    url: string (optional, URL to contact page)
+    email: string (optional, email address)
+
+  examples:
+    - name: "API Support Team"
+      email: "api-support@example.com"
+      url: "https://support.example.com/api"
+
+    - name: "Product Team"
+      email: "product-team@example.com"
+
+    - name: "Developer Relations"
+      url: "https://developers.example.com/contact"
+```
+
+### License
+
+```yaml
+License:
+  description: "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers."
+  attributes:
+    id: string (UUID) [PK]
+    name: string [required]
+    url: string (optional, URL to license text)
+
+  examples:
+    - name: "Apache 2.0"
+      url: "https://www.apache.org/licenses/LICENSE-2.0.html"
+
+    - name: "MIT"
+      url: "https://opensource.org/licenses/MIT"
+
+    - name: "Proprietary"
+      url: "https://example.com/api-license"
+```
+
+### ServerVariable
+
+```yaml
+ServerVariable:
+  description: "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (variable name, used in URL template)
+    default: string [required] (default value if not provided)
+    enum: string[] (optional, allowed values)
+    description: string (optional)
+
+  examples:
+    # Environment variable
+    - name: "environment"
+      default: "prod"
+      enum: ["dev", "staging", "prod"]
+      description: "Deployment environment"
+
+    # Version variable
+    - name: "version"
+      default: "v2"
+      enum: ["v1", "v2", "v3"]
+      description: "API version"
+
+    # Tenant variable
+    - name: "tenant"
+      default: "default"
+      description: "Tenant identifier for multi-tenant deployments"
+
+    # Region variable
+    - name: "region"
+      default: "us-east-1"
+      enum: ["us-east-1", "us-west-2", "eu-west-1", "ap-southeast-1"]
+      description: "Geographic region for data residency"
+```
+
+### Header
+
+```yaml
+Header:
+  description: "Defines HTTP header parameters for requests or responses, specifying name, schema, required status, and description. Documents header-based communication requirements."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (header name, e.g., "X-Request-ID")
+    description: string (optional)
+    required: boolean (optional) # default: false
+    deprecated: boolean (optional) # default: false
+    allowEmptyValue: boolean (optional) # default: false
+
+  schema:
+    schema: Schema [required]
+
+  style: string (optional) # default: "simple"
+  explode: boolean (optional) # default: false
+
+  examples:
+    # Request ID header
+    - name: "X-Request-ID"
+      description: "Unique identifier for request tracing"
+      required: false
+      schema:
+        type: string
+        format: uuid
+
+    # Rate limit headers
+    - name: "X-Rate-Limit-Remaining"
+      description: "Number of requests remaining in current window"
+      schema:
+        type: integer
+
+    - name: "X-Rate-Limit-Reset"
+      description: "Unix timestamp when rate limit resets"
+      schema:
+        type: integer
+
+    # Pagination headers
+    - name: "X-Total-Count"
+      description: "Total number of items available"
+      schema:
+        type: integer
+
+    # Cache control
+    - name: "ETag"
+      description: "Entity tag for cache validation"
+      schema:
+        type: string
+```
+
+### Link
+
+```yaml
+Link:
+  description: "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (link name)
+    operationId: string (optional, target operation ID)
+    operationRef: string (optional, relative or absolute URI to operation)
+    description: string (optional)
+
+  parameters:
+    # Map of parameter names to values or runtime expressions
+    parameterName: string | RuntimeExpression
+
+  requestBody: any (optional, value or runtime expression)
+  server: Server (optional, override server for this link)
+
+  examples:
+    # Link from product list to product detail
+    - name: "GetProductById"
+      operationId: "getProduct"
+      description: "Get details for a specific product"
+      parameters:
+        id: "$response.body#/items/0/id"
+
+    # Link from order to customer
+    - name: "GetOrderCustomer"
+      operationId: "getCustomer"
+      description: "Get customer who placed this order"
+      parameters:
+        customerId: "$response.body#/customerId"
+
+    # Self link
+    - name: "self"
+      operationId: "getProduct"
+      parameters:
+        id: "$response.body#/id"
+
+    # Link with request body
+    - name: "UpdateProduct"
+      operationId: "updateProduct"
+      parameters:
+        id: "$response.body#/id"
+      requestBody: "$response.body"
+```
+
+### Callback
+
+```yaml
+Callback:
+  description: "Defines a webhook or callback URL pattern where the API will send asynchronous notifications. Enables event-driven integrations and async workflows."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (callback name)
+
+  structure:
+    # Map of runtime expression to PathItem
+    expression: string (runtime expression for callback URL)
+    pathItem: PathItem (operations available on callback URL)
+
+  examples:
+    # Order status webhook
+    - name: "orderStatusCallback"
+      "{$request.body#/callbackUrl}":
+        post:
+          summary: "Order status update callback"
+          description: "Notification sent when order status changes"
+          requestBody:
+            required: true
+            content:
+              application/json:
+                schema:
+                  type: object
+                  properties:
+                    orderId:
+                      type: string
+                      format: uuid
+                    status:
+                      type: string
+                      enum: [pending, processing, shipped, delivered]
+                    timestamp:
+                      type: string
+                      format: date-time
+          responses:
+            "200":
+              description: "Callback processed successfully"
+            "410":
+              description: "Callback URL no longer valid"
+
+    # Payment confirmation webhook
+    - name: "paymentConfirmation"
+      "{$request.body#/webhookUrl}":
+        post:
+          summary: "Payment confirmation callback"
+          requestBody:
+            content:
+              application/json:
+                schema:
+                  $ref: "#/components/schemas/PaymentEvent"
+          responses:
+            "200":
+              description: "Acknowledged"
+```
+
+### Example
+
+```yaml
+Example:
+  description: "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (example name)
+    summary: string (optional, short description)
+    description: string (optional, detailed description)
+    value: any (optional, inline example value)
+    externalValue: string (optional, URL to external example)
+
+  # Note: value and externalValue are mutually exclusive
+
+  examples:
+    # Inline example
+    - name: "simpleProduct"
+      summary: "Minimal product example"
+      description: "A product with only required fields"
+      value:
+        name: "Widget"
+        sku: "WG1234"
+        price: 9.99
+        category: "electronics"
+
+    # Detailed example
+    - name: "fullProduct"
+      summary: "Complete product example"
+      description: "A product with all optional fields populated"
+      value:
+        id: "550e8400-e29b-41d4-a716-446655440000"
+        name: "Premium Widget Pro"
+        sku: "WG5678"
+        description: "High-quality widget with advanced features"
+        price: 99.99
+        category: "electronics"
+        stockQuantity: 150
+        reorderPoint: 25
+        createdAt: "2024-01-15T10:30:00Z"
+        updatedAt: "2024-06-20T14:45:00Z"
+
+    # External example
+    - name: "bulkProducts"
+      summary: "Bulk product import example"
+      description: "Example payload for bulk product import"
+      externalValue: "https://examples.example.com/bulk-products.json"
+```
+
+### Encoding
+
+```yaml
+Encoding:
+  description: "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation."
+  attributes:
+    id: string (UUID) [PK]
+    propertyName: string (property this encoding applies to)
+    contentType: string (optional, content type for this property)
+    style: string (optional, serialization style)
+    explode: boolean (optional)
+    allowReserved: boolean (optional) # default: false
+
+  headers:
+    - Header[] (optional, additional headers for this property)
+
+  examples:
+    # File upload encoding
+    - propertyName: "profilePhoto"
+      contentType: "image/png, image/jpeg"
+      headers:
+        X-Custom-Header:
+          description: "Custom header for file metadata"
+          schema:
+            type: string
+
+    # JSON part in multipart
+    - propertyName: "metadata"
+      contentType: "application/json"
+
+    # Array encoding
+    - propertyName: "tags"
+      style: "form"
+      explode: true
+
+    # Binary data encoding
+    - propertyName: "attachment"
+      contentType: "application/octet-stream"
+      headers:
+        Content-Disposition:
+          description: "Attachment filename"
+          schema:
+            type: string
+```
+
+### OAuthFlows
+
+```yaml
+OAuthFlows:
+  description: "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. Defines OAuth security implementation."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
+  flows:
+    implicit: OAuthFlow (optional)
+    password: OAuthFlow (optional)
+    clientCredentials: OAuthFlow (optional)
+    authorizationCode: OAuthFlow (optional)
+
+OAuthFlow:
+  description: "Individual OAuth 2.0 flow configuration"
+  attributes:
+    authorizationUrl: string (required for implicit, authorizationCode)
+    tokenUrl: string (required for password, clientCredentials, authorizationCode)
+    refreshUrl: string (optional)
+    scopes: object [required] (map of scope name to description)
+
+  examples:
+    # Authorization Code flow (recommended for web apps)
+    - authorizationCode:
+        authorizationUrl: "https://auth.example.com/authorize"
+        tokenUrl: "https://auth.example.com/token"
+        refreshUrl: "https://auth.example.com/refresh"
+        scopes:
+          read:products: "Read product information"
+          write:products: "Create and update products"
+          delete:products: "Delete products"
+          admin: "Full administrative access"
+
+    # Client Credentials flow (for service-to-service)
+    - clientCredentials:
+        tokenUrl: "https://auth.example.com/token"
+        scopes:
+          service:read: "Read access for services"
+          service:write: "Write access for services"
+
+    # Implicit flow (legacy, for SPAs)
+    - implicit:
+        authorizationUrl: "https://auth.example.com/authorize"
+        scopes:
+          read:products: "Read product information"
+
+    # Password flow (for trusted first-party clients)
+    - password:
+        tokenUrl: "https://auth.example.com/token"
+        scopes:
+          user: "Basic user access"
+          admin: "Administrative access"
+```
+
 ### SecurityScheme
 
 ```yaml
@@ -541,7 +988,7 @@ SecurityScheme:
 
 ## Complete Example: Product API
 
-```yaml
+```yml
 # File: specs/api/product-api.yaml
 openapi: 3.0.3
 

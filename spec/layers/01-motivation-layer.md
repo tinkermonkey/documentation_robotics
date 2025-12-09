@@ -1,4 +1,6 @@
-# Motivation Layer - ArchiMate Motivation Elements
+# Layer 1: Motivation Layer
+
+Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.
 
 ## Overview
 

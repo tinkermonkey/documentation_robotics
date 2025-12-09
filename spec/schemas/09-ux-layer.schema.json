@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/09-ux-layer.schema.json",
-  "title": "Ux Layer Schema",
-  "description": "Schema for Ux Layer",
+  "title": "UX Layer Schema",
+  "description": "Defines user experience specifications including state management, component composition, and multi-channel interaction patterns for visual, voice, and chat interfaces.",
   "type": "object",
   "properties": {
     "ux-libraries": {
@@ -115,6 +115,76 @@
       "description": "Collection of ValidationRule entities",
       "items": {
         "$ref": "#/definitions/ValidationRule"
+      }
+    },
+    "layout-configs": {
+      "type": "array",
+      "description": "Collection of LayoutConfig entities",
+      "items": {
+        "$ref": "#/definitions/LayoutConfig"
+      }
+    },
+    "error-configs": {
+      "type": "array",
+      "description": "Collection of ErrorConfig entities",
+      "items": {
+        "$ref": "#/definitions/ErrorConfig"
+      }
+    },
+    "api-configs": {
+      "type": "array",
+      "description": "Collection of ApiConfig entities",
+      "items": {
+        "$ref": "#/definitions/ApiConfig"
+      }
+    },
+    "data-configs": {
+      "type": "array",
+      "description": "Collection of DataConfig entities",
+      "items": {
+        "$ref": "#/definitions/DataConfig"
+      }
+    },
+    "performance-targetses": {
+      "type": "array",
+      "description": "Collection of PerformanceTargets entities",
+      "items": {
+        "$ref": "#/definitions/PerformanceTargets"
+      }
+    },
+    "component-references": {
+      "type": "array",
+      "description": "Collection of ComponentReference entities",
+      "items": {
+        "$ref": "#/definitions/ComponentReference"
+      }
+    },
+    "transition-templates": {
+      "type": "array",
+      "description": "Collection of TransitionTemplate entities",
+      "items": {
+        "$ref": "#/definitions/TransitionTemplate"
+      }
+    },
+    "state-action-templates": {
+      "type": "array",
+      "description": "Collection of StateActionTemplate entities",
+      "items": {
+        "$ref": "#/definitions/StateActionTemplate"
+      }
+    },
+    "table-columns": {
+      "type": "array",
+      "description": "Collection of TableColumn entities",
+      "items": {
+        "$ref": "#/definitions/TableColumn"
+      }
+    },
+    "chart-serieses": {
+      "type": "array",
+      "description": "Collection of ChartSeries entities",
+      "items": {
+        "$ref": "#/definitions/ChartSeries"
       }
     }
   },
@@ -589,7 +659,7 @@
           "minLength": 1
         },
         "trigger": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/StateTransition/definitions/TriggerType"
         },
         "description": {
           "type": "string",
@@ -886,6 +956,598 @@
             "min",
             "max",
             "custom"
+          ]
+        }
+      }
+    },
+    "LayoutConfig": {
+      "type": "object",
+      "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "columns": {
+          "type": "integer"
+        },
+        "rows": {
+          "type": "integer"
+        },
+        "gap": {
+          "type": "string",
+          "minLength": 1
+        },
+        "rowGap": {
+          "type": "string",
+          "minLength": 1
+        },
+        "columnGap": {
+          "type": "string",
+          "minLength": 1
+        },
+        "padding": {
+          "type": "string",
+          "minLength": 1
+        },
+        "margin": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxWidth": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "LayoutType": {
+          "type": "string",
+          "enum": [
+            "grid",
+            "flex",
+            "stack",
+            "flow",
+            "fixed",
+            "absolute",
+            "custom"
+          ]
+        },
+        "JustifyContent": {
+          "type": "string",
+          "enum": [
+            "start",
+            "end",
+            "center",
+            "space-between",
+            "space-around",
+            "space-evenly"
+          ]
+        },
+        "AlignItems": {
+          "type": "string",
+          "enum": [
+            "start",
+            "end",
+            "center",
+            "stretch",
+            "baseline"
+          ]
+        },
+        "JustifyItems": {
+          "type": "string",
+          "enum": [
+            "start",
+            "end",
+            "center",
+            "stretch"
+          ]
+        },
+        "AlignContent": {
+          "type": "string",
+          "enum": [
+            "start",
+            "end",
+            "center",
+            "stretch",
+            "space-between",
+            "space-around"
+          ]
+        }
+      }
+    },
+    "ErrorConfig": {
+      "type": "object",
+      "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "showNotification": {
+          "type": "boolean"
+        },
+        "notificationType": {
+          "$ref": "#/definitions/enum"
+        },
+        "errorMessage": {
+          "type": "string",
+          "minLength": 1
+        },
+        "defaultErrorMessage": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "NotificationType": {
+          "type": "string",
+          "enum": [
+            "toast",
+            "alert",
+            "inline",
+            "banner",
+            "none"
+          ]
+        }
+      }
+    },
+    "ApiConfig": {
+      "type": "object",
+      "description": "Configuration for API integration within UI components, specifying endpoints, request/response mapping, authentication, and caching strategies. Connects UI to backend services.",
+      "required": [
+        "id",
+        "name",
+        "operationId",
+        "method",
+        "endpoint",
+        "baseUrl"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "method": {
+          "$ref": "#/definitions/enum"
+        },
+        "endpoint": {
+          "type": "string",
+          "minLength": 1
+        },
+        "baseUrl": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "HttpMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "PATCH",
+            "DELETE",
+            "HEAD",
+            "OPTIONS"
+          ]
+        },
+        "CacheStrategy": {
+          "type": "string",
+          "enum": [
+            "no-cache",
+            "cache-first",
+            "network-first",
+            "stale-while-revalidate"
+          ]
+        }
+      }
+    },
+    "DataConfig": {
+      "type": "object",
+      "description": "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.",
+      "required": [
+        "id",
+        "name",
+        "source",
+        "target"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/definitions/enum"
+        },
+        "target": {
+          "type": "string",
+          "minLength": 1
+        },
+        "path": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "DataSource": {
+          "type": "string",
+          "enum": [
+            "api-response",
+            "form-data",
+            "route-params",
+            "query-params",
+            "local-storage",
+            "session-storage",
+            "constant",
+            "computed",
+            "context",
+            "flow-context"
+          ]
+        }
+      }
+    },
+    "PerformanceTargets": {
+      "type": "object",
+      "description": "Defines performance SLAs for UI components including load time, interaction responsiveness, and rendering thresholds. Enables performance monitoring and optimization.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ComponentReference": {
+      "type": "object",
+      "description": "A reference to another UI component that can be embedded or composed within a parent component. Enables component reuse and modular UI architecture.",
+      "required": [
+        "id",
+        "name",
+        "ref"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ref": {
+          "type": "string",
+          "minLength": 1
+        },
+        "variant": {
+          "type": "string",
+          "minLength": 1
+        },
+        "slot": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "TransitionTemplate": {
+      "type": "object",
+      "description": "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.",
+      "required": [
+        "id",
+        "name",
+        "to",
+        "trigger"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "to": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trigger": {
+          "$ref": "#/definitions/TransitionTemplate/definitions/TriggerType"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "TriggerType": {
+          "type": "string",
+          "enum": [
+            "success",
+            "failure",
+            "submit",
+            "cancel",
+            "click",
+            "timeout",
+            "dataReady",
+            "custom"
+          ]
+        },
+        "AnimationType": {
+          "type": "string",
+          "enum": [
+            "fade",
+            "slide",
+            "scale",
+            "none"
+          ]
+        }
+      }
+    },
+    "StateActionTemplate": {
+      "type": "object",
+      "description": "A reusable template defining actions to execute during component state transitions. Enables standardized behavior patterns for common state changes.",
+      "required": [
+        "id",
+        "name",
+        "action"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/definitions/enum"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ActionType": {
+          "type": "string",
+          "enum": [
+            "fetchData",
+            "saveData",
+            "deleteData",
+            "validateForm",
+            "clearForm",
+            "showNotification",
+            "navigateTo",
+            "callAPI",
+            "updateState",
+            "computeValue"
+          ]
+        },
+        "DataSource": {
+          "type": "string",
+          "enum": [
+            "api-response",
+            "form-data",
+            "route-params",
+            "query-params",
+            "local-storage",
+            "constant",
+            "computed"
+          ]
+        }
+      }
+    },
+    "TableColumn": {
+      "type": "object",
+      "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+      "required": [
+        "id",
+        "name",
+        "header",
+        "field"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "header": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "width": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minWidth": {
+          "type": "string",
+          "minLength": 1
+        },
+        "maxWidth": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ColumnDisplayType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "number",
+            "currency",
+            "date",
+            "datetime",
+            "boolean",
+            "badge",
+            "link",
+            "image",
+            "avatar",
+            "actions",
+            "custom"
+          ]
+        },
+        "TextAlign": {
+          "type": "string",
+          "enum": [
+            "left",
+            "center",
+            "right"
+          ]
+        },
+        "SortDirection": {
+          "type": "string",
+          "enum": [
+            "asc",
+            "desc"
+          ]
+        },
+        "FilterType": {
+          "type": "string",
+          "enum": [
+            "text",
+            "select",
+            "multiselect",
+            "date",
+            "daterange",
+            "number",
+            "boolean"
+          ]
+        },
+        "StickyPosition": {
+          "type": "string",
+          "enum": [
+            "left",
+            "right",
+            "none"
+          ]
+        }
+      }
+    },
+    "ChartSeries": {
+      "type": "object",
+      "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+      "required": [
+        "id",
+        "name",
+        "label",
+        "dataField"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "dataField": {
+          "type": "string",
+          "minLength": 1
+        },
+        "categoryField": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "SeriesType": {
+          "type": "string",
+          "enum": [
+            "line",
+            "area",
+            "bar",
+            "column",
+            "pie",
+            "donut",
+            "scatter",
+            "bubble",
+            "radar",
+            "heatmap"
+          ]
+        },
+        "LineStyle": {
+          "type": "string",
+          "enum": [
+            "solid",
+            "dashed",
+            "dotted"
+          ]
+        },
+        "LabelPosition": {
+          "type": "string",
+          "enum": [
+            "inside",
+            "outside",
+            "center",
+            "top",
+            "bottom"
           ]
         }
       }

@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/10-navigation-layer.schema.json",
   "title": "Navigation Layer Schema",
-  "description": "Schema for Navigation Layer",
+  "description": "Defines application routing, navigation flows, transitions, and guards for channel-agnostic navigation across web, mobile, voice, and chat interfaces.",
   "type": "object",
   "properties": {
     "navigation-graphs": {
@@ -24,6 +24,13 @@
       "description": "Collection of RouteMeta entities",
       "items": {
         "$ref": "#/definitions/RouteMeta"
+      }
+    },
+    "breadcrumb-configs": {
+      "type": "array",
+      "description": "Collection of BreadcrumbConfig entities",
+      "items": {
+        "$ref": "#/definitions/BreadcrumbConfig"
       }
     },
     "navigation-transitions": {
@@ -247,6 +254,64 @@
         "transition": {
           "type": "string",
           "minLength": 1
+        }
+      }
+    },
+    "BreadcrumbConfig": {
+      "type": "object",
+      "description": "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation history.",
+      "required": [
+        "id",
+        "name",
+        "label"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "labelTemplate": {
+          "type": "string",
+          "minLength": 1
+        },
+        "showHome": {
+          "type": "boolean"
+        },
+        "homeLabel": {
+          "type": "string",
+          "minLength": 1
+        },
+        "homeRoute": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "TruncationType": {
+          "type": "string",
+          "enum": [
+            "none",
+            "middle",
+            "start",
+            "end"
+          ]
+        },
+        "BreadcrumbMode": {
+          "type": "string",
+          "enum": [
+            "static",
+            "dynamic",
+            "hybrid"
+          ]
         }
       }
     },

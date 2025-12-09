@@ -1,4 +1,6 @@
-# APM/Observability Layer - OpenTelemetry Standard
+# Layer 11: APM/Observability Layer
+
+Defines distributed tracing, logging, and metrics instrumentation using OpenTelemetry standards for application performance monitoring and observability.
 
 ## Overview
 
@@ -377,6 +379,583 @@ InstrumentationScope:
 
     - name: "product-service.custom"
       version: "0.1.1"
+```
+
+### ExporterConfig
+
+```yaml
+ExporterConfig:
+  description: "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: ExporterType [enum]
+    enabled: boolean (optional) # default: true
+    endpoint: string (required for network exporters)
+    protocol: ExporterProtocol [enum] (optional)
+
+  authentication:
+    type: AuthType [enum] (optional)
+    headers: object (optional) # key-value headers
+    credentials: string (optional) # credential reference
+
+  transport:
+    timeout: integer (optional) # timeout in milliseconds
+    compression: CompressionType [enum] (optional)
+    insecure: boolean (optional) # allow insecure connections, default: false
+    certificatePath: string (optional) # path to TLS certificate
+
+  batching:
+    enabled: boolean (optional) # default: true
+    maxQueueSize: integer (optional)
+    maxExportBatchSize: integer (optional)
+    scheduledDelayMillis: integer (optional)
+    exportTimeoutMillis: integer (optional)
+
+  retry:
+    enabled: boolean (optional)
+    maxAttempts: integer (optional)
+    initialIntervalMillis: integer (optional)
+    maxIntervalMillis: integer (optional)
+    multiplier: number (optional)
+
+  enums:
+    ExporterType:
+      - otlp # OpenTelemetry Protocol
+      - jaeger # Jaeger native
+      - zipkin # Zipkin native
+      - prometheus # Prometheus scrape endpoint
+      - console # Console/stdout output
+      - file # File-based output
+      - logging # Logging framework
+      - noop # No-op (disabled)
+
+    ExporterProtocol:
+      - grpc # gRPC protocol (default for OTLP)
+      - http # HTTP/protobuf
+      - http/json # HTTP/JSON
+
+    CompressionType:
+      - none
+      - gzip
+      - zstd
+
+    AuthType:
+      - none
+      - api-key
+      - bearer
+      - basic
+      - oauth2
+      - mTLS
+
+  examples:
+    # OTLP gRPC exporter
+    - name: "otlp-traces"
+      type: otlp
+      endpoint: "http://otel-collector:4317"
+      protocol: grpc
+      authentication:
+        type: api-key
+        headers:
+          api-key: "${OTEL_API_KEY}"
+      transport:
+        timeout: 10000
+        compression: gzip
+      batching:
+        maxQueueSize: 2048
+        scheduledDelayMillis: 5000
+
+    # Prometheus metrics exporter
+    - name: "prometheus-metrics"
+      type: prometheus
+      endpoint: "0.0.0.0:9090"
+      enabled: true
+
+    # Jaeger exporter
+    - name: "jaeger-traces"
+      type: jaeger
+      endpoint: "http://jaeger:14268/api/traces"
+      protocol: http
+      transport:
+        timeout: 5000
+
+    # Console exporter (development)
+    - name: "console-debug"
+      type: console
+      enabled: "${DEBUG_TRACES:false}"
+```
+
+### InstrumentationConfig
+
+```yaml
+InstrumentationConfig:
+  description: "Configuration for automatic or manual instrumentation of application code, specifying which libraries, frameworks, or code paths to instrument and capture telemetry from."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: InstrumentationType [enum]
+    enabled: boolean (optional) # default: true
+    description: string (optional)
+
+  config: object (optional) # type-specific configuration
+
+  # Specific configurations by type
+  httpConfig:
+    captureHeaders: boolean (optional)
+    recordRequestHeaders: string[] (optional)
+    recordResponseHeaders: string[] (optional)
+    ignoreRoutes: string[] (optional) # routes to skip
+    propagateContext: boolean (optional) # default: true
+
+  databaseConfig:
+    recordQueries: boolean (optional)
+    sanitizeStatements: boolean (optional)
+    maxStatementLength: integer (optional)
+    captureParameters: boolean (optional)
+
+  messagingConfig:
+    capturePayload: boolean (optional)
+    maxPayloadSize: integer (optional)
+    propagateContext: boolean (optional)
+
+  grpcConfig:
+    recordMetadata: boolean (optional)
+    captureMessages: boolean (optional)
+
+  redisConfig:
+    recordCommands: boolean (optional)
+    recordArguments: boolean (optional)
+    maxArgumentLength: integer (optional)
+
+  enums:
+    InstrumentationType:
+      - http # HTTP client/server
+      - database # Database queries (SQL, NoSQL)
+      - redis # Redis operations
+      - grpc # gRPC calls
+      - messaging # Message queues (Kafka, RabbitMQ)
+      - graphql # GraphQL operations
+      - aws-sdk # AWS SDK calls
+      - mongodb # MongoDB operations
+      - elasticsearch # Elasticsearch operations
+      - fs # File system operations
+      - dns # DNS lookups
+      - net # Network operations
+      - custom # Custom instrumentation
+
+  examples:
+    # HTTP instrumentation
+    - name: "http-instrumentation"
+      type: http
+      enabled: true
+      httpConfig:
+        captureHeaders: true
+        recordRequestHeaders:
+          - x-request-id
+          - x-tenant-id
+          - x-user-id
+        recordResponseHeaders:
+          - x-response-time
+          - x-ratelimit-remaining
+        ignoreRoutes:
+          - "/health"
+          - "/metrics"
+        propagateContext: true
+
+    # Database instrumentation
+    - name: "database-instrumentation"
+      type: database
+      enabled: true
+      databaseConfig:
+        recordQueries: true
+        sanitizeStatements: true
+        maxStatementLength: 500
+        captureParameters: false
+
+    # Redis instrumentation
+    - name: "redis-instrumentation"
+      type: redis
+      enabled: true
+      redisConfig:
+        recordCommands: true
+        recordArguments: false
+
+    # Kafka instrumentation
+    - name: "kafka-instrumentation"
+      type: messaging
+      enabled: true
+      messagingConfig:
+        capturePayload: false
+        propagateContext: true
+```
+
+### LogProcessor
+
+```yaml
+LogProcessor:
+  description: "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: LogProcessorType [enum]
+    order: integer (optional) # processing order
+    enabled: boolean (optional) # default: true
+
+  config: object (optional) # processor-specific configuration
+
+  # Batch processor config
+  batchConfig:
+    maxQueueSize: integer (optional)
+    scheduledDelayMillis: integer (optional)
+    exportTimeoutMillis: integer (optional)
+    maxExportBatchSize: integer (optional)
+
+  # Resource processor config
+  resourceConfig:
+    attributes: object (optional) # key-value attributes to add
+
+  # Filter processor config
+  filterConfig:
+    include:
+      severityMin: SeverityNumber (optional)
+      severityMax: SeverityNumber (optional)
+      bodyRegex: string (optional)
+      attributeMatch: object (optional)
+    exclude:
+      severityMin: SeverityNumber (optional)
+      severityMax: SeverityNumber (optional)
+      bodyRegex: string (optional)
+      attributeMatch: object (optional)
+
+  # Transform processor config
+  transformConfig:
+    operations:
+      - type: TransformOperation [enum]
+        config: object
+
+  # Sampling processor config
+  samplingConfig:
+    ratio: number (optional) # 0.0 to 1.0
+    seed: integer (optional) # for deterministic sampling
+
+  enums:
+    LogProcessorType:
+      - batch # Batch logs before export
+      - resource # Add resource attributes
+      - filter # Filter logs by criteria
+      - transform # Transform log content
+      - sampling # Sample logs
+      - redact # Redact sensitive data
+      - routing # Route to different exporters
+      - memory-limiter # Limit memory usage
+      - custom # Custom processor
+
+    TransformOperation:
+      - set-attribute # Set/add attribute
+      - delete-attribute # Remove attribute
+      - rename-attribute # Rename attribute
+      - hash-attribute # Hash attribute value
+      - truncate-body # Truncate log body
+      - extract-attribute # Extract from body to attribute
+      - convert-severity # Convert severity format
+
+  examples:
+    # Batch processor
+    - name: "batch-processor"
+      type: batch
+      order: 1
+      batchConfig:
+        maxQueueSize: 2048
+        scheduledDelayMillis: 5000
+        exportTimeoutMillis: 30000
+        maxExportBatchSize: 512
+
+    # Resource enrichment processor
+    - name: "resource-processor"
+      type: resource
+      order: 2
+      resourceConfig:
+        attributes:
+          environment: "${ENVIRONMENT}"
+          version: "${SERVICE_VERSION}"
+          deployment.name: "${DEPLOYMENT_NAME}"
+
+    # Filter processor (exclude debug logs in production)
+    - name: "production-filter"
+      type: filter
+      order: 3
+      filterConfig:
+        exclude:
+          severityMax: DEBUG4
+
+    # Redaction processor
+    - name: "pii-redactor"
+      type: redact
+      order: 4
+      transformConfig:
+        operations:
+          - type: hash-attribute
+            config:
+              attributes: ["user.email", "user.phone"]
+              algorithm: "sha256"
+          - type: delete-attribute
+            config:
+              attributes: ["password", "credit_card"]
+
+    # Sampling processor
+    - name: "debug-sampler"
+      type: sampling
+      order: 5
+      samplingConfig:
+        ratio: 0.1 # Sample 10% of debug logs
+```
+
+### MeterConfig
+
+```yaml
+MeterConfig:
+  description: "Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (meter name, e.g., "http.server", "database", "business")
+    description: string (optional)
+    version: string (optional)
+    schemaUrl: string (optional)
+
+  aggregation:
+    temporality: AggregationTemporality [enum] (optional)
+    histogramBoundaries: number[] (optional) # default bucket boundaries
+
+  cardinality:
+    maxAttributes: integer (optional) # max attributes per metric
+    maxCardinality: integer (optional) # max unique label combinations
+    overflowAttribute: string (optional) # attribute to use when cardinality exceeded
+
+  collection:
+    intervalMillis: integer (optional)
+    timeoutMillis: integer (optional)
+
+  contains:
+    - instruments: MetricInstrument[] (1..*)
+
+  enums:
+    AggregationTemporality:
+      - delta # Changes since last report
+      - cumulative # Total since start
+
+  examples:
+    # HTTP server meter
+    - name: "http.server"
+      description: "HTTP server metrics"
+      aggregation:
+        temporality: cumulative
+        histogramBoundaries: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+      cardinality:
+        maxAttributes: 10
+        maxCardinality: 1000
+        overflowAttribute: "overflow"
+      collection:
+        intervalMillis: 60000
+      instruments:
+        - type: histogram
+          name: "request.duration"
+          unit: "ms"
+          description: "HTTP request duration"
+        - type: counter
+          name: "requests.total"
+          unit: "1"
+          description: "Total HTTP requests"
+
+    # Database meter
+    - name: "database"
+      description: "Database metrics"
+      aggregation:
+        temporality: cumulative
+        histogramBoundaries: [1, 5, 10, 25, 50, 100, 250, 500, 1000]
+      instruments:
+        - type: histogram
+          name: "query.duration"
+          unit: "ms"
+          description: "Database query duration"
+        - type: gauge
+          name: "connections.active"
+          unit: "1"
+          description: "Active database connections"
+
+    # Business metrics meter
+    - name: "business"
+      description: "Business domain metrics"
+      aggregation:
+        temporality: cumulative
+      cardinality:
+        maxCardinality: 10000
+      instruments:
+        - type: counter
+          name: "product.views"
+          unit: "1"
+          description: "Product view count"
+        - type: gauge
+          name: "inventory.level"
+          unit: "1"
+          description: "Current inventory level"
+```
+
+### MetricInstrument
+
+```yaml
+MetricInstrument:
+  description: "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (metric name, e.g., "request.duration")
+    type: InstrumentType [enum]
+    unit: string (e.g., "ms", "bytes", "1")
+    description: string (optional)
+    enabled: boolean (optional) # default: true
+
+  configuration:
+    attributes: string[] (optional) # attribute keys to record
+    buckets: number[] (optional) # histogram bucket boundaries
+    valueRecorder: string (optional) # for value observations
+
+  # Cross-layer integration
+  references:
+    operationId: string (OpenAPI operationId, optional)
+    uxComponentRef: string (UX Layer component reference, optional)
+    navigationRouteRef: string (Navigation Layer route reference, optional)
+    businessProcessRef: string (Business Layer process reference, optional)
+    processStepName: string (specific process step, optional)
+    securityThreatRef: string (Security Layer threat reference, optional)
+    securityControlRef: string (Security Layer control reference, optional)
+    securityAccountabilityRef: string (Security Layer accountability reference, optional)
+
+  # Motivation Layer Integration
+  motivationMapping:
+    contributesToGoal: string (Goal ID, optional)
+    measuresOutcome: string (Outcome ID, optional)
+    fulfillsRequirements: string[] (Requirement IDs, optional)
+    kpiFormula: string (KPI calculation formula, optional)
+
+  validationCriteria:
+    requirementId: string (Requirement ID being validated, optional)
+    threshold: string (SLA/NFR threshold expression, optional)
+    alertOnViolation: boolean (optional)
+
+  # UX-specific configuration
+  webVitals:
+    - metric: string (e.g., "LCP", "FID", "CLS")
+      threshold: string (target threshold)
+
+  enums:
+    InstrumentType:
+      - counter # Monotonically increasing value
+      - up_down_counter # Value that can increase or decrease
+      - gauge # Current value at a point in time
+      - histogram # Statistical distribution of values
+      - observable_counter # Async counter (callback-based)
+      - observable_up_down_counter # Async up/down counter
+      - observable_gauge # Async gauge
+
+  examples:
+    # HTTP request duration histogram
+    - name: "request.duration"
+      type: histogram
+      unit: "ms"
+      description: "HTTP request duration"
+      configuration:
+        attributes: ["http.method", "http.route", "http.status_code"]
+        buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+      motivationMapping:
+        fulfillsRequirements: ["req-api-latency-under-200ms"]
+      validationCriteria:
+        requirementId: "req-api-latency-under-200ms"
+        threshold: "p95 < 200ms"
+        alertOnViolation: true
+
+    # Request counter
+    - name: "requests.total"
+      type: counter
+      unit: "1"
+      description: "Total HTTP requests"
+      configuration:
+        attributes: ["http.method", "http.route", "http.status_code"]
+
+    # Business metric - product views
+    - name: "product.views"
+      type: counter
+      unit: "1"
+      description: "Product view count"
+      configuration:
+        attributes: ["product.id", "product.category", "user.authenticated"]
+      motivationMapping:
+        contributesToGoal: "goal-customer-engagement"
+        measuresOutcome: "outcome-increased-product-discovery"
+        kpiFormula: "COUNT(product.views) WHERE time > goal.target-date"
+
+    # Inventory gauge
+    - name: "inventory.level"
+      type: gauge
+      unit: "1"
+      description: "Current inventory level"
+      configuration:
+        attributes: ["product.id"]
+      motivationMapping:
+        contributesToGoal: "goal-inventory-accuracy"
+        measuresOutcome: "outcome-reduced-stockouts"
+
+    # Page load time with Web Vitals
+    - name: "page.load-time"
+      type: histogram
+      unit: "ms"
+      description: "Page load time"
+      configuration:
+        attributes: ["page.route", "device.type"]
+        buckets: [100, 500, 1000, 2000, 2500, 3000, 5000]
+      references:
+        uxComponentRef: "product-list-screen"
+      webVitals:
+        - metric: "LCP"
+          threshold: "< 2.5s"
+        - metric: "FID"
+          threshold: "< 100ms"
+        - metric: "CLS"
+          threshold: "< 0.1"
+      motivationMapping:
+        contributesToGoal: "goal-user-experience"
+        fulfillsRequirements: ["req-fast-page-loads"]
+
+    # Security metric - failed auth attempts
+    - name: "failed-auth-attempts"
+      type: counter
+      unit: "1"
+      description: "Failed authentication attempts"
+      configuration:
+        attributes: ["source.ip", "user.id"]
+      references:
+        securityThreatRef: "threat-brute-force-attack"
+        securityControlRef: "control-rate-limiting"
+      validationCriteria:
+        threshold: "> 10 per minute"
+        alertOnViolation: true
+
+    # Process duration histogram
+    - name: "order-fulfillment.duration"
+      type: histogram
+      unit: "ms"
+      description: "Order fulfillment process duration"
+      configuration:
+        buckets: [60000, 300000, 600000, 1800000, 3600000, 7200000]
+      references:
+        businessProcessRef: "order-fulfillment-process"
+        processStepName: "complete-fulfillment"
+      motivationMapping:
+        contributesToGoal: "goal-operational-efficiency"
+        measuresOutcome: "outcome-faster-fulfillment"
+        fulfillsRequirements: ["req-order-fulfillment-2hours"]
+      validationCriteria:
+        requirementId: "req-order-fulfillment-2hours"
+        threshold: "p95 < 2 hours"
+        alertOnViolation: true
 ```
 
 ### Attribute

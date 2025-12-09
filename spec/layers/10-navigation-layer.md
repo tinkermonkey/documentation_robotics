@@ -1,4 +1,6 @@
-# Navigation Layer - Custom Navigation Specification
+# Layer 10: Navigation Layer
+
+Defines application routing, navigation flows, transitions, and guards for channel-agnostic navigation across web, mobile, voice, and chat interfaces.
 
 ## Overview
 
@@ -179,6 +181,128 @@ RouteMeta:
     trackPageView: boolean (optional)
     eventCategory: string (optional)
     customDimensions: object (optional)
+```
+
+### BreadcrumbConfig
+
+```yaml
+BreadcrumbConfig:
+  description: "Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation history."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    label: string (breadcrumb display label)
+    labelTemplate: string (optional) # template with dynamic values, e.g., "{{product.name}}"
+    showHome: boolean (optional) # include home link at start, default: true
+    homeLabel: string (optional) # label for home link, default: "Home"
+    homeRoute: string (optional) # route identifier for home, default: "home"
+
+  display:
+    separator: string (optional) # separator character, default: "/"
+    separatorIcon: string (optional) # icon name for separator
+    maxItems: integer (optional) # max breadcrumb items to display
+    truncation: TruncationType [enum] (optional)
+    truncateAt: integer (optional) # character limit for truncation
+    ellipsis: string (optional) # ellipsis string, default: "..."
+
+  generation:
+    mode: BreadcrumbMode [enum]
+    staticPath: BreadcrumbItem[] (optional) # for static mode
+    dynamicResolver: string (optional) # function name for dynamic resolution
+    includeCurrentPage: boolean (optional) # include current page in trail, default: true
+
+  styling:
+    activeClass: string (optional) # CSS class for active/current item
+    linkClass: string (optional) # CSS class for clickable items
+    containerClass: string (optional) # CSS class for breadcrumb container
+    hideOnMobile: boolean (optional) # hide on mobile devices
+
+  accessibility:
+    ariaLabel: string (optional) # ARIA label for navigation, default: "Breadcrumb"
+    ariaCurrent: string (optional) # ARIA current attribute, default: "page"
+
+  enums:
+    TruncationType:
+      - none # No truncation
+      - middle # Truncate middle items
+      - start # Truncate from start
+      - end # Truncate from end
+
+    BreadcrumbMode:
+      - static # Predefined path
+      - dynamic # Generated from route hierarchy
+      - hybrid # Base static path with dynamic additions
+
+  BreadcrumbItem:
+    label: string
+    route: string (optional) # route identifier
+    url: string (optional) # direct URL if not using route
+    icon: string (optional)
+    active: boolean (optional)
+
+  examples:
+    # Dynamic breadcrumb following route hierarchy
+    - label: "{{pageTitle}}"
+      generation:
+        mode: dynamic
+        includeCurrentPage: true
+      display:
+        separator: ">"
+        maxItems: 5
+        truncation: middle
+      styling:
+        hideOnMobile: true
+
+    # Static breadcrumb for product detail
+    - label: "{{product.name}}"
+      labelTemplate: "{{product.name}}"
+      showHome: true
+      generation:
+        mode: static
+        staticPath:
+          - label: "Home"
+            route: "home"
+            icon: "home"
+          - label: "Products"
+            route: "product-list"
+          - label: "{{product.category}}"
+            route: "product-category"
+          - label: "{{product.name}}"
+            active: true
+      display:
+        separator: "/"
+        truncateAt: 30
+        ellipsis: "..."
+
+    # Hybrid breadcrumb with dynamic product name
+    - label: "Product Details"
+      generation:
+        mode: hybrid
+        staticPath:
+          - label: "Home"
+            route: "home"
+          - label: "Products"
+            route: "product-list"
+        dynamicResolver: "resolveProductBreadcrumb"
+        includeCurrentPage: true
+      accessibility:
+        ariaLabel: "Product navigation"
+
+    # E-commerce category breadcrumb
+    - label: "{{category.name}}"
+      showHome: true
+      homeLabel: "Shop"
+      homeRoute: "shop-home"
+      generation:
+        mode: dynamic
+      display:
+        separatorIcon: "chevron-right"
+        maxItems: 4
+        truncation: start
+      styling:
+        containerClass: "breadcrumb-modern"
+        linkClass: "breadcrumb-link"
+        activeClass: "breadcrumb-current"
 ```
 
 ### NavigationTransition

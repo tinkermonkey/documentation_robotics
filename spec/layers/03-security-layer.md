@@ -1,4 +1,6 @@
-# Security Layer - Custom Security Model Specification
+# Layer 3: Security Layer
+
+Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.
 
 ## Overview
 
@@ -702,10 +704,16 @@ PolicyAction:
 ```yaml
 DataClassification:
   description: "Data classification and protection policies"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    version: string (optional)
+
   contains:
     - classifications: Classification[] (1..*)
 
 Classification:
+  description: "A single classification level defining data sensitivity and protection requirements"
   attributes:
     level: ClassificationLevel [enum]
     label: string
@@ -1035,6 +1043,11 @@ Delegation:
 ```yaml
 SecurityConstraints:
   description: "Security patterns and constraints"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    version: string (optional)
+
   contains:
     - separationOfDuty: SeparationOfDuty[] (0..*)
     - bindingOfDuty: BindingOfDuty[] (0..*)
@@ -1374,6 +1387,302 @@ Countermeasure:
       description: "End-to-end encryption of sensitive data"
       effectiveness: very-high
       implemented: true
+```
+
+### RateLimit
+
+```yaml
+RateLimit:
+  description: "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    requests: integer (maximum number of requests allowed)
+    window: string (time window, e.g., "1m", "1h", "1d")
+    scope: RateLimitScope [enum] (optional)
+    keyBy: string (attribute to use for rate limiting, e.g., "user.id", "ip", optional)
+
+  actions:
+    onExceed: RateLimitAction [enum]
+    retryAfter: integer (seconds until retry allowed, optional)
+    message: string (error message to return, optional)
+
+  enums:
+    RateLimitScope:
+      - global # Applies to all requests
+      - user # Per authenticated user
+      - ip # Per IP address
+      - api-key # Per API key
+      - tenant # Per tenant/organization
+
+    RateLimitAction:
+      - reject # Return 429 Too Many Requests
+      - queue # Queue request for later processing
+      - throttle # Slow down response
+      - degrade # Return degraded response
+
+  examples:
+    # Standard API rate limit
+    - name: "api-standard-limit"
+      requests: 1000
+      window: "1h"
+      scope: user
+      onExceed: reject
+      retryAfter: 60
+      message: "Rate limit exceeded. Please try again later."
+
+    # Strict limit for sensitive operations
+    - name: "password-reset-limit"
+      requests: 3
+      window: "15m"
+      scope: ip
+      onExceed: reject
+      retryAfter: 900
+      message: "Too many password reset attempts."
+```
+
+### AuditConfig
+
+```yaml
+AuditConfig:
+  description: "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    enabled: boolean (optional) # default: true
+    level: AuditLevel [enum]
+    includePayload: boolean (optional) # include request/response body
+    includeHeaders: boolean (optional) # include HTTP headers
+    sanitizeFields: string[] (fields to redact, optional)
+
+  retention:
+    period: string (e.g., "90days", "7years")
+    storageClass: StorageClass [enum] (optional)
+    archiveAfter: string (move to archive storage after, optional)
+
+  destinations:
+    - type: DestinationType [enum]
+      config: object (destination-specific configuration)
+
+  enums:
+    AuditLevel:
+      - none # No auditing
+      - minimal # Access events only
+      - standard # Access and modifications
+      - detailed # All operations with context
+      - comprehensive # Full audit trail with payloads
+
+    StorageClass:
+      - hot # Frequently accessed
+      - warm # Occasionally accessed
+      - cold # Rarely accessed
+      - archive # Long-term archive
+
+    DestinationType:
+      - database # Audit database
+      - log-service # Centralized logging
+      - siem # Security information and event management
+      - file # File-based storage
+
+  examples:
+    # Standard audit configuration
+    - name: "product-audit"
+      enabled: true
+      level: standard
+      includePayload: false
+      sanitizeFields: ["password", "creditCard", "ssn"]
+      retention:
+        period: "7years"
+        storageClass: warm
+        archiveAfter: "90days"
+      destinations:
+        - type: database
+          config:
+            table: "audit_log"
+        - type: siem
+          config:
+            endpoint: "https://siem.example.com/ingest"
+```
+
+### Condition
+
+```yaml
+Condition:
+  description: "A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource state."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    expression: string (boolean expression to evaluate)
+    description: string (optional)
+    evaluationType: EvaluationType [enum] (optional)
+
+  context:
+    availableVariables:
+      - user # Authenticated user context
+      - resource # Resource being accessed
+      - request # Request context (IP, time, etc.)
+      - environment # Environment variables
+      - custom # Custom context providers
+
+  enums:
+    EvaluationType:
+      - synchronous # Evaluate immediately
+      - asynchronous # May require external call
+      - cached # Use cached evaluation result
+
+  examples:
+    # Time-based condition
+    - name: "business-hours-only"
+      expression: "request.time.hour >= 9 && request.time.hour < 17 && request.time.dayOfWeek >= 1 && request.time.dayOfWeek <= 5"
+      description: "Only allow access during business hours"
+
+    # Location-based condition
+    - name: "internal-network-only"
+      expression: "request.ipAddress.startsWith('10.') || request.ipAddress.startsWith('192.168.')"
+      description: "Restrict to internal network"
+
+    # Attribute-based condition
+    - name: "owner-or-admin"
+      expression: "user.id === resource.ownerId || user.hasRole('admin')"
+      description: "Allow owner or admin access"
+
+    # Complex condition
+    - name: "high-value-approval"
+      expression: "resource.value > 10000 && user.approvalLimit >= resource.value"
+      description: "Require sufficient approval authority for high-value items"
+```
+
+### RetentionPolicy
+
+```yaml
+RetentionPolicy:
+  description: "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    period: string (retention duration, e.g., "90days", "7years", "indefinite")
+    description: string (optional)
+
+  lifecycle:
+    activeRetention: string (keep in active storage, optional)
+    archiveAfter: string (move to archive after, optional)
+    deleteAfter: string (permanently delete after, optional)
+    reviewRequired: boolean (require review before deletion, optional)
+
+  deletion:
+    method: DeletionMethod [enum]
+    verification: boolean (verify deletion, optional)
+    certificate: boolean (generate deletion certificate, optional)
+
+  compliance:
+    regulationRefs: string[] (applicable regulations, optional)
+    legalHoldOverride: boolean (can be overridden by legal hold, optional)
+
+  enums:
+    DeletionMethod:
+      - soft # Mark as deleted, retain data
+      - hard # Permanently remove
+      - cryptographic # Destroy encryption keys
+      - overwrite # Overwrite with random data
+      - physical # Physical destruction (for hardware)
+
+  examples:
+    # GDPR-compliant retention
+    - name: "gdpr-user-data"
+      period: "as-required"
+      description: "Retain user data only as long as necessary"
+      lifecycle:
+        activeRetention: "duration-of-service"
+        deleteAfter: "30days-after-account-closure"
+        reviewRequired: true
+      deletion:
+        method: hard
+        verification: true
+        certificate: true
+      compliance:
+        regulationRefs: ["GDPR-Article-17"]
+        legalHoldOverride: true
+
+    # Financial audit retention
+    - name: "financial-records"
+      period: "7years"
+      description: "Retain financial records for regulatory compliance"
+      lifecycle:
+        activeRetention: "1year"
+        archiveAfter: "1year"
+        deleteAfter: "7years"
+      deletion:
+        method: cryptographic
+        certificate: true
+      compliance:
+        regulationRefs: ["SOX", "SEC-Rule-17a-4"]
+```
+
+### ValidationRule
+
+```yaml
+ValidationRule:
+  description: "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: ValidationRuleType [enum]
+    value: any (validation parameter, depends on type)
+    message: string (error message on validation failure, optional)
+    severity: ValidationSeverity [enum] (optional)
+
+  transform:
+    onRead: string (transformation when reading, optional)
+    onWrite: string (transformation when writing, optional)
+
+  enums:
+    ValidationRuleType:
+      - required # Field must have a value
+      - pattern # Must match regex pattern
+      - minLength # Minimum string length
+      - maxLength # Maximum string length
+      - min # Minimum numeric value
+      - max # Maximum numeric value
+      - enum # Must be one of allowed values
+      - email # Valid email format
+      - url # Valid URL format
+      - date # Valid date format
+      - custom # Custom validation function
+
+    ValidationSeverity:
+      - error # Block operation
+      - warning # Allow but warn
+      - info # Informational only
+
+  examples:
+    # Email validation
+    - name: "email-format"
+      type: email
+      message: "Invalid email format"
+      severity: error
+
+    # Price range validation
+    - name: "price-range"
+      type: min
+      value: 0
+      message: "Price must be non-negative"
+      severity: error
+
+    # SKU pattern validation
+    - name: "sku-format"
+      type: pattern
+      value: "^[A-Z]{2}\\d{4}$"
+      message: "SKU must match format: AA1234"
+      severity: error
+
+    # With transformation
+    - name: "phone-normalize"
+      type: pattern
+      value: "^\\+?[1-9]\\d{1,14}$"
+      message: "Invalid phone number format"
+      transform:
+        onWrite: "normalizePhoneNumber(value)"
+        onRead: "formatPhoneNumber(value, user.locale)"
 ```
 
 ## Complete Example: Product Security Model

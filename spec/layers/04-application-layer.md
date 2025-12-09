@@ -1,4 +1,6 @@
-# Application Layer - ArchiMate Application Elements
+# Layer 4: Application Layer
+
+Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.
 
 ## Overview
 

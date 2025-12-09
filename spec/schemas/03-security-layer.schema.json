@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/03-security-layer.schema.json",
   "title": "Security Layer Schema",
-  "description": "Schema for Security Layer",
+  "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",
   "type": "object",
   "properties": {
     "security-models": {
@@ -206,6 +206,41 @@
       "description": "Collection of Countermeasure entities",
       "items": {
         "$ref": "#/definitions/Countermeasure"
+      }
+    },
+    "rate-limits": {
+      "type": "array",
+      "description": "Collection of RateLimit entities",
+      "items": {
+        "$ref": "#/definitions/RateLimit"
+      }
+    },
+    "audit-configs": {
+      "type": "array",
+      "description": "Collection of AuditConfig entities",
+      "items": {
+        "$ref": "#/definitions/AuditConfig"
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Collection of Condition entities",
+      "items": {
+        "$ref": "#/definitions/Condition"
+      }
+    },
+    "retention-policies": {
+      "type": "array",
+      "description": "Collection of RetentionPolicy entities",
+      "items": {
+        "$ref": "#/definitions/RetentionPolicy"
+      }
+    },
+    "validation-rules": {
+      "type": "array",
+      "description": "Collection of ValidationRule entities",
+      "items": {
+        "$ref": "#/definitions/ValidationRule"
       }
     }
   },
@@ -892,8 +927,24 @@
     "DataClassification": {
       "type": "object",
       "description": "Data classification and protection policies",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
         "classifications": {
           "type": "array",
           "description": "Contains relationship",
@@ -905,7 +956,7 @@
     },
     "Classification": {
       "type": "object",
-      "description": "",
+      "description": "A single classification level defining data sensitivity and protection requirements",
       "required": [
         "level",
         "label",
@@ -1218,8 +1269,24 @@
     "SecurityConstraints": {
       "type": "object",
       "description": "Security patterns and constraints",
-      "required": [],
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
         "separationOfDuty": {
           "type": "array",
           "description": "Contains relationship",
@@ -1624,6 +1691,273 @@
             "medium",
             "high",
             "very-high"
+          ]
+        }
+      }
+    },
+    "RateLimit": {
+      "type": "object",
+      "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+      "required": [
+        "id",
+        "name",
+        "requests",
+        "window",
+        "keyBy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requests": {
+          "type": "integer"
+        },
+        "window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/enum"
+        },
+        "keyBy": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "RateLimitScope": {
+          "type": "string",
+          "enum": [
+            "global",
+            "user",
+            "ip",
+            "api-key",
+            "tenant"
+          ]
+        },
+        "RateLimitAction": {
+          "type": "string",
+          "enum": [
+            "reject",
+            "queue",
+            "throttle",
+            "degrade"
+          ]
+        }
+      }
+    },
+    "AuditConfig": {
+      "type": "object",
+      "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+      "required": [
+        "id",
+        "name",
+        "level",
+        "sanitizeFields"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "level": {
+          "$ref": "#/definitions/enum"
+        },
+        "includePayload": {
+          "type": "boolean"
+        },
+        "includeHeaders": {
+          "type": "boolean"
+        },
+        "sanitizeFields": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "AuditLevel": {
+          "type": "string",
+          "enum": [
+            "none",
+            "minimal",
+            "standard",
+            "detailed",
+            "comprehensive"
+          ]
+        },
+        "StorageClass": {
+          "type": "string",
+          "enum": [
+            "hot",
+            "warm",
+            "cold",
+            "archive"
+          ]
+        },
+        "DestinationType": {
+          "type": "string",
+          "enum": [
+            "database",
+            "log-service",
+            "siem",
+            "file"
+          ]
+        }
+      }
+    },
+    "Condition": {
+      "type": "object",
+      "description": "A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource state.",
+      "required": [
+        "id",
+        "name",
+        "expression"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluationType": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "EvaluationType": {
+          "type": "string",
+          "enum": [
+            "synchronous",
+            "asynchronous",
+            "cached"
+          ]
+        }
+      }
+    },
+    "RetentionPolicy": {
+      "type": "object",
+      "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+      "required": [
+        "id",
+        "name",
+        "period"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "DeletionMethod": {
+          "type": "string",
+          "enum": [
+            "soft",
+            "hard",
+            "cryptographic",
+            "overwrite",
+            "physical"
+          ]
+        }
+      }
+    },
+    "ValidationRule": {
+      "type": "object",
+      "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "value",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "ValidationRuleType": {
+          "type": "string",
+          "enum": [
+            "required",
+            "pattern",
+            "minLength",
+            "maxLength",
+            "min",
+            "max",
+            "enum",
+            "email",
+            "url",
+            "date",
+            "custom"
+          ]
+        },
+        "ValidationSeverity": {
+          "type": "string",
+          "enum": [
+            "error",
+            "warning",
+            "info"
           ]
         }
       }

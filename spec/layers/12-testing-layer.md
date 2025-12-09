@@ -1,4 +1,6 @@
-# Testing Layer - Test Coverage Modeling Specification
+# Layer 12: Testing Layer
+
+Models test coverage requirements, input space partitioning, and coverage criteria to ensure comprehensive testing with traceability to requirements.
 
 ## Overview
 
@@ -631,6 +633,7 @@ CoverageSummary:
     - gaps: CoverageGap[] (0..*)
 
 TargetCoverageSummary:
+  description: "Coverage metrics summary for a single test coverage target"
   attributes:
     targetRef: string (TestCoverageTarget ID)
     sketchCount: integer
@@ -639,6 +642,7 @@ TargetCoverageSummary:
     coveragePercentage: number (optional)
 
 CoverageGap:
+  description: "Identified gap in test coverage requiring attention"
   attributes:
     description: string
     severity: GapSeverity [enum]

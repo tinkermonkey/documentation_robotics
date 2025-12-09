@@ -50,7 +50,7 @@ class JSONSchemaGenerator:
         schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "$id": f"{base_url}/{layer_spec.layer_id}.schema.json",
-            "title": f"{layer_spec.title} Schema",
+            "title": f"{layer_spec.title} Layer Schema",
             "description": layer_spec.description or f"Schema for {layer_spec.title}",
             "type": "object",
             "properties": {},

@@ -1,4 +1,6 @@
-# Data Store Layer - Database DDL and Extensions
+# Layer 8: Datastore Layer
+
+Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.
 
 ## Overview
 
@@ -369,6 +371,354 @@ View:
       refresh:
         mode: SCHEDULED
         schedule: "0 1 * * *" # Daily at 1 AM
+```
+
+### Trigger
+
+```yaml
+Trigger:
+  description: "A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    table: string (table the trigger is attached to)
+    timing: TriggerTiming [enum]
+    events: TriggerEvent[] (one or more events)
+    forEach: TriggerForEach [enum]
+    functionName: string (function to execute)
+    condition: string (optional, WHEN clause)
+    enabled: boolean (optional) # default: true
+
+  enums:
+    TriggerTiming:
+      - BEFORE # Execute before the operation
+      - AFTER # Execute after the operation
+      - INSTEAD_OF # Replace the operation (views only)
+
+    TriggerEvent:
+      - INSERT
+      - UPDATE
+      - DELETE
+      - TRUNCATE # PostgreSQL-specific
+
+    TriggerForEach:
+      - ROW # Execute once per affected row
+      - STATEMENT # Execute once per statement
+
+  metadata:
+    description: string (purpose of the trigger)
+    x-business-rule: string (business rule being enforced, optional)
+    x-governed-by-requirements: string[] (Requirement IDs, optional)
+
+  examples:
+    # Timestamp update trigger
+    - name: "products_updated_at"
+      table: "products"
+      timing: BEFORE
+      events: [UPDATE]
+      forEach: ROW
+      functionName: "update_updated_at_column"
+      description: "Automatically update the updated_at timestamp on row modification"
+
+    # Audit log trigger
+    - name: "orders_audit_trigger"
+      table: "orders"
+      timing: AFTER
+      events: [INSERT, UPDATE, DELETE]
+      forEach: ROW
+      functionName: "log_order_changes"
+      description: "Log all changes to orders for audit compliance"
+      x-governed-by-requirements: ["req-audit-trail", "req-sox-compliance"]
+
+    # Validation trigger
+    - name: "products_validation_trigger"
+      table: "products"
+      timing: BEFORE
+      events: [INSERT, UPDATE]
+      forEach: ROW
+      functionName: "validate_product_data"
+      condition: "NEW.price > 0"
+      description: "Validate product data before insert or update"
+      x-business-rule: "Products must have positive price and valid category"
+
+    # Cascade update trigger
+    - name: "customers_cascade_update"
+      table: "customers"
+      timing: AFTER
+      events: [UPDATE]
+      forEach: ROW
+      functionName: "cascade_customer_updates"
+      condition: "OLD.email IS DISTINCT FROM NEW.email"
+      description: "Cascade email changes to related tables"
+
+    # Statement-level trigger
+    - name: "products_batch_notify"
+      table: "products"
+      timing: AFTER
+      events: [INSERT, UPDATE, DELETE]
+      forEach: STATEMENT
+      functionName: "notify_product_changes"
+      description: "Send notification after batch product modifications"
+```
+
+### Sequence
+
+```yaml
+Sequence:
+  description: "A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    schema: string (optional)
+    dataType: SequenceDataType [enum] (optional) # default: BIGINT
+    startValue: integer (optional) # default: 1
+    increment: integer (optional) # default: 1
+    minValue: integer (optional)
+    maxValue: integer (optional)
+    cycle: boolean (optional) # default: false, restart at min after max
+    cache: integer (optional) # number of values to cache
+    ownedBy: string (optional) # table.column that owns this sequence
+
+  enums:
+    SequenceDataType:
+      - SMALLINT # 2 bytes, -32768 to 32767
+      - INTEGER # 4 bytes, -2147483648 to 2147483647
+      - BIGINT # 8 bytes, -9223372036854775808 to 9223372036854775807
+
+  metadata:
+    description: string (purpose of the sequence)
+    x-business-use: string (business context, e.g., "order numbers", "invoice IDs")
+
+  examples:
+    # Standard auto-increment sequence
+    - name: "products_id_seq"
+      schema: "public"
+      dataType: BIGINT
+      startValue: 1
+      increment: 1
+      ownedBy: "products.id"
+      description: "Auto-increment sequence for products table primary key"
+
+    # Order number sequence
+    - name: "order_number_seq"
+      schema: "sales"
+      dataType: BIGINT
+      startValue: 100000
+      increment: 1
+      cache: 10
+      description: "Business order number sequence"
+      x-business-use: "Customer-facing order numbers starting at 100000"
+
+    # Invoice number sequence (yearly reset)
+    - name: "invoice_number_2024_seq"
+      schema: "accounting"
+      dataType: INTEGER
+      startValue: 1
+      increment: 1
+      maxValue: 999999
+      cycle: false
+      description: "Invoice numbers for fiscal year 2024"
+      x-business-use: "Annual invoice numbering with year prefix"
+
+    # Batch ID sequence with gaps
+    - name: "batch_id_seq"
+      schema: "etl"
+      dataType: BIGINT
+      startValue: 1
+      increment: 100
+      cache: 1
+      description: "Batch processing IDs with gaps for parallel processing"
+      x-business-use: "ETL batch identifiers allowing 100 sub-items per batch"
+
+    # High-availability cached sequence
+    - name: "event_id_seq"
+      schema: "events"
+      dataType: BIGINT
+      startValue: 1
+      increment: 1
+      cache: 1000
+      description: "High-throughput event ID sequence with large cache"
+      x-business-use: "Event streaming identifiers requiring high performance"
+```
+
+### Function
+
+```yaml
+Function:
+  description: "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    schema: string (optional)
+    language: FunctionLanguage [enum]
+    returnType: string (SQL data type or table type)
+    volatility: FunctionVolatility [enum] (optional)
+    parallel: ParallelSafety [enum] (optional)
+    strict: boolean (optional) # returns NULL if any input is NULL
+    security: SecurityDefiner [enum] (optional)
+    cost: integer (optional) # execution cost estimate
+    rows: integer (optional) # estimated rows returned (for set-returning functions)
+
+  parameters:
+    - name: string
+      type: string (SQL data type)
+      mode: ParameterMode [enum] (optional) # default: IN
+      default: any (optional)
+
+  body: string (function implementation)
+
+  enums:
+    FunctionLanguage:
+      - SQL # Pure SQL function
+      - PLPGSQL # PostgreSQL procedural language
+      - PLPYTHON3U # Python (untrusted)
+      - PLPERL # Perl
+      - PLPYTHON # Python 2 (deprecated)
+      - C # C language extension
+
+    FunctionVolatility:
+      - IMMUTABLE # Always returns same result for same inputs
+      - STABLE # Returns same result within single query
+      - VOLATILE # Can return different results (default)
+
+    ParallelSafety:
+      - UNSAFE # Cannot be used in parallel queries
+      - RESTRICTED # Limited parallel use
+      - SAFE # Can be used in parallel queries
+
+    SecurityDefiner:
+      - INVOKER # Run with caller's privileges (default)
+      - DEFINER # Run with function owner's privileges
+
+    ParameterMode:
+      - IN # Input parameter (default)
+      - OUT # Output parameter
+      - INOUT # Input and output parameter
+      - VARIADIC # Variable number of arguments
+
+  metadata:
+    description: string (purpose of the function)
+    x-business-rule: string (business rule being implemented, optional)
+    x-governed-by-requirements: string[] (Requirement IDs, optional)
+
+  examples:
+    # Timestamp update function (used by trigger)
+    - name: "update_updated_at_column"
+      schema: "public"
+      language: PLPGSQL
+      returnType: TRIGGER
+      volatility: VOLATILE
+      body: |
+        BEGIN
+            NEW.updated_at = CURRENT_TIMESTAMP;
+            RETURN NEW;
+        END;
+      description: "Updates the updated_at column to current timestamp"
+
+    # Business calculation function
+    - name: "calculate_order_total"
+      schema: "sales"
+      language: SQL
+      returnType: DECIMAL(12,2)
+      volatility: STABLE
+      strict: true
+      parameters:
+        - name: order_id
+          type: UUID
+          mode: IN
+      body: |
+        SELECT COALESCE(SUM(quantity * unit_price), 0)
+        FROM order_items
+        WHERE order_id = $1;
+      description: "Calculates the total amount for an order"
+      x-business-rule: "Order total is sum of (quantity * unit_price) for all items"
+
+    # Validation function
+    - name: "is_valid_sku"
+      schema: "catalog"
+      language: SQL
+      returnType: BOOLEAN
+      volatility: IMMUTABLE
+      parallel: SAFE
+      strict: true
+      parameters:
+        - name: sku
+          type: VARCHAR
+          mode: IN
+      body: |
+        SELECT sku ~ '^[A-Z]{2}\d{4}$';
+      description: "Validates SKU format (2 letters + 4 digits)"
+      x-business-rule: "SKU must be exactly 2 uppercase letters followed by 4 digits"
+      x-governed-by-requirements: ["req-sku-format-validation"]
+
+    # Set-returning function
+    - name: "get_low_stock_products"
+      schema: "inventory"
+      language: SQL
+      returnType: TABLE(id UUID, name VARCHAR, sku VARCHAR, stock_quantity INTEGER, shortage INTEGER)
+      volatility: STABLE
+      rows: 100
+      parameters:
+        - name: category_filter
+          type: VARCHAR
+          mode: IN
+          default: "NULL"
+      body: |
+        SELECT id, name, sku, stock_quantity,
+               (reorder_point - stock_quantity) as shortage
+        FROM products
+        WHERE stock_quantity <= reorder_point
+          AND deleted_at IS NULL
+          AND (category_filter IS NULL OR category = category_filter)
+        ORDER BY shortage DESC;
+      description: "Returns products that need reordering, optionally filtered by category"
+      x-business-rule: "Products need reordering when stock <= reorder point"
+
+    # Audit logging function
+    - name: "log_table_changes"
+      schema: "audit"
+      language: PLPGSQL
+      returnType: TRIGGER
+      volatility: VOLATILE
+      security: DEFINER
+      body: |
+        BEGIN
+            INSERT INTO audit.change_log (
+                table_name, operation, old_data, new_data,
+                changed_by, changed_at
+            ) VALUES (
+                TG_TABLE_NAME, TG_OP,
+                row_to_json(OLD), row_to_json(NEW),
+                current_user, CURRENT_TIMESTAMP
+            );
+            RETURN COALESCE(NEW, OLD);
+        END;
+      description: "Generic audit trigger function for logging table changes"
+      x-governed-by-requirements: ["req-audit-trail", "req-data-change-tracking"]
+
+    # JSON transformation function
+    - name: "normalize_product_metadata"
+      schema: "catalog"
+      language: PLPGSQL
+      returnType: JSONB
+      volatility: IMMUTABLE
+      parallel: SAFE
+      strict: true
+      parameters:
+        - name: metadata
+          type: JSONB
+          mode: IN
+      body: |
+        BEGIN
+            RETURN jsonb_strip_nulls(
+                jsonb_build_object(
+                    'weight', (metadata->>'weight')::DECIMAL,
+                    'dimensions', metadata->'dimensions',
+                    'tags', COALESCE(metadata->'tags', '[]'::JSONB)
+                )
+            );
+        END;
+      description: "Normalizes product metadata JSON structure"
 ```
 
 ## Custom Extensions for Cross-Layer Integration

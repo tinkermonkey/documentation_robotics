@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
   "title": "Data Model Layer Schema",
-  "description": "Schema for Data Model Layer",
+  "description": "Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.",
   "type": "object",
   "properties": {
     "json-schemas": {
@@ -59,6 +59,41 @@
       "description": "Collection of Reference entities",
       "items": {
         "$ref": "#/definitions/Reference"
+      }
+    },
+    "schema-definitions": {
+      "type": "array",
+      "description": "Collection of SchemaDefinition entities",
+      "items": {
+        "$ref": "#/definitions/SchemaDefinition"
+      }
+    },
+    "schema-properties": {
+      "type": "array",
+      "description": "Collection of SchemaProperty entities",
+      "items": {
+        "$ref": "#/definitions/SchemaProperty"
+      }
+    },
+    "data-governances": {
+      "type": "array",
+      "description": "Collection of DataGovernance entities",
+      "items": {
+        "$ref": "#/definitions/DataGovernance"
+      }
+    },
+    "data-quality-metricses": {
+      "type": "array",
+      "description": "Collection of DataQualityMetrics entities",
+      "items": {
+        "$ref": "#/definitions/DataQualityMetrics"
+      }
+    },
+    "database-mappings": {
+      "type": "array",
+      "description": "Collection of DatabaseMapping entities",
+      "items": {
+        "$ref": "#/definitions/DatabaseMapping"
       }
     },
     "x-business-object-refs": {
@@ -164,14 +199,40 @@
     "JSONType": {
       "type": "object",
       "description": "Core JSON data types",
-      "required": [],
-      "properties": {}
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/enum"
+        }
+      }
     },
     "StringSchema": {
       "type": "object",
       "description": "StringSchema validation rules",
-      "required": [],
-      "properties": {},
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "$ref": "#/definitions/enum"
+        }
+      },
       "definitions": {
         "StringFormat": {
           "type": "string",
@@ -202,20 +263,86 @@
     "NumericSchema": {
       "type": "object",
       "description": "NumericSchema validation rules",
-      "required": [],
-      "properties": {}
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "multipleOf": {
+          "type": "number"
+        }
+      }
     },
     "ArraySchema": {
       "type": "object",
       "description": "ArraySchema validation rules",
-      "required": [],
-      "properties": {}
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": {
+          "type": "integer"
+        },
+        "maxItems": {
+          "type": "integer"
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "contains": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "ObjectSchema": {
       "type": "object",
       "description": "ObjectSchema validation rules",
-      "required": [],
+      "required": [
+        "type"
+      ],
       "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "string",
+          "minLength": 1
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minProperties": {
+          "type": "integer"
+        },
+        "maxProperties": {
+          "type": "integer"
+        },
         "properties": {
           "type": "array",
           "description": "Contains relationship",
@@ -263,11 +390,300 @@
         }
       }
     },
+    "SchemaDefinition": {
+      "type": "object",
+      "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
+      "required": [
+        "id",
+        "name",
+        "title",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SchemaProperty": {
+      "type": "object",
+      "description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "title",
+        "format",
+        "default",
+        "enum",
+        "const",
+        "examples"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enum": {
+          "type": "string",
+          "minLength": 1
+        },
+        "const": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "examples": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DataGovernance": {
+      "type": "object",
+      "description": "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "DataClassificationLevel": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted",
+            "secret"
+          ]
+        }
+      }
+    },
+    "DataQualityMetrics": {
+      "type": "object",
+      "description": "Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.",
+      "required": [
+        "id",
+        "name",
+        "schemaRef"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "monitoringEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseMapping": {
+      "type": "object",
+      "description": "Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.",
+      "required": [
+        "id",
+        "name",
+        "table",
+        "schema",
+        "catalog",
+        "engine"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "SQLType": {
+          "type": "string",
+          "enum": [
+            "VARCHAR",
+            "CHAR",
+            "TEXT",
+            "CLOB",
+            "INTEGER",
+            "SMALLINT",
+            "BIGINT",
+            "SERIAL",
+            "BIGSERIAL",
+            "DECIMAL",
+            "NUMERIC",
+            "FLOAT",
+            "DOUBLE",
+            "BOOLEAN",
+            "DATE",
+            "TIME",
+            "TIMESTAMP",
+            "TIMESTAMPTZ",
+            "INTERVAL",
+            "JSON",
+            "JSONB",
+            "UUID",
+            "BYTEA",
+            "BLOB",
+            "ARRAY"
+          ]
+        },
+        "ReferentialAction": {
+          "type": "string",
+          "enum": [
+            "CASCADE",
+            "SET_NULL",
+            "SET_DEFAULT",
+            "RESTRICT",
+            "NO_ACTION"
+          ]
+        },
+        "IndexType": {
+          "type": "string",
+          "enum": [
+            "BTREE",
+            "HASH",
+            "GIN",
+            "GIST",
+            "BRIN"
+          ]
+        },
+        "ConstraintType": {
+          "type": "string",
+          "enum": [
+            "PRIMARY_KEY",
+            "UNIQUE",
+            "FOREIGN_KEY",
+            "CHECK",
+            "NOT_NULL",
+            "EXCLUSION"
+          ]
+        },
+        "PartitionStrategy": {
+          "type": "string",
+          "enum": [
+            "RANGE",
+            "LIST",
+            "HASH"
+          ]
+        }
+      }
+    },
     "x-business-object-ref": {
       "type": "object",
       "description": "Reference to BusinessObject this schema implements",
-      "required": [],
-      "properties": {}
+      "required": [
+        "value"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "x-data-governance": {
       "type": "object",

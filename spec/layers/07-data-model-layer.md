@@ -1,4 +1,6 @@
-# Data Model Layer - JSON Schema
+# Layer 7: Data Model Layer
+
+Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.
 
 ## Overview
 
@@ -58,6 +60,9 @@ JSONSchema:
 ```yaml
 JSONType:
   description: "Core JSON data types"
+  attributes:
+    value: string [enum]
+
   values:
     - string
     - number # Any numeric value
@@ -77,6 +82,12 @@ JSONType:
 StringSchema:
   type: string
   description: "StringSchema validation rules"
+  attributes:
+    type: string (literal "string")
+    minLength: integer (optional)
+    maxLength: integer (optional)
+    pattern: string (optional)
+    format: StringFormat [enum] (optional)
 
   validation:
     minLength: integer (minimum string length)
@@ -145,6 +156,13 @@ StringSchema:
 NumericSchema:
   type: number | integer
   description: "NumericSchema validation rules"
+  attributes:
+    type: string (literal "number" or "integer")
+    minimum: number (optional)
+    maximum: number (optional)
+    exclusiveMinimum: number (optional)
+    exclusiveMaximum: number (optional)
+    multipleOf: number (optional)
 
   validation:
     minimum: number (inclusive minimum)
@@ -188,6 +206,13 @@ NumericSchema:
 ArraySchema:
   type: array
   description: "ArraySchema validation rules"
+  attributes:
+    type: string (literal "array")
+    items: Schema (optional)
+    minItems: integer (optional)
+    maxItems: integer (optional)
+    uniqueItems: boolean (optional)
+    contains: Schema (optional)
 
   validation:
     items: Schema (schema for array items)
@@ -232,6 +257,12 @@ ArraySchema:
 ObjectSchema:
   type: object
   description: "ObjectSchema validation rules"
+  attributes:
+    type: string (literal "object")
+    required: string[] (optional)
+    additionalProperties: boolean | Schema (optional)
+    minProperties: integer (optional)
+    maxProperties: integer (optional)
 
   contains:
     - properties: SchemaProperty[] (0..*) # keyed by property name
@@ -358,6 +389,526 @@ Reference:
     - $ref: "../schemas/user.json#/definitions/User"
 ```
 
+### SchemaDefinition
+
+```yaml
+SchemaDefinition:
+  description: "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (definition name, used as key in definitions object)
+    title: string (optional, human-readable name)
+    description: string (optional)
+    type: JSONType (optional, inherited from Schema)
+
+  contains:
+    - properties: SchemaProperty[] (0..*) # for object types
+    - items: Schema (for array types, optional)
+
+  composition:
+    allOf: Schema[] (optional)
+    anyOf: Schema[] (optional)
+    oneOf: Schema[] (optional)
+    not: Schema (optional)
+
+  examples:
+    # Simple reusable definition
+    - name: "Address"
+      title: "Postal Address"
+      description: "Standard postal address structure"
+      type: object
+      required: ["street", "city", "country"]
+      properties:
+        street:
+          type: string
+          maxLength: 200
+        city:
+          type: string
+          maxLength: 100
+        state:
+          type: string
+          maxLength: 50
+        postalCode:
+          type: string
+          pattern: "^[0-9]{5}(-[0-9]{4})?$"
+        country:
+          type: string
+          minLength: 2
+          maxLength: 2
+
+    # Enum definition
+    - name: "OrderStatus"
+      title: "Order Status"
+      type: string
+      enum: ["pending", "confirmed", "shipped", "delivered", "cancelled"]
+
+    # Composite definition
+    - name: "AuditFields"
+      title: "Audit Tracking Fields"
+      type: object
+      properties:
+        createdAt:
+          type: string
+          format: date-time
+          readOnly: true
+        createdBy:
+          type: string
+          format: uuid
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          readOnly: true
+        updatedBy:
+          type: string
+          format: uuid
+          readOnly: true
+```
+
+### SchemaProperty
+
+```yaml
+SchemaProperty:
+  description: "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (property name, used as key in properties object)
+    type: JSONType | JSONType[] (data type or array of types for unions)
+    title: string (optional, human-readable name)
+    description: string (optional)
+    format: string (optional, e.g., "email", "uuid", "date-time")
+    default: any (optional, default value)
+    enum: any[] (optional, allowed values)
+    const: any (optional, constant value)
+    readOnly: boolean (optional) # default: false
+    writeOnly: boolean (optional) # default: false
+    deprecated: boolean (optional) # default: false
+    examples: any[] (optional, example values)
+
+  validation:
+    # String constraints
+    minLength: integer (optional)
+    maxLength: integer (optional)
+    pattern: string (regex, optional)
+
+    # Numeric constraints
+    minimum: number (optional)
+    maximum: number (optional)
+    exclusiveMinimum: number (optional)
+    exclusiveMaximum: number (optional)
+    multipleOf: number (optional)
+
+    # Array constraints
+    minItems: integer (optional)
+    maxItems: integer (optional)
+    uniqueItems: boolean (optional)
+    items: Schema (optional, for array type)
+    contains: Schema (optional, at least one item must match)
+
+    # Object constraints
+    properties: SchemaProperty[] (optional, for object type)
+    required: string[] (optional, required property names)
+    additionalProperties: boolean | Schema (optional)
+    minProperties: integer (optional)
+    maxProperties: integer (optional)
+
+  references:
+    $ref: string (optional, reference to another schema)
+
+  extensions:
+    x-database: object (database mapping, optional)
+    x-ui: object (UI rendering hints, optional)
+    x-security: object (security metadata, optional)
+
+  examples:
+    # String property with validation
+    - name: "email"
+      type: string
+      format: email
+      description: "User's primary email address"
+      maxLength: 254
+      x-security:
+        pii: true
+        classification: restricted
+
+    # Numeric property with constraints
+    - name: "price"
+      type: number
+      description: "Product price in USD"
+      minimum: 0
+      multipleOf: 0.01
+      x-database:
+        column: "price"
+        type: "DECIMAL(10,2)"
+
+    # Enum property
+    - name: "status"
+      type: string
+      enum: ["active", "inactive", "pending"]
+      default: "pending"
+      description: "Current record status"
+
+    # Nested object property
+    - name: "address"
+      type: object
+      description: "Customer billing address"
+      properties:
+        street:
+          type: string
+        city:
+          type: string
+      required: ["street", "city"]
+```
+
+### DataGovernance
+
+```yaml
+DataGovernance:
+  description: "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
+  governedBy:
+    principleRefs: string[] (Principle IDs from Motivation Layer, optional)
+    requirementRefs: string[] (Requirement IDs from Motivation Layer, optional)
+    constraintRefs: string[] (Constraint IDs from Motivation Layer, optional)
+
+  ownership:
+    dataOwner: string (person or team responsible, optional)
+    dataSteward: string (person or team managing data quality, optional)
+    technicalOwner: string (person or team managing technical implementation, optional)
+
+  classification:
+    level: DataClassificationLevel [enum] (optional)
+    categories: string[] (custom classification categories, optional)
+
+  lifecycle:
+    creationPolicy: string (how data is created, optional)
+    retentionPeriod: string (how long data is retained, e.g., "7years", optional)
+    archivalPolicy: string (how data is archived, optional)
+    deletionPolicy: string (how data is deleted, optional)
+
+  compliance:
+    regulations: string[] (applicable regulations, e.g., ["GDPR", "HIPAA", "SOX"], optional)
+    certifications: string[] (required certifications, optional)
+
+  enums:
+    DataClassificationLevel:
+      - public # Publicly available
+      - internal # Internal use only
+      - confidential # Restricted access
+      - restricted # Highly restricted (PII, PHI, financial)
+      - secret # Top secret (rarely used)
+
+  examples:
+    # Customer data governance
+    - governedBy:
+        principleRefs: ["principle-privacy-by-design", "principle-data-minimization"]
+        requirementRefs: ["req-gdpr-compliance", "req-customer-consent"]
+        constraintRefs: ["constraint-gdpr-article-6", "constraint-ccpa-opt-out"]
+      ownership:
+        dataOwner: "Customer Experience Team"
+        dataSteward: "Data Governance Office"
+        technicalOwner: "Customer Platform Engineering"
+      classification:
+        level: restricted
+        categories: ["PII", "customer-data"]
+      lifecycle:
+        retentionPeriod: "duration-of-service"
+        deletionPolicy: "upon-account-closure-plus-30-days"
+      compliance:
+        regulations: ["GDPR", "CCPA", "LGPD"]
+
+    # Financial data governance
+    - governedBy:
+        principleRefs: ["principle-data-integrity", "principle-audit-trail"]
+        requirementRefs: ["req-sox-compliance", "req-financial-reporting"]
+        constraintRefs: ["constraint-sox-section-404", "constraint-7year-retention"]
+      ownership:
+        dataOwner: "Finance Department"
+        dataSteward: "Financial Controls Team"
+      classification:
+        level: confidential
+        categories: ["financial", "audit-trail"]
+      lifecycle:
+        retentionPeriod: "7years"
+        archivalPolicy: "move-to-cold-storage-after-1year"
+      compliance:
+        regulations: ["SOX", "SEC-17a-4"]
+```
+
+### DataQualityMetrics
+
+```yaml
+DataQualityMetrics:
+  description: "Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    schemaRef: string (reference to schema this applies to, optional)
+    monitoringEnabled: boolean (optional) # default: true
+
+  metrics:
+    completenessMetrics: string[] (Metric IDs measuring field completion rates, optional)
+    accuracyMetrics: string[] (Metric IDs measuring data validity, optional)
+    consistencyMetrics: string[] (Metric IDs measuring cross-field validation, optional)
+    freshnessMetrics: string[] (Metric IDs measuring data staleness, optional)
+    uniquenessMetrics: string[] (Metric IDs measuring duplicate detection, optional)
+    integrityMetrics: string[] (Metric IDs measuring referential integrity, optional)
+    timelinessMetrics: string[] (Metric IDs measuring data arrival timing, optional)
+
+  targets:
+    completenessTarget: string (e.g., ">= 95%", optional)
+    accuracyTarget: string (e.g., ">= 99%", optional)
+    freshnessTarget: string (e.g., "< 5 minutes", optional)
+
+  alerting:
+    alertOnViolation: boolean (optional)
+    alertThreshold: string (threshold for alerting, optional)
+    alertChannels: string[] (notification channels, optional)
+
+  references:
+    - apmLayerMetrics: string[] (references to APM Layer Metric definitions)
+
+  examples:
+    # Customer profile quality metrics
+    - name: "customer-profile-quality"
+      schemaRef: "customer-schema"
+      monitoringEnabled: true
+      metrics:
+        completenessMetrics:
+          - "metric-customer-email-completeness"
+          - "metric-customer-phone-completeness"
+          - "metric-customer-address-completeness"
+        accuracyMetrics:
+          - "metric-customer-email-validity"
+          - "metric-customer-phone-format-validity"
+        consistencyMetrics:
+          - "metric-customer-name-consistency"
+        freshnessMetrics:
+          - "metric-customer-last-updated-age"
+        uniquenessMetrics:
+          - "metric-customer-duplicate-rate"
+      targets:
+        completenessTarget: ">= 95%"
+        accuracyTarget: ">= 99%"
+        freshnessTarget: "< 24 hours"
+      alerting:
+        alertOnViolation: true
+        alertThreshold: "< 90%"
+        alertChannels: ["pagerduty", "slack-data-quality"]
+
+    # Product catalog quality metrics
+    - name: "product-catalog-quality"
+      schemaRef: "product-schema"
+      metrics:
+        completenessMetrics:
+          - "metric-product-description-completeness"
+          - "metric-product-image-completeness"
+        accuracyMetrics:
+          - "metric-product-price-validity"
+          - "metric-product-sku-format-validity"
+        freshnessMetrics:
+          - "metric-product-inventory-freshness"
+        integrityMetrics:
+          - "metric-product-category-reference-integrity"
+      targets:
+        completenessTarget: ">= 98%"
+        accuracyTarget: ">= 99.9%"
+```
+
+### DatabaseMapping
+
+```yaml
+DatabaseMapping:
+  description: "Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    table: string (database table name)
+    schema: string (database schema/namespace, optional)
+    catalog: string (database catalog, optional)
+    engine: string (database engine hint, e.g., "postgresql", "mysql", optional)
+
+  columns:
+    # Map of property name to column configuration
+    propertyName:
+      column: string (database column name)
+      type: SQLType [enum]
+      length: integer (for VARCHAR, optional)
+      precision: integer (for DECIMAL, optional)
+      scale: integer (for DECIMAL, optional)
+      nullable: boolean (optional) # default: true
+      primaryKey: boolean (optional) # default: false
+      autoIncrement: boolean (optional) # default: false
+      unique: boolean (optional) # default: false
+      default: any (default value, optional)
+      index: boolean | string (true for auto-named index, string for named index, optional)
+
+  foreignKeys:
+    - name: string (constraint name)
+      columns: string[] (local columns)
+      referencesTable: string (foreign table)
+      referencesColumns: string[] (foreign columns)
+      onDelete: ReferentialAction [enum] (optional)
+      onUpdate: ReferentialAction [enum] (optional)
+
+  indexes:
+    - name: string (index name)
+      columns: string[] (indexed columns)
+      unique: boolean (optional) # default: false
+      type: IndexType [enum] (optional)
+      where: string (partial index condition, optional)
+
+  constraints:
+    - name: string (constraint name)
+      type: ConstraintType [enum]
+      columns: string[] (affected columns, optional)
+      check: string (SQL expression for CHECK constraints, optional)
+
+  partitioning:
+    strategy: PartitionStrategy [enum] (optional)
+    column: string (partition key column, optional)
+    interval: string (for range partitioning, optional)
+
+  enums:
+    SQLType:
+      - VARCHAR
+      - CHAR
+      - TEXT
+      - CLOB
+      - INTEGER
+      - SMALLINT
+      - BIGINT
+      - SERIAL
+      - BIGSERIAL
+      - DECIMAL
+      - NUMERIC
+      - FLOAT
+      - DOUBLE
+      - BOOLEAN
+      - DATE
+      - TIME
+      - TIMESTAMP
+      - TIMESTAMPTZ
+      - INTERVAL
+      - JSON
+      - JSONB
+      - UUID
+      - BYTEA
+      - BLOB
+      - ARRAY
+
+    ReferentialAction:
+      - CASCADE
+      - SET_NULL
+      - SET_DEFAULT
+      - RESTRICT
+      - NO_ACTION
+
+    IndexType:
+      - BTREE
+      - HASH
+      - GIN
+      - GIST
+      - BRIN
+
+    ConstraintType:
+      - PRIMARY_KEY
+      - UNIQUE
+      - FOREIGN_KEY
+      - CHECK
+      - NOT_NULL
+      - EXCLUSION
+
+    PartitionStrategy:
+      - RANGE
+      - LIST
+      - HASH
+
+  examples:
+    # Product table mapping
+    - name: "product-db-mapping"
+      table: "products"
+      schema: "catalog"
+      engine: "postgresql"
+      columns:
+        id:
+          column: "product_id"
+          type: UUID
+          primaryKey: true
+          nullable: false
+        name:
+          column: "product_name"
+          type: VARCHAR
+          length: 200
+          nullable: false
+          index: "idx_product_name"
+        sku:
+          column: "sku"
+          type: VARCHAR
+          length: 20
+          nullable: false
+          unique: true
+        price:
+          column: "price"
+          type: DECIMAL
+          precision: 10
+          scale: 2
+          nullable: false
+        category:
+          column: "category_id"
+          type: UUID
+          nullable: false
+        createdAt:
+          column: "created_at"
+          type: TIMESTAMPTZ
+          nullable: false
+          default: "CURRENT_TIMESTAMP"
+      foreignKeys:
+        - name: "fk_product_category"
+          columns: ["category_id"]
+          referencesTable: "categories"
+          referencesColumns: ["category_id"]
+          onDelete: RESTRICT
+      indexes:
+        - name: "idx_products_category"
+          columns: ["category_id"]
+        - name: "idx_products_sku"
+          columns: ["sku"]
+          unique: true
+        - name: "idx_products_name_search"
+          columns: ["product_name"]
+          type: GIN
+      constraints:
+        - name: "chk_price_positive"
+          type: CHECK
+          check: "price >= 0"
+
+    # Order table with partitioning
+    - name: "order-db-mapping"
+      table: "orders"
+      schema: "sales"
+      partitioning:
+        strategy: RANGE
+        column: "created_at"
+        interval: "1 month"
+      columns:
+        id:
+          column: "order_id"
+          type: UUID
+          primaryKey: true
+        customerId:
+          column: "customer_id"
+          type: UUID
+          nullable: false
+        createdAt:
+          column: "created_at"
+          type: TIMESTAMPTZ
+          nullable: false
+```
+
 ## Custom Extensions
 
 ### x-business-object-ref Extension
@@ -365,6 +916,9 @@ Reference:
 ```yaml
 x-business-object-ref:
   description: "Reference to BusinessObject this schema implements"
+  attributes:
+    value: string (BusinessObject.id from Business Layer)
+
   type: string (BusinessObject.id from Business Layer)
   purpose: "Enables upward traceability from technical schema to business concept"
 

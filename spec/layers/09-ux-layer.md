@@ -1,4 +1,6 @@
-# UX Layer - User Experience Specification
+# Layer 9: UX Layer
+
+Defines user experience specifications including state management, component composition, and multi-channel interaction patterns for visual, voice, and chat interfaces.
 
 ## Overview
 
@@ -362,10 +364,10 @@ StatePattern:
           initial: true
           transitions:
             - to: "loading"
-              on: dataReady
+              trigger: dataReady
               condition: "{{hasEntityId}}"
             - to: "editing"
-              on: dataReady
+              trigger: dataReady
               condition: "!{{hasEntityId}}"
         - name: "loading"
           onEnter:
@@ -376,27 +378,27 @@ StatePattern:
                 target: "{{entityPath}}"
           transitions:
             - to: "viewing"
-              on: success
+              trigger: success
             - to: "error"
-              on: failure
+              trigger: failure
         - name: "viewing"
           transitions:
             - to: "editing"
-              on: click
+              trigger: click
         - name: "editing"
           transitions:
             - to: "validating"
-              on: submit
+              trigger: submit
             - to: "viewing"
-              on: cancel
+              trigger: cancel
         - name: "validating"
           onEnter:
             - action: validateForm
           transitions:
             - to: "saving"
-              on: success
+              trigger: success
             - to: "editing"
-              on: failure
+              trigger: failure
         - name: "saving"
           onEnter:
             - action: saveData
@@ -404,13 +406,13 @@ StatePattern:
                 operationId: "{{saveOperation}}"
           transitions:
             - to: "viewing"
-              on: success
+              trigger: success
             - to: "error"
-              on: failure
+              trigger: failure
         - name: "error"
           transitions:
             - to: "editing"
-              on: click
+              trigger: click
       entryPoints: ["initial"]
       exitPoints: ["viewing"]
 
@@ -436,21 +438,21 @@ StatePattern:
                 target: "{{itemsPath}}"
           transitions:
             - to: "viewing"
-              on: success
+              trigger: success
             - to: "error"
-              on: failure
+              trigger: failure
         - name: "viewing"
           transitions:
             - to: "item-selected"
-              on: click
+              trigger: click
         - name: "item-selected"
           transitions:
             - to: "viewing"
-              on: click
+              trigger: click
         - name: "error"
           transitions:
             - to: "loading"
-              on: click
+              trigger: click
       entryPoints: ["loading"]
       exitPoints: ["item-selected"]
 ```
@@ -815,7 +817,7 @@ StateTransition:
     id: string (UUID) [PK]
     name: string
     to: string (optional)
-    on: TriggerType [enum]
+    trigger: TriggerType [enum]
     description: string (optional)
 
   contains:
@@ -1152,6 +1154,936 @@ ValidationRule:
       message: "Must match format: AA1234"
 ```
 
+#### LayoutConfig
+
+```yaml
+LayoutConfig:
+  description: "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: LayoutType [enum]
+    columns: integer (optional) # number of columns for grid layout
+    rows: integer (optional) # number of rows for grid layout
+    gap: string (optional) # spacing between items, e.g., "1rem", "16px"
+    rowGap: string (optional) # vertical spacing
+    columnGap: string (optional) # horizontal spacing
+    padding: string (optional) # container padding
+    margin: string (optional) # container margin
+    maxWidth: string (optional) # maximum container width
+
+  alignment:
+    justifyContent: JustifyContent [enum] (optional)
+    alignItems: AlignItems [enum] (optional)
+    justifyItems: JustifyItems [enum] (optional)
+    alignContent: AlignContent [enum] (optional)
+
+  responsive:
+    breakpoints:
+      - name: string (e.g., "mobile", "tablet", "desktop")
+        minWidth: string (e.g., "768px")
+        columns: integer (optional)
+        gap: string (optional)
+        hidden: boolean (optional)
+
+  enums:
+    LayoutType:
+      - grid # CSS Grid layout
+      - flex # Flexbox layout
+      - stack # Vertical stack
+      - flow # Inline flow
+      - fixed # Fixed positioning
+      - absolute # Absolute positioning
+      - custom # Custom layout implementation
+
+    JustifyContent:
+      - start
+      - end
+      - center
+      - space-between
+      - space-around
+      - space-evenly
+
+    AlignItems:
+      - start
+      - end
+      - center
+      - stretch
+      - baseline
+
+    JustifyItems:
+      - start
+      - end
+      - center
+      - stretch
+
+    AlignContent:
+      - start
+      - end
+      - center
+      - stretch
+      - space-between
+      - space-around
+
+  examples:
+    # Two-column form layout
+    - type: grid
+      columns: 2
+      gap: "1rem"
+      padding: "1.5rem"
+      responsive:
+        breakpoints:
+          - name: "mobile"
+            minWidth: "0px"
+            columns: 1
+          - name: "tablet"
+            minWidth: "768px"
+            columns: 2
+
+    # Dashboard card layout
+    - type: grid
+      columns: 3
+      gap: "1.5rem"
+      alignment:
+        alignItems: stretch
+      responsive:
+        breakpoints:
+          - name: "mobile"
+            minWidth: "0px"
+            columns: 1
+          - name: "tablet"
+            minWidth: "768px"
+            columns: 2
+          - name: "desktop"
+            minWidth: "1024px"
+            columns: 3
+
+    # Vertical form stack
+    - type: stack
+      gap: "1rem"
+      maxWidth: "600px"
+```
+
+#### ErrorConfig
+
+```yaml
+ErrorConfig:
+  description: "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    showNotification: boolean (optional) # show toast/alert notification
+    notificationType: NotificationType [enum] (optional)
+    errorMessage: string (optional) # custom error message
+    defaultErrorMessage: string (optional) # fallback message
+
+  behavior:
+    retryEnabled: boolean (optional) # allow user to retry
+    retryCount: integer (optional) # max retry attempts
+    retryDelay: integer (optional) # delay between retries in ms
+    autoRetry: boolean (optional) # automatically retry without user action
+    fallbackContent: string (optional) # content to show on error
+    fallbackComponent: string (optional) # component to render on error
+
+  logging:
+    logError: boolean (optional) # log error to console/APM
+    includeStack: boolean (optional) # include stack trace
+    reportToAPM: boolean (optional) # send to APM system
+
+  userGuidance:
+    showContactSupport: boolean (optional)
+    supportLink: string (optional)
+    showErrorCode: boolean (optional)
+    suggestedActions: string[] (optional)
+
+  enums:
+    NotificationType:
+      - toast # Brief popup notification
+      - alert # Modal alert dialog
+      - inline # Inline error message
+      - banner # Page-level banner
+      - none # No visible notification
+
+  references:
+    - onError: string (target state on error, optional)
+
+  examples:
+    # Standard API error handling
+    - showNotification: true
+      notificationType: toast
+      defaultErrorMessage: "An error occurred. Please try again."
+      behavior:
+        retryEnabled: true
+        retryCount: 3
+        retryDelay: 1000
+      logging:
+        logError: true
+        reportToAPM: true
+
+    # Critical operation error handling
+    - showNotification: true
+      notificationType: alert
+      errorMessage: "Unable to save your changes."
+      behavior:
+        retryEnabled: true
+        autoRetry: false
+      userGuidance:
+        showContactSupport: true
+        supportLink: "/support"
+        showErrorCode: true
+        suggestedActions:
+          - "Check your internet connection"
+          - "Try refreshing the page"
+          - "Contact support if the problem persists"
+
+    # Graceful degradation
+    - showNotification: false
+      notificationType: inline
+      behavior:
+        fallbackContent: "Unable to load. Showing cached data."
+        fallbackComponent: "cached-data-view"
+      logging:
+        logError: true
+```
+
+#### ApiConfig
+
+```yaml
+ApiConfig:
+  description: "Configuration for API integration within UI components, specifying endpoints, request/response mapping, authentication, and caching strategies. Connects UI to backend services."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    operationId: string (OpenAPI operation ID)
+    method: HttpMethod [enum] (optional, inferred from operationId)
+    endpoint: string (optional, if not using operationId)
+    baseUrl: string (optional, override default base URL)
+
+  request:
+    pathParams: object (optional) # URL path parameters
+    queryParams: object (optional) # URL query parameters
+    headers: object (optional) # HTTP headers
+    body: string (optional) # JSONPath to request body source
+    contentType: string (optional) # default: application/json
+
+  response:
+    target: string (JSONPath to store response, optional)
+    transform: string (optional) # transformation expression
+    extractPath: string (optional) # JSONPath to extract from response
+
+  caching:
+    enabled: boolean (optional)
+    strategy: CacheStrategy [enum] (optional)
+    ttl: integer (optional) # time-to-live in seconds
+    key: string (optional) # cache key pattern
+
+  authentication:
+    required: boolean (optional) # default: true
+    scheme: string (optional) # authentication scheme name
+
+  enums:
+    HttpMethod:
+      - GET
+      - POST
+      - PUT
+      - PATCH
+      - DELETE
+      - HEAD
+      - OPTIONS
+
+    CacheStrategy:
+      - no-cache # Always fetch fresh
+      - cache-first # Use cache if available
+      - network-first # Try network, fallback to cache
+      - stale-while-revalidate # Return stale, fetch in background
+
+  examples:
+    # Simple GET operation
+    - operationId: "getProduct"
+      response:
+        target: "$.product"
+
+    # POST with body
+    - operationId: "createProduct"
+      request:
+        body: "$.formData"
+        contentType: "application/json"
+      response:
+        target: "$.newProduct"
+
+    # GET with caching
+    - operationId: "getCategories"
+      caching:
+        enabled: true
+        strategy: stale-while-revalidate
+        ttl: 3600
+        key: "categories-list"
+
+    # Custom endpoint with params
+    - endpoint: "/api/v2/products/{id}/variants"
+      method: GET
+      request:
+        pathParams:
+          id: "$.product.id"
+        queryParams:
+          includeInactive: false
+      response:
+        target: "$.variants"
+        extractPath: "$.data.items"
+```
+
+#### DataConfig
+
+```yaml
+DataConfig:
+  description: "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    source: DataSource [enum]
+    target: string (JSONPath to target location in state)
+    path: string (optional) # JSONPath to extract specific data
+
+  transform:
+    expression: string (optional) # transformation expression
+    pipeline: TransformStep[] (optional) # multi-step transformation
+
+  defaults:
+    defaultValue: any (optional) # value if source is empty
+    initialValue: any (optional) # value on component mount
+
+  validation:
+    validateOnChange: boolean (optional)
+    validateOnBlur: boolean (optional)
+    debounceMs: integer (optional) # delay validation
+
+  sync:
+    twoWay: boolean (optional) # bi-directional binding
+    syncOnBlur: boolean (optional)
+    syncOnChange: boolean (optional)
+    debounceMs: integer (optional) # delay sync
+
+  enums:
+    DataSource:
+      - api-response # From API call response
+      - form-data # From form field values
+      - route-params # From URL path parameters
+      - query-params # From URL query string
+      - local-storage # From browser localStorage
+      - session-storage # From browser sessionStorage
+      - constant # Fixed value
+      - computed # Derived/calculated value
+      - context # From application context
+      - flow-context # From NavigationFlow shared context
+
+  TransformStep:
+    type: TransformType [enum]
+    config: object
+
+    TransformType:
+      - map # Transform each item
+      - filter # Filter items
+      - sort # Sort items
+      - slice # Take subset
+      - pick # Select fields
+      - omit # Remove fields
+      - rename # Rename fields
+      - default # Apply defaults
+      - custom # Custom transformation
+
+  examples:
+    # Simple binding
+    - source: api-response
+      target: "$.product"
+      path: "$.data"
+
+    # With transformation
+    - source: api-response
+      target: "$.options"
+      path: "$.data.items"
+      transform:
+        pipeline:
+          - type: map
+            config:
+              template: { value: "$.id", label: "$.name" }
+          - type: sort
+            config:
+              field: "label"
+              direction: "asc"
+
+    # Two-way form binding
+    - source: form-data
+      target: "$.product.name"
+      sync:
+        twoWay: true
+        syncOnChange: true
+        debounceMs: 300
+
+    # Computed value
+    - source: computed
+      target: "$.totalPrice"
+      transform:
+        expression: "$.items.reduce((sum, item) => sum + item.price * item.quantity, 0)"
+
+    # From flow context (navigation)
+    - source: flow-context
+      target: "$.selectedCustomer"
+      path: "$.customer"
+```
+
+#### PerformanceTargets
+
+```yaml
+PerformanceTargets:
+  description: "Defines performance SLAs for UI components including load time, interaction responsiveness, and rendering thresholds. Enables performance monitoring and optimization."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+
+  timing:
+    loadTimeMs: integer (optional) # time to first meaningful paint
+    timeToInteractiveMs: integer (optional) # time until fully interactive
+    firstContentfulPaintMs: integer (optional) # FCP threshold
+    largestContentfulPaintMs: integer (optional) # LCP threshold
+
+  interaction:
+    interactionLatencyMs: integer (optional) # response to user input
+    inputDelayMs: integer (optional) # first input delay threshold
+    cumulativeLayoutShift: number (optional) # CLS threshold (0-1)
+
+  api:
+    apiResponseTimeMs: integer (optional) # expected API response time
+    apiTimeoutMs: integer (optional) # max wait time for API
+
+  quality:
+    errorRatePercent: number (optional) # acceptable error rate
+    completionRatePercent: number (optional) # expected completion rate
+    abandonmentRatePercent: number (optional) # acceptable abandonment
+
+  resources:
+    bundleSizeKb: integer (optional) # max JavaScript bundle size
+    imageSizeKb: integer (optional) # max total image size
+    requestCount: integer (optional) # max concurrent requests
+
+  monitoring:
+    enableRUM: boolean (optional) # Real User Monitoring
+    sampleRate: number (optional) # % of sessions to monitor
+
+  examples:
+    # Standard web page targets
+    - loadTimeMs: 2000
+      timeToInteractiveMs: 3500
+      interactionLatencyMs: 100
+      errorRatePercent: 0.5
+      completionRatePercent: 95
+
+    # High-performance trading UI
+    - loadTimeMs: 500
+      interactionLatencyMs: 16 # 60fps
+      apiResponseTimeMs: 50
+      errorRatePercent: 0.01
+      monitoring:
+        enableRUM: true
+        sampleRate: 100
+
+    # E-commerce checkout
+    - loadTimeMs: 1500
+      timeToInteractiveMs: 2500
+      completionRatePercent: 85
+      abandonmentRatePercent: 15
+      apiTimeoutMs: 10000
+
+    # Mobile-optimized targets
+    - loadTimeMs: 3000
+      firstContentfulPaintMs: 1500
+      largestContentfulPaintMs: 2500
+      bundleSizeKb: 150
+      imageSizeKb: 500
+```
+
+#### ComponentReference
+
+```yaml
+ComponentReference:
+  description: "A reference to another UI component that can be embedded or composed within a parent component. Enables component reuse and modular UI architecture."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (instance name)
+    ref: string (LibraryComponent.id or component name)
+    variant: string (optional) # specific variant of the component
+    slot: string (optional) # target slot in parent component
+
+  overrides:
+    label: string (optional)
+    required: boolean (optional)
+    readonly: boolean (optional)
+    hidden: boolean (optional)
+    disabled: boolean (optional)
+
+  props: object (optional) # component-specific properties
+
+  dataBinding:
+    schemaRef: string (optional) # JSONPath to schema property
+    defaultValue: any (optional)
+    dataSource: string (optional) # API operation ID
+
+  conditionalDisplay:
+    condition: string (optional) # expression for conditional rendering
+    showWhen: string (optional) # shorthand for simple conditions
+
+  examples:
+    # Simple reference
+    - ref: "text-input"
+      name: "customer-name"
+      slot: "fields"
+      overrides:
+        label: "Customer Name"
+        required: true
+
+    # Reference with data binding
+    - ref: "select"
+      name: "category-selector"
+      slot: "filters"
+      dataBinding:
+        schemaRef: "product.json#/properties/category"
+        dataSource: "getCategories"
+      props:
+        placeholder: "Select category..."
+        searchable: true
+
+    # Conditional reference
+    - ref: "address-section"
+      name: "shipping-address"
+      slot: "sections"
+      conditionalDisplay:
+        showWhen: "$.shippingRequired === true"
+
+    # Variant reference
+    - ref: "text-input"
+      variant: "search"
+      name: "product-search"
+      props:
+        placeholder: "Search products..."
+```
+
+#### TransitionTemplate
+
+```yaml
+TransitionTemplate:
+  description: "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    to: string (target state name, uses {{param}} for parameters)
+    trigger: TriggerType [enum]
+    description: string (optional)
+
+  condition:
+    expression: string (optional) # guard condition
+
+  animation:
+    type: AnimationType [enum] (optional)
+    duration: integer (optional) # milliseconds
+    easing: string (optional) # CSS easing function
+    delay: integer (optional) # delay before animation
+
+  actions: string[] (optional) # StateAction names to execute
+
+  enums:
+    TriggerType:
+      - success # Previous action succeeded
+      - failure # Previous action failed
+      - submit # User clicked submit
+      - cancel # User clicked cancel
+      - click # User interaction
+      - timeout # Timer expired
+      - dataReady # Data loaded
+      - custom # Custom event
+
+    AnimationType:
+      - fade # Fade in/out
+      - slide # Slide in direction
+      - scale # Scale up/down
+      - none # No animation
+
+  examples:
+    # Success transition
+    - name: "to-viewing-on-success"
+      to: "viewing"
+      trigger: success
+      animation:
+        type: fade
+        duration: 200
+
+    # Parameterized transition
+    - name: "to-error-on-failure"
+      to: "{{errorState}}"
+      trigger: failure
+      condition:
+        expression: "error.status !== 401"
+
+    # Conditional transition
+    - name: "to-editing-if-editable"
+      to: "editing"
+      trigger: click
+      condition:
+        expression: "user.hasPermission('edit') && data.status === 'draft'"
+      animation:
+        type: slide
+        duration: 300
+
+    # Timeout transition
+    - name: "auto-save-timeout"
+      to: "saving"
+      trigger: timeout
+      condition:
+        expression: "form.isDirty"
+```
+
+#### StateActionTemplate
+
+```yaml
+StateActionTemplate:
+  description: "A reusable template defining actions to execute during component state transitions. Enables standardized behavior patterns for common state changes."
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    action: ActionType [enum]
+    description: string (optional)
+
+  api:
+    operationId: string (optional) # uses {{param}} for parameters
+    method: HttpMethod (optional)
+    endpoint: string (optional)
+
+  data:
+    source: DataSource [enum] (optional)
+    target: string (optional) # JSONPath, uses {{param}} for parameters
+    transform: string (optional)
+
+  errorHandling:
+    onError: string (optional) # target state
+    showNotification: boolean (optional)
+    errorMessage: string (optional)
+
+  enums:
+    ActionType:
+      - fetchData # Retrieve data from API
+      - saveData # Send data to API
+      - deleteData # Delete via API
+      - validateForm # Run client-side validation
+      - clearForm # Reset form to defaults
+      - showNotification # Display message to user
+      - navigateTo # Navigate to another screen
+      - callAPI # Generic API call
+      - updateState # Update local state
+      - computeValue # Calculate derived value
+
+    DataSource:
+      - api-response
+      - form-data
+      - route-params
+      - query-params
+      - local-storage
+      - constant
+      - computed
+
+  examples:
+    # Fetch data template
+    - name: "fetch-entity"
+      action: fetchData
+      api:
+        operationId: "{{fetchOperation}}"
+      data:
+        target: "{{entityPath}}"
+      errorHandling:
+        onError: "error"
+        showNotification: true
+
+    # Save data template
+    - name: "save-entity"
+      action: saveData
+      api:
+        operationId: "{{saveOperation}}"
+      data:
+        source: form-data
+      errorHandling:
+        onError: "error"
+        showNotification: true
+        errorMessage: "Failed to save changes"
+
+    # Validate and proceed
+    - name: "validate-before-submit"
+      action: validateForm
+      errorHandling:
+        onError: "editing"
+        showNotification: true
+        errorMessage: "Please fix validation errors"
+
+    # Navigation action
+    - name: "navigate-to-list"
+      action: navigateTo
+      data:
+        target: "{{listPath}}"
+```
+
+#### TableColumn
+
+```yaml
+TableColumn:
+  description: "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (column identifier)
+    header: string (column header text)
+    field: string (data field path, e.g., "product.name")
+    width: string (optional) # fixed width, e.g., "150px", "20%"
+    minWidth: string (optional)
+    maxWidth: string (optional)
+
+  display:
+    type: ColumnDisplayType [enum] (optional)
+    format: string (optional) # format pattern
+    template: string (optional) # custom render template
+    align: TextAlign [enum] (optional)
+    truncate: boolean (optional)
+    wrap: boolean (optional)
+
+  sorting:
+    sortable: boolean (optional) # default: false
+    sortField: string (optional) # field to sort by if different from field
+    defaultSort: SortDirection [enum] (optional)
+    sortComparator: string (optional) # custom sort function
+
+  filtering:
+    filterable: boolean (optional) # default: false
+    filterType: FilterType [enum] (optional)
+    filterOptions: any[] (optional) # for select filters
+    filterPlaceholder: string (optional)
+
+  behavior:
+    hidden: boolean (optional) # hide column
+    hideable: boolean (optional) # allow user to hide
+    resizable: boolean (optional)
+    reorderable: boolean (optional)
+    sticky: StickyPosition [enum] (optional)
+
+  enums:
+    ColumnDisplayType:
+      - text # Plain text
+      - number # Numeric with formatting
+      - currency # Currency format
+      - date # Date format
+      - datetime # Date and time format
+      - boolean # Checkbox or Yes/No
+      - badge # Status badge
+      - link # Clickable link
+      - image # Image thumbnail
+      - avatar # User avatar
+      - actions # Action buttons
+      - custom # Custom renderer
+
+    TextAlign:
+      - left
+      - center
+      - right
+
+    SortDirection:
+      - asc
+      - desc
+
+    FilterType:
+      - text # Text search
+      - select # Dropdown selection
+      - multiselect # Multiple selection
+      - date # Date picker
+      - daterange # Date range
+      - number # Numeric range
+      - boolean # Yes/No toggle
+
+    StickyPosition:
+      - left
+      - right
+      - none
+
+  examples:
+    # Text column with sorting
+    - name: "product-name"
+      header: "Product Name"
+      field: "name"
+      width: "200px"
+      sorting:
+        sortable: true
+        defaultSort: asc
+      filtering:
+        filterable: true
+        filterType: text
+
+    # Currency column
+    - name: "price"
+      header: "Price"
+      field: "price"
+      width: "100px"
+      display:
+        type: currency
+        format: "$0,0.00"
+        align: right
+      sorting:
+        sortable: true
+
+    # Status badge column
+    - name: "status"
+      header: "Status"
+      field: "status"
+      width: "120px"
+      display:
+        type: badge
+      filtering:
+        filterable: true
+        filterType: select
+        filterOptions:
+          - value: "active"
+            label: "Active"
+          - value: "inactive"
+            label: "Inactive"
+
+    # Actions column
+    - name: "actions"
+      header: ""
+      field: null
+      width: "80px"
+      display:
+        type: actions
+      behavior:
+        sticky: right
+        hideable: false
+```
+
+#### ChartSeries
+
+```yaml
+ChartSeries:
+  description: "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts."
+  attributes:
+    id: string (UUID) [PK]
+    name: string (series identifier)
+    label: string (legend label)
+    type: SeriesType [enum] (optional) # override chart default
+    dataField: string (data field for values)
+    categoryField: string (optional) # field for x-axis categories
+
+  styling:
+    color: string (optional) # series color
+    colorField: string (optional) # field for dynamic colors
+    colorScale: string[] (optional) # color palette
+    opacity: number (optional) # 0-1
+    lineWidth: integer (optional) # for line charts
+    lineStyle: LineStyle [enum] (optional)
+    markerEnabled: boolean (optional)
+    markerSize: integer (optional)
+    fillEnabled: boolean (optional) # for area charts
+
+  stacking:
+    enabled: boolean (optional)
+    group: string (optional) # stack group name
+
+  labels:
+    enabled: boolean (optional)
+    format: string (optional)
+    position: LabelPosition [enum] (optional)
+    rotation: integer (optional)
+
+  tooltip:
+    enabled: boolean (optional)
+    format: string (optional)
+    template: string (optional) # custom tooltip template
+
+  animation:
+    enabled: boolean (optional)
+    duration: integer (optional) # milliseconds
+    easing: string (optional)
+
+  enums:
+    SeriesType:
+      - line
+      - area
+      - bar
+      - column
+      - pie
+      - donut
+      - scatter
+      - bubble
+      - radar
+      - heatmap
+
+    LineStyle:
+      - solid
+      - dashed
+      - dotted
+
+    LabelPosition:
+      - inside
+      - outside
+      - center
+      - top
+      - bottom
+
+  examples:
+    # Line series for revenue
+    - name: "revenue"
+      label: "Revenue"
+      type: line
+      dataField: "revenue"
+      categoryField: "month"
+      styling:
+        color: "#4CAF50"
+        lineWidth: 2
+        markerEnabled: true
+        markerSize: 4
+      tooltip:
+        enabled: true
+        format: "${value:,.2f}"
+
+    # Bar series for quantity
+    - name: "quantity"
+      label: "Units Sold"
+      type: bar
+      dataField: "quantity"
+      categoryField: "product"
+      styling:
+        color: "#2196F3"
+        opacity: 0.8
+      labels:
+        enabled: true
+        position: top
+
+    # Stacked area series
+    - name: "desktop-traffic"
+      label: "Desktop"
+      type: area
+      dataField: "desktop"
+      stacking:
+        enabled: true
+        group: "traffic"
+      styling:
+        color: "#9C27B0"
+        fillEnabled: true
+        opacity: 0.6
+
+    # Pie series
+    - name: "category-distribution"
+      label: "Categories"
+      type: pie
+      dataField: "value"
+      categoryField: "category"
+      styling:
+        colorScale: ["#FF5722", "#FF9800", "#FFC107", "#8BC34A", "#03A9F4"]
+      labels:
+        enabled: true
+        format: "{percentage:.1f}%"
+        position: outside
+```
+
 ## Example UX Specification (Three-Tier Architecture)
 
 ### Library Definition
@@ -1250,11 +2182,11 @@ statePatterns:
         initial: true
         transitions:
           - to: "loading"
-            on: dataReady
+            trigger: dataReady
             condition:
               expression: "routeParams.id !== null"
           - to: "editing"
-            on: dataReady
+            trigger: dataReady
             condition:
               expression: "routeParams.id === null"
       - name: "loading"
@@ -1268,27 +2200,27 @@ statePatterns:
               onError: "error"
         transitions:
           - to: "viewing"
-            on: success
+            trigger: success
           - to: "error"
-            on: failure
+            trigger: failure
       - name: "viewing"
         transitions:
           - to: "editing"
-            on: click
+            trigger: click
       - name: "editing"
         transitions:
           - to: "validating"
-            on: submit
+            trigger: submit
           - to: "viewing"
-            on: cancel
+            trigger: cancel
       - name: "validating"
         onEnter:
           - action: validateForm
         transitions:
           - to: "saving"
-            on: success
+            trigger: success
           - to: "editing"
-            on: failure
+            trigger: failure
       - name: "saving"
         onEnter:
           - action: saveData
@@ -1296,13 +2228,13 @@ statePatterns:
               operationId: "{{saveOperation}}"
         transitions:
           - to: "viewing"
-            on: success
+            trigger: success
           - to: "error"
-            on: failure
+            trigger: failure
       - name: "error"
         transitions:
           - to: "editing"
-            on: click
+            trigger: click
     entryPoints: ["initial"]
     exitPoints: ["viewing"]
 

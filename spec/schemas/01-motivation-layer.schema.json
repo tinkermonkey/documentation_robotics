@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/01-motivation-layer.schema.json",
   "title": "Motivation Layer Schema",
-  "description": "Schema for Motivation Layer",
+  "description": "Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.",
   "type": "object",
   "properties": {
     "stakeholders": {
