@@ -49,7 +49,7 @@ jobs:
       - name: Bundle viewer
         working-directory: ./cli
         run: |
-          python scripts/bundle_viewer.py
+          python ../scripts/bundle_viewer.py
 
       - name: Run tests
         working-directory: ./cli
@@ -83,7 +83,7 @@ jobs:
       - name: Bundle viewer
         working-directory: ./cli
         run: |
-          python scripts/bundle_viewer.py
+          python ../scripts/bundle_viewer.py
 
       - name: Run conformance tests
         working-directory: ./cli

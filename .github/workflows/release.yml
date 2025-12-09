@@ -124,7 +124,7 @@ jobs:
       - name: Bundle viewer
         working-directory: ./cli
         run: |
-          python scripts/bundle_viewer.py
+          python ../scripts/bundle_viewer.py
 
       - name: Build package
         working-directory: ./cli
