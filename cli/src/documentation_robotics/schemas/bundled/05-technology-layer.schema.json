@@ -1,368 +1,605 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/05-technology-layer.json",
+  "$id": "https://example.com/schemas/05-technology-layer.schema.json",
   "title": "Technology Layer Schema",
-  "description": "ArchiMate Technology Layer elements for infrastructure, nodes, and technology services",
+  "description": "Schema for Technology Layer",
   "type": "object",
   "properties": {
     "nodes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Node" }
+      "description": "Collection of Node entities",
+      "items": {
+        "$ref": "#/definitions/Node"
+      }
     },
     "devices": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Device" }
+      "description": "Collection of Device entities",
+      "items": {
+        "$ref": "#/definitions/Device"
+      }
     },
-    "systemSoftware": {
+    "system-softwares": {
       "type": "array",
-      "items": { "$ref": "#/definitions/SystemSoftware" }
+      "description": "Collection of SystemSoftware entities",
+      "items": {
+        "$ref": "#/definitions/SystemSoftware"
+      }
     },
-    "technologyCollaborations": {
+    "technology-collaborations": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyCollaboration" }
+      "description": "Collection of TechnologyCollaboration entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyCollaboration"
+      }
     },
-    "technologyInterfaces": {
+    "technology-interfaces": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyInterface" }
+      "description": "Collection of TechnologyInterface entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyInterface"
+      }
     },
     "paths": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Path" }
+      "description": "Collection of Path entities",
+      "items": {
+        "$ref": "#/definitions/Path"
+      }
     },
-    "communicationNetworks": {
+    "communication-networks": {
       "type": "array",
-      "items": { "$ref": "#/definitions/CommunicationNetwork" }
+      "description": "Collection of CommunicationNetwork entities",
+      "items": {
+        "$ref": "#/definitions/CommunicationNetwork"
+      }
     },
-    "technologyFunctions": {
+    "technology-functions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyFunction" }
+      "description": "Collection of TechnologyFunction entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyFunction"
+      }
     },
-    "technologyProcesses": {
+    "technology-processes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyProcess" }
+      "description": "Collection of TechnologyProcess entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyProcess"
+      }
     },
-    "technologyInteractions": {
+    "technology-interactions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyInteraction" }
+      "description": "Collection of TechnologyInteraction entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyInteraction"
+      }
     },
-    "technologyEvents": {
+    "technology-events": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyEvent" }
+      "description": "Collection of TechnologyEvent entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyEvent"
+      }
     },
-    "technologyServices": {
+    "technology-services": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TechnologyService" }
+      "description": "Collection of TechnologyService entities",
+      "items": {
+        "$ref": "#/definitions/TechnologyService"
+      }
     },
     "artifacts": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Artifact" }
-    },
-    "relationships": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/Relationship" }
+      "description": "Collection of Artifact entities",
+      "items": {
+        "$ref": "#/definitions/Artifact"
+      }
     }
   },
   "definitions": {
     "Node": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Computational or physical resource that hosts artifacts",
+      "required": [
+        "id",
+        "name",
+        "nodeType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "nodeType": {
-          "type": "string",
-          "enum": ["server", "container", "vm", "kubernetes-cluster", "serverless-function", "database-cluster"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "node.provider": {
-              "type": "string"
+            "node": {
+              "type": "object",
+              "properties": {
+                "provider": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "instance-type": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "region": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "node.instance-type": {
-              "type": "string"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "terraform": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "node.region": {
-              "type": "string"
-            },
-            "spec.terraform": {
-              "type": "string"
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs (technology selection principles)"
-            },
-            "motivation.constrained-by": {
-              "type": "string",
-              "description": "Comma-separated Constraint IDs (budget, vendor, regulatory)"
-            },
-            "motivation.fulfills-requirements": {
-              "type": "string",
-              "description": "Comma-separated Requirement IDs (technical/non-functional)"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, technology selection principles"
+                },
+                "constrained-by": {
+                  "type": "string",
+                  "description": "optional, budget, vendor, regulatory constraints"
+                },
+                "fulfills-requirements": {
+                  "type": "string",
+                  "description": "optional, technical/non-functional requirements"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "NodeType": {
+          "type": "string",
+          "enum": [
+            "server",
+            "container",
+            "vm",
+            "kubernetes-cluster",
+            "serverless-function",
+            "database-cluster"
+          ]
         }
       }
     },
     "Device": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Physical IT resource with processing capability",
+      "required": [
+        "id",
+        "name",
+        "deviceType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "deviceType": {
-          "type": "string",
-          "enum": ["server", "workstation", "mobile", "iot-device", "network-device"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "device.manufacturer": {
-              "type": "string"
-            },
-            "device.model": {
-              "type": "string"
+            "device": {
+              "type": "object",
+              "properties": {
+                "manufacturer": {
+                  "type": "string",
+                  "description": ""
+                },
+                "model": {
+                  "type": "string",
+                  "description": ""
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "DeviceType": {
+          "type": "string",
+          "enum": [
+            "server",
+            "workstation",
+            "mobile",
+            "iot-device",
+            "network-device"
+          ]
         }
       }
     },
     "SystemSoftware": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Software that provides platform for applications",
+      "required": [
+        "id",
+        "name",
+        "softwareType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "softwareType": {
-          "type": "string",
-          "enum": ["operating-system", "database", "middleware", "container-runtime", "web-server", "message-broker"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "software.version": {
-              "type": "string"
+            "software": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": ""
+                },
+                "license": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "software.license": {
-              "type": "string",
-              "enum": ["opensource", "commercial", "proprietary"]
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs (software selection principles)"
-            },
-            "motivation.constrained-by": {
-              "type": "string",
-              "description": "Comma-separated Constraint IDs (license, compliance)"
-            },
-            "motivation.fulfills-requirements": {
-              "type": "string",
-              "description": "Comma-separated Requirement IDs (security, compliance)"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, software selection principles"
+                },
+                "constrained-by": {
+                  "type": "string",
+                  "description": "optional, license, compliance constraints"
+                },
+                "fulfills-requirements": {
+                  "type": "string",
+                  "description": "optional, security, compliance requirements"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "SystemSoftwareType": {
+          "type": "string",
+          "enum": [
+            "operating-system",
+            "database",
+            "middleware",
+            "container-runtime",
+            "web-server",
+            "message-broker"
+          ]
         }
       }
     },
     "TechnologyCollaboration": {
       "type": "object",
-      "required": ["id", "name", "nodes"],
+      "description": "Aggregate of nodes working together",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "nodes": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "minItems": 2
+            "type": "string"
+          }
         }
       }
     },
     "TechnologyInterface": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Point of access where technology services are available",
+      "required": [
+        "id",
+        "name",
+        "protocol"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "protocol": {
-          "type": "string",
-          "enum": ["HTTP", "HTTPS", "TCP", "UDP", "WebSocket", "AMQP", "MQTT", "SQL"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "interface.port": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 65535
-            },
-            "interface.url": {
-              "type": "string",
-              "format": "uri"
+            "interface": {
+              "type": "object",
+              "properties": {
+                "port": {
+                  "type": "string",
+                  "description": ""
+                },
+                "url": {
+                  "type": "string",
+                  "description": ""
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "TechProtocol": {
+          "type": "string",
+          "enum": [
+            "HTTP",
+            "HTTPS",
+            "TCP",
+            "UDP",
+            "WebSocket",
+            "AMQP",
+            "MQTT",
+            "SQL"
+          ]
         }
       }
     },
     "Path": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Link between nodes through which they exchange",
+      "required": [
+        "id",
+        "name",
+        "pathType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "pathType": {
-          "type": "string",
-          "enum": ["network", "vpn", "direct-connect", "internet"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "path.bandwidth": {
-              "type": "string"
-            },
-            "path.latency": {
-              "type": "string"
+            "path": {
+              "type": "object",
+              "properties": {
+                "bandwidth": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "latency": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "PathType": {
+          "type": "string",
+          "enum": [
+            "network",
+            "vpn",
+            "direct-connect",
+            "internet"
+          ]
         }
       }
     },
     "CommunicationNetwork": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Set of structures that connects nodes",
+      "required": [
+        "id",
+        "name",
+        "networkType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "networkType": {
-          "type": "string",
-          "enum": ["lan", "wan", "vpn", "internet", "cdn"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "network.cidr": {
-              "type": "string"
+            "network": {
+              "type": "object",
+              "properties": {
+                "cidr": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "vlan": {
+                  "type": "string",
+                  "description": ""
+                }
+              }
             },
-            "network.vlan": {
-              "type": "string"
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs (network architecture principles)"
-            },
-            "motivation.constrained-by": {
-              "type": "string",
-              "description": "Comma-separated Constraint IDs (regulatory, data residency)"
-            },
-            "motivation.fulfills-requirements": {
-              "type": "string",
-              "description": "Comma-separated Requirement IDs (security, compliance)"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, network architecture principles"
+                },
+                "constrained-by": {
+                  "type": "string",
+                  "description": "optional, regulatory, data residency constraints"
+                },
+                "fulfills-requirements": {
+                  "type": "string",
+                  "description": "optional, security, compliance requirements"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "NetworkType": {
+          "type": "string",
+          "enum": [
+            "lan",
+            "wan",
+            "vpn",
+            "internet",
+            "cdn"
+          ]
         }
       }
     },
     "TechnologyFunction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Collection of technology behavior",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "TechnologyProcess": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Sequence of technology behaviors",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "process.automation": {
-              "type": "string"
+            "process": {
+              "type": "object",
+              "properties": {
+                "automation": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
         }
@@ -370,160 +607,257 @@
     },
     "TechnologyInteraction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Unit of collective technology behavior",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "TechnologyEvent": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Technology state change",
+      "required": [
+        "id",
+        "name",
+        "eventType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "eventType": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "TechEventType": {
           "type": "string",
-          "enum": ["startup", "shutdown", "failure", "scaling", "maintenance"]
+          "enum": [
+            "startup",
+            "shutdown",
+            "failure",
+            "scaling",
+            "maintenance"
+          ]
         }
       }
     },
     "TechnologyService": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Externally visible unit of technology functionality",
+      "required": [
+        "id",
+        "name",
+        "serviceType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "serviceType": {
-          "type": "string",
-          "enum": ["infrastructure", "platform", "storage", "compute", "network"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "service.sla": {
-              "type": "string"
+            "service": {
+              "type": "object",
+              "properties": {
+                "sla": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "monitoring": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "service.monitoring": {
-              "type": "string"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "supports-goals": {
+                  "type": "string",
+                  "description": "optional, comma-separated Goal IDs this service supports"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                },
+                "constrained-by": {
+                  "type": "string",
+                  "description": "optional, comma-separated Constraint IDs"
+                }
+              }
             },
-            "motivation.supports-goals": {
-              "type": "string",
-              "description": "Comma-separated Goal IDs this service supports"
-            },
-            "motivation.governed-by-principles": {
-              "type": "string",
-              "description": "Comma-separated Principle IDs"
-            },
-            "motivation.constrained-by": {
-              "type": "string",
-              "description": "Comma-separated Constraint IDs"
-            },
-            "apm.sla-target-availability": {
-              "type": "string",
-              "description": "Target uptime percentage (e.g., '99.9%', '99.95%', '99.99%')"
-            },
-            "apm.sla-target-latency": {
-              "type": "string",
-              "description": "Target response time (e.g., '5ms', '10ms', '50ms')"
-            },
-            "apm.health-monitored": {
-              "type": "string",
-              "enum": ["true", "false"],
-              "description": "Whether health is actively monitored"
-            },
-            "apm.health-check-endpoint": {
-              "type": "string",
-              "description": "Health check endpoint (e.g., '/health', '/readiness')"
+            "apm": {
+              "type": "object",
+              "properties": {
+                "sla-target-availability": {
+                  "type": "string",
+                  "description": "optional, target uptime percentage"
+                },
+                "sla-target-latency": {
+                  "type": "string",
+                  "description": "optional, target response time"
+                },
+                "health-monitored": {
+                  "type": "string",
+                  "description": "optional, whether health is actively monitored"
+                },
+                "health-check-endpoint": {
+                  "type": "string",
+                  "description": "optional, health check endpoint"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "TechServiceType": {
+          "type": "string",
+          "enum": [
+            "infrastructure",
+            "platform",
+            "storage",
+            "compute",
+            "network"
+          ]
         }
       }
     },
     "Artifact": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Physical piece of data used or produced",
+      "required": [
+        "id",
+        "name",
+        "artifactType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "artifactType": {
-          "type": "string",
-          "enum": ["database", "file", "configuration", "binary", "log", "backup"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "artifact.format": {
-              "type": "string"
+            "artifact": {
+              "type": "object",
+              "properties": {
+                "format": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "size": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "artifact.size": {
-              "type": "string"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "database": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "spec.database": {
-              "type": "string"
+            "security": {
+              "type": "object",
+              "properties": {
+                "encryption-required": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "encryption-type": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "classification": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "pii": {
+                  "type": "string",
+                  "description": "optional, contains personally identifiable information"
+                }
+              }
             },
-            "motivation.constrained-by": {
-              "type": "string",
-              "description": "Comma-separated Constraint IDs (retention, compliance)"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "constrained-by": {
+                  "type": "string",
+                  "description": "optional, retention, compliance constraints"
+                }
+              }
             }
           }
         }
-      }
-    },
-    "Relationship": {
-      "type": "object",
-      "required": ["type", "source", "target"],
-      "properties": {
-        "type": {
+      },
+      "definitions": {
+        "ArtifactType": {
           "type": "string",
-          "enum": ["Composition", "Assignment", "Realization", "Triggering", "Flow", "Access", "Association", "Serving", "Used By"]
-        },
-        "source": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "target": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "documentation": {
-          "type": "string"
+          "enum": [
+            "database",
+            "file",
+            "configuration",
+            "binary",
+            "log",
+            "backup"
+          ]
         }
       }
     }

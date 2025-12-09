@@ -319,8 +319,60 @@ class VisualizationServer:
         Returns:
             HTML response
         """
-        # Serve index.html from bundled viewer
-        return await self._serve_static_file("index.html")
+        # Try to serve index.html from bundled viewer
+        try:
+            return await self._serve_static_file("index.html")
+        except (FileNotFoundError, ModuleNotFoundError):
+            # Fallback to placeholder HTML if viewer package not available
+            fallback_html = """
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation Robotics - Model Visualization Server</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .error-box {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 4px;
+            padding: 20px;
+            margin: 20px 0;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-family: 'Courier New', monospace;
+        }
+    </style>
+</head>
+<body>
+    <h1>Documentation Robotics - Model Visualization Server</h1>
+    <div class="error-box">
+        <h2>⚠️ Viewer Not Available</h2>
+        <p>The documentation-robotics-viewer package is not installed or bundled.</p>
+        <p>The visualization server is running and API endpoints are available, but the web UI cannot be displayed.</p>
+        <h3>To install the viewer:</h3>
+        <p>Run: <code>pip install documentation-robotics-viewer</code></p>
+    </div>
+    <h2>Available Endpoints:</h2>
+    <ul>
+        <li><code>GET /health</code> - Server health check</li>
+        <li><code>GET /api/model</code> - Model data (requires authentication)</li>
+        <li><code>WS /ws</code> - WebSocket connection (requires authentication)</li>
+    </ul>
+</body>
+</html>
+            """
+            return web.Response(text=fallback_html, content_type="text/html")
 
     async def _handle_static_file(self, request: web.Request) -> web.Response:
         """

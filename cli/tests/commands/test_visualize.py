@@ -84,7 +84,8 @@ class TestVisualizationServer(AioHTTPTestCase):
         assert resp.status == 200
         text = await resp.text()
         assert "Documentation Robotics" in text
-        assert "Model Visualization" in text
+        # New bundled viewer uses React - just check it has the root div
+        assert '<div id="root"></div>' in text
 
     @viewer_bundled
     @unittest_run_loop

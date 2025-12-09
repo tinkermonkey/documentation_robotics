@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 # Add scripts directory to path
-sys.path.insert(0, str(Path(__file__).parent.parent.parent / "scripts"))
+sys.path.insert(0, str(Path(__file__).parents[3] / "scripts"))
 
 from generators.markdown_parser import (  # noqa: E402
     AttributeSpec,

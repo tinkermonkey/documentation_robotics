@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.3.0-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.5.0-green)](../cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](.)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.3.0
+**Version:** 0.5.0
 **Status:** Draft
-**Last Updated:** 2025-11-29
+**Last Updated:** 2025-12-09
 
 ## Overview
 
@@ -51,7 +51,7 @@ spec/
 │   ├── 06-api-layer.md             # INTERFACE - Service contracts
 │   ├── 07-data-model-layer.md      # STRUCTURE - Data definitions
 │   ├── 08-datastore-layer.md       # STORAGE - Database schemas
-│   ├── 09-ux-layer.md              # PRESENTATION - User experience
+│   ├── 09-ux-layer.md              # PRESENTATION - User experience (3-tier architecture)
 │   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
 │   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring
 │   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
@@ -168,7 +168,7 @@ The specification defines 12 layers that cover the complete software system life
 06. API              INTERFACE  Service contracts (OpenAPI)
 07. Data Model       STRUCTURE  Data definitions (JSON Schema)
 08. Datastore        STORAGE    Database schemas (SQL DDL)
-09. UX               PRESENT    User experience specifications
+09. UX               PRESENT    User experience (three-tier: libraries, applications, specs)
 10. Navigation       FLOW       Navigation and routing
 11. APM              OBSERVE    Monitoring and tracing (OTel)
 12. Testing          VERIFY     Test coverage modeling
@@ -220,9 +220,38 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 ✅ **Traceable** - Cross-layer references enable requirements traceability
 ✅ **Pragmatic** - Layer ordering matches real-world workflows
 
-## Recent Enhancements (v0.3.0)
+## Recent Enhancements
 
-### Testing Coverage Layer (NEW)
+### UX Layer Three-Tier Architecture (v0.5.0)
+
+The UX Layer has been redesigned with a three-tier component library architecture that optimizes for both reusability and simplicity:
+
+- **📚 Tier 1: UXLibrary** - Reusable design system components, sub-views, and state patterns
+  - Define components once, reuse across applications
+  - Component variants, slots for customization, data contracts
+  - State machine templates (CRUD, Wizard, Search patterns)
+- **🏢 Tier 2: UXApplication** - Application-level organization and shared configuration
+  - Theme/design tokens for consistent styling
+  - Shared layouts (AdminLayout, PublicLayout, etc.)
+  - Global state management and library imports
+- **📄 Tier 3: UXSpec** - Simplified experience-specific configuration
+  - References library components instead of inline definitions
+  - ~73% reduction in YAML (300 → 80 lines typical)
+  - Pattern extension binding for state machines
+
+**Benefits:**
+- **Design System Alignment** - Maps naturally to Figma/Storybook workflows
+- **Enterprise Scale** - Multiple apps share design system libraries
+- **DRY Principle** - Single source of truth for component behavior
+- **Backward Compatible** - Existing flat UXSpecs continue to work
+
+**Complete Specification:**
+- **Layer 09 Specification**: [layers/09-ux-layer.md](layers/09-ux-layer.md)
+- **JSON Schema**: [schemas/09-ux-layer.schema.json](schemas/09-ux-layer.schema.json)
+- **Migration Guide**: Included in layer specification
+- **New Entities**: UXLibrary, LibraryComponent, LibrarySubView, StatePattern, ActionPattern, UXApplication
+
+### Testing Coverage Layer (v0.3.0)
 
 The specification now includes a comprehensive Testing Layer for modeling test coverage requirements and traceability:
 
@@ -302,10 +331,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.3.0
-**Release Date:** 2025-11-29
+**Current Version:** 0.5.0
+**Release Date:** 2025-12-09
 **Status:** Draft
-**Next Review:** 2025-05-29
+**Next Review:** 2025-06-09
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -355,7 +384,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.3.0},
+  version = {0.5.0},
   year = {2025},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

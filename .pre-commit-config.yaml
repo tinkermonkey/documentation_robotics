@@ -102,7 +102,7 @@ repos:
 
       - id: check-schemas-up-to-date
         name: Check JSON Schemas match markdown
-        entry: python cli/scripts/generate_schemas.py --check-only
+        entry: python scripts/generate_schemas.py --check-only
         language: system
         files: ^spec/layers/.*\.md$
         pass_filenames: false
@@ -110,7 +110,7 @@ repos:
 
       - id: validate-link-registry
         name: Validate link registry is synchronized
-        entry: python scripts/generators/validate_link_registry.py
+        entry: python scripts/validate_markdown.py --validate-links
         language: system
         files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
         pass_filenames: false

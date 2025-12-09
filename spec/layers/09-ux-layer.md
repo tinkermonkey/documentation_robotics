@@ -4,6 +4,21 @@
 
 The UX Layer defines user experience state management, interaction design, and behavior across multiple channels (visual, voice, chat, SMS). This is a **custom specification** as no standard adequately covers the combination of state machines, component composition, and API integration needed for modern multi-channel applications.
 
+### Three-Tier Architecture
+
+The UX Layer follows a **three-tier architecture** that separates concerns and promotes reusability:
+
+1. **Library Tier** (UXLibrary, LibraryComponent, LibrarySubView): Reusable, shareable UI components and component groupings that can be shared across applications
+2. **Pattern Tier** (StatePattern, ActionPattern): Reusable behavioral patterns for state management and user actions
+3. **Application Tier** (UXApplication, UXSpec): Application-specific configurations that compose library components and patterns
+
+This architecture enables:
+
+- **Reusability**: Components and patterns defined once, used across multiple applications
+- **Consistency**: Shared libraries ensure consistent UX across products
+- **Maintainability**: Changes to library components propagate to all consuming applications
+- **Flexibility**: Applications can customize and extend library components
+
 ### UXSpec Scope
 
 A **UXSpec** models a **single, routable user experience** such as:
@@ -45,32 +60,548 @@ Our UX spec bridges the gap between design and implementation by:
 3. Mapping components to data schemas
 4. Supporting visual, voice, chat, and SMS channels
 5. Composing experiences from reusable views and components
+6. Separating reusable library components from application-specific configurations
 
 ## Entity Definitions
 
-### UXSpec
+### Tier 1: Library Entities
+
+#### UXLibrary
 
 ```yaml
-UXSpec:
-  description: "Complete UX specification for an experience (visual, voice, chat, SMS)"
+UXLibrary:
+  description: "Collection of reusable UI components and sub-views that can be shared across applications"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    version: string
+    description: string (optional)
+    author: string (optional)
+    license: string (optional)
+
+  contains:
+    - components: LibraryComponent[] (0..*) # Reusable components
+    - subViews: LibrarySubView[] (0..*) # Reusable sub-view templates
+    - statePatterns: StatePattern[] (0..*) # Reusable state machine patterns
+    - actionPatterns: ActionPattern[] (0..*) # Reusable action patterns
+
+  references:
+    - extendsLibrary: UXLibrary.id (optional) # Inherit from another library
+    - designSystem: string (path to design system specification, optional)
+
+  metadata:
+    tags: string[] (optional) # Categorization tags
+    deprecated: boolean (optional) # Mark library as deprecated
+    deprecationMessage: string (optional) # Migration guidance
+
+  examples:
+    - name: "core-components"
+      version: "2.0.0"
+      description: "Core UI component library"
+      author: "Platform Team"
+      components:
+        - # LibraryComponent definitions
+
+    - name: "ecommerce-components"
+      version: "1.5.0"
+      description: "E-commerce specific components"
+      extendsLibrary: "core-components"
+```
+
+#### LibraryComponent
+
+```yaml
+LibraryComponent:
+  description: "Reusable UI component definition that can be instantiated in multiple UXSpecs"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    type: ComponentType [enum]
+    label: string (optional)
+    description: string (optional)
+    category: string (optional) # Component category for organization
+
+  # Default configuration (can be overridden when instantiated)
+  defaults:
+    required: boolean (optional)
+    readonly: boolean (optional)
+    hidden: boolean (optional)
+
+  # Data Binding Template
+  dataBindingTemplate:
+    schemaPattern: string (JSONPath pattern for binding, optional)
+    defaultValue: any (optional)
+    dataSourcePattern: string (API operation pattern, optional)
+
+  # Component-specific configuration template
+  configTemplate: ComponentConfig (varies by type)
+
+  # Slots for customization
+  slots:
+    - name: string
+      description: string
+      required: boolean
+      defaultContent: any (optional)
+
+  # Variants
+  variants:
+    - name: string
+      description: string (optional)
+      configOverrides: object (optional)
+
+  # Security defaults
+  securityDefaults:
+    visibleToRoles: string[] (optional)
+    editableByRoles: string[] (optional)
+
+  enums:
+    ComponentType:
+      - form-field # Individual form input
+      - table # Data table
+      - chart # Chart/graph
+      - card # Content card
+      - list # Item list
+      - text # Static text/label
+      - image # Image display
+      - video # Video player
+      - audio # Audio player (for voice channel)
+      - map # Geographic map
+      - calendar # Calendar view
+      - timeline # Timeline view
+      - tree # Tree structure
+      - custom # Custom component
+
+  examples:
+    # Reusable text input component
+    - name: "text-input"
+      type: form-field
+      category: "inputs"
+      description: "Standard text input field"
+      configTemplate:
+        fieldType: text-input
+      slots:
+        - name: "prefix"
+          description: "Content before input"
+          required: false
+        - name: "suffix"
+          description: "Content after input"
+          required: false
+      variants:
+        - name: "search"
+          description: "Search input variant"
+          configOverrides:
+            props:
+              icon: "search"
+              clearable: true
+
+    # Reusable price input component
+    - name: "price-input"
+      type: form-field
+      category: "inputs"
+      description: "Currency input with formatting"
+      configTemplate:
+        fieldType: number-input
+        props:
+          min: 0
+          step: 0.01
+          prefix: "$"
+      securityDefaults:
+        visibleToRoles: ["editor", "product-manager", "admin"]
+        editableByRoles: ["product-manager", "admin"]
+```
+
+#### LibrarySubView
+
+```yaml
+LibrarySubView:
+  description: "Reusable grouping of components that can be composed into views"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    title: string (optional)
+    description: string (optional)
+    category: string (optional) # SubView category for organization
+
+  # Layout configuration
+  layout:
+    type: LayoutStyle [enum]
+    columns: integer (optional)
+    gap: string (optional)
+
+  # Component slots - define what components this sub-view expects
+  componentSlots:
+    - name: string
+      description: string (optional)
+      required: boolean
+      allowedTypes: ComponentType[] (optional) # Restrict component types
+      multiple: boolean (optional) # Allow multiple components in slot
+
+  # Default components (optional - can be overridden)
+  defaultComponents: ComponentReference[] (0..*)
+
+  # Nested sub-view slots
+  subViewSlots:
+    - name: string
+      description: string (optional)
+      required: boolean
+
+  # Behavior configuration
+  collapsible: boolean (optional)
+  collapsed: boolean (optional)
+
+  enums:
+    LayoutStyle:
+      - grid
+      - flex
+      - stack
+      - flow
+      - custom
+
+  examples:
+    # Reusable form section template
+    - name: "form-section"
+      title: "Form Section"
+      description: "Standard form section with title and grid layout"
+      layout:
+        type: grid
+        columns: 2
+        gap: "1rem"
+      componentSlots:
+        - name: "fields"
+          description: "Form fields in this section"
+          required: true
+          allowedTypes: ["form-field"]
+          multiple: true
+      collapsible: true
+
+    # Reusable address sub-view
+    - name: "address-section"
+      title: "Address"
+      description: "Standard address form section"
+      layout:
+        type: grid
+        columns: 2
+      defaultComponents:
+        - ref: "text-input"
+          name: "street-address"
+          label: "Street Address"
+          slot: "fields"
+        - ref: "text-input"
+          name: "city"
+          label: "City"
+          slot: "fields"
+        - ref: "select"
+          name: "state"
+          label: "State"
+          slot: "fields"
+        - ref: "text-input"
+          name: "zip-code"
+          label: "ZIP Code"
+          slot: "fields"
+```
+
+### Tier 2: Pattern Entities
+
+#### StatePattern
+
+```yaml
+StatePattern:
+  description: "Reusable state machine pattern for common UX flows"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    description: string (optional)
+    category: string (optional) # Pattern category (e.g., "forms", "lists", "wizards")
+
+  # Pattern parameters - values provided when pattern is used
+  parameters:
+    - name: string
+      type: string # "string", "number", "boolean", "apiOperation", "state"
+      required: boolean
+      default: any (optional)
+      description: string (optional)
+
+  # State definitions with parameter placeholders
+  states:
+    - name: string
+      initial: boolean (optional)
+      description: string (optional)
+      onEnter: StateActionTemplate[] (0..*)
+      onExit: StateActionTemplate[] (0..*)
+      transitions: TransitionTemplate[] (0..*)
+
+  # Entry and exit points for composition
+  entryPoints: string[] # State names that can be entered from outside
+  exitPoints: string[] # State names that represent completion
+
+  examples:
+    # CRUD form pattern
+    - name: "crud-form-pattern"
+      description: "Standard create/read/update/delete form flow"
+      category: "forms"
+      parameters:
+        - name: "fetchOperation"
+          type: "apiOperation"
+          required: true
+          description: "API operation to fetch entity"
+        - name: "saveOperation"
+          type: "apiOperation"
+          required: true
+          description: "API operation to save entity"
+        - name: "deleteOperation"
+          type: "apiOperation"
+          required: false
+          description: "API operation to delete entity"
+        - name: "entityPath"
+          type: "string"
+          required: true
+          default: "$.entity"
+          description: "JSONPath to store entity data"
+      states:
+        - name: "initial"
+          initial: true
+          transitions:
+            - to: "loading"
+              on: dataReady
+              condition: "{{hasEntityId}}"
+            - to: "editing"
+              on: dataReady
+              condition: "!{{hasEntityId}}"
+        - name: "loading"
+          onEnter:
+            - action: fetchData
+              api:
+                operationId: "{{fetchOperation}}"
+              data:
+                target: "{{entityPath}}"
+          transitions:
+            - to: "viewing"
+              on: success
+            - to: "error"
+              on: failure
+        - name: "viewing"
+          transitions:
+            - to: "editing"
+              on: click
+        - name: "editing"
+          transitions:
+            - to: "validating"
+              on: submit
+            - to: "viewing"
+              on: cancel
+        - name: "validating"
+          onEnter:
+            - action: validateForm
+          transitions:
+            - to: "saving"
+              on: success
+            - to: "editing"
+              on: failure
+        - name: "saving"
+          onEnter:
+            - action: saveData
+              api:
+                operationId: "{{saveOperation}}"
+          transitions:
+            - to: "viewing"
+              on: success
+            - to: "error"
+              on: failure
+        - name: "error"
+          transitions:
+            - to: "editing"
+              on: click
+      entryPoints: ["initial"]
+      exitPoints: ["viewing"]
+
+    # List with selection pattern
+    - name: "list-selection-pattern"
+      description: "List view with item selection capability"
+      category: "lists"
+      parameters:
+        - name: "listOperation"
+          type: "apiOperation"
+          required: true
+        - name: "itemsPath"
+          type: "string"
+          default: "$.items"
+      states:
+        - name: "loading"
+          initial: true
+          onEnter:
+            - action: fetchData
+              api:
+                operationId: "{{listOperation}}"
+              data:
+                target: "{{itemsPath}}"
+          transitions:
+            - to: "viewing"
+              on: success
+            - to: "error"
+              on: failure
+        - name: "viewing"
+          transitions:
+            - to: "item-selected"
+              on: click
+        - name: "item-selected"
+          transitions:
+            - to: "viewing"
+              on: click
+        - name: "error"
+          transitions:
+            - to: "loading"
+              on: click
+      entryPoints: ["loading"]
+      exitPoints: ["item-selected"]
+```
+
+#### ActionPattern
+
+```yaml
+ActionPattern:
+  description: "Reusable action configuration for common user interactions"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    description: string (optional)
+    category: string (optional) # Pattern category (e.g., "crud", "navigation", "notifications")
+
+  # Pattern parameters
+  parameters:
+    - name: string
+      type: string
+      required: boolean
+      default: any (optional)
+      description: string (optional)
+
+  # Action template
+  actionTemplate:
+    action: ActionType [enum]
+    api: ApiConfig (optional)
+    data: DataConfig (optional)
+    errorHandling: ErrorConfig (optional)
+
+  # Confirmation configuration (optional)
+  confirmation:
+    required: boolean
+    messageTemplate: string (optional)
+
+  enums:
+    ActionType:
+      - fetchData
+      - saveData
+      - deleteData
+      - validateForm
+      - clearForm
+      - showNotification
+      - navigateTo
+      - callAPI
+      - updateState
+      - computeValue
+
+  examples:
+    # Delete with confirmation pattern
+    - name: "delete-with-confirmation"
+      description: "Delete action with user confirmation"
+      category: "crud"
+      parameters:
+        - name: "deleteOperation"
+          type: "apiOperation"
+          required: true
+        - name: "entityName"
+          type: "string"
+          default: "item"
+        - name: "redirectPath"
+          type: "string"
+          required: false
+      actionTemplate:
+        action: deleteData
+        api:
+          operationId: "{{deleteOperation}}"
+        errorHandling:
+          showNotification: true
+      confirmation:
+        required: true
+        messageTemplate: "Are you sure you want to delete this {{entityName}}?"
+
+    # Save and navigate pattern
+    - name: "save-and-navigate"
+      description: "Save data and navigate to another page"
+      category: "crud"
+      parameters:
+        - name: "saveOperation"
+          type: "apiOperation"
+          required: true
+        - name: "successPath"
+          type: "string"
+          required: true
+        - name: "successMessage"
+          type: "string"
+          default: "Saved successfully"
+      actionTemplate:
+        action: saveData
+        api:
+          operationId: "{{saveOperation}}"
+        data:
+          source: form-data
+        errorHandling:
+          showNotification: true
+          errorMessage: "Failed to save"
+```
+
+### Tier 3: Application Entities
+
+#### UXApplication
+
+```yaml
+UXApplication:
+  description: "Application-level UX configuration that groups UXSpecs and defines shared settings"
   attributes:
     id: string (UUID) [PK]
     name: string
     version: string (optional)
-    experience: string (optional)
+    description: string (optional)
     channel: ChannelType [enum]
-    title: string (optional)
+
+  # Library dependencies
+  libraries:
+    - libraryRef: UXLibrary.id
+      version: string (semver range, optional)
+      alias: string (optional) # Local name for library
+
+  # Shared configuration across all UXSpecs in this application
+  sharedConfig:
+    theme: string (optional) # Theme reference
+    locale: string (optional) # Default locale
+    errorHandling: ErrorConfig (optional) # Default error handling
+
+  # Global actions available across all experiences
+  globalActions: ActionComponent[] (0..*)
+
+  # Global state patterns available to all UXSpecs
+  globalPatterns: string[] (StatePattern IDs, optional)
 
   contains:
-    - states: ExperienceState[] (1..*)
-    - views: View[] (1..*) # Routable groupings of components
-    - globalActions: ActionComponent[] (0..*) # Actions available across all states
+    - experiences: UXSpec[] (1..*) # UXSpecs in this application
 
   references:
     - application: Element.id [Application] # Links to Application Layer
     - archimateElement: Element.id [ApplicationComponent]
-    - dataSchema: string (path to JSON Schema file, optional)
-    - apiSpec: string (path to OpenAPI spec file, optional)
+
+  # Motivation Layer Integration
+  motivationAlignment:
+    supportsGoals: string[] (Goal IDs, optional)
+    deliversValue: string[] (Value IDs, optional)
+    governedByPrinciples: string[] (Principle IDs, optional)
+
+  # Security Layer Integration
+  security:
+    model: string (SecurityModel reference, optional)
+    defaultRequiredRoles: string[] (optional)
+
+  # APM Layer Integration
+  apm:
+    measuredByMetrics: string[] (optional)
 
   enums:
     ChannelType:
@@ -80,38 +611,91 @@ UXSpec:
       - sms # SMS/text messaging
       - multimodal # Multiple channels
 
-  # Motivation Layer Integration
-  motivationAlignment:
-    supportsGoals: string[] (Goal IDs this experience helps achieve, optional)
-    deliversValue: string[] (Value IDs this experience provides, optional)
-    governedByPrinciples: string[] (UX/Design Principle IDs, optional)
-    fulfillsRequirements: string[] (Requirement IDs this experience fulfills, optional)
+  examples:
+    - name: "product-management-app"
+      version: "2.0.0"
+      channel: visual
+      description: "Product management application"
+      libraries:
+        - libraryRef: "core-components"
+          version: "^2.0.0"
+        - libraryRef: "ecommerce-components"
+          version: "^1.5.0"
+          alias: "ecom"
+      sharedConfig:
+        theme: "enterprise-light"
+        locale: "en-US"
+      security:
+        model: "product-security-model"
+        defaultRequiredRoles: ["editor"]
+```
+
+#### UXSpec
+
+```yaml
+UXSpec:
+  description: "Complete UX specification for a single experience (visual, voice, chat, SMS)"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    version: string (optional)
+    experience: string (optional)
+    title: string (optional)
+    description: string (optional)
+
+  # Pattern usage - reference patterns from library or application
+  usesPatterns:
+    - patternRef: StatePattern.id
+      parameters: object # Parameter values for pattern instantiation
+
+  # State machine (can use pattern or define custom)
+  states: ExperienceState[] (0..*) # Custom states (merged with pattern states)
+
+  # View definition
+  views: View[] (1..*)
+
+  # Global actions for this experience
+  globalActions: ActionComponent[] (0..*)
+
+  references:
+    - application: UXApplication.id (optional) # Parent application
+    - dataSchema: string (path to JSON Schema file, optional)
+    - apiSpec: string (path to OpenAPI spec file, optional)
 
   # Business Layer Integration
   business:
-    supportsProcesses: string[] (BusinessProcess IDs this experience supports, optional)
-    realizesServices: string[] (BusinessService IDs this experience realizes, optional)
-    targetActors: string[] (BusinessActor IDs this experience is designed for, optional)
-    targetRoles: string[] (BusinessRole IDs this experience is designed for, optional)
+    supportsProcesses: string[] (BusinessProcess IDs, optional)
+    realizesServices: string[] (BusinessService IDs, optional)
+    targetActors: string[] (BusinessActor IDs, optional)
+    targetRoles: string[] (BusinessRole IDs, optional)
 
-  # Security Layer Integration
+  # Motivation Layer Integration (can override application-level)
+  motivationAlignment:
+    supportsGoals: string[] (optional)
+    deliversValue: string[] (optional)
+    governedByPrinciples: string[] (optional)
+    fulfillsRequirements: string[] (optional)
+
+  # Security Layer Integration (can override application-level)
   security:
-    model: string (SecurityModel reference, optional)
-    defaultRequiredRoles: string[] (Default roles required for this experience, optional)
+    requiredRoles: string[] (optional)
+    requiredPermissions: string[] (optional)
 
   # APM Layer Integration
   apm:
-    measuredByMetrics: string[] (Metric names that measure this experience, optional)
-    performanceTargets: PerformanceTargets (Optional performance goals)
+    measuredByMetrics: string[] (optional)
+    performanceTargets: PerformanceTargets (optional)
 
   PerformanceTargets:
-    loadTimeMs: integer (Target load time in milliseconds, optional)
-    interactionLatencyMs: integer (Target interaction latency in milliseconds, optional)
-    errorRatePercent: number (Target error rate percentage, optional)
-    completionRatePercent: number (Target completion rate percentage, optional)
+    loadTimeMs: integer (optional)
+    interactionLatencyMs: integer (optional)
+    errorRatePercent: number (optional)
+    completionRatePercent: number (optional)
 ```
 
-### ExperienceState
+### Supporting Entities
+
+#### ExperienceState
 
 ```yaml
 ExperienceState:
@@ -166,7 +750,7 @@ ExperienceState:
       description: "Error occurred during operation"
 ```
 
-### StateAction
+#### StateAction
 
 ```yaml
 StateAction:
@@ -177,7 +761,11 @@ StateAction:
     action: ActionType [enum]
     description: string (optional)
 
-  # API Integration
+  # Pattern reference (alternative to inline definition)
+  usesPattern: ActionPattern.id (optional)
+  patternParameters: object (optional)
+
+  # API Integration (used if not using pattern)
   api:
     operationId: string (from OpenAPI spec)
     method: HttpMethod (GET, POST, PUT, DELETE, PATCH)
@@ -218,7 +806,7 @@ StateAction:
       - computed # Calculated value
 ```
 
-### StateTransition
+#### StateTransition
 
 ```yaml
 StateTransition:
@@ -233,6 +821,9 @@ StateTransition:
   contains:
     - actions: StateAction[] (0..*)
 
+  # Condition for guarded transitions
+  condition: Condition (optional)
+
   enums:
     TriggerType:
       - success # Previous action succeeded
@@ -245,7 +836,7 @@ StateTransition:
       - custom # Custom event
 ```
 
-### Condition
+#### Condition
 
 ```yaml
 Condition:
@@ -266,7 +857,7 @@ Condition:
       description: "At least one item exists"
 ```
 
-### View
+#### View
 
 ```yaml
 View:
@@ -278,11 +869,11 @@ View:
     title: string (optional)
     description: string (optional)
     routable: boolean (optional)
-    layout: LayoutStyle (optional)
+    layout: LayoutConfig (optional)
 
   contains:
-    - subViews: SubView[] (0..*) # Reusable component groupings
-    - components: Component[] (0..*) # Direct components in view
+    - subViews: SubView[] (0..*) # Sub-view instances
+    - components: ComponentInstance[] (0..*) # Component instances
     - actions: ActionComponent[] (0..*) # Actions available in view
 
   references:
@@ -290,9 +881,9 @@ View:
 
   # Security Layer Integration
   security:
-    resourceRef: string (SecureResource reference - type must be 'screen', optional)
-    requiredRoles: string[] (Roles required to access this view, optional)
-    requiredPermissions: string[] (Permissions required to access this view, optional)
+    resourceRef: string (SecureResource reference, optional)
+    requiredRoles: string[] (optional)
+    requiredPermissions: string[] (optional)
 
   enums:
     ViewType:
@@ -304,112 +895,145 @@ View:
       - split # Split screen (master-detail)
       - conversational # Chat/voice interface
       - custom # Custom layout
-
-    LayoutStyle:
-      - grid
-      - flex
-      - stack
-      - flow
-      - custom
 ```
 
-### SubView
+#### SubView
 
 ```yaml
 SubView:
-  description: "Reusable grouping of components (not directly routable)"
+  description: "Instance of a LibrarySubView or custom sub-view definition"
   attributes:
     id: string (UUID) [PK]
     name: string
     title: string (optional)
     description: string (optional)
-    collapsible: boolean (optional)
-    collapsed: boolean (optional)
-    layout: LayoutStyle (optional)
     order: integer (optional)
 
-  contains:
-    - components: Component[] (0..*) # Components in this sub-view
-    - subViews: SubView[] (0..*) # Nested sub-views
+  # Reference to library sub-view (if using library)
+  libraryRef: LibrarySubView.id (optional)
 
-  references:
-    - conditionalDisplay: Condition (optional) # Show/hide based on condition
+  # Slot content (provides components for library slots)
+  slotContent:
+    - slotName: string
+      components: ComponentInstance[] (0..*)
 
-  examples:
-    # Form section
-    - name: "basic-info"
-      title: "Basic Information"
-      layout:
-        type: grid
-        columns: 2
-      components:
-        -  # Component definitions here
+  # Override configuration
+  overrides:
+    layout: LayoutConfig (optional)
+    collapsible: boolean (optional)
+    collapsed: boolean (optional)
 
-    # Collapsible section
-    - name: "advanced-settings"
-      title: "Advanced Settings"
-      collapsible: true
-      collapsed: true
+  # Custom components (if not using library)
+  components: ComponentInstance[] (0..*)
+
+  # Nested sub-views
+  subViews: SubView[] (0..*)
+
+  # Conditional display
+  conditionalDisplay: Condition (optional)
 ```
 
-### Component
+#### ComponentInstance
 
 ```yaml
-Component:
-  description: "Atomic UI element (table, form field, graph, custom visualization)"
+ComponentInstance:
+  description: "Instance of a LibraryComponent with application-specific configuration"
   attributes:
     id: string (UUID) [PK]
     name: string
-    type: ComponentType [enum]
+    order: integer (optional)
+
+  # Reference to library component
+  libraryRef: LibraryComponent.id (optional)
+  variant: string (optional) # Use specific variant from library
+
+  # Instance-specific overrides
+  overrides:
     label: string (optional)
-    description: string (optional)
     required: boolean (optional)
     readonly: boolean (optional)
     hidden: boolean (optional)
-    order: integer (optional)
 
-  # Data Binding
+  # Data binding (overrides or extends library template)
   dataBinding:
     schemaRef: string (JSONPath to property in JSON Schema, optional)
-    # e.g., "product-schema.json#/definitions/Product/properties/name"
     defaultValue: any (optional)
-    dataSource: string (API operation ID or data reference, optional)
+    dataSource: string (API operation ID, optional)
 
-  # Component-specific configuration
-  config: ComponentConfig (varies by type)
+  # Config overrides
+  configOverrides: object (optional)
 
-  # Conditional Display
+  # Slot content (for components with slots)
+  slotContent:
+    - slotName: string
+      content: any
+
+  # Conditional display
   conditionalDisplay: Condition (optional)
 
-  # Security Layer Integration
+  # Security overrides
   security:
-    fieldAccess: string (Field name in SecureResource for field-level access control, optional)
-    visibleToRoles: string[] (Roles that can see this component, optional)
-    editableByRoles: string[] (Roles that can edit this component, optional)
+    fieldAccess: string (optional)
+    visibleToRoles: string[] (optional)
+    editableByRoles: string[] (optional)
 
   # Dependencies
   dependsOn: string[] (component names, optional)
   triggers: string[] (components to refresh, optional)
-
-  enums:
-    ComponentType:
-      - form-field # Individual form input
-      - table # Data table
-      - chart # Chart/graph
-      - card # Content card
-      - list # Item list
-      - text # Static text/label
-      - image # Image display
-      - video # Video player
-      - audio # Audio player (for voice channel)
-      - map # Geographic map
-      - calendar # Calendar view
-      - timeline # Timeline view
-      - tree # Tree structure
-      - custom # Custom component
 ```
 
-### ComponentConfig
+#### ActionComponent
+
+```yaml
+ActionComponent:
+  description: "Interactive element that triggers actions (button, menu, link, voice command)"
+  attributes:
+    id: string (UUID) [PK]
+    name: string
+    label: string (optional)
+    type: ActionComponentType [enum]
+    icon: string (optional)
+    disabled: boolean (optional)
+    tooltip: string (optional)
+    channel: ChannelType (optional)
+
+  # Pattern reference
+  usesPattern: ActionPattern.id (optional)
+  patternParameters: object (optional)
+
+  # Inline action definition (if not using pattern)
+  action: StateAction (optional)
+
+  # Enable condition
+  enableCondition: Condition (optional)
+
+  # Confirmation prompt
+  confirmationPrompt: string (optional)
+
+  contains:
+    - children: ActionComponent[] (0..*)
+
+  enums:
+    ActionComponentType:
+      - button # Visual button
+      - menu-item # Menu option
+      - link # Hyperlink
+      - voice-command # Voice intent/command
+      - chat-button # Chat quick reply
+      - sms-keyword # SMS keyword trigger
+      - custom # Custom action type
+
+    ButtonStyle:
+      - primary
+      - secondary
+      - danger
+      - success
+      - warning
+      - ghost
+      - icon
+```
+
+#### ComponentConfig
 
 ```
 ComponentConfig:
@@ -491,7 +1115,7 @@ ComponentConfig:
     props: object (custom properties)
 ```
 
-### ValidationRule
+#### ValidationRule
 
 ```yaml
 ValidationRule:
@@ -528,398 +1152,427 @@ ValidationRule:
       message: "Must match format: AA1234"
 ```
 
-### ActionComponent
+## Example UX Specification (Three-Tier Architecture)
+
+### Library Definition
 
 ```yaml
-ActionComponent:
-  description: "Interactive element that triggers actions (button, menu, link, voice command)"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    label: string (optional)
-    type: ActionType [enum]
-    icon: string (optional)
-    disabled: boolean (optional)
-    tooltip: string (optional)
-    channel: ChannelType (optional)
+# File: libs/ux/core-components.lib.yaml
+id: "core-components"
+name: "Core Components Library"
+version: "2.0.0"
+description: "Standard UI components for all applications"
+author: "Platform Team"
 
-  contains:
-    - children: ActionComponent[] (0..*)
+components:
+  - id: "lib-text-input"
+    name: "text-input"
+    type: form-field
+    category: "inputs"
+    description: "Standard text input field"
+    configTemplate:
+      fieldType: text-input
+    slots:
+      - name: "prefix"
+        description: "Content before input"
+        required: false
+      - name: "suffix"
+        description: "Content after input"
+        required: false
+    variants:
+      - name: "search"
+        configOverrides:
+          props:
+            icon: "search"
+            clearable: true
 
-  enums:
-    ActionType:
-      - button # Visual button
-      - menu-item # Menu option
-      - link # Hyperlink
-      - voice-command # Voice intent/command
-      - chat-button # Chat quick reply
-      - sms-keyword # SMS keyword trigger
-      - custom # Custom action type
+  - id: "lib-price-input"
+    name: "price-input"
+    type: form-field
+    category: "inputs"
+    description: "Currency input with formatting"
+    configTemplate:
+      fieldType: number-input
+      props:
+        min: 0
+        step: 0.01
+        prefix: "$"
+    securityDefaults:
+      editableByRoles: ["product-manager", "admin"]
 
-    ButtonStyle: # For button type
-      - primary
-      - secondary
-      - danger
-      - success
-      - warning
-      - ghost
-      - icon
+  - id: "lib-select"
+    name: "select"
+    type: form-field
+    category: "inputs"
+    configTemplate:
+      fieldType: select
 
-  examples:
-    # Visual button
-    - name: "save-button"
-      label: "Save"
-      type: button
-      channel: visual
-      action:
-        action: saveData
+  - id: "lib-rich-text"
+    name: "rich-text-editor"
+    type: form-field
+    category: "inputs"
+    configTemplate:
+      fieldType: rich-text-editor
 
-    # Menu with children
-    - name: "actions-menu"
-      label: "Actions"
-      type: button
-      children:
-        - name: "edit"
-          label: "Edit"
-          type: menu-item
-          action:
-            action: navigateTo
-        - name: "delete"
-          label: "Delete"
-          type: menu-item
-          action:
-            action: deleteData
+subViews:
+  - id: "lib-form-section"
+    name: "form-section"
+    description: "Standard form section with title"
+    layout:
+      type: grid
+      columns: 2
+      gap: "1rem"
+    componentSlots:
+      - name: "fields"
+        description: "Form fields"
+        required: true
+        allowedTypes: ["form-field"]
+        multiple: true
+    collapsible: true
 
-    # Voice command
-    - name: "check-status"
-      label: "Check my order status"
-      type: voice-command
-      channel: voice
-      action:
-        action: fetchData
+statePatterns:
+  - id: "pattern-crud-form"
+    name: "crud-form-pattern"
+    description: "Standard CRUD form state machine"
+    category: "forms"
+    parameters:
+      - name: "fetchOperation"
+        type: "apiOperation"
+        required: true
+      - name: "saveOperation"
+        type: "apiOperation"
+        required: true
+      - name: "entityPath"
+        type: "string"
+        default: "$.entity"
+    states:
+      - name: "initial"
+        initial: true
+        transitions:
+          - to: "loading"
+            on: dataReady
+            condition:
+              expression: "routeParams.id !== null"
+          - to: "editing"
+            on: dataReady
+            condition:
+              expression: "routeParams.id === null"
+      - name: "loading"
+        onEnter:
+          - action: fetchData
+            api:
+              operationId: "{{fetchOperation}}"
+            data:
+              target: "{{entityPath}}"
+            errorHandling:
+              onError: "error"
+        transitions:
+          - to: "viewing"
+            on: success
+          - to: "error"
+            on: failure
+      - name: "viewing"
+        transitions:
+          - to: "editing"
+            on: click
+      - name: "editing"
+        transitions:
+          - to: "validating"
+            on: submit
+          - to: "viewing"
+            on: cancel
+      - name: "validating"
+        onEnter:
+          - action: validateForm
+        transitions:
+          - to: "saving"
+            on: success
+          - to: "editing"
+            on: failure
+      - name: "saving"
+        onEnter:
+          - action: saveData
+            api:
+              operationId: "{{saveOperation}}"
+        transitions:
+          - to: "viewing"
+            on: success
+          - to: "error"
+            on: failure
+      - name: "error"
+        transitions:
+          - to: "editing"
+            on: click
+    entryPoints: ["initial"]
+    exitPoints: ["viewing"]
 
-    # Chat quick reply
-    - name: "yes-button"
-      label: "Yes"
-      type: chat-button
-      channel: chat
-      action:
-        action: updateState
+actionPatterns:
+  - id: "pattern-delete-confirm"
+    name: "delete-with-confirmation"
+    description: "Delete with confirmation dialog"
+    category: "crud"
+    parameters:
+      - name: "deleteOperation"
+        type: "apiOperation"
+        required: true
+      - name: "entityName"
+        type: "string"
+        default: "item"
+    actionTemplate:
+      action: deleteData
+      api:
+        operationId: "{{deleteOperation}}"
+      errorHandling:
+        showNotification: true
+    confirmation:
+      required: true
+      messageTemplate: "Are you sure you want to delete this {{entityName}}?"
 ```
 
-## Example UX Specification
+### Application Definition
 
 ```yaml
-# File: specs/ux/product-edit-experience.ux.yaml
-version: "0.1.1"
-experience: "product-edit"
+# File: apps/ux/product-management.app.yaml
+id: "product-management-app"
+name: "Product Management Application"
+version: "2.0.0"
 channel: visual
-title: "Product Editor"
-description: "Visual experience for creating and editing products"
+description: "Application for managing product catalog"
+
+libraries:
+  - libraryRef: "core-components"
+    version: "^2.0.0"
+
+sharedConfig:
+  theme: "enterprise-light"
+  locale: "en-US"
+  errorHandling:
+    showNotification: true
+    defaultErrorMessage: "An error occurred. Please try again."
 
 references:
-  application: "app-product-management" # Links to Application entity
+  application: "app-product-management"
   archimateElement: "app-comp-product-ui"
-  dataSchema: "schemas/product.json"
-  apiSpec: "specs/api/product-api.yaml"
 
-# Motivation Layer Integration
 motivationAlignment:
   supportsGoals:
     - "goal-product-catalog-accuracy"
     - "goal-editor-productivity"
   deliversValue:
     - "value-operational-efficiency"
-    - "value-user-experience"
   governedByPrinciples:
     - "principle-accessibility-first"
     - "principle-mobile-responsive"
-    - "principle-progressive-disclosure"
-  fulfillsRequirements:
-    - "req-product-data-management"
-    - "req-real-time-validation"
-    - "req-accessibility-wcag-2-1"
+
+security:
+  model: "product-security-model"
+  defaultRequiredRoles:
+    - "editor"
+
+apm:
+  measuredByMetrics:
+    - "product.app.active.users"
+    - "product.app.error.rate"
+```
+
+### UXSpec Definition (Using Patterns and Library)
+
+```yaml
+# File: specs/ux/product-edit.ux.yaml
+id: "product-edit-experience"
+name: "product-edit"
+version: "1.0.0"
+experience: "product-edit"
+title: "Product Editor"
+description: "Visual experience for creating and editing products"
+
+# Reference parent application
+application: "product-management-app"
+
+# Use state pattern from library
+usesPatterns:
+  - patternRef: "pattern-crud-form"
+    parameters:
+      fetchOperation: "getProduct"
+      saveOperation: "updateProduct"
+      entityPath: "$.product"
+
+references:
+  dataSchema: "schemas/product.json"
+  apiSpec: "specs/api/product-api.yaml"
 
 # Business Layer Integration
 business:
   supportsProcesses:
     - "bp-product-management"
-    - "bp-inventory-management"
   realizesServices:
     - "bs-product-catalog-management"
   targetActors:
     - "ba-product-manager"
-    - "ba-catalog-administrator"
   targetRoles:
     - "br-inventory-specialist"
 
-# Security Layer Integration
-security:
-  model: "product-security-model"
-  defaultRequiredRoles:
-    - "editor"
-    - "product-manager"
+# Experience-specific motivation alignment
+motivationAlignment:
+  fulfillsRequirements:
+    - "req-product-data-management"
+    - "req-real-time-validation"
 
-# APM Layer Integration
+# APM targets
 apm:
   measuredByMetrics:
     - "product.edit.load.time"
     - "product.edit.save.duration"
     - "product.edit.error.rate"
-    - "product.edit.completion.rate"
-    - "product.edit.field.validation.errors"
   performanceTargets:
     loadTimeMs: 1000
     interactionLatencyMs: 100
     errorRatePercent: 0.5
-    completionRatePercent: 95.0
 
-# Experience State Machine
-states:
-  - name: "initial"
-    initial: true
-    description: "Screen loaded, determining mode"
-    onEnter:
-      - action: computeValue
-        description: "Check if editing existing or creating new"
-        data:
-          source: route-params
-          target: "$.mode"
-    transitions:
-      - to: "loading"
-        on: dataReady
-        condition:
-          expression: "routeParams.productId !== null"
-      - to: "editing"
-        on: dataReady
-        condition:
-          expression: "routeParams.productId === null"
-
-  - name: "loading"
-    description: "Fetching product data from API"
-    onEnter:
-      - action: fetchData
-        api:
-          operationId: "getProduct"
-          method: GET
-        data:
-          source: api-response
-          target: "$.product"
-        errorHandling:
-          onError: "error"
-          showNotification: true
-    transitions:
-      - to: "viewing"
-        on: success
-      - to: "error"
-        on: failure
-
-  - name: "viewing"
-    description: "Displaying product in read-only mode"
-    disabledComponents: ["all"] # All form components disabled
-    transitions:
-      - to: "editing"
-        on: click
-        description: "User clicked Edit button"
-
-  - name: "editing"
-    description: "User editing product data"
-    onEnter:
-      - action: updateState
-        description: "Enable form editing"
-    transitions:
-      - to: "validating"
-        on: submit
-        validate: true
-      - to: "viewing"
-        on: cancel
-        condition:
-          expression: "product.id !== null"
-          description: "Only go to viewing if existing product"
-
-  - name: "validating"
-    description: "Running client-side validation"
-    onEnter:
-      - action: validateForm
-    transitions:
-      - to: "saving"
-        on: success
-      - to: "editing"
-        on: failure
-        actions:
-          - action: showNotification
-            errorMessage: "Please fix validation errors"
-
-  - name: "saving"
-    description: "Submitting changes to API"
-    onEnter:
-      - action: saveData
-        api:
-          operationId: "updateProduct"
-          method: PUT
-        data:
-          source: form-data
-        errorHandling:
-          onError: "error"
-    transitions:
-      - to: "viewing"
-        on: success
-        actions:
-          - action: showNotification
-            errorMessage: "Product saved successfully"
-      - to: "error"
-        on: failure
-
-  - name: "error"
-    description: "Error state"
-    transitions:
-      - to: "editing"
-        on: click
-        description: "Try again"
-
-# View Definition
+# View Definition using library components
 views:
   - name: "product-form-view"
     type: form
     title: "Product Details"
     routable: true
-    route: "product-edit" # References Navigation Layer route
+    route: "product-edit"
     layout:
       type: grid
-      columns: 2
-      gap: "1rem"
+      columns: 1
+      gap: "1.5rem"
 
-    # Security Layer Integration
     security:
       resourceRef: "product-edit-screen"
       requiredRoles: ["editor", "product-manager", "admin"]
-      requiredPermissions: ["product.update", "product.read"]
 
     subViews:
+      # Basic info section using library sub-view
       - name: "basic-info"
+        libraryRef: "lib-form-section"
         title: "Basic Information"
-        layout:
-          type: grid
-          columns: 2
         order: 1
-        components:
-          - name: "product-name"
-            type: form-field
-            label: "Product Name"
-            config:
-              fieldType: text-input
-              placeholder: "Enter product name"
-              validation:
-                - type: required
-                  message: "Product name is required"
-                - type: minLength
-                  value: 3
-                  message: "Name must be at least 3 characters"
-            dataBinding:
-              schemaRef: "product.json#/properties/name"
-            required: true
+        slotContent:
+          - slotName: "fields"
+            components:
+              # Product name using library text input
+              - name: "product-name"
+                libraryRef: "lib-text-input"
+                overrides:
+                  label: "Product Name"
+                  required: true
+                dataBinding:
+                  schemaRef: "product.json#/properties/name"
+                configOverrides:
+                  placeholder: "Enter product name"
+                  validation:
+                    - type: required
+                      message: "Product name is required"
+                    - type: minLength
+                      value: 3
+                      message: "Name must be at least 3 characters"
 
-          - name: "product-sku"
-            type: form-field
-            label: "SKU"
-            config:
-              fieldType: text-input
-              placeholder: "AA1234"
-              validation:
-                - type: pattern
-                  value: "^[A-Z]{2}\\d{4}$"
-                  message: "SKU must be format: AA1234"
-            dataBinding:
-              schemaRef: "product.json#/properties/sku"
-            required: true
+              # SKU using text input with pattern validation
+              - name: "product-sku"
+                libraryRef: "lib-text-input"
+                overrides:
+                  label: "SKU"
+                  required: true
+                dataBinding:
+                  schemaRef: "product.json#/properties/sku"
+                configOverrides:
+                  placeholder: "AA1234"
+                  validation:
+                    - type: pattern
+                      value: "^[A-Z]{2}\\d{4}$"
+                      message: "SKU must be format: AA1234"
 
-          - name: "product-price"
-            type: form-field
-            label: "Price"
-            config:
-              fieldType: number-input
-              props:
-                min: 0
-                step: 0.01
-                prefix: "$"
-              validation:
-                - type: min
-                  value: 0
-                  message: "Price must be positive"
-            dataBinding:
-              schemaRef: "product.json#/properties/price"
-            required: true
-            # Security Layer Integration - field-level access control
-            security:
-              fieldAccess: "price"
-              visibleToRoles: ["editor", "product-manager", "admin"]
-              editableByRoles: ["product-manager", "admin"]
+              # Price using library price input
+              - name: "product-price"
+                libraryRef: "lib-price-input"
+                overrides:
+                  label: "Price"
+                  required: true
+                dataBinding:
+                  schemaRef: "product.json#/properties/price"
+                security:
+                  fieldAccess: "price"
+                  visibleToRoles: ["editor", "product-manager", "admin"]
+                  editableByRoles: ["product-manager", "admin"]
 
-          - name: "product-category"
-            type: form-field
-            label: "Category"
-            config:
-              fieldType: select
-              props:
-                options:
-                  - value: "electronics"
-                    label: "Electronics"
-                  - value: "clothing"
-                    label: "Clothing"
-                  - value: "food"
-                    label: "Food"
-            dataBinding:
-              schemaRef: "product.json#/properties/category"
-            required: true
+              # Category using library select
+              - name: "product-category"
+                libraryRef: "lib-select"
+                overrides:
+                  label: "Category"
+                  required: true
+                dataBinding:
+                  schemaRef: "product.json#/properties/category"
+                configOverrides:
+                  props:
+                    options:
+                      - value: "electronics"
+                        label: "Electronics"
+                      - value: "clothing"
+                        label: "Clothing"
+                      - value: "food"
+                        label: "Food"
 
+      # Description section
       - name: "description"
+        libraryRef: "lib-form-section"
         title: "Description"
-        layout:
-          type: stack
-          columns: 1
         order: 2
-        components:
-          - name: "product-description"
-            type: form-field
-            label: "Description"
-            config:
-              fieldType: rich-text-editor
-              helpText: "Detailed product description for customers"
-            dataBinding:
-              schemaRef: "product.json#/properties/description"
+        overrides:
+          layout:
+            columns: 1
+        slotContent:
+          - slotName: "fields"
+            components:
+              - name: "product-description"
+                libraryRef: "lib-rich-text"
+                overrides:
+                  label: "Description"
+                dataBinding:
+                  schemaRef: "product.json#/properties/description"
+                configOverrides:
+                  helpText: "Detailed product description for customers"
 
+      # Inventory section (collapsible)
       - name: "inventory"
+        libraryRef: "lib-form-section"
         title: "Inventory"
-        layout:
-          type: grid
-          columns: 2
         order: 3
-        collapsible: true
-        components:
-          - name: "stock-quantity"
-            type: form-field
-            label: "Stock Quantity"
-            config:
-              fieldType: number-input
-              props:
-                min: 0
-            dataBinding:
-              schemaRef: "product.json#/properties/stockQuantity"
+        overrides:
+          collapsed: true
+        slotContent:
+          - slotName: "fields"
+            components:
+              - name: "stock-quantity"
+                libraryRef: "lib-text-input"
+                overrides:
+                  label: "Stock Quantity"
+                dataBinding:
+                  schemaRef: "product.json#/properties/stockQuantity"
+                configOverrides:
+                  fieldType: number-input
+                  props:
+                    min: 0
 
-          - name: "reorder-point"
-            type: form-field
-            label: "Reorder Point"
-            config:
-              fieldType: number-input
-              helpText: "Alert when stock falls below this level"
-            dataBinding:
-              schemaRef: "product.json#/properties/reorderPoint"
+              - name: "reorder-point"
+                libraryRef: "lib-text-input"
+                overrides:
+                  label: "Reorder Point"
+                dataBinding:
+                  schemaRef: "product.json#/properties/reorderPoint"
+                configOverrides:
+                  fieldType: number-input
+                  helpText: "Alert when stock falls below this level"
 
+    # Actions
     actions:
       - name: "save-button"
         label: "Save Product"
         type: button
-        channel: visual
         icon: "save"
         action:
           action: saveData
@@ -929,7 +1582,6 @@ views:
       - name: "cancel-button"
         label: "Cancel"
         type: button
-        channel: visual
         action:
           action: navigateTo
           data:
@@ -938,17 +1590,90 @@ views:
       - name: "delete-button"
         label: "Delete"
         type: button
-        channel: visual
         icon: "trash"
-        confirmationPrompt: "Are you sure you want to delete this product?"
-        action:
-          action: deleteData
-          api:
-            operationId: "deleteProduct"
-            method: DELETE
+        usesPattern: "pattern-delete-confirm"
+        patternParameters:
+          deleteOperation: "deleteProduct"
+          entityName: "product"
         enableCondition:
           expression: "product.id !== null"
 ```
+
+## Migration Guide
+
+### Migrating from Legacy (Flat) to Three-Tier Architecture
+
+#### Before (Legacy Flat Structure)
+
+```yaml
+# Old: Single monolithic UXSpec file
+version: "0.1.1"
+experience: "product-edit"
+channel: visual
+
+# All components defined inline
+states:
+  - name: "initial"
+    # ... state definitions
+
+views:
+  - name: "product-form"
+    components:
+      - name: "product-name"
+        type: form-field
+        config:
+          fieldType: text-input
+          # Full config inline
+```
+
+#### After (Three-Tier Architecture)
+
+```yaml
+# Step 1: Extract reusable components to library
+# libs/ux/core-components.lib.yaml
+components:
+  - id: "lib-text-input"
+    name: "text-input"
+    type: form-field
+    configTemplate:
+      fieldType: text-input
+
+# Step 2: Extract reusable patterns
+statePatterns:
+  - id: "pattern-crud-form"
+    name: "crud-form-pattern"
+    # ... pattern definition
+
+# Step 3: Create application configuration
+# apps/ux/product-management.app.yaml
+libraries:
+  - libraryRef: "core-components"
+    version: "^2.0.0"
+
+# Step 4: Simplify UXSpec to reference library
+# specs/ux/product-edit.ux.yaml
+usesPatterns:
+  - patternRef: "pattern-crud-form"
+    parameters:
+      fetchOperation: "getProduct"
+
+views:
+  - subViews:
+      - slotContent:
+          - components:
+              - libraryRef: "lib-text-input"
+                overrides:
+                  label: "Product Name"
+```
+
+### Migration Steps
+
+1. **Identify reusable components**: Look for components used across multiple UXSpecs
+2. **Create component library**: Extract common components to `UXLibrary`
+3. **Identify state patterns**: Look for repeated state machine structures
+4. **Create state patterns**: Extract to `StatePattern` definitions
+5. **Create application config**: Define `UXApplication` with library dependencies
+6. **Refactor UXSpecs**: Replace inline definitions with library references
 
 ## Integration Points
 
@@ -961,7 +1686,7 @@ views:
 - **Principles guide UX design**: `motivationAlignment.governedByPrinciples` ensures consistent UX (accessibility, mobile-first, multi-channel, etc.)
 - **Requirements fulfillment**: `motivationAlignment.fulfillsRequirements` enables requirements traceability from requirements through implementation
 - **Product alignment**: Validates features deliver business value
-- **Traceability**: Requirement → UXSpec → API → Implementation creates complete audit trail
+- **Traceability**: Requirement -> UXSpec -> API -> Implementation creates complete audit trail
 
 ### To Business Layer
 
@@ -970,38 +1695,41 @@ views:
 - **Actor targeting**: `business.targetActors` documents which BusinessActor types the experience is designed for
 - **Role targeting**: `business.targetRoles` specifies which BusinessRole types use the experience
 - **Business context**: Provides business justification for why UX experiences exist
-- **Traceability**: BusinessProcess → UXSpec → Metrics enables process optimization
+- **Traceability**: BusinessProcess -> UXSpec -> Metrics enables process optimization
 
 ### To Application Layer
 
-- **UXSpec.application**: Links experience to Application entity
+- **UXApplication.application**: Links UX application to Application entity
+- **UXSpec.application**: Links experience to UXApplication
 - **Multi-app systems**: Different UX applications for different use cases (customer portal, admin panel, mobile app)
 - **Application context**: Each UX spec belongs to a specific application
 
 ### To ArchiMate Application Layer
 
-- UXSpec references ApplicationComponent via archimateElement
+- UXApplication references ApplicationComponent via archimateElement
 - Maps to frontend ApplicationComponent types
 
 ### To Security Layer
 
-- **Experience-level security**: `UXSpec.security.model` references SecurityModel, `defaultRequiredRoles` sets baseline access
+- **Application-level security**: `UXApplication.security.model` references SecurityModel, `defaultRequiredRoles` sets baseline access
+- **Experience-level security**: `UXSpec.security` can override application defaults
 - **View-level security**: `View.security.resourceRef` links to SecureResource (type: screen), `requiredRoles` and `requiredPermissions` control view access
-- **Component-level security**: `Component.security.fieldAccess` references SecureResource field-level controls, `visibleToRoles` and `editableByRoles` enable fine-grained access control
-- **StateAction permissions**: Checked against SecurityModel during state transitions
-- **ExperienceState guards**: Enforce authorization via Condition expressions
+- **Component-level security**: `ComponentInstance.security.fieldAccess` references SecureResource field-level controls, `visibleToRoles` and `editableByRoles` enable fine-grained access control
+- **Library defaults**: `LibraryComponent.securityDefaults` provides default security configuration
 - **Implementation**: Enables runtime access control, security testing, and audit compliance
-- **Traceability**: SecurityModel → UXSpec → Component enables security requirement validation
+- **Traceability**: SecurityModel -> UXApplication -> UXSpec -> Component enables security requirement validation
 
 ### To API Layer (OpenAPI)
 
 - StateAction.api.operationId references OpenAPI operations
-- Component.dataSource references API operations
+- StatePattern parameters can reference API operations via `apiOperation` type
+- ComponentInstance.dataSource references API operations
 - Ensures UI actions align with available APIs
 
 ### To Data Model Layer (JSON Schema)
 
-- Component.dataBinding.schemaRef points to schema properties
+- ComponentInstance.dataBinding.schemaRef points to schema properties
+- LibraryComponent.dataBindingTemplate defines binding patterns
 - Ensures components match data structure
 - Validation alignment across layers
 
@@ -1011,7 +1739,7 @@ views:
 - **Action navigation**: ActionComponent navigation actions reference Routes
 - **State triggers navigation**: Experience state transitions trigger route changes
 - **Flow integration**: NavigationFlow steps reference UXSpec files and entry states
-  - `FlowStep.route` → Route → `Route.experience` → UXSpec file
+  - `FlowStep.route` -> Route -> `Route.experience` -> UXSpec file
   - `FlowStep.experience.entryState` specifies which ExperienceState to begin at
   - `FlowStep.experience.exitTrigger` defines what completes the experience step
 - **Data flow**: NavigationFlow.dataTransfer maps flow context to/from UX experience state
@@ -1025,57 +1753,106 @@ views:
 
 - **Metric linkage**: `apm.measuredByMetrics` links UX experiences to metrics that measure their effectiveness
 - **Performance targets**: `apm.performanceTargets` defines expected performance characteristics (load time, latency, error rates, completion rates)
-- **Closed-loop measurement**: Goal → UXSpec → Metrics → Goal validation enables data-driven UX optimization
+- **Closed-loop measurement**: Goal -> UXSpec -> Metrics -> Goal validation enables data-driven UX optimization
 - **Frontend traces**: User interactions generate client spans that link to backend traces
 - **End-to-end tracing**: Complete transaction visibility across UX and backend systems
 - **UX metrics**: Load time, interaction latency, error rates, completion rates, field validation errors
 - **Business metrics**: Conversion rates, feature adoption, user satisfaction scores
-- **Traceability**: UXSpec → Metrics → Goal measurement validates UX effectiveness
+- **Traceability**: UXSpec -> Metrics -> Goal measurement validates UX effectiveness
 
 ## Validation
 
-### UX Spec Validation
+### Library Validation
 
 ```javascript
-// Validation checks:
-1. Exactly one initial ExperienceState exists
-2. All state transitions reference valid ExperienceStates
-3. All operationIds exist in referenced OpenAPI spec
-4. All schemaRef paths exist in referenced JSON Schema
-5. Component names are unique within View/SubView
-6. View names are unique within UXSpec
-7. Required validation rules match schema requirements
-8. Conditional expressions are syntactically valid
-9. All referenced archimate elements exist
-10. Application reference exists
-11. Route references exist in Navigation Layer
-12. Channel-specific states/actions match UXSpec channel
+// UXLibrary validation:
+1. Library ID must be unique across all libraries
+2. Version must follow semantic versioning
+3. If extendsLibrary is set, referenced library must exist
+4. Component IDs must be unique within library
+5. Component names must be unique within library
+6. SubView IDs must be unique within library
+7. StatePattern IDs must be unique within library
+8. ActionPattern IDs must be unique within library
 
-// New validation checks for cross-layer integration:
-13. All motivationAlignment.fulfillsRequirements references exist in Motivation Layer
-14. All business.supportsProcesses references exist in Business Layer
-15. All business.realizesServices references exist in Business Layer
-16. All business.targetActors references exist in Business Layer
-17. All business.targetRoles references exist in Business Layer
-18. All security.model references exist in Security Layer
-19. All security.defaultRequiredRoles exist in the referenced SecurityModel
-20. All View.security.resourceRef references exist in Security Layer
-21. If View.security.resourceRef is set, the SecureResource.type must be 'screen'
-22. All View.security.requiredRoles exist in the referenced SecurityModel
-23. All View.security.requiredPermissions exist in the referenced SecurityModel
-24. All Component.security.fieldAccess fields exist in the View's referenced SecureResource
-25. All Component.security.visibleToRoles exist in the referenced SecurityModel
-26. All Component.security.editableByRoles exist in the referenced SecurityModel
-27. If Component.security.editableByRoles is set, visibleToRoles must include those roles
-28. All apm.measuredByMetrics references exist in APM Layer configuration
-29. If apm.performanceTargets is set, at least one target metric must be defined
-30. Performance target percentages must be between 0 and 100
+// LibraryComponent validation:
+9. Component type must be valid ComponentType enum value
+10. If configTemplate is set, it must match component type
+11. Slot names must be unique within component
+12. Variant names must be unique within component
+13. If securityDefaults.editableByRoles is set, roles must be subset of visibleToRoles
 
-// Consistency validation:
-31. If View has security.resourceRef, Components should use security.fieldAccess (warning)
-32. If UXSpec has security.defaultRequiredRoles, Views should specify security (warning)
-33. If UXSpec has business.supportsProcesses, it should have apm.measuredByMetrics (warning)
-34. If Component is required, it should have validation rules (warning)
+// LibrarySubView validation:
+14. ComponentSlot names must be unique within sub-view
+15. If allowedTypes is set, values must be valid ComponentType enum values
+16. SubViewSlot names must be unique within sub-view
+17. Layout type must be valid LayoutStyle enum value
+
+// StatePattern validation:
+18. Pattern must have exactly one initial state
+19. All transition targets must reference valid states within pattern
+20. Parameter names must be unique within pattern
+21. Parameters used in templates ({{paramName}}) must be defined
+22. entryPoints must reference valid state names
+23. exitPoints must reference valid state names
+
+// ActionPattern validation:
+24. Parameter names must be unique within pattern
+25. Parameters used in templates must be defined
+26. actionTemplate.action must be valid ActionType enum value
+```
+
+### Application Validation
+
+```javascript
+// UXApplication validation:
+1. Application ID must be unique
+2. All libraryRef values must reference existing UXLibrary entities
+3. If version constraint is set, it must be valid semver range
+4. Library alias must be unique within application
+5. Channel must be valid ChannelType enum value
+6. If security.model is set, referenced SecurityModel must exist
+7. If security.defaultRequiredRoles is set, roles must exist in SecurityModel
+8. All motivationAlignment references must exist in Motivation Layer
+9. All apm.measuredByMetrics references must exist in APM Layer
+```
+
+### UXSpec Validation
+
+```javascript
+// UXSpec validation:
+1. If application is set, referenced UXApplication must exist
+2. All usesPatterns.patternRef must reference existing StatePattern
+3. Pattern parameters must satisfy pattern requirements
+4. If states is set, exactly one must be initial
+5. All state transitions must reference valid states
+6. All operationIds must exist in referenced OpenAPI spec
+7. All schemaRef paths must exist in referenced JSON Schema
+8. Component instance names must be unique within View/SubView
+9. View names must be unique within UXSpec
+10. Route references must exist in Navigation Layer
+
+// ComponentInstance validation:
+11. If libraryRef is set, referenced LibraryComponent must exist
+12. If variant is set, it must exist in referenced LibraryComponent
+13. Overrides must be compatible with library component type
+14. dataBinding.schemaRef must exist in referenced schema
+15. Security roles must exist in application's SecurityModel
+
+// SubView validation:
+16. If libraryRef is set, referenced LibrarySubView must exist
+17. slotContent must provide components for required slots
+18. Components in slots must match allowedTypes constraint
+
+// Cross-layer validation:
+19. All business.supportsProcesses references must exist in Business Layer
+20. All business.realizesServices references must exist in Business Layer
+21. All business.targetActors references must exist in Business Layer
+22. All business.targetRoles references must exist in Business Layer
+23. All motivationAlignment references must exist in Motivation Layer
+24. All security references must exist in Security Layer
+25. All apm.measuredByMetrics references must exist in APM Layer
+26. Performance target percentages must be between 0 and 100
 ```
 
 ## Property Conventions
@@ -1083,12 +1860,24 @@ views:
 ### File Naming
 
 ```yaml
-Pattern: "{experience-identifier}.ux.yaml"
+Libraries: "{library-name}.lib.yaml"
 Examples:
-  - product-edit.ux.yaml # Visual form experience
-  - customer-list.ux.yaml # Visual list experience
-  - order-status-voice.ux.yaml # Voice experience
-  - support-chat.ux.yaml # Chat experience
+  - core-components.lib.yaml
+  - ecommerce-components.lib.yaml
+  - voice-components.lib.yaml
+
+Applications: "{app-name}.app.yaml"
+Examples:
+  - product-management.app.yaml
+  - customer-portal.app.yaml
+  - admin-dashboard.app.yaml
+
+UXSpecs: "{experience-identifier}.ux.yaml"
+Examples:
+  - product-edit.ux.yaml
+  - customer-list.ux.yaml
+  - order-status-voice.ux.yaml
+  - support-chat.ux.yaml
 ```
 
 ### Experience State Naming
@@ -1126,28 +1915,63 @@ Common States (All Channels):
 
 ## Best Practices
 
-1. **Single Responsibility**: One UX spec per experience (view/conversation/interaction)
-2. **State Machine First**: Design state transitions before views/components
-3. **Channel Awareness**: Design states and actions that work across channels
-4. **API Integration**: Link all data operations to OpenAPI operations
-5. **Schema Binding**: Bind all components to JSON Schema properties
+### Library Design
+
+1. **Single Responsibility**: Each library component should do one thing well
+2. **Composability**: Design components to work together via slots
+3. **Sensible Defaults**: Provide good default configurations
+4. **Documentation**: Include descriptions for components, slots, and variants
+5. **Versioning**: Follow semantic versioning for library updates
+6. **Security Defaults**: Include default security configuration where applicable
+
+### Pattern Design
+
+1. **Parameterization**: Make patterns flexible through well-designed parameters
+2. **Entry/Exit Points**: Clearly define where patterns can be entered and exited
+3. **Error Handling**: Include error states and recovery paths
+4. **Reusability**: Design patterns for common UX flows (CRUD, wizard, list-detail)
+
+### Application Design
+
+1. **Library Selection**: Choose minimal set of libraries needed
+2. **Shared Configuration**: Use application-level defaults to reduce repetition
+3. **Security Baseline**: Set default security requirements at application level
+4. **Metrics Strategy**: Define application-wide metrics
+
+### UXSpec Design
+
+1. **Pattern First**: Prefer patterns over custom state machines
+2. **Library Components**: Use library components with overrides vs inline definitions
+3. **Minimal Overrides**: Only override what's necessary
+4. **Slot Content**: Provide slot content for library sub-views
+5. **Clear Naming**: Use descriptive names for components and views
 6. **Validation Alignment**: Validation should match schema constraints
-7. **Error Handling**: Define error states and transitions for all channels
-8. **Loading States**: Always indicate loading/processing for async operations
-9. **Guard Conditions**: Use conditions to prevent invalid transitions
-10. **Confirmation Prompts**: Require confirmation for destructive actions (adapted per channel)
-11. **Accessibility**: Include labels, help text, and appropriate channel-specific affordances
-12. **Application Context**: Always link UXSpec to Application entity
-13. **View Composition**: Use SubViews for reusable component groupings
-14. **Component Types**: Choose appropriate component types (form-field, table, chart, etc.)
+7. **Error Handling**: Define error states and transitions
+8. **Loading States**: Always indicate loading for async operations
+9. **Accessibility**: Include labels, help text, and appropriate affordances
 
 ## Code Generation
 
 UX specs enable generation of:
 
 ```yaml
+Library Code:
+  - Reusable React/Vue/Angular component packages
+  - Component documentation and storybooks
+  - Design system tokens
+
+Pattern Code:
+  - State machine configurations (XState, Redux)
+  - Reusable hooks/composables
+  - Test templates
+
+Application Code:
+  - Application shell and routing
+  - Theme configuration
+  - Security context providers
+
 Frontend Code (Visual):
-  - React/Vue/Angular components
+  - React/Vue/Angular components (using library)
   - State management (Redux/MobX/Vuex)
   - Form validation logic
   - API client calls
@@ -1167,11 +1991,10 @@ Chat Code:
   - Message templates
 
 Test Code:
-  - Experience state machine tests
-  - Component interaction tests
-  - Validation tests
-  - Multi-channel tests
+  - Component unit tests
+  - State machine tests
   - Integration tests with API mocks
+  - Visual regression tests
 ```
 
 ## Common Patterns
@@ -1179,26 +2002,33 @@ Test Code:
 ### List-Detail Pattern
 
 ```yaml
+# Use list-selection-pattern for list view
 List Experience (product-list.ux.yaml):
-  - States: loading � viewing
-  - View: list with search/filter components
-  - Actions: Navigate to detail on row click
+  usesPatterns:
+    - patternRef: "list-selection-pattern"
+      parameters:
+        listOperation: "getProducts"
+        itemsPath: "$.products"
 
+# Use crud-form-pattern for detail view
 Detail Experience (product-detail.ux.yaml):
-  - States: loading � viewing � editing � saving
-  - View: form with SubViews (sections)
-  - Actions: Edit, Save, Delete, Back to list
+  usesPatterns:
+    - patternRef: "crud-form-pattern"
+      parameters:
+        fetchOperation: "getProduct"
+        saveOperation: "updateProduct"
 ```
 
 ### Wizard Pattern
 
 ```yaml
+# Define wizard-specific pattern
 Multi-Step Wizard:
-  - States: step1 � step2 � step3 � review � submitting
-  - View: wizard type with stepper component
-  - SubViews: One per step
-  - Actions: Next, Previous, Submit
-  - Validation: Per-step validation before transition
+  usesPatterns:
+    - patternRef: "wizard-pattern"
+      parameters:
+        steps: ["personal-info", "address", "payment", "review"]
+        submitOperation: "createOrder"
 ```
 
 ### Master-Detail Pattern
@@ -1206,10 +2036,9 @@ Multi-Step Wizard:
 ```yaml
 Split View:
   - View type: split
-  - Left SubView: List of items (master)
-  - Right SubView: Selected item details (detail)
-  - States: Both sides have coordinated state machines
-  - Sync: Selection in master triggers detail load
+  - Left SubView: Uses list-selection-pattern
+  - Right SubView: Uses crud-form-pattern
+  - Sync: Selection in master triggers detail load via shared state
 ```
 
 ### Voice Interaction Pattern
@@ -1217,10 +2046,11 @@ Split View:
 ```yaml
 Voice Experience (order-status-voice.ux.yaml):
   - Channel: voice
-  - States: listening � processing � speaking
-  - Components: audio (speech synthesis)
-  - Actions: voice-command types
-  - State machine drives conversation flow
+  - usesPatterns:
+      - patternRef: "voice-query-pattern"
+        parameters:
+          queryOperation: "getOrderStatus"
+          confirmationRequired: true
 ```
 
 ### Chat Conversation Pattern
@@ -1228,10 +2058,13 @@ Voice Experience (order-status-voice.ux.yaml):
 ```yaml
 Chat Experience (support-chat.ux.yaml):
   - Channel: chat
-  - States: awaiting-input � processing � responding
-  - Components: text, chat-button (quick replies)
-  - Actions: chat-button types
-  - State machine drives dialogue
+  - usesPatterns:
+      - patternRef: "chat-conversation-pattern"
+        parameters:
+          intentHandlers:
+            - orderStatus
+            - productInfo
+            - humanHandoff
 ```
 
-This UX Layer specification provides a comprehensive, implementation-ready definition of user experiences across channels that bridges design and development.
+This UX Layer specification provides a comprehensive, implementation-ready definition of user experiences across channels that bridges design and development through a three-tier architecture promoting reusability and consistency.

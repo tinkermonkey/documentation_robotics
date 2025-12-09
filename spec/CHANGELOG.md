@@ -5,6 +5,64 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2025-12-09
+
+### Changed
+
+- **UX Layer - Three-Tier Architecture** ([spec/layers/09-ux-layer.md](layers/09-ux-layer.md))
+  - MAJOR architectural redesign from flat, self-contained UXSpecs to three-tier component library architecture
+  - **Tier 1: UXLibrary** - Reusable design system components, sub-views, and patterns
+    - `LibraryComponent` - Atomic UI elements with variants, slots, and data contracts
+    - `LibrarySubView` - Composed component groupings (e.g., AddressForm, ProductCard)
+    - `StatePattern` - Reusable state machine templates (CRUD, Wizard, Search patterns)
+    - `ActionPattern` - Reusable action configurations with confirmation support
+  - **Tier 2: UXApplication** - Application-level organization and shared configuration
+    - Theme/design tokens, shared layouts, global state, library imports
+    - Groups UXSpecs into coherent applications with consistent styling
+  - **Tier 3: UXSpec** - Simplified experience-specific configuration
+    - References library components instead of inline definitions
+    - Pattern binding mechanism for state machines and actions
+    - ~73% reduction in YAML lines per experience (300 → 80 lines typical)
+  - **Benefits**:
+    - Design system alignment - Maps naturally to Figma/Storybook workflows
+    - DRY principle - Define components once, reuse across applications
+    - Consistency - Single source of truth for component behavior
+    - Enterprise scale - Multiple applications share design libraries
+    - Versioning - Library versioning enables controlled evolution
+
+- **UX Layer Schema** ([spec/schemas/09-ux-layer.schema.json](schemas/09-ux-layer.schema.json))
+  - Complete JSON Schema regenerated with new entity structure
+  - 16 entity types (6 new, 3 modified, 7 supporting entities)
+  - File size increased from 18KB to 20KB reflecting richer structure
+  - New top-level properties: `ux-libraries`, `library-components`, `library-sub-views`, `state-patterns`, `action-patterns`, `ux-applications`
+
+### Added
+
+- **Component Instance Pattern** - New pattern for instantiating library components with overrides
+- **Pattern Extension Binding** - Mechanism for binding concrete implementations to pattern extension points
+- **Slot-based Composition** - Components and sub-views support slots for customization
+- **Library Inheritance** - Libraries can extend other libraries via `extendsLibrary`
+- **Migration Guide** - Comprehensive before/after examples in layer specification
+
+### Migration Path
+
+The new three-tier architecture is **additive** - existing flat UXSpecs remain valid:
+
+```bash
+# No migration required - both patterns supported
+dr validate  # Existing UXSpecs continue to work
+```
+
+**Migration to new architecture is optional but recommended:**
+
+1. **Extract common components to UXLibrary** - For components used 3+ times
+2. **Create UXApplication** - Group related UXSpecs with shared theme/layouts
+3. **Simplify UXSpecs** - Replace inline definitions with library references
+
+See [09-ux-layer.md Migration Guide](layers/09-ux-layer.md#migration-guide) for detailed conversion examples.
+
+**Backward Compatibility**: Both inline and reference patterns are supported. Tools validate both formats during transition period.
+
 ## [0.4.0] - 2025-12-07
 
 ### Changed

@@ -1,368 +1,615 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/01-motivation-layer.json",
+  "$id": "https://example.com/schemas/01-motivation-layer.schema.json",
   "title": "Motivation Layer Schema",
-  "description": "ArchiMate Motivation Layer elements for capturing stakeholders, drivers, goals, requirements, and constraints",
+  "description": "Schema for Motivation Layer",
   "type": "object",
   "properties": {
     "stakeholders": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Stakeholder" }
+      "description": "Collection of Stakeholder entities",
+      "items": {
+        "$ref": "#/definitions/Stakeholder"
+      }
     },
     "drivers": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Driver" }
+      "description": "Collection of Driver entities",
+      "items": {
+        "$ref": "#/definitions/Driver"
+      }
     },
     "assessments": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Assessment" }
+      "description": "Collection of Assessment entities",
+      "items": {
+        "$ref": "#/definitions/Assessment"
+      }
     },
     "goals": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Goal" }
+      "description": "Collection of Goal entities",
+      "items": {
+        "$ref": "#/definitions/Goal"
+      }
     },
     "outcomes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Outcome" }
+      "description": "Collection of Outcome entities",
+      "items": {
+        "$ref": "#/definitions/Outcome"
+      }
     },
     "principles": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Principle" }
+      "description": "Collection of Principle entities",
+      "items": {
+        "$ref": "#/definitions/Principle"
+      }
     },
     "requirements": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Requirement" }
+      "description": "Collection of Requirement entities",
+      "items": {
+        "$ref": "#/definitions/Requirement"
+      }
     },
     "constraints": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Constraint" }
+      "description": "Collection of Constraint entities",
+      "items": {
+        "$ref": "#/definitions/Constraint"
+      }
     },
     "meanings": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Meaning" }
+      "description": "Collection of Meaning entities",
+      "items": {
+        "$ref": "#/definitions/Meaning"
+      }
     },
     "values": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Value" }
-    },
-    "relationships": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/Relationship" }
+      "description": "Collection of Value entities",
+      "items": {
+        "$ref": "#/definitions/Value"
+      }
     }
   },
   "definitions": {
     "Stakeholder": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Individual, team, or organization with interest in the outcome",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
         "id": {
           "type": "string",
           "format": "uuid",
-          "description": "Unique identifier"
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "minLength": 1,
-          "description": "Stakeholder name"
+          "minLength": 1
         },
         "documentation": {
           "type": "string",
-          "description": "Detailed description"
+          "minLength": 1
         },
         "type": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "StakeholderType": {
           "type": "string",
-          "enum": ["internal", "external", "customer", "partner", "regulator"],
-          "description": "Stakeholder type"
+          "enum": [
+            "internal",
+            "external",
+            "customer",
+            "partner",
+            "regulator"
+          ]
         }
       }
     },
     "Driver": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "External or internal condition that motivates an organization",
+      "required": [
+        "id",
+        "name",
+        "category"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "category": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "DriverCategory": {
           "type": "string",
-          "enum": ["market", "regulatory", "technology", "competitive", "operational", "strategic"]
+          "enum": [
+            "market",
+            "regulatory",
+            "technology",
+            "competitive",
+            "operational",
+            "strategic"
+          ]
         }
       }
     },
     "Assessment": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Outcome of analysis of the state of affairs",
+      "required": [
+        "id",
+        "name",
+        "assessmentType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "assessmentType": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "AssessmentType": {
           "type": "string",
-          "enum": ["strength", "weakness", "opportunity", "threat", "risk", "gap"]
+          "enum": [
+            "strength",
+            "weakness",
+            "opportunity",
+            "threat",
+            "risk",
+            "gap"
+          ]
         }
       }
     },
     "Goal": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "High-level statement of intent, direction, or desired end state",
+      "required": [
+        "id",
+        "name",
+        "priority"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "priority": {
-          "type": "string",
-          "enum": ["critical", "high", "medium", "low"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "goal.measurable": {
-              "type": "string",
-              "enum": ["true", "false"]
-            },
-            "goal.target-date": {
-              "type": "string",
-              "format": "date"
-            },
-            "goal.kpi": {
-              "type": "string"
+            "goal": {
+              "type": "object",
+              "properties": {
+                "measurable": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "target-date": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "kpi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "Priority": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
         }
       }
     },
     "Outcome": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "End result that has been achieved",
+      "required": [
+        "id",
+        "name",
+        "status"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "status": {
-          "type": "string",
-          "enum": ["planned", "in-progress", "achieved", "not-achieved"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "outcome.achieved-date": {
-              "type": "string",
-              "format": "date"
-            },
-            "outcome.metrics": {
-              "type": "string"
+            "outcome": {
+              "type": "object",
+              "properties": {
+                "achieved-date": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "metrics": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "OutcomeStatus": {
+          "type": "string",
+          "enum": [
+            "planned",
+            "in-progress",
+            "achieved",
+            "not-achieved"
+          ]
         }
       }
     },
     "Principle": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Normative property of all systems in a given context",
+      "required": [
+        "id",
+        "name",
+        "category"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "category": {
-          "type": "string",
-          "enum": ["business", "data", "application", "technology", "security", "integration"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "principle.rationale": {
-              "type": "string"
-            },
-            "principle.implications": {
-              "type": "string"
+            "principle": {
+              "type": "object",
+              "properties": {
+                "rationale": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "implications": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "PrincipleCategory": {
+          "type": "string",
+          "enum": [
+            "business",
+            "data",
+            "application",
+            "technology",
+            "security",
+            "integration"
+          ]
         }
       }
     },
     "Requirement": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Statement of need that must be realized",
+      "required": [
+        "id",
+        "name",
+        "requirementType",
+        "priority"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "requirementType": {
-          "type": "string",
-          "enum": ["functional", "non-functional", "business", "technical", "compliance", "user"]
+          "$ref": "#/definitions/enum"
         },
         "priority": {
-          "type": "string",
-          "enum": ["critical", "high", "medium", "low"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "requirement.source": {
-              "type": "string"
-            },
-            "requirement.status": {
-              "type": "string",
-              "enum": ["proposed", "approved", "implemented", "verified"]
-            },
-            "requirement.traceability-id": {
-              "type": "string"
+            "requirement": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "status": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "traceability-id": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "security.mitigates": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "security.implementation-type": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "security.implementation-params": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "RequirementType": {
+          "type": "string",
+          "enum": [
+            "functional",
+            "non-functional",
+            "business",
+            "technical",
+            "compliance",
+            "user"
+          ]
+        },
+        "Priority": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
         }
       }
     },
     "Constraint": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Restriction on the way in which a system is realized",
+      "required": [
+        "id",
+        "name",
+        "constraintType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "constraintType": {
-          "type": "string",
-          "enum": ["budget", "time", "technology", "regulatory", "organizational", "resource"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "constraint.source": {
-              "type": "string"
-            },
-            "constraint.negotiable": {
-              "type": "string",
-              "enum": ["true", "false"]
+            "constraint": {
+              "type": "object",
+              "properties": {
+                "source": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "negotiable": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "commitment-type": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "compliance-requirements": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "penalties": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
+        }
+      },
+      "definitions": {
+        "ConstraintType": {
+          "type": "string",
+          "enum": [
+            "budget",
+            "time",
+            "technology",
+            "regulatory",
+            "organizational",
+            "resource"
+          ]
         }
       }
     },
     "Meaning": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Knowledge or expertise present in a representation",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "Value": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Relative worth, utility, or importance of something",
+      "required": [
+        "id",
+        "name",
+        "valueType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "valueType": {
-          "type": "string",
-          "enum": ["financial", "customer", "operational", "strategic", "social"]
+          "$ref": "#/definitions/enum"
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "value.quantifiable": {
-              "type": "string",
-              "enum": ["true", "false"]
-            },
-            "value.measurement": {
-              "type": "string"
+            "value": {
+              "type": "object",
+              "properties": {
+                "quantifiable": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "measurement": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             }
           }
         }
-      }
-    },
-    "Relationship": {
-      "type": "object",
-      "required": ["type", "source", "target"],
-      "properties": {
-        "type": {
+      },
+      "definitions": {
+        "ValueType": {
           "type": "string",
-          "enum": ["Aggregation", "Realization", "Specialization", "Association", "Influence"]
-        },
-        "source": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Source element ID"
-        },
-        "target": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Target element ID"
-        },
-        "documentation": {
-          "type": "string"
+          "enum": [
+            "financial",
+            "customer",
+            "operational",
+            "strategic",
+            "social"
+          ]
         }
       }
     }

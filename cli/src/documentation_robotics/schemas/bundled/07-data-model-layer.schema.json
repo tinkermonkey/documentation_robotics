@@ -1,371 +1,570 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/07-data-model-layer.json",
+  "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
   "title": "Data Model Layer Schema",
-  "description": "JSON Schema Draft 7 with custom extensions for database mapping, UI hints, and security metadata",
+  "description": "Schema for Data Model Layer",
   "type": "object",
-  "required": ["$schema", "type"],
   "properties": {
-    "$schema": {
-      "type": "string",
-      "const": "http://json-schema.org/draft-07/schema#"
-    },
-    "$id": {
-      "type": "string",
-      "format": "uri"
-    },
-    "title": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "type": {
-      "type": "string",
-      "enum": ["object", "array", "string", "number", "integer", "boolean", "null"]
-    },
-    "properties": {
-      "type": "object",
-      "additionalProperties": {
-        "$ref": "#/definitions/PropertySchema"
+    "json-schemas": {
+      "type": "array",
+      "description": "Collection of JSONSchema entities",
+      "items": {
+        "$ref": "#/definitions/JSONSchema"
       }
     },
-    "required": {
+    "json-types": {
       "type": "array",
-      "items": { "type": "string" }
+      "description": "Collection of JSONType entities",
+      "items": {
+        "$ref": "#/definitions/JSONType"
+      }
     },
-    "additionalProperties": {
-      "oneOf": [
-        { "type": "boolean" },
-        { "$ref": "#/definitions/PropertySchema" }
-      ]
+    "string-schemas": {
+      "type": "array",
+      "description": "Collection of StringSchema entities",
+      "items": {
+        "$ref": "#/definitions/StringSchema"
+      }
     },
-    "definitions": {
-      "type": "object"
+    "numeric-schemas": {
+      "type": "array",
+      "description": "Collection of NumericSchema entities",
+      "items": {
+        "$ref": "#/definitions/NumericSchema"
+      }
     },
-    "x-archimate-ref": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Reference to DataObject element"
+    "array-schemas": {
+      "type": "array",
+      "description": "Collection of ArraySchema entities",
+      "items": {
+        "$ref": "#/definitions/ArraySchema"
+      }
     },
-    "x-business-object-ref": {
-      "type": "string",
-      "description": "Reference to BusinessObject ID from Business Layer (enables upward traceability)",
-      "format": "uuid"
+    "object-schemas": {
+      "type": "array",
+      "description": "Collection of ObjectSchema entities",
+      "items": {
+        "$ref": "#/definitions/ObjectSchema"
+      }
     },
-    "x-data-governance": {
-      "$ref": "#/definitions/DataGovernance",
-      "description": "Schema-level data architecture governance metadata"
+    "schema-compositions": {
+      "type": "array",
+      "description": "Collection of SchemaComposition entities",
+      "items": {
+        "$ref": "#/definitions/SchemaComposition"
+      }
     },
-    "x-apm-data-quality-metrics": {
-      "$ref": "#/definitions/APMDataQualityMetrics",
-      "description": "Links to data quality metrics in APM/Observability Layer"
+    "references": {
+      "type": "array",
+      "description": "Collection of Reference entities",
+      "items": {
+        "$ref": "#/definitions/Reference"
+      }
     },
-    "x-database": {
-      "$ref": "#/definitions/DatabaseMapping"
+    "x-business-object-refs": {
+      "type": "array",
+      "description": "Collection of x-business-object-ref entities",
+      "items": {
+        "$ref": "#/definitions/x-business-object-ref"
+      }
+    },
+    "x-data-governances": {
+      "type": "array",
+      "description": "Collection of x-data-governance entities",
+      "items": {
+        "$ref": "#/definitions/x-data-governance"
+      }
+    },
+    "x-apm-data-quality-metricses": {
+      "type": "array",
+      "description": "Collection of x-apm-data-quality-metrics entities",
+      "items": {
+        "$ref": "#/definitions/x-apm-data-quality-metrics"
+      }
+    },
+    "x-databases": {
+      "type": "array",
+      "description": "Collection of x-database entities",
+      "items": {
+        "$ref": "#/definitions/x-database"
+      }
+    },
+    "x-uis": {
+      "type": "array",
+      "description": "Collection of x-ui entities",
+      "items": {
+        "$ref": "#/definitions/x-ui"
+      }
+    },
+    "x-securities": {
+      "type": "array",
+      "description": "Collection of x-security entities",
+      "items": {
+        "$ref": "#/definitions/x-security"
+      }
     }
   },
   "definitions": {
-    "PropertySchema": {
+    "JSONSchema": {
       "type": "object",
+      "description": "Root schema document",
+      "required": [
+        "id",
+        "name",
+        "$schema",
+        "$id",
+        "type"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "$id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
         "type": {
-          "oneOf": [
-            { "type": "string" },
-            {
-              "type": "array",
-              "items": { "type": "string" }
-            }
-          ]
+          "type": "string",
+          "minLength": 1
         },
-        "title": { "type": "string" },
-        "description": { "type": "string" },
-        "format": { "type": "string" },
-        "default": {},
-        "enum": { "type": "array" },
-        "minimum": { "type": "number" },
-        "maximum": { "type": "number" },
-        "minLength": { "type": "integer" },
-        "maxLength": { "type": "integer" },
-        "pattern": { "type": "string" },
-        "minItems": { "type": "integer" },
-        "maxItems": { "type": "integer" },
-        "uniqueItems": { "type": "boolean" },
-        "items": {},
-        "properties": { "type": "object" },
-        "required": {
+        "definitions": {
           "type": "array",
-          "items": { "type": "string" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
-        "readOnly": { "type": "boolean" },
-        "nullable": { "type": "boolean" },
-        "$ref": { "type": "string" },
-        "allOf": { "type": "array" },
-        "anyOf": { "type": "array" },
-        "oneOf": { "type": "array" },
-        "not": { "type": "object" },
-        "x-database": {
-          "$ref": "#/definitions/ColumnMapping"
-        },
-        "x-ui": {
-          "$ref": "#/definitions/UIHints"
-        },
-        "x-security": {
-          "$ref": "#/definitions/SecurityMetadata"
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
-    "DatabaseMapping": {
+    "JSONType": {
       "type": "object",
+      "description": "Core JSON data types",
+      "required": [],
+      "properties": {}
+    },
+    "StringSchema": {
+      "type": "object",
+      "description": "StringSchema validation rules",
+      "required": [],
+      "properties": {},
+      "definitions": {
+        "StringFormat": {
+          "type": "string",
+          "enum": [
+            "date-time",
+            "date",
+            "time",
+            "email",
+            "idn-email",
+            "hostname",
+            "idn-hostname",
+            "ipv4",
+            "ipv6",
+            "uri",
+            "uri-reference",
+            "iri",
+            "iri-reference",
+            "json-pointer",
+            "relative-json-pointer",
+            "regex",
+            "uuid",
+            "phone",
+            "credit-card"
+          ]
+        }
+      }
+    },
+    "NumericSchema": {
+      "type": "object",
+      "description": "NumericSchema validation rules",
+      "required": [],
+      "properties": {}
+    },
+    "ArraySchema": {
+      "type": "object",
+      "description": "ArraySchema validation rules",
+      "required": [],
+      "properties": {}
+    },
+    "ObjectSchema": {
+      "type": "object",
+      "description": "ObjectSchema validation rules",
+      "required": [],
       "properties": {
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SchemaComposition": {
+      "type": "object",
+      "description": "Combining multiple schemas",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Reference": {
+      "type": "object",
+      "description": "Reference to another schema",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-business-object-ref": {
+      "type": "object",
+      "description": "Reference to BusinessObject this schema implements",
+      "required": [],
+      "properties": {}
+    },
+    "x-data-governance": {
+      "type": "object",
+      "description": "Data model governance metadata (root-level)",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "governedBy": {
+          "type": "object"
+        }
+      }
+    },
+    "x-apm-data-quality-metrics": {
+      "type": "object",
+      "description": "Links schema to data quality metrics in APM/Observability Layer",
+      "required": [
+        "id",
+        "name",
+        "completenessMetrics",
+        "accuracyMetrics",
+        "consistencyMetrics",
+        "freshnessMetrics",
+        "uniquenessMetrics",
+        "integrityMetrics"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completenessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accuracyMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consistencyMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "freshnessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniquenessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integrityMetrics": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-database": {
+      "type": "object",
+      "description": "Database mapping information",
+      "required": [
+        "id",
+        "name",
+        "table",
+        "schema",
+        "engine"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "table": {
           "type": "string",
-          "description": "Database table name"
+          "minLength": 1
         },
         "schema": {
           "type": "string",
-          "description": "Database schema name"
+          "minLength": 1
         },
         "engine": {
           "type": "string",
-          "description": "Database engine"
-        },
-        "indexes": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["name", "columns"],
-            "properties": {
-              "name": { "type": "string" },
-              "columns": {
-                "type": "array",
-                "items": { "type": "string" }
-              },
-              "unique": { "type": "boolean" },
-              "type": {
-                "type": "string",
-                "enum": ["BTREE", "HASH", "GIN", "GIST"]
-              }
-            }
-          }
-        },
-        "constraints": {
-          "type": "array",
-          "items": {
-            "type": "object",
-            "required": ["name", "type"],
-            "properties": {
-              "name": { "type": "string" },
-              "type": {
-                "type": "string",
-                "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK"]
-              },
-              "columns": {
-                "type": "array",
-                "items": { "type": "string" }
-              },
-              "check": { "type": "string" }
-            }
-          }
+          "minLength": 1
         }
-      }
-    },
-    "ColumnMapping": {
-      "type": "object",
-      "properties": {
-        "column": {
+      },
+      "definitions": {
+        "SQLType": {
           "type": "string",
-          "description": "Database column name"
-        },
-        "type": {
-          "type": "string",
-          "description": "SQL data type"
-        },
-        "nullable": {
-          "type": "boolean"
-        },
-        "primaryKey": {
-          "type": "boolean"
-        },
-        "autoIncrement": {
-          "type": "boolean"
-        },
-        "unique": {
-          "type": "boolean"
-        },
-        "default": {},
-        "index": {
-          "oneOf": [
-            { "type": "boolean" },
-            { "type": "string" }
+          "enum": [
+            "VARCHAR",
+            "TEXT",
+            "INTEGER",
+            "BIGINT",
+            "SERIAL",
+            "BIGSERIAL",
+            "DECIMAL",
+            "NUMERIC",
+            "BOOLEAN",
+            "DATE",
+            "TIMESTAMP",
+            "TIMESTAMPTZ",
+            "JSON",
+            "JSONB",
+            "UUID",
+            "BYTEA"
           ]
         },
-        "foreignKey": {
-          "type": "object",
-          "required": ["table", "column"],
-          "properties": {
-            "table": { "type": "string" },
-            "column": { "type": "string" },
-            "onDelete": {
-              "type": "string",
-              "enum": ["CASCADE", "SET_NULL", "RESTRICT", "NO_ACTION", "SET_DEFAULT"]
-            },
-            "onUpdate": {
-              "type": "string",
-              "enum": ["CASCADE", "SET_NULL", "RESTRICT", "NO_ACTION", "SET_DEFAULT"]
-            }
-          }
-        }
-      }
-    },
-    "UIHints": {
-      "type": "object",
-      "properties": {
-        "component": {
+        "ReferentialAction": {
           "type": "string",
-          "enum": ["text-input", "textarea", "number-input", "email-input", "password-input", "date-picker", "datetime-picker", "select", "multi-select", "autocomplete", "checkbox", "radio-group", "toggle", "slider", "file-upload", "rich-text-editor", "color-picker"]
+          "enum": [
+            "CASCADE",
+            "SET_NULL",
+            "RESTRICT",
+            "NO_ACTION",
+            "SET_DEFAULT"
+          ]
         },
-        "label": { "type": "string" },
-        "placeholder": { "type": "string" },
-        "helpText": { "type": "string" },
-        "order": { "type": "integer" },
-        "readOnly": { "type": "boolean" },
-        "hidden": { "type": "boolean" },
-        "group": { "type": "string" },
-        "dataSource": {
-          "type": "object",
-          "properties": {
-            "endpoint": { "type": "string" },
-            "method": { "type": "string" },
-            "valueField": { "type": "string" },
-            "labelField": { "type": "string" }
-          }
+        "IndexType": {
+          "type": "string",
+          "enum": [
+            "BTREE",
+            "HASH",
+            "GIN",
+            "GIST"
+          ]
+        },
+        "ConstraintType": {
+          "type": "string",
+          "enum": [
+            "PRIMARY_KEY",
+            "UNIQUE",
+            "FOREIGN_KEY",
+            "CHECK"
+          ]
         }
       }
     },
-    "SecurityMetadata": {
+    "x-ui": {
       "type": "object",
+      "description": "UI rendering hints",
+      "required": [
+        "id",
+        "name",
+        "component",
+        "label",
+        "placeholder",
+        "helpText",
+        "order",
+        "readOnly",
+        "hidden",
+        "group"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component": {
+          "$ref": "#/definitions/enum"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1
+        },
+        "helpText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "UIComponent": {
+          "type": "string",
+          "enum": [
+            "text-input",
+            "textarea",
+            "number-input",
+            "email-input",
+            "password-input",
+            "date-picker",
+            "datetime-picker",
+            "select",
+            "multi-select",
+            "autocomplete",
+            "checkbox",
+            "radio-group",
+            "toggle",
+            "slider",
+            "file-upload",
+            "rich-text-editor",
+            "color-picker"
+          ]
+        }
+      }
+    },
+    "x-security": {
+      "type": "object",
+      "description": "Security and privacy metadata",
+      "required": [
+        "id",
+        "name",
+        "pii",
+        "encrypted",
+        "classification",
+        "retention",
+        "masking",
+        "redaction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "pii": {
-          "type": "boolean",
-          "description": "Contains personally identifiable information"
+          "type": "boolean"
         },
         "encrypted": {
-          "type": "boolean",
-          "description": "Should be encrypted at rest"
+          "type": "boolean"
         },
         "classification": {
-          "type": "string",
-          "enum": ["public", "internal", "confidential", "restricted"]
+          "$ref": "#/definitions/enum"
         },
         "retention": {
           "type": "string",
-          "description": "Data retention period"
+          "minLength": 1
         },
         "masking": {
-          "type": "string",
-          "enum": ["none", "partial", "full", "hash"]
+          "$ref": "#/definitions/enum"
         },
         "redaction": {
-          "type": "boolean",
-          "description": "Should be redacted in logs"
-        },
-        "accessControl": {
-          "type": "object",
-          "properties": {
-            "read": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "write": {
-              "type": "array",
-              "items": { "type": "string" }
-            }
-          }
-        },
-        "governedBy": {
-          "type": "object",
-          "description": "Motivation Layer governance for security/privacy",
-          "properties": {
-            "constraintRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Constraint IDs from Motivation Layer"
-            },
-            "requirementRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Requirement IDs from Motivation Layer"
-            },
-            "principleRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Principle IDs from Motivation Layer"
-            }
-          }
+          "type": "boolean"
         }
-      }
-    },
-    "DataGovernance": {
-      "type": "object",
-      "description": "Schema-level data architecture governance metadata",
-      "properties": {
-        "governedBy": {
-          "type": "object",
-          "description": "Links to Motivation Layer for data architecture governance",
-          "properties": {
-            "principleRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Data architecture Principle IDs (e.g., normalization, event sourcing, canonical models)"
-            },
-            "requirementRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Data model Requirement IDs (e.g., master data management, audit trails)"
-            },
-            "constraintRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Data Constraint IDs (e.g., retention policies, SOX/regulatory compliance)"
-            }
-          }
-        }
-      }
-    },
-    "APMDataQualityMetrics": {
-      "type": "object",
-      "description": "Links to data quality metrics in APM/Observability Layer",
-      "properties": {
-        "completenessMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring field completion rates"
+      },
+      "definitions": {
+        "SecurityClassification": {
+          "type": "string",
+          "enum": [
+            "public",
+            "internal",
+            "confidential",
+            "restricted"
+          ]
         },
-        "accuracyMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring data accuracy/validity"
-        },
-        "consistencyMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring cross-field validation"
-        },
-        "freshnessMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring data staleness/age"
-        },
-        "uniquenessMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring duplicate detection"
-        },
-        "integrityMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs measuring referential integrity"
+        "MaskingStrategy": {
+          "type": "string",
+          "enum": [
+            "none",
+            "partial",
+            "full",
+            "hash"
+          ]
         }
       }
     }

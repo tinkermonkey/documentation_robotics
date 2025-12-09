@@ -1,670 +1,892 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/09-ux-layer.json",
-  "title": "UX Layer Schema",
-  "description": "Custom user experience specification for multi-channel state management and behavior",
+  "$id": "https://example.com/schemas/09-ux-layer.schema.json",
+  "title": "Ux Layer Schema",
+  "description": "Schema for Ux Layer",
   "type": "object",
-  "required": ["version", "experience", "channel", "states", "views"],
   "properties": {
-    "version": {
-      "type": "string",
-      "description": "Specification version"
-    },
-    "experience": {
-      "type": "string",
-      "description": "Experience identifier"
-    },
-    "channel": {
-      "type": "string",
-      "enum": ["visual", "voice", "chat", "sms", "multimodal"],
-      "description": "Primary channel for this experience"
-    },
-    "title": {
-      "type": "string"
-    },
-    "description": {
-      "type": "string"
-    },
-    "application": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Reference to Application entity"
-    },
-    "archimateElement": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Reference to ApplicationComponent"
-    },
-    "dataSchema": {
-      "type": "string",
-      "description": "Path to JSON Schema file"
-    },
-    "apiSpec": {
-      "type": "string",
-      "description": "Path to OpenAPI spec file"
-    },
-    "motivationAlignment": {
-      "type": "object",
-      "properties": {
-        "supportsGoals": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Goal IDs this experience helps achieve"
-        },
-        "deliversValue": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Value IDs this experience provides"
-        },
-        "governedByPrinciples": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "UX/Design Principle IDs"
-        },
-        "fulfillsRequirements": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Requirement IDs this experience fulfills"
-        }
-      }
-    },
-    "business": {
-      "type": "object",
-      "properties": {
-        "supportsProcesses": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "BusinessProcess IDs this experience supports"
-        },
-        "realizesServices": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "BusinessService IDs this experience realizes"
-        },
-        "targetActors": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "BusinessActor IDs this experience is designed for"
-        },
-        "targetRoles": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "BusinessRole IDs this experience is designed for"
-        }
-      }
-    },
-    "security": {
-      "type": "object",
-      "properties": {
-        "model": {
-          "type": "string",
-          "description": "SecurityModel reference"
-        },
-        "defaultRequiredRoles": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Default roles required for this experience"
-        }
-      }
-    },
-    "apm": {
-      "type": "object",
-      "properties": {
-        "measuredByMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric names that measure this experience"
-        },
-        "performanceTargets": {
-          "$ref": "#/definitions/PerformanceTargets"
-        }
-      }
-    },
-    "states": {
+    "ux-libraries": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ExperienceState" },
-      "minItems": 1
+      "description": "Collection of UXLibrary entities",
+      "items": {
+        "$ref": "#/definitions/UXLibrary"
+      }
+    },
+    "library-components": {
+      "type": "array",
+      "description": "Collection of LibraryComponent entities",
+      "items": {
+        "$ref": "#/definitions/LibraryComponent"
+      }
+    },
+    "library-sub-views": {
+      "type": "array",
+      "description": "Collection of LibrarySubView entities",
+      "items": {
+        "$ref": "#/definitions/LibrarySubView"
+      }
+    },
+    "state-patterns": {
+      "type": "array",
+      "description": "Collection of StatePattern entities",
+      "items": {
+        "$ref": "#/definitions/StatePattern"
+      }
+    },
+    "action-patterns": {
+      "type": "array",
+      "description": "Collection of ActionPattern entities",
+      "items": {
+        "$ref": "#/definitions/ActionPattern"
+      }
+    },
+    "ux-applications": {
+      "type": "array",
+      "description": "Collection of UXApplication entities",
+      "items": {
+        "$ref": "#/definitions/UXApplication"
+      }
+    },
+    "ux-specs": {
+      "type": "array",
+      "description": "Collection of UXSpec entities",
+      "items": {
+        "$ref": "#/definitions/UXSpec"
+      }
+    },
+    "experience-states": {
+      "type": "array",
+      "description": "Collection of ExperienceState entities",
+      "items": {
+        "$ref": "#/definitions/ExperienceState"
+      }
+    },
+    "state-actions": {
+      "type": "array",
+      "description": "Collection of StateAction entities",
+      "items": {
+        "$ref": "#/definitions/StateAction"
+      }
+    },
+    "state-transitions": {
+      "type": "array",
+      "description": "Collection of StateTransition entities",
+      "items": {
+        "$ref": "#/definitions/StateTransition"
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Collection of Condition entities",
+      "items": {
+        "$ref": "#/definitions/Condition"
+      }
     },
     "views": {
       "type": "array",
-      "items": { "$ref": "#/definitions/View" },
-      "minItems": 1
+      "description": "Collection of View entities",
+      "items": {
+        "$ref": "#/definitions/View"
+      }
     },
-    "globalActions": {
+    "sub-views": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ActionComponent" }
+      "description": "Collection of SubView entities",
+      "items": {
+        "$ref": "#/definitions/SubView"
+      }
+    },
+    "component-instances": {
+      "type": "array",
+      "description": "Collection of ComponentInstance entities",
+      "items": {
+        "$ref": "#/definitions/ComponentInstance"
+      }
+    },
+    "action-components": {
+      "type": "array",
+      "description": "Collection of ActionComponent entities",
+      "items": {
+        "$ref": "#/definitions/ActionComponent"
+      }
+    },
+    "validation-rules": {
+      "type": "array",
+      "description": "Collection of ValidationRule entities",
+      "items": {
+        "$ref": "#/definitions/ValidationRule"
+      }
     }
   },
   "definitions": {
-    "ExperienceState": {
+    "UXLibrary": {
       "type": "object",
-      "required": ["name"],
+      "description": "Collection of reusable UI components and sub-views that can be shared across applications",
+      "required": [
+        "id",
+        "name",
+        "version"
+      ],
       "properties": {
-        "name": {
-          "type": "string"
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
         },
-        "initial": {
-          "type": "boolean",
-          "default": false
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "author": {
+          "type": "string",
+          "minLength": 1
+        },
+        "license": {
+          "type": "string",
+          "minLength": 1
+        },
+        "components": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "subViews": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "statePatterns": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "actionPatterns": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "LibraryComponent": {
+      "type": "object",
+      "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ComponentType": {
+          "type": "string",
+          "enum": [
+            "form-field",
+            "table",
+            "chart",
+            "card",
+            "list",
+            "text",
+            "image",
+            "video",
+            "audio",
+            "map",
+            "calendar",
+            "timeline",
+            "tree",
+            "custom"
+          ]
+        }
+      }
+    },
+    "LibrarySubView": {
+      "type": "object",
+      "description": "Reusable grouping of components that can be composed into views",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "LayoutStyle": {
+          "type": "string",
+          "enum": [
+            "grid",
+            "flex",
+            "stack",
+            "flow",
+            "custom"
+          ]
+        }
+      }
+    },
+    "StatePattern": {
+      "type": "object",
+      "description": "Reusable state machine pattern for common UX flows",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ActionPattern": {
+      "type": "object",
+      "description": "Reusable action configuration for common user interactions",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "category": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ActionType": {
+          "type": "string",
+          "enum": [
+            "fetchData",
+            "saveData",
+            "deleteData",
+            "validateForm",
+            "clearForm",
+            "showNotification",
+            "navigateTo",
+            "callAPI",
+            "updateState",
+            "computeValue"
+          ]
+        }
+      }
+    },
+    "UXApplication": {
+      "type": "object",
+      "description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
+      "required": [
+        "id",
+        "name",
+        "channel"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "channel": {
+          "$ref": "#/definitions/enum"
+        },
+        "experiences": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "ChannelType": {
+          "type": "string",
+          "enum": [
+            "visual",
+            "voice",
+            "chat",
+            "sms",
+            "multimodal"
+          ]
+        }
+      }
+    },
+    "UXSpec": {
+      "type": "object",
+      "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "experience": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ExperienceState": {
+      "type": "object",
+      "description": "Distinct state that the experience can be in (works across all channels)",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "initial": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
         },
         "channel": {
           "type": "string",
-          "enum": ["visual", "voice", "chat", "sms", "multimodal"],
-          "description": "Channel-specific state (optional)"
+          "minLength": 1
         },
         "onEnter": {
           "type": "array",
-          "items": { "$ref": "#/definitions/StateAction" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "onExit": {
           "type": "array",
-          "items": { "$ref": "#/definitions/StateAction" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "transitions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/StateTransition" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "enabledComponents": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Component names to enable"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "disabledComponents": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Component names to disable"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "hiddenComponents": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Component names to hide"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "StateAction": {
       "type": "object",
-      "required": ["action"],
+      "description": "Action executed during state lifecycle",
+      "required": [
+        "id",
+        "name",
+        "action"
+      ],
       "properties": {
-        "action": {
+        "id": {
           "type": "string",
-          "enum": ["fetchData", "saveData", "deleteData", "validateForm", "clearForm", "showNotification", "navigateTo", "callAPI", "updateState", "computeValue"]
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/definitions/enum"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ActionType": {
+          "type": "string",
+          "enum": [
+            "fetchData",
+            "saveData",
+            "deleteData",
+            "validateForm",
+            "clearForm",
+            "showNotification",
+            "navigateTo",
+            "callAPI",
+            "updateState",
+            "computeValue"
+          ]
         },
-        "api": {
-          "type": "object",
-          "properties": {
-            "operationId": {
-              "type": "string",
-              "description": "OpenAPI operationId"
-            },
-            "method": {
-              "type": "string",
-              "enum": ["GET", "POST", "PUT", "DELETE", "PATCH"]
-            },
-            "endpoint": {
-              "type": "string",
-              "format": "uri"
-            }
-          }
-        },
-        "data": {
-          "type": "object",
-          "properties": {
-            "source": {
-              "type": "string",
-              "enum": ["api-response", "form-data", "route-params", "query-params", "local-storage", "constant", "computed"]
-            },
-            "target": {
-              "type": "string",
-              "description": "JSONPath to target location"
-            },
-            "transform": {
-              "type": "string",
-              "description": "Transformation expression"
-            }
-          }
-        },
-        "errorHandling": {
-          "type": "object",
-          "properties": {
-            "onError": {
-              "type": "string",
-              "description": "Target state on error"
-            },
-            "showNotification": {
-              "type": "boolean",
-              "default": true
-            },
-            "errorMessage": {
-              "type": "string"
-            }
-          }
+        "DataSource": {
+          "type": "string",
+          "enum": [
+            "api-response",
+            "form-data",
+            "route-params",
+            "query-params",
+            "local-storage",
+            "constant",
+            "computed"
+          ]
         }
       }
     },
     "StateTransition": {
       "type": "object",
-      "required": ["to", "on"],
+      "description": "Transition from current state to another state",
+      "required": [
+        "id",
+        "name",
+        true
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "to": {
           "type": "string",
-          "description": "Target ExperienceState name"
+          "minLength": 1
         },
-        "on": {
-          "type": "string",
-          "enum": ["success", "failure", "submit", "cancel", "click", "timeout", "dataReady", "custom"]
+        "true": {
+          "$ref": "#/definitions/enum"
         },
         "description": {
-          "type": "string"
-        },
-        "condition": {
-          "$ref": "#/definitions/Condition"
-        },
-        "validate": {
-          "type": "boolean",
-          "default": false
+          "type": "string",
+          "minLength": 1
         },
         "actions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/StateAction" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "TriggerType": {
+          "type": "string",
+          "enum": [
+            "success",
+            "failure",
+            "submit",
+            "cancel",
+            "click",
+            "timeout",
+            "dataReady",
+            "custom"
+          ]
         }
       }
     },
     "Condition": {
       "type": "object",
-      "required": ["expression"],
+      "description": "Boolean expression for guard conditions",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "expression": {
           "type": "string",
-          "description": "JavaScript-like boolean expression"
-        },
-        "description": {
-          "type": "string"
+          "minLength": 1
         }
       }
     },
     "View": {
       "type": "object",
-      "required": ["name", "type"],
+      "description": "Routable grouping of components (a complete user experience)",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
-          "type": "string",
-          "enum": ["form", "list", "detail", "dashboard", "wizard", "split", "conversational", "custom"]
+          "$ref": "#/definitions/enum"
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "routable": {
-          "type": "boolean",
-          "default": true
-        },
-        "route": {
-          "type": "string",
-          "description": "Route identifier from Navigation Layer"
+          "type": "boolean"
         },
         "layout": {
-          "$ref": "#/definitions/LayoutStyle"
+          "type": "string",
+          "minLength": 1
         },
         "subViews": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SubView" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "components": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Component" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "actions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ActionComponent" }
-        },
-        "security": {
-          "type": "object",
-          "properties": {
-            "resourceRef": {
-              "type": "string",
-              "description": "SecureResource reference - type must be 'screen'"
-            },
-            "requiredRoles": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "Roles required to access this view"
-            },
-            "requiredPermissions": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "Permissions required to access this view"
-            }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
           }
         }
-      }
-    },
-    "LayoutStyle": {
-      "type": "object",
-      "properties": {
-        "type": {
+      },
+      "definitions": {
+        "ViewType": {
           "type": "string",
-          "enum": ["grid", "flex", "stack", "flow", "custom"]
-        },
-        "columns": {
-          "type": "integer",
-          "minimum": 1
-        },
-        "gap": {
-          "type": "string"
+          "enum": [
+            "form",
+            "list",
+            "detail",
+            "dashboard",
+            "wizard",
+            "split",
+            "conversational",
+            "custom"
+          ]
         }
       }
     },
     "SubView": {
       "type": "object",
-      "required": ["name", "title"],
+      "description": "Instance of a LibrarySubView or custom sub-view definition",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "title": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
-        },
-        "collapsible": {
-          "type": "boolean",
-          "default": false
-        },
-        "collapsed": {
-          "type": "boolean",
-          "default": false
-        },
-        "layout": {
-          "$ref": "#/definitions/LayoutStyle"
+          "type": "string",
+          "minLength": 1
         },
         "order": {
           "type": "integer"
-        },
-        "components": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/Component" }
-        },
-        "subViews": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/SubView" }
-        },
-        "conditionalDisplay": {
-          "$ref": "#/definitions/Condition"
         }
       }
     },
-    "Component": {
+    "ComponentInstance": {
       "type": "object",
-      "required": ["name", "type"],
+      "description": "Instance of a LibraryComponent with application-specific configuration",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
-        },
-        "type": {
           "type": "string",
-          "enum": ["form-field", "table", "chart", "card", "list", "text", "image", "video", "audio", "map", "calendar", "timeline", "tree", "custom"]
-        },
-        "label": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "required": {
-          "type": "boolean",
-          "default": false
-        },
-        "readonly": {
-          "type": "boolean",
-          "default": false
-        },
-        "hidden": {
-          "type": "boolean",
-          "default": false
+          "minLength": 1
         },
         "order": {
           "type": "integer"
-        },
-        "dataBinding": {
-          "type": "object",
-          "properties": {
-            "schemaRef": {
-              "type": "string",
-              "description": "JSONPath to property in JSON Schema"
-            },
-            "defaultValue": {},
-            "dataSource": {
-              "type": "string",
-              "description": "API operation ID or data reference"
-            }
-          }
-        },
-        "config": {
-          "type": "object",
-          "description": "Component-specific configuration",
-          "oneOf": [
-            { "$ref": "#/definitions/FormFieldConfig" },
-            { "$ref": "#/definitions/TableConfig" },
-            { "$ref": "#/definitions/ChartConfig" },
-            { "$ref": "#/definitions/AudioConfig" },
-            { "$ref": "#/definitions/CustomConfig" }
-          ]
-        },
-        "conditionalDisplay": {
-          "$ref": "#/definitions/Condition"
-        },
-        "security": {
-          "type": "object",
-          "properties": {
-            "fieldAccess": {
-              "type": "string",
-              "description": "Field name in SecureResource for field-level access control"
-            },
-            "visibleToRoles": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "Roles that can see this component"
-            },
-            "editableByRoles": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "Roles that can edit this component"
-            }
-          }
-        },
-        "dependsOn": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "triggers": {
-          "type": "array",
-          "items": { "type": "string" }
-        }
-      }
-    },
-    "PerformanceTargets": {
-      "type": "object",
-      "properties": {
-        "loadTimeMs": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Target load time in milliseconds"
-        },
-        "interactionLatencyMs": {
-          "type": "integer",
-          "minimum": 0,
-          "description": "Target interaction latency in milliseconds"
-        },
-        "errorRatePercent": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Target error rate percentage"
-        },
-        "completionRatePercent": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100,
-          "description": "Target completion rate percentage"
-        }
-      }
-    },
-    "FormFieldConfig": {
-      "type": "object",
-      "required": ["fieldType"],
-      "properties": {
-        "fieldType": {
-          "type": "string",
-          "enum": ["text-input", "textarea", "number-input", "email-input", "password-input", "url-input", "phone-input", "date-picker", "datetime-picker", "time-picker", "select", "multi-select", "autocomplete", "checkbox", "radio-group", "toggle", "slider", "file-upload", "image-upload", "rich-text-editor", "markdown-editor", "color-picker", "rating", "tags-input"]
-        },
-        "placeholder": {
-          "type": "string"
-        },
-        "helpText": {
-          "type": "string"
-        },
-        "validation": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ValidationRule" }
-        },
-        "props": {
-          "type": "object"
-        }
-      }
-    },
-    "TableConfig": {
-      "type": "object",
-      "properties": {
-        "sortable": {
-          "type": "boolean"
-        },
-        "filterable": {
-          "type": "boolean"
-        },
-        "paginated": {
-          "type": "boolean"
-        },
-        "selectable": {
-          "type": "boolean"
-        }
-      }
-    },
-    "ChartConfig": {
-      "type": "object",
-      "properties": {
-        "chartType": {
-          "type": "string",
-          "enum": ["line", "bar", "pie", "scatter", "area", "custom"]
-        },
-        "xAxis": {
-          "type": "string"
-        },
-        "yAxis": {
-          "type": "string"
-        }
-      }
-    },
-    "AudioConfig": {
-      "type": "object",
-      "properties": {
-        "audioType": {
-          "type": "string",
-          "enum": ["speech", "recorded", "stream"]
-        },
-        "text": {
-          "type": "string",
-          "description": "Text for text-to-speech"
-        },
-        "audioUrl": {
-          "type": "string",
-          "format": "uri"
-        },
-        "voice": {
-          "type": "string"
-        }
-      }
-    },
-    "CustomConfig": {
-      "type": "object",
-      "properties": {
-        "componentClass": {
-          "type": "string"
-        },
-        "props": {
-          "type": "object"
-        }
-      }
-    },
-    "ValidationRule": {
-      "type": "object",
-      "required": ["type", "message"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["required", "minLength", "maxLength", "pattern", "email", "url", "min", "max", "custom"]
-        },
-        "message": {
-          "type": "string"
-        },
-        "value": {
-          "description": "Rule-specific value"
         }
       }
     },
     "ActionComponent": {
       "type": "object",
-      "required": ["name", "label", "type", "action"],
+      "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "label": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
-          "type": "string",
-          "enum": ["button", "menu-item", "link", "voice-command", "chat-button", "sms-keyword", "custom"]
+          "$ref": "#/definitions/enum"
         },
         "icon": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "disabled": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "tooltip": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "channel": {
           "type": "string",
-          "enum": ["visual", "voice", "chat", "sms", "multimodal"],
-          "description": "Channel-specific action (optional)"
-        },
-        "action": {
-          "$ref": "#/definitions/StateAction"
-        },
-        "confirmationPrompt": {
-          "type": "string"
-        },
-        "enableCondition": {
-          "$ref": "#/definitions/Condition"
+          "minLength": 1
         },
         "children": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ActionComponent" },
-          "description": "Nested actions for menus"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "ActionComponentType": {
+          "type": "string",
+          "enum": [
+            "button",
+            "menu-item",
+            "link",
+            "voice-command",
+            "chat-button",
+            "sms-keyword",
+            "custom"
+          ]
+        },
+        "ButtonStyle": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "danger",
+            "success",
+            "warning",
+            "ghost",
+            "icon"
+          ]
+        }
+      }
+    },
+    "ValidationRule": {
+      "type": "object",
+      "description": "Client-side validation rule for a field",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ValidationType": {
+          "type": "string",
+          "enum": [
+            "required",
+            "minLength",
+            "maxLength",
+            "pattern",
+            "email",
+            "url",
+            "min",
+            "max",
+            "custom"
+          ]
         }
       }
     }

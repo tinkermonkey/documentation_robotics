@@ -1,851 +1,795 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/11-apm-observability-layer.json",
-  "title": "APM/Observability Layer Schema",
-  "description": "OpenTelemetry-based APM configuration and runtime telemetry data for distributed tracing, logging, and metrics",
+  "$id": "https://example.com/schemas/11-apm-observability-layer.schema.json",
+  "title": "Apm Observability Layer Schema",
+  "description": "Schema for Apm Observability Layer",
   "type": "object",
-  "required": ["version", "application", "tracing", "logging"],
   "properties": {
-    "version": {
-      "type": "string",
-      "description": "Configuration version"
-    },
-    "application": {
-      "type": "string",
-      "description": "Application identifier"
-    },
-    "archimateElement": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Reference to ApplicationComponent or TechnologyService"
-    },
-    "tracing": {
-      "$ref": "#/definitions/TraceConfiguration"
-    },
-    "logging": {
-      "$ref": "#/definitions/LogConfiguration"
-    },
-    "metrics": {
-      "$ref": "#/definitions/MetricConfiguration"
-    },
-    "dataQuality": {
-      "$ref": "#/definitions/DataQualityMetrics",
-      "description": "Data quality monitoring configuration"
-    },
-    "motivationMapping": {
-      "$ref": "#/definitions/MotivationMapping",
-      "description": "Links to Motivation Layer for governance"
-    },
     "spans": {
       "type": "array",
-      "description": "Runtime trace spans",
-      "items": { "$ref": "#/definitions/Span" }
+      "description": "Collection of Span entities",
+      "items": {
+        "$ref": "#/definitions/Span"
+      }
     },
-    "logs": {
+    "span-events": {
       "type": "array",
-      "description": "Runtime log records",
-      "items": { "$ref": "#/definitions/LogRecord" }
+      "description": "Collection of SpanEvent entities",
+      "items": {
+        "$ref": "#/definitions/SpanEvent"
+      }
+    },
+    "span-links": {
+      "type": "array",
+      "description": "Collection of SpanLink entities",
+      "items": {
+        "$ref": "#/definitions/SpanLink"
+      }
+    },
+    "span-statuses": {
+      "type": "array",
+      "description": "Collection of SpanStatus entities",
+      "items": {
+        "$ref": "#/definitions/SpanStatus"
+      }
+    },
+    "log-records": {
+      "type": "array",
+      "description": "Collection of LogRecord entities",
+      "items": {
+        "$ref": "#/definitions/LogRecord"
+      }
     },
     "resources": {
       "type": "array",
-      "description": "Resources producing telemetry",
-      "items": { "$ref": "#/definitions/Resource" }
+      "description": "Collection of Resource entities",
+      "items": {
+        "$ref": "#/definitions/Resource"
+      }
+    },
+    "instrumentation-scopes": {
+      "type": "array",
+      "description": "Collection of InstrumentationScope entities",
+      "items": {
+        "$ref": "#/definitions/InstrumentationScope"
+      }
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Collection of Attribute entities",
+      "items": {
+        "$ref": "#/definitions/Attribute"
+      }
+    },
+    "apm-configurations": {
+      "type": "array",
+      "description": "Collection of APMConfiguration entities",
+      "items": {
+        "$ref": "#/definitions/APMConfiguration"
+      }
+    },
+    "trace-configurations": {
+      "type": "array",
+      "description": "Collection of TraceConfiguration entities",
+      "items": {
+        "$ref": "#/definitions/TraceConfiguration"
+      }
+    },
+    "log-configurations": {
+      "type": "array",
+      "description": "Collection of LogConfiguration entities",
+      "items": {
+        "$ref": "#/definitions/LogConfiguration"
+      }
+    },
+    "metric-configurations": {
+      "type": "array",
+      "description": "Collection of MetricConfiguration entities",
+      "items": {
+        "$ref": "#/definitions/MetricConfiguration"
+      }
+    },
+    "data-quality-metricses": {
+      "type": "array",
+      "description": "Collection of DataQualityMetrics entities",
+      "items": {
+        "$ref": "#/definitions/DataQualityMetrics"
+      }
+    },
+    "data-quality-metrics": {
+      "type": "array",
+      "description": "Collection of DataQualityMetric entities",
+      "items": {
+        "$ref": "#/definitions/DataQualityMetric"
+      }
     }
   },
   "definitions": {
-    "TraceConfiguration": {
-      "type": "object",
-      "required": ["serviceName", "sampler", "propagators", "exporters"],
-      "properties": {
-        "serviceName": {
-          "type": "string"
-        },
-        "serviceVersion": {
-          "type": "string"
-        },
-        "deploymentEnvironment": {
-          "type": "string"
-        },
-        "sampler": {
-          "type": "object",
-          "required": ["type"],
-          "properties": {
-            "type": {
-              "type": "string",
-              "enum": ["always_on", "always_off", "traceidratio", "parentbased_always_on", "parentbased_always_off", "parentbased_traceidratio"]
-            },
-            "config": {
-              "type": "object",
-              "properties": {
-                "ratio": {
-                  "type": "number",
-                  "minimum": 0,
-                  "maximum": 1
-                }
-              }
-            }
-          }
-        },
-        "propagators": {
-          "type": "array",
-          "items": {
-            "type": "string",
-            "enum": ["w3c-trace-context", "w3c-baggage", "b3", "jaeger", "xray", "ottrace"]
-          },
-          "minItems": 1
-        },
-        "exporters": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ExporterConfig" },
-          "minItems": 1
-        },
-        "instrumentations": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/InstrumentationConfig" }
-        },
-        "resource": {
-          "$ref": "#/definitions/Resource",
-          "description": "Service resource definition"
-        },
-        "spanLimits": {
-          "type": "object",
-          "description": "Limits for span attributes and events",
-          "properties": {
-            "maxAttributesPerSpan": { "type": "integer", "default": 128 },
-            "maxEventsPerSpan": { "type": "integer", "default": 128 },
-            "maxLinksPerSpan": { "type": "integer", "default": 128 },
-            "maxAttributesPerEvent": { "type": "integer", "default": 128 },
-            "maxAttributesPerLink": { "type": "integer", "default": 128 }
-          }
-        }
-      }
-    },
-    "LogConfiguration": {
-      "type": "object",
-      "required": ["serviceName", "logLevel", "exporters"],
-      "properties": {
-        "serviceName": {
-          "type": "string"
-        },
-        "logLevel": {
-          "type": "string",
-          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
-        },
-        "schema": {
-          "type": "object",
-          "properties": {
-            "$ref": {
-              "type": "string",
-              "description": "Path to JSON Schema for log structure"
-            }
-          }
-        },
-        "processors": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/LogProcessor" }
-        },
-        "exporters": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ExporterConfig" },
-          "minItems": 1
-        },
-        "auditConfiguration": {
-          "type": "object",
-          "description": "Security Layer integration for audit logging",
-          "properties": {
-            "accountabilityRequirementRefs": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "References to Security Layer AccountabilityRequirement IDs"
-            },
-            "retentionPeriod": {
-              "type": "string",
-              "description": "Log retention period (e.g., '7years')"
-            },
-            "nonRepudiation": {
-              "type": "boolean",
-              "default": false,
-              "description": "Enable cryptographic proof of log integrity"
-            }
-          }
-        }
-      }
-    },
-    "MetricConfiguration": {
-      "type": "object",
-      "required": ["serviceName", "meters", "exporters"],
-      "properties": {
-        "serviceName": {
-          "type": "string"
-        },
-        "exportIntervalMillis": {
-          "type": "integer",
-          "minimum": 1000,
-          "default": 60000
-        },
-        "meters": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/MeterConfig" },
-          "minItems": 1
-        },
-        "exporters": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ExporterConfig" },
-          "minItems": 1
-        },
-        "resource": {
-          "$ref": "#/definitions/Resource",
-          "description": "Service resource definition"
-        }
-      }
-    },
-    "ExporterConfig": {
-      "type": "object",
-      "required": ["type", "endpoint"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["otlp", "console", "prometheus", "jaeger", "zipkin"]
-        },
-        "endpoint": {
-          "type": "string"
-        },
-        "protocol": {
-          "type": "string",
-          "enum": ["grpc", "http", "http/json", "http/protobuf"]
-        },
-        "headers": {
-          "type": "object",
-          "additionalProperties": { "type": "string" }
-        },
-        "compression": {
-          "type": "string",
-          "enum": ["none", "gzip"]
-        },
-        "timeout": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Timeout in milliseconds"
-        },
-        "enabled": {
-          "type": "boolean",
-          "default": true
-        }
-      }
-    },
-    "InstrumentationConfig": {
-      "type": "object",
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["http", "database", "redis", "graphql", "grpc", "messaging", "filesystem"]
-        },
-        "config": {
-          "type": "object",
-          "properties": {
-            "captureHeaders": { "type": "boolean" },
-            "recordRequestHeaders": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "recordResponseHeaders": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "recordQueries": { "type": "boolean" },
-            "sanitizeStatements": { "type": "boolean" },
-            "maxStatementLength": { "type": "integer" },
-            "recordCommands": { "type": "boolean" }
-          }
-        }
-      }
-    },
-    "LogProcessor": {
-      "type": "object",
-      "required": ["type"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["batch", "resource", "filter", "transform"]
-        },
-        "config": {
-          "type": "object",
-          "properties": {
-            "maxQueueSize": { "type": "integer" },
-            "scheduledDelayMillis": { "type": "integer" },
-            "exportTimeoutMillis": { "type": "integer" },
-            "maxExportBatchSize": { "type": "integer" },
-            "attributes": {
-              "type": "object",
-              "additionalProperties": { "type": "string" }
-            }
-          }
-        }
-      }
-    },
-    "MeterConfig": {
-      "type": "object",
-      "required": ["name", "instruments"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "description": "Meter name"
-        },
-        "instruments": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/InstrumentConfig" },
-          "minItems": 1
-        }
-      }
-    },
-    "InstrumentConfig": {
-      "type": "object",
-      "required": ["type", "name", "unit"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["counter", "updowncounter", "gauge", "histogram"]
-        },
-        "name": {
-          "type": "string"
-        },
-        "unit": {
-          "type": "string"
-        },
-        "description": {
-          "type": "string"
-        },
-        "attributes": {
-          "type": "array",
-          "items": { "type": "string" }
-        },
-        "buckets": {
-          "type": "array",
-          "items": { "type": "number" },
-          "description": "Histogram buckets"
-        },
-        "motivationMapping": {
-          "$ref": "#/definitions/MetricMotivationMapping",
-          "description": "Links to Motivation Layer for goal/requirement alignment"
-        },
-        "businessProcessRef": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to Business Layer BusinessProcess ID"
-        },
-        "processStepName": {
-          "type": "string",
-          "description": "Specific process step within business process"
-        },
-        "securityThreatRef": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to Security Layer Threat ID"
-        },
-        "securityControlRef": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to Security Layer Control ID"
-        },
-        "securityAccountabilityRef": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to Security Layer AccountabilityRequirement ID"
-        },
-        "uxComponentRef": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to UX Layer Component/Screen ID"
-        },
-        "navigationRouteRef": {
-          "type": "string",
-          "description": "Reference to Navigation Layer Route path"
-        },
-        "webVitals": {
-          "type": "array",
-          "description": "Core Web Vitals metrics",
-          "items": {
-            "type": "object",
-            "properties": {
-              "metric": {
-                "type": "string",
-                "enum": ["LCP", "FID", "CLS", "TTFB", "INP"]
-              },
-              "threshold": { "type": "string" }
-            }
-          }
-        },
-        "alertThreshold": {
-          "type": "string",
-          "description": "Alert threshold for security/quality metrics"
-        }
-      }
-    },
     "Span": {
       "type": "object",
-      "description": "OpenTelemetry Span - unit of work in distributed tracing",
-      "required": ["traceId", "spanId", "name", "spanKind", "startTimeUnixNano", "endTimeUnixNano", "status"],
+      "description": "Unit of work in distributed tracing",
+      "required": [
+        "id",
+        "traceId",
+        "spanId",
+        "traceState",
+        "parentSpanId",
+        "name",
+        "spanKind",
+        "startTimeUnixNano",
+        "endTimeUnixNano",
+        "droppedAttributesCount",
+        "droppedEventsCount",
+        "droppedLinksCount"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "traceId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{32}$",
-          "description": "Globally unique trace identifier (16 bytes hex)"
+          "minLength": 1
         },
         "spanId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{16}$",
-          "description": "Unique span identifier within trace (8 bytes hex)"
+          "minLength": 1
         },
         "traceState": {
           "type": "string",
-          "description": "W3C Trace Context trace state"
+          "minLength": 1
         },
         "parentSpanId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{16}$",
-          "description": "Parent span identifier for nesting"
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "description": "Operation name (e.g., 'getProduct', 'db.query')"
+          "minLength": 1
         },
         "spanKind": {
-          "type": "string",
-          "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"],
-          "description": "Type of span"
+          "$ref": "#/definitions/enum"
         },
         "startTimeUnixNano": {
-          "type": "integer",
-          "description": "Start time in nanoseconds since epoch"
+          "type": "string",
+          "minLength": 1
         },
         "endTimeUnixNano": {
-          "type": "integer",
-          "description": "End time in nanoseconds since epoch"
+          "type": "string",
+          "minLength": 1
+        },
+        "droppedAttributesCount": {
+          "type": "string",
+          "minLength": 1
+        },
+        "droppedEventsCount": {
+          "type": "string",
+          "minLength": 1
+        },
+        "droppedLinksCount": {
+          "type": "string",
+          "minLength": 1
         },
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" },
-          "description": "Key-value metadata"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "events": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SpanEvent" },
-          "description": "Timestamped events during span"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "links": {
           "type": "array",
-          "items": { "$ref": "#/definitions/SpanLink" },
-          "description": "Links to other spans"
-        },
-        "status": {
-          "$ref": "#/definitions/SpanStatus",
-          "description": "Span outcome"
-        },
-        "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
-        },
-        "droppedEventsCount": {
-          "type": "integer",
-          "default": 0
-        },
-        "droppedLinksCount": {
-          "type": "integer",
-          "default": 0
-        },
-        "operationId": {
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "SpanKind": {
           "type": "string",
-          "description": "Reference to OpenAPI operationId"
-        },
-        "archimateService": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to ArchiMate ApplicationService ID"
-        },
-        "businessProcess": {
-          "type": "string",
-          "format": "uuid",
-          "description": "Reference to Business Layer BusinessProcess ID"
-        },
-        "processStepName": {
-          "type": "string",
-          "description": "Specific step within business process"
+          "enum": [
+            "INTERNAL",
+            "SERVER",
+            "CLIENT",
+            "PRODUCER",
+            "CONSUMER"
+          ]
         }
       }
     },
     "SpanEvent": {
       "type": "object",
       "description": "Timestamped event during span execution",
-      "required": ["timeUnixNano", "name"],
+      "required": [
+        "id",
+        "timeUnixNano",
+        "name",
+        "droppedAttributesCount"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "timeUnixNano": {
-          "type": "integer",
-          "description": "Event timestamp in nanoseconds since epoch"
+          "type": "string",
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "description": "Event name (e.g., 'exception', 'product.viewed')"
+          "minLength": 1
+        },
+        "droppedAttributesCount": {
+          "type": "string",
+          "minLength": 1
         },
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" },
-          "description": "Event-specific attributes"
-        },
-        "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "SpanLink": {
       "type": "object",
-      "description": "Link to related span in different trace",
-      "required": ["traceId", "spanId"],
+      "description": "Link to related span (different trace or parent)",
+      "required": [
+        "id",
+        "name",
+        "traceId",
+        "spanId",
+        "droppedAttributesCount"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "traceId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{32}$"
+          "minLength": 1
         },
         "spanId": {
           "type": "string",
-          "pattern": "^[0-9a-f]{16}$"
+          "minLength": 1
         },
         "traceState": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "droppedAttributesCount": {
+          "type": "string",
+          "minLength": 1
         },
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" }
-        },
-        "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "SpanStatus": {
       "type": "object",
       "description": "Outcome of span execution",
-      "required": ["code"],
+      "required": [
+        "id",
+        "name",
+        "code"
+      ],
       "properties": {
-        "code": {
+        "id": {
           "type": "string",
-          "enum": ["UNSET", "OK", "ERROR"],
-          "description": "Status code"
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "code": {
+          "$ref": "#/definitions/enum"
         },
         "message": {
           "type": "string",
-          "description": "Error message if ERROR"
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "StatusCode": {
+          "type": "string",
+          "enum": [
+            "UNSET",
+            "OK",
+            "ERROR"
+          ]
         }
       }
     },
     "LogRecord": {
       "type": "object",
       "description": "OpenTelemetry log entry",
-      "required": ["timeUnixNano", "severityNumber", "body"],
+      "required": [
+        "id",
+        "name",
+        "timeUnixNano",
+        "observedTimeUnixNano",
+        "severityNumber",
+        "body",
+        "flags",
+        "droppedAttributesCount"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "timeUnixNano": {
-          "type": "integer",
-          "description": "Log creation time in nanoseconds since epoch"
+          "type": "string",
+          "minLength": 1
         },
         "observedTimeUnixNano": {
-          "type": "integer",
-          "description": "Time log was observed by collector"
+          "type": "string",
+          "minLength": 1
         },
         "severityNumber": {
-          "type": "integer",
-          "minimum": 0,
-          "maximum": 24,
-          "description": "OpenTelemetry severity number (0=UNSPECIFIED, 9=INFO, 17=ERROR, 21=FATAL)"
+          "$ref": "#/definitions/enum"
         },
         "severityText": {
           "type": "string",
-          "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"],
-          "description": "Human-readable severity"
+          "minLength": 1
         },
         "body": {
-          "$ref": "#/definitions/AnyValue",
-          "description": "Log message/payload"
+          "type": "string",
+          "minLength": 1
+        },
+        "flags": {
+          "type": "string",
+          "minLength": 1
+        },
+        "droppedAttributesCount": {
+          "type": "string",
+          "minLength": 1
         },
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" },
-          "description": "Log-specific attributes"
-        },
-        "resource": {
-          "$ref": "#/definitions/Resource",
-          "description": "Resource that generated log"
-        },
-        "instrumentationScope": {
-          "$ref": "#/definitions/InstrumentationScope",
-          "description": "Instrumentation info"
-        },
-        "traceId": {
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "SeverityNumber": {
           "type": "string",
-          "pattern": "^[0-9a-f]{32}$",
-          "description": "Associated trace ID for correlation"
-        },
-        "spanId": {
-          "type": "string",
-          "pattern": "^[0-9a-f]{16}$",
-          "description": "Associated span ID for correlation"
-        },
-        "flags": {
-          "type": "integer",
-          "description": "Flags (e.g., sampled)"
-        },
-        "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
+          "enum": [
+            {
+              "UNSPECIFIED": 0
+            },
+            {
+              "TRACE": 1
+            },
+            {
+              "TRACE2": 2
+            },
+            {
+              "TRACE3": 3
+            },
+            {
+              "TRACE4": 4
+            },
+            {
+              "DEBUG": 5
+            },
+            {
+              "DEBUG2": 6
+            },
+            {
+              "DEBUG3": 7
+            },
+            {
+              "DEBUG4": 8
+            },
+            {
+              "INFO": 9
+            },
+            {
+              "INFO2": 10
+            },
+            {
+              "INFO3": 11
+            },
+            {
+              "INFO4": 12
+            },
+            {
+              "WARN": 13
+            },
+            {
+              "WARN2": 14
+            },
+            {
+              "WARN3": 15
+            },
+            {
+              "WARN4": 16
+            },
+            {
+              "ERROR": 17
+            },
+            {
+              "ERROR2": 18
+            },
+            {
+              "ERROR3": 19
+            },
+            {
+              "ERROR4": 20
+            },
+            {
+              "FATAL": 21
+            },
+            {
+              "FATAL2": 22
+            },
+            {
+              "FATAL3": 23
+            },
+            {
+              "FATAL4": 24
+            }
+          ]
         }
       }
     },
     "Resource": {
       "type": "object",
       "description": "Immutable representation of entity producing telemetry",
-      "required": ["attributes"],
+      "required": [
+        "id",
+        "name",
+        "droppedAttributesCount"
+      ],
       "properties": {
-        "attributes": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" },
-          "minItems": 1,
-          "description": "Resource attributes (must include service.name)"
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
         },
         "schemaUrl": {
           "type": "string",
-          "format": "uri",
-          "description": "Schema version URL"
+          "minLength": 1
         },
         "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
+          "type": "string",
+          "minLength": 1
+        },
+        "attributes": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "InstrumentationScope": {
       "type": "object",
       "description": "Logical unit of code that generates telemetry",
-      "required": ["name"],
+      "required": [
+        "id",
+        "name",
+        "droppedAttributesCount"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
           "type": "string",
-          "description": "Instrumentation library name"
+          "minLength": 1
         },
         "version": {
           "type": "string",
-          "description": "Library version"
+          "minLength": 1
         },
         "schemaUrl": {
           "type": "string",
-          "format": "uri"
+          "minLength": 1
+        },
+        "droppedAttributesCount": {
+          "type": "string",
+          "minLength": 1
         },
         "attributes": {
           "type": "array",
-          "items": { "$ref": "#/definitions/Attribute" }
-        },
-        "droppedAttributesCount": {
-          "type": "integer",
-          "default": 0
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "Attribute": {
       "type": "object",
       "description": "Key-value pair metadata",
-      "required": ["key", "value"],
+      "required": [
+        "id",
+        "name",
+        "key",
+        "value"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "key": {
           "type": "string",
-          "description": "Attribute name"
+          "minLength": 1
         },
         "value": {
-          "$ref": "#/definitions/AnyValue",
-          "description": "Attribute value"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
-    "AnyValue": {
+    "APMConfiguration": {
       "type": "object",
-      "description": "OpenTelemetry AnyValue - supports multiple value types",
-      "oneOf": [
-        {
-          "properties": {
-            "stringValue": { "type": "string" }
-          },
-          "required": ["stringValue"]
-        },
-        {
-          "properties": {
-            "boolValue": { "type": "boolean" }
-          },
-          "required": ["boolValue"]
-        },
-        {
-          "properties": {
-            "intValue": { "type": "integer" }
-          },
-          "required": ["intValue"]
-        },
-        {
-          "properties": {
-            "doubleValue": { "type": "number" }
-          },
-          "required": ["doubleValue"]
-        },
-        {
-          "properties": {
-            "arrayValue": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/AnyValue" }
-            }
-          },
-          "required": ["arrayValue"]
-        },
-        {
-          "properties": {
-            "kvlistValue": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/Attribute" }
-            }
-          },
-          "required": ["kvlistValue"]
-        },
-        {
-          "properties": {
-            "bytesValue": {
-              "type": "string",
-              "contentEncoding": "base64"
-            }
-          },
-          "required": ["bytesValue"]
-        }
-      ]
-    },
-    "MotivationMapping": {
-      "type": "object",
-      "description": "Links to Motivation Layer for governance",
+      "description": "Complete APM configuration for an application",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "application"
+      ],
       "properties": {
-        "governedByPrinciples": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" },
-          "description": "Principle IDs that govern observability decisions"
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application": {
+          "type": "string",
+          "minLength": 1
         }
       }
     },
-    "MetricMotivationMapping": {
+    "TraceConfiguration": {
       "type": "object",
-      "description": "Motivation Layer integration for metrics",
+      "description": "Distributed tracing configuration",
+      "required": [
+        "id",
+        "name",
+        "serviceName"
+      ],
       "properties": {
-        "contributesToGoal": {
+        "id": {
           "type": "string",
           "format": "uuid",
-          "description": "Goal ID this metric contributes to"
+          "minLength": 1
         },
-        "measuresOutcome": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceVersion": {
+          "type": "string",
+          "minLength": 1
+        },
+        "deploymentEnvironment": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "SamplerType": {
+          "type": "string",
+          "enum": [
+            "always_on",
+            "always_off",
+            "traceidratio",
+            "parentbased_always_on",
+            "parentbased_always_off",
+            "parentbased_traceidratio"
+          ]
+        },
+        "PropagatorType": {
+          "type": "string",
+          "enum": [
+            "w3c-trace-context",
+            "w3c-baggage",
+            "b3",
+            "jaeger",
+            "xray",
+            "ottrace"
+          ]
+        }
+      }
+    },
+    "LogConfiguration": {
+      "type": "object",
+      "description": "Logging configuration",
+      "required": [
+        "name",
+        "id",
+        "serviceName",
+        "logLevel"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
           "type": "string",
           "format": "uuid",
-          "description": "Outcome ID this metric measures"
+          "minLength": 1
         },
-        "kpiFormula": {
+        "serviceName": {
           "type": "string",
-          "description": "KPI calculation formula"
+          "minLength": 1
         },
-        "fulfillsRequirements": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" },
-          "description": "Requirement IDs this metric validates"
+        "logLevel": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "LogLevel": {
+          "type": "string",
+          "enum": [
+            "TRACE",
+            "DEBUG",
+            "INFO",
+            "WARN",
+            "ERROR",
+            "FATAL"
+          ]
+        }
+      }
+    },
+    "MetricConfiguration": {
+      "type": "object",
+      "description": "Metrics configuration",
+      "required": [
+        "id",
+        "name",
+        "serviceName"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
         },
-        "governedByPrinciples": {
-          "type": "array",
-          "items": { "type": "string", "format": "uuid" },
-          "description": "Principle IDs governing this metric"
+        "name": {
+          "type": "string",
+          "minLength": 1
         },
-        "validationCriteria": {
-          "type": "object",
-          "description": "SLA/NFR validation criteria",
-          "properties": {
-            "requirementId": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "threshold": {
-              "type": "string"
-            },
-            "alertOnViolation": {
-              "type": "boolean",
-              "default": true
-            }
-          }
+        "serviceName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "exportIntervalMillis": {
+          "type": "integer"
         }
       }
     },
     "DataQualityMetrics": {
       "type": "object",
-      "description": "Data quality monitoring configuration",
-      "required": ["schemaRef", "metrics"],
+      "description": "Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)",
+      "required": [
+        "schemaRef"
+      ],
       "properties": {
         "schemaRef": {
           "type": "string",
-          "description": "Reference to Data Model Layer schema ID"
+          "minLength": 1
         },
         "monitoringEnabled": {
-          "type": "boolean",
-          "default": true
+          "type": "boolean"
         },
         "metrics": {
           "type": "array",
-          "items": { "$ref": "#/definitions/DataQualityMetric" },
-          "minItems": 1
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "DataQualityMetric": {
       "type": "object",
       "description": "Individual data quality metric",
-      "required": ["type", "name", "measurement", "threshold"],
+      "required": [
+        "type",
+        "name",
+        "measurement",
+        "threshold"
+      ],
       "properties": {
         "type": {
-          "type": "string",
-          "enum": ["completeness", "accuracy", "freshness", "consistency", "uniqueness", "validity", "timeliness", "integrity"],
-          "description": "Type of data quality metric"
+          "$ref": "#/definitions/enum"
         },
         "name": {
           "type": "string",
-          "description": "Metric name"
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "measurement": {
           "type": "string",
-          "description": "How quality is measured"
+          "minLength": 1
         },
         "threshold": {
           "type": "string",
-          "description": "Acceptable quality level"
+          "minLength": 1
         },
         "alertOnViolation": {
-          "type": "boolean",
-          "default": true
-        },
-        "motivationMapping": {
-          "type": "object",
-          "description": "Links to Motivation Layer",
-          "properties": {
-            "contributesToGoal": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "governedByPrinciples": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" }
-            },
-            "fulfillsRequirements": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" }
-            }
-          }
+          "type": "boolean"
+        }
+      },
+      "definitions": {
+        "DataQualityType": {
+          "type": "string",
+          "enum": [
+            "completeness",
+            "accuracy",
+            "freshness",
+            "consistency",
+            "uniqueness",
+            "validity",
+            "timeliness",
+            "integrity"
+          ]
         }
       }
     }

@@ -1,157 +1,304 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/02-business-layer.json",
+  "$id": "https://example.com/schemas/02-business-layer.schema.json",
   "title": "Business Layer Schema",
-  "description": "ArchiMate Business Layer elements for business services, processes, actors, and objects",
+  "description": "Schema for Business Layer",
   "type": "object",
   "properties": {
-    "businessActors": {
+    "business-actors": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessActor" }
+      "description": "Collection of BusinessActor entities",
+      "items": {
+        "$ref": "#/definitions/BusinessActor"
+      }
     },
-    "businessRoles": {
+    "business-roles": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessRole" }
+      "description": "Collection of BusinessRole entities",
+      "items": {
+        "$ref": "#/definitions/BusinessRole"
+      }
     },
-    "businessCollaborations": {
+    "business-collaborations": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessCollaboration" }
+      "description": "Collection of BusinessCollaboration entities",
+      "items": {
+        "$ref": "#/definitions/BusinessCollaboration"
+      }
     },
-    "businessInterfaces": {
+    "business-interfaces": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessInterface" }
+      "description": "Collection of BusinessInterface entities",
+      "items": {
+        "$ref": "#/definitions/BusinessInterface"
+      }
     },
-    "businessProcesses": {
+    "business-processes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessProcess" }
+      "description": "Collection of BusinessProcess entities",
+      "items": {
+        "$ref": "#/definitions/BusinessProcess"
+      }
     },
-    "businessFunctions": {
+    "business-functions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessFunction" }
+      "description": "Collection of BusinessFunction entities",
+      "items": {
+        "$ref": "#/definitions/BusinessFunction"
+      }
     },
-    "businessInteractions": {
+    "business-interactions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessInteraction" }
+      "description": "Collection of BusinessInteraction entities",
+      "items": {
+        "$ref": "#/definitions/BusinessInteraction"
+      }
     },
-    "businessEvents": {
+    "business-events": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessEvent" }
+      "description": "Collection of BusinessEvent entities",
+      "items": {
+        "$ref": "#/definitions/BusinessEvent"
+      }
     },
-    "businessServices": {
+    "business-services": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessService" }
+      "description": "Collection of BusinessService entities",
+      "items": {
+        "$ref": "#/definitions/BusinessService"
+      }
     },
-    "businessObjects": {
+    "business-objects": {
       "type": "array",
-      "items": { "$ref": "#/definitions/BusinessObject" }
+      "description": "Collection of BusinessObject entities",
+      "items": {
+        "$ref": "#/definitions/BusinessObject"
+      }
     },
     "contracts": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Contract" }
+      "description": "Collection of Contract entities",
+      "items": {
+        "$ref": "#/definitions/Contract"
+      }
     },
     "representations": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Representation" }
+      "description": "Collection of Representation entities",
+      "items": {
+        "$ref": "#/definitions/Representation"
+      }
     },
     "products": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Product" }
-    },
-    "relationships": {
-      "type": "array",
-      "items": { "$ref": "#/definitions/Relationship" }
+      "description": "Collection of Product entities",
+      "items": {
+        "$ref": "#/definitions/Product"
+      }
     }
   },
   "definitions": {
     "BusinessActor": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "An organizational entity capable of performing behavior",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "BusinessRole": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "The responsibility for performing specific behavior",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "BusinessCollaboration": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Aggregate of business roles working together",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "collaboration": {
+              "type": "object",
+              "properties": {
+                "security-actors": {
+                  "type": "string",
+                  "description": "optional, Security Actor IDs"
+                },
+                "shared-permissions": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            }
+          }
         }
       }
     },
     "BusinessInterface": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Point of access where business service is available",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "interface": {
+              "type": "object",
+              "properties": {
+                "api-operations": {
+                  "type": "string",
+                  "description": "optional, comma-separated OpenAPI operation IDs"
+                },
+                "digital-channel": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            }
+          }
         }
       }
     },
     "BusinessProcess": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Sequence of business behaviors achieving a result",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "process.bpmn": {
-              "type": "string",
-              "description": "Path to BPMN file"
+            "process": {
+              "type": "object",
+              "properties": {
+                "bpmn": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "security-controls": {
+                  "type": "string",
+                  "description": "optional, security control references"
+                },
+                "audit-required": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "separation-of-duty": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "kpi-target": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "apm": {
+              "type": "object",
+              "properties": {
+                "business-metrics": {
+                  "type": "string",
+                  "description": "optional, business metric IDs"
+                }
+              }
+            },
+            "application": {
+              "type": "object",
+              "properties": {
+                "realized-by-process": {
+                  "type": "string",
+                  "description": "optional, ApplicationProcess ID that automates this business process"
+                },
+                "process-steps": {
+                  "type": "string",
+                  "description": "optional, which specific ApplicationProcess steps realize this business process"
+                }
+              }
             }
           }
         }
@@ -159,82 +306,160 @@
     },
     "BusinessFunction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Collection of business behavior based on criteria",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "BusinessInteraction": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Unit of collective behavior by collaboration",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "BusinessEvent": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Something that happens and influences behavior",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "event": {
+              "type": "object",
+              "properties": {
+                "application-ref": {
+                  "type": "string",
+                  "description": "optional, reference to ApplicationEvent"
+                },
+                "topic": {
+                  "type": "string",
+                  "description": "optional, event bus topic"
+                }
+              }
+            }
+          }
+        }
+      },
+      "definitions": {
+        "EventType": {
           "type": "string",
-          "enum": ["time-driven", "state-change", "external"]
+          "enum": [
+            "time-driven",
+            "state-change",
+            "external"
+          ]
         }
       }
     },
     "BusinessService": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Service that fulfills a business need",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "sla.availability": {
-              "type": "string"
+            "sla": {
+              "type": "object",
+              "properties": {
+                "availability": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "response-time": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
             },
-            "sla.response-time": {
-              "type": "string"
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "delivers-value": {
+                  "type": "string",
+                  "description": "optional, comma-separated Value IDs"
+                },
+                "supports-goals": {
+                  "type": "string",
+                  "description": "optional, comma-separated Goal IDs"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                }
+              }
             }
           }
         }
@@ -242,25 +467,63 @@
     },
     "BusinessObject": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Concept used within business domain",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "properties": {
           "type": "object",
+          "description": "Cross-layer properties",
           "properties": {
-            "spec.schema": {
-              "type": "string",
-              "description": "Path to JSON Schema file"
+            "spec": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "schema-id": {
+                  "type": "string",
+                  "description": "optional, formal reference to Data Model Layer"
+                }
+              }
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "governance-owner": {
+                  "type": "string",
+                  "description": "optional, data owner reference"
+                }
+              }
+            },
+            "application": {
+              "type": "object",
+              "properties": {
+                "represented-by-dataobject": {
+                  "type": "string",
+                  "description": "optional, DataObject ID that represents this business concept in applications"
+                },
+                "master-data-source": {
+                  "type": "string",
+                  "description": "optional, authoritative DataObject for this business object"
+                }
+              }
             }
           }
         }
@@ -268,94 +531,118 @@
     },
     "Contract": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Formal specification of agreement",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "contract": {
+              "type": "object",
+              "properties": {
+                "constraint-refs": {
+                  "type": "string",
+                  "description": "optional, comma-separated Constraint IDs"
+                },
+                "sla-metrics": {
+                  "type": "string",
+                  "description": "optional, measurable SLA commitments"
+                }
+              }
+            }
+          }
         }
       }
     },
     "Representation": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Perceptible form of business object",
+      "required": [
+        "id",
+        "name",
+        "format"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "format": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "RepresentationFormat": {
           "type": "string",
-          "enum": ["document", "report", "form", "message"]
+          "enum": [
+            "document",
+            "report",
+            "form",
+            "message"
+          ]
         }
       }
     },
     "Product": {
       "type": "object",
-      "required": ["id", "name"],
+      "description": "Coherent collection of services with a value",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "format": "uuid"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "documentation": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "services": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "minItems": 1,
-          "description": "References to BusinessService IDs"
+            "type": "string"
+          }
         },
         "contracts": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "description": "References to Contract IDs"
-        }
-      }
-    },
-    "Relationship": {
-      "type": "object",
-      "required": ["type", "source", "target"],
-      "properties": {
-        "type": {
-          "type": "string",
-          "enum": ["Composition", "Aggregation", "Assignment", "Realization", "Triggering", "Flow", "Association", "Access", "Serving"]
-        },
-        "source": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "target": {
-          "type": "string",
-          "format": "uuid"
-        },
-        "documentation": {
-          "type": "string"
+            "type": "string"
+          }
         }
       }
     }

@@ -10,7 +10,7 @@ from urllib.request import urlopen
 
 VIEWER_REPO = "tinkermonkey/documentation_robotics_viewer"
 DEFAULT_VERSION = "0.1.0"
-BUNDLE_DIR = Path(__file__).parent.parent / "src" / "documentation_robotics" / "viewer"
+BUNDLE_DIR = Path(__file__).parent.parent / "cli" / "src" / "documentation_robotics" / "viewer"
 
 
 def bundle_viewer(version: str = DEFAULT_VERSION, force: bool = False) -> None:

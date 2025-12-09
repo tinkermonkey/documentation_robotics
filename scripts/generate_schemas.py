@@ -6,19 +6,19 @@ ensuring consistency between documentation and schemas.
 
 Usage:
     # Generate all layers
-    python cli/scripts/generate_schemas.py --all
+    python scripts/generate_schemas.py --all
 
     # Generate specific layer
-    python cli/scripts/generate_schemas.py --layer 02-business-layer
+    python scripts/generate_schemas.py --layer 02-business-layer
 
     # Dry-run (preview)
-    python cli/scripts/generate_schemas.py --all --dry-run
+    python scripts/generate_schemas.py --all --dry-run
 
     # Update (merge with existing)
-    python cli/scripts/generate_schemas.py --all --update
+    python scripts/generate_schemas.py --all --update
 
     # Check mode (for pre-commit)
-    python cli/scripts/generate_schemas.py --check-only
+    python scripts/generate_schemas.py --check-only
 """
 
 import argparse
@@ -53,9 +53,9 @@ class SchemaGenerator:
             root_dir: Root directory of the project (defaults to auto-detect)
         """
         if root_dir is None:
-            # Auto-detect: script is in cli/scripts/, root is 2 levels up
+            # Auto-detect: script is in scripts/, root is 1 level up
             script_dir = Path(__file__).parent
-            root_dir = script_dir.parent.parent
+            root_dir = script_dir.parent
 
         self.root_dir = root_dir
         self.spec_dir = root_dir / "spec"
@@ -195,7 +195,7 @@ class SchemaGenerator:
             self._print_error("The following schemas are missing or outdated:")
             for layer in outdated:
                 self._print(f"  - {layer}")
-            self._print("\nRun: python cli/scripts/generate_schemas.py --all --update")
+            self._print("\nRun: python scripts/generate_schemas.py --all --update")
             return False
 
         self._print_success("All schemas are up to date!")

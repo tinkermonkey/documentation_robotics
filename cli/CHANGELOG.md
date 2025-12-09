@@ -5,6 +5,26 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2025-12-07
+
+### Added
+
+- **Markdown Validation**: Created `scripts/validate_markdown.py` for validating layer specifications
+  - Validates markdown layer files conform to correct format for schema generation
+  - Validates link registry synchronization
+  - Integrated with pre-commit hooks for automatic validation
+- **Build Preparation**: Restored `scripts/prepare_build.py` for build preparation
+  - Copies integration files and schemas before building CLI package
+  - Updated paths for new scripts location at project root
+
+### Changed
+
+- **Project Structure**: Moved `scripts/` directory from `cli/scripts/` to project root
+  - Scripts serve the specification (schema generation, bundle viewer) rather than CLI specifically
+  - Updated path references in `generate_schemas.py` and `bundle_viewer.py`
+  - Better organization with spec-related tools at root level
+- **Pre-commit Configuration**: Updated hook paths for moved scripts directory
+
 ## [0.7.0] - 2025-12-07
 
 ### Added

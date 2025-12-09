@@ -1,591 +1,959 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/12-testing-layer.json",
+  "$id": "https://example.com/schemas/12-testing-layer.schema.json",
   "title": "Testing Layer Schema",
-  "description": "Test coverage modeling for requirements traceability and coverage analysis",
+  "description": "Schema for Testing Layer",
   "type": "object",
-  "required": ["version", "application", "coverageTargets", "coverageRequirements"],
   "properties": {
-    "version": {
-      "type": "string",
-      "description": "Specification version"
-    },
-    "application": {
-      "type": "string",
-      "description": "Application identifier"
-    },
-    "description": {
-      "type": "string",
-      "description": "Description of this test coverage model"
-    },
-    "motivationRefs": {
+    "test-coverage-models": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "References to Motivation Layer requirements for overall scope"
+      "description": "Collection of TestCoverageModel entities",
+      "items": {
+        "$ref": "#/definitions/TestCoverageModel"
+      }
     },
-    "coverageTargets": {
+    "test-coverage-targets": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TestCoverageTarget" },
-      "minItems": 1
+      "description": "Collection of TestCoverageTarget entities",
+      "items": {
+        "$ref": "#/definitions/TestCoverageTarget"
+      }
     },
-    "inputSpacePartitions": {
+    "target-input-fields": {
       "type": "array",
-      "items": { "$ref": "#/definitions/InputSpacePartition" }
+      "description": "Collection of TargetInputField entities",
+      "items": {
+        "$ref": "#/definitions/TargetInputField"
+      }
     },
-    "contextVariations": {
+    "input-space-partitions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/ContextVariation" }
+      "description": "Collection of InputSpacePartition entities",
+      "items": {
+        "$ref": "#/definitions/InputSpacePartition"
+      }
     },
-    "coverageRequirements": {
+    "partition-values": {
       "type": "array",
-      "items": { "$ref": "#/definitions/CoverageRequirement" },
-      "minItems": 1
+      "description": "Collection of PartitionValue entities",
+      "items": {
+        "$ref": "#/definitions/PartitionValue"
+      }
     },
-    "testCaseSketches": {
+    "partition-dependencies": {
       "type": "array",
-      "items": { "$ref": "#/definitions/TestCaseSketch" }
+      "description": "Collection of PartitionDependency entities",
+      "items": {
+        "$ref": "#/definitions/PartitionDependency"
+      }
     },
-    "coverageSummary": {
-      "$ref": "#/definitions/CoverageSummary"
+    "context-variations": {
+      "type": "array",
+      "description": "Collection of ContextVariation entities",
+      "items": {
+        "$ref": "#/definitions/ContextVariation"
+      }
+    },
+    "environment-factors": {
+      "type": "array",
+      "description": "Collection of EnvironmentFactor entities",
+      "items": {
+        "$ref": "#/definitions/EnvironmentFactor"
+      }
+    },
+    "outcome-categories": {
+      "type": "array",
+      "description": "Collection of OutcomeCategory entities",
+      "items": {
+        "$ref": "#/definitions/OutcomeCategory"
+      }
+    },
+    "coverage-requirements": {
+      "type": "array",
+      "description": "Collection of CoverageRequirement entities",
+      "items": {
+        "$ref": "#/definitions/CoverageRequirement"
+      }
+    },
+    "input-partition-selections": {
+      "type": "array",
+      "description": "Collection of InputPartitionSelection entities",
+      "items": {
+        "$ref": "#/definitions/InputPartitionSelection"
+      }
+    },
+    "coverage-exclusions": {
+      "type": "array",
+      "description": "Collection of CoverageExclusion entities",
+      "items": {
+        "$ref": "#/definitions/CoverageExclusion"
+      }
+    },
+    "test-case-sketches": {
+      "type": "array",
+      "description": "Collection of TestCaseSketch entities",
+      "items": {
+        "$ref": "#/definitions/TestCaseSketch"
+      }
+    },
+    "input-selections": {
+      "type": "array",
+      "description": "Collection of InputSelection entities",
+      "items": {
+        "$ref": "#/definitions/InputSelection"
+      }
+    },
+    "coverage-summaries": {
+      "type": "array",
+      "description": "Collection of CoverageSummary entities",
+      "items": {
+        "$ref": "#/definitions/CoverageSummary"
+      }
+    },
+    "target-coverage-summaries": {
+      "type": "array",
+      "description": "Collection of TargetCoverageSummary entities",
+      "items": {
+        "$ref": "#/definitions/TargetCoverageSummary"
+      }
+    },
+    "coverage-gaps": {
+      "type": "array",
+      "description": "Collection of CoverageGap entities",
+      "items": {
+        "$ref": "#/definitions/CoverageGap"
+      }
     }
   },
   "definitions": {
-    "TestCoverageTarget": {
+    "TestCoverageModel": {
       "type": "object",
-      "required": ["id", "name", "targetType"],
+      "description": "Complete test coverage model for application",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "application"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the coverage target"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "minLength": 1,
-          "description": "Human-readable name"
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application": {
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
-        },
-        "targetType": {
           "type": "string",
-          "enum": ["workflow", "workflow-step", "form", "api-operation", "data-transform", "navigation-path", "integration", "composite"],
-          "description": "Type of artifact being tested"
+          "minLength": 1
         },
-        "priority": {
-          "type": "string",
-          "enum": ["critical", "high", "medium", "low"],
-          "description": "Coverage priority"
-        },
-        "targetRef": {
-          "type": "string",
-          "description": "URI reference to the target artifact"
-        },
-        "businessProcessRef": {
-          "type": "string",
-          "description": "Reference to Business Layer process ID"
-        },
-        "workflowStepRef": {
-          "type": "string",
-          "description": "Reference to specific workflow step"
-        },
-        "formRef": {
-          "type": "string",
-          "description": "Reference to UX Layer form ID"
-        },
-        "apiOperationRef": {
-          "type": "string",
-          "description": "Reference to OpenAPI operationId"
-        },
-        "dataTransformRef": {
-          "type": "string",
-          "description": "Reference to data transformation ID"
-        },
-        "navigationRouteRef": {
-          "type": "string",
-          "description": "Reference to Navigation Layer route ID"
-        },
-        "applicableContexts": {
+        "coverageTargets": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "ContextVariation IDs applicable to this target"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
-        "inputFields": {
+        "inputSpacePartitions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/TargetInputField" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
-        "outcomeCategories": {
+        "contextVariations": {
           "type": "array",
-          "items": { "$ref": "#/definitions/OutcomeCategory" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "coverageRequirements": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "testCaseSketches": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
-    "TargetInputField": {
+    "TestCoverageTarget": {
       "type": "object",
-      "required": ["fieldRef", "partitionRef"],
-      "properties": {
-        "fieldRef": {
-          "type": "string",
-          "description": "Reference to data model or form field"
-        },
-        "partitionRef": {
-          "type": "string",
-          "description": "Reference to InputSpacePartition"
-        },
-        "description": {
-          "type": "string"
-        },
-        "relevance": {
-          "type": "string",
-          "enum": ["primary", "secondary", "contextual"]
-        }
-      }
-    },
-    "InputSpacePartition": {
-      "type": "object",
-      "required": ["id", "name", "fieldRef", "presenceRule", "partitions"],
+      "description": "An artifact or functionality that requires test coverage",
+      "required": [
+        "id",
+        "name",
+        "targetType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the partition"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "targetType": {
+          "$ref": "#/definitions/enum"
+        },
+        "priority": {
+          "$ref": "#/definitions/enum"
+        },
+        "applicableContexts": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "inputFields": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "outcomeCategories": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "TargetType": {
+          "type": "string",
+          "enum": [
+            "workflow",
+            "workflow-step",
+            "form",
+            "api-operation",
+            "data-transform",
+            "navigation-path",
+            "integration",
+            "composite"
+          ]
+        },
+        "Priority": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
+        }
+      }
+    },
+    "TargetInputField": {
+      "type": "object",
+      "description": "Input field associated with a coverage target",
+      "required": [
+        "id",
+        "name",
+        "fieldRef",
+        "partitionRef"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
         },
         "fieldRef": {
           "type": "string",
-          "description": "Reference to the field being partitioned"
+          "minLength": 1
+        },
+        "partitionRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "relevance": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "FieldRelevance": {
+          "type": "string",
+          "enum": [
+            "primary",
+            "secondary",
+            "contextual"
+          ]
+        }
+      }
+    },
+    "InputSpacePartition": {
+      "type": "object",
+      "description": "Partitioning of an input dimension into testable categories",
+      "required": [
+        "id",
+        "name",
+        "fieldRef",
+        "presenceRule"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "fieldRef": {
+          "type": "string",
+          "minLength": 1
         },
         "presenceRule": {
-          "type": "string",
-          "enum": ["required", "optional", "conditional"],
-          "description": "Whether field presence is a dimension to test"
-        },
-        "dataModelFieldRef": {
-          "type": "string",
-          "description": "Reference to Data Model Layer field"
-        },
-        "formFieldRef": {
-          "type": "string",
-          "description": "Reference to UX Layer field"
-        },
-        "apiParameterRef": {
-          "type": "string",
-          "description": "Reference to OpenAPI parameter"
-        },
-        "jsonSchemaRef": {
-          "type": "string",
-          "description": "JSON Schema path reference"
+          "$ref": "#/definitions/enum"
         },
         "partitions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/PartitionValue" },
-          "minItems": 1
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "dependencies": {
           "type": "array",
-          "items": { "$ref": "#/definitions/PartitionDependency" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "PresenceRule": {
+          "type": "string",
+          "enum": [
+            "required",
+            "optional",
+            "conditional"
+          ]
         }
       }
     },
     "PartitionValue": {
       "type": "object",
-      "required": ["id", "label", "category"],
+      "description": "A specific partition within the input space",
+      "required": [
+        "name",
+        "id",
+        "label",
+        "constraint",
+        "constraintExpression",
+        "category",
+        "representativeValue"
+      ],
       "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "id": {
           "type": "string",
-          "description": "Unique identifier within the partition"
+          "format": "uuid",
+          "minLength": 1
         },
         "label": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "constraint": {
           "type": "string",
-          "description": "Human-readable constraint description"
+          "minLength": 1
         },
         "constraintExpression": {
           "type": "string",
-          "description": "Machine-evaluable constraint expression"
+          "minLength": 1
         },
         "category": {
-          "type": "string",
-          "enum": ["typical", "boundary", "invalid", "null", "special"],
-          "description": "Category of this partition value"
+          "$ref": "#/definitions/enum"
         },
         "representativeValue": {
-          "description": "Example value for this partition"
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "PartitionCategory": {
+          "type": "string",
+          "enum": [
+            "typical",
+            "boundary",
+            "invalid",
+            null,
+            "special"
+          ]
         }
       }
     },
     "PartitionDependency": {
       "type": "object",
-      "required": ["dependsOnPartition", "dependsOnValue", "effect", "affectedValues"],
+      "description": "Constraint between partition values across fields",
+      "required": [
+        "id",
+        "name",
+        "dependsOnPartition",
+        "dependsOnValue",
+        "effect",
+        "affectedValues"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "dependsOnPartition": {
           "type": "string",
-          "description": "InputSpacePartition ID this depends on"
+          "minLength": 1
         },
         "dependsOnValue": {
           "type": "string",
-          "description": "PartitionValue ID that triggers the dependency"
+          "minLength": 1
         },
         "effect": {
-          "type": "string",
-          "enum": ["requires", "excludes", "enables", "modifies"]
+          "$ref": "#/definitions/enum"
         },
         "affectedValues": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "PartitionValue IDs affected by this dependency"
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "DependencyEffect": {
+          "type": "string",
+          "enum": [
+            "requires",
+            "excludes",
+            "enables",
+            "modifies"
+          ]
         }
       }
     },
     "ContextVariation": {
       "type": "object",
-      "required": ["id", "name", "contextType"],
+      "description": "Different context in which functionality can be invoked",
+      "required": [
+        "id",
+        "name",
+        "contextType"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the context"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "contextType": {
-          "type": "string",
-          "enum": ["ui-entry", "api-entry", "event-triggered", "scheduled", "integration"]
-        },
-        "entryPointRef": {
-          "type": "string",
-          "description": "Reference to navigation route or API endpoint"
-        },
-        "actorRef": {
-          "type": "string",
-          "description": "Reference to Security Layer actor"
-        },
-        "securityRoleRef": {
-          "type": "string",
-          "description": "Reference to Security Layer role"
-        },
-        "preconditions": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Required system state before execution"
+          "$ref": "#/definitions/enum"
         },
         "environmentFactors": {
           "type": "array",
-          "items": { "$ref": "#/definitions/EnvironmentFactor" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "ContextType": {
+          "type": "string",
+          "enum": [
+            "ui-entry",
+            "api-entry",
+            "event-triggered",
+            "scheduled",
+            "integration"
+          ]
         }
       }
     },
     "EnvironmentFactor": {
       "type": "object",
-      "required": ["factor", "value"],
+      "description": "Environmental condition that may affect behavior",
+      "required": [
+        "id",
+        "name",
+        "factor",
+        "value"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "factor": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "value": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "OutcomeCategory": {
       "type": "object",
-      "required": ["id", "name", "outcomeType"],
+      "description": "Category of expected outcomes (not specific assertions)",
+      "required": [
+        "id",
+        "name",
+        "outcomeType",
+        "httpStatusRange"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier within target"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "outcomeType": {
-          "type": "string",
-          "enum": ["success", "validation-error", "authorization-denied", "not-found", "conflict", "precondition-failed", "idempotent-noop", "partial-success", "error"]
+          "$ref": "#/definitions/enum"
         },
         "httpStatusRange": {
           "type": "string",
-          "description": "Expected HTTP status range (e.g., '2xx', '400-499')"
-        },
-        "validationRuleRefs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Validation rules that trigger this outcome"
-        },
-        "securityConstraintRefs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Security constraints that trigger this outcome"
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "OutcomeType": {
+          "type": "string",
+          "enum": [
+            "success",
+            "validation-error",
+            "authorization-denied",
+            "not-found",
+            "conflict",
+            "precondition-failed",
+            "idempotent-noop",
+            "partial-success",
+            "error"
+          ]
         }
       }
     },
     "CoverageRequirement": {
       "type": "object",
-      "required": ["id", "name", "coverageCriteria", "targetRef"],
+      "description": "Requirement for test coverage of a target",
+      "required": [
+        "id",
+        "name",
+        "coverageCriteria"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the coverage requirement"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "coverageCriteria": {
-          "type": "string",
-          "enum": ["exhaustive", "pairwise", "each-choice", "boundary", "risk-based", "happy-path", "error-path"]
+          "$ref": "#/definitions/enum"
         },
         "priority": {
-          "type": "string",
-          "enum": ["critical", "high", "medium", "low"]
-        },
-        "targetRef": {
-          "type": "string",
-          "description": "Reference to TestCoverageTarget ID"
-        },
-        "requirementRefs": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "References to Motivation Layer Requirement IDs"
-        },
-        "riskAssessmentRef": {
-          "type": "string",
-          "description": "Reference to Motivation Layer Assessment ID"
+          "$ref": "#/definitions/enum"
         },
         "inputPartitionSelections": {
           "type": "array",
-          "items": { "$ref": "#/definitions/InputPartitionSelection" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "contextSelections": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "ContextVariation IDs to cover"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "outcomeSelections": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "OutcomeCategory IDs to verify"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "exclusions": {
           "type": "array",
-          "items": { "$ref": "#/definitions/CoverageExclusion" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "CoverageCriteria": {
+          "type": "string",
+          "enum": [
+            "exhaustive",
+            "pairwise",
+            "each-choice",
+            "boundary",
+            "risk-based",
+            "happy-path",
+            "error-path"
+          ]
         }
       }
     },
     "InputPartitionSelection": {
       "type": "object",
-      "required": ["partitionRef", "coverValues"],
+      "description": "Selection of partition values to include in coverage",
+      "required": [
+        "id",
+        "name",
+        "partitionRef",
+        "coverValues",
+        "coverAllCategories",
+        "excludeValues"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "partitionRef": {
           "type": "string",
-          "description": "Reference to InputSpacePartition ID"
+          "minLength": 1
         },
         "coverValues": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "PartitionValue IDs to cover"
+          "type": "string",
+          "minLength": 1
         },
         "coverAllCategories": {
-          "type": "boolean",
-          "description": "Cover all values of a category type"
+          "type": "boolean"
         },
         "excludeValues": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "PartitionValue IDs to exclude"
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "CoverageExclusion": {
       "type": "object",
-      "required": ["description", "reason"],
-      "properties": {
-        "description": {
-          "type": "string",
-          "description": "What is being excluded"
-        },
-        "reason": {
-          "type": "string",
-          "description": "Why it's excluded"
-        },
-        "riskAccepted": {
-          "type": "boolean",
-          "description": "Whether risk is explicitly accepted"
-        },
-        "approvedBy": {
-          "type": "string",
-          "description": "Who approved the exclusion"
-        }
-      }
-    },
-    "TestCaseSketch": {
-      "type": "object",
-      "required": ["id", "name", "status", "coverageReqRef", "inputSelections", "contextSelection", "expectedOutcome"],
+      "description": "Explicit exclusion from coverage with justification",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "reason",
+        "riskAccepted",
+        "approvedBy"
+      ],
       "properties": {
         "id": {
           "type": "string",
-          "description": "Unique identifier for the test case sketch"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
           "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "riskAccepted": {
+          "type": "boolean"
+        },
+        "approvedBy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "TestCaseSketch": {
+      "type": "object",
+      "description": "Abstract test case selecting specific partition values",
+      "required": [
+        "id",
+        "name",
+        "status"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
         },
         "status": {
-          "type": "string",
-          "enum": ["planned", "implemented", "automated", "manual", "blocked", "deprecated"]
-        },
-        "coverageReqRef": {
-          "type": "string",
-          "description": "Reference to CoverageRequirement ID"
-        },
-        "implementationRef": {
-          "type": "string",
-          "description": "URI to concrete test implementation"
-        },
-        "implementationFormat": {
-          "type": "string",
-          "enum": ["gherkin", "postman", "jest", "pytest", "playwright", "cypress", "robot", "manual", "other"]
+          "$ref": "#/definitions/enum"
         },
         "inputSelections": {
           "type": "array",
-          "items": { "$ref": "#/definitions/InputSelection" },
-          "minItems": 1
-        },
-        "contextSelection": {
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "SketchStatus": {
           "type": "string",
-          "description": "ContextVariation ID for this test"
+          "enum": [
+            "planned",
+            "implemented",
+            "automated",
+            "manual",
+            "blocked",
+            "deprecated"
+          ]
         },
-        "expectedOutcome": {
+        "ImplementationFormat": {
           "type": "string",
-          "description": "OutcomeCategory ID expected"
-        },
-        "notes": {
-          "type": "string",
-          "description": "Implementation notes"
+          "enum": [
+            "gherkin",
+            "postman",
+            "jest",
+            "pytest",
+            "playwright",
+            "cypress",
+            "robot",
+            "manual",
+            "other"
+          ]
         }
       }
     },
     "InputSelection": {
       "type": "object",
-      "required": ["partitionRef", "selectedValue"],
+      "description": "Specific partition value selected for a test case",
+      "required": [
+        "id",
+        "name",
+        "partitionRef",
+        "selectedValue",
+        "concreteValue",
+        "valueSource"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "partitionRef": {
           "type": "string",
-          "description": "Reference to InputSpacePartition ID"
+          "minLength": 1
         },
         "selectedValue": {
           "type": "string",
-          "description": "PartitionValue ID selected"
+          "minLength": 1
         },
         "concreteValue": {
-          "description": "Specific value to use in implementation"
+          "type": "string",
+          "minLength": 1
         },
         "valueSource": {
           "type": "string",
-          "description": "Reference to test data source"
+          "minLength": 1
         }
       }
     },
     "CoverageSummary": {
       "type": "object",
+      "description": "Summary of coverage status (can be computed or declared)",
+      "required": [
+        "totalTargets",
+        "totalRequirements",
+        "totalSketches"
+      ],
       "properties": {
         "generatedAt": {
           "type": "string",
-          "format": "date-time"
+          "minLength": 1
         },
         "totalTargets": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "totalRequirements": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "totalSketches": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "targetSummaries": {
           "type": "array",
-          "items": { "$ref": "#/definitions/TargetCoverageSummary" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "gaps": {
           "type": "array",
-          "items": { "$ref": "#/definitions/CoverageGap" }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "TargetCoverageSummary": {
       "type": "object",
-      "required": ["targetRef"],
+      "description": "",
+      "required": [
+        "targetRef",
+        "sketchCount",
+        "implementedCount",
+        "automatedCount"
+      ],
       "properties": {
         "targetRef": {
           "type": "string",
-          "description": "Reference to TestCoverageTarget ID"
+          "minLength": 1
         },
         "sketchCount": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "implementedCount": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "automatedCount": {
-          "type": "integer",
-          "minimum": 0
+          "type": "integer"
         },
         "coveragePercentage": {
-          "type": "number",
-          "minimum": 0,
-          "maximum": 100
+          "type": "number"
         }
       }
     },
     "CoverageGap": {
       "type": "object",
-      "required": ["description", "severity"],
+      "description": "",
+      "required": [
+        "description",
+        "severity",
+        "affectedRequirements"
+      ],
       "properties": {
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "severity": {
-          "type": "string",
-          "enum": ["critical", "high", "medium", "low"]
+          "$ref": "#/definitions/enum"
         },
         "affectedRequirements": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "CoverageRequirement IDs affected"
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "GapSeverity": {
+          "type": "string",
+          "enum": [
+            "critical",
+            "high",
+            "medium",
+            "low"
+          ]
         }
       }
     }

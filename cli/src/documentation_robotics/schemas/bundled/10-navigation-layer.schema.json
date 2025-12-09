@@ -1,568 +1,727 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/10-navigation-layer.json",
+  "$id": "https://example.com/schemas/10-navigation-layer.schema.json",
   "title": "Navigation Layer Schema",
-  "description": "Custom navigation specification for multi-channel routing, guards, and navigation flows",
+  "description": "Schema for Navigation Layer",
   "type": "object",
-  "required": ["version", "application", "routes"],
   "properties": {
-    "version": {
-      "type": "string",
-      "description": "Specification version"
-    },
-    "application": {
-      "type": "string",
-      "description": "Application identifier"
-    },
-    "description": {
-      "type": "string",
-      "description": "Navigation graph description"
-    },
-    "archimateElement": {
-      "type": "string",
-      "format": "uuid",
-      "description": "Reference to ApplicationComponent"
-    },
-    "governedByPrinciples": {
+    "navigation-graphs": {
       "type": "array",
-      "items": { "type": "string" },
-      "description": "Navigation/UX Principle IDs"
+      "description": "Collection of NavigationGraph entities",
+      "items": {
+        "$ref": "#/definitions/NavigationGraph"
+      }
     },
     "routes": {
       "type": "array",
-      "items": { "$ref": "#/definitions/Route" },
-      "minItems": 1
+      "description": "Collection of Route entities",
+      "items": {
+        "$ref": "#/definitions/Route"
+      }
     },
-    "transitions": {
+    "route-metas": {
       "type": "array",
-      "items": { "$ref": "#/definitions/NavigationTransition" }
+      "description": "Collection of RouteMeta entities",
+      "items": {
+        "$ref": "#/definitions/RouteMeta"
+      }
     },
-    "guards": {
+    "navigation-transitions": {
       "type": "array",
-      "items": { "$ref": "#/definitions/NavigationGuard" }
+      "description": "Collection of NavigationTransition entities",
+      "items": {
+        "$ref": "#/definitions/NavigationTransition"
+      }
     },
-    "flows": {
+    "navigation-guards": {
       "type": "array",
-      "items": { "$ref": "#/definitions/NavigationFlow" },
-      "description": "Navigation flows that realize business processes"
+      "description": "Collection of NavigationGuard entities",
+      "items": {
+        "$ref": "#/definitions/NavigationGuard"
+      }
+    },
+    "guard-conditions": {
+      "type": "array",
+      "description": "Collection of GuardCondition entities",
+      "items": {
+        "$ref": "#/definitions/GuardCondition"
+      }
+    },
+    "guard-actions": {
+      "type": "array",
+      "description": "Collection of GuardAction entities",
+      "items": {
+        "$ref": "#/definitions/GuardAction"
+      }
+    },
+    "navigation-flows": {
+      "type": "array",
+      "description": "Collection of NavigationFlow entities",
+      "items": {
+        "$ref": "#/definitions/NavigationFlow"
+      }
+    },
+    "flow-steps": {
+      "type": "array",
+      "description": "Collection of FlowStep entities",
+      "items": {
+        "$ref": "#/definitions/FlowStep"
+      }
+    },
+    "context-variables": {
+      "type": "array",
+      "description": "Collection of ContextVariable entities",
+      "items": {
+        "$ref": "#/definitions/ContextVariable"
+      }
+    },
+    "data-mappings": {
+      "type": "array",
+      "description": "Collection of DataMapping entities",
+      "items": {
+        "$ref": "#/definitions/DataMapping"
+      }
+    },
+    "process-trackings": {
+      "type": "array",
+      "description": "Collection of ProcessTracking entities",
+      "items": {
+        "$ref": "#/definitions/ProcessTracking"
+      }
+    },
+    "flow-analyticses": {
+      "type": "array",
+      "description": "Collection of FlowAnalytics entities",
+      "items": {
+        "$ref": "#/definitions/FlowAnalytics"
+      }
+    },
+    "notification-actions": {
+      "type": "array",
+      "description": "Collection of NotificationAction entities",
+      "items": {
+        "$ref": "#/definitions/NotificationAction"
+      }
     }
   },
   "definitions": {
-    "Route": {
+    "NavigationGraph": {
       "type": "object",
-      "required": ["identifier", "name", "type"],
+      "description": "Complete navigation structure for application",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "application"
+      ],
       "properties": {
-        "identifier": {
+        "id": {
           "type": "string",
-          "description": "Unique route identifier"
+          "format": "uuid",
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "description": "Human-readable route name"
+          "minLength": 1
         },
-        "type": {
+        "version": {
           "type": "string",
-          "enum": ["experience", "redirect", "external"],
-          "description": "Route type"
+          "minLength": 1
         },
-        "title": {
+        "application": {
           "type": "string",
-          "description": "Display title"
+          "minLength": 1
         },
         "description": {
-          "type": "string"
-        },
-        "experience": {
           "type": "string",
-          "description": "UX spec reference"
+          "minLength": 1
         },
-        "archimateRef": {
-          "type": "string",
-          "format": "uuid"
+        "routes": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "transitions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         },
         "guards": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Guard names"
-        },
-        "parent": {
-          "type": "string",
-          "description": "Parent route identifier for nested routes"
-        },
-        "redirectTo": {
-          "type": "string",
-          "description": "Redirect target route identifier"
-        },
-        "addressing": {
-          "type": "object",
-          "description": "Channel-specific addressing",
-          "properties": {
-            "url": {
-              "type": "string",
-              "description": "URL pattern for visual channel (e.g., /products/:id)"
-            },
-            "intent": {
-              "type": "string",
-              "description": "Intent name for voice channel"
-            },
-            "event": {
-              "type": "string",
-              "description": "Event name for chat channel"
-            },
-            "keyword": {
-              "type": "string",
-              "description": "Keyword for SMS channel"
-            }
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
           }
+        }
+      }
+    },
+    "Route": {
+      "type": "object",
+      "description": "Single route/destination in the application (channel-agnostic)",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
         },
-        "meta": {
-          "$ref": "#/definitions/RouteMeta"
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "RouteType": {
+          "type": "string",
+          "enum": [
+            "experience",
+            "redirect",
+            "external"
+          ]
         }
       }
     },
     "RouteMeta": {
       "type": "object",
+      "description": "Route metadata",
+      "required": [
+        "id",
+        "name",
+        "roles",
+        "permissions",
+        "layout",
+        "keepAlive",
+        "transition"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "requiresAuth": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "roles": {
-          "type": "array",
-          "items": { "type": "string" }
+          "type": "string",
+          "minLength": 1
         },
         "permissions": {
-          "type": "array",
-          "items": { "type": "string" }
+          "type": "string",
+          "minLength": 1
         },
         "layout": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
+        },
+        "breadcrumb": {
+          "type": "string",
+          "minLength": 1
         },
         "keepAlive": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "transition": {
-          "type": "string"
-        },
-        "seo": {
-          "type": "object",
-          "properties": {
-            "metaTitle": { "type": "string" },
-            "metaDescription": { "type": "string" },
-            "metaKeywords": {
-              "type": "array",
-              "items": { "type": "string" }
-            },
-            "ogImage": { "type": "string", "format": "uri" },
-            "canonical": { "type": "string", "format": "uri" },
-            "noIndex": { "type": "boolean", "default": false }
-          }
-        },
-        "analytics": {
-          "type": "object",
-          "properties": {
-            "trackPageView": { "type": "boolean", "default": true },
-            "eventCategory": { "type": "string" },
-            "customDimensions": { "type": "object" }
-          }
+          "type": "string",
+          "minLength": 1
         }
       }
     },
     "NavigationTransition": {
       "type": "object",
-      "required": ["from", "to", "trigger"],
+      "description": "Transition from one route to another",
+      "required": [
+        "id",
+        "name",
+        "from",
+        "to",
+        "trigger"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "from": {
           "type": "string",
-          "description": "Source route identifier"
+          "minLength": 1
         },
         "to": {
           "type": "string",
-          "description": "Target route identifier"
+          "minLength": 1
         },
         "trigger": {
-          "type": "string",
-          "enum": ["user-action", "submit", "success", "failure", "cancel", "automatic", "deeplink", "back", "timeout"],
-          "description": "Transition trigger"
+          "$ref": "#/definitions/enum"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "guards": {
           "type": "array",
-          "items": { "type": "string" },
-          "description": "Guard names"
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "NavigationTrigger": {
+          "type": "string",
+          "enum": [
+            "user-action",
+            "submit",
+            "success",
+            "failure",
+            "cancel",
+            "automatic",
+            "deeplink",
+            "back",
+            "timeout"
+          ]
         }
       }
     },
     "NavigationGuard": {
       "type": "object",
-      "required": ["name", "type", "condition", "onDeny"],
+      "description": "Guard condition for route access",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "order"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
-          "type": "string",
-          "enum": ["authentication", "authorization", "validation", "data-loaded", "custom"]
+          "$ref": "#/definitions/enum"
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "order": {
           "type": "integer"
+        }
+      },
+      "definitions": {
+        "GuardType": {
+          "type": "string",
+          "enum": [
+            "authentication",
+            "authorization",
+            "validation",
+            "data-loaded",
+            "custom"
+          ]
         },
-        "condition": {
-          "$ref": "#/definitions/GuardCondition"
-        },
-        "onDeny": {
-          "$ref": "#/definitions/GuardAction"
+        "HttpMethod": {
+          "type": "string",
+          "enum": [
+            "GET",
+            "POST",
+            "PUT",
+            "DELETE",
+            "PATCH",
+            "HEAD",
+            "OPTIONS"
+          ]
         }
       }
     },
     "GuardCondition": {
       "type": "object",
-      "required": ["expression"],
+      "description": "Condition expression for guard",
+      "required": [
+        "id",
+        "name",
+        "expression",
+        "timeout"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "expression": {
           "type": "string",
-          "description": "Boolean expression"
+          "minLength": 1
         },
         "async": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "timeout": {
-          "type": "integer",
-          "description": "Timeout in milliseconds for async checks"
+          "type": "integer"
         }
       }
     },
     "GuardAction": {
       "type": "object",
-      "required": ["action"],
+      "description": "Action when guard denies access",
+      "required": [
+        "id",
+        "name",
+        "action",
+        "target",
+        "message",
+        "preserveRoute"
+      ],
       "properties": {
-        "action": {
+        "id": {
           "type": "string",
-          "enum": ["redirect", "show-error", "navigate-back", "abort"]
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "$ref": "#/definitions/enum"
         },
         "target": {
           "type": "string",
-          "description": "Route identifier for redirect"
+          "minLength": 1
         },
         "message": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "preserveRoute": {
-          "type": "boolean",
-          "default": false,
-          "description": "Save requested route for later redirect"
+          "type": "boolean"
+        }
+      },
+      "definitions": {
+        "GuardActionType": {
+          "type": "string",
+          "enum": [
+            "redirect",
+            "show-error",
+            "navigate-back",
+            "abort"
+          ]
         }
       }
     },
     "NavigationFlow": {
       "type": "object",
-      "required": ["name", "steps"],
+      "description": "Sequence of routes that realizes a business process",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
           "type": "string",
-          "description": "Flow name"
+          "minLength": 1
         },
         "description": {
-          "type": "string"
-        },
-        "business": {
-          "type": "object",
-          "properties": {
-            "realizesProcess": {
-              "type": "string",
-              "description": "BusinessProcess ID this flow realizes"
-            },
-            "realizesServices": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "BusinessService IDs this flow realizes"
-            }
-          }
-        },
-        "sharedContext": {
-          "type": "array",
-          "items": { "$ref": "#/definitions/ContextVariable" },
-          "description": "Variables shared across flow steps"
-        },
-        "processTracking": {
-          "$ref": "#/definitions/ProcessTracking"
-        },
-        "analytics": {
-          "$ref": "#/definitions/FlowAnalytics"
+          "type": "string",
+          "minLength": 1
         },
         "steps": {
           "type": "array",
-          "items": { "$ref": "#/definitions/FlowStep" },
-          "minItems": 1
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
         }
       }
     },
     "FlowStep": {
       "type": "object",
-      "required": ["sequence", "route", "name"],
+      "description": "One step in a navigation flow",
+      "required": [
+        "id",
+        "sequence",
+        "route",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "sequence": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Step order in the flow"
+          "type": "integer"
         },
         "route": {
           "type": "string",
-          "description": "Route identifier"
+          "minLength": 1
         },
         "name": {
           "type": "string",
-          "description": "Step name"
+          "minLength": 1
         },
         "description": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "required": {
-          "type": "boolean",
-          "default": true,
-          "description": "Whether this step can be skipped"
-        },
-        "experience": {
-          "type": "object",
-          "properties": {
-            "entryState": {
-              "type": "string",
-              "description": "Which UXSpec state to enter at"
-            },
-            "exitTrigger": {
-              "type": "string",
-              "description": "What triggers move to next step"
-            }
-          }
-        },
-        "dataTransfer": {
-          "type": "object",
-          "properties": {
-            "inputs": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/DataMapping" },
-              "description": "Data coming into this step"
-            },
-            "outputs": {
-              "type": "array",
-              "items": { "$ref": "#/definitions/DataMapping" },
-              "description": "Data going out of this step"
-            }
-          }
-        },
-        "condition": {
-          "type": "object",
-          "properties": {
-            "expression": {
-              "type": "string",
-              "description": "Boolean expression for when this step applies"
-            },
-            "description": {
-              "type": "string"
-            }
-          }
-        },
-        "nextStep": {
-          "type": "object",
-          "properties": {
-            "onSuccess": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Next sequence number on success"
-            },
-            "onFailure": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Fallback sequence number on failure"
-            },
-            "onCancel": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Cancel sequence number"
-            }
-          }
-        },
-        "compensation": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false
-            },
-            "compensationStep": {
-              "type": "integer",
-              "description": "Step to execute for rollback"
-            },
-            "compensationAction": {
-              "type": "string",
-              "description": "API operation or action to undo this step"
-            }
-          }
-        },
-        "async": {
-          "type": "object",
-          "properties": {
-            "longRunning": {
-              "type": "boolean",
-              "default": false
-            },
-            "pollingInterval": {
-              "type": "integer",
-              "description": "Polling interval in milliseconds"
-            },
-            "timeout": {
-              "type": "integer",
-              "description": "Timeout in milliseconds"
-            },
-            "statusEndpoint": {
-              "type": "string",
-              "description": "API endpoint to check status"
-            },
-            "webhookEvent": {
-              "type": "string",
-              "description": "Webhook event name for completion"
-            }
-          }
-        },
-        "collaboration": {
-          "type": "object",
-          "properties": {
-            "assignedTo": {
-              "type": "string",
-              "description": "JSONPath to user/role assignment"
-            },
-            "waitingFor": {
-              "type": "string",
-              "enum": ["user-action", "approval", "external-event", "timeout"],
-              "description": "What this step is waiting for"
-            },
-            "notifyAction": {
-              "type": "object",
-              "properties": {
-                "type": {
-                  "type": "string",
-                  "enum": ["email", "sms", "push", "webhook"]
-                },
-                "template": {
-                  "type": "string"
-                },
-                "recipients": {
-                  "type": "string",
-                  "description": "JSONPath to recipients"
-                }
-              }
-            }
-          }
+          "type": "boolean"
+        }
+      },
+      "definitions": {
+        "WaitType": {
+          "type": "string",
+          "enum": [
+            "user-action",
+            "approval",
+            "external-event",
+            "timeout"
+          ]
         }
       }
     },
     "ContextVariable": {
       "type": "object",
-      "required": ["name", "scope"],
+      "description": "Shared variable across flow steps (Gap #1: Cross-experience state)",
+      "required": [
+        "id",
+        "name",
+        "schemaRef",
+        "scope",
+        "persistedIn"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
           "type": "string",
-          "description": "Variable name"
+          "minLength": 1
         },
         "schemaRef": {
           "type": "string",
-          "description": "JSON Schema reference"
+          "minLength": 1
         },
         "scope": {
-          "type": "string",
-          "enum": ["flow", "session", "user"],
-          "description": "Variable scope"
+          "$ref": "#/definitions/enum"
         },
         "persistedIn": {
-          "type": "string",
-          "enum": ["memory", "session-storage", "local-storage", "server-session", "database"],
-          "description": "Where variable is stored"
+          "$ref": "#/definitions/enum"
         },
         "defaultValue": {
-          "description": "Default value for the variable"
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "ContextScope": {
+          "type": "string",
+          "enum": [
+            "flow",
+            "session",
+            "user"
+          ]
+        },
+        "StorageType": {
+          "type": "string",
+          "enum": [
+            "memory",
+            "session-storage",
+            "local-storage",
+            "server-session",
+            "database"
+          ]
         }
       }
     },
     "DataMapping": {
       "type": "object",
-      "required": ["source", "target"],
+      "description": "Maps data between flow context and experience (Gap #2: Data handoff)",
+      "required": [
+        "id",
+        "name",
+        "source",
+        "target",
+        "transform"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "source": {
           "type": "string",
-          "description": "JSONPath to source data"
+          "minLength": 1
         },
         "target": {
           "type": "string",
-          "description": "JSONPath to target location"
+          "minLength": 1
         },
         "transform": {
           "type": "string",
-          "description": "Optional transformation expression"
+          "minLength": 1
         },
         "required": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this mapping is required"
+          "type": "boolean"
         }
       }
     },
     "ProcessTracking": {
       "type": "object",
+      "description": "Tracks business process instance across flow (Gap #3: Process correlation)",
+      "required": [
+        "id",
+        "name",
+        "processInstanceId",
+        "timeoutMinutes",
+        "stateCheckpoint"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "processInstanceId": {
           "type": "string",
-          "description": "JSONPath to process instance correlation ID"
+          "minLength": 1
         },
         "resumable": {
-          "type": "boolean",
-          "default": false,
-          "description": "Whether this flow can be resumed after interruption"
+          "type": "boolean"
         },
         "timeoutMinutes": {
-          "type": "integer",
-          "minimum": 1,
-          "description": "Flow timeout in minutes"
+          "type": "integer"
         },
         "stateCheckpoint": {
-          "type": "boolean",
-          "default": false,
-          "description": "Save state after each step for recovery"
+          "type": "boolean"
         }
       }
     },
     "FlowAnalytics": {
       "type": "object",
+      "description": "Analytics for funnel tracking (Gap #9: Funnel analytics)",
+      "required": [
+        "id",
+        "name",
+        "funnelMetrics",
+        "conversionGoal"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
         "funnelMetrics": {
-          "type": "array",
-          "items": { "type": "string" },
-          "description": "Metric IDs for funnel tracking"
+          "type": "string",
+          "minLength": 1
         },
         "conversionGoal": {
           "type": "string",
-          "description": "Final step identifier for conversion tracking"
+          "minLength": 1
         },
         "dropoffAlerts": {
-          "type": "object",
-          "properties": {
-            "enabled": {
-              "type": "boolean",
-              "default": false
-            },
-            "threshold": {
-              "type": "number",
-              "minimum": 0,
-              "maximum": 100,
-              "description": "Alert if drop-off exceeds this percentage"
-            }
-          }
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "NotificationAction": {
+      "type": "object",
+      "description": "Notification to send during flow step",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "template",
+        "recipients"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/enum"
+        },
+        "template": {
+          "type": "string",
+          "minLength": 1
+        },
+        "recipients": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "NotificationType": {
+          "type": "string",
+          "enum": [
+            "email",
+            "sms",
+            "push",
+            "webhook"
+          ]
         }
       }
     }

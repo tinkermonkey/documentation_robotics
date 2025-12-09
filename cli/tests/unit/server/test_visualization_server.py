@@ -130,7 +130,6 @@ class TestHealthEndpoint:
 class TestIndexEndpoint:
     """Test index page handling and fallback behavior."""
 
-    @viewer_bundled
     @pytest.mark.asyncio
     async def test_index_fallback_without_viewer_package(self, tmp_path):
         """Test index page falls back to placeholder HTML when viewer not available."""

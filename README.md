@@ -16,13 +16,19 @@ Documentation Robotics provides:
 - **A CLI Tool** - `dr` command for managing models according to the specification
 - **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 
-## The Need
+## The Challenge
 
-Modern software systems are complex, distributed, and constantly evolving. Traditional architecture, business, and engineering documentation methods struggle to keep up, leading to outdated or incomplete information. Each of those aspects are improving, but they also remain fairly disconnected from the others. Additionally, keeping a group of humans on the same page regarding what a system is, how it works, and why it works that way is a significant challenge. It's also a significant risk factor for software projects and budgets. With the rise of capable agentic software devlopment tools, this need to communicate large complex systems in context, at a high level, both before and after the SDLC is becoming critical. This project aims to provide a standards-based, federated approach to modeling these systems that is easy to use, maintain, and integrate into existing development workflows. It serves to inform the SDLC and the creative process leading into it while also serving as a validation mechanism and feedback loop for the SDLC.
+Modern software systems are complex, distributed, and constantly evolving. Working with large cross-functional teams to design, build, and maintain these systems is a significant challenge. Communicating business intent and the art of the possible across business, architecture, and engineering teams is difficult. Creating a robust feedback loop between these groups throughout the product development lifecycle / software development lifecycle is even more difficult. Good communication is required to move quickly and effectively and to manage risk, but often it's out of the reach of many organizations.
+
+As the rate of software development accelerates with the adoption of generative AI and agentic development tools, this challenge is both increasing in scale and complexity for these large teams, but also, it is bringing these cognitive bottlenecks down to level of solo developer building with agentic tools. We can now code faster than we can effectively design, document, and communicate about what we're building. Coordinating across the various layers of a software system, from business requirements to architecture to implementation details, and creating a feedback loop which allows a developer to be confident that the output aligns with the intent is now the bottleneck for productivity.
+
+There are many strategies and tools which help with this, but at some point to scale out the human in the loop has to transcend the implementation details and be able to reason about the system at a higher level consistently and be able to provide precise direction based on that higher level thought, and it needs to work with whatever tools are being used for implementation.
+
+Documentation Robotics aims to address this challenge by providing a standards-based, federated approach to modeling complex software systems that is easy to use, maintain, and integrate into existing development workflows.
 
 ## The Specification
 
-The vision for the spec is to be a comprehensive, standards-based approach to describing what a software system is, how it works, why it works that way, and how to observe it in production. The many excellent standards that already exist are used to their fullest extent, minimizing invention, but also adding some glue between them and a few missing layers to hopefully create a unified and holistic modeling framework that is not overly complex. A guiding principle is also to keep it as simple as possible while also being reasonably complete.
+The vision for the spec is to be able to descibe what a software system is, how it works, and why it works that way. To accomplish this it needs to be comprehensive, and to make it useful it should be (as much as possible) a standards-based approach. There are many excellent standards covering much of this, and they have been used to their fullest extent; minimizing invention, but also adding some glue between them and a few "missing" layers to take a stab at a unified and holistic modeling framework that is not overly complex.
 
 ## The Tooling
 
@@ -34,7 +40,18 @@ The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, 
 
 ### Recent Major Additions
 
-**Link Registry & Validation (Spec v0.2.0 / CLI v0.4.0)**
+**UX Layer Three-Tier Architecture (Spec v0.5.0)**
+
+- 📚 **Component Library Support** - Reusable design system components with UXLibrary
+- 🏢 **Application Organization** - UXApplication groups experiences with shared theming
+- 📄 **Simplified Specs** - UXSpec reduced from ~300 to ~80 lines via component references
+- 🎨 **Design System Alignment** - Maps naturally to Figma/Storybook workflows
+- 🔄 **Pattern Templates** - Reusable state machines (CRUD, Wizard, Search) with extension points
+- 🎯 **Backward Compatible** - Existing flat UXSpecs continue to work
+
+See [UX Layer Specification](spec/layers/09-ux-layer.md) for complete architecture details.
+
+**Link Registry & Validation (Spec v0.4.0 / CLI v0.7.1)**
 
 - 📖 **Comprehensive Catalog** - 60+ cross-layer reference patterns across 9 categories
 - 🔍 **Automated Discovery** - Automatically detect and analyze all cross-layer links in your model
@@ -45,7 +62,7 @@ The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, 
 
 See [Link Management Guide](cli/docs/user-guide/link-management.md) for complete documentation.
 
-**Managed Upgrades (CLI v0.4.0)**
+**Managed Upgrades (CLI v0.7.1)**
 
 - 🔄 **Automated Migration** - Seamlessly migrate models between specification versions
 - 🔧 **Pattern Detection** - Automatically identify and fix non-standard reference patterns
@@ -67,18 +84,18 @@ See `dr migrate --help` for usage details.
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 0.2.0 (Stable)
-**Status:** Complete
+**Version:** 0.4.0 (Evolving)
+**Status:** Draft
 
-The Documentation Robotics specification defines a standards-based approach to modeling software across 11 interconnected layers.
+The Documentation Robotics specification defines a standards-based approach to modeling software across 12 interconnected layers.
 
 **Key Features:**
 
 - **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 - **Federated Approach** - ArchiMate spine + specialized standards
-- **11 Layers** - Motivation through APM/Observability
-- **Minimal Custom Invention** - Only 2 custom specifications (security, UX/navigation)
-- **Tool Ecosystem Access** - Compatible with hundreds of existing tools
+- **12 Layers** - Motivation through APM/Observability
+- **Glue Layers** - 3 custom layer definitions (security, UX/navigation, testing)
+- **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards based exports
 
 **Quick Start:**
 
@@ -91,20 +108,20 @@ The Documentation Robotics specification defines a standards-based approach to m
 ### 2. The CLI Tool (`dr`)
 
 **Location:** [`cli/`](cli/)
-**Version:** 0.4.0
-**Status:** Feature Complete
+**Version:** 0.7.1
+**Status:** Proof of Concept (MVP cli + Agents)
 
 A command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
-- ✅ **Full Conformance** - Implements all 12 layers
 - ✅ **Model Management** - Initialize, add, update, validate
+- ✅ **Agentic Assistants** - Claude Code and Github Copilot agents for model generation, maintenance, and exploration
 - ✅ **Link Registry** - 60+ cross-layer reference patterns with automated validation
 - ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
 - ✅ **Managed Upgrades** - Automated migration between specification versions
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Standards-Based** - Uses specification v0.2.0
+- ✅ **Visualization Server** - Can serve interactive model visualizations for easier exploration and validation
 
 **Quick Start:**
 
@@ -171,7 +188,7 @@ documentation_robotics/
 └── LICENSE                      # MIT License
 ```
 
-## The 11 Layers
+## The 12 Layers
 
 The specification defines 11 interconnected layers:
 
@@ -179,15 +196,16 @@ The specification defines 11 interconnected layers:
 | --- | -------------------------------------------------------------- | ------------ | ------------- |
 | 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |
 | 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |
-| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | Custom        |
+| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |
 | 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |
 | 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |
 | 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |
 | 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |
 | 08  | [Datastore](spec/layers/08-datastore-layer.md)                 | STORAGE      | SQL DDL       |
-| 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | Custom        |
-| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | Custom        |
+| 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
+| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |
 | 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |
+| 12  | [Testing](spec/layers/12-testing-layer.md)                     | VERIFY       | _Custom_      |
 
 ## Standards Leveraged
 
@@ -198,7 +216,7 @@ This project maximizes use of existing standards:
 - **JSON Schema Draft 7** - Data model definitions
 - **OpenTelemetry 1.0+** - Observability and tracing
 - **SQL DDL** - Database schemas
-- **Custom Specifications** - Security, UX, Navigation
+- **Custom Specifications** - Security, UX, Navigation, Testing layers
 
 ## Getting Started
 

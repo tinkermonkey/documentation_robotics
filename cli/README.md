@@ -5,8 +5,8 @@ A command-line tool for managing federated architecture data models across 12 la
 > **Part of [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)** - For project overview, motivation, and full context, see the [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.5.0-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
-[![Specification](https://img.shields.io/badge/Specification-v0.3.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.1-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
+[![Specification](https://img.shields.io/badge/Specification-v0.4.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tinkermonkey/documentation_robotics/blob/main/LICENSE)
 
 ## Installation
@@ -25,15 +25,15 @@ pip install documentation-robotics
 
 ## Specification Conformance
 
-**Implements:** [Documentation Robotics Specification v0.3.0](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
+**Implements:** [Documentation Robotics Specification v0.4.0](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 **Conformance Level:** Full (All 12 layers)
 
 Run `dr conformance` to see detailed conformance information.
 
 ## Status
 
-**Current Version:** v0.5.0
-**Specification Version:** v0.3.0
+**Current Version:** v0.7.1
+**Specification Version:** v0.4.0
 
 This release adds the Testing Layer and updates all integrations:
 

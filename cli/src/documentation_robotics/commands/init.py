@@ -284,41 +284,19 @@ CustomerManagement:
 
 
 @click.command()
-@click.argument("project-name", required=False)
+@click.argument("project-name", required=True)
 @click.option("--template", default="basic", help="Template to use")
 @click.option("--minimal", is_flag=True, help="Create minimal structure")
 @click.option("--with-examples", is_flag=True, help="Include example elements")
 @click.option("--path", type=click.Path(), default=".", help="Target directory")
-@click.option("--interactive", "-i", is_flag=True, help="Use interactive wizard")
 def init(
     project_name: str,
     template: str,
     minimal: bool,
     with_examples: bool,
     path: str,
-    interactive: bool,
 ):
     """Initialize a new architecture model."""
-    # Interactive mode
-    if interactive:
-        from ..interactive.wizard import InitWizard
-
-        wizard = InitWizard()
-        result = wizard.run()
-
-        if result is None:
-            return
-
-        project_name = result["project_name"]
-        template = result["template"]
-        with_examples = result["with_examples"]
-        path = result["path"]
-
-    # Validate project name
-    if not project_name:
-        console.print("✗ Error: project-name is required", style="red bold")
-        console.print("   Use --interactive/-i for guided setup")
-        raise click.Abort()
 
     root_path = Path(path).resolve()
 

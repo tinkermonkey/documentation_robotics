@@ -1,356 +1,428 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/08-datastore-layer.json",
-  "title": "Data Store Layer Schema",
-  "description": "Database DDL metadata and physical data storage definitions",
+  "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
+  "title": "Datastore Layer Schema",
+  "description": "Schema for Datastore Layer",
   "type": "object",
-  "required": ["database"],
   "properties": {
-    "database": {
-      "$ref": "#/definitions/Database"
+    "databases": {
+      "type": "array",
+      "description": "Collection of Database entities",
+      "items": {
+        "$ref": "#/definitions/Database"
+      }
+    },
+    "database-schemas": {
+      "type": "array",
+      "description": "Collection of DatabaseSchema entities",
+      "items": {
+        "$ref": "#/definitions/DatabaseSchema"
+      }
+    },
+    "tables": {
+      "type": "array",
+      "description": "Collection of Table entities",
+      "items": {
+        "$ref": "#/definitions/Table"
+      }
+    },
+    "columns": {
+      "type": "array",
+      "description": "Collection of Column entities",
+      "items": {
+        "$ref": "#/definitions/Column"
+      }
+    },
+    "constraints": {
+      "type": "array",
+      "description": "Collection of Constraint entities",
+      "items": {
+        "$ref": "#/definitions/Constraint"
+      }
+    },
+    "indexes": {
+      "type": "array",
+      "description": "Collection of Index entities",
+      "items": {
+        "$ref": "#/definitions/Index"
+      }
+    },
+    "views": {
+      "type": "array",
+      "description": "Collection of View entities",
+      "items": {
+        "$ref": "#/definitions/View"
+      }
     }
   },
   "definitions": {
     "Database": {
       "type": "object",
-      "required": ["name", "type", "schemas"],
+      "description": "Database instance containing schemas",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "version"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
-          "type": "string",
-          "enum": ["PostgreSQL", "MySQL", "SQLite", "MariaDB", "Oracle", "SQL Server"]
+          "$ref": "#/definitions/enum"
         },
         "version": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "charset": {
           "type": "string",
-          "default": "UTF8"
+          "minLength": 1
         },
         "collation": {
-          "type": "string"
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "x-archimate-ref": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-owner": {
-              "type": "string"
-            },
-            "x-purpose": {
-              "type": "string"
-            }
-          }
+          "type": "string",
+          "minLength": 1
         },
         "schemas": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/DatabaseSchema"
-          },
-          "minItems": 1
+            "type": "string"
+          }
+        }
+      },
+      "definitions": {
+        "DatabaseType": {
+          "type": "string",
+          "enum": [
+            "PostgreSQL",
+            "MySQL",
+            "SQLite",
+            "MariaDB",
+            "Oracle",
+            "SQL Server"
+          ]
         }
       }
     },
     "DatabaseSchema": {
       "type": "object",
-      "required": ["name", "tables"],
+      "description": "Logical grouping of database objects",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "owner": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "tables": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/Table"
+            "type": "string"
           }
         },
         "views": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/View"
+            "type": "string"
           }
         },
         "functions": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "object"
+            "type": "string"
           }
         },
         "sequences": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "type": "object"
+            "type": "string"
           }
         }
       }
     },
     "Table": {
       "type": "object",
-      "required": ["name", "columns"],
+      "description": "Database table definition",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "schema": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "tablespace": {
-          "type": "string"
-        },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "x-json-schema": {
-              "type": "string",
-              "description": "Path to JSON Schema"
-            },
-            "x-archimate-ref": {
-              "type": "string",
-              "format": "uuid"
-            },
-            "x-owner": {
-              "type": "string"
-            },
-            "x-retention": {
-              "type": "string"
-            },
-            "x-pii": {
-              "type": "boolean"
-            },
-            "x-governed-by-constraints": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Motivation Layer Constraint IDs governing this table"
-            },
-            "x-governed-by-requirements": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Motivation Layer Requirement IDs governing this table"
-            },
-            "x-governed-by-principles": {
-              "type": "array",
-              "items": { "type": "string", "format": "uuid" },
-              "description": "Motivation Layer Principle IDs governing this table"
-            },
-            "x-apm-performance-metrics": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "APM Layer Metric IDs for table performance monitoring"
-            },
-            "x-apm-data-quality-metrics": {
-              "type": "array",
-              "items": { "type": "string" },
-              "description": "APM Layer Metric IDs for data integrity monitoring"
-            }
-          }
+          "type": "string",
+          "minLength": 1
         },
         "columns": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/Column"
-          },
-          "minItems": 1
+            "type": "string"
+          }
         },
         "constraints": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/Constraint"
+            "type": "string"
           }
         },
         "indexes": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/Index"
+            "type": "string"
           }
         },
         "triggers": {
           "type": "array",
+          "description": "Contains relationship",
           "items": {
-            "$ref": "#/definitions/Trigger"
+            "type": "string"
           }
         }
       }
     },
     "Column": {
       "type": "object",
-      "required": ["name", "dataType"],
+      "description": "Table column definition",
+      "required": [
+        "id",
+        "name",
+        "dataType"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "dataType": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "nullable": {
-          "type": "boolean",
-          "default": true
+          "type": "boolean"
         },
-        "defaultValue": {},
+        "defaultValue": {
+          "type": "string",
+          "minLength": 1
+        },
         "generated": {
           "type": "string",
-          "enum": ["ALWAYS", "BY_DEFAULT"]
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "SQLDataType": {
+          "type": "string",
+          "enum": [
+            "SMALLINT",
+            "INTEGER",
+            "BIGINT",
+            "SERIAL",
+            "BIGSERIAL",
+            "DECIMAL(precision, scale)",
+            "NUMERIC(precision, scale)",
+            "REAL",
+            "DOUBLE PRECISION",
+            "CHAR(length)",
+            "VARCHAR(length)",
+            "TEXT",
+            "BYTEA",
+            "BLOB",
+            "BOOLEAN",
+            "DATE",
+            "TIME",
+            "TIMESTAMP",
+            "TIMESTAMPTZ",
+            "INTERVAL",
+            "JSON",
+            "JSONB",
+            "UUID",
+            "INTEGER[]",
+            "TEXT[]",
+            "etc.",
+            "ENUM('value1', 'value2', ...)"
+          ]
         },
-        "metadata": {
-          "type": "object",
-          "properties": {
-            "description": {
-              "type": "string"
-            },
-            "x-json-schema-path": {
-              "type": "string",
-              "description": "JSONPath to schema property"
-            },
-            "x-pii": {
-              "type": "boolean"
-            },
-            "x-encrypted": {
-              "type": "boolean"
-            },
-            "x-sensitive": {
-              "type": "boolean"
-            }
-          }
+        "GenerationType": {
+          "type": "string",
+          "enum": [
+            "ALWAYS",
+            "BY_DEFAULT"
+          ]
         }
       }
     },
     "Constraint": {
       "type": "object",
-      "required": ["name", "type"],
+      "description": "Table constraint",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "type": {
+          "$ref": "#/definitions/enum"
+        }
+      },
+      "definitions": {
+        "ConstraintType": {
           "type": "string",
-          "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK", "EXCLUSION"]
+          "enum": [
+            "PRIMARY_KEY",
+            "UNIQUE",
+            "FOREIGN_KEY",
+            "CHECK",
+            "EXCLUSION"
+          ]
         },
-        "columns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "referencedTable": {
-          "type": "string"
-        },
-        "referencedColumns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          }
-        },
-        "onDelete": {
+        "ReferentialAction": {
           "type": "string",
-          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
-        },
-        "onUpdate": {
-          "type": "string",
-          "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
-        },
-        "checkExpression": {
-          "type": "string",
-          "description": "SQL boolean expression for CHECK constraint"
+          "enum": [
+            "CASCADE",
+            "SET_NULL",
+            "SET_DEFAULT",
+            "RESTRICT",
+            "NO_ACTION"
+          ]
         }
       }
     },
     "Index": {
       "type": "object",
-      "required": ["name", "columns"],
+      "description": "Database index for query optimization",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "columns": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "minItems": 1
+          "type": "string",
+          "minLength": 1
         },
         "unique": {
-          "type": "boolean",
-          "default": false
+          "type": "boolean"
         },
         "method": {
           "type": "string",
-          "enum": ["BTREE", "HASH", "GIN", "GIST", "BRIN", "SP-GIST"]
+          "minLength": 1
         },
         "where": {
           "type": "string",
-          "description": "Partial index predicate"
+          "minLength": 1
         },
         "include": {
-          "type": "array",
-          "items": {
-            "type": "string"
-          },
-          "description": "Included columns for covering index"
+          "type": "string",
+          "minLength": 1
         }
-      }
-    },
-    "Trigger": {
-      "type": "object",
-      "required": ["name", "timing", "event", "function"],
-      "properties": {
-        "name": {
-          "type": "string"
-        },
-        "timing": {
+      },
+      "definitions": {
+        "IndexMethod": {
           "type": "string",
-          "enum": ["BEFORE", "AFTER", "INSTEAD OF"]
-        },
-        "event": {
-          "type": "string",
-          "enum": ["INSERT", "UPDATE", "DELETE"]
-        },
-        "function": {
-          "type": "string"
-        },
-        "forEach": {
-          "type": "string",
-          "enum": ["ROW", "STATEMENT"]
-        },
-        "when": {
-          "type": "string",
-          "description": "Conditional trigger expression"
+          "enum": [
+            "BTREE",
+            "HASH",
+            "GIN",
+            "GIST",
+            "BRIN",
+            "SP-GIST"
+          ]
         }
       }
     },
     "View": {
       "type": "object",
-      "required": ["name", "definition"],
+      "description": "Database view",
+      "required": [
+        "id",
+        "name"
+      ],
       "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
         "name": {
-          "type": "string"
+          "type": "string",
+          "minLength": 1
         },
         "definition": {
           "type": "string",
-          "description": "SELECT statement"
+          "minLength": 1
         },
         "materialized": {
-          "type": "boolean",
-          "default": false
-        },
-        "refresh": {
-          "type": "object",
-          "properties": {
-            "mode": {
-              "type": "string",
-              "enum": ["ON_COMMIT", "ON_DEMAND", "SCHEDULED"]
-            },
-            "schedule": {
-              "type": "string",
-              "description": "Cron expression"
-            }
-          }
+          "type": "boolean"
+        }
+      },
+      "definitions": {
+        "RefreshMode": {
+          "type": "string",
+          "enum": [
+            "ON_COMMIT",
+            "ON_DEMAND",
+            "SCHEDULED"
+          ]
         }
       }
     }

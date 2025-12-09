@@ -145,6 +145,7 @@ class EntityTypeRegistry:
 
         Examples:
             businessServices → service
+            business-services → service
             applicationComponents → component
             stakeholders → stakeholder
 
@@ -157,12 +158,13 @@ class EntityTypeRegistry:
         if not property_name:
             return None
 
-        # Strip common layer prefixes
-        for prefix in ["business", "application", "technology"]:
+        # Strip common layer prefixes (handles both kebab-case and camelCase)
+        for prefix in ["business-", "application-", "technology-", "business", "application", "technology"]:
             if property_name.startswith(prefix):
-                # Remove prefix and lowercase first letter
+                # Remove prefix
                 property_name = property_name[len(prefix) :]
-                if property_name:
+                # If next char is uppercase (camelCase), lowercase it
+                if property_name and property_name[0].isupper():
                     property_name = property_name[0].lower() + property_name[1:]
                 break
 
