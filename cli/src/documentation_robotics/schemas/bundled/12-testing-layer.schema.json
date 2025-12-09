@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/12-testing-layer.schema.json",
   "title": "Testing Layer Schema",
-  "description": "Schema for Testing Layer",
+  "description": "Models test coverage requirements, input space partitioning, and coverage criteria to ensure comprehensive testing with traceability to requirements.",
   "type": "object",
   "properties": {
     "test-coverage-models": {
@@ -898,7 +898,7 @@
     },
     "TargetCoverageSummary": {
       "type": "object",
-      "description": "",
+      "description": "Coverage metrics summary for a single test coverage target",
       "required": [
         "targetRef",
         "sketchCount",
@@ -926,7 +926,7 @@
     },
     "CoverageGap": {
       "type": "object",
-      "description": "",
+      "description": "Identified gap in test coverage requiring attention",
       "required": [
         "description",
         "severity",

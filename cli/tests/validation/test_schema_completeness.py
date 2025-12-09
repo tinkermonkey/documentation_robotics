@@ -19,7 +19,7 @@ class TestSchemaCompleteness:
         """Create validator instance."""
         return SchemaCompletenessValidator()
 
-    def test_all_11_layers_present(self, validator):
+    def test_all_12_layers_present(self, validator):
         """Test that all 12 expected layers are in registry."""
         expected_layers = {
             "motivation",
@@ -100,34 +100,46 @@ class TestSchemaCompleteness:
         )
 
     def test_api_layer_has_special_types(self, validator):
-        """Test API layer has special entity types."""
+        """Test API layer has OpenAPI 3.0 entity types (26 types)."""
         validator.validate_all()
 
         api = validator.layer_validations.get("api")
         assert api is not None, "API layer not found"
 
-        expected_types = {"operation", "path", "schema"}
+        # Core OpenAPI 3.0 types that must be present
+        expected_core_types = {"operation", "path-item", "schema", "open-api-document", "info"}
         actual_types = api.entity_types_in_cli
 
-        assert expected_types.issubset(actual_types), (
-            f"API layer missing expected types. "
-            f"Expected: {expected_types}, Found: {actual_types}"
+        assert expected_core_types.issubset(actual_types), (
+            f"API layer missing expected core types. "
+            f"Expected: {expected_core_types}, Found: {actual_types}"
         )
 
+        # API layer should have exactly 26 types
+        assert (
+            len(actual_types) == 26
+        ), f"API layer should have 26 entity types, found {len(actual_types)}: {sorted(actual_types)}"
+
     def test_data_model_layer_has_special_types(self, validator):
-        """Test data_model layer has special entity types."""
+        """Test data_model layer has JSON Schema Draft 7 entity types (17 types)."""
         validator.validate_all()
 
         data_model = validator.layer_validations.get("data_model")
         assert data_model is not None, "data_model layer not found"
 
-        expected_types = {"schema", "entity", "attribute", "relationship"}
+        # Core JSON Schema Draft 7 types that must be present
+        expected_core_types = {"json-schema", "object-schema", "string-schema", "schema-definition"}
         actual_types = data_model.entity_types_in_cli
 
-        assert expected_types == actual_types, (
-            f"data_model layer types don't match. "
-            f"Expected: {expected_types}, Found: {actual_types}"
+        assert expected_core_types.issubset(actual_types), (
+            f"data_model layer missing expected core types. "
+            f"Expected: {expected_core_types}, Found: {actual_types}"
         )
+
+        # Data model layer should have exactly 17 types
+        assert (
+            len(actual_types) == 17
+        ), f"data_model layer should have 17 entity types, found {len(actual_types)}: {sorted(actual_types)}"
 
     def test_security_layer_comprehensive_coverage(self, validator):
         """Test security layer has comprehensive STS-ml coverage."""

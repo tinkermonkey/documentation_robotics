@@ -148,6 +148,29 @@ git add .
 git commit -m "feat(cli): add new command"
 ```
 
+### Building the CLI Package
+
+For building and packaging the CLI, see [BUILDING.md](BUILDING.md).
+
+Quick build:
+
+```bash
+# Prepare build (fetches schemas from GitHub release)
+python scripts/prepare_build.py
+
+# Build package
+cd cli
+python -m build
+```
+
+For development builds using local schemas:
+
+```bash
+python scripts/prepare_build.py --local
+cd cli
+pip install -e .
+```
+
 ## Code Style
 
 ### Python (CLI)

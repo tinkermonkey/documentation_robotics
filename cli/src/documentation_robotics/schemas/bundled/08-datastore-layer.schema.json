@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
   "title": "Datastore Layer Schema",
-  "description": "Schema for Datastore Layer",
+  "description": "Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.",
   "type": "object",
   "properties": {
     "databases": {
@@ -52,6 +52,27 @@
       "description": "Collection of View entities",
       "items": {
         "$ref": "#/definitions/View"
+      }
+    },
+    "triggers": {
+      "type": "array",
+      "description": "Collection of Trigger entities",
+      "items": {
+        "$ref": "#/definitions/Trigger"
+      }
+    },
+    "sequences": {
+      "type": "array",
+      "description": "Collection of Sequence entities",
+      "items": {
+        "$ref": "#/definitions/Sequence"
+      }
+    },
+    "functions": {
+      "type": "array",
+      "description": "Collection of Function entities",
+      "items": {
+        "$ref": "#/definitions/Function"
       }
     }
   },
@@ -422,6 +443,235 @@
             "ON_COMMIT",
             "ON_DEMAND",
             "SCHEDULED"
+          ]
+        }
+      }
+    },
+    "Trigger": {
+      "type": "object",
+      "description": "A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement.",
+      "required": [
+        "id",
+        "name",
+        "table",
+        "timing",
+        "events",
+        "forEach",
+        "functionName",
+        "condition"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timing": {
+          "$ref": "#/definitions/enum"
+        },
+        "events": {
+          "type": "string",
+          "minLength": 1
+        },
+        "forEach": {
+          "$ref": "#/definitions/enum"
+        },
+        "functionName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        }
+      },
+      "definitions": {
+        "TriggerTiming": {
+          "type": "string",
+          "enum": [
+            "BEFORE",
+            "AFTER",
+            "INSTEAD_OF"
+          ]
+        },
+        "TriggerEvent": {
+          "type": "string",
+          "enum": [
+            "INSERT",
+            "UPDATE",
+            "DELETE",
+            "TRUNCATE"
+          ]
+        },
+        "TriggerForEach": {
+          "type": "string",
+          "enum": [
+            "ROW",
+            "STATEMENT"
+          ]
+        }
+      }
+    },
+    "Sequence": {
+      "type": "object",
+      "description": "A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dataType": {
+          "$ref": "#/definitions/enum"
+        },
+        "startValue": {
+          "type": "integer"
+        },
+        "increment": {
+          "type": "integer"
+        },
+        "minValue": {
+          "type": "integer"
+        },
+        "maxValue": {
+          "type": "integer"
+        },
+        "cycle": {
+          "type": "boolean"
+        },
+        "cache": {
+          "type": "integer"
+        },
+        "ownedBy": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "definitions": {
+        "SequenceDataType": {
+          "type": "string",
+          "enum": [
+            "SMALLINT",
+            "INTEGER",
+            "BIGINT"
+          ]
+        }
+      }
+    },
+    "Function": {
+      "type": "object",
+      "description": "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.",
+      "required": [
+        "id",
+        "name",
+        "language",
+        "returnType"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "language": {
+          "$ref": "#/definitions/enum"
+        },
+        "returnType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "volatility": {
+          "$ref": "#/definitions/enum"
+        },
+        "parallel": {
+          "$ref": "#/definitions/enum"
+        },
+        "strict": {
+          "type": "boolean"
+        },
+        "security": {
+          "$ref": "#/definitions/enum"
+        },
+        "cost": {
+          "type": "integer"
+        },
+        "rows": {
+          "type": "integer"
+        }
+      },
+      "definitions": {
+        "FunctionLanguage": {
+          "type": "string",
+          "enum": [
+            "SQL",
+            "PLPGSQL",
+            "PLPYTHON3U",
+            "PLPERL",
+            "PLPYTHON",
+            "C"
+          ]
+        },
+        "FunctionVolatility": {
+          "type": "string",
+          "enum": [
+            "IMMUTABLE",
+            "STABLE",
+            "VOLATILE"
+          ]
+        },
+        "ParallelSafety": {
+          "type": "string",
+          "enum": [
+            "UNSAFE",
+            "RESTRICTED",
+            "SAFE"
+          ]
+        },
+        "SecurityDefiner": {
+          "type": "string",
+          "enum": [
+            "INVOKER",
+            "DEFINER"
+          ]
+        },
+        "ParameterMode": {
+          "type": "string",
+          "enum": [
+            "IN",
+            "OUT",
+            "INOUT",
+            "VARIADIC"
           ]
         }
       }

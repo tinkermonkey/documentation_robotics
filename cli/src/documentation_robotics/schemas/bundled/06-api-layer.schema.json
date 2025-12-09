@@ -1,8 +1,8 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/06-api-layer.schema.json",
-  "title": "Api Layer Schema",
-  "description": "Schema for Api Layer",
+  "title": "API Layer Schema",
+  "description": "Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.",
   "type": "object",
   "properties": {
     "open-api-documents": {
@@ -14,9 +14,9 @@
     },
     "infos": {
       "type": "array",
-      "description": "Collection of info entities",
+      "description": "Collection of Info entities",
       "items": {
-        "$ref": "#/definitions/info"
+        "$ref": "#/definitions/Info"
       }
     },
     "servers": {
@@ -94,6 +94,90 @@
       "description": "Collection of Schema entities",
       "items": {
         "$ref": "#/definitions/Schema"
+      }
+    },
+    "tags": {
+      "type": "array",
+      "description": "Collection of Tag entities",
+      "items": {
+        "$ref": "#/definitions/Tag"
+      }
+    },
+    "external-documentations": {
+      "type": "array",
+      "description": "Collection of ExternalDocumentation entities",
+      "items": {
+        "$ref": "#/definitions/ExternalDocumentation"
+      }
+    },
+    "contacts": {
+      "type": "array",
+      "description": "Collection of Contact entities",
+      "items": {
+        "$ref": "#/definitions/Contact"
+      }
+    },
+    "licenses": {
+      "type": "array",
+      "description": "Collection of License entities",
+      "items": {
+        "$ref": "#/definitions/License"
+      }
+    },
+    "server-variables": {
+      "type": "array",
+      "description": "Collection of ServerVariable entities",
+      "items": {
+        "$ref": "#/definitions/ServerVariable"
+      }
+    },
+    "headers": {
+      "type": "array",
+      "description": "Collection of Header entities",
+      "items": {
+        "$ref": "#/definitions/Header"
+      }
+    },
+    "links": {
+      "type": "array",
+      "description": "Collection of Link entities",
+      "items": {
+        "$ref": "#/definitions/Link"
+      }
+    },
+    "callbacks": {
+      "type": "array",
+      "description": "Collection of Callback entities",
+      "items": {
+        "$ref": "#/definitions/Callback"
+      }
+    },
+    "examples": {
+      "type": "array",
+      "description": "Collection of Example entities",
+      "items": {
+        "$ref": "#/definitions/Example"
+      }
+    },
+    "encodings": {
+      "type": "array",
+      "description": "Collection of Encoding entities",
+      "items": {
+        "$ref": "#/definitions/Encoding"
+      }
+    },
+    "o-auth-flowses": {
+      "type": "array",
+      "description": "Collection of OAuthFlows entities",
+      "items": {
+        "$ref": "#/definitions/OAuthFlows"
+      }
+    },
+    "o-auth-flows": {
+      "type": "array",
+      "description": "Collection of OAuthFlow entities",
+      "items": {
+        "$ref": "#/definitions/OAuthFlow"
       }
     },
     "security-schemes": {
@@ -238,8 +322,21 @@
     "Paths": {
       "type": "object",
       "description": "Available API endpoints and operations",
-      "required": [],
-      "properties": {}
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "PathItem": {
       "type": "object",
@@ -443,8 +540,21 @@
     "Responses": {
       "type": "object",
       "description": "Possible responses from an operation",
-      "required": [],
-      "properties": {}
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
     },
     "Response": {
       "type": "object",
@@ -648,6 +758,337 @@
         }
       }
     },
+    "Tag": {
+      "type": "object",
+      "description": "A metadata label used to group and categorize API operations for documentation organization. Enables logical grouping of endpoints in generated API documentation.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "$ref": "#/definitions/required"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ExternalDocumentation": {
+      "type": "object",
+      "description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Links API elements to comprehensive documentation.",
+      "required": [
+        "id",
+        "url"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "$ref": "#/definitions/required"
+        }
+      }
+    },
+    "Contact": {
+      "type": "object",
+      "description": "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.",
+      "required": [
+        "id",
+        "url",
+        "email",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        },
+        "email": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "License": {
+      "type": "object",
+      "description": "Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.",
+      "required": [
+        "id",
+        "name",
+        "url"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "$ref": "#/definitions/required"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ServerVariable": {
+      "type": "object",
+      "description": "A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.",
+      "required": [
+        "id",
+        "name",
+        "default",
+        "enum"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": {
+          "$ref": "#/definitions/required"
+        },
+        "enum": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Header": {
+      "type": "object",
+      "description": "Defines HTTP header parameters for requests or responses, specifying name, schema, required status, and description. Documents header-based communication requirements.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "boolean"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "allowEmptyValue": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Link": {
+      "type": "object",
+      "description": "Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.",
+      "required": [
+        "id",
+        "name",
+        "operationId",
+        "operationRef"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operationRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Callback": {
+      "type": "object",
+      "description": "Defines a webhook or callback URL pattern where the API will send asynchronous notifications. Enables event-driven integrations and async workflows.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Example": {
+      "type": "object",
+      "description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+      "required": [
+        "id",
+        "name",
+        "summary",
+        "description",
+        "value",
+        "externalValue"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "summary": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "externalValue": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Encoding": {
+      "type": "object",
+      "description": "Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation.",
+      "required": [
+        "id",
+        "propertyName",
+        "contentType",
+        "style"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "propertyName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "contentType": {
+          "type": "string",
+          "minLength": 1
+        },
+        "style": {
+          "type": "string",
+          "minLength": 1
+        },
+        "explode": {
+          "type": "boolean"
+        },
+        "allowReserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "OAuthFlows": {
+      "type": "object",
+      "description": "Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. Defines OAuth security implementation.",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "OAuthFlow": {
+      "type": "object",
+      "description": "Individual OAuth 2.0 flow configuration",
+      "required": [
+        "authorizationUrl",
+        "tokenUrl",
+        "scopes"
+      ],
+      "properties": {
+        "authorizationUrl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tokenUrl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "refreshUrl": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scopes": {
+          "$ref": "#/definitions/required"
+        }
+      }
+    },
     "SecurityScheme": {
       "type": "object",
       "description": "Security mechanism for the API",
@@ -700,12 +1141,6 @@
           ]
         }
       }
-    },
-    "info": {
-      "type": "object",
-      "description": "RESTful API for managing product catalog\n\n## Features\n- CRUD operations for products\n- Product search and filtering\n- Category management\n- Inventory tracking\n",
-      "required": [],
-      "properties": {}
     }
   }
 }

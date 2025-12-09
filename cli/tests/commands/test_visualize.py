@@ -7,7 +7,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 from aiohttp import web
-from aiohttp.test_utils import AioHTTPTestCase, unittest_run_loop
+from aiohttp.test_utils import AioHTTPTestCase
 from click.testing import CliRunner
 from documentation_robotics.commands.visualize import visualize
 from documentation_robotics.core.model import Model
@@ -51,7 +51,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         self.vis_server.app.router.add_get("/ws", self.vis_server.handle_websocket)
         return self.vis_server.app
 
-    @unittest_run_loop
     async def test_health_endpoint_no_auth_required(self):
         """Test that /health endpoint works without authentication."""
         resp = await self.client.request("GET", "/health")
@@ -59,7 +58,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         data = await resp.json()
         assert data["status"] == "healthy"
 
-    @unittest_run_loop
     async def test_index_requires_auth_missing_token(self):
         """Test that index page requires authentication when token is missing."""
         resp = await self.client.request("GET", "/")
@@ -67,7 +65,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         data = await resp.json()
         assert "Authentication required" in data["error"]
 
-    @unittest_run_loop
     async def test_index_requires_auth_invalid_token(self):
         """Test that index page rejects invalid tokens."""
         resp = await self.client.request("GET", "/?token=invalid-token-12345")
@@ -76,7 +73,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         assert "Invalid authentication token" in data["error"]
 
     @viewer_bundled
-    @unittest_run_loop
     async def test_index_with_valid_token_query_param(self):
         """Test that index page works with valid token in query parameter."""
         valid_token = self.vis_server.token
@@ -88,7 +84,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         assert '<div id="root"></div>' in text
 
     @viewer_bundled
-    @unittest_run_loop
     async def test_index_with_valid_token_auth_header(self):
         """Test that index page works with valid token in Authorization header."""
         valid_token = self.vis_server.token
@@ -98,13 +93,11 @@ class TestVisualizationServer(AioHTTPTestCase):
         text = await resp.text()
         assert "Documentation Robotics" in text
 
-    @unittest_run_loop
     async def test_api_endpoint_requires_auth(self):
         """Test that API endpoints require authentication."""
         resp = await self.client.request("GET", "/api/model")
         assert resp.status == 401
 
-    @unittest_run_loop
     async def test_api_endpoint_with_valid_token(self):
         """Test that API endpoints work with valid authentication."""
         valid_token = self.vis_server.token
@@ -113,7 +106,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         data = await resp.json()
         assert "model_path" in data
 
-    @unittest_run_loop
     async def test_websocket_requires_auth(self):
         """Test that WebSocket upgrade requires authentication."""
         # Try to connect without token - should raise WSServerHandshakeError
@@ -126,7 +118,6 @@ class TestVisualizationServer(AioHTTPTestCase):
         # Verify it's a 401 error
         assert exc_info.value.status == 401
 
-    @unittest_run_loop
     async def test_websocket_with_valid_token(self):
         """Test that WebSocket works with valid authentication."""
         valid_token = self.vis_server.token
@@ -146,7 +137,6 @@ class TestVisualizationServer(AioHTTPTestCase):
 
         await ws.close()
 
-    @unittest_run_loop
     async def test_websocket_invalid_json(self):
         """Test that WebSocket handles invalid JSON gracefully."""
         valid_token = self.vis_server.token
@@ -318,9 +308,7 @@ class TestVisualizeCommand:
 
 
 # Integration test marker for tests that require actual server
-pytestmark = pytest.mark.asyncio
-
-
+@pytest.mark.asyncio
 @pytest.mark.skip(reason="Integration test requires full server setup - run manually if needed")
 async def test_full_authentication_flow():
     """Integration test for complete authentication flow."""

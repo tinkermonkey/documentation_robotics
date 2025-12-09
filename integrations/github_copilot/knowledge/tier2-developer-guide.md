@@ -2,7 +2,7 @@
 
 _For active modeling work. See tier1-essentials.md for quick reference._
 
-## Available Agents (NEW in v0.4.0)
+## Available Agents (v0.4.0+)
 
 Documentation Robotics includes specialized agents to help with different tasks:
 
@@ -197,24 +197,30 @@ _Note: See tier3 for complete security model (28+ types)_
 
 ### 06. API Layer (INTERFACE)
 
-**Purpose:** Service contracts (OpenAPI)
+**Purpose:** Service contracts (OpenAPI 3.0.3) - 26 entity types
 
 **Top Types:**
 
-- `Operation` - API endpoints (paths + methods)
-- `Schema` - Request/response schemas
-- `Parameter` - Query/path parameters
+- `Operation` - API endpoints (path + method + requestBody + responses)
+- `PathItem` - Path with multiple operations (GET, POST, PUT, DELETE)
+- `Parameter` - Query/path/header/cookie parameters
+- `RequestBody` - Request body specification with content types
+- `Response` - Operation response with status code and content
+- `SecurityScheme` - Authentication/authorization (apiKey, http, oauth2, openIdConnect)
+- `Components` - Reusable component collection (schemas, responses, parameters)
 
 **Key Properties:**
 
 - `path`: "/api/v1/resource"
-- `method`: GET | POST | PUT | DELETE
-- `securedBy`: [security.scheme.id, ...]
+- `method`: GET | POST | PUT | PATCH | DELETE
 - `operationId`: Unique operation identifier
+- `securedBy`: [api.security-scheme.id, ...]
+- `requestBody`: content, required, description
+- `responses`: { "200": ..., "400": ..., "401": ... }
 
 ### 07. Data Model Layer (STRUCTURE)
 
-**Purpose:** Logical data structures using JSON Schema Draft 7
+**Purpose:** Logical data structures using JSON Schema Draft 7 - 17 entity types
 
 **Top Types:**
 
@@ -224,6 +230,8 @@ _Note: See tier3 for complete security model (28+ types)_
 - `NumericSchema` - Number validation (min, max, multipleOf)
 - `SchemaComposition` - Combines schemas (allOf, anyOf, oneOf, not)
 - `Reference` - Links to other schemas ($ref)
+- `DataGovernance` - Data governance annotations
+- `DatabaseMapping` - Maps to physical storage (x-database)
 
 **Key Properties:**
 
@@ -256,27 +264,37 @@ _Note: See tier3 for complete security model (28+ types)_
 
 ### 09. UX Layer (PRESENTATION)
 
-**Purpose:** User experience across multiple channels (visual, voice, chat, SMS)
+**Purpose:** User experience with Three-Tier Architecture (v0.5.0+) - 26 entity types
 
-**Top Types:**
+**Three Tiers:**
 
-- `View` - Routable screen/page with components (not "Screen")
-- `ExperienceState` - Distinct state the experience can be in (not just "State")
-- `Component` - Atomic UI element (form-field, table, chart, card, etc.)
-- `SubView` - Reusable grouping of components within a view
-- `ActionComponent` - Interactive element (button, menu-item, link, voice-command)
-- `ValidationRule` - Client-side validation (required, minLength, pattern, email, etc.)
-- `StateAction` - Action executed during state lifecycle (fetchData, saveData, validateForm, etc.)
-- `StateTransition` - Transition between states (on success, failure, submit, etc.)
+1. **Library Tier** - Reusable design system components
+   - `UXLibrary` - Container for library-level components
+   - `LibraryComponent` - Reusable component definition (form-field, table, chart, card)
+   - `LibrarySubView` - Reusable component groupings
+   - `StatePattern` - Reusable state machine patterns
+   - `ActionPattern` - Reusable action definitions
 
-_Note: Layout is a property of View (LayoutStyle config), not a standalone entity_
+2. **Application Tier** - Application-level organization
+   - `UXApplication` - Application-wide UX configuration
+
+3. **Experience Tier** - Experience-specific configuration
+   - `UXSpec` - Container for a specific experience specification
+   - `View` - Routable screen/page with layout and components
+   - `SubView` - Component grouping within a view
+   - `ComponentInstance` - Instance of a library component with overrides
+   - `ActionComponent` - Interactive element (button, link, voice-command)
+   - `ExperienceState` - State in the experience state machine
+   - `StateAction` - Action executed during state lifecycle
+   - `StateTransition` - Transition between states (trigger: success | failure | submit)
+   - `ValidationRule` - Client-side validation rule
 
 **Key Properties:**
 
-- `View`: type (form | list | detail | dashboard | wizard | conversational), layout, subViews[], components[]
-- `ExperienceState`: initial, onEnter[], onExit[], transitions[]
-- `Component`: type, dataBinding (schemaRef, defaultValue), security (fieldAccess, visibleToRoles)
-- `StateAction`: action (fetchData | saveData | callAPI | navigateTo), api.operationId
+- `View`: route, layout (LayoutConfig), components[], subViews[]
+- `ExperienceState`: initial, onEnter[] (StateAction), onExit[], transitions[]
+- `StateTransition`: from, to, trigger (TriggerType enum), guard (Condition)
+- `ComponentInstance`: componentRef (library reference), overrides, dataBinding
 
 ### 10. Navigation Layer (FLOW)
 
@@ -327,22 +345,27 @@ _Note: "Alert" and "Dashboard" are NOT entity types in the OpenTelemetry schema_
 
 ### 12. Testing Layer (VERIFY)
 
-**Purpose:** Test coverage modeling and requirements traceability (Custom specification)
+**Purpose:** Test coverage modeling using Input Space Partitioning (ISP) - 17 entity types
 
 **Top Types:**
 
-- `CoverageTarget` - Artifact requiring test coverage (workflow, form, API, data transformation)
+- `TestCoverageModel` - Container for coverage specifications
+- `TestCoverageTarget` - Artifact requiring coverage (workflow, form, API, data transformation)
 - `InputSpacePartition` - Partitioning of input dimensions into testable categories
-- `ContextVariation` - Different contexts for invoking functionality (UI, API, event-triggered, scheduled)
-- `CoverageRequirement` - Required test coverage with criteria (pairwise, boundary, exhaustive, risk-based)
+- `PartitionValue` - Specific value category (typical, boundary, invalid, null, special)
+- `ContextVariation` - Different invocation contexts (UI, API, event-triggered, scheduled)
+- `EnvironmentFactor` - Environmental conditions affecting tests
+- `CoverageRequirement` - Required coverage with criteria (pairwise, boundary, exhaustive, risk-based)
 - `TestCaseSketch` - Abstract test case selecting specific partition values
+- `CoverageSummary` - Summary of coverage status and gaps
 
 **Key Properties:**
 
-- `CoverageTarget`: targetType (workflow | form | api-operation | data-transform), businessProcessRef, formRef, apiOperationRef
-- `InputSpacePartition`: presenceRule (required | optional | conditional), partitions[] (typical | boundary | invalid | null | special)
-- `ContextVariation`: contextType (ui-entry | api-entry | event-triggered | scheduled), securityRoleRef, entryPointRef
-- `CoverageRequirement`: coverageCriteria (exhaustive | pairwise | each-choice | boundary | risk-based), targetRef, requirementRefs[]
+- `TestCoverageTarget`: targetType (workflow | form | api-operation | data-transform), businessProcessRef, apiOperationRef
+- `InputSpacePartition`: presenceRule (required | optional | conditional), partitions[] (PartitionValue[])
+- `PartitionValue`: category (typical | boundary | invalid | null | special), value, description
+- `ContextVariation`: contextType (ui-entry | api-entry | event-triggered | scheduled), securityRoleRef
+- `CoverageRequirement`: coverageCriteria (exhaustive | pairwise | each-choice | boundary | risk-based), targetRef
 - `TestCaseSketch`: status (planned | implemented | automated | manual), implementationRef (gherkin:// | postman:// | playwright://)
 
 **Integration Points:**
@@ -695,7 +718,7 @@ else:
 
 ### Working with Cross-Layer Links
 
-**Cross-layer links** connect elements across the 11 architectural layers, enabling traceability from strategic goals to implementation details. The link management system (spec v0.2.0+, CLI v0.4.0+) provides comprehensive tools for creating, validating, and documenting these connections.
+**Cross-layer links** connect elements across the 12 architectural layers, enabling traceability from strategic goals to implementation details. The link management system (spec v0.2.0+, CLI v0.4.0+) provides comprehensive tools for creating, validating, and documenting these connections.
 
 **Key Concepts:**
 
@@ -1186,7 +1209,8 @@ project-root/
 │   │   ├── 08_datastore/          # Datastore layer elements
 │   │   ├── 09_ux/                 # UX layer elements
 │   │   ├── 10_navigation/         # Navigation layer elements
-│   │   └── 11_apm/                # APM layer elements
+│   │   ├── 11_apm/                # APM layer elements
+│   │   └── 12_testing/            # Testing layer elements
 │   ├── specs/                     # Generated/exported specifications
 │   │   ├── archimate/             # ArchiMate XML exports
 │   │   ├── openapi/               # OpenAPI 3.0 specs

@@ -68,6 +68,16 @@ class MigrationRegistry:
             )
         )
 
+        # Migration from v0.4.0 to v0.5.0: UX Layer Three-Tier Architecture
+        self.migrations.append(
+            Migration(
+                from_version="0.4.0",
+                to_version="0.5.0",
+                description="UX Layer Three-Tier Architecture (Spec v0.5.0)",
+                apply_fn=self._migrate_0_4_to_0_5,
+            )
+        )
+
         # Future migrations would be added here
         # self.migrations.append(Migration(
         #     from_version="1.0.0",
@@ -83,7 +93,7 @@ class MigrationRegistry:
             Latest version string
         """
         if not self.migrations:
-            return "0.4.0"
+            return "0.5.0"
 
         versions = [Version(m.to_version) for m in self.migrations]
         return str(max(versions))
@@ -361,6 +371,46 @@ class MigrationRegistry:
                 "files_modified": stats["files_modified"],
                 "elements_modified": stats.get("elements_modified", 0),
                 "description": f"Added UUID and name fields to {stats.get('elements_modified', 0)} entities",
+            }
+        except Exception as e:
+            return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
+
+    def _migrate_0_4_to_0_5(self, model_path: Path) -> dict:
+        """Migrate from v0.4.0 to v0.5.0.
+
+        This migration supports the UX Layer Three-Tier Architecture introduced
+        in spec v0.5.0. The new architecture is fully additive and backward
+        compatible - existing flat UXSpecs remain valid.
+
+        **New UX Layer Architecture (Spec v0.5.0):**
+        - Tier 1: UXLibrary - Reusable design system components
+          - LibraryComponent, LibrarySubView, StatePattern, ActionPattern
+        - Tier 2: UXApplication - Application-level organization
+        - Tier 3: UXSpec - Simplified experience-specific configuration
+
+        **Benefits:**
+        - Design system alignment (maps to Figma/Storybook workflows)
+        - DRY principle (define components once, reuse across applications)
+        - ~73% reduction in YAML lines per experience (300 -> 80 lines typical)
+        - Enterprise scale (multiple applications share design libraries)
+
+        No mandatory data transformations are required. Migration only updates
+        the spec version as the three-tier architecture is opt-in.
+
+        Args:
+            model_path: Path to model directory
+
+        Returns:
+            Dictionary with migration statistics
+        """
+        try:
+            return {
+                "migrations_applied": 1,
+                "files_modified": 0,
+                "description": (
+                    "Spec version updated to 0.5.0 "
+                    "(UX Layer Three-Tier Architecture now available)"
+                ),
             }
         except Exception as e:
             return {"error": str(e), "files_modified": 0, "migrations_applied": 0}

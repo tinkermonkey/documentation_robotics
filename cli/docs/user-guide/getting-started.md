@@ -149,7 +149,7 @@ dr validate --validate-links --strict-links
 
 ## Core Concepts
 
-### The 11 Layers
+### The 12 Layers
 
 Your model is organized into 12 layers, each representing a different architectural concern:
 
@@ -164,6 +164,7 @@ Your model is organized into 12 layers, each representing a different architectu
 9. **UX** (PRESENTATION) - User interfaces and experiences
 10. **Navigation** (FLOW) - Navigation between screens
 11. **APM/Observability** (OBSERVE) - Metrics, traces, logs
+12. **Testing** (VERIFY) - Test coverage modeling
 
 ### Element IDs
 

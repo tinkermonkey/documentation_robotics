@@ -10,9 +10,6 @@ sys.path.insert(0, str(Path(__file__).parents[3] / "scripts"))
 
 from generators.markdown_parser import MarkdownLayerParser  # noqa: E402
 
-# Mark all tests in this module as expected to fail - these are WIP tests for generator functionality
-pytestmark = pytest.mark.skip(reason="WIP: Generator tests under development")
-
 
 class TestMarkdownLayerParser:
     """Tests for MarkdownLayerParser."""

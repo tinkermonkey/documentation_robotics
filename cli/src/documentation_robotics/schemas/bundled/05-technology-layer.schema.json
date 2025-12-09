@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/05-technology-layer.schema.json",
   "title": "Technology Layer Schema",
-  "description": "Schema for Technology Layer",
+  "description": "Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.",
   "type": "object",
   "properties": {
     "nodes": {

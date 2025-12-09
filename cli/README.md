@@ -5,8 +5,8 @@ A command-line tool for managing federated architecture data models across 12 la
 > **Part of [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)** - For project overview, motivation, and full context, see the [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md).
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.7.1-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
-[![Specification](https://img.shields.io/badge/Specification-v0.4.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.2-green)](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
+[![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/tinkermonkey/documentation_robotics/blob/main/LICENSE)
 
 ## Installation
@@ -23,17 +23,10 @@ pip install documentation-robotics
 - **[The Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)** - Full spec documentation
 - **[Development](#development)** - Contributing to the CLI
 
-## Specification Conformance
-
-**Implements:** [Documentation Robotics Specification v0.4.0](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
-**Conformance Level:** Full (All 12 layers)
-
-Run `dr conformance` to see detailed conformance information.
-
 ## Status
 
-**Current Version:** v0.7.1
-**Specification Version:** v0.4.0
+**Current Version:** v0.7.2
+**Specification Version:** v0.5.0
 
 This release adds the Testing Layer and updates all integrations:
 
@@ -45,6 +38,8 @@ This release adds the Testing Layer and updates all integrations:
 - **Export** - Export to ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML
 
 ## The Vision
+
+Please see the `Documentation Robotics` [main README](https://github.com/tinkermonkey/documentation_robotics/blob/main/README.md) for an overview of the project.
 
 The `dr` CLI makes it easy and efficient to create, manage, validate, and export models that conform to the [Documentation Robotics Specification](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec).
 
@@ -344,13 +339,36 @@ black --check src/
 black src/
 ```
 
+### Building the Package
+
+For detailed build instructions, see [BUILDING.md](../BUILDING.md).
+
+Quick build:
+
+```bash
+# From repository root - prepare build (fetches schemas from GitHub release)
+python scripts/prepare_build.py
+
+# Build package
+cd cli
+python -m build
+```
+
+For development with local schemas:
+
+```bash
+python scripts/prepare_build.py --local
+cd cli
+pip install -e .
+```
+
 ## License
 
 MIT License - see LICENSE file for details.
 
 ## Version
 
-Current: v0.5.0 (Testing Layer + Spec v0.3.0)
+Current: v0.7.2 (UX Layer Three-Tier Architecture + Spec v0.5.0)
 
 - Phase 1 (Core): v0.1.0
 - Phase 2 (Validation): v0.2.0
@@ -359,3 +377,5 @@ Current: v0.5.0 (Testing Layer + Spec v0.3.0)
 - Phase 4 (Link Management + Claude Agents): v0.4.0
 - Phase 4 Patch (Claude Code Compliance): v0.4.1
 - Phase 5 (Testing Layer): v0.5.0
+- Phase 6 (Entity Standardization): v0.6.0 - v0.6.4
+- Phase 7 (UX Three-Tier): v0.7.0 - v0.7.2

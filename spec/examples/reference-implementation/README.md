@@ -1,6 +1,6 @@
 # Reference Implementation Example
 
-**Conformance Level:** Full (All 11 Layers)
+**Conformance Level:** Full (All 12 Layers)
 **Status:** Complete - Used for testing the `dr` CLI tool
 
 ## Overview
@@ -18,7 +18,7 @@ This model serves as:
 
 ## Model Contents
 
-### All 11 Layers
+### All 12 Layers
 
 - **01 - Motivation:** Goals, stakeholders, requirements
 - **02 - Business:** Business processes and services
@@ -31,6 +31,7 @@ This model serves as:
 - **09 - UX:** User experience specifications
 - **10 - Navigation:** Routes and navigation
 - **11 - APM:** Metrics and traces
+- **12 - Testing:** Test coverage specifications
 
 ## Cross-Layer Integration
 

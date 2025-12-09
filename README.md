@@ -4,8 +4,8 @@ A comprehensive toolkit for managing federated data models for modeling large so
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
-[![Specification](https://img.shields.io/badge/Specification-v0.2.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.4.0-green)](cli/)
+[![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](spec/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.2-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -84,7 +84,7 @@ See `dr migrate --help` for usage details.
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 0.4.0 (Evolving)
+**Version:** 0.5.0 (Evolving)
 **Status:** Draft
 
 The Documentation Robotics specification defines a standards-based approach to modeling software across 12 interconnected layers.
@@ -94,7 +94,7 @@ The Documentation Robotics specification defines a standards-based approach to m
 - **Standards-First** - Uses ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 - **Federated Approach** - ArchiMate spine + specialized standards
 - **12 Layers** - Motivation through APM/Observability
-- **Glue Layers** - 3 custom layer definitions (security, UX/navigation, testing)
+- **Glue Layers** - 4 custom layer definitions (security, UX, navigation, testing)
 - **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards based exports
 
 **Quick Start:**
@@ -108,7 +108,7 @@ The Documentation Robotics specification defines a standards-based approach to m
 ### 2. The CLI Tool (`dr`)
 
 **Location:** [`cli/`](cli/)
-**Version:** 0.7.1
+**Version:** 0.7.2
 **Status:** Proof of Concept (MVP cli + Agents)
 
 A command-line tool for managing project models conforming to the specification.
@@ -154,7 +154,7 @@ dr conformance
 documentation_robotics/
 │
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.1.1)
+│   ├── VERSION                  # Current spec version (0.5.0)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
@@ -190,7 +190,7 @@ documentation_robotics/
 
 ## The 12 Layers
 
-The specification defines 11 interconnected layers:
+The specification defines 12 interconnected layers:
 
 | #   | Layer                                                          | Focus        | Standard      |
 | --- | -------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
@@ -280,8 +280,8 @@ We welcome contributions! See:
 
 | Component         | Current Version | Status                    |
 | ----------------- | --------------- | ------------------------- |
-| **Specification** | 0.2.0           | Stable                    |
-| **CLI Tool**      | 0.4.0           | Feature Complete + Agents |
+| **Specification** | 0.5.0           | Stable                    |
+| **CLI Tool**      | 0.7.2           | Feature Complete + Agents |
 
 ## License
 
@@ -301,7 +301,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.1.1},
+  version = {0.5.0},
   year = {2025},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

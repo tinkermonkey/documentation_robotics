@@ -90,19 +90,6 @@ class TestConformanceTestSuite:
         invalid_path = spec_test_fixtures_path / "invalid"
         assert invalid_path.exists(), f"Invalid fixtures not found at {invalid_path}"
 
-    @pytest.mark.skip(reason="Implement when fixture format is finalized")
-    def test_can_validate_valid_fixtures(self, spec_test_fixtures_path):
-        """Test that the CLI can validate valid test fixtures."""
-        # TODO: Implement test that runs dr validate on valid fixtures
-        pass
-
-    @pytest.mark.skip(reason="Implement when fixture format is finalized")
-    def test_can_reject_invalid_fixtures(self, spec_test_fixtures_path):
-        """Test that the CLI correctly rejects invalid test fixtures."""
-        # TODO: Implement test that runs dr validate on invalid fixtures
-        # and verifies they are rejected with appropriate errors
-        pass
-
 
 class TestLayerImplementation:
     """Test that all claimed layers are implemented."""

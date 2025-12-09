@@ -202,7 +202,7 @@ class TestAddEntityTypeValidation:
             [
                 "add",
                 "data_model",
-                "entity",  # Special data_model layer type
+                "object-schema",  # Valid data_model layer type (JSON Schema Draft 7)
                 "--name",
                 "User",
             ],

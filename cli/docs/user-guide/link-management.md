@@ -4,7 +4,7 @@ This guide covers the `dr links` command group and link validation features for 
 
 ## Overview
 
-Cross-layer links are references that connect elements across the 11 architectural layers. The link management system provides:
+Cross-layer links are references that connect elements across the 12 architectural layers. The link management system provides:
 
 - **Link Registry** - Catalog of all valid cross-layer reference patterns
 - **Link Discovery** - Automatic detection of links in your model
@@ -1010,8 +1010,9 @@ dr validate --validate-links
 
 ## Version History
 
-- **v3.0.0** (Planned) - Full link validation with strict mode
-- **v0.4.0** (Current) - Link registry, analyzer, and validator implementation
+- **v0.7.2** (Current) - UX Layer Three-Tier Architecture + Spec v0.5.0
+- **v0.7.0** - Entity Standardization + Spec v0.4.0
+- **v0.4.0** - Link registry, analyzer, and validator implementation
 - **v0.3.3** - Foundation for link management
 
 ## Feedback

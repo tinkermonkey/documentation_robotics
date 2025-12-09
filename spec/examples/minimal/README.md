@@ -168,7 +168,7 @@ After understanding this minimal model:
 
 This minimal model demonstrates:
 
-1. **All 11 Layers**: Every layer is represented
+1. **All 12 Layers**: Every layer is represented
 2. **Traceability**: Complete chain from goal to metric
 3. **Security**: Authentication and authorization
 4. **API-First**: OpenAPI-based API definition
@@ -201,6 +201,6 @@ This model achieves **Full Conformance**:
 
 ---
 
-**Spec Version**: 0.2.0
+**Spec Version**: 0.5.0
 **Conformance Level**: Full
-**Last Updated**: 2025-11-26
+**Last Updated**: 2025-12-09

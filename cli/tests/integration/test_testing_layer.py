@@ -113,13 +113,13 @@ class TestTestingLayerIntegration:
         assert schema["title"] == "Testing Layer Schema"
 
     def test_add_coverage_target(self, temp_model, runner):
-        """Test adding a coverage target entity."""
+        """Test adding a test coverage target entity."""
         result = runner.invoke(
             cli,
             [
                 "add",
                 "testing",
-                "coverage-target",
+                "test-coverage-target",
                 "--name",
                 "Order Creation Coverage",
                 "--description",
@@ -149,17 +149,39 @@ class TestTestingLayerIntegration:
         """Test that entity type registry recognizes Testing layer types."""
         from documentation_robotics.schemas.registry import TESTING_LAYER_TYPES
 
-        # Verify all expected entity types are defined
+        # Verify all expected entity types are defined (complete list per spec v0.5.0)
         expected_types = [
-            "coverage-target",
+            # Coverage model container
+            "test-coverage-model",
+            # Test targets
+            "test-coverage-target",
+            "target-input-field",
+            # Input space partitioning
             "input-space-partition",
+            "partition-value",
+            "partition-dependency",
+            # Context and environment
             "context-variation",
+            "environment-factor",
+            "outcome-category",
+            # Coverage requirements
             "coverage-requirement",
+            "input-partition-selection",
+            "coverage-exclusion",
+            # Test case generation
             "test-case-sketch",
+            "input-selection",
+            # Coverage reporting
+            "coverage-summary",
+            "target-coverage-summary",
+            "coverage-gap",
         ]
 
         for entity_type in expected_types:
             assert entity_type in TESTING_LAYER_TYPES
+
+        # Verify the count matches expected (17 entity types)
+        assert len(TESTING_LAYER_TYPES) == 17
 
     def test_testing_layer_validation(self, temp_model, runner):
         """Test that Testing layer can be validated."""

@@ -3,7 +3,7 @@
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
 [![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.7.0-green)](../cli/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.7.2-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
 **Version:** 0.5.0

@@ -2,7 +2,7 @@
 
 **For:** CLI users who have installed the DR Claude Code toolset
 **Last Updated:** 2025-01-27
-**CLI Version:** 0.5.0+
+**CLI Version:** 0.7.2+ (Spec v0.5.0)
 
 Welcome! This guide shows you how to get the most out of Documentation Robotics with Claude Code.
 
@@ -56,7 +56,7 @@ Skills automatically suggest themselves when relevant (no need to ask!):
 
 Quick lookup guides accessible with `Ctrl+K` → `@dr`:
 
-- DR Specification Summary (all 11 layers)
+- DR Specification Summary (all 12 layers)
 - CLI Command Reference
 - Layer Definitions & Properties
 - Cross-Layer Projection Rules
@@ -520,7 +520,7 @@ Key features:
 ### Legacy System Modernization
 
 ```
-Layers used: All 11 layers
+Layers used: All 12 layers
 Key features:
 - Extracted current state from Java monolith
 - Used changesets to explore microservices migration
@@ -549,7 +549,7 @@ dr validate --strict         # Check for issues
 
 ### Online Resources
 
-- **Specification:** Documentation Robotics Spec v0.2.0+
+- **Specification:** Documentation Robotics Spec v0.5.0
 - **CLI Repository:** [Your repo URL]
 - **Issues/Questions:** [Your support channel]
 
@@ -572,6 +572,8 @@ dr validate --strict         # Check for issues
 
 ---
 
-**Version:** 0.5.0
+**Version:** 0.7.2
+**CLI Version:** 0.7.2
+**Spec Version:** 0.5.0
 **Last Updated:** 2025-01-27
 **Feedback:** [Your feedback channel]

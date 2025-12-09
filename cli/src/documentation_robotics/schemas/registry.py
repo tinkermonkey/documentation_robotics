@@ -11,14 +11,134 @@ from typing import Dict, List, Optional
 import inflect
 
 # Special case entity types for layers with non-standard schema structures
-API_LAYER_TYPES = ["operation", "path", "schema", "security-scheme", "server", "component"]
-DATA_MODEL_LAYER_TYPES = ["schema", "entity", "attribute", "relationship"]
+# These are explicitly defined to ensure complete coverage of all schema entities
+
+# API Layer types (OpenAPI 3.0 specification entities)
+# Organized by: Document structure, Operations, Data, Components, Security
+API_LAYER_TYPES = [
+    # Document structure
+    "open-api-document",
+    "info",
+    "contact",
+    "license",
+    "server",
+    "server-variable",
+    "tag",
+    "external-documentation",
+    # Paths and operations
+    "paths",
+    "path-item",
+    "operation",
+    "parameter",
+    "request-body",
+    "responses",
+    "response",
+    "callback",
+    # Data representation
+    "media-type",
+    "schema",
+    "example",
+    "encoding",
+    "header",
+    "link",
+    # Components container
+    "components",
+    # Security
+    "security-scheme",
+    "oauth-flows",
+    "oauth-flow",
+]
+
+# Data Model Layer types (JSON Schema Draft 7 entities)
+# Organized by: Core schemas, Type-specific schemas, Composition, Metadata
+DATA_MODEL_LAYER_TYPES = [
+    # Core schema entities
+    "json-schema",
+    "json-type",
+    "schema-definition",
+    "schema-property",
+    "reference",
+    # Type-specific schemas
+    "string-schema",
+    "numeric-schema",
+    "array-schema",
+    "object-schema",
+    # Schema composition
+    "schema-composition",
+    # Data governance and quality
+    "data-governance",
+    "data-quality-metrics",
+    "database-mapping",
+    # Cross-layer reference extensions
+    "x-business-object-ref",
+    "x-data-governance",
+    "x-apm-data-quality-metrics",
+    "x-database",
+]
+
+# Testing Layer types (Input Space Partitioning and Coverage)
+# Organized by: Model, Targets, Partitions, Context, Coverage, Results
 TESTING_LAYER_TYPES = [
-    "coverage-target",
+    # Coverage model container
+    "test-coverage-model",
+    # Test targets
+    "test-coverage-target",
+    "target-input-field",
+    # Input space partitioning
     "input-space-partition",
+    "partition-value",
+    "partition-dependency",
+    # Context and environment
     "context-variation",
+    "environment-factor",
+    "outcome-category",
+    # Coverage requirements
     "coverage-requirement",
+    "input-partition-selection",
+    "coverage-exclusion",
+    # Test case generation
     "test-case-sketch",
+    "input-selection",
+    # Coverage reporting
+    "coverage-summary",
+    "target-coverage-summary",
+    "coverage-gap",
+]
+# UX Layer types for spec v0.5.0 Three-Tier Architecture
+# Tier 1: Library (reusable design system components)
+# Tier 2: Application (application-level organization)
+# Tier 3: Experience (experience-specific configuration)
+UX_LAYER_TYPES = [
+    # Tier 1: Library
+    "ux-library",
+    "library-component",
+    "library-sub-view",
+    "state-pattern",
+    "action-pattern",
+    # Tier 2: Application
+    "ux-application",
+    # Tier 3: Experience
+    "ux-spec",
+    "experience-state",
+    "state-action",
+    "state-transition",
+    "condition",
+    "view",
+    "sub-view",
+    "component-instance",
+    "action-component",
+    # Supporting entities
+    "validation-rule",
+    "layout-config",
+    "error-config",
+    "api-config",
+    "data-config",
+    "performance-targets",
+    "component-reference",
+    "transition-template",
+    "state-action-template",
+    "table-column",
+    "chart-series",
 ]
 
 
@@ -115,6 +235,8 @@ class EntityTypeRegistry:
             return DATA_MODEL_LAYER_TYPES
         elif layer_name == "testing":
             return TESTING_LAYER_TYPES
+        elif layer_name == "ux":
+            return UX_LAYER_TYPES
 
         # Load schema
         with open(schema_file) as f:

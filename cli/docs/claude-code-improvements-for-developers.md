@@ -671,7 +671,7 @@ Specialized agent for validating, analyzing, and maintaining cross-layer referen
 ## Expertise
 
 - **Link Registry:** Deep understanding of link management
-- **Cross-Layer Traceability:** Validates relationships across all 11 layers
+- **Cross-Layer Traceability:** Validates relationships across all 12 layers
 - **Reference Integrity:** Ensures targets exist and are valid
 - **Bidirectional Consistency:** Verifies forward and backward links match
 

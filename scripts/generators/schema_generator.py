@@ -154,7 +154,7 @@ class JSONSchemaGenerator:
                 for contains_spec in entity.contains:
                     if isinstance(contains_spec, ContainsSpec):
                         entity_schema["properties"][contains_spec.name] = (
-                            self._generate_contains_property(contains_spec, include_descriptions)
+                            self._generate_contains_property(contains_spec)
                         )
                     elif isinstance(contains_spec, dict):
                         for rel_name, rel_spec in contains_spec.items():

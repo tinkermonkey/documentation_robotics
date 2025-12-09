@@ -5,6 +5,102 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.2] - 2025-12-09
+
+### Changed
+
+- **Specification Version**: Updated to v0.5.0
+  - Full support for UX Layer Three-Tier Architecture
+  - Backward compatible - existing flat UXSpecs remain valid
+  - New architecture enables ~73% reduction in YAML per experience
+
+- **UX Layer Schema**: Updated bundled schema with spec v0.5.0 changes
+  - **FIXED**: `trigger` attribute was incorrectly parsed as boolean `true` in StateTransition and TransitionTemplate
+    - Root cause: YAML reserved word `on` was being converted to boolean by YAML parser
+    - Spec renamed attribute from `on` to `trigger` to fix this
+    - Bundled CLI schema now has the correct `trigger` attribute
+  - Added 10 new entity types for three-tier architecture:
+    - **Tier 1 (Library)**: `UXLibrary`, `LibraryComponent`, `LibrarySubView`, `StatePattern`, `ActionPattern`
+    - **Tier 2 (Application)**: `UXApplication`
+    - **Tier 3 (Supporting)**: `LayoutConfig`, `ErrorConfig`, `ApiConfig`, `DataConfig`, `PerformanceTargets`, `ComponentReference`, `TransitionTemplate`, `StateActionTemplate`, `TableColumn`, `ChartSeries`
+  - Total UX layer entity types: 26 (previously 16)
+
+- **Entity Type Registry**: Complete entity coverage for all hard-coded layers
+  - **API Layer**: Expanded from 6 to 26 entity types (full OpenAPI 3.0 coverage)
+    - Added: `open-api-document`, `info`, `contact`, `license`, `server-variable`, `tag`, `external-documentation`, `paths`, `path-item`, `parameter`, `request-body`, `responses`, `response`, `callback`, `media-type`, `example`, `encoding`, `header`, `link`, `components`, `oauth-flows`, `oauth-flow`
+  - **Data Model Layer**: Expanded from 4 to 17 entity types (full JSON Schema Draft 7 coverage)
+    - Added: `json-schema`, `json-type`, `schema-definition`, `schema-property`, `reference`, `string-schema`, `numeric-schema`, `array-schema`, `object-schema`, `schema-composition`, `data-governance`, `data-quality-metrics`, `database-mapping`, `x-business-object-ref`, `x-data-governance`, `x-apm-data-quality-metrics`, `x-database`
+  - **Testing Layer**: Expanded from 5 to 17 entity types (full ISP coverage model)
+    - Added: `test-coverage-model`, `target-input-field`, `partition-value`, `partition-dependency`, `environment-factor`, `outcome-category`, `input-partition-selection`, `coverage-exclusion`, `input-selection`, `coverage-summary`, `target-coverage-summary`, `coverage-gap`
+    - Renamed: `coverage-target` -> `test-coverage-target` (consistent with schema)
+  - **UX Layer**: All 26 entity types now explicitly defined
+    - Organized by tier (Library, Application, Experience, Supporting)
+  - All entity type constants now include descriptive comments by category
+
+### Added
+
+- **Migration v0.4.0 -> v0.5.0**:
+  - Automatic migration for spec v0.5.0 UX Layer Three-Tier Architecture
+  - Migration is additive - no breaking changes to existing models
+  - New UX architecture is opt-in for gradual adoption
+  - Run `dr migrate` to check and `dr migrate --apply` to upgrade
+
+- **Build Integrity Checking**: Added `--verify` flag to `prepare_build.py`
+  - Detects manual modifications to bundled schemas
+  - Creates `.manifest.json` with SHA256 checksums for all bundled files
+  - Use `python scripts/prepare_build.py --verify` to check integrity
+  - Exit code 4 indicates integrity failure
+
+- **Release Process Documentation**: Created `RELEASING.md`
+  - Documents the correct spec -> CLI release workflow
+  - Explains why bundled schemas should never be manually edited
+  - Provides troubleshooting for common release issues
+
+### Changed
+
+- **Bundled Schemas**: Now gitignored to prevent accidental manual edits
+  - `cli/src/documentation_robotics/schemas/bundled/` added to `.gitignore`
+  - Bundled schemas are generated at build time from spec releases
+  - See `RELEASING.md` for the correct workflow
+
+### Fixed
+
+- **UX Layer Schema Bug**: Fixed `trigger` attribute incorrectly parsed as boolean `true`
+  - StateTransition.trigger now correctly defined as TriggerType enum
+  - TransitionTemplate.trigger now correctly defined as TriggerType enum
+  - Affected validation of state machine transitions in UX models
+
+### Documentation
+
+- Updated CLI README.md with spec v0.5.0 version
+- Updated integration reference sheets (Claude Code, GitHub Copilot) with new UX types
+- Created `RELEASING.md` with complete release workflow documentation
+
+### Migration Guide
+
+```bash
+# Check migration requirements
+dr migrate
+
+# Preview changes
+dr migrate --dry-run
+
+# Apply migration
+dr migrate --apply
+
+# Validate updated model
+dr validate --validate-links
+```
+
+**What Gets Migrated**:
+
+- Manifest spec version updated to 0.5.0
+- No data transformations required - three-tier architecture is additive
+- Existing UXSpecs continue to work without modification
+
+**New UX Architecture (Optional)**:
+See [09-ux-layer.md Migration Guide](../spec/layers/09-ux-layer.md#migration-guide) for adopting the three-tier architecture.
+
 ## [0.7.1] - 2025-12-07
 
 ### Added

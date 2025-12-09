@@ -110,6 +110,17 @@ jobs:
           python -m pip install --upgrade pip
           pip install build twine
 
+      - name: Install CLI for prepare_build script
+        working-directory: ./cli
+        run: |
+          pip install -e .
+
+      - name: Prepare build (fetch schemas from GitHub release)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/prepare_build.py --verbose
+
       - name: Build package
         working-directory: ./cli
         run: |

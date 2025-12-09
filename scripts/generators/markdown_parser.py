@@ -74,7 +74,7 @@ class MarkdownLayerParser:
 
     # Regex patterns
     YAML_BLOCK_PATTERN = re.compile(r"```yaml\n([\s\S]*?)\n```", re.MULTILINE)
-    LAYER_ID_PATTERN = re.compile(r"^#\s+Layer\s+(\d+):\s+(.+?)(?:\s+Layer)?$", re.MULTILINE)
+    LAYER_ID_PATTERN = re.compile(r"^#\s+Layer\s+(\d+):\s+(.+)$", re.MULTILINE)
 
     def __init__(self):
         """Initialize the parser."""
@@ -311,13 +311,23 @@ class MarkdownLayerParser:
         # Extract enum reference from brackets (but not [PK])
         enum_match = re.search(r"\[(\w+)\]", spec)
         enum_ref = None
-        if enum_match and enum_match.group(1) != "PK":
-            enum_ref = enum_match.group(1)
+
+        # Remove brackets first to get the type
         if enum_match:
             spec = re.sub(r"\[\w+\]", "", spec).strip()
 
         # What's left is the type
         type_str = spec.strip()
+
+        # Determine enum_ref based on what was in brackets
+        if enum_match:
+            bracket_content = enum_match.group(1)
+            if bracket_content.lower() == "enum":
+                # When [enum] is used, the type itself is the enum name
+                enum_ref = type_str
+            elif bracket_content != "PK":
+                # Otherwise, brackets contain the enum type name
+                enum_ref = bracket_content
 
         # Normalize type
         type_normalized = self._normalize_type(type_str)

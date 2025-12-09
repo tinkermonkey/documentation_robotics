@@ -69,7 +69,7 @@ Documentation Robotics provides specialized agents for different workflows. Each
 - Socratic questioning (probing questions to clarify goals)
 - Technology research (WebSearch for frameworks, patterns, best practices)
 - Dependency analysis (Context-7 for library/framework details)
-- Model exploration (helps model ideas across all 11 layers)
+- Model exploration (helps model ideas across all 12 layers)
 - Comparative analysis (compares multiple approaches side-by-side)
 - Impact assessment (analyzes implications of decisions)
 - Merge guidance (knows when ideas are ready vs should be abandoned)
@@ -887,61 +887,109 @@ datastore.view.customer-orders-summary:
     materialized: false
 ```
 
-### Layer 09: UX (Custom)
+### Layer 09: UX (Three-Tier Architecture - v0.5.0+)
 
-| Type                  | Description                                                       | Required Fields | Key Properties                                                          |
-| --------------------- | ----------------------------------------------------------------- | --------------- | ----------------------------------------------------------------------- |
-| **View**              | Routable screen/page with components                              | id, name        | route, layout: LayoutStyle, calls, displays, components, accessibility  |
-| **SubView**           | Reusable grouping of components within a view                     | id, name        | components, props, usedInViews                                          |
-| **Component**         | Atomic UI element (form-field, table, chart, card, etc.)          | id, name        | type, props, validators, dataBindings                                   |
-| **ActionComponent**   | Interactive element (button, menu-item, link, voice-command)      | id, name        | type, trigger, action, confirmation, successTransition, errorTransition |
-| **ValidationRule**    | Client-side validation rule                                       | id, name        | type: required\|minLength\|maxLength\|pattern\|email\|custom, params    |
-| **ExperienceState**   | Distinct state the experience can be in                           | id, name        | scope: global\|view\|component, onEnter, onExit, allowedTransitions     |
-| **StateAction**       | Action executed during state lifecycle                            | id, name        | trigger: onEnter\|onExit, type: fetchData\|saveData\|validateForm, etc. |
-| **StateTransition**   | Transition between states                                         | id, name        | from, to, trigger: success\|failure\|submit\|cancel, guard              |
-| **LayoutStyle**       | Layout configuration for a view (property, not standalone entity) | -               | type: single-column\|two-column\|dashboard\|master-detail, responsive   |
-| **Theme**             | Visual styling                                                    | id, name        | colors, fonts, spacing, breakpoints                                     |
-| **AccessibilitySpec** | A11y requirements                                                 | id, name        | wcag-level: A\|AA\|AAA, requirements, ariaLabels                        |
-| **LocalizationSpec**  | i18n configuration                                                | id, name        | supportedLocales, defaultLocale, translationKeys                        |
-| **ResponsiveConfig**  | Responsive behavior configuration                                 | id, name        | breakpoints, layoutChanges, componentVisibility                         |
+26 entity types organized in three tiers for maximum reusability and consistency.
 
-_Note: Layout is a property of View (LayoutStyle config), not a standalone entity type._
+**Tier 1: Library (Reusable Design System)**
+
+| Type                 | Description                        | Required Fields | Key Properties                                              |
+| -------------------- | ---------------------------------- | --------------- | ----------------------------------------------------------- |
+| **UXLibrary**        | Container for library-level assets | id, name        | components[], subViews[], statePatterns[], actionPatterns[] |
+| **LibraryComponent** | Reusable component definition      | id, name        | type, props, validators, dataBindings, accessibility        |
+| **LibrarySubView**   | Reusable component grouping        | id, name        | components[], layout, props                                 |
+| **StatePattern**     | Reusable state machine pattern     | id, name        | states[], transitions[], initialState                       |
+| **ActionPattern**    | Reusable action definition         | id, name        | type, parameters, validation, errorHandling                 |
+
+**Tier 2: Application (Organization)**
+
+| Type              | Description                       | Required Fields | Key Properties                                       |
+| ----------------- | --------------------------------- | --------------- | ---------------------------------------------------- |
+| **UXApplication** | Application-wide UX configuration | id, name        | theme, defaultLibrary, globalStates[], errorHandling |
+
+**Tier 3: Experience (Specific Configuration)**
+
+| Type                  | Description                                 | Required Fields | Key Properties                                                  |
+| --------------------- | ------------------------------------------- | --------------- | --------------------------------------------------------------- |
+| **UXSpec**            | Container for experience specification      | id, name        | views[], states[], application, library                         |
+| **View**              | Routable screen/page with components        | id, name        | route, layout (LayoutConfig), components[], subViews[]          |
+| **SubView**           | Component grouping within a view            | id, name        | components[], layout, parentView                                |
+| **ComponentInstance** | Instance of a library component             | id, name        | componentRef, overrides, dataBinding, visibility                |
+| **ActionComponent**   | Interactive element (button, link, command) | id, name        | type, trigger (TriggerType), action, confirmation               |
+| **ExperienceState**   | State in the experience state machine       | id, name        | initial, onEnter[] (StateAction), onExit[], transitions[]       |
+| **StateAction**       | Action executed during state lifecycle      | id, name        | type: fetchData\|saveData\|callAPI\|navigateTo, api.operationId |
+| **StateTransition**   | Transition between states                   | id, name        | from, to, trigger (TriggerType enum), guard (Condition)         |
+| **Condition**         | Guard condition for transitions             | id, name        | type: expression\|permission\|state, expression                 |
+| **ValidationRule**    | Client-side validation rule                 | id, name        | type: required\|minLength\|pattern\|email\|custom, params       |
+
+**Supporting Entities:**
+
+| Type                    | Description                    | Required Fields | Key Properties                                |
+| ----------------------- | ------------------------------ | --------------- | --------------------------------------------- |
+| **LayoutConfig**        | Layout configuration for views | id, name        | type: single-column\|dashboard\|master-detail |
+| **ErrorConfig**         | Error handling configuration   | id, name        | displayMode, retryStrategy, fallbackView      |
+| **APIConfig**           | API integration configuration  | id, name        | operationId, caching, retryPolicy             |
+| **DataConfig**          | Data binding configuration     | id, name        | schemaRef, defaultValue, transformations      |
+| **PerformanceTargets**  | Performance requirements       | id, name        | loadTime, interactionTime, metrics            |
+| **ComponentReference**  | Reference to library component | componentId     | libraryRef, version                           |
+| **TransitionTemplate**  | Reusable transition template   | id, name        | trigger (TriggerType), guard, actions         |
+| **StateActionTemplate** | Reusable state action template | id, name        | type, parameters, errorHandling               |
+| **TableColumn**         | Table component column config  | id, name        | field, header, sortable, filterable           |
+| **ChartSeries**         | Chart component series config  | id, name        | dataField, type, color, legend                |
+
+**TriggerType Enum Values:**
+
+`success`, `failure`, `submit`, `cancel`, `timeout`, `user-action`, `system-event`, `data-change`
 
 **Common Properties:**
 
 ```yaml
+# Tier 1: Library Component
+ux.library-component.data-table:
+  id: ux.library-component.data-table
+  name: "Data Table"
+  properties:
+    type: table
+    props:
+      sortable: true
+      filterable: true
+      pagination: true
+    columns: [] # Defined by instances
+    accessibility:
+      ariaLabel: "Data table"
+      keyboardNavigation: true
+
+# Tier 3: View using library components
 ux.view.order-history:
   id: ux.view.order-history
   name: "Order History"
-  description: "Customer order history view"
   properties:
     route: navigation.route.order-history
     layout:
       type: dashboard
-      responsive: true
       regions: [header, filters, content, pagination]
-    calls:
-      - api.operation.list-orders
-      - api.operation.get-order-details
-    displays: [data_model.schema.order]
     components:
-      - ux.component.order-list
-      - ux.component.order-filters
-      - ux.component.pagination
-    state: ux.state.order-history-loaded
-    accessibility: ux.accessibility.wcag-aa
+      - componentRef: ux.library-component.data-table
+        overrides:
+          columns:
+            - { field: orderId, header: "Order ID" }
+            - { field: date, header: "Date" }
+            - { field: status, header: "Status" }
+        dataBinding:
+          schemaRef: data_model.object-schema.order
+          source: api.operation.list-orders
 
-ux.experience-state.order-history-loaded:
-  id: ux.experience-state.order-history-loaded
-  name: "Order History Loaded"
+# State with TriggerType enum
+ux.state-transition.submit-success:
+  id: ux.state-transition.submit-success
+  name: "Submit Success Transition"
   properties:
-    scope: view
-    onEnter:
-      - ux.state-action.fetch-order-history
-      - ux.state-action.initialize-filters
-    allowedTransitions:
-      - ux.state.order-history-loading
-      - ux.state.order-detail-view
+    from: ux.experience-state.form-editing
+    to: ux.experience-state.confirmation
+    trigger: success # TriggerType enum value
+    guard:
+      type: expression
+      expression: "formValid && !hasErrors"
 ```
 
 ### Layer 10: Navigation (Custom - Multi-Modal)
@@ -1819,7 +1867,7 @@ Complete reference for managing and validating cross-layer references in your Do
 
 ### Overview
 
-Cross-layer links connect elements across the 11 architectural layers, enabling traceability from strategic goals to implementation details. The link management system provides:
+Cross-layer links connect elements across the 12 architectural layers, enabling traceability from strategic goals to implementation details. The link management system provides:
 
 - **Link Registry**: Machine-readable catalog of 62+ standardized cross-layer reference patterns
 - **Link Discovery**: Automatic detection and analysis of link instances in models
@@ -2945,7 +2993,7 @@ class CustomValidator(BaseValidator):
 - Full ArchiMate 3.2 model
 - Compatible with Archi, Enterprise Architect
 - Includes elements, relationships, views
-- Supports all 11 layers
+- Supports all 12 layers
 
 ### OpenAPI (.yaml)
 

@@ -17,9 +17,6 @@ from generators.markdown_parser import (  # noqa: E402
 )
 from generators.schema_generator import JSONSchemaGenerator  # noqa: E402
 
-# Mark all tests in this module as expected to fail - these are WIP tests for generator functionality
-pytestmark = pytest.mark.skip(reason="WIP: Generator tests under development")
-
 
 class TestJSONSchemaGenerator:
     """Test JSONSchemaGenerator functionality."""
@@ -36,9 +33,7 @@ class TestJSONSchemaGenerator:
             name="BusinessActor",
             description="An organizational entity",
             attributes={
-                "id": AttributeSpec(
-                    name="id", type="string", format="uuid", is_primary_key=True, is_optional=False
-                ),
+                "id": AttributeSpec(name="id", type="string", format="uuid", is_optional=False),
                 "name": AttributeSpec(name="name", type="string", is_optional=False),
                 "documentation": AttributeSpec(
                     name="documentation", type="string", is_optional=True
@@ -53,7 +48,7 @@ class TestJSONSchemaGenerator:
             name="BusinessService",
             description="Service that fulfills a need",
             attributes={
-                "id": AttributeSpec(name="id", type="string", format="uuid", is_primary_key=True),
+                "id": AttributeSpec(name="id", type="string", format="uuid"),
                 "name": AttributeSpec(name="name", type="string"),
             },
             properties=[
@@ -79,7 +74,7 @@ class TestJSONSchemaGenerator:
             name="BusinessEvent",
             description="Something that happens",
             attributes={
-                "id": AttributeSpec(name="id", type="string", format="uuid", is_primary_key=True),
+                "id": AttributeSpec(name="id", type="string", format="uuid"),
                 "name": AttributeSpec(name="name", type="string"),
                 "type": AttributeSpec(name="type", type="string", enum_ref="EventType"),
             },
@@ -93,7 +88,7 @@ class TestJSONSchemaGenerator:
             name="Product",
             description="Collection of services",
             attributes={
-                "id": AttributeSpec(name="id", type="string", format="uuid", is_primary_key=True),
+                "id": AttributeSpec(name="id", type="string", format="uuid"),
                 "name": AttributeSpec(name="name", type="string"),
             },
             contains=[
@@ -110,38 +105,22 @@ class TestJSONSchemaGenerator:
         return LayerSpec(
             layer_number=2,
             layer_name="business",
-            entities=[simple_entity],
-            relationships=["Composition", "Aggregation"],
+            layer_id="02-business",
+            title="Business",
+            description="Business layer for testing",
+            entities={"BusinessActor": simple_entity},
+            relationship_types=["Composition", "Aggregation"],
         )
 
-    def test_generate_header(self, generator, layer_spec):
-        """Test generation of schema header."""
-        header = generator._generate_header(layer_spec, include_descriptions=True)
-
-        assert header["$schema"] == "http://json-schema.org/draft-07/schema#"
-        assert header["$id"] == "https://example.com/schemas/02-business-layer.json"
-        assert header["title"] == "Business Layer Schema"
-        assert header["type"] == "object"
-        assert "description" in header
-
-    def test_generate_top_level_properties(self, generator, simple_entity):
-        """Test generation of top-level properties."""
-        properties = generator._generate_top_level_properties([simple_entity])
-
-        assert "businessActors" in properties
-        assert properties["businessActors"]["type"] == "array"
-        assert properties["businessActors"]["items"]["$ref"] == "#/definitions/BusinessActor"
-        assert "relationships" in properties
-
-    def test_to_camel_case_plural(self, generator):
-        """Test entity name to camelCase plural conversion."""
-        assert generator._to_camel_case_plural("BusinessActor") == "businessActors"
-        assert generator._to_camel_case_plural("Contract") == "contracts"
-        assert generator._to_camel_case_plural("BusinessProcess") == "businessProcesses"
+    def test_to_array_name(self, generator):
+        """Test entity name to array name (kebab-case plural) conversion."""
+        assert generator._to_array_name("BusinessActor") == "business-actors"
+        assert generator._to_array_name("Contract") == "contracts"
+        assert generator._to_array_name("BusinessProcess") == "business-processes"
 
     def test_generate_simple_entity_definition(self, generator, simple_entity):
         """Test generation of simple entity definition."""
-        definition = generator._generate_entity_definition(simple_entity, include_descriptions=True)
+        definition = generator._generate_entity_schema(simple_entity)
 
         assert definition["type"] == "object"
         assert definition["description"] == "An organizational entity"
@@ -161,40 +140,44 @@ class TestJSONSchemaGenerator:
 
     def test_generate_entity_with_properties(self, generator, entity_with_properties):
         """Test generation of entity with cross-layer properties."""
-        definition = generator._generate_entity_definition(
-            entity_with_properties, include_descriptions=True
-        )
+        definition = generator._generate_entity_schema(entity_with_properties)
 
         # Should have properties object
         assert "properties" in definition["properties"]
         props_obj = definition["properties"]["properties"]
 
         assert props_obj["type"] == "object"
-        assert "motivation.delivers-value" in props_obj["properties"]
-        assert "sla.availability" in props_obj["properties"]
+        # Properties are nested by namespace
+        assert "motivation" in props_obj["properties"]
+        assert "sla" in props_obj["properties"]
 
-        # Check description is included
-        motivation_prop = props_obj["properties"]["motivation.delivers-value"]
-        assert motivation_prop["type"] == "string"
-        assert "Value IDs" in motivation_prop["description"]
+        # Check nested structure
+        motivation_ns = props_obj["properties"]["motivation"]
+        assert motivation_ns["type"] == "object"
+        assert "delivers-value" in motivation_ns["properties"]
+        assert "Value IDs" in motivation_ns["properties"]["delivers-value"]["description"]
 
     def test_generate_entity_with_enum(self, generator, entity_with_enum):
         """Test generation of entity with enum type."""
-        definition = generator._generate_entity_definition(
-            entity_with_enum, include_descriptions=True
-        )
+        definition = generator._generate_entity_schema(entity_with_enum)
 
-        # Check type attribute has enum
+        # Check type attribute references enum definition
         type_prop = definition["properties"]["type"]
-        assert type_prop["type"] == "string"
-        assert "enum" in type_prop
-        assert set(type_prop["enum"]) == {"time-driven", "state-change", "external"}
+        assert "$ref" in type_prop
+        assert type_prop["$ref"] == "#/definitions/EventType"
+
+        # Check enum is defined
+        assert "definitions" in definition
+        assert "EventType" in definition["definitions"]
+        assert set(definition["definitions"]["EventType"]["enum"]) == {
+            "time-driven",
+            "state-change",
+            "external",
+        }
 
     def test_generate_entity_with_contains(self, generator, entity_with_contains):
         """Test generation of entity with contains relationships."""
-        definition = generator._generate_entity_definition(
-            entity_with_contains, include_descriptions=True
-        )
+        definition = generator._generate_entity_schema(entity_with_contains)
 
         # Check services property
         services_prop = definition["properties"]["services"]
@@ -205,9 +188,9 @@ class TestJSONSchemaGenerator:
         assert "maxItems" not in services_prop  # None means no max
         assert "BusinessService" in services_prop["description"]
 
-        # Check contracts property
+        # Check contracts property (min_items=0 means no minItems constraint)
         contracts_prop = definition["properties"]["contracts"]
-        assert contracts_prop["minItems"] == 0
+        assert "minItems" not in contracts_prop  # 0 means optional, so no constraint
 
     def test_type_mappings(self, generator):
         """Test type mapping from markdown to JSON Schema."""
@@ -215,53 +198,38 @@ class TestJSONSchemaGenerator:
         assert generator.TYPE_MAPPINGS["integer"]["type"] == "integer"
         assert generator.TYPE_MAPPINGS["boolean"]["type"] == "boolean"
 
-    def test_get_required_fields_simple(self, generator, simple_entity):
-        """Test required field determination for simple entity."""
-        required = generator._get_required_fields(simple_entity)
-
-        # id and name are always required, documentation is optional
-        assert "id" in required
-        assert "name" in required
-        assert "documentation" not in required
-
-    def test_generate_relationship_definition(self, generator):
+    def test_generate_relationship_schema(self, generator):
         """Test generation of Relationship definition."""
         relationships = ["Composition", "Aggregation", "Realization"]
 
-        definition = generator._generate_relationship_definition(relationships)
+        definition = generator._generate_relationship_schema(relationships)
 
         assert definition["type"] == "object"
-        assert set(definition["required"]) == {"type", "source", "target"}
+        assert set(definition["required"]) == {"id", "type", "source", "target"}
 
         # Check type enum
         assert definition["properties"]["type"]["type"] == "string"
         assert set(definition["properties"]["type"]["enum"]) == set(relationships)
 
-        # Check source and target are UUIDs
-        assert definition["properties"]["source"]["format"] == "uuid"
-        assert definition["properties"]["target"]["format"] == "uuid"
+        # Check source and target are strings (entity IDs)
+        assert definition["properties"]["source"]["type"] == "string"
+        assert definition["properties"]["target"]["type"] == "string"
 
-    def test_generate_relationship_definition_default(self, generator):
-        """Test generation of Relationship definition with default types."""
-        definition = generator._generate_relationship_definition([])
+        # Check id has uuid format
+        assert definition["properties"]["id"]["format"] == "uuid"
 
-        # Should use default ArchiMate types
-        default_types = {
-            "Composition",
-            "Aggregation",
-            "Assignment",
-            "Realization",
-            "Triggering",
-            "Flow",
-            "Association",
-            "Access",
-            "Serving",
-        }
-        assert set(definition["properties"]["type"]["enum"]) == default_types
+    def test_generate_relationship_schema_empty(self, generator):
+        """Test generation of Relationship definition with empty types."""
+        definition = generator._generate_relationship_schema([])
+
+        # Should have empty enum when no types provided
+        assert definition["type"] == "object"
+        assert set(definition["required"]) == {"id", "type", "source", "target"}
+        assert definition["properties"]["type"]["enum"] == []
 
     def test_generate_complete_schema(self, generator, layer_spec):
         """Test generation of complete schema."""
-        schema = generator.generate_layer_schema(layer_spec, include_descriptions=True)
+        schema = generator.generate_layer_schema(layer_spec)
 
         # Check all required sections
         assert "$schema" in schema
@@ -278,59 +246,34 @@ class TestJSONSchemaGenerator:
         # Check Relationship is in definitions
         assert "Relationship" in schema["definitions"]
 
-    def test_generate_schema_without_descriptions(self, generator, layer_spec):
-        """Test schema generation without descriptions."""
-        schema = generator.generate_layer_schema(layer_spec, include_descriptions=False)
+    def test_generate_schema_structure(self, generator, layer_spec):
+        """Test schema generation structure."""
+        schema = generator.generate_layer_schema(layer_spec)
 
-        # Should still have structure
+        # Should have all required structure
         assert "$schema" in schema
         assert "definitions" in schema
+        assert "properties" in schema
+        assert "title" in schema
 
-        # Entity definition should not have description
-        # (Header will still have description generated from layer name)
-
-    def test_generate_properties_object(self, generator):
-        """Test generation of properties object."""
-        properties = [
-            PropertySpec(
-                key="motivation.delivers-value",
-                value="value-id",
-                description="Value IDs",
-                is_optional=True,
-            )
-        ]
-
-        props_obj = generator._generate_properties_object(properties, include_descriptions=True)
-
-        assert props_obj["type"] == "object"
-        assert "properties" in props_obj
-        assert "motivation.delivers-value" in props_obj["properties"]
-
-        prop_def = props_obj["properties"]["motivation.delivers-value"]
-        assert prop_def["type"] == "string"
-        assert "Value IDs" in prop_def["description"]
-
-    def test_generate_attribute_property_uuid(self, generator):
+    def test_generate_attribute_schema_uuid(self, generator):
         """Test generation of UUID attribute property."""
-        attr = AttributeSpec(name="id", type="string", format="uuid", is_primary_key=True)
-        entity = EntityDefinition(name="Test", description="Test")
+        attr = AttributeSpec(name="id", type="string", format="uuid")
 
-        prop = generator._generate_attribute_property(attr, entity, include_descriptions=True)
+        prop = generator._generate_attribute_schema(attr)
 
         assert prop["type"] == "string"
         assert prop["format"] == "uuid"
 
-    def test_generate_attribute_property_with_enum(self, generator, entity_with_enum):
+    def test_generate_attribute_schema_with_enum(self, generator, entity_with_enum):
         """Test generation of attribute that references enum."""
         type_attr = entity_with_enum.attributes["type"]
 
-        prop = generator._generate_attribute_property(
-            type_attr, entity_with_enum, include_descriptions=True
-        )
+        prop = generator._generate_attribute_schema(type_attr)
 
-        assert prop["type"] == "string"
-        assert "enum" in prop
-        assert set(prop["enum"]) == {"time-driven", "state-change", "external"}
+        # When an enum_ref is specified, the attribute gets a $ref
+        assert "$ref" in prop
+        assert prop["$ref"] == "#/definitions/EventType"
 
     def test_generate_contains_property(self, generator):
         """Test generation of contains property."""

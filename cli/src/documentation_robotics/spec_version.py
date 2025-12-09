@@ -6,10 +6,17 @@ this CLI implementation conforms to.
 """
 
 # Specification version implemented
-SPEC_VERSION = "0.3.0"
+SPEC_VERSION = "0.5.0"
 
 # Conformance level
 CONFORMANCE_LEVEL = "full"  # basic, standard, or full
+
+# GitHub repository configuration for fetching schemas
+GITHUB_CONFIG = {
+    "owner": "tinkermonkey",
+    "repo": "documentation_robotics",
+    "release_tag_prefix": "spec-v",  # Tags are formatted as spec-v{version}
+}
 
 # Layers implemented
 IMPLEMENTED_LAYERS = {

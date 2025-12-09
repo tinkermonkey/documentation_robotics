@@ -23,7 +23,7 @@ class TestEntityTypeRegistry:
         return registry
 
     def test_build_from_schemas_loads_all_layers(self, registry_with_schemas):
-        """Test that registry loads all 11 layers."""
+        """Test that registry loads all 12 layers."""
         layers = registry_with_schemas.get_all_layers()
 
         assert len(layers) > 0
@@ -83,19 +83,26 @@ class TestEntityTypeRegistry:
         assert len(types) == 0
 
     def test_api_layer_has_special_types(self, registry_with_schemas):
-        """Test that API layer has special hardcoded types."""
+        """Test that API layer has OpenAPI 3.0 entity types."""
         api_types = registry_with_schemas.get_valid_types("api")
 
-        # API layer should have special types
+        # API layer should have OpenAPI 3.0 types (26 total)
         assert "operation" in api_types
-        assert "path" in api_types or "schema" in api_types
+        assert "path-item" in api_types
+        assert "schema" in api_types
+        assert "open-api-document" in api_types
+        assert len(api_types) == 26
 
     def test_data_model_layer_has_special_types(self, registry_with_schemas):
-        """Test that data_model layer has special hardcoded types."""
+        """Test that data_model layer has JSON Schema Draft 7 entity types."""
         dm_types = registry_with_schemas.get_valid_types("data_model")
 
-        # Data model layer should have special types
-        assert "schema" in dm_types or "entity" in dm_types
+        # Data model layer should have JSON Schema types (17 total)
+        assert "json-schema" in dm_types
+        assert "object-schema" in dm_types
+        assert "string-schema" in dm_types
+        assert "schema-definition" in dm_types
+        assert len(dm_types) == 17
 
     def test_get_registry_returns_copy(self, registry_with_schemas):
         """Test that get_registry returns a copy, not the internal registry."""

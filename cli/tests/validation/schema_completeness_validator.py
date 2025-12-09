@@ -333,7 +333,7 @@ class SchemaCompletenessValidator:
         print("CROSS-LAYER VALIDATION")
         print(f"{'═' * 80}\n")
 
-        # Check all 11 expected layers are present
+        # Check all 12 expected layers are present
         expected_layers = [
             "motivation",
             "business",
@@ -346,6 +346,7 @@ class SchemaCompletenessValidator:
             "ux",
             "navigation",
             "apm_observability",
+            "testing",
         ]
 
         found_layers = set(self.layer_validations.keys())
@@ -387,6 +388,7 @@ class SchemaCompletenessValidator:
             API_LAYER_TYPES,
             DATA_MODEL_LAYER_TYPES,
             TESTING_LAYER_TYPES,
+            UX_LAYER_TYPES,
         )
 
         if layer_name == "api":
@@ -395,6 +397,8 @@ class SchemaCompletenessValidator:
             return set(DATA_MODEL_LAYER_TYPES)
         elif layer_name == "testing":
             return set(TESTING_LAYER_TYPES)
+        elif layer_name == "ux":
+            return set(UX_LAYER_TYPES)
 
         properties = schema.get("properties", {})
         entity_types = set()
