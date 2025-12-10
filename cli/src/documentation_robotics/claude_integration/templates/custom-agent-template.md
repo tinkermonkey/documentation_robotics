@@ -595,7 +595,7 @@ if violation.type == "missing_monitoring" and violation.severity <= "medium":
 # Medium risk fixes (ask first)
 if violation.type == "weak_authentication" and confirm_fix():
     # Upgrade authentication
-    dr update {element_id} --set securedBy=security.policy.oauth2
+    dr update-element {element_id} --set securedBy=security.policy.oauth2
 ```
 
 ## Error Handling

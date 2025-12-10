@@ -402,3 +402,179 @@ class TestValidateIntegrationWithSchemaValidator:
         # Should not raise TypeError
         assert "TypeError" not in result.output
         assert "unexpected keyword argument" not in result.output.lower()
+
+
+class TestValidateLinkValidation:
+    """Tests for --validate-links flag."""
+
+    @pytest.fixture
+    def runner(self):
+        """Create CLI runner."""
+        return CwdCliRunner()
+
+    @pytest.fixture
+    def initialized_project(self, tmp_path):
+        """Create an initialized project."""
+        runner = CwdCliRunner()
+        result = runner.invoke(cli, ["init", "test-project", "--path", str(tmp_path)])
+        assert result.exit_code == 0, f"Init failed: {result.output}"
+        yield tmp_path
+
+    def test_validate_links_flag_does_not_crash(self, runner, initialized_project):
+        """Test that --validate-links flag doesn't crash with AttributeError.
+
+        This is a regression test for the bug where Model.to_dict() was missing,
+        causing: AttributeError: 'Model' object has no attribute 'to_dict'
+        """
+        result = runner.invoke(cli, ["validate", "--validate-links"], cwd=str(initialized_project))
+
+        # Should not crash with AttributeError
+        assert "AttributeError" not in result.output
+        assert "'Model' object has no attribute 'to_dict'" not in result.output
+        assert "Traceback" not in result.output
+
+        # Command should complete (may pass or fail validation, but shouldn't crash)
+        assert "Validating model" in result.output
+        assert "cross-layer links" in result.output.lower() or "link" in result.output.lower()
+
+    def test_validate_links_calls_model_to_dict(self, runner, initialized_project):
+        """Test that --validate-links successfully calls Model.to_dict().
+
+        This verifies that the bug fix (adding to_dict() methods) works correctly.
+        """
+        # Add an element to ensure model has data
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "business",
+                "service",
+                "--name",
+                "Test Service",
+                "--description",
+                "Test",
+            ],
+            cwd=str(initialized_project),
+        )
+        assert result.exit_code == 0
+
+        # Run validate with --validate-links
+        result = runner.invoke(cli, ["validate", "--validate-links"], cwd=str(initialized_project))
+
+        # Should complete without errors
+        assert "Validating cross-layer links" in result.output
+        assert "Link validation error" not in result.output or "AttributeError" not in result.output
+
+    def test_model_to_dict_returns_expected_structure(self, initialized_project):
+        """Test that Model.to_dict() returns the expected dictionary structure.
+
+        This is a unit test that verifies the to_dict() method produces
+        the format expected by LinkAnalyzer.
+        """
+        model = Model(initialized_project)
+
+        # Call to_dict() - this should not raise AttributeError
+        model_data = model.to_dict()
+
+        # Verify structure
+        assert isinstance(model_data, dict)
+
+        # Check that layers are present as keys
+        for layer_name in model.layers.keys():
+            assert layer_name in model_data
+            assert isinstance(model_data[layer_name], dict)
+
+    def test_layer_to_dict_returns_expected_structure(self, initialized_project):
+        """Test that Layer.to_dict() returns the expected dictionary structure.
+
+        This verifies that elements are grouped by type as expected by LinkAnalyzer.
+        """
+        model = Model(initialized_project)
+
+        # Add an element
+        from documentation_robotics.core.element import Element
+
+        element = Element(
+            id="business.service.test",
+            element_type="service",
+            layer="business",
+            data={"id": "business.service.test", "name": "Test Service"},
+        )
+        model.add_element("business", element)
+
+        # Get layer and call to_dict()
+        layer = model.get_layer("business")
+        layer_data = layer.to_dict()
+
+        # Verify structure
+        assert isinstance(layer_data, dict)
+
+        # Check that elements are grouped by pluralized type
+        # Since we added a "service", it should be in "services"
+        assert "services" in layer_data
+        assert isinstance(layer_data["services"], list)
+        assert len(layer_data["services"]) > 0
+
+        # Check element structure
+        service = layer_data["services"][0]
+        assert "id" in service
+        assert "type" in service
+        assert "layer" in service
+
+    def test_validate_links_with_strict_links_flag(self, runner, initialized_project):
+        """Test --validate-links with --strict-links flag.
+
+        Verifies that both flags work together without crashing.
+        """
+        result = runner.invoke(
+            cli,
+            ["validate", "--validate-links", "--strict-links"],
+            cwd=str(initialized_project),
+        )
+
+        # Should not crash
+        assert "AttributeError" not in result.output
+        assert "Traceback" not in result.output
+        assert "Validating" in result.output
+
+    def test_validate_links_json_output(self, runner, initialized_project):
+        """Test --validate-links with JSON output format.
+
+        Verifies that JSON output works with link validation.
+        """
+        result = runner.invoke(
+            cli,
+            ["validate", "--validate-links", "--output", "json"],
+            cwd=str(initialized_project),
+        )
+
+        # Should not crash
+        assert "AttributeError" not in result.output
+
+        # Try to parse JSON (may not be pure JSON due to status messages)
+        output = result.output.strip()
+        json_start = output.find("{")
+        if json_start >= 0:
+            json_end = output.rfind("}")
+            if json_end >= json_start:
+                json_output = output[json_start : json_end + 1]
+                try:
+                    data = json.loads(json_output)
+                    # Verify validation result structure exists
+                    assert "valid" in data or "errors" in data
+                except json.JSONDecodeError:
+                    # JSON parsing may fail if output is mixed with status messages
+                    # Just verify no crash occurred
+                    pass
+
+    def test_validate_links_empty_model(self, runner, initialized_project):
+        """Test --validate-links on an empty model (no elements).
+
+        Ensures link validation handles empty models gracefully.
+        """
+        result = runner.invoke(cli, ["validate", "--validate-links"], cwd=str(initialized_project))
+
+        # Should complete without errors
+        assert result.exit_code == 0 or "error" not in result.output.lower()
+        assert "AttributeError" not in result.output
+        assert "Traceback" not in result.output

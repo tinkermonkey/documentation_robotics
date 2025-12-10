@@ -3,20 +3,15 @@ Specification version tracking for the CLI implementation.
 
 This module tracks which version of the Documentation Robotics Specification
 this CLI implementation conforms to.
+
+DEPRECATED: Version constants have moved to versions.py for centralized management.
+This module now re-exports from versions.py for backward compatibility.
 """
 
-# Specification version implemented
-SPEC_VERSION = "0.5.0"
+# Import from single source of truth
+from .versions import CONFORMANCE_LEVEL, GITHUB_CONFIG, SPEC_VERSION
 
-# Conformance level
-CONFORMANCE_LEVEL = "full"  # basic, standard, or full
-
-# GitHub repository configuration for fetching schemas
-GITHUB_CONFIG = {
-    "owner": "tinkermonkey",
-    "repo": "documentation_robotics",
-    "release_tag_prefix": "spec-v",  # Tags are formatted as spec-v{version}
-}
+__all__ = ["SPEC_VERSION", "CONFORMANCE_LEVEL", "GITHUB_CONFIG"]
 
 # Layers implemented
 IMPLEMENTED_LAYERS = {

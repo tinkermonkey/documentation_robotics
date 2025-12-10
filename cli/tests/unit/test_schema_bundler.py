@@ -55,8 +55,8 @@ class TestSchemaBundler:
             # Copy schemas
             copied_count = copy_schemas_to_project(project_schemas_dir)
 
-            # Verify schemas were copied
-            assert copied_count > 0, "Should copy at least one schema"
+            # Verify schemas were copied (12 layer schemas + additional files)
+            assert copied_count >= 13, "Should copy all 12 layer schemas + additional files"
             assert project_schemas_dir.exists(), "Project schemas directory should be created"
 
             # Verify all layer schemas were copied
@@ -64,8 +64,12 @@ class TestSchemaBundler:
                 schema_path = project_schemas_dir / schema_filename
                 assert schema_path.exists(), f"Schema {schema_filename} should be copied"
 
-    def test_copy_schemas_no_overwrite(self):
-        """Test that existing schemas are not overwritten by default."""
+            # Verify link-registry.json was copied
+            link_registry = project_schemas_dir / "link-registry.json"
+            assert link_registry.exists(), "link-registry.json should be copied"
+
+    def test_copy_schemas_always_overwrites(self):
+        """Test that schemas are always overwritten (CLI owns .dr/)."""
         with tempfile.TemporaryDirectory() as tmpdir:
             project_schemas_dir = Path(tmpdir) / ".dr" / "schemas"
             project_schemas_dir.mkdir(parents=True)
@@ -75,34 +79,33 @@ class TestSchemaBundler:
             dummy_content = '{"test": "dummy"}'
             dummy_schema.write_text(dummy_content)
 
-            # Copy schemas (should skip existing)
-            copied_count = copy_schemas_to_project(project_schemas_dir, overwrite=False)
-
-            # Verify dummy file was not overwritten
-            assert (
-                dummy_schema.read_text() == dummy_content
-            ), "Existing file should not be overwritten"
-
-            # Other schemas should still be copied
-            assert copied_count >= 11, "Should copy other schemas"
-
-    def test_copy_schemas_with_overwrite(self):
-        """Test that existing schemas are overwritten when requested."""
-        with tempfile.TemporaryDirectory() as tmpdir:
-            project_schemas_dir = Path(tmpdir) / ".dr" / "schemas"
-            project_schemas_dir.mkdir(parents=True)
-
-            # Create a dummy schema file
-            dummy_schema = project_schemas_dir / "01-motivation-layer.schema.json"
-            dummy_content = '{"test": "dummy"}'
-            dummy_schema.write_text(dummy_content)
-
-            # Copy schemas with overwrite
-            copied_count = copy_schemas_to_project(project_schemas_dir, overwrite=True)
+            # Copy schemas - should always overwrite
+            copied_count = copy_schemas_to_project(project_schemas_dir)
 
             # Verify dummy file was overwritten
-            assert dummy_schema.read_text() != dummy_content, "Existing file should be overwritten"
+            assert dummy_schema.read_text() != dummy_content, "CLI should overwrite existing files"
             assert copied_count >= 12, "Should copy all schemas"
+
+    def test_copy_schemas_cleans_obsolete_files(self):
+        """Test that obsolete files are removed (CLI owns .dr/)."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            project_schemas_dir = Path(tmpdir) / ".dr" / "schemas"
+            project_schemas_dir.mkdir(parents=True)
+
+            # Create an obsolete schema file
+            obsolete_schema = project_schemas_dir / "99-obsolete-layer.schema.json"
+            obsolete_schema.write_text('{"test": "obsolete"}')
+
+            # Copy schemas - should clean obsolete files
+            copy_schemas_to_project(project_schemas_dir)
+
+            # Verify obsolete file was removed
+            assert not obsolete_schema.exists(), "CLI should remove obsolete files"
+
+            # Verify all current schemas exist
+            for schema_filename in LAYER_SCHEMAS:
+                schema_path = project_schemas_dir / schema_filename
+                assert schema_path.exists(), f"Schema {schema_filename} should exist"
 
     def test_bundled_schemas_are_valid_json(self):
         """Test that all bundled schemas are valid JSON."""

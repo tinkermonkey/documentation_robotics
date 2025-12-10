@@ -3,7 +3,7 @@ Model abstraction - represents the entire architecture model.
 """
 
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 from .cache import ModelCache, make_query_key
 from .dependency_tracker import DependencyTracker
@@ -233,13 +233,19 @@ class Model:
         if self._cache:
             self._cache.invalidate_queries()  # Query results may have changed
 
-    def update_element(self, element_id: str, updates: Dict) -> None:
+    def update_element(
+        self, element_id: str, updates: Dict, mode: str = "add"
+    ) -> Dict[str, List[str]]:
         """
         Update an existing element.
 
         Args:
             element_id: Element ID
             updates: Dictionary of updates
+            mode: Update mode - "add" (default), "replace", "remove"
+
+        Returns:
+            Dictionary mapping property names to their new values (as list of strings)
 
         Raises:
             ValueError: If element doesn't exist
@@ -248,13 +254,15 @@ class Model:
         if not element:
             raise ValueError(f"Element '{element_id}' not found")
 
-        element.update(updates)
+        results = element.update(updates, mode=mode)
         element.save()
 
         # Phase 4.3: Invalidate caches
         if self._cache:
             self._cache.invalidate_element(element_id)
             self._cache.invalidate_queries()
+
+        return results
 
     def remove_element(self, element_id: str, cascade: bool = False) -> None:
         """
@@ -363,7 +371,8 @@ class Model:
         # Phase 1: Schema validation for each layer
         for layer_name, layer in self.layers.items():
             layer_result = layer.validate(strict=strict)
-            result.merge(layer_result, prefix=layer_name)
+            # Don't add layer prefix - element IDs already contain layer name
+            result.merge(layer_result)
 
         # Phase 2: Cross-layer reference validation (always)
         ref_result = self._validate_cross_references()
@@ -404,6 +413,21 @@ class Model:
 
         validator = ReferenceValidator(self)
         return validator.validate()
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert model to dictionary representation.
+
+        Returns:
+            Dictionary with all layers and their elements
+        """
+        result = {}
+
+        for layer_name, layer in self.layers.items():
+            # Use layer name as key (e.g., "01-motivation", "06-api")
+            result[layer_name] = layer.to_dict()
+
+        return result
 
     def get_cache_stats(self) -> Optional[Dict]:
         """

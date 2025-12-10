@@ -33,6 +33,11 @@ LAYER_SCHEMAS = [
     "12-testing-layer.schema.json",
 ]
 
+# Additional files to copy (stored in parent schemas/ directory, not bundled/)
+ADDITIONAL_FILES = [
+    "link-registry.json",
+]
+
 # GitHub repository information
 GITHUB_REPO = "anthropics/claude-code"  # This should be updated to the actual repo
 GITHUB_API_BASE = "https://api.github.com"
@@ -71,16 +76,21 @@ def get_bundled_schema_path(schema_filename: str) -> Path:
     return schema_path
 
 
-def copy_schemas_to_project(project_schemas_dir: Path, overwrite: bool = False) -> int:
+def copy_schemas_to_project(project_schemas_dir: Path) -> int:
     """
     Copy bundled schemas to a project's .dr/schemas directory.
 
+    The CLI owns the .dr/ directory and manages it authoritatively.
+    This function always:
+    - Overwrites existing files to ensure they match the CLI version
+    - Cleans obsolete files that aren't in the current bundle
+    - Ensures .dr/schemas/ exactly matches the bundled schemas
+
     Args:
         project_schemas_dir: Path to the project's schemas directory
-        overwrite: Whether to overwrite existing schemas
 
     Returns:
-        Number of schemas copied
+        Number of files copied
 
     Raises:
         FileNotFoundError: If bundled schemas directory doesn't exist
@@ -96,9 +106,18 @@ def copy_schemas_to_project(project_schemas_dir: Path, overwrite: bool = False) 
     # Create project schemas directory if it doesn't exist
     project_schemas_dir.mkdir(parents=True, exist_ok=True)
 
+    # Clean obsolete files - CLI owns this directory
+    expected_files = set(LAYER_SCHEMAS + ADDITIONAL_FILES)
+    for existing_file in project_schemas_dir.glob("*"):
+        # Only clean .json files (leave other files alone just in case)
+        if existing_file.is_file() and existing_file.name not in expected_files:
+            if existing_file.suffix == ".json":
+                logger.info(f"Removing obsolete file: {existing_file.name}")
+                existing_file.unlink()
+
     copied_count = 0
 
-    # Copy all layer schemas
+    # Copy all layer schemas - always overwrite
     for schema_filename in LAYER_SCHEMAS:
         source_path = bundled_dir / schema_filename
         dest_path = project_schemas_dir / schema_filename
@@ -107,17 +126,29 @@ def copy_schemas_to_project(project_schemas_dir: Path, overwrite: bool = False) 
             logger.warning(f"Bundled schema missing: {schema_filename}")
             continue
 
-        # Skip if exists and not overwriting
-        if dest_path.exists() and not overwrite:
-            logger.debug(f"Schema already exists, skipping: {schema_filename}")
-            continue
-
         try:
             shutil.copy2(source_path, dest_path)
             copied_count += 1
             logger.info(f"Copied schema: {schema_filename}")
         except Exception as e:
             logger.error(f"Failed to copy schema {schema_filename}: {e}")
+
+    # Copy additional files (from parent schemas directory) - always overwrite
+    schemas_parent_dir = bundled_dir.parent
+    for filename in ADDITIONAL_FILES:
+        source_path = schemas_parent_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        if not source_path.exists():
+            logger.warning(f"Additional file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied additional file: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy additional file {filename}: {e}")
 
     return copied_count
 

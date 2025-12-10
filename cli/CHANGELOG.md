@@ -5,7 +5,90 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.7.2] - 2025-12-09
+## [0.7.3] - 2024-12-10
+
+### Fixed
+
+- **Validator Bug**: Fixed `AttributeError` when using `dr validate --validate-links`
+  - Added missing `to_dict()` method to `Model` class (`src/documentation_robotics/core/model.py:409`)
+  - Added missing `to_dict()` method to `Layer` class (`src/documentation_robotics/core/layer.py:270`)
+  - Link validation now works correctly without crashing
+  - Issue was preventing proper validation of cross-layer deployment links and Assignment relationships
+  - Added comprehensive test coverage with 7 new integration tests in `tests/commands/test_validate.py`
+
+- **Import Linting Errors**: Fixed N811 linting errors in package imports
+  - `src/documentation_robotics/__init__.py`: Now imports `__version__` and `__spec_version__` directly instead of aliasing constants
+  - `src/documentation_robotics/viewer/__init__.py`: Now imports `__viewer_version__` directly
+  - `src/documentation_robotics/versions.py`: Added `__viewer_version__` alias for consistency
+
+### Changed
+
+- **⚠️ BREAKING: Array Property Handling** ([GitHub Issue #41](https://github.com/tinkermonkey/documentation_robotics/issues/41))
+  - `dr update-element --set` is now **additive by default** for array properties
+  - **OLD BEHAVIOR**: `--set` would overwrite existing array values (causing data loss)
+  - **NEW BEHAVIOR**: `--set` appends to arrays, preventing silent data loss
+  - Array properties are automatically detected from:
+    - Well-known properties from Documentation Robotics spec (`deployedOn`, `realizes`, `uses`, `dependsOn`, etc.)
+    - Existing array values in the model
+    - Schema definitions (`type: "array"`)
+  - Scalar properties still use replace behavior as expected
+
+- **Enhanced `dr update-element` Command**:
+  - Added `--replace` flag: Explicitly overwrite property completely (old `--set` behavior)
+  - Added `--unset` flag: Remove property entirely from element
+  - Added `--remove` flag: Remove specific value from array property
+  - Added rich feedback showing all current values after operations
+  - Automatic duplicate prevention in arrays
+
+### Added
+
+- **Array Property Management**: Comprehensive array handling in `Element` class
+  - New `Element._is_array_property()` method with intelligent detection
+  - Enhanced `Element.update()` with mode parameter ("add", "replace", "remove")
+  - New `Element.unset()` method for removing properties
+  - Returns detailed results for command-level feedback
+  - 25+ well-known array properties from spec automatically detected
+
+- **Agent Guidance Documentation**: New comprehensive guide for automated agents
+  - `AGENT_GUIDANCE_ARRAY_PROPERTIES.md`: Complete command reference and usage patterns
+  - Migration guide from old behavior to new additive-by-default
+  - Best practices for incremental model building
+  - Error handling examples
+
+- **Test Coverage**: 18 new comprehensive tests for array handling
+  - `tests/unit/test_element_array_handling.py`: Full coverage of all array scenarios
+  - Tests for array detection logic
+  - Tests for additive update behavior (default mode)
+  - Tests for replace, remove, and unset operations
+  - Regression tests specifically for Issue #41 scenario
+  - All tests passing with 76% coverage on element.py
+
+### Migration Guide
+
+For agents and users who relied on `--set` overwriting arrays:
+
+```bash
+# OLD CODE (relied on overwrite):
+dr update-element ${ID} --set arrayProp=newValue
+
+# NEW CODE (explicit overwrite):
+dr update-element ${ID} --replace arrayProp=newValue
+
+# OR (unset then set):
+dr update-element ${ID} --unset arrayProp
+dr update-element ${ID} --set arrayProp=newValue
+```
+
+**Benefits of this change:**
+
+- ✅ Prevents silent data loss when building arrays incrementally
+- ✅ Matches user expectations (append vs overwrite)
+- ✅ Safer for automated agents
+- ✅ Clear, explicit intent with `--replace` flag
+
+See `AGENT_GUIDANCE_ARRAY_PROPERTIES.md` and `ISSUE_41_RESOLUTION.md` for complete details.
+
+## [0.7.2] - 2024-12-09
 
 ### Changed
 

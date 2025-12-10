@@ -39,11 +39,11 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 - **WebSearch**: Research technologies, patterns, compliance standards
 - **WebFetch**: Access DR documentation and examples
 
-## Knowledge Base: DR Specification v0.2.0+
+## Knowledge Base: DR Specification v0.5.0
 
-### The 11-Layer Architecture
+### The 12-Layer Architecture
 
-Documentation Robotics models systems across 11 distinct architectural layers:
+Documentation Robotics models systems across 12 distinct architectural layers:
 
 ```
 01. Motivation     - WHY (goals, principles, requirements, constraints)
@@ -51,12 +51,13 @@ Documentation Robotics models systems across 11 distinct architectural layers:
 03. Security       - WHO/PROTECTION (actors, roles, policies, threats)
 04. Application    - HOW (components, services, interfaces, events)
 05. Technology     - WITH (platforms, frameworks, infrastructure)
-06. API            - CONTRACTS (OpenAPI specs, endpoints, operations)
-07. Data Model     - STRUCTURE (JSON schemas, entities, relationships)
-08. Datastore      - PERSISTENCE (databases, tables, collections)
-09. UX             - EXPERIENCE (views, components, interactions)
-10. Navigation     - FLOW (routes, flows, guards, transitions)
-11. APM            - OBSERVE (metrics, traces, logs, SLAs, alerts)
+06. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
+07. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
+08. Datastore      - PERSISTENCE (SQL DDL - 10 entity types)
+09. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
+10. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
+11. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
+12. Testing        - VERIFY (ISP Coverage Model - 17 entity types)
 ```
 
 ### Core Principles
@@ -524,7 +525,7 @@ dr changeset abandon <changeset-id>
 **"What is Documentation Robotics?"**
 
 - Architecture-as-data philosophy
-- 11-layer separation of concerns
+- 12-layer separation of concerns
 - Traceability through cross-layer links
 - Standards-based integration
 
@@ -571,6 +572,7 @@ dr changeset abandon <changeset-id>
 - User interface → UX
 - Routing, navigation → Navigation
 - Monitoring, metrics → APM
+- Test coverage, input partitions → Testing
 
 ### Best Practices to Share
 
@@ -709,7 +711,7 @@ dr changeset abandon <changeset-id>
 4. **Apply migration:**
 
    ```bash
-   dr migrate --apply
+   dr migrate
    ```
 
 5. **Validate thoroughly:**
@@ -852,15 +854,15 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                    |
-| ---------------- | -------------------------------------------------- | ---------------------------------------------------------- |
-| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                  |
-| Update element   | `dr update <element-id> --set key=value`           | `dr update business.service.orders --set criticality=high` |
-| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`    |
-| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                          |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                              |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                      |
-| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                        |
+| Task             | Command                                            | Example                                                            |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
+| Update element   | `dr update-element <element-id> --set key=value`   | `dr update-element business.service.orders --set criticality=high` |
+| Update with spec | `dr update-element <element-id> --spec file.yaml`  | `dr update-element business.service.orders --spec updates.yaml`    |
+| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                                  |
+| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
+| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
+| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                                |
 
 ### Validation Operations
 
@@ -918,7 +920,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ----------------- | ---------------------- | ---------------------- |
 | Check migration   | `dr migrate`           | `dr migrate`           |
 | Preview migration | `dr migrate --dry-run` | `dr migrate --dry-run` |
-| Apply migration   | `dr migrate --apply`   | `dr migrate --apply`   |
+| Apply migration   | `dr migrate`           | `dr migrate`           |
 
 ## Common Anti-Patterns to Avoid
 
@@ -1318,7 +1320,7 @@ Would you like me to:
 ```
 User: How do I model a microservice?
 
-Agent: Great question! Let me explain how microservices map to DR's 11-layer model.
+Agent: Great question! Let me explain how microservices map to DR's 12-layer model.
 
 A microservice typically spans multiple layers:
 

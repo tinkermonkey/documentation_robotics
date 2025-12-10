@@ -118,38 +118,41 @@ result = model.validate(strict=True)
 
 ## Complete Entity Types by Layer
 
-**motivation** (10 types - Strategic):
+**motivation** (10 types - ArchiMate 3.2):
 assessment, constraint, driver, goal, meaning, outcome, principle, requirement, stakeholder, value
 
-**business** (13 types - ArchiMate):
+**business** (13 types - ArchiMate 3.2):
 actor, collaboration, contract, event, function, interaction, interface, object, process, product, representation, role, service
 
 **security** (15 types - STS-ml):
 accountability, actor, authentication, dataclassification, delegation, informationentity, permission, policy, resource, role, securityconstraint, socialdependency, threat
 
-**application** (9 types - ArchiMate):
+**application** (9 types - ArchiMate 3.2):
 collaboration, component, dataobject, event, function, interaction, interface, process, service
 
-**technology** (13 types - ArchiMate):
+**technology** (13 types - ArchiMate 3.2):
 artifact, collaboration, communicationnetwork, device, event, function, interaction, interface, node, path, process, service, systemsoftware
 
-**api** (6 types - OpenAPI 3.0.3):
-component, operation, path, schema, security-scheme, server
+**api** (26 types - OpenAPI 3.0.3):
+callback, components, contact, encoding, example, external-documentation, header, info, license, link, media-type, oauth-flow, oauth-flows, open-api-document, operation, parameter, path-item, paths, request-body, response, responses, schema, security-scheme, server, server-variable, tag
 
-**data_model** (4 types - JSON Schema):
-attribute, entity, relationship, schema
+**data_model** (17 types - JSON Schema Draft 7):
+array-schema, data-governance, data-quality-metrics, database-mapping, json-schema, json-type, numeric-schema, object-schema, reference, schema-composition, schema-definition, schema-property, string-schema, x-apm-data-quality-metrics, x-business-object-ref, x-data-governance, x-database
 
-**datastore** (1 type):
-database
+**datastore** (10 types - SQL DDL):
+column, constraint, database, database-schema, index, partition, sequence, table, trigger, view
 
-**ux** (13 types - Multi-channel):
-apispec, apm, channel, dataschema, experience, globalaction, security, state, title, view
+**ux** (26 types - Three-Tier Architecture):
+action-component, action-pattern, api-config, chart-series, component-instance, component-reference, condition, data-config, error-config, experience-state, layout-config, library-component, library-sub-view, performance-targets, state-action, state-action-template, state-pattern, state-transition, sub-view, table-column, transition-template, ux-application, ux-library, ux-spec, validation-rule, view
 
-**navigation** (7 types - Routing):
-flow, guard, route, transition
+**navigation** (10 types - Multi-Modal):
+context-variable, data-mapping, flow-analytics, flow-step, navigation-flow, navigation-guard, navigation-transition, notification-action, process-tracking, route
 
-**apm** (10 types - OpenTelemetry):
-dataquality, log, logging, metric, motivationmapping, resource, span, tracing
+**apm** (14 types - OpenTelemetry 1.0+):
+apm-configuration, attribute, data-quality-metric, data-quality-metrics, instrument-config, instrumentation-scope, log-configuration, log-record, meter-config, metric-configuration, resource, span, span-event, trace-configuration
+
+**testing** (17 types - ISP Coverage Model):
+context-variation, coverage-exclusion, coverage-gap, coverage-requirement, coverage-summary, environment-factor, input-partition-selection, input-selection, input-space-partition, outcome-category, partition-dependency, partition-value, target-coverage-summary, target-input-field, test-case-sketch, test-coverage-model, test-coverage-target
 
 ## Cross-Layer Link Types (62 total)
 
@@ -200,7 +203,7 @@ dr migrate --apply
 
 ## Need Help?
 
-**DR Helper Agent (NEW in v0.4.0):**
+**DR Helper Agent (v0.4.0+):**
 
 Ask questions and get expert guidance on DR concepts, modeling decisions, and workflows.
 
@@ -215,7 +218,7 @@ Ask questions and get expert guidance on DR concepts, modeling decisions, and wo
 - Explain cross-layer links and validation
 - Share best practices and patterns
 
-**DR Ideation Agent (NEW in v0.4.0):**
+**DR Ideation Agent (v0.4.0+):**
 
 Explore architectural ideas safely in changesets with research-driven guidance.
 

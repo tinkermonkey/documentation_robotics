@@ -162,22 +162,17 @@ class UpgradeManager:
             return True
 
         # Check if any schema files are missing
-        expected_schemas = [
-            "01-motivation-layer.schema.json",
-            "02-business-layer.schema.json",
-            "03-security-layer.schema.json",
-            "04-application-layer.schema.json",
-            "05-technology-layer.schema.json",
-            "06-api-layer.schema.json",
-            "07-data-model-layer.schema.json",
-            "08-datastore-layer.schema.json",
-            "09-ux-layer.schema.json",
-            "10-navigation-layer.schema.json",
-            "11-apm-observability-layer.schema.json",
-        ]
+        # Import from bundler to ensure we check for all files
+        from ..schemas.bundler import ADDITIONAL_FILES, LAYER_SCHEMAS
 
-        for schema_name in expected_schemas:
+        # Check layer schemas
+        for schema_name in LAYER_SCHEMAS:
             if not (self.schemas_dir / schema_name).exists():
+                return True
+
+        # Check additional files (like link-registry.json)
+        for filename in ADDITIONAL_FILES:
+            if not (self.schemas_dir / filename).exists():
                 return True
 
         return False
@@ -290,7 +285,7 @@ class UpgradeManager:
             with_examples=False,
         )
 
-        # Copy schemas (this is idempotent)
+        # Sync schemas - CLI manages .dr/ authoritatively
         initializer._create_schemas()
 
     def _upgrade_claude(self, manifest: Manifest) -> None:

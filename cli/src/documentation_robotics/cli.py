@@ -83,7 +83,7 @@ cli.add_command(add.add)
 cli.add_command(find.find)
 cli.add_command(list_cmd.list_elements)
 cli.add_command(search.search)
-cli.add_command(update.update)
+cli.add_command(update.update_element)  # Renamed from update to update_element
 cli.add_command(remove.remove)
 cli.add_command(validate.validate)
 # Phase 2 commands
@@ -99,8 +99,8 @@ cli.add_command(changeset.changeset)
 cli.add_command(claude.claude)
 # GitHub Copilot integration
 cli.add_command(copilot.copilot)
-# Upgrade management
-cli.add_command(upgrade.upgrade)
+# Update management (renamed from upgrade)
+cli.add_command(upgrade.update_project)  # Renamed from upgrade to update_project
 cli.add_command(upgrade.version_info)
 # Link management
 cli.add_command(links.links_group)

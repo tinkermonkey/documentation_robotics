@@ -63,7 +63,7 @@ class TestUpgradeCommand:
 
     def test_upgrade_no_project(self, runner, tmp_path):
         """Test upgrade command when no project exists."""
-        result = runner.invoke(cli, ["upgrade"], cwd=str(tmp_path))
+        result = runner.invoke(cli, ["update"], cwd=str(tmp_path))
 
         assert result.exit_code != 0
         output = strip_ansi(result.output)
@@ -71,7 +71,13 @@ class TestUpgradeCommand:
 
     def test_upgrade_already_up_to_date(self, runner, initialized_project):
         """Test upgrade when project is already up to date."""
-        result = runner.invoke(cli, ["upgrade", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
@@ -90,11 +96,17 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run upgrade
-        result = runner.invoke(cli, ["upgrade", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
-        assert "upgrade" in output.lower()
+        assert "update" in output.lower()
         assert "completed successfully" in output.lower()
 
         # Verify version updated
@@ -116,7 +128,13 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run upgrade with auto
-        result = runner.invoke(cli, ["upgrade", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
@@ -137,7 +155,7 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run dry run
-        result = runner.invoke(cli, ["upgrade", "--dry-run"], cwd=str(initialized_project))
+        result = runner.invoke(cli, ["update", "--dry-run"], cwd=str(initialized_project))
 
         # Dry run should show what would be done
         output = strip_ansi(result.output)
@@ -152,7 +170,14 @@ class TestUpgradeCommand:
 
     def test_upgrade_force(self, runner, initialized_project):
         """Test upgrade with force flag."""
-        result = runner.invoke(cli, ["upgrade", "--force", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+                "--force",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
         # Force upgrade should run even if up to date
@@ -210,7 +235,13 @@ class TestUpgradeCommand:
             yaml.dump(data, f, default_flow_style=False, sort_keys=False)
 
         # Run upgrade
-        result = runner.invoke(cli, ["upgrade", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
 
@@ -237,7 +268,7 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run without --auto, answer yes
-        result = runner.invoke(cli, ["upgrade"], input="y\n", cwd=str(initialized_project))
+        result = runner.invoke(cli, ["update"], input="y\n", cwd=str(initialized_project))
 
         # Should complete successfully
         output = strip_ansi(result.output)
@@ -257,7 +288,7 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run without --auto, answer no
-        result = runner.invoke(cli, ["upgrade"], input="n\n", cwd=str(initialized_project))
+        result = runner.invoke(cli, ["update"], input="n\n", cwd=str(initialized_project))
 
         output = strip_ansi(result.output)
         assert "cancel" in output.lower() or "proceed" in output.lower()
@@ -302,7 +333,13 @@ class TestUpgradeCommand:
             yaml.dump(data, f)
 
         # Run upgrade
-        result = runner.invoke(cli, ["upgrade", "--auto"], cwd=str(initialized_project))
+        result = runner.invoke(
+            cli,
+            [
+                "update",
+            ],
+            cwd=str(initialized_project),
+        )
 
         assert result.exit_code == 0
 

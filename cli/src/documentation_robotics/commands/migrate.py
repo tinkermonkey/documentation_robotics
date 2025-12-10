@@ -20,19 +20,14 @@ console = Console()
 
 @click.command(name="migrate")
 @click.option(
-    "--check",
-    "mode",
-    flag_value="check",
-    help="Check what migrations are needed (default behavior)",
-)
-@click.option(
     "--dry-run",
-    "mode",
-    flag_value="dry-run",
-    help="Show what would be migrated without applying changes",
+    is_flag=True,
+    help="Preview changes without applying (shows detailed migration plan)",
 )
 @click.option(
-    "--apply", "mode", flag_value="apply", help="Apply all migrations to upgrade to latest version"
+    "--force",
+    is_flag=True,
+    help="Apply migrations without confirmation prompt (for automation)",
 )
 @click.option("--to-version", type=str, help="Migrate to a specific version (defaults to latest)")
 @click.option(
@@ -48,26 +43,31 @@ console = Console()
     default="text",
     help="Output format",
 )
-def migrate(mode: str, to_version: str, model_dir: str, output_format: str):
+def migrate(dry_run: bool, force: bool, to_version: str, model_dir: str, output_format: str):
     """Migrate model to latest specification version.
 
     This command automatically detects your model's current version and
     applies all necessary migrations to bring it up to the latest version
     (or a specified target version).
 
-    Examples:
-        # Check what migrations are needed
-        dr migrate
-        dr migrate --check
+    By default, the command shows the migration plan and prompts for confirmation
+    before applying changes. Use --dry-run to preview without prompting.
 
-        # Preview changes without applying
+    Examples:
+        # Apply migrations (with confirmation prompt)
+        dr migrate
+
+        # Apply migrations without confirmation (for automation)
+        dr migrate --force
+
+        # Preview migrations without applying
         dr migrate --dry-run
 
-        # Apply all migrations to latest version
-        dr migrate --apply
-
         # Migrate to specific version
-        dr migrate --apply --to-version 1.0.0
+        dr migrate --to-version 0.5.0
+
+        # Preview migration to specific version
+        dr migrate --to-version 0.5.0 --dry-run
     """
     try:
         model_path = Path(model_dir)
@@ -90,13 +90,8 @@ def migrate(mode: str, to_version: str, model_dir: str, output_format: str):
         registry = MigrationRegistry()
         latest_version = registry.get_latest_version()
 
-        # Default mode is check
-        if mode is None:
-            mode = "check"
-
         # Display current state
-        if mode in ["check", "dry-run"]:
-            _display_current_state(current_version, latest_version, to_version)
+        _display_current_state(current_version, latest_version, to_version)
 
         # Check if migration is needed
         target = to_version or latest_version
@@ -112,13 +107,13 @@ def migrate(mode: str, to_version: str, model_dir: str, output_format: str):
                 console.print("[green]No migrations needed![/green]")
             return
 
-        # Execute based on mode
-        if mode == "check":
-            _display_check_results(registry, current_version, target)
-        elif mode == "dry-run":
+        # Execute migration
+        if dry_run:
             _display_dry_run_results(registry, model_path, current_version, target)
-        elif mode == "apply":
-            _apply_migrations(registry, manifest_mgr, model_path, current_version, target)
+        else:
+            _apply_migrations(
+                registry, manifest_mgr, model_path, current_version, target, force=force
+            )
 
     except MigrationError:
         # MigrationError already handled above
@@ -248,7 +243,8 @@ def _display_dry_run_results(
                 console.print(f"  [yellow]⚠ Could not preview: {e}[/yellow]")
 
     console.print("\n[bold]To apply these migrations:[/bold]")
-    console.print("  Run [cyan]dr migrate --apply[/cyan]")
+    console.print("  Run [cyan]dr migrate[/cyan] (with confirmation)")
+    console.print("  Run [cyan]dr migrate --force[/cyan] (skip confirmation)")
 
 
 def _apply_migrations(
@@ -257,6 +253,7 @@ def _apply_migrations(
     model_path: Path,
     from_version: str,
     to_version: str,
+    force: bool = False,
 ):
     """Apply migrations to upgrade the model.
 
@@ -266,6 +263,7 @@ def _apply_migrations(
         model_path: Path to model directory
         from_version: Current version
         to_version: Target version
+        force: Skip confirmation prompt
     """
     summary = registry.get_migration_summary(from_version, to_version)
 
@@ -282,11 +280,12 @@ def _apply_migrations(
     for i, migration in enumerate(summary["migrations"], 1):
         console.print(f"  {i}. {migration['from']} → {migration['to']}: {migration['description']}")
 
-    # Confirm before applying
-    console.print()
-    if not click.confirm("This will modify your model files. Continue?", default=False):
-        console.print("[yellow]Migration cancelled.[/yellow]")
-        raise click.Abort()
+    # Confirm before applying (unless --force)
+    if not force:
+        console.print()
+        if not click.confirm("This will modify your model files. Continue?", default=False):
+            console.print("[yellow]Migration cancelled.[/yellow]")
+            raise click.Abort()
 
     # Apply migrations
     console.print("\n[bold]Applying migrations...[/bold]")
@@ -338,6 +337,23 @@ def _apply_migrations(
 
         console.print(f"\n[green]✓ Updated manifest to v{results['target_version']}[/green]")
 
+        # Sync schemas to match new spec version
+        try:
+            from .init import ModelInitializer
+
+            console.print("\n[bold]Syncing schemas...[/bold]")
+            initializer = ModelInitializer(
+                root_path=model_path.parent.parent,  # Go up from model/ to project root
+                project_name=manifest.project_name,
+                template="basic",
+                minimal=False,
+                with_examples=False,
+            )
+            initializer._create_schemas()
+            console.print("[green]✓ Schemas synced[/green]")
+        except Exception as e:
+            console.print(f"[yellow]⚠ Could not sync schemas: {e}[/yellow]")
+
         # Update Claude integration if installed
         try:
             from .claude import ClaudeIntegrationManager
@@ -354,5 +370,13 @@ def _apply_migrations(
         console.print("  2. Validate model: [cyan]dr validate --validate-links[/cyan]")
         console.print("  3. Test your application")
         console.print("  4. Commit changes: [cyan]git add . && git commit[/cyan]")
+
+        # Show comprehensive version status
+        from ..core.version_checker import VersionChecker
+
+        console.print()
+        checker = VersionChecker(root_path=model_path.parent.parent)
+        result = checker.check_all_versions()
+        checker.display_version_status(result)
     else:
         console.print("[yellow]⚠ No migrations were applied.[/yellow]")

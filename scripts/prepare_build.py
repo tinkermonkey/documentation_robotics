@@ -130,7 +130,7 @@ class SchemaBundler:
         self._load_config()
 
     def _load_config(self):
-        """Load configuration from spec_version module."""
+        """Load configuration from versions module (via spec_version for compatibility)."""
         try:
             from documentation_robotics.spec_version import GITHUB_CONFIG, SPEC_VERSION
 
@@ -140,8 +140,8 @@ class SchemaBundler:
             self.release_tag_prefix = GITHUB_CONFIG["release_tag_prefix"]
         except ImportError as e:
             raise ConfigurationError(
-                f"Failed to import spec_version module: {e}\n"
-                "Make sure cli/src/documentation_robotics/spec_version.py exists."
+                f"Failed to import version configuration: {e}\n"
+                "Make sure cli/src/documentation_robotics/versions.py exists."
             )
 
     def _log(self, message: str, level: str = "info"):

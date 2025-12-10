@@ -245,7 +245,8 @@ class Layer:
 
             for element in self.elements.values():
                 element_result = validator.validate_element(element, strict=strict)
-                result.merge(element_result, prefix=element.id)
+                # Don't add prefix - element.id already contains the complete ID
+                result.merge(element_result)
 
         return result
 
@@ -265,6 +266,43 @@ class Layer:
         for file_path, data in files.items():
             with open(file_path, "w") as f:
                 yaml.dump(data, f, default_flow_style=False, sort_keys=False)
+
+    def to_dict(self) -> Dict[str, Any]:
+        """
+        Convert layer to dictionary representation.
+
+        Returns:
+            Dictionary with elements grouped by type
+        """
+        from collections import defaultdict
+
+        # Group elements by type
+        elements_by_type: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+
+        for element in self.elements.values():
+            # Use element type to group (pluralize for collection name)
+            collection_key = self._pluralize_type(element.type)
+            elements_by_type[collection_key].append(element.to_dict())
+
+        return dict(elements_by_type)
+
+    def _pluralize_type(self, element_type: str) -> str:
+        """
+        Convert element type to plural collection name.
+
+        Args:
+            element_type: Element type (e.g., 'goal', 'service')
+
+        Returns:
+            Pluralized collection name (e.g., 'goals', 'services')
+        """
+        # Simple pluralization (can be enhanced later)
+        if element_type.endswith("s"):
+            return element_type
+        elif element_type.endswith("y"):
+            return element_type[:-1] + "ies"
+        else:
+            return element_type + "s"
 
     @classmethod
     def load(cls, name: str, path: Path, config: Dict[str, Any], cache=None) -> "Layer":

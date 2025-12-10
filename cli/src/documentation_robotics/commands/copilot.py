@@ -293,6 +293,14 @@ class CopilotIntegrationManager:
 
         console.print(f"\n[green]✓[/] Changes applied successfully ({', '.join(summary_parts)})")
 
+        # Show comprehensive version status
+        from ..core.version_checker import VersionChecker
+
+        console.print()
+        checker = VersionChecker()
+        result = checker.check_all_versions()
+        checker.display_version_status(result)
+
     def _check_updates(self, component: str, version_data: dict) -> List[Dict[str, str]]:
         """Check for updates in a component.
 

@@ -273,7 +273,33 @@ class ClaudeIntegrationManager:
         obsolete_files = self._detect_obsolete_files()
 
         if not updates and not obsolete_files:
-            console.print("[green]✓[/] All files are up to date")
+            # Show summary even when up-to-date
+            table = Table(title="Integration Status")
+            table.add_column("Component", style="cyan")
+            table.add_column("Files", style="green")
+            table.add_column("Status", style="green")
+
+            for component, config in self.COMPONENTS.items():
+                target_dir = self.root_path / config["target"]
+                if not target_dir.exists():
+                    continue
+
+                # Count files
+                install_type = config.get("type", "files")
+                if install_type == "directories":
+                    file_count = sum(
+                        1 for d in target_dir.iterdir() if d.is_dir() for _ in d.glob("*")
+                    )
+                elif install_type == "mixed":
+                    file_count = sum(1 for _ in target_dir.rglob("*") if _.is_file())
+                else:
+                    file_count = len(list(target_dir.glob(f"{config['prefix']}*.md")))
+
+                if file_count > 0:
+                    table.add_row(component, str(file_count), "✓ Up to date")
+
+            console.print(table)
+            console.print("\n[green]✓[/] All files are up to date")
             return
 
         # Show what will change
@@ -347,6 +373,14 @@ class ClaudeIntegrationManager:
 
         console.print(f"\n[green]✓[/] Changes applied successfully ({', '.join(summary_parts)})")
 
+        # Show comprehensive version status
+        from ..core.version_checker import VersionChecker
+
+        console.print()
+        checker = VersionChecker()
+        result = checker.check_all_versions()
+        checker.display_version_status(result)
+
     def _check_updates(self, component: str, version_data: dict) -> List[Dict[str, str]]:
         """Check for updates in a component.
 
@@ -362,45 +396,123 @@ class ClaudeIntegrationManager:
         source_dir = INTEGRATION_ROOT / config["source"]
         target_dir = self.root_path / config["target"]
         prefix = config["prefix"]
+        install_type = config.get("type", "files")
 
         if not source_dir.exists():
             return updates
 
-        for source_file in source_dir.glob("*.md"):
-            target_file = target_dir / f"{prefix}{source_file.name}"
-            target_name = target_file.name
+        if install_type == "directories":
+            # Check skills (directory-based components)
+            for skill_dir in source_dir.iterdir():
+                if not skill_dir.is_dir():
+                    continue
 
-            if not target_file.exists():
-                # New file
-                updates.append(
-                    {
-                        "file": target_name,
-                        "status": "New",
-                        "action": "Install",
-                        "source": source_file,
-                        "target": target_file,
-                    }
-                )
-                continue
+                target_skill = target_dir / skill_dir.name
 
-            # Check if modified
-            current_hash = self._compute_hash(target_file)
-            source_hash = self._compute_hash(source_file)
+                for source_file in skill_dir.iterdir():
+                    if not source_file.is_file():
+                        continue
 
-            if source_hash != current_hash:
-                # Update needed (either new version or user modified)
-                updates.append(
-                    {
-                        "file": target_name,
-                        "status": "Update",
-                        "action": "Update",
-                        "source": source_file,
-                        "target": target_file,
-                    }
-                )
-            else:
-                # Unchanged
-                pass
+                    target_file = target_skill / source_file.name
+                    display_name = f"{skill_dir.name}/{source_file.name}"
+
+                    if not target_file.exists():
+                        updates.append(
+                            {
+                                "file": display_name,
+                                "status": "New",
+                                "action": "Install",
+                                "source": source_file,
+                                "target": target_file,
+                            }
+                        )
+                        continue
+
+                    # Check if modified
+                    current_hash = self._compute_hash(target_file)
+                    source_hash = self._compute_hash(source_file)
+
+                    if source_hash != current_hash:
+                        updates.append(
+                            {
+                                "file": display_name,
+                                "status": "Updated",
+                                "action": "Update",
+                                "source": source_file,
+                                "target": target_file,
+                            }
+                        )
+
+        elif install_type == "mixed":
+            # Check templates (mixed file types with subdirectories)
+            for source_file in source_dir.rglob("*"):
+                if not source_file.is_file():
+                    continue
+
+                rel_path = source_file.relative_to(source_dir)
+                target_file = target_dir / rel_path
+                display_name = str(rel_path)
+
+                if not target_file.exists():
+                    updates.append(
+                        {
+                            "file": display_name,
+                            "status": "New",
+                            "action": "Install",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
+                    continue
+
+                # Check if modified
+                current_hash = self._compute_hash(target_file)
+                source_hash = self._compute_hash(source_file)
+
+                if source_hash != current_hash:
+                    updates.append(
+                        {
+                            "file": display_name,
+                            "status": "Updated",
+                            "action": "Update",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
+
+        else:  # "files" - default behavior for .md files
+            for source_file in source_dir.glob("*.md"):
+                target_file = target_dir / f"{prefix}{source_file.name}"
+                target_name = target_file.name
+
+                if not target_file.exists():
+                    # New file
+                    updates.append(
+                        {
+                            "file": target_name,
+                            "status": "New",
+                            "action": "Install",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
+                    continue
+
+                # Check if modified
+                current_hash = self._compute_hash(target_file)
+                source_hash = self._compute_hash(source_file)
+
+                if source_hash != current_hash:
+                    # Update needed (either new version or user modified)
+                    updates.append(
+                        {
+                            "file": target_name,
+                            "status": "Updated",
+                            "action": "Update",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
 
         return updates
 
@@ -419,7 +531,13 @@ class ClaudeIntegrationManager:
 
         # Copy file
         shutil.copy2(source, target)
-        console.print(f"  [green]✓[/] Updated {target.name}")
+
+        # Make shell scripts executable
+        if source.suffix == ".sh":
+            target.chmod(target.stat().st_mode | 0o111)
+
+        action = "Installed" if update["status"] == "New" else "Updated"
+        console.print(f"  [green]✓[/] {action} {update['file']}")
 
     def remove(self, components: Optional[List[str]] = None, force: bool = False) -> None:
         """Remove installed files.

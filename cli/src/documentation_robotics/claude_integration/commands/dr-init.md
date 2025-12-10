@@ -12,7 +12,7 @@ Initialize a new Documentation Robotics architecture model in the current projec
 1. Checks if a DR model already exists in the current directory
 2. Prompts for project information (if not provided)
 3. Runs `dr init` to create the model structure
-4. Creates the 11-layer directory structure
+4. Creates the 12-layer directory structure
 5. Initializes manifest, config, and projection rules
 6. Installs Claude Code integration files (if not already present)
 7. Provides next steps and guidance
@@ -60,7 +60,7 @@ Otherwise, ask the user for:
    - No: Creates empty layer directories
 
 3. **Template** (optional, default: basic)
-   - basic: Standard 11-layer structure
+   - basic: Standard 12-layer structure
    - minimal: Essential layers only
    - full: Includes examples and documentation
 

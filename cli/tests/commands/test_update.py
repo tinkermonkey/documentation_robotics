@@ -83,7 +83,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", "business.service.nonexistent", "--set", "name=Test"],
+            ["update-element", "business.service.nonexistent", "--set", "name=Test"],
             cwd=str(tmp_path),
         )
 
@@ -100,7 +100,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "description=Updated description"],
+            ["update-element", element_id, "--set", "description=Updated description"],
             cwd=str(project_with_element),
         )
 
@@ -123,7 +123,7 @@ class TestUpdateCommand:
         result = runner.invoke(
             cli,
             [
-                "update",
+                "update-element",
                 element_id,
                 "--set",
                 "description=New description",
@@ -157,7 +157,7 @@ class TestUpdateCommand:
         try:
             result = runner.invoke(
                 cli,
-                ["update", element_id, "--spec", spec_file],
+                ["update-element", element_id, "--spec", spec_file],
                 cwd=str(project_with_element),
             )
 
@@ -182,7 +182,7 @@ class TestUpdateCommand:
         result = runner.invoke(
             cli,
             [
-                "update",
+                "update-element",
                 element_id,
                 "--set",
                 "description=New description",
@@ -210,7 +210,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id],
+            ["update-element", element_id],
             cwd=str(project_with_element),
         )
 
@@ -227,7 +227,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "invalid-format-without-equals"],
+            ["update-element", element_id, "--set", "invalid-format-without-equals"],
             cwd=str(project_with_element),
         )
 
@@ -245,7 +245,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "test=value", "--dry-run"],
+            ["update-element", element_id, "--set", "test=value", "--dry-run"],
             cwd=str(project_with_element),
         )
 
@@ -263,7 +263,7 @@ class TestUpdateCommand:
         result = runner.invoke(
             cli,
             [
-                "update",
+                "update-element",
                 element_id,
                 "--set",
                 "description=New description",
@@ -273,15 +273,16 @@ class TestUpdateCommand:
         )
 
         output = strip_ansi(result.output)
-        assert "updates:" in output.lower()
+        assert "would set properties" in output.lower()
         assert "description" in output.lower()
         assert "New description" in output
+        assert "dry run" in output.lower()
 
     def test_update_no_model_in_directory(self, runner, tmp_path):
         """Test update command when no model exists."""
         result = runner.invoke(
             cli,
-            ["update", "business.service.test", "--set", "name=Test"],
+            ["update-element", "business.service.test", "--set", "name=Test"],
             cwd=str(tmp_path),
         )
 
@@ -298,7 +299,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "formula=x=y+z"],
+            ["update-element", element_id, "--set", "formula=x=y+z"],
             cwd=str(project_with_element),
         )
 
@@ -326,7 +327,7 @@ class TestUpdateCommand:
             result = runner.invoke(
                 cli,
                 [
-                    "update",
+                    "update-element",
                     element_id,
                     "--spec",
                     spec_file,
@@ -355,7 +356,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "priority=1"],
+            ["update-element", element_id, "--set", "priority=1"],
             cwd=str(project_with_element),
         )
 
@@ -375,7 +376,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "optional="],
+            ["update-element", element_id, "--set", "optional="],
             cwd=str(project_with_element),
         )
 
@@ -396,7 +397,7 @@ class TestUpdateCommand:
 
         result = runner.invoke(
             cli,
-            ["update", element_id, "--set", "name=Updated Name"],
+            ["update-element", element_id, "--set", "name=Updated Name"],
             cwd=str(project_with_element),
         )
 

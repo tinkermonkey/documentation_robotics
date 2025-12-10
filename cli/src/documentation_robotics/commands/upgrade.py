@@ -1,5 +1,5 @@
 """
-Upgrade project files to match current CLI version.
+Update project files to match current CLI version.
 """
 
 from pathlib import Path
@@ -13,33 +13,39 @@ from ..core.upgrade_manager import UpgradeManager
 console = Console()
 
 
-@click.command()
+@click.command(name="update")
 @click.option(
     "--force",
     is_flag=True,
-    help="Force upgrade even if versions match",
+    help="Force update even if versions match",
 )
 @click.option(
     "--dry-run",
     is_flag=True,
-    help="Show what would be upgraded without making changes",
+    help="Show what would be updated without making changes",
 )
-@click.option(
-    "--auto",
-    is_flag=True,
-    help="Upgrade automatically without prompting",
-)
-def upgrade(force: bool, dry_run: bool, auto: bool):
-    """Upgrade project files to match current CLI version.
+def update_project(force: bool, dry_run: bool):
+    """Update project files to match current CLI version.
 
-    This command checks if the CLI has been upgraded and updates:
-    - Schema files
+    This command checks if the CLI has been updated and synchronizes:
+    - Schema files in .dr/schemas/
     - Claude Code integration files
+    - GitHub Copilot integration files
     - Manifest structure
     - Documentation files
 
     By default, you'll be prompted before changes are made.
-    Use --auto to upgrade automatically.
+    Use --force to update without prompting.
+
+    Examples:
+        # Check and update project (with confirmation)
+        dr update
+
+        # Preview what would be updated
+        dr update --dry-run
+
+        # Update without confirmation
+        dr update --force
     """
     # Check if we're in a DR project
     manifest_path = Path.cwd() / "documentation-robotics" / "model" / "manifest.yaml"
@@ -51,8 +57,8 @@ def upgrade(force: bool, dry_run: bool, auto: bool):
     manager = UpgradeManager()
 
     if dry_run:
-        # Show what would be upgraded
-        console.print("[bold]Checking for available upgrades...[/]\n")
+        # Show what would be updated
+        console.print("[bold]Checking for available updates...[/]\n")
 
         info = manager.get_version_info()
         table = Table(title="Version Information")
@@ -68,22 +74,31 @@ def upgrade(force: bool, dry_run: bool, auto: bool):
         console.print(table)
         console.print()
 
-        # This will show what needs upgrading
+        # This will show what needs updating
         try:
             manager.check_and_upgrade(auto=False, force=True)
         except Exception as e:
             console.print(f"[red]✗[/] Error: {e}")
             raise click.Abort()
     else:
-        # Perform upgrade
+        # Perform update
         try:
-            upgraded = manager.check_and_upgrade(auto=auto, force=force)
+            upgraded = manager.check_and_upgrade(auto=True, force=force)
 
             if not upgraded and not force:
                 console.print("[green]✓[/] Project is already up to date")
 
+            # Show comprehensive version status after update
+            if upgraded or force:
+                from ..core.version_checker import VersionChecker
+
+                console.print()
+                checker = VersionChecker()
+                result = checker.check_all_versions()
+                checker.display_version_status(result)
+
         except Exception as e:
-            console.print(f"[red]✗[/] Upgrade failed: {e}")
+            console.print(f"[red]✗[/] Update failed: {e}")
             raise click.Abort()
 
 
@@ -132,6 +147,6 @@ def version_info():
 
     console.print(table)
 
-    # Show upgrade hint if needed
+    # Show update hint if needed
     if manifest_version and manifest_version != info["cli_version"]:
-        console.print("\n[yellow]Run [cyan]dr upgrade[/] to update your project[/]")
+        console.print("\n[yellow]Run [cyan]dr update[/] to update your project[/]")

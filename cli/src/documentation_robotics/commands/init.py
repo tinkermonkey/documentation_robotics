@@ -113,15 +113,19 @@ class ModelInitializer:
         create_directory_structure(self.root_path, directories)
 
     def _create_schemas(self) -> None:
-        """Copy bundled schema files to .dr/schemas/."""
+        """Copy bundled schema files to .dr/schemas/.
+
+        The CLI owns the .dr/ directory and manages it authoritatively.
+        Always overwrites existing files and cleans obsolete files.
+        """
         schemas_dir = self.root_path / ".dr" / "schemas"
 
         try:
-            copied_count = copy_schemas_to_project(schemas_dir, overwrite=False)
-            console.print(f"   Copied {copied_count} schema files", style="dim")
+            copied_count = copy_schemas_to_project(schemas_dir)
+            console.print(f"   Synced {copied_count} schema files", style="dim")
         except Exception as e:
-            console.print(f"   [yellow]Warning: Failed to copy schemas: {e}[/yellow]")
-            console.print("   You may need to manually copy schema files to .dr/schemas/")
+            console.print(f"   [yellow]Warning: Failed to sync schemas: {e}[/yellow]")
+            console.print("   You may need to manually sync schema files to .dr/schemas/")
 
     def _create_manifest(self) -> None:
         """Create manifest.yaml."""
