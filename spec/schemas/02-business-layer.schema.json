@@ -448,22 +448,36 @@
               "type": "object",
               "properties": {
                 "delivers-value": {
-                  "type": "string",
-                  "description": "optional, comma-separated Value IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/delivers-value"
+                    }
+                  ]
                 },
                 "supports-goals": {
-                  "type": "string",
-                  "description": "optional, comma-separated Goal IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/supports-goals"
+                    }
+                  ]
                 },
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, comma-separated Principle IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 }
               }
             }
           }
         }
-      }
+      },
+      "allOf": [
+        {
+          "$ref": "common/relationships.schema.json#/definitions/ConditionalCriticalityRequirements"
+        }
+      ]
     },
     "BusinessObject": {
       "type": "object",
@@ -645,6 +659,14 @@
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "relationships": {
+      "$ref": "common/relationships.schema.json#/definitions"
+    },
+    "predicates": {
+      "$ref": "common/predicates.schema.json#/definitions"
     }
   }
 }

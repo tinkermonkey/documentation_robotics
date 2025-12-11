@@ -1,0 +1,2436 @@
+{
+  "summary": {
+    "total_unique_predicates": 115,
+    "total_predicate_usages": 268,
+    "xml_relationship_types_count": 7,
+    "property_patterns_count": 119,
+    "x_extensions_count": 0
+  },
+  "categories": {
+    "Other": 191,
+    "Structural": 9,
+    "Behavioral": 8,
+    "Traceability": 24,
+    "Governance": 36
+  },
+  "predicates": {
+    "association": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "01",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 05-technology-layer.md"
+        }
+      ]
+    },
+    "influence": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "realization": {
+      "category": "Structural",
+      "usage_count": 6,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "01",
+        "02",
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 01-motivation-layer.md"
+        },
+        {
+          "layer": "02",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 02-business-layer.md"
+        }
+      ]
+    },
+    "measurable": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "goal.measurable"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "goal.measurable",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "target-date": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "goal.target-date"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "goal.target-date",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "kpi": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "goal.kpi"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "goal.kpi",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "achieved-date": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "outcome.achieved-date"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "outcome.achieved-date",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "metrics": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "outcome.metrics"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "outcome.metrics",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "rationale": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "principle.rationale"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "principle.rationale",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "implications": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "principle.implications"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "principle.implications",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "source": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "constraint.source",
+        "requirement.source"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.source",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "constraint.source",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "status": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "requirement.status"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.status",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "traceability-id": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "requirement.traceability-id"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.traceability-id",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "security.mitigates": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "requirement.security.mitigates"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.security.mitigates",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "requirement.security.mitigates",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "security.implementation-type": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "requirement.security.implementation-type"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.security.implementation-type",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "requirement.security.implementation-type",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "security.implementation-params": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "requirement.security.implementation-params"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "requirement.security.implementation-params",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "requirement.security.implementation-params",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "negotiable": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "constraint.negotiable"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "constraint.negotiable",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "commitment-type": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "constraint.commitment-type"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "constraint.commitment-type",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "constraint.commitment-type",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "compliance-requirements": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "constraint.compliance-requirements"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "constraint.compliance-requirements",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "constraint.compliance-requirements",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "penalties": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "constraint.penalties"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "constraint.penalties",
+          "context": "Property in 01-motivation-layer.md"
+        },
+        {
+          "layer": "01",
+          "field_path": "constraint.penalties",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "quantifiable": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "value.quantifiable"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "value.quantifiable",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "measurement": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "value.measurement"
+      ],
+      "layers_used": [
+        "01"
+      ],
+      "example_usages": [
+        {
+          "layer": "01",
+          "field_path": "value.measurement",
+          "context": "Property in 01-motivation-layer.md"
+        }
+      ]
+    },
+    "access": {
+      "category": "Behavioral",
+      "usage_count": 2,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 04-application-layer.md"
+        }
+      ]
+    },
+    "serving": {
+      "category": "Behavioral",
+      "usage_count": 4,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 02-business-layer.md"
+        },
+        {
+          "layer": "02",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 04-application-layer.md"
+        }
+      ]
+    },
+    "triggering": {
+      "category": "Behavioral",
+      "usage_count": 2,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 04-application-layer.md"
+        }
+      ]
+    },
+    "security-actors": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "collaboration.security-actors"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "collaboration.security-actors",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "shared-permissions": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "collaboration.shared-permissions"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "collaboration.shared-permissions",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "api-operations": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "interface.api-operations"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "interface.api-operations",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "digital-channel": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "interface.digital-channel"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "interface.digital-channel",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "bpmn": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.bpmn"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "process.bpmn",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "security-controls": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.security-controls"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "process.security-controls",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "audit-required": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.audit-required"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "process.audit-required",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "separation-of-duty": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.separation-of-duty"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "process.separation-of-duty",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "business-metrics": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "apm.business-metrics"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "apm.business-metrics",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "apm.business-metrics",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "apm.business-metrics",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "kpi-target": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.kpi-target"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "process.kpi-target",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "realized-by-process": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "application.realized-by-process"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "application.realized-by-process",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "process-steps": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "application.process-steps"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "application.process-steps",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "application-ref": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "event.application-ref"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "event.application-ref",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "topic": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "event.topic"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "event.topic",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "event.topic",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "availability": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "sla.availability"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "sla.availability",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "response-time": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "sla.response-time"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "sla.response-time",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "delivers-value": {
+      "category": "Traceability",
+      "usage_count": 3,
+      "field_paths": [
+        "motivation.delivers-value"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "motivation.delivers-value",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.delivers-value",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.delivers-value",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "supports-goals": {
+      "category": "Traceability",
+      "usage_count": 7,
+      "field_paths": [
+        "motivation.supports-goals"
+      ],
+      "layers_used": [
+        "02",
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "motivation.supports-goals",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.supports-goals",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.supports-goals",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "governed-by-principles": {
+      "category": "Governance",
+      "usage_count": 20,
+      "field_paths": [
+        "motivation.governed-by-principles"
+      ],
+      "layers_used": [
+        "02",
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "motivation.governed-by-principles",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.governed-by-principles",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "motivation.governed-by-principles",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "schema": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "event.schema",
+        "spec.schema"
+      ],
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "spec.schema",
+          "context": "Property in 02-business-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "event.schema",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "spec.schema",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "schema-id": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "spec.schema-id"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "spec.schema-id",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "governance-owner": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "data.governance-owner"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "data.governance-owner",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "represented-by-dataobject": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "application.represented-by-dataobject"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "application.represented-by-dataobject",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "master-data-source": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "application.master-data-source"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "application.master-data-source",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "constraint-refs": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "contract.constraint-refs"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "contract.constraint-refs",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "sla-metrics": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "contract.sla-metrics"
+      ],
+      "layers_used": [
+        "02"
+      ],
+      "example_usages": [
+        {
+          "layer": "02",
+          "field_path": "contract.sla-metrics",
+          "context": "Property in 02-business-layer.md"
+        }
+      ]
+    },
+    "framework": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "implementation.framework"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "implementation.framework",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "ux": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "spec.ux"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "spec.ux",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "openapi": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "spec.openapi"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "spec.openapi",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "spec.openapi",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "spec.openapi",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "endpoint": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "interface.endpoint"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "interface.endpoint",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "async": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "FlowStep.async",
+        "function.async"
+      ],
+      "layers_used": [
+        "04",
+        "10"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "function.async",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "10",
+          "field_path": "FlowStep.async",
+          "context": "Table reference in 10-navigation-layer.md"
+        }
+      ]
+    },
+    "idempotent": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "function.idempotent"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "function.idempotent",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "fulfills-requirements": {
+      "category": "Traceability",
+      "usage_count": 14,
+      "field_paths": [
+        "motivation.fulfills-requirements"
+      ],
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "motivation.fulfills-requirements",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "motivation.fulfills-requirements",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "motivation.fulfills-requirements",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "orchestration": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.orchestration"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "process.orchestration",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "saga": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.saga"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "process.saga",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "version": {
+      "category": "Other",
+      "usage_count": 8,
+      "field_paths": [
+        "service.version",
+        "software.version"
+      ],
+      "layers_used": [
+        "04",
+        "05",
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "service.version",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "service.version",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "software.version",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "deprecated": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "service.deprecated"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "service.deprecated",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "traced": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "apm.traced"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "apm.traced",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "apm.traced",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "sla-target-latency": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "apm.sla-target-latency"
+      ],
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "apm.sla-target-latency",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "apm.sla-target-latency",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "apm.sla-target-latency",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "sla-target-availability": {
+      "category": "Other",
+      "usage_count": 6,
+      "field_paths": [
+        "apm.sla-target-availability"
+      ],
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "apm.sla-target-availability",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "04",
+          "field_path": "apm.sla-target-availability",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "apm.sla-target-availability",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "database": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "spec.database"
+      ],
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "spec.database",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "spec.database",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "spec.database",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "pii": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "data.pii",
+        "security.pii"
+      ],
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "data.pii",
+          "context": "Property in 04-application-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.pii",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.pii",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "retention": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "data.retention"
+      ],
+      "layers_used": [
+        "04"
+      ],
+      "example_usages": [
+        {
+          "layer": "04",
+          "field_path": "data.retention",
+          "context": "Property in 04-application-layer.md"
+        }
+      ]
+    },
+    "assignment": {
+      "category": "Structural",
+      "usage_count": 3,
+      "field_paths": [
+        "xml-relationship"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "xml-relationship",
+          "context": "XML relationship in 05-technology-layer.md"
+        }
+      ]
+    },
+    "provider": {
+      "category": "Other",
+      "usage_count": 5,
+      "field_paths": [
+        "cloud.provider",
+        "node.provider"
+      ],
+      "layers_used": [
+        "05",
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "node.provider",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.provider",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.provider",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "instance-type": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "node.instance-type"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "node.instance-type",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.instance-type",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.instance-type",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "region": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "cloud.region",
+        "node.region"
+      ],
+      "layers_used": [
+        "05",
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "node.region",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.region",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "node.region",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "terraform": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "spec.terraform"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "spec.terraform",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "spec.terraform",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "constrained-by": {
+      "category": "Governance",
+      "usage_count": 16,
+      "field_paths": [
+        "motivation.constrained-by"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "motivation.constrained-by",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "motivation.constrained-by",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "motivation.constrained-by",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "manufacturer": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "device.manufacturer"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "device.manufacturer",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "model": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "device.model"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "device.model",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "license": {
+      "category": "Other",
+      "usage_count": 5,
+      "field_paths": [
+        "software.license"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "software.license",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "software.license",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "software.license",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "port": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "interface.port"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "interface.port",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "url": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "interface.url"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "interface.url",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "bandwidth": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "path.bandwidth"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "path.bandwidth",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "latency": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "path.latency"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "path.latency",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "cidr": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "network.cidr"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "network.cidr",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "network.cidr",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "vlan": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "network.vlan"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "network.vlan",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "automation": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "process.automation"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "process.automation",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "sla": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "service.sla"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "service.sla",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "service.sla",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "service.sla",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "monitoring": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "service.monitoring"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "service.monitoring",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "service.monitoring",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "health-monitored": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "apm.health-monitored"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "apm.health-monitored",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "apm.health-monitored",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "apm.health-monitored",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "health-check-endpoint": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "apm.health-check-endpoint"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "apm.health-check-endpoint",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "apm.health-check-endpoint",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "format": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "artifact.format"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "artifact.format",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "artifact.format",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "artifact.format",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "size": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "artifact.size"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "artifact.size",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "artifact.size",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "artifact.size",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "encryption-required": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "security.encryption-required"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "security.encryption-required",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.encryption-required",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.encryption-required",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "encryption-type": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "security.encryption-type"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "security.encryption-type",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.encryption-type",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.encryption-type",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "classification": {
+      "category": "Other",
+      "usage_count": 5,
+      "field_paths": [
+        "security.classification"
+      ],
+      "layers_used": [
+        "05"
+      ],
+      "example_usages": [
+        {
+          "layer": "05",
+          "field_path": "security.classification",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.classification",
+          "context": "Property in 05-technology-layer.md"
+        },
+        {
+          "layer": "05",
+          "field_path": "security.classification",
+          "context": "Property in 05-technology-layer.md"
+        }
+      ]
+    },
+    "business-object-ref": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "x-business-object-ref"
+      ],
+      "layers_used": [
+        "07"
+      ],
+      "example_usages": [
+        {
+          "layer": "07",
+          "field_path": "x-business-object-ref",
+          "context": "Documentation mention in 07-data-model-layer.md"
+        }
+      ]
+    },
+    "apm-data-quality-metrics": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "x-apm-data-quality-metrics"
+      ],
+      "layers_used": [
+        "07",
+        "08",
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "07",
+          "field_path": "x-apm-data-quality-metrics",
+          "context": "Documentation mention in 07-data-model-layer.md"
+        },
+        {
+          "layer": "08",
+          "field_path": "x-apm-data-quality-metrics",
+          "context": "Documentation mention in 08-datastore-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "x-apm-data-quality-metrics",
+          "context": "Documentation mention in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "apm-performance-metrics": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "x-apm-performance-metrics"
+      ],
+      "layers_used": [
+        "08"
+      ],
+      "example_usages": [
+        {
+          "layer": "08",
+          "field_path": "x-apm-performance-metrics",
+          "context": "Documentation mention in 08-datastore-layer.md"
+        }
+      ]
+    },
+    "collaboration": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "FlowStep.collaboration"
+      ],
+      "layers_used": [
+        "10"
+      ],
+      "example_usages": [
+        {
+          "layer": "10",
+          "field_path": "FlowStep.collaboration",
+          "context": "Table reference in 10-navigation-layer.md"
+        }
+      ]
+    },
+    "compensation": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "FlowStep.compensation"
+      ],
+      "layers_used": [
+        "10"
+      ],
+      "example_usages": [
+        {
+          "layer": "10",
+          "field_path": "FlowStep.compensation",
+          "context": "Table reference in 10-navigation-layer.md"
+        }
+      ]
+    },
+    "method": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "http.method"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "http.method",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "http.method",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "route": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "http.route"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "http.route",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "status_code": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "http.status_code"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "http.status_code",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "http.status_code",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "system": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "db.system"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "db.system",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "statement": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "db.statement"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "db.statement",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "name": {
+      "category": "Other",
+      "usage_count": 2,
+      "field_paths": [
+        "db.name",
+        "service.name"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "db.name",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "service.name",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "type": {
+      "category": "Other",
+      "usage_count": 3,
+      "field_paths": [
+        "error.type",
+        "exception.type",
+        "link.type"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "exception.type",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "link.type",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "error.type",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "message": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "exception.message"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "exception.message",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "stacktrace": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "exception.stacktrace"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "exception.stacktrace",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "id": {
+      "category": "Other",
+      "usage_count": 4,
+      "field_paths": [
+        "product.id",
+        "user.id"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "product.id",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "user.id",
+          "context": "Property in 11-apm-observability-layer.md"
+        },
+        {
+          "layer": "11",
+          "field_path": "product.id",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "description": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "link.description"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "link.description",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "host": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "db.host"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "db.host",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "environment": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "deployment.environment"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "deployment.environment",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "namespace.name": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "k8s.namespace.name"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "k8s.namespace.name",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "pod.name": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "k8s.pod.name"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "k8s.pod.name",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "deployment.name": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "k8s.deployment.name"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "k8s.deployment.name",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    },
+    "request.headers": {
+      "category": "Other",
+      "usage_count": 1,
+      "field_paths": [
+        "http.request.headers"
+      ],
+      "layers_used": [
+        "11"
+      ],
+      "example_usages": [
+        {
+          "layer": "11",
+          "field_path": "http.request.headers",
+          "context": "Property in 11-apm-observability-layer.md"
+        }
+      ]
+    }
+  },
+  "xml_relationship_types": [
+    "access",
+    "assignment",
+    "association",
+    "influence",
+    "realization",
+    "serving",
+    "triggering"
+  ],
+  "x_extensions": []
+}

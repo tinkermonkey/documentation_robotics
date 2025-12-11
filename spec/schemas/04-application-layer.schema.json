@@ -135,7 +135,12 @@
             "service"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "$ref": "common/relationships.schema.json#/definitions/ConditionalCriticalityRequirements"
+        }
+      ]
     },
     "ApplicationCollaboration": {
       "type": "object",
@@ -273,12 +278,18 @@
               "type": "object",
               "properties": {
                 "fulfills-requirements": {
-                  "type": "string",
-                  "description": "optional, comma-separated Requirement IDs this function fulfills"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/fulfills-requirements"
+                    }
+                  ]
                 },
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, comma-separated Principle IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 }
               }
             }
@@ -499,16 +510,25 @@
               "type": "object",
               "properties": {
                 "supports-goals": {
-                  "type": "string",
-                  "description": "optional, comma-separated Goal IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/supports-goals"
+                    }
+                  ]
                 },
                 "delivers-value": {
-                  "type": "string",
-                  "description": "optional, comma-separated Value IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/delivers-value"
+                    }
+                  ]
                 },
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, comma-separated Principle IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 }
               }
             }
@@ -525,7 +545,12 @@
             "streaming"
           ]
         }
-      }
+      },
+      "allOf": [
+        {
+          "$ref": "common/relationships.schema.json#/definitions/ConditionalCriticalityRequirements"
+        }
+      ]
     },
     "DataObject": {
       "type": "object",
@@ -581,6 +606,14 @@
           }
         }
       }
+    }
+  },
+  "$defs": {
+    "relationships": {
+      "$ref": "common/relationships.schema.json#/definitions"
+    },
+    "predicates": {
+      "$ref": "common/predicates.schema.json#/definitions"
     }
   }
 }

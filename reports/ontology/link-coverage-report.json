@@ -1,0 +1,986 @@
+{
+  "summary": {
+    "layers_analyzed": 12,
+    "total_link_types_in_registry": 38,
+    "link_types_found_in_docs": 24,
+    "coverage_percent": 63.16,
+    "link_types_unused": [
+      "apm-criticality",
+      "apm-trace",
+      "archimate-ref",
+      "business-interface-ref",
+      "business-object-ref",
+      "business-service-ref",
+      "data-apm-data-quality-metrics",
+      "data-governance",
+      "database",
+      "database-column",
+      "database-table",
+      "security-encrypted",
+      "security-required-permissions",
+      "security-resource"
+    ],
+    "links_in_docs_not_in_registry_count": 133
+  },
+  "layer_coverage": {
+    "01": {
+      "layer_name": "Motivation Layer",
+      "total_entity_types": 10,
+      "entity_types_with_links": 8,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "constraint.commitment-type",
+        "constraint.compliance-requirements",
+        "constraint.negotiable",
+        "constraint.penalties",
+        "constraint.source",
+        "goal.kpi",
+        "goal.measurable",
+        "goal.target-date",
+        "outcome.achieved-date",
+        "outcome.metrics",
+        "principle.implications",
+        "principle.rationale",
+        "requirement.security.implementation-params",
+        "requirement.security.implementation-type",
+        "requirement.security.mitigates",
+        "requirement.source",
+        "requirement.status",
+        "requirement.traceability-id",
+        "value.measurement",
+        "value.quantifiable"
+      ],
+      "missing_registry_links": []
+    },
+    "02": {
+      "layer_name": "Business Layer",
+      "total_entity_types": 14,
+      "entity_types_with_links": 8,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "apm.business-metrics",
+        "application.master-data-source",
+        "application.process-steps",
+        "application.realized-by-process",
+        "application.represented-by-dataobject",
+        "collaboration.security-actors",
+        "collaboration.shared-permissions",
+        "contract.constraint-refs",
+        "contract.sla-metrics",
+        "data.governance-owner",
+        "event.application-ref",
+        "event.topic",
+        "interface.api-operations",
+        "interface.digital-channel",
+        "motivation.delivers-value",
+        "motivation.governed-by-principles",
+        "motivation.supports-goals",
+        "process.audit-required",
+        "process.bpmn",
+        "process.kpi-target",
+        "process.security-controls",
+        "process.separation-of-duty",
+        "sla.availability",
+        "sla.response-time",
+        "spec.schema",
+        "spec.schema-id"
+      ],
+      "missing_registry_links": []
+    },
+    "03": {
+      "layer_name": "Security Layer",
+      "total_entity_types": 23,
+      "entity_types_with_links": 0,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [],
+      "missing_registry_links": []
+    },
+    "04": {
+      "layer_name": "Application Layer",
+      "total_entity_types": 9,
+      "entity_types_with_links": 7,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "apm.business-metrics",
+        "apm.sla-target-availability",
+        "apm.sla-target-latency",
+        "apm.traced",
+        "data.pii",
+        "data.retention",
+        "event.schema",
+        "event.topic",
+        "function.async",
+        "function.idempotent",
+        "implementation.framework",
+        "interface.endpoint",
+        "motivation.delivers-value",
+        "motivation.fulfills-requirements",
+        "motivation.governed-by-principles",
+        "motivation.supports-goals",
+        "process.orchestration",
+        "process.saga",
+        "service.deprecated",
+        "service.version",
+        "spec.database",
+        "spec.openapi",
+        "spec.schema",
+        "spec.ux"
+      ],
+      "missing_registry_links": []
+    },
+    "05": {
+      "layer_name": "Technology Layer",
+      "total_entity_types": 13,
+      "entity_types_with_links": 10,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "apm.health-check-endpoint",
+        "apm.health-monitored",
+        "apm.sla-target-availability",
+        "apm.sla-target-latency",
+        "artifact.format",
+        "artifact.size",
+        "device.manufacturer",
+        "device.model",
+        "interface.port",
+        "interface.url",
+        "motivation.constrained-by",
+        "motivation.fulfills-requirements",
+        "motivation.governed-by-principles",
+        "motivation.supports-goals",
+        "network.cidr",
+        "network.vlan",
+        "node.instance-type",
+        "node.provider",
+        "node.region",
+        "path.bandwidth",
+        "path.latency",
+        "process.automation",
+        "security.classification",
+        "security.encryption-required",
+        "security.encryption-type",
+        "security.pii",
+        "service.monitoring",
+        "service.sla",
+        "software.license",
+        "software.version",
+        "spec.database",
+        "spec.terraform"
+      ],
+      "missing_registry_links": []
+    },
+    "06": {
+      "layer_name": "API Layer",
+      "total_entity_types": 25,
+      "entity_types_with_links": 3,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [],
+      "missing_registry_links": []
+    },
+    "07": {
+      "layer_name": "Data Model Layer",
+      "total_entity_types": 7,
+      "entity_types_with_links": 5,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "x-apm-data-quality-metrics",
+        "x-business-object-ref"
+      ],
+      "missing_registry_links": []
+    },
+    "08": {
+      "layer_name": "Datastore Layer",
+      "total_entity_types": 10,
+      "entity_types_with_links": 0,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "x-apm-data-quality-metrics",
+        "x-apm-performance-metrics"
+      ],
+      "missing_registry_links": []
+    },
+    "09": {
+      "layer_name": "UX Layer",
+      "total_entity_types": 0,
+      "entity_types_with_links": 1,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [],
+      "missing_registry_links": []
+    },
+    "10": {
+      "layer_name": "Navigation Layer",
+      "total_entity_types": 15,
+      "entity_types_with_links": 0,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [],
+      "missing_registry_links": []
+    },
+    "11": {
+      "layer_name": "APM/Observability Layer",
+      "total_entity_types": 18,
+      "entity_types_with_links": 9,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [
+        "cloud.provider",
+        "cloud.region",
+        "db.host",
+        "db.name",
+        "db.statement",
+        "db.system",
+        "deployment.environment",
+        "error.type",
+        "exception.message",
+        "exception.stacktrace",
+        "exception.type",
+        "http.method",
+        "http.request.headers",
+        "http.route",
+        "http.status_code",
+        "k8s.deployment.name",
+        "k8s.namespace.name",
+        "k8s.pod.name",
+        "link.description",
+        "link.type",
+        "product.id",
+        "service.name",
+        "service.version",
+        "user.id",
+        "x-apm-data-quality-metrics"
+      ],
+      "missing_registry_links": []
+    },
+    "12": {
+      "layer_name": "Testing Layer",
+      "total_entity_types": 15,
+      "entity_types_with_links": 0,
+      "outgoing_link_count": 0,
+      "incoming_link_count": 0,
+      "unique_field_paths": [],
+      "missing_registry_links": []
+    }
+  },
+  "links_not_in_registry": [
+    {
+      "field_path": "goal.measurable",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "goal.target-date",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "goal.kpi",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "outcome.achieved-date",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "outcome.metrics",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "principle.rationale",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "principle.implications",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.source",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.status",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.traceability-id",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.mitigates",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.implementation-type",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.implementation-params",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.source",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.negotiable",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.commitment-type",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.compliance-requirements",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.penalties",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "value.quantifiable",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "value.measurement",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.mitigates",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.implementation-type",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "requirement.security.implementation-params",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.commitment-type",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.compliance-requirements",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "constraint.penalties",
+      "layer": "01",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "field_path": "collaboration.security-actors",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "collaboration.shared-permissions",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "interface.api-operations",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "interface.digital-channel",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "process.bpmn",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "process.audit-required",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "process.kpi-target",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "event.application-ref",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "event.topic",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "sla.availability",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "sla.response-time",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "spec.schema",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "spec.schema-id",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "contract.constraint-refs",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "contract.sla-metrics",
+      "layer": "02",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "field_path": "implementation.framework",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.ux",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.openapi",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.openapi",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "interface.endpoint",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "function.async",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "function.idempotent",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "process.orchestration",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "process.saga",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "event.schema",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "event.topic",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.openapi",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "service.version",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "service.deprecated",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.openapi",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "service.version",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.schema",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "spec.database",
+      "layer": "04",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "field_path": "node.provider",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.instance-type",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.region",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "spec.terraform",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.provider",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.instance-type",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.region",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "spec.terraform",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.provider",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.instance-type",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.provider",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "node.region",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "device.manufacturer",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "device.model",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.version",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.license",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.version",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.license",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.version",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.license",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.version",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.license",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.version",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "software.license",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "interface.port",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "interface.url",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "path.bandwidth",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "path.latency",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "network.cidr",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "network.vlan",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "network.cidr",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "process.automation",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "service.sla",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "service.monitoring",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "service.sla",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "service.monitoring",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "service.sla",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.format",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.size",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "spec.database",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.format",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.size",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "spec.database",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.format",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.format",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "artifact.size",
+      "layer": "05",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "field_path": "http.method",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "http.route",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "http.status_code",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "db.system",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "db.statement",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "db.name",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "exception.type",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "exception.message",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "exception.stacktrace",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "product.id",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "user.id",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "link.type",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "link.description",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "product.id",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "user.id",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "error.type",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "db.host",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "service.name",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "service.version",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "deployment.environment",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "k8s.namespace.name",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "k8s.pod.name",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "k8s.deployment.name",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "cloud.provider",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "cloud.region",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "http.method",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "http.status_code",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    },
+    {
+      "field_path": "http.request.headers",
+      "layer": "11",
+      "file": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/11-apm-observability-layer.md"
+    }
+  ],
+  "bidirectional_candidates": [
+    [
+      "realizes (missing)",
+      "realized-by"
+    ],
+    [
+      "supports-goals",
+      "supported-by (missing)"
+    ],
+    [
+      "fulfills-requirements",
+      "fulfilled-by (missing)"
+    ],
+    [
+      "delivers-value",
+      "delivered-by (missing)"
+    ],
+    [
+      "constrains (missing)",
+      "constrained-by"
+    ]
+  ],
+  "layer_pair_coverage": {
+    "06-api->11-apm": 4,
+    "05-technology->11-apm": 4,
+    "04-application->11-apm": 3,
+    "02-business->04-application": 4,
+    "06-api->04-application": 1,
+    "07-data-model->04-application": 1,
+    "02-business->02-business": 1,
+    "04-application->02-business": 1,
+    "06-api->02-business": 3,
+    "07-data-model->02-business": 1,
+    "07-data-model->07-data-model": 3,
+    "02-business->07-data-model": 1,
+    "04-application->07-data-model": 1,
+    "06-api->07-data-model": 2,
+    "05-technology->01-motivation": 4,
+    "06-api->01-motivation": 4,
+    "02-business->01-motivation": 3,
+    "04-application->01-motivation": 4,
+    "05-technology->03-security": 4,
+    "04-application->03-security": 1,
+    "06-api->03-security": 4,
+    "02-business->03-security": 2
+  }
+}

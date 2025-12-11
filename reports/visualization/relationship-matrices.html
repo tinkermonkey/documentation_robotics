@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset='utf-8'>
+  <title>Relationship Matrices - Documentation Robotics</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; margin: 20px; }
+    h1 { color: #333; }
+    h3 { color: #666; margin-top: 30px; }
+    .matrix-table { border-collapse: collapse; margin: 20px 0; }
+    .matrix-table th, .matrix-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+    .header-cell { background-color: #f5f5f5; font-weight: bold; }
+    .row-header { background-color: #f9f9f9; font-weight: bold; text-align: left; }
+    .total-cell { background-color: #e8e8e8; font-weight: bold; }
+    .grand-total { background-color: #d8d8d8; }
+    .empty-cell { color: #ccc; }
+    .data-cell { background-color: #fff; }
+    .intensity-0 { background-color: #f0f9ff; }
+    .intensity-1 { background-color: #bae6fd; }
+    .intensity-2 { background-color: #7dd3fc; }
+    .intensity-3 { background-color: #38bdf8; }
+    .intensity-4 { background-color: #0ea5e9; }
+    .total-row { border-top: 2px solid #999; }
+  </style>
+</head>
+<body>
+  <h1>Relationship Matrices - Documentation Robotics Ontology</h1>
+<h3>Layer-to-Layer Matrix</h3>
+<table class="matrix-table">
+  <thead>
+    <tr>
+      <th class="header-cell">From \ To</th>
+      <th class="header-cell">01-motivation</th>
+      <th class="header-cell">02-business</th>
+      <th class="header-cell">03-security</th>
+      <th class="header-cell">04-application</th>
+      <th class="header-cell">05-technology</th>
+      <th class="header-cell">06-api</th>
+      <th class="header-cell">07-data-model</th>
+      <th class="header-cell">11-apm</th>
+      <th class="total-cell">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th class="row-header">01-motivation</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr>
+      <th class="row-header">02-business</th>
+      <td class="data-cell intensity-0" data-value="3">3</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="2">2</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">11</td>
+    </tr>
+    <tr>
+      <th class="row-header">03-security</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr>
+      <th class="row-header">04-application</th>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="3">3</td>
+      <td class="total-cell">10</td>
+    </tr>
+    <tr>
+      <th class="row-header">05-technology</th>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="total-cell">12</td>
+    </tr>
+    <tr>
+      <th class="row-header">06-api</th>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-0" data-value="3">3</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="2">2</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="total-cell">18</td>
+    </tr>
+    <tr>
+      <th class="row-header">07-data-model</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="3">3</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">5</td>
+    </tr>
+    <tr>
+      <th class="row-header">11-apm</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr class="total-row">
+      <th class="row-header">Total</th>
+      <td class="total-cell">15</td>
+      <td class="total-cell">6</td>
+      <td class="total-cell">11</td>
+      <td class="total-cell">6</td>
+      <td class="total-cell">0</td>
+      <td class="total-cell">0</td>
+      <td class="total-cell">7</td>
+      <td class="total-cell">11</td>
+      <td class="total-cell grand-total">56</td>
+    </tr>
+  </tbody>
+</table>
+<h3>Category Usage Matrix</h3>
+<table class="matrix-table">
+  <thead>
+    <tr>
+      <th class="header-cell">From \ To</th>
+      <th class="header-cell">02-business</th>
+      <th class="header-cell">04-application</th>
+      <th class="header-cell">05-technology</th>
+      <th class="header-cell">06-api</th>
+      <th class="header-cell">07-data-model</th>
+      <th class="total-cell">Total</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th class="row-header">api</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr>
+      <th class="row-header">apm</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-1" data-value="3">3</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">11</td>
+    </tr>
+    <tr>
+      <th class="row-header">archimate</th>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="total-cell">6</td>
+    </tr>
+    <tr>
+      <th class="row-header">business</th>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-1" data-value="3">3</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="total-cell">6</td>
+    </tr>
+    <tr>
+      <th class="row-header">data</th>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="data-cell intensity-0" data-value="2">2</td>
+      <td class="data-cell intensity-1" data-value="3">3</td>
+      <td class="total-cell">7</td>
+    </tr>
+    <tr>
+      <th class="row-header">datastore</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr>
+      <th class="row-header">motivation</th>
+      <td class="data-cell intensity-1" data-value="3">3</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">15</td>
+    </tr>
+    <tr>
+      <th class="row-header">navigation</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr>
+      <th class="row-header">security</th>
+      <td class="data-cell intensity-0" data-value="2">2</td>
+      <td class="data-cell intensity-0" data-value="1">1</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="data-cell intensity-1" data-value="4">4</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">11</td>
+    </tr>
+    <tr>
+      <th class="row-header">ux</th>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="empty-cell" data-value="0">-</td>
+      <td class="total-cell">0</td>
+    </tr>
+    <tr class="total-row">
+      <th class="row-header">Total</th>
+      <td class="total-cell">11</td>
+      <td class="total-cell">10</td>
+      <td class="total-cell">12</td>
+      <td class="total-cell">18</td>
+      <td class="total-cell">5</td>
+      <td class="total-cell grand-total">56</td>
+    </tr>
+  </tbody>
+</table>
+</body>
+</html>

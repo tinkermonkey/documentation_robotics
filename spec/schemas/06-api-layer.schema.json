@@ -1142,5 +1142,13 @@
         }
       }
     }
+  },
+  "$defs": {
+    "relationships": {
+      "$ref": "common/relationships.schema.json#/definitions"
+    },
+    "predicates": {
+      "$ref": "common/predicates.schema.json#/definitions"
+    }
   }
 }
