@@ -1,0 +1,185 @@
+{
+  "coverage": {
+    "total_layers": 12,
+    "total_link_types": 38,
+    "link_types_used": 24,
+    "coverage_percentage": 63.16,
+    "unused_link_types": 14,
+    "total_link_instances": 98,
+    "unique_link_types_used": 24
+  },
+  "predicates": {
+    "total_predicates": 115,
+    "categorized_predicates": 77,
+    "uncategorized_predicates": 191,
+    "xml_relationship_types": 7
+  },
+  "gaps": {
+    "total_gaps": 221,
+    "critical_gaps": 0,
+    "high_priority_gaps": 5,
+    "inter_layer_gaps": 12,
+    "intra_layer_gaps": 0,
+    "semantic_gaps": 11,
+    "bidirectional_gaps": 39,
+    "element_coverage_gaps": 159
+  },
+  "maturity": {
+    "overall_score": 2.25,
+    "layers": [
+      {
+        "layer_id": "01",
+        "layer_name": "Motivation",
+        "score": 3,
+        "strengths": [
+          "All links properly registered",
+          "High entity coverage (80%)"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)"
+        ]
+      },
+      {
+        "layer_id": "02",
+        "layer_name": "Business",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "7 gaps identified"
+        ]
+      },
+      {
+        "layer_id": "03",
+        "layer_name": "Security",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "Low entity coverage (0%)"
+        ]
+      },
+      {
+        "layer_id": "04",
+        "layer_name": "Application",
+        "score": 2,
+        "strengths": [
+          "All links properly registered",
+          "High entity coverage (78%)"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "7 gaps identified"
+        ]
+      },
+      {
+        "layer_id": "05",
+        "layer_name": "Technology",
+        "score": 3,
+        "strengths": [
+          "All links properly registered",
+          "High entity coverage (77%)"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)"
+        ]
+      },
+      {
+        "layer_id": "06",
+        "layer_name": "API",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "Low entity coverage (12%)"
+        ]
+      },
+      {
+        "layer_id": "07",
+        "layer_name": "Data Model",
+        "score": 3,
+        "strengths": [
+          "All links properly registered",
+          "High entity coverage (71%)"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)"
+        ]
+      },
+      {
+        "layer_id": "08",
+        "layer_name": "Datastore",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "Low entity coverage (0%)"
+        ]
+      },
+      {
+        "layer_id": "09",
+        "layer_name": "UX",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)"
+        ]
+      },
+      {
+        "layer_id": "10",
+        "layer_name": "Navigation",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "Low entity coverage (0%)"
+        ]
+      },
+      {
+        "layer_id": "11",
+        "layer_name": "APM/Observability",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)"
+        ]
+      },
+      {
+        "layer_id": "12",
+        "layer_name": "Testing",
+        "score": 2,
+        "strengths": [
+          "All links properly registered"
+        ],
+        "weaknesses": [
+          "Low link coverage (0 links)",
+          "Low entity coverage (0%)"
+        ]
+      }
+    ]
+  },
+  "recommendations": [
+    "**PRIORITY 1**: Address 5 high-priority gaps identified in gap analysis report.",
+    "**PRIORITY 2**: Review 14 unused link types for deprecation or add examples to documentation.",
+    "**PRIORITY 3**: Register 133 field paths found in docs but missing from link-registry.json.",
+    "**PRIORITY 4**: Categorize 191 predicates currently in 'Other' category (71.3% of total).",
+    "**PRIORITY 5**: Define inverse predicates for 39 relationships to enable bidirectional navigation.",
+    "**PRIORITY 6**: Improve element coverage. Layer 01 has 10 entities with no documented links.",
+    "**PRIORITY 7**: Define links for 12 missing expected layer pairs (see gap analysis report).",
+    "**PRIORITY 8**: Add examples to 38 link types with empty examples[] fields."
+  ]
+}

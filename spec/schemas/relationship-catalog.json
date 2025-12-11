@@ -1,0 +1,721 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Relationship Catalog",
+  "description": "Comprehensive catalog of semantic relationship types for Documentation Robotics",
+  "version": "2.0.0",
+  "generatedBy": "Manual (to be automated in Week 6)",
+  "lastUpdated": "2025-12-10",
+
+  "relationshipTypes": [
+    {
+      "id": "composition",
+      "predicate": "composes",
+      "inversePredicate": "composed-of",
+      "category": "structural",
+      "archimateAlignment": "Composition",
+      "description": "Whole-part relationship where the part cannot exist without the whole",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05"],
+      "examples": [
+        {
+          "source": "BusinessCollaboration",
+          "target": "BusinessRole",
+          "description": "Business collaboration composes business roles that participate in it"
+        },
+        {
+          "source": "ApplicationComponent",
+          "target": "ApplicationInterface",
+          "description": "Application component composes its interfaces"
+        }
+      ]
+    },
+    {
+      "id": "aggregation",
+      "predicate": "aggregates",
+      "inversePredicate": "aggregated-by",
+      "category": "structural",
+      "archimateAlignment": "Aggregation",
+      "description": "Whole-part relationship where the part can exist independently",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05"],
+      "examples": [
+        {
+          "source": "Product",
+          "target": "BusinessService",
+          "description": "Product aggregates business services it offers"
+        }
+      ]
+    },
+    {
+      "id": "specialization",
+      "predicate": "specializes",
+      "inversePredicate": "generalized-by",
+      "category": "structural",
+      "archimateAlignment": "Specialization",
+      "description": "Type-subtype relationship (inheritance)",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      },
+      "applicableLayers": ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"],
+      "examples": [
+        {
+          "source": "PremiumAccount",
+          "target": "Account",
+          "description": "Premium account specializes the general account concept"
+        }
+      ]
+    },
+    {
+      "id": "realization",
+      "predicate": "realizes",
+      "inversePredicate": "realized-by",
+      "category": "structural",
+      "archimateAlignment": "Realization",
+      "description": "Implementation element realizes abstract element",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05", "06", "07"],
+      "examples": [
+        {
+          "source": "ApplicationService",
+          "target": "BusinessService",
+          "description": "Application service realizes business service capability"
+        },
+        {
+          "source": "APIOperation",
+          "target": "ApplicationInterface",
+          "description": "API operation realizes application interface"
+        }
+      ]
+    },
+    {
+      "id": "assignment",
+      "predicate": "assigned-to",
+      "inversePredicate": "assigns",
+      "category": "structural",
+      "archimateAlignment": "Assignment",
+      "description": "Active element assigned to behavior or role",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05"],
+      "examples": [
+        {
+          "source": "BusinessActor",
+          "target": "BusinessRole",
+          "description": "Business actor assigned to business role"
+        }
+      ]
+    },
+    {
+      "id": "triggering",
+      "predicate": "triggers",
+      "inversePredicate": "triggered-by",
+      "category": "behavioral",
+      "archimateAlignment": "Triggering",
+      "description": "Event or behavior triggers another behavior",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "06"],
+      "examples": [
+        {
+          "source": "BusinessEvent",
+          "target": "BusinessProcess",
+          "description": "Business event triggers business process execution"
+        }
+      ]
+    },
+    {
+      "id": "flow",
+      "predicate": "flows-to",
+      "inversePredicate": "flows-from",
+      "category": "behavioral",
+      "archimateAlignment": "Flow",
+      "description": "Sequential or data flow between behaviors",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "09", "10"],
+      "examples": [
+        {
+          "source": "BusinessProcess",
+          "target": "BusinessProcess",
+          "description": "One business process flows to the next in sequence"
+        }
+      ]
+    },
+    {
+      "id": "serving",
+      "predicate": "serves",
+      "inversePredicate": "served-by",
+      "category": "behavioral",
+      "archimateAlignment": "Serving",
+      "description": "Service available to consumer",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05"],
+      "examples": [
+        {
+          "source": "BusinessService",
+          "target": "BusinessActor",
+          "description": "Business service serves business actor"
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "predicate": "accesses",
+      "inversePredicate": "accessed-by",
+      "category": "behavioral",
+      "archimateAlignment": "Access",
+      "description": "Behavior accesses passive element (data/artifact)",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "06", "07"],
+      "examples": [
+        {
+          "source": "BusinessProcess",
+          "target": "BusinessObject",
+          "description": "Business process accesses business object data"
+        },
+        {
+          "source": "APIOperation",
+          "target": "DataObject",
+          "description": "API operation accesses data object"
+        }
+      ]
+    },
+    {
+      "id": "uses",
+      "predicate": "uses",
+      "inversePredicate": "used-by",
+      "category": "dependency",
+      "archimateAlignment": null,
+      "description": "Element depends on another for functionality",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05", "09"],
+      "examples": [
+        {
+          "source": "ApplicationComponent",
+          "target": "TechnologyService",
+          "description": "Application component uses technology service"
+        }
+      ]
+    },
+    {
+      "id": "references",
+      "predicate": "references",
+      "inversePredicate": "referenced-by",
+      "category": "dependency",
+      "archimateAlignment": null,
+      "description": "Pointer reference without functional dependency",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["04", "06", "07", "09"],
+      "examples": [
+        {
+          "source": "DataObject",
+          "target": "Schema",
+          "description": "Data object references JSON schema"
+        },
+        {
+          "source": "APIOperation",
+          "target": "BusinessService",
+          "description": "API operation references business service it supports"
+        }
+      ]
+    },
+    {
+      "id": "depends-on",
+      "predicate": "depends-on",
+      "inversePredicate": "dependency-of",
+      "category": "dependency",
+      "archimateAlignment": null,
+      "description": "Element requires another to function",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      },
+      "applicableLayers": ["04", "05", "06", "09"],
+      "examples": [
+        {
+          "source": "ApplicationService",
+          "target": "DataObject",
+          "description": "Application service depends on data object"
+        }
+      ]
+    },
+    {
+      "id": "supports-goals",
+      "predicate": "supports-goals",
+      "inversePredicate": "supported-by",
+      "category": "traceability",
+      "archimateAlignment": null,
+      "description": "Implementation contributes to achieving goal",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": true,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05", "06"],
+      "fieldPaths": ["motivation.supports-goals", "x-supports-goals"],
+      "examples": [
+        {
+          "source": "BusinessService",
+          "sourceLayer": "02-business",
+          "target": "Goal",
+          "targetLayer": "01-motivation",
+          "value": "goal-revenue-growth",
+          "description": "Payment service supports revenue growth goal"
+        }
+      ]
+    },
+    {
+      "id": "fulfills-requirements",
+      "predicate": "fulfills-requirements",
+      "inversePredicate": "fulfilled-by",
+      "category": "traceability",
+      "archimateAlignment": null,
+      "description": "Implementation satisfies requirement",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05", "06", "03", "11"],
+      "fieldPaths": ["motivation.fulfills-requirements", "x-fulfills-requirements"],
+      "examples": [
+        {
+          "source": "ApplicationService",
+          "target": "Requirement",
+          "description": "OAuth service fulfills authentication requirement"
+        }
+      ]
+    },
+    {
+      "id": "delivers-value",
+      "predicate": "delivers-value",
+      "inversePredicate": "delivered-by",
+      "category": "traceability",
+      "archimateAlignment": null,
+      "description": "Implementation provides business value",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02"],
+      "fieldPaths": ["motivation.delivers-value"],
+      "examples": [
+        {
+          "source": "BusinessService",
+          "target": "Value",
+          "description": "Loyalty program delivers customer retention value"
+        }
+      ]
+    },
+    {
+      "id": "measures-outcome",
+      "predicate": "measures-outcome",
+      "inversePredicate": "measured-by",
+      "category": "traceability",
+      "archimateAlignment": null,
+      "description": "Metric validates outcome achievement",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["11", "12"],
+      "fieldPaths": ["motivationMapping.measuresOutcome"],
+      "examples": [
+        {
+          "source": "Metric",
+          "target": "Outcome",
+          "description": "Response time metric measures performance outcome"
+        }
+      ]
+    },
+    {
+      "id": "governed-by-principles",
+      "predicate": "governed-by-principles",
+      "inversePredicate": "governs",
+      "category": "governance",
+      "archimateAlignment": null,
+      "description": "Element follows architectural principle",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["02", "04", "05", "06", "07"],
+      "fieldPaths": ["motivation.governed-by-principles", "x-governed-by-principles"],
+      "examples": [
+        {
+          "source": "APIOperation",
+          "target": "Principle",
+          "description": "REST API governed by RESTful design principles"
+        }
+      ]
+    },
+    {
+      "id": "constrained-by",
+      "predicate": "constrained-by",
+      "inversePredicate": "constrains",
+      "category": "governance",
+      "archimateAlignment": null,
+      "description": "Element limited by constraint",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["04", "05", "06", "07"],
+      "fieldPaths": ["motivation.constrained-by", "x-constrained-by"],
+      "examples": [
+        {
+          "source": "APIOperation",
+          "target": "Constraint",
+          "description": "API operation constrained by rate limit"
+        }
+      ]
+    },
+    {
+      "id": "enforces-requirement",
+      "predicate": "enforces-requirement",
+      "inversePredicate": "enforced-by",
+      "category": "governance",
+      "archimateAlignment": null,
+      "description": "Element actively enforces requirement",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["03", "10"],
+      "fieldPaths": ["motivationAlignment.enforcesRequirement"],
+      "examples": [
+        {
+          "source": "NavigationGuard",
+          "target": "Requirement",
+          "description": "Auth guard enforces authentication requirement"
+        }
+      ]
+    },
+    {
+      "id": "traces",
+      "predicate": "traces",
+      "inversePredicate": "traced-by",
+      "category": "apm",
+      "archimateAlignment": null,
+      "description": "Distributed tracing relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["04", "06", "11"],
+      "fieldPaths": ["apm.traces", "x-traces"],
+      "examples": [
+        {
+          "source": "APIOperation",
+          "target": "DistributedTrace",
+          "description": "API operation participates in distributed trace"
+        }
+      ]
+    },
+    {
+      "id": "monitors",
+      "predicate": "monitors",
+      "inversePredicate": "monitored-by",
+      "category": "apm",
+      "archimateAlignment": null,
+      "description": "Health/performance monitoring",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["11"],
+      "fieldPaths": ["apm.monitors", "x-monitors"],
+      "examples": [
+        {
+          "source": "HealthCheck",
+          "target": "ApplicationService",
+          "description": "Health check monitors application service"
+        }
+      ]
+    },
+    {
+      "id": "measures",
+      "predicate": "measures",
+      "inversePredicate": "measured-by",
+      "category": "apm",
+      "archimateAlignment": null,
+      "description": "Metric collection relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["11"],
+      "fieldPaths": ["apm.measures", "x-measures"],
+      "examples": [
+        {
+          "source": "Metric",
+          "target": "APIOperation",
+          "description": "Response time metric measures API operation"
+        }
+      ]
+    },
+    {
+      "id": "protects",
+      "predicate": "protects",
+      "inversePredicate": "protected-by",
+      "category": "security",
+      "archimateAlignment": null,
+      "description": "Security control relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["03"],
+      "fieldPaths": ["security.protects", "x-protects"],
+      "examples": [
+        {
+          "source": "SecurityControl",
+          "target": "ApplicationService",
+          "description": "Encryption control protects sensitive data service"
+        }
+      ]
+    },
+    {
+      "id": "authenticates",
+      "predicate": "authenticates",
+      "inversePredicate": "authenticated-by",
+      "category": "security",
+      "archimateAlignment": null,
+      "description": "Authentication flows",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["03"],
+      "fieldPaths": ["security.authenticates", "x-authenticates"],
+      "examples": [
+        {
+          "source": "AuthenticationService",
+          "target": "User",
+          "description": "OAuth service authenticates user"
+        }
+      ]
+    },
+    {
+      "id": "authorizes",
+      "predicate": "authorizes",
+      "inversePredicate": "authorized-by",
+      "category": "security",
+      "archimateAlignment": null,
+      "description": "Permission grants",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["03"],
+      "fieldPaths": ["security.authorizes", "x-authorizes"],
+      "examples": [
+        {
+          "source": "Role",
+          "target": "Operation",
+          "description": "Admin role authorizes delete operation"
+        }
+      ]
+    },
+    {
+      "id": "renders",
+      "predicate": "renders",
+      "inversePredicate": "rendered-by",
+      "category": "ux",
+      "archimateAlignment": null,
+      "description": "UI rendering relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["09"],
+      "fieldPaths": ["ux.renders", "x-renders"],
+      "examples": [
+        {
+          "source": "UIComponent",
+          "target": "UIView",
+          "description": "Layout component renders view content"
+        }
+      ]
+    },
+    {
+      "id": "binds-to",
+      "predicate": "binds-to",
+      "inversePredicate": "bound-by",
+      "category": "ux",
+      "archimateAlignment": null,
+      "description": "Data binding relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["09"],
+      "fieldPaths": ["ux.binds-to", "x-binds-to"],
+      "examples": [
+        {
+          "source": "UIComponent",
+          "target": "DataObject",
+          "description": "Form component binds to user data object"
+        }
+      ]
+    },
+    {
+      "id": "navigates-to",
+      "predicate": "navigates-to",
+      "inversePredicate": "navigated-from",
+      "category": "ux",
+      "archimateAlignment": null,
+      "description": "Navigation flows",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["09", "10"],
+      "fieldPaths": ["navigation.navigates-to", "x-navigates-to"],
+      "examples": [
+        {
+          "source": "UIView",
+          "target": "UIView",
+          "description": "Login view navigates to dashboard view"
+        }
+      ]
+    },
+    {
+      "id": "maps-to",
+      "predicate": "maps-to",
+      "inversePredicate": "mapped-from",
+      "category": "data",
+      "archimateAlignment": null,
+      "description": "Schema/table mapping",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["07", "08"],
+      "fieldPaths": ["data.maps-to", "x-maps-to"],
+      "examples": [
+        {
+          "source": "DataObject",
+          "target": "DatabaseTable",
+          "description": "User data object maps to users table"
+        }
+      ]
+    },
+    {
+      "id": "references-table",
+      "predicate": "references-table",
+      "inversePredicate": "table-referenced-by",
+      "category": "data",
+      "archimateAlignment": null,
+      "description": "Foreign key relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["08"],
+      "fieldPaths": ["data.references-table", "x-references-table"],
+      "examples": [
+        {
+          "source": "OrderTable",
+          "target": "CustomerTable",
+          "description": "Order table references customer table via foreign key"
+        }
+      ]
+    },
+    {
+      "id": "derives-from",
+      "predicate": "derives-from",
+      "inversePredicate": "derived-by",
+      "category": "data",
+      "archimateAlignment": null,
+      "description": "Calculated field relationships",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["07", "08"],
+      "fieldPaths": ["data.derives-from", "x-derives-from"],
+      "examples": [
+        {
+          "source": "TotalPrice",
+          "target": "Quantity, UnitPrice",
+          "description": "Total price derives from quantity times unit price"
+        }
+      ]
+    }
+  ],
+
+  "metadata": {
+    "totalRelationships": 31,
+    "categoryCounts": {
+      "structural": 5,
+      "behavioral": 4,
+      "dependency": 3,
+      "traceability": 4,
+      "governance": 3,
+      "apm": 3,
+      "security": 3,
+      "ux": 3,
+      "data": 3
+    },
+    "archimateAligned": 9,
+    "documentationRoboticsExtensions": 22
+  }
+}

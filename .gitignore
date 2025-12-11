@@ -62,3 +62,8 @@ documentation/claude_thoughts/
 
 # Node modules
 node_modules/
+
+# Graph database files (regenerate from schemas)
+tools/graph-db/*.lbug/
+tools/graph-db/*.db
+lbug

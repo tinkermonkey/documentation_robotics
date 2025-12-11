@@ -1,0 +1,1116 @@
+{
+  "summary": {
+    "total_instances": 98,
+    "unique_link_types_used": 24,
+    "xml_relationships": 24,
+    "layers_analyzed": 12
+  },
+  "link_stats": {
+    "security-process-security-controls": {
+      "link_type_name": "Process Security Controls",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "control-id-1,control-id-2"
+      ],
+      "instances": [
+        {
+          "field_path": "process.security-controls",
+          "value": "control-id-1,control-id-2",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "security-process-separation-of-duty": {
+      "link_type_name": "Process Separation Of Duty",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "process.separation-of-duty",
+          "value": "true|false",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "business-apm-business-metrics": {
+      "link_type_name": "Apm Business Metrics",
+      "total_instances": 3,
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "unique_values": [
+        "metric-id-1,metric-id-2",
+        "metric-product-views,metric-product-searches,metric-catalog-accuracy"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.business-metrics",
+          "value": "metric-id-1,metric-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.business-metrics",
+          "value": "metric-id-1,metric-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.business-metrics",
+          "value": "metric-product-views,metric-product-searches,metric-catalog-accuracy",
+          "source_layer": "04",
+          "source_element": null
+        }
+      ]
+    },
+    "archimate-application-realized-by-process": {
+      "link_type_name": "Application Realized By Process",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "app-process-id"
+      ],
+      "instances": [
+        {
+          "field_path": "application.realized-by-process",
+          "value": "app-process-id",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "archimate-application-process-steps": {
+      "link_type_name": "Application Process Steps",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "step-1,step-2"
+      ],
+      "instances": [
+        {
+          "field_path": "application.process-steps",
+          "value": "step-1,step-2",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "motivation-delivers-value": {
+      "link_type_name": "Delivers Value",
+      "total_instances": 3,
+      "layers_used": [
+        "02",
+        "04"
+      ],
+      "unique_values": [
+        "value-customer-convenience,value-operational-efficiency",
+        "value-id-1,value-id-2"
+      ],
+      "instances": [
+        {
+          "field_path": "motivation.delivers-value",
+          "value": "value-id-1,value-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.delivers-value",
+          "value": "value-id-1,value-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.delivers-value",
+          "value": "value-customer-convenience,value-operational-efficiency",
+          "source_layer": "04",
+          "source_element": null
+        }
+      ]
+    },
+    "motivation-supports-goals": {
+      "link_type_name": "Supports Goals",
+      "total_instances": 6,
+      "layers_used": [
+        "02",
+        "04",
+        "05"
+      ],
+      "unique_values": [
+        "goal-deployment-automation,goal-horizontal-scaling",
+        "goal-id-1,goal-id-2",
+        "goal-product-catalog-accuracy,goal-mobile-app-launch",
+        "goal-system-reliability,goal-data-integrity"
+      ],
+      "instances": [
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-id-1,goal-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-id-1,goal-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-product-catalog-accuracy,goal-mobile-app-launch",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-id-1,goal-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-system-reliability,goal-data-integrity",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-deployment-automation,goal-horizontal-scaling",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "motivation-governed-by-principles": {
+      "link_type_name": "Governed By Principles",
+      "total_instances": 20,
+      "layers_used": [
+        "02",
+        "04",
+        "05"
+      ],
+      "unique_values": [
+        "principle-api-first,principle-security-by-design",
+        "principle-async-messaging,principle-event-driven-architecture",
+        "principle-cloud-native,principle-auto-scaling,principle-containerization",
+        "principle-cloud-native,principle-container-orchestration",
+        "principle-containerization,principle-immutable-infrastructure",
+        "principle-edge-caching,principle-low-latency",
+        "principle-encrypted-transit,principle-secure-connectivity",
+        "principle-high-availability,principle-data-durability",
+        "principle-high-performance,principle-reverse-proxy",
+        "principle-id-1,principle-id-2",
+        "principle-open-source-first,principle-acid-compliance",
+        "principle-open-source-first,principle-acid-compliance,principle-data-integrity",
+        "principle-serverless-first,principle-pay-per-use",
+        "principle-zero-trust,principle-network-segmentation,principle-defense-in-depth"
+      ],
+      "instances": [
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-api-first,principle-security-by-design",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-cloud-native,principle-auto-scaling,principle-containerization",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-high-availability,principle-data-durability",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-serverless-first,principle-pay-per-use",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-open-source-first,principle-acid-compliance,principle-data-integrity",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-containerization,principle-immutable-infrastructure",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-high-performance,principle-reverse-proxy",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-async-messaging,principle-event-driven-architecture",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-zero-trust,principle-network-segmentation,principle-defense-in-depth",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-encrypted-transit,principle-secure-connectivity",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-edge-caching,principle-low-latency",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-id-1,principle-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-open-source-first,principle-acid-compliance",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-cloud-native,principle-container-orchestration",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "data-governance-owner": {
+      "link_type_name": "Governance Owner",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "business-actor-id"
+      ],
+      "instances": [
+        {
+          "field_path": "data.governance-owner",
+          "value": "business-actor-id",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "archimate-application-represented-by-dataobject": {
+      "link_type_name": "Application Represented By Dataobject",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "data-object-id"
+      ],
+      "instances": [
+        {
+          "field_path": "application.represented-by-dataobject",
+          "value": "data-object-id",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "archimate-application-master-data-source": {
+      "link_type_name": "Application Master Data Source",
+      "total_instances": 1,
+      "layers_used": [
+        "02"
+      ],
+      "unique_values": [
+        "data-object-id"
+      ],
+      "instances": [
+        {
+          "field_path": "application.master-data-source",
+          "value": "data-object-id",
+          "source_layer": "02",
+          "source_element": null
+        }
+      ]
+    },
+    "motivation-fulfills-requirements": {
+      "link_type_name": "Fulfills Requirements",
+      "total_instances": 14,
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "unique_values": [
+        "req-acid-compliance,req-replication,req-backup-recovery",
+        "req-acid-transactions,req-encryption-at-rest,req-point-in-time-recovery",
+        "req-container-support,req-oci-compliance",
+        "req-encrypted-communication,req-ipsec-protocol",
+        "req-event-driven-processing,req-auto-scaling",
+        "req-global-distribution,req-sub-100ms-response",
+        "req-horizontal-scaling,req-99-95-availability,req-container-orchestration",
+        "req-message-persistence,req-message-ordering,req-delivery-guarantees",
+        "req-network-isolation,req-dmz-architecture,req-private-subnet-isolation",
+        "req-tls-termination,req-load-balancing,req-http2-support",
+        "requirement-id-1,requirement-id-2"
+      ],
+      "instances": [
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "requirement-id-1,requirement-id-2",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "requirement-id-1,requirement-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-horizontal-scaling,req-99-95-availability,req-container-orchestration",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-acid-compliance,req-replication,req-backup-recovery",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-event-driven-processing,req-auto-scaling",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "requirement-id-1,requirement-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-acid-transactions,req-encryption-at-rest,req-point-in-time-recovery",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-container-support,req-oci-compliance",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-tls-termination,req-load-balancing,req-http2-support",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-message-persistence,req-message-ordering,req-delivery-guarantees",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "requirement-id-1,requirement-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-network-isolation,req-dmz-architecture,req-private-subnet-isolation",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-encrypted-communication,req-ipsec-protocol",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-global-distribution,req-sub-100ms-response",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "apm-traced": {
+      "link_type_name": "Traced",
+      "total_instances": 2,
+      "layers_used": [
+        "04"
+      ],
+      "unique_values": [
+        "true",
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.traced",
+          "value": "true|false",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.traced",
+          "value": "true",
+          "source_layer": "04",
+          "source_element": null
+        }
+      ]
+    },
+    "apm-sla-target-latency": {
+      "link_type_name": "Sla Target Latency",
+      "total_instances": 3,
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "unique_values": [
+        "200ms",
+        "200ms|500ms|1000ms",
+        "5ms|10ms|50ms"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.sla-target-latency",
+          "value": "200ms|500ms|1000ms",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-latency",
+          "value": "200ms",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-latency",
+          "value": "5ms|10ms|50ms",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "apm-sla-target-availability": {
+      "link_type_name": "Sla Target Availability",
+      "total_instances": 5,
+      "layers_used": [
+        "04",
+        "05"
+      ],
+      "unique_values": [
+        "99.9%|99.95%|99.99%",
+        "99.95%",
+        "99.99%"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.9%|99.95%|99.99%",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.95%",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.9%|99.95%|99.99%",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.99%",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.95%",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "security-data-pii": {
+      "link_type_name": "Data Pii",
+      "total_instances": 1,
+      "layers_used": [
+        "04"
+      ],
+      "unique_values": [
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "data.pii",
+          "value": "true|false",
+          "source_layer": "04",
+          "source_element": null
+        }
+      ]
+    },
+    "data-retention": {
+      "link_type_name": "Retention",
+      "total_instances": 1,
+      "layers_used": [
+        "04"
+      ],
+      "unique_values": [
+        "90days|1year|7years"
+      ],
+      "instances": [
+        {
+          "field_path": "data.retention",
+          "value": "90days|1year|7years",
+          "source_layer": "04",
+          "source_element": null
+        }
+      ]
+    },
+    "motivation-constrained-by": {
+      "link_type_name": "Constrained By",
+      "total_instances": 14,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "constraint-amqp-protocol-required",
+        "constraint-aws-infrastructure,constraint-budget-500k",
+        "constraint-backup-retention-30days,constraint-disaster-recovery-sla",
+        "constraint-eu-data-residency,constraint-gdpr-compliance",
+        "constraint-gdpr-compliance,constraint-data-retention-7years",
+        "constraint-id-1,constraint-id-2",
+        "constraint-log-retention-90days",
+        "constraint-no-proprietary-databases",
+        "constraint-no-proprietary-licenses",
+        "constraint-no-proprietary-licenses,constraint-gdpr-compliance"
+      ],
+      "instances": [
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-id-1,constraint-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-aws-infrastructure,constraint-budget-500k",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-databases",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-id-1,constraint-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-licenses,constraint-gdpr-compliance",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-amqp-protocol-required",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-id-1,constraint-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-eu-data-residency,constraint-gdpr-compliance",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-id-1,constraint-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-licenses",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-id-1,constraint-id-2",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-gdpr-compliance,constraint-data-retention-7years",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-log-retention-90days",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-backup-retention-30days,constraint-disaster-recovery-sla",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "apm-health-monitored": {
+      "link_type_name": "Health Monitored",
+      "total_instances": 3,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "true",
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.health-monitored",
+          "value": "true|false",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.health-monitored",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.health-monitored",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "apm-health-check-endpoint": {
+      "link_type_name": "Health Check Endpoint",
+      "total_instances": 2,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "/healthz",
+        "/health|/readiness"
+      ],
+      "instances": [
+        {
+          "field_path": "apm.health-check-endpoint",
+          "value": "/health|/readiness",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.health-check-endpoint",
+          "value": "/healthz",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "security-encryption-required": {
+      "link_type_name": "Encryption Required",
+      "total_instances": 4,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "true",
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "security.encryption-required",
+          "value": "true|false",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-required",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-required",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-required",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "security-encryption-type": {
+      "link_type_name": "Encryption Type",
+      "total_instances": 3,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "at-rest",
+        "at-rest|in-transit|both|end-to-end",
+        "both"
+      ],
+      "instances": [
+        {
+          "field_path": "security.encryption-type",
+          "value": "at-rest|in-transit|both|end-to-end",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-type",
+          "value": "both",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-type",
+          "value": "at-rest",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "security-classification": {
+      "link_type_name": "Classification",
+      "total_instances": 5,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "confidential",
+        "internal",
+        "public|internal|confidential|restricted",
+        "restricted"
+      ],
+      "instances": [
+        {
+          "field_path": "security.classification",
+          "value": "public|internal|confidential|restricted",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "restricted",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "confidential",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "restricted",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    },
+    "security-pii": {
+      "link_type_name": "Pii",
+      "total_instances": 2,
+      "layers_used": [
+        "05"
+      ],
+      "unique_values": [
+        "true",
+        "true|false"
+      ],
+      "instances": [
+        {
+          "field_path": "security.pii",
+          "value": "true|false",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.pii",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        }
+      ]
+    }
+  },
+  "xml_relationships": [
+    {
+      "type": "Association",
+      "source": "product-manager",
+      "target": "mobile-goal",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Influence",
+      "source": "market-competition",
+      "target": "mobile-gap",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Influence",
+      "source": "mobile-gap",
+      "target": "mobile-goal",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Influence",
+      "source": "api-first",
+      "target": "ios-support",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Association",
+      "source": "ios-support",
+      "target": "budget-constraint",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "mobile-goal",
+      "target": "customer-value",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "app-launched",
+      "target": "mobile-goal",
+      "layer": "01",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "order-process",
+      "target": "order-service",
+      "layer": "02",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "Access",
+      "source": "order-process",
+      "target": "order-object",
+      "layer": "02",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "Serving",
+      "source": "order-service",
+      "target": "customer",
+      "layer": "02",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "Triggering",
+      "source": "order-received-event",
+      "target": "order-process",
+      "layer": "02",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "Serving",
+      "source": "customer-portal",
+      "target": "customer",
+      "layer": "02",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "product-api",
+      "target": "product-service",
+      "layer": "04",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "Access",
+      "source": "product-service",
+      "target": "product-data",
+      "layer": "04",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "Serving",
+      "source": "rest-interface",
+      "target": "product-api",
+      "layer": "04",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "Serving",
+      "source": "product-service",
+      "target": "product-ui",
+      "layer": "04",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "Triggering",
+      "source": "product-updated-event",
+      "target": "product-api",
+      "layer": "04",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "Assignment",
+      "source": "postgres",
+      "target": "postgres-cluster",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "k8s-cluster",
+      "target": "container-platform",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Realization",
+      "source": "postgres-cluster",
+      "target": "database-service",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Assignment",
+      "source": "product-db",
+      "target": "postgres-cluster",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Assignment",
+      "source": "customer-db",
+      "target": "postgres-cluster",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Association",
+      "source": "k8s-cluster",
+      "target": "vpc",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "Association",
+      "source": "postgres-cluster",
+      "target": "vpc",
+      "layer": "05",
+      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+    }
+  ]
+}

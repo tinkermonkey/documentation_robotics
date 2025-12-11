@@ -157,16 +157,25 @@
               "type": "object",
               "properties": {
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, technology selection principles"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 },
                 "constrained-by": {
-                  "type": "string",
-                  "description": "optional, budget, vendor, regulatory constraints"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/constrained-by"
+                    }
+                  ]
                 },
                 "fulfills-requirements": {
-                  "type": "string",
-                  "description": "optional, technical/non-functional requirements"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/fulfills-requirements"
+                    }
+                  ]
                 }
               }
             }
@@ -291,16 +300,25 @@
               "type": "object",
               "properties": {
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, software selection principles"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 },
                 "constrained-by": {
-                  "type": "string",
-                  "description": "optional, license, compliance constraints"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/constrained-by"
+                    }
+                  ]
                 },
                 "fulfills-requirements": {
-                  "type": "string",
-                  "description": "optional, security, compliance requirements"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/fulfills-requirements"
+                    }
+                  ]
                 }
               }
             }
@@ -515,16 +533,25 @@
               "type": "object",
               "properties": {
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, network architecture principles"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 },
                 "constrained-by": {
-                  "type": "string",
-                  "description": "optional, regulatory, data residency constraints"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/constrained-by"
+                    }
+                  ]
                 },
                 "fulfills-requirements": {
-                  "type": "string",
-                  "description": "optional, security, compliance requirements"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/fulfills-requirements"
+                    }
+                  ]
                 }
               }
             }
@@ -713,16 +740,25 @@
               "type": "object",
               "properties": {
                 "supports-goals": {
-                  "type": "string",
-                  "description": "optional, comma-separated Goal IDs this service supports"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/supports-goals"
+                    }
+                  ]
                 },
                 "governed-by-principles": {
-                  "type": "string",
-                  "description": "optional, comma-separated Principle IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
+                    }
+                  ]
                 },
                 "constrained-by": {
-                  "type": "string",
-                  "description": "optional, comma-separated Constraint IDs"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/constrained-by"
+                    }
+                  ]
                 }
               }
             },
@@ -839,8 +875,11 @@
               "type": "object",
               "properties": {
                 "constrained-by": {
-                  "type": "string",
-                  "description": "optional, retention, compliance constraints"
+                  "allOf": [
+                    {
+                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/constrained-by"
+                    }
+                  ]
                 }
               }
             }
@@ -860,6 +899,14 @@
           ]
         }
       }
+    }
+  },
+  "$defs": {
+    "relationships": {
+      "$ref": "common/relationships.schema.json#/definitions"
+    },
+    "predicates": {
+      "$ref": "common/predicates.schema.json#/definitions"
     }
   }
 }

@@ -1,0 +1,2243 @@
+{
+  "summary": {
+    "total_gaps": 221,
+    "critical_gaps": 0,
+    "high_priority_gaps": 5,
+    "inter_layer_gaps_count": 12,
+    "intra_layer_gaps_count": 0,
+    "semantic_gaps_count": 11,
+    "bidirectional_gaps_count": 39,
+    "element_coverage_gaps_count": 159
+  },
+  "inter_layer_gaps": [
+    {
+      "gap_type": "inter-layer",
+      "severity": "high",
+      "description": "Missing links from Layer 02 to Layer 01",
+      "affected_layers": [
+        "02",
+        "01"
+      ],
+      "recommendation": "Business should link to Motivation (goals, values)",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "high",
+      "description": "Missing links from Layer 04 to Layer 01",
+      "affected_layers": [
+        "04",
+        "01"
+      ],
+      "recommendation": "Application should link to Motivation (requirements, principles)",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "high",
+      "description": "Missing links from Layer 04 to Layer 02",
+      "affected_layers": [
+        "04",
+        "02"
+      ],
+      "recommendation": "Application should realize Business services",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 05 to Layer 04",
+      "affected_layers": [
+        "05",
+        "04"
+      ],
+      "recommendation": "Technology should serve Application",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "high",
+      "description": "Missing links from Layer 06 to Layer 04",
+      "affected_layers": [
+        "06",
+        "04"
+      ],
+      "recommendation": "API should reference Application services",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "high",
+      "description": "Missing links from Layer 06 to Layer 02",
+      "affected_layers": [
+        "06",
+        "02"
+      ],
+      "recommendation": "API should reference Business services/interfaces",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 07 to Layer 02",
+      "affected_layers": [
+        "07",
+        "02"
+      ],
+      "recommendation": "Data Model should represent Business objects",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 09 to Layer 02",
+      "affected_layers": [
+        "09",
+        "02"
+      ],
+      "recommendation": "UX should support Business processes",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 10 to Layer 09",
+      "affected_layers": [
+        "10",
+        "09"
+      ],
+      "recommendation": "Navigation should link to UX experiences",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 11 to Layer 02",
+      "affected_layers": [
+        "11",
+        "02"
+      ],
+      "recommendation": "APM should track Business metrics",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 11 to Layer 04",
+      "affected_layers": [
+        "11",
+        "04"
+      ],
+      "recommendation": "APM should monitor Application services",
+      "examples": []
+    },
+    {
+      "gap_type": "inter-layer",
+      "severity": "medium",
+      "description": "Missing links from Layer 12 to Layer 04",
+      "affected_layers": [
+        "12",
+        "04"
+      ],
+      "recommendation": "Testing should test Application components",
+      "examples": []
+    }
+  ],
+  "intra_layer_gaps": [],
+  "semantic_gaps": [
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 02 mentions 'contains' but may lack formal relationship",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Consider formalizing 'contains' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 03 mentions 'depends on' but may lack formal relationship",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Consider formalizing 'depends on' as a dependency relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 04 mentions 'part of' but may lack formal relationship",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Consider formalizing 'part of' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 05 mentions 'contains' but may lack formal relationship",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Consider formalizing 'contains' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 06 mentions 'depends on' but may lack formal relationship",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Consider formalizing 'depends on' as a dependency relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 07 mentions 'extends' but may lack formal relationship",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Consider formalizing 'extends' as a specialization relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 08 mentions 'contains' but may lack formal relationship",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Consider formalizing 'contains' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 09 mentions 'extends' but may lack formal relationship",
+      "affected_layers": [
+        "09"
+      ],
+      "recommendation": "Consider formalizing 'extends' as a specialization relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 10 mentions 'contains' but may lack formal relationship",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Consider formalizing 'contains' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 11 mentions 'contains' but may lack formal relationship",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Consider formalizing 'contains' as a composition relationship",
+      "examples": []
+    },
+    {
+      "gap_type": "semantic",
+      "severity": "low",
+      "description": "Layer 12 mentions 'depends on' but may lack formal relationship",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Consider formalizing 'depends on' as a dependency relationship",
+      "examples": []
+    }
+  ],
+  "bidirectional_gaps": [
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-criticality' lacks inverse 'apm-criticality-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-criticality-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-criticality"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'health-check-endpoint' lacks inverse 'health-check-endpoint-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'health-check-endpoint-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-health-check-endpoint"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'health-monitored' lacks inverse 'health-monitored-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'health-monitored-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-health-monitored"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'sla-target-availability' lacks inverse 'sla-target-availability-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'sla-target-availability-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-sla-target-availability"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-sla-target-availability' lacks inverse 'apm-sla-target-availability-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-sla-target-availability-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-sla-target-availability"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'sla-target-latency' lacks inverse 'sla-target-latency-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'sla-target-latency-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-sla-target-latency"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-sla-target-latency' lacks inverse 'apm-sla-target-latency-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-sla-target-latency-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-sla-target-latency"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-trace' lacks inverse 'apm-trace-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-trace-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-trace"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'traced' lacks inverse 'traced-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'traced-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: apm-traced"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'master-data-source' lacks inverse 'master-data-source-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'master-data-source-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: archimate-application-master-data-source"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'process-steps' lacks inverse 'process-steps-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'process-steps-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: archimate-application-process-steps"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'realized-by-process' lacks inverse 'realized-by-process-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'realized-by-process-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: archimate-application-realized-by-process"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'represented-by-dataobject' lacks inverse 'represented-by-dataobject-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'represented-by-dataobject-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: archimate-application-represented-by-dataobject"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'archimate-ref' lacks inverse 'archimate-ref-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'archimate-ref-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: archimate-ref"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'business-metrics' lacks inverse 'business-metrics-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'business-metrics-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: business-apm-business-metrics"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-business-metrics' lacks inverse 'apm-business-metrics-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-business-metrics-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: business-apm-business-metrics"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'business-interface-ref' lacks inverse 'business-interface-ref-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'business-interface-ref-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: business-interface-ref"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'business-object-ref' lacks inverse 'business-object-ref-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'business-object-ref-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: business-object-ref"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'business-service-ref' lacks inverse 'business-service-ref-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'business-service-ref-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: business-service-ref"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'apm-data-quality-metrics' lacks inverse 'apm-data-quality-metrics-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'apm-data-quality-metrics-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: data-apm-data-quality-metrics"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'data-governance' lacks inverse 'data-governance-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'data-governance-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: data-governance"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'governance-owner' lacks inverse 'governance-owner-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'governance-owner-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: data-governance-owner"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'retention' lacks inverse 'retention-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'retention-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: data-retention"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'database' lacks inverse 'database-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'database-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: database"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'database-column' lacks inverse 'database-column-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'database-column-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: database-column"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'database-table' lacks inverse 'database-table-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'database-table-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: database-table"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'delivers-value' lacks inverse 'delivers-value-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'delivers-value-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: motivation-delivers-value"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'fulfills-requirements' lacks inverse 'fulfills-requirements-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'fulfills-requirements-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: motivation-fulfills-requirements, motivation-fulfills-requirements"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'governed-by-principles' lacks inverse 'governed-by-principles-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'governed-by-principles-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: motivation-governed-by-principles, motivation-governed-by-principles"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'supports-goals' lacks inverse 'supports-goals-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'supports-goals-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: motivation-supports-goals, motivation-supports-goals"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'classification' lacks inverse 'classification-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'classification-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-classification"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'pii' lacks inverse 'pii-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'pii-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-data-pii, security-pii, security-pii"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'encrypted' lacks inverse 'encrypted-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'encrypted-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-encrypted"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'encryption-required' lacks inverse 'encryption-required-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'encryption-required-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-encryption-required"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'encryption-type' lacks inverse 'encryption-type-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'encryption-type-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-encryption-type"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'security-controls' lacks inverse 'security-controls-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'security-controls-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-process-security-controls"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'separation-of-duty' lacks inverse 'separation-of-duty-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'separation-of-duty-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-process-separation-of-duty"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'required-permissions' lacks inverse 'required-permissions-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'required-permissions-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-required-permissions"
+      ]
+    },
+    {
+      "gap_type": "bidirectional",
+      "severity": "medium",
+      "description": "Predicate 'security-resource' lacks inverse 'security-resource-by'",
+      "affected_layers": [],
+      "recommendation": "Add inverse relationship 'security-resource-by' for bidirectional navigation",
+      "examples": [
+        "Link IDs using this: security-resource"
+      ]
+    }
+  ],
+  "element_coverage_gaps": [
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Requirement in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Requirement relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Driver in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Driver relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Goal in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Goal relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Principle in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Principle relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Meaning in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Meaning relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Value in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Value relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Constraint in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Constraint relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Outcome in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Outcome relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Stakeholder in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Stakeholder relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Assessment in Layer 01 has no documented links",
+      "affected_layers": [
+        "01"
+      ],
+      "recommendation": "Document how Assessment relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessObject in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessObject relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Representation in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how Representation relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessFunction in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessFunction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessService in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessService relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Observability in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how Observability relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessCollaboration in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessCollaboration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessRole in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessRole relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Product in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how Product relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessEvent in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessEvent relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessActor in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessActor relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Contract in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how Contract relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessInterface in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessInterface relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessProcess in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessProcess relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BusinessInteraction in Layer 02 has no documented links",
+      "affected_layers": [
+        "02"
+      ],
+      "recommendation": "Document how BusinessInteraction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Condition in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how Condition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ActorDependency in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how ActorDependency relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Permission in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how Permission relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InformationRight in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how InformationRight relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PolicyAction in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how PolicyAction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SecurityPolicy in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how SecurityPolicy relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "AuditConfig in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how AuditConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SecurityModel in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how SecurityModel relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ValidationRule in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how ValidationRule relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Countermeasure in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how Countermeasure relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "FieldAccessControl in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how FieldAccessControl relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "RetentionPolicy in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how RetentionPolicy relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ResourceOperation in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how ResourceOperation relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "AccessCondition in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how AccessCondition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "RateLimit in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how RateLimit relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Evidence in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how Evidence relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "AuthenticationConfig in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how AuthenticationConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Role in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how Role relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PolicyRule in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how PolicyRule relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataClassification in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how DataClassification relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ActorObjective in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how ActorObjective relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PasswordPolicy in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how PasswordPolicy relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SecureResource in Layer 03 has no documented links",
+      "affected_layers": [
+        "03"
+      ],
+      "recommendation": "Document how SecureResource relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationInterface in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationInterface relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationEvent in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationEvent relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationInteraction in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationInteraction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationCollaboration in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationCollaboration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataObject in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how DataObject relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationComponent in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationComponent relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationFunction in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationFunction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationService in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationService relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ApplicationProcess in Layer 04 has no documented links",
+      "affected_layers": [
+        "04"
+      ],
+      "recommendation": "Document how ApplicationProcess relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Artifact in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how Artifact relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyCollaboration in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyCollaboration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Node in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how Node relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Path in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how Path relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyEvent in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyEvent relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SystemSoftware in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how SystemSoftware relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyInterface in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyInterface relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyProcess in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyProcess relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyService in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyService relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Device in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how Device relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyFunction in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyFunction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "CommunicationNetwork in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how CommunicationNetwork relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TechnologyInteraction in Layer 05 has no documented links",
+      "affected_layers": [
+        "05"
+      ],
+      "recommendation": "Document how TechnologyInteraction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Responses in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Responses relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "OAuthFlows in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how OAuthFlows relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Header in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Header relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Link in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Link relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "OpenAPIDocument in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how OpenAPIDocument relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Parameter in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Parameter relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Encoding in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Encoding relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SecurityScheme in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how SecurityScheme relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "RequestBody in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how RequestBody relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Paths in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Paths relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Info in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Info relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "MediaType in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how MediaType relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "License in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how License relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ExternalDocumentation in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how ExternalDocumentation relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Components in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Components relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Callback in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Callback relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Response in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Response relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Contact in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Contact relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Operation in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Operation relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Example in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Example relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PathItem in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how PathItem relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Server in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Server relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Schema in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Schema relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Tag in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how Tag relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ServerVariable in Layer 06 has no documented links",
+      "affected_layers": [
+        "06"
+      ],
+      "recommendation": "Document how ServerVariable relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SchemaProperty in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how SchemaProperty relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SchemaDefinition in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how SchemaDefinition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataQualityMetrics in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how DataQualityMetrics relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "JSONSchema in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how JSONSchema relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DatabaseMapping in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how DatabaseMapping relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataGovernance in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how DataGovernance relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "References in Layer 07 has no documented links",
+      "affected_layers": [
+        "07"
+      ],
+      "recommendation": "Document how References relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Sequence in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Sequence relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Table in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Table relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Index in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Index relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Function in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Function relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "View in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how View relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Database in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Database relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Trigger in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Trigger relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Constraint in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Constraint relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Column in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how Column relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DatabaseSchema in Layer 08 has no documented links",
+      "affected_layers": [
+        "08"
+      ],
+      "recommendation": "Document how DatabaseSchema relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Route in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how Route relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "GuardCondition in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how GuardCondition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "NavigationTransition in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how NavigationTransition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "BreadcrumbConfig in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how BreadcrumbConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ContextVariable in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how ContextVariable relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataMapping in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how DataMapping relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "FlowAnalytics in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how FlowAnalytics relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "NotificationAction in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how NotificationAction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "FlowStep in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how FlowStep relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "GuardAction in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how GuardAction relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "RouteMeta in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how RouteMeta relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ProcessTracking in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how ProcessTracking relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "NavigationGraph in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how NavigationGraph relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "NavigationFlow in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how NavigationFlow relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "NavigationGuard in Layer 10 has no documented links",
+      "affected_layers": [
+        "10"
+      ],
+      "recommendation": "Document how NavigationGuard relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Resource in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how Resource relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SpanEvent in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how SpanEvent relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Span in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how Span relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "MetricInstrument in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how MetricInstrument relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SpanLink in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how SpanLink relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "LogRecord in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how LogRecord relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "LogProcessor in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how LogProcessor relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "Attribute in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how Attribute relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "APMConfiguration in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how APMConfiguration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "DataQualityMetrics in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how DataQualityMetrics relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "SpanStatus in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how SpanStatus relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "LogConfiguration in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how LogConfiguration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "MetricConfiguration in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how MetricConfiguration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InstrumentationScope in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how InstrumentationScope relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TraceConfiguration in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how TraceConfiguration relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ExporterConfig in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how ExporterConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "MeterConfig in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how MeterConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InstrumentationConfig in Layer 11 has no documented links",
+      "affected_layers": [
+        "11"
+      ],
+      "recommendation": "Document how InstrumentationConfig relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "CoverageRequirement in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how CoverageRequirement relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InputSelection in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how InputSelection relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "EnvironmentFactor in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how EnvironmentFactor relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "CoverageExclusion in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how CoverageExclusion relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TestCoverageModel in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how TestCoverageModel relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "ContextVariation in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how ContextVariation relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TestCaseSketch in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how TestCaseSketch relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PartitionValue in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how PartitionValue relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "OutcomeCategory in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how OutcomeCategory relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InputPartitionSelection in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how InputPartitionSelection relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "InputSpacePartition in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how InputSpacePartition relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "CoverageSummary in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how CoverageSummary relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TargetInputField in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how TargetInputField relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "PartitionDependency in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how PartitionDependency relates to other elements",
+      "examples": []
+    },
+    {
+      "gap_type": "element-coverage",
+      "severity": "low",
+      "description": "TestCoverageTarget in Layer 12 has no documented links",
+      "affected_layers": [
+        "12"
+      ],
+      "recommendation": "Document how TestCoverageTarget relates to other elements",
+      "examples": []
+    }
+  ]
+}
