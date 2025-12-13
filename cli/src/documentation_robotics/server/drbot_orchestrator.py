@@ -3,13 +3,12 @@ DrBot Orchestrator - Claude-native intent routing for DR model interaction.
 
 DrBot uses Claude's reasoning for all decisions, with access to:
 1. DR CLI tools for read operations (dr find, dr list, dr search, dr trace)
-2. Delegation to dr-architect for model modifications
+2. Delegation to dr-architect for model modifications via SDK agents
 """
 
 import asyncio
 import json
-import os
-import subprocess
+import yaml
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
@@ -53,19 +52,19 @@ DRBOT_SYSTEM_PROMPT = """You are DrBot, an expert conversational assistant for D
 
 ## Your Expertise
 
-You understand the **full 12-layer DR architecture**:
-1. Motivation (goals, principles, requirements, constraints)
-2. Business (capabilities, processes, services, actors)
-3. Security (actors, roles, policies, threats)
-4. Application (components, services, interfaces, events)
-5. Technology (platforms, frameworks, infrastructure)
-6. API (OpenAPI 3.0.3 specs - 26 entity types)
-7. Data Model (JSON Schema Draft 7 - 17 entity types)
-8. Datastore (SQL DDL - 10 entity types)
-9. UX (Three-Tier Architecture - 26 entity types)
-10. Navigation (Multi-Modal routing - 10 entity types)
-11. APM (OpenTelemetry 1.0+ - 14 entity types)
-12. Testing (ISP Coverage Model - 17 entity types)
+You understand the **full 12-layer DR architecture** (note that layers are numbered 00-10, plus 12 for Testing):
+1. Motivation (Layer 00) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 01) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 02) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 03) - HOW: components, services, interfaces, events
+5. Technology (Layer 04) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 05) - CONTRACTS: OpenAPI 3.0.3 specs (26 entity types)
+7. Data Model (Layer 06) - STRUCTURE: JSON Schema Draft 7 (17 entity types)
+8. Datastore (Layer 07) - PERSISTENCE: SQL DDL (10 entity types)
+9. UX (Layer 08) - EXPERIENCE: Three-Tier Architecture (26 entity types)
+10. Navigation (Layer 09) - FLOW: Multi-Modal routing (10 entity types)
+11. APM (Layer 10) - OBSERVE: OpenTelemetry 1.0+ (14 entity types)
+12. Testing (Layer 12) - VERIFY: ISP Coverage Model (17 entity types)
 
 ## Your Tools
 
@@ -114,16 +113,24 @@ You have access to tools that:
 class DrBotOrchestrator:
     """DrBot uses Claude directly for all decision-making."""
 
-    def __init__(self, model_path: Path, timeout: int = 120):
+    def __init__(
+        self,
+        model_path: Path,
+        timeout: int = 120,
+        agents_dir: Optional[Path] = None,
+    ):
         """
         Initialize DrBot orchestrator.
 
         Args:
             model_path: Path to the DR model directory
             timeout: Timeout in seconds for agent operations
+            agents_dir: Optional path to agents directory; if None, uses default
+                       location relative to model_path
         """
         self.model_path = Path(model_path)
         self.timeout = timeout
+        self.agents_dir = agents_dir
 
     async def handle_message(
         self,
@@ -221,8 +228,24 @@ class DrBotOrchestrator:
 
         return "".join(prompt_parts)
 
-    def _create_dr_list_tool(self) -> Dict[str, Any]:
+    def _create_dr_list_tool(self) -> Any:
         """Create tool wrapper for 'dr list' command."""
+
+        # Valid DR layer names (based on layer file names in spec/)
+        VALID_LAYERS = [
+            "motivation",
+            "business",
+            "security",
+            "application",
+            "technology",
+            "api",
+            "data_model",
+            "datastore",
+            "ux",
+            "navigation",
+            "apm",
+            "testing",
+        ]
 
         async def dr_list_impl(layer: str, element_type: str = "") -> str:
             """
@@ -230,11 +253,22 @@ class DrBotOrchestrator:
 
             Args:
                 layer: The DR layer (e.g., 'api', 'business', 'application')
+                       Valid layers: motivation, business, security, application,
+                       technology, api, data_model, datastore, ux, navigation, apm, testing
                 element_type: Optional element type (e.g., 'service', 'operation')
 
             Returns:
                 JSON string with list of elements
             """
+            # Validate layer name
+            if layer not in VALID_LAYERS:
+                return json.dumps(
+                    {
+                        "error": f"Invalid layer: {layer}. Valid layers: {', '.join(VALID_LAYERS)}",
+                        "valid_layers": VALID_LAYERS,
+                    }
+                )
+
             cmd_parts = ["dr", "list", layer]
             if element_type:
                 cmd_parts.append(element_type)
@@ -247,12 +281,15 @@ class DrBotOrchestrator:
             name="dr_list",
             description=(
                 "List all elements of a specific type in a DR layer. "
-                "Use this to see what elements exist in a layer."
+                "Use this to see what elements exist in a layer. "
+                f"Valid layers: {', '.join(VALID_LAYERS)}"
             ),
             parameters={
                 "layer": {
                     "type": "string",
-                    "description": "The DR layer name (e.g., 'api', 'business', 'application')",
+                    "description": (
+                        f"The DR layer name. Must be one of: {', '.join(VALID_LAYERS)}"
+                    ),
                 },
                 "element_type": {
                     "type": "string",
@@ -261,7 +298,7 @@ class DrBotOrchestrator:
             },
         )(dr_list_impl)
 
-    def _create_dr_find_tool(self) -> Dict[str, Any]:
+    def _create_dr_find_tool(self) -> Any:
         """Create tool wrapper for 'dr find' command."""
 
         async def dr_find_impl(element_id: str) -> str:
@@ -292,7 +329,7 @@ class DrBotOrchestrator:
             },
         )(dr_find_impl)
 
-    def _create_dr_search_tool(self) -> Dict[str, Any]:
+    def _create_dr_search_tool(self) -> Any:
         """Create tool wrapper for 'dr search' command."""
 
         async def dr_search_impl(pattern: str) -> str:
@@ -323,7 +360,7 @@ class DrBotOrchestrator:
             },
         )(dr_search_impl)
 
-    def _create_dr_trace_tool(self) -> Dict[str, Any]:
+    def _create_dr_trace_tool(self) -> Any:
         """Create tool wrapper for 'dr trace' command."""
 
         async def dr_trace_impl(element_id: str) -> str:
@@ -354,7 +391,7 @@ class DrBotOrchestrator:
             },
         )(dr_trace_impl)
 
-    def _create_dr_architect_tool(self) -> Dict[str, Any]:
+    def _create_dr_architect_tool(self) -> Any:
         """Create tool that delegates to dr-architect agent."""
 
         async def delegate_to_architect_impl(task_description: str) -> str:
@@ -370,9 +407,61 @@ class DrBotOrchestrator:
             Returns:
                 Summary of what dr-architect accomplished
             """
-            # This will be handled by the agents configuration in ClaudeAgentOptions
-            # The SDK will spawn dr-architect as a subagent
-            return f"Delegating to dr-architect: {task_description}"
+            if not HAS_SDK:
+                return json.dumps(
+                    {
+                        "error": "Claude Agent SDK not available. Cannot delegate to dr-architect.",
+                        "task": task_description,
+                    }
+                )
+
+            # Use SDK's query function to invoke the dr-architect subagent
+            try:
+                # Build the prompt for dr-architect
+                prompt = f"Please help with the following modeling task: {task_description}"
+
+                # Query the dr-architect agent
+                responses = []
+                async for message in query(
+                    prompt=prompt,
+                    options=ClaudeAgentOptions(
+                        system_prompt=self._load_dr_architect_prompt(),
+                        tools=["Bash", "Read", "Edit", "Write", "Glob", "Grep"],
+                        cwd=str(self.model_path),
+                        permission_mode="acceptEdits",
+                    ),
+                ):
+                    # Collect text responses from the agent
+                    if hasattr(message, "content"):
+                        for block in message.content:
+                            if hasattr(block, "text"):
+                                responses.append(block.text)
+
+                # Return aggregated response
+                if responses:
+                    return json.dumps(
+                        {
+                            "success": True,
+                            "task": task_description,
+                            "result": "\n".join(responses),
+                        }
+                    )
+                else:
+                    return json.dumps(
+                        {
+                            "success": True,
+                            "task": task_description,
+                            "result": "dr-architect completed the task",
+                        }
+                    )
+
+            except Exception as e:
+                return json.dumps(
+                    {
+                        "error": f"Failed to delegate to dr-architect: {str(e)}",
+                        "task": task_description,
+                    }
+                )
 
         return tool(
             name="delegate_to_architect",
@@ -463,7 +552,13 @@ class DrBotOrchestrator:
         Returns:
             The dr-architect agent prompt content
         """
-        # Try to find dr-architect.md in the project
+        # Try custom agents_dir first if provided
+        if self.agents_dir:
+            custom_path = self.agents_dir / "dr-architect.md"
+            if custom_path.exists():
+                return custom_path.read_text()
+
+        # Try default location relative to model_path
         integration_path = (
             self.model_path.parent.parent
             / "src"
@@ -504,8 +599,6 @@ Always validate after changes and explain what you're doing."""
         manifest_path = self.model_path / ".dr" / "manifest.yaml"
         if manifest_path.exists():
             try:
-                import yaml
-
                 with open(manifest_path) as f:
                     context["manifest"] = yaml.safe_load(f)
             except Exception:

@@ -238,8 +238,6 @@ class TestDrBotOrchestrator:
         model_path = tmp_path / "test_model"
         model_path.mkdir()
 
-        orchestrator = DrBotOrchestrator(model_path)
-
         # Create mock dr-architect.md
         integration_path = (
             model_path.parent.parent
@@ -252,10 +250,28 @@ class TestDrBotOrchestrator:
         architect_file = integration_path / "dr-architect.md"
         architect_file.write_text("# Custom DR Architect Prompt\nTest content")
 
+        orchestrator = DrBotOrchestrator(model_path)
         prompt = orchestrator._load_dr_architect_prompt()
 
         assert "Custom DR Architect Prompt" in prompt
         assert "Test content" in prompt
+
+    def test_load_dr_architect_prompt_custom_dir(self, tmp_path):
+        """Test loading dr-architect prompt from custom agents_dir."""
+        model_path = tmp_path / "test_model"
+        model_path.mkdir()
+
+        # Create custom agents directory
+        custom_agents_dir = tmp_path / "custom_agents"
+        custom_agents_dir.mkdir()
+        architect_file = custom_agents_dir / "dr-architect.md"
+        architect_file.write_text("# Custom Agents Dir Prompt\nCustom content")
+
+        orchestrator = DrBotOrchestrator(model_path, agents_dir=custom_agents_dir)
+        prompt = orchestrator._load_dr_architect_prompt()
+
+        assert "Custom Agents Dir Prompt" in prompt
+        assert "Custom content" in prompt
 
     def test_load_dr_architect_prompt_fallback(self, tmp_path):
         """Test fallback prompt when dr-architect.md doesn't exist."""
@@ -315,6 +331,147 @@ class TestDrBotOrchestrator:
 
         # Check tool was created
         assert tool_def is not None
+
+    @pytest.mark.asyncio
+    async def test_dr_list_tool_end_to_end(self, mock_model_path):
+        """Test dr_list tool executes CLI command correctly."""
+        orchestrator = DrBotOrchestrator(mock_model_path)
+        tool_func = orchestrator._create_dr_list_tool()
+
+        # Mock subprocess
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate.return_value = (
+            b'[{"id": "business.service.orders"}]',
+            b"",
+        )
+
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc
+        ) as mock_exec:
+            # Get the actual implementation function
+            if HAS_SDK:
+                # Tool decorator returns the function directly when SDK is available
+                result = await tool_func("business", "service")
+            else:
+                # Without SDK, tool() is a passthrough
+                result = await tool_func("business", "service")
+
+            # Verify CLI command was called correctly
+            mock_exec.assert_called_once()
+            args = mock_exec.call_args[0]
+            assert args == ("dr", "list", "business", "service", "--output", "json")
+
+            # Verify result
+            result_data = json.loads(result)
+            assert result_data[0]["id"] == "business.service.orders"
+
+    @pytest.mark.asyncio
+    async def test_dr_list_tool_invalid_layer(self, mock_model_path):
+        """Test dr_list tool rejects invalid layer names."""
+        orchestrator = DrBotOrchestrator(mock_model_path)
+        tool_func = orchestrator._create_dr_list_tool()
+
+        # Call with invalid layer
+        if HAS_SDK:
+            result = await tool_func("invalid_layer")
+        else:
+            result = await tool_func("invalid_layer")
+
+        result_data = json.loads(result)
+        assert "error" in result_data
+        assert "Invalid layer" in result_data["error"]
+        assert "valid_layers" in result_data
+
+    @pytest.mark.asyncio
+    async def test_dr_find_tool_end_to_end(self, mock_model_path):
+        """Test dr_find tool executes CLI command correctly."""
+        orchestrator = DrBotOrchestrator(mock_model_path)
+        tool_func = orchestrator._create_dr_find_tool()
+
+        # Mock subprocess
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate.return_value = (
+            b'{"id": "business.service.orders", "name": "Orders"}',
+            b"",
+        )
+
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc
+        ) as mock_exec:
+            if HAS_SDK:
+                result = await tool_func("business.service.orders")
+            else:
+                result = await tool_func("business.service.orders")
+
+            # Verify CLI command
+            args = mock_exec.call_args[0]
+            assert args == ("dr", "find", "business.service.orders", "--output", "json")
+
+            # Verify result
+            result_data = json.loads(result)
+            assert result_data["id"] == "business.service.orders"
+
+    @pytest.mark.asyncio
+    async def test_dr_search_tool_end_to_end(self, mock_model_path):
+        """Test dr_search tool executes CLI command correctly."""
+        orchestrator = DrBotOrchestrator(mock_model_path)
+        tool_func = orchestrator._create_dr_search_tool()
+
+        # Mock subprocess
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate.return_value = (
+            b'[{"id": "business.service.orders", "matches": ["order"]}]',
+            b"",
+        )
+
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc
+        ) as mock_exec:
+            if HAS_SDK:
+                result = await tool_func("order")
+            else:
+                result = await tool_func("order")
+
+            # Verify CLI command
+            args = mock_exec.call_args[0]
+            assert args == ("dr", "search", "order", "--output", "json")
+
+            # Verify result
+            result_data = json.loads(result)
+            assert len(result_data) > 0
+
+    @pytest.mark.asyncio
+    async def test_dr_trace_tool_end_to_end(self, mock_model_path):
+        """Test dr_trace tool executes CLI command correctly."""
+        orchestrator = DrBotOrchestrator(mock_model_path)
+        tool_func = orchestrator._create_dr_trace_tool()
+
+        # Mock subprocess
+        mock_proc = AsyncMock()
+        mock_proc.returncode = 0
+        mock_proc.communicate.return_value = (
+            b'{"element": "api.operation.create-order", "dependencies": []}',
+            b"",
+        )
+
+        with patch(
+            "asyncio.create_subprocess_exec", return_value=mock_proc
+        ) as mock_exec:
+            if HAS_SDK:
+                result = await tool_func("api.operation.create-order")
+            else:
+                result = await tool_func("api.operation.create-order")
+
+            # Verify CLI command
+            args = mock_exec.call_args[0]
+            assert args == ("dr", "trace", "api.operation.create-order", "--output", "json")
+
+            # Verify result
+            result_data = json.loads(result)
+            assert result_data["element"] == "api.operation.create-order"
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(not HAS_SDK, reason="Claude Agent SDK not installed")
