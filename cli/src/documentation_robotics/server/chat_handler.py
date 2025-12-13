@@ -3,6 +3,7 @@ Chat handler for DrBot WebSocket integration.
 
 Handles JSON-RPC 2.0 chat messages and integrates with Claude Agent SDK.
 """
+
 import asyncio
 import json
 from pathlib import Path
@@ -152,9 +153,7 @@ class ChatHandler:
 
         # Create and store the task
         task = asyncio.create_task(
-            self._process_chat_query(
-                ws, session, user_message, request_id, conversation_id
-            )
+            self._process_chat_query(ws, session, user_message, request_id, conversation_id)
         )
         session.active_task = task
 
@@ -162,9 +161,7 @@ class ChatHandler:
             await asyncio.wait_for(task, timeout=self.RESPONSE_TIMEOUT)
         except asyncio.TimeoutError:
             await ws.send_json(
-                create_chat_error(
-                    request_id, ChatErrorCodes.INTERNAL_ERROR, "Request timed out"
-                )
+                create_chat_error(request_id, ChatErrorCodes.INTERNAL_ERROR, "Request timed out")
             )
         except asyncio.CancelledError:
             await ws.send_json(
@@ -201,16 +198,6 @@ class ChatHandler:
             ToolUseBlock,
             query,
         )
-
-        # Build model context
-        model_context = {}
-        if self.model_context_provider:
-            try:
-                model_context = self.model_context_provider()
-            except Exception as e:
-                console.print(
-                    f"[yellow]Warning: Could not get model context: {e}[/yellow]"
-                )
 
         # Configure SDK options (DrBot orchestrator config)
         # Claude will decide which tools to use based on the user's message

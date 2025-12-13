@@ -1,8 +1,8 @@
 """Unit tests for chat session management."""
+
 import asyncio
 
 import pytest
-
 from documentation_robotics.server.chat_session import ChatMessage, ChatSession, SessionManager
 
 
@@ -72,7 +72,10 @@ class TestChatSession:
         # Should only keep the last MAX_HISTORY_MESSAGES
         assert len(session.conversation_history) == ChatSession.MAX_HISTORY_MESSAGES
         # Verify we kept the most recent ones
-        assert session.conversation_history[-1].content == f"Message {ChatSession.MAX_HISTORY_MESSAGES + 9}"
+        assert (
+            session.conversation_history[-1].content
+            == f"Message {ChatSession.MAX_HISTORY_MESSAGES + 9}"
+        )
 
     def test_get_conversation_for_sdk(self):
         """Test formatting conversation for SDK context."""

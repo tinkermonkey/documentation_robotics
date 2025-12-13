@@ -1,4 +1,5 @@
 """Unit tests for chat handler."""
+
 import asyncio
 import json
 from pathlib import Path
@@ -6,7 +7,6 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from aiohttp import web
-
 from documentation_robotics.server.chat_handler import ChatHandler
 from documentation_robotics.server.chat_protocol import ChatErrorCodes
 from documentation_robotics.server.chat_session import ChatSession
@@ -44,7 +44,9 @@ class TestChatHandler:
 
     def test_sdk_status_cached(self, chat_handler):
         """Test that SDK status is cached."""
-        with patch("documentation_robotics.server.chat_handler.detect_claude_agent_sdk") as mock_detect:
+        with patch(
+            "documentation_robotics.server.chat_handler.detect_claude_agent_sdk"
+        ) as mock_detect:
             mock_detect.return_value = SDKStatus(available=True, version="1.0.0")
 
             # First call
@@ -94,9 +96,7 @@ class TestChatHandler:
     async def test_handle_chat_send_sdk_unavailable(self, chat_handler, mock_ws, test_session):
         """Test chat.send when SDK is unavailable."""
         # Mock SDK as unavailable
-        chat_handler._sdk_status = SDKStatus(
-            available=False, error="SDK not installed"
-        )
+        chat_handler._sdk_status = SDKStatus(available=False, error="SDK not installed")
 
         message = json.dumps(
             {
@@ -134,15 +134,14 @@ class TestChatHandler:
     @pytest.mark.asyncio
     async def test_handle_chat_cancel(self, chat_handler, mock_ws, test_session):
         """Test chat.cancel method."""
+
         # Setup an active task
         async def dummy_task():
             await asyncio.sleep(10)
 
         test_session.active_task = asyncio.create_task(dummy_task())
 
-        message = json.dumps(
-            {"jsonrpc": "2.0", "method": "chat.cancel", "params": {}, "id": "1"}
-        )
+        message = json.dumps({"jsonrpc": "2.0", "method": "chat.cancel", "params": {}, "id": "1"})
 
         await chat_handler.handle_message(mock_ws, message, test_session)
 
@@ -156,9 +155,7 @@ class TestChatHandler:
         """Test chat.status method."""
         chat_handler._sdk_status = SDKStatus(available=True, version="1.0.0")
 
-        message = json.dumps(
-            {"jsonrpc": "2.0", "method": "chat.status", "params": {}, "id": "1"}
-        )
+        message = json.dumps({"jsonrpc": "2.0", "method": "chat.status", "params": {}, "id": "1"})
 
         await chat_handler.handle_message(mock_ws, message, test_session)
 
@@ -173,7 +170,7 @@ class TestChatHandler:
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         not __import__("importlib").util.find_spec("claude_agent_sdk"),
-        reason="claude_agent_sdk not installed"
+        reason="claude_agent_sdk not installed",
     )
     async def test_process_chat_query_timeout(self, chat_handler, mock_ws, test_session):
         """Test that long queries timeout correctly."""
@@ -202,8 +199,7 @@ class TestChatHandler:
 
             # Should send timeout error
             error_calls = [
-                call for call in mock_ws.send_json.call_args_list
-                if "error" in call[0][0]
+                call for call in mock_ws.send_json.call_args_list if "error" in call[0][0]
             ]
             assert len(error_calls) > 0
             assert error_calls[-1][0][0]["error"]["code"] == ChatErrorCodes.INTERNAL_ERROR
@@ -211,7 +207,7 @@ class TestChatHandler:
     @pytest.mark.asyncio
     @pytest.mark.skipif(
         not __import__("importlib").util.find_spec("claude_agent_sdk"),
-        reason="claude_agent_sdk not installed"
+        reason="claude_agent_sdk not installed",
     )
     async def test_cancels_previous_task(self, chat_handler, mock_ws, test_session):
         """Test that new requests cancel previous tasks."""

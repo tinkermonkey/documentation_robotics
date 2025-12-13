@@ -44,7 +44,10 @@
       "WebFetch(domain:lbugdb.github.io)",
       "WebSearch",
       "Bash(pip show:*)",
-      "WebFetch(domain:www.archimetric.com)"
+      "WebFetch(domain:www.archimetric.com)",
+      "Bash(gh pr diff:*)",
+      "Bash(gh pr view:*)",
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && gh pr diff 45 -- {} | head -100')"
     ]
   },
   "enableAllProjectMcpServers": true,

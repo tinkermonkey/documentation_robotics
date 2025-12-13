@@ -59,33 +59,41 @@ DrBot has deep knowledge of the 12-layer DR architecture:
 DrBot provides custom tools that wrap DR CLI commands:
 
 #### `dr_list`
+
 ```python
 dr_list(layer: str, element_type: str = "") -> str
 ```
+
 Lists all elements of a specific type in a layer.
 
 **Example**: "Show me all API operations"
 
 #### `dr_find`
+
 ```python
 dr_find(element_id: str) -> str
 ```
+
 Gets detailed information about a specific element by ID.
 
 **Example**: "What is business.service.orders?"
 
 #### `dr_search`
+
 ```python
 dr_search(pattern: str) -> str
 ```
+
 Searches for elements by pattern or keyword.
 
 **Example**: "Find anything related to payments"
 
 #### `dr_trace`
+
 ```python
 dr_trace(element_id: str) -> str
 ```
+
 Traces cross-layer dependencies for an element.
 
 **Example**: "What depends on the Order API?"
@@ -95,12 +103,15 @@ Traces cross-layer dependencies for an element.
 DrBot delegates all write operations to the **dr-architect agent** through the Claude Agent SDK's subagent pattern:
 
 #### `delegate_to_architect`
+
 ```python
 delegate_to_architect(task_description: str) -> str
 ```
+
 Delegates modeling tasks to the expert dr-architect agent.
 
 **Examples**:
+
 - "Add a new REST API endpoint for user login"
 - "Update the Orders service to link to the revenue goal"
 - "Create a business service for order processing"
@@ -243,6 +254,7 @@ async for message in orchestrator.handle_message(
 ### Example Interactions
 
 #### Query Example
+
 ```
 User: Which APIs model the Product entities?
 
@@ -259,6 +271,7 @@ data_model.object-schema.product schema.
 ```
 
 #### Modification Example
+
 ```
 User: Add a new REST API endpoint for user login
 
@@ -279,6 +292,7 @@ for the login request and response?
 ```
 
 #### Trace Example
+
 ```
 User: What depends on the Order API?
 
@@ -317,6 +331,7 @@ orchestrator = DrBotOrchestrator(
 ### Custom dr-architect Prompt
 
 Place a custom dr-architect prompt at:
+
 ```
 /workspace/cli/src/documentation_robotics/claude_integration/agents/dr-architect.md
 ```
@@ -362,6 +377,7 @@ async def test_handle_message(self, mock_model_path):
 ## Dependencies
 
 ### Required
+
 - Python 3.11+
 - `asyncio` - Async subprocess execution
 - `json` - CLI output parsing
@@ -369,7 +385,9 @@ async def test_handle_message(self, mock_model_path):
 - `pyyaml` - Manifest parsing
 
 ### Optional
+
 - `claude-agent-sdk` - Required for full functionality
+
   ```bash
   pip install claude-agent-sdk
   ```
@@ -379,6 +397,7 @@ async def test_handle_message(self, mock_model_path):
 DrBot provides user-friendly error messages:
 
 ### CLI Not Found
+
 ```json
 {
   "error": "DR CLI not found. Is it installed?",
@@ -387,6 +406,7 @@ DrBot provides user-friendly error messages:
 ```
 
 ### Command Timeout
+
 ```json
 {
   "error": "Command timed out after 120 seconds",
@@ -395,6 +415,7 @@ DrBot provides user-friendly error messages:
 ```
 
 ### Command Failure
+
 ```json
 {
   "error": "Layer not found: invalid_layer",
@@ -427,19 +448,25 @@ async for message in orchestrator.handle_message(
 ## Performance Considerations
 
 ### Context Caching
+
 Model context building is fast (< 100ms for typical models):
+
 - Manifest: Single file read
 - Layer stats: Directory iteration with counting
 - Recent elements: Sorted by mtime, limited to 10
 
 ### CLI Execution
+
 CLI commands are executed asynchronously:
+
 - Non-blocking subprocess calls
 - Configurable timeouts
 - Parallel tool invocations (when Claude calls multiple tools)
 
 ### Conversation History
+
 Limit conversation history to prevent context window bloat:
+
 ```python
 # In chat session
 SDK_CONTEXT_MESSAGES = 10  # Last 10 messages

@@ -1,25 +1,25 @@
-# CLAUD.md - AI Assistant Guide
+# CLAUDE.md - AI Assistant Guide
 
 ## Project Overview
 
 **Documentation Robotics** is a comprehensive toolkit for managing federated architecture data models. The project consists of:
 
-1. **CLI Tool (`dr`)** - A Python command-line interface for managing 11-layer architecture models
-2. **Metadata Model Specifications** - Comprehensive documentation defining the 11-layer federated architecture model
+1. **CLI Tool (`dr`)** - A Python command-line interface for managing 12-layer architecture models
+2. **Metadata Model Specifications** - Comprehensive documentation defining the 12-layer federated architecture model
 
-**Current Version:** CLI v0.3.1 (Phase 3 Complete), Metadata Model v1.0
+**Current Version:** CLI v0.7.3, Metadata Model Spec v0.5.0
 
 ## Repository Structure
 
 ```
 documentation_robotics/
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.1.1)
+│   ├── VERSION                  # Current spec version (0.5.0)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
 │   ├── core/                    # Core specification documents
-│   ├── layers/                  # 11 layer specifications
+│   ├── layers/                  # 12 layer specifications
 │   ├── schemas/                 # JSON Schema definitions
 │   ├── conformance/             # Conformance requirements
 │   ├── guides/                  # Implementation guides
@@ -34,15 +34,19 @@ documentation_robotics/
     │   ├── export/             # Export format handlers
     │   ├── validators/         # Validation logic
     │   ├── schemas/            # JSON schemas
+    │   ├── server/             # Web server and chatbot
+    │   ├── viewer/             # Visualization components
+    │   ├── claude_integration/ # Claude Code integration
+    │   ├── copilot_integration/ # GitHub Copilot integration
     │   └── utils/              # Utility functions
     ├── tests/                  # Test suite
     ├── docs/                   # CLI design documentation
     └── pyproject.toml          # Python package config
 ```
 
-## The 11-Layer Architecture Model
+## The 12-Layer Architecture Model
 
-The core concept is a federated architecture model spanning 11 interconnected layers:
+The core concept is a federated architecture model spanning 12 interconnected layers:
 
 1. **Motivation** - Goals, requirements, stakeholders (ArchiMate)
 2. **Business** - Business processes and services (ArchiMate)
@@ -55,6 +59,7 @@ The core concept is a federated architecture model spanning 11 interconnected la
 9. **UX** - User interface components
 10. **Navigation** - Application routing
 11. **APM** - Observability and monitoring (OpenTelemetry)
+12. **Testing** - Test strategies, test cases, test data
 
 **Key Principle:** Elements in higher layers can reference elements in lower layers, creating a dependency graph.
 
@@ -278,12 +283,14 @@ When working with this project, you have pre-approved access to:
 
 ### Key Dependencies
 
-- Python 3.9+
+- Python 3.10+
 - click (CLI framework)
 - pydantic (data validation)
 - jsonschema (schema validation)
 - networkx (graph operations)
 - jsonpath-ng (JSON querying)
+- aiohttp (web server)
+- rich (terminal formatting)
 
 ## Documentation
 
@@ -298,4 +305,4 @@ This is a local development project. For issues or questions, refer to:
 
 - CLI documentation in `cli/README.md`
 - Design documents in `cli/docs/`
-- Metadata model specifications in `documentation/01_metadata_model/`
+- Specification documents in `spec/`

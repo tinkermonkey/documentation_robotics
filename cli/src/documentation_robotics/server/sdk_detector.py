@@ -1,4 +1,5 @@
 """Claude Agent SDK availability detection."""
+
 from dataclasses import dataclass
 from typing import Optional
 
@@ -20,7 +21,7 @@ def detect_claude_agent_sdk() -> SDKStatus:
         SDKStatus indicating availability, version, and any errors
     """
     try:
-        from claude_agent_sdk import query, ClaudeAgentOptions  # noqa: F401
+        from claude_agent_sdk import ClaudeAgentOptions, query  # noqa: F401
 
         # Try to get version
         try:

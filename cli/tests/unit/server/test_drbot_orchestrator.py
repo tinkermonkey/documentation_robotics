@@ -2,15 +2,13 @@
 
 import asyncio
 import json
-from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-
 from documentation_robotics.server.drbot_orchestrator import (
     DRBOT_SYSTEM_PROMPT,
-    DrBotOrchestrator,
     HAS_SDK,
+    DrBotOrchestrator,
 )
 
 
@@ -142,9 +140,7 @@ class TestDrBotOrchestrator:
             b"",
         )
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_proc
-        ) as mock_exec:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
             result = await orchestrator._execute_cli(["dr", "list", "business"])
 
             # Check command was executed
@@ -208,9 +204,7 @@ class TestDrBotOrchestrator:
         """Test CLI command not found."""
         orchestrator = DrBotOrchestrator(mock_model_path)
 
-        with patch(
-            "asyncio.create_subprocess_exec", side_effect=FileNotFoundError()
-        ):
+        with patch("asyncio.create_subprocess_exec", side_effect=FileNotFoundError()):
             result = await orchestrator._execute_cli(["dr", "list", "business"])
 
             # Check not found error
@@ -223,9 +217,7 @@ class TestDrBotOrchestrator:
         """Test CLI command with unexpected error."""
         orchestrator = DrBotOrchestrator(mock_model_path)
 
-        with patch(
-            "asyncio.create_subprocess_exec", side_effect=RuntimeError("Test error")
-        ):
+        with patch("asyncio.create_subprocess_exec", side_effect=RuntimeError("Test error")):
             result = await orchestrator._execute_cli(["dr", "list", "business"])
 
             # Check unexpected error
@@ -347,9 +339,7 @@ class TestDrBotOrchestrator:
             b"",
         )
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_proc
-        ) as mock_exec:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
             # Get the actual implementation function
             if HAS_SDK:
                 # Tool decorator returns the function directly when SDK is available
@@ -398,9 +388,7 @@ class TestDrBotOrchestrator:
             b"",
         )
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_proc
-        ) as mock_exec:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
             if HAS_SDK:
                 result = await tool_func("business.service.orders")
             else:
@@ -428,9 +416,7 @@ class TestDrBotOrchestrator:
             b"",
         )
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_proc
-        ) as mock_exec:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
             if HAS_SDK:
                 result = await tool_func("order")
             else:
@@ -458,9 +444,7 @@ class TestDrBotOrchestrator:
             b"",
         )
 
-        with patch(
-            "asyncio.create_subprocess_exec", return_value=mock_proc
-        ) as mock_exec:
+        with patch("asyncio.create_subprocess_exec", return_value=mock_proc) as mock_exec:
             if HAS_SDK:
                 result = await tool_func("api.operation.create-order")
             else:
@@ -489,13 +473,9 @@ class TestDrBotOrchestrator:
                 content=[MagicMock(type="text", text="This is a test response")],
             )
 
-        with patch(
-            "documentation_robotics.server.drbot_orchestrator.query", mock_query
-        ):
+        with patch("documentation_robotics.server.drbot_orchestrator.query", mock_query):
             messages = []
-            async for message in orchestrator.handle_message(
-                "List all services", context
-            ):
+            async for message in orchestrator.handle_message("List all services", context):
                 messages.append(message)
 
             # Check we got a response
@@ -523,9 +503,7 @@ class TestDrBotOrchestrator:
                 content=[MagicMock(type="text", text="Response")],
             )
 
-        with patch(
-            "documentation_robotics.server.drbot_orchestrator.query", mock_query
-        ):
+        with patch("documentation_robotics.server.drbot_orchestrator.query", mock_query):
             messages = []
             async for message in orchestrator.handle_message(
                 "Show me the business services", context, history

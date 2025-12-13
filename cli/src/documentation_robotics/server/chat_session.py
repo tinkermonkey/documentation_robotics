@@ -1,4 +1,5 @@
 """Chat session management for DrBot conversations."""
+
 import asyncio
 import uuid
 from dataclasses import dataclass, field
@@ -28,9 +29,7 @@ class ChatSession:
     conversation_history: List[ChatMessage] = field(default_factory=list)
     active_task: Optional[asyncio.Task] = None
     model_context: Optional[Dict[str, Any]] = None
-    created_at: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    created_at: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     # Resource limits
     MAX_HISTORY_MESSAGES = 50
@@ -79,9 +78,7 @@ class ChatSession:
         self.conversation_history.append(msg)
         # Trim to max history
         if len(self.conversation_history) > self.MAX_HISTORY_MESSAGES:
-            self.conversation_history = self.conversation_history[
-                -self.MAX_HISTORY_MESSAGES :
-            ]
+            self.conversation_history = self.conversation_history[-self.MAX_HISTORY_MESSAGES :]
 
     def get_conversation_for_sdk(self) -> str:
         """
@@ -134,9 +131,7 @@ class SessionManager:
         """
         if len(self._sessions) >= self.MAX_CONCURRENT_SESSIONS:
             # Find and remove oldest inactive session
-            oldest_id = min(
-                self._sessions.keys(), key=lambda k: self._sessions[k].created_at
-            )
+            oldest_id = min(self._sessions.keys(), key=lambda k: self._sessions[k].created_at)
             # Synchronous removal for session creation context
             session = self._sessions.get(oldest_id)
             if session and session.active_task and not session.active_task.done():

@@ -6,7 +6,7 @@ between the client and DrBot using JSON-RPC 2.0 semantics.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, Optional
 
 # Chat message type constants
 CHAT_MESSAGE_TYPES = {

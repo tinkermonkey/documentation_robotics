@@ -8,9 +8,10 @@ DrBot uses Claude's reasoning for all decisions, with access to:
 
 import asyncio
 import json
-import yaml
 from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
+
+import yaml
 
 try:
     from claude_agent_sdk import (
@@ -46,6 +47,7 @@ except ImportError:
             return func
 
         return decorator
+
 
 # System prompt incorporating dr-architect expertise
 DRBOT_SYSTEM_PROMPT = """You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
@@ -205,9 +207,7 @@ class DrBotOrchestrator:
             if "manifest" in context:
                 manifest = context["manifest"]
                 prompt_parts.append(f"**Model**: {manifest.get('name', 'Unknown')}\n")
-                prompt_parts.append(
-                    f"**Spec Version**: {manifest.get('specVersion', 'Unknown')}\n"
-                )
+                prompt_parts.append(f"**Spec Version**: {manifest.get('specVersion', 'Unknown')}\n")
 
             if "layer_stats" in context:
                 prompt_parts.append("\n**Layer Statistics**:\n")
@@ -232,7 +232,7 @@ class DrBotOrchestrator:
         """Create tool wrapper for 'dr list' command."""
 
         # Valid DR layer names (based on layer file names in spec/)
-        VALID_LAYERS = [
+        valid_layers = [
             "motivation",
             "business",
             "security",
@@ -261,11 +261,11 @@ class DrBotOrchestrator:
                 JSON string with list of elements
             """
             # Validate layer name
-            if layer not in VALID_LAYERS:
+            if layer not in valid_layers:
                 return json.dumps(
                     {
-                        "error": f"Invalid layer: {layer}. Valid layers: {', '.join(VALID_LAYERS)}",
-                        "valid_layers": VALID_LAYERS,
+                        "error": f"Invalid layer: {layer}. Valid layers: {', '.join(valid_layers)}",
+                        "valid_layers": valid_layers,
                     }
                 )
 
@@ -282,13 +282,13 @@ class DrBotOrchestrator:
             description=(
                 "List all elements of a specific type in a DR layer. "
                 "Use this to see what elements exist in a layer. "
-                f"Valid layers: {', '.join(VALID_LAYERS)}"
+                f"Valid layers: {', '.join(valid_layers)}"
             ),
             parameters={
                 "layer": {
                     "type": "string",
                     "description": (
-                        f"The DR layer name. Must be one of: {', '.join(VALID_LAYERS)}"
+                        f"The DR layer name. Must be one of: {', '.join(valid_layers)}"
                     ),
                 },
                 "element_type": {
@@ -503,9 +503,7 @@ class DrBotOrchestrator:
             )
 
             try:
-                stdout, stderr = await asyncio.wait_for(
-                    proc.communicate(), timeout=self.timeout
-                )
+                stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             except asyncio.TimeoutError:
                 proc.kill()
                 await proc.communicate()
@@ -611,11 +609,7 @@ Always validate after changes and explain what you're doing."""
             for layer_dir in model_dir.iterdir():
                 if layer_dir.is_dir() and not layer_dir.name.startswith("."):
                     # Count YAML files recursively
-                    count = sum(
-                        1
-                        for _ in layer_dir.rglob("*.yaml")
-                        if not _.name.startswith(".")
-                    )
+                    count = sum(1 for _ in layer_dir.rglob("*.yaml") if not _.name.startswith("."))
                     if count > 0:
                         layer_stats[layer_dir.name] = count
         context["layer_stats"] = layer_stats

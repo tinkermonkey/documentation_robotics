@@ -1,8 +1,7 @@
 """Unit tests for Claude Agent SDK detection."""
+
 import sys
 from unittest.mock import patch
-
-import pytest
 
 from documentation_robotics.server.sdk_detector import SDKStatus, detect_claude_agent_sdk
 
@@ -45,7 +44,9 @@ class TestSDKDetector:
         # Mock ImportError
         with patch.dict(sys.modules, {"claude_agent_sdk": None}):
             # Force import to fail
-            with patch("builtins.__import__", side_effect=ImportError("No module named 'claude_agent_sdk'")):
+            with patch(
+                "builtins.__import__", side_effect=ImportError("No module named 'claude_agent_sdk'")
+            ):
                 status = detect_claude_agent_sdk()
 
                 assert status.available is False
