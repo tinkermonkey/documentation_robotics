@@ -98,6 +98,9 @@ class MarkdownValidator:
         }
 
         try:
+            # Read markdown content
+            content = markdown_path.read_text(encoding="utf-8")
+
             # Attempt to parse the markdown
             layer_spec = self.parser.parse(markdown_path)
             result["entities_found"] = len(layer_spec.entities)
@@ -124,6 +127,12 @@ class MarkdownValidator:
                         f"Entity '{entity_name}' has no attributes defined"
                     )
 
+            # Validate Integration Points section
+            self._validate_integration_points(content, result)
+
+            # Validate Example Model section
+            self._validate_example_model(content, result)
+
         except ValueError as e:
             result["status"] = "error"
             result["errors"].append(f"Parse error: {str(e)}")
@@ -139,6 +148,119 @@ class MarkdownValidator:
             result["traceback"] = traceback.format_exc()
 
         return result
+
+    def _validate_integration_points(self, content: str, result: dict):
+        """Validate Integration Points section exists and has proper format.
+
+        Args:
+            content: Markdown file content
+            result: Result dictionary to append warnings/errors
+        """
+        import re
+
+        # Check if Integration Points section exists
+        if "## Integration Points" not in content:
+            result["warnings"].append(
+                "Missing '## Integration Points' section - cross-layer relationships should be documented"
+            )
+            return
+
+        # Extract Integration Points section
+        section_match = re.search(
+            r'## Integration Points\s*\n(.*?)(?=\n## |$)',
+            content,
+            re.DOTALL
+        )
+
+        if section_match:
+            section_content = section_match.group(1)
+
+            # Check for subsections (To/From other layers)
+            if not re.search(r'### To |### From ', section_content):
+                result["warnings"].append(
+                    "Integration Points section exists but has no subsections (### To/From LayerName)"
+                )
+
+            # Check for relationship documentation format
+            # Should have: "**SourceEntity** predicate **TargetEntity** (property.name property)"
+            relationship_pattern = r'\*\*\w+\*\*.+?\*\*\w+\*\*.+?\(.+?property\)'
+            relationships_found = len(re.findall(relationship_pattern, section_content))
+
+            if relationships_found == 0 and len(section_content.strip()) > 50:
+                result["warnings"].append(
+                    "Integration Points section may not follow standard format: "
+                    "**SourceEntity** verb **TargetEntity** (property.name property)"
+                )
+
+    def _validate_example_model(self, content: str, result: dict):
+        """Validate Example Model section exists and has well-formed XML.
+
+        Args:
+            content: Markdown file content
+            result: Result dictionary to append warnings/errors
+        """
+        import re
+
+        # Check if Example Model section exists
+        if "## Example Model" not in content:
+            result["warnings"].append(
+                "Missing '## Example Model' section - concrete usage examples should be provided"
+            )
+            return
+
+        # Extract Example Model section
+        section_match = re.search(
+            r'## Example Model\s*\n(.*?)(?=\n## |$)',
+            content,
+            re.DOTALL
+        )
+
+        if section_match:
+            section_content = section_match.group(1)
+
+            # Check for XML code block
+            xml_blocks = re.findall(r'```xml\n(.*?)\n```', section_content, re.DOTALL)
+
+            if not xml_blocks:
+                result["warnings"].append(
+                    "Example Model section exists but has no XML code blocks (```xml)"
+                )
+                return
+
+            # Validate XML is well-formed (basic check)
+            for xml_content in xml_blocks:
+                # Check for basic XML structure
+                if '<element' not in xml_content:
+                    result["warnings"].append(
+                        "Example Model XML should contain <element> tags"
+                    )
+
+                # Check for property tags with cross-layer fields
+                property_tags = re.findall(r'<property key="([^"]+)"', xml_content)
+
+                if not property_tags:
+                    result["warnings"].append(
+                        "Example Model XML has no <property> tags - "
+                        "cross-layer relationships should be demonstrated"
+                    )
+                else:
+                    # Check if properties match expected patterns (layer.field-name)
+                    cross_layer_props = [p for p in property_tags if '.' in p]
+                    if not cross_layer_props:
+                        result["warnings"].append(
+                            "Example Model has properties but none appear to be cross-layer "
+                            "(expected format: layer.field-name)"
+                        )
+
+                # Basic XML balance check
+                open_tags = xml_content.count('<element')
+                close_tags = xml_content.count('</element>')
+                if open_tags != close_tags:
+                    result["errors"].append(
+                        f"Example Model XML appears malformed: "
+                        f"{open_tags} <element> tags but {close_tags} </element> tags"
+                    )
+                    result["status"] = "error"
 
     def validate_all(self) -> List[dict]:
         """Validate all layer markdown files.

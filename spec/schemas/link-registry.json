@@ -3,7 +3,7 @@
   "version": "2.0.0",
   "metadata": {
     "generatedBy": "scripts/generators/link_registry_generator.py",
-    "generatedAt": "2025-12-10T21:47:45.972191Z",
+    "generatedAt": "2025-12-13T18:26:46.235943Z",
     "totalLinkTypes": 38,
     "schemaVersion": "2.0.0"
   },
@@ -81,7 +81,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Criticality",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -90,6 +93,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -110,11 +123,22 @@
       "cardinality": "single",
       "format": "duration",
       "description": "health check endpoint",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "TechnologyService",
+          "elementId": "container-platform",
+          "elementName": "container-platform",
+          "fieldPath": "apm.health-check-endpoint",
+          "value": "/healthz",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "HealthCheckEndpoint",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -123,6 +147,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "TechnologyService"
+        ]
+      },
+      "sourceElementTypes": [
+        "TechnologyService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -143,11 +175,30 @@
       "cardinality": "single",
       "format": "duration",
       "description": "whether health is actively monitored",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "TechnologyService",
+          "elementId": "container-platform",
+          "elementName": "container-platform",
+          "fieldPath": "apm.health-monitored",
+          "value": "true",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "TechnologyService",
+          "elementId": "database-service",
+          "elementName": "database-service",
+          "fieldPath": "apm.health-monitored",
+          "value": "true",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "HealthMonitored",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -156,6 +207,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "TechnologyService"
+        ]
+      },
+      "sourceElementTypes": [
+        "TechnologyService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -179,11 +238,33 @@
       "cardinality": "single",
       "format": "percentage",
       "description": "string (e.g., \"99.95%\", \"99.99%\", optional)",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "TechnologyService",
+          "elementId": "container-platform",
+          "elementName": "container-platform",
+          "fieldPath": "apm.sla-target-availability",
+          "value": "99.95%",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "TechnologyService",
+          "elementId": "database-service",
+          "elementName": "database-service",
+          "fieldPath": "apm.sla-target-availability",
+          "value": "99.99%",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "SlaTargetAvailability",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -192,6 +273,24 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "ApplicationService"
+        ],
+        "05-technology": [
+          "TechnologyService"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "Operation",
+        "SecurityScheme",
+        "TechnologyService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -215,11 +314,25 @@
       "cardinality": "single",
       "format": "duration",
       "description": "string (e.g., \"200ms\", \"500ms\", optional)",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "TechnologyService",
+          "elementId": "database-service",
+          "elementName": "database-service",
+          "fieldPath": "apm.sla-target-latency",
+          "value": "10ms",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "SlaTargetLatency",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -228,6 +341,24 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "ApplicationService"
+        ],
+        "05-technology": [
+          "TechnologyService"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "Operation",
+        "SecurityScheme",
+        "TechnologyService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -252,7 +383,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Trace",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -261,6 +395,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -281,11 +425,23 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to Traced in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "ApplicationService",
+          "elementId": "product-service",
+          "elementName": "product-service",
+          "fieldPath": "apm.traced",
+          "value": "true",
+          "layer": "04-application"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "Traced",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "Data Properties"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -294,6 +450,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "ApplicationService",
+          "Data Properties"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "Data Properties"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -313,12 +479,14 @@
       ],
       "cardinality": "single",
       "format": "string",
-      "description": "authoritative DataObject for this business object",
+      "description": "BusinessObject master data source from DataObject",
       "examples": [],
       "validationRules": {
         "targetExists": true,
         "targetType": "MasterDataSource",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessObject"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -327,6 +495,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessObject"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessObject"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -351,7 +527,9 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "ProcessStep",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessProcess"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -360,6 +538,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessProcess"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessProcess"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -379,12 +565,14 @@
       ],
       "cardinality": "single",
       "format": "duration",
-      "description": "ApplicationProcess ID that automates this business process",
+      "description": "ApplicationService - **BusinessProcess** automated by ApplicationProcess",
       "examples": [],
       "validationRules": {
         "targetExists": true,
         "targetType": "RealizedByProces",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessProcess"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -393,6 +581,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessProcess"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessProcess"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -412,12 +608,14 @@
       ],
       "cardinality": "single",
       "format": "string",
-      "description": "DataObject ID that represents this business concept in applications",
+      "description": "BusinessObject represented in DataObject",
       "examples": [],
       "validationRules": {
         "targetExists": true,
         "targetType": "RepresentedByDataobject",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessObject"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -426,6 +624,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessObject"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessObject"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -451,7 +657,13 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Element",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "JSONSchema",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "x-security Extension"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -460,6 +672,24 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme"
+        ],
+        "07-data-model": [
+          "JSONSchema",
+          "x-security Extension"
+        ]
+      },
+      "sourceElementTypes": [
+        "JSONSchema",
+        "OpenAPIDocument",
+        "Operation",
+        "SecurityScheme",
+        "x-security Extension"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -483,11 +713,25 @@
       "cardinality": "single",
       "format": "duration",
       "description": "comma-separated business metric IDs this service tracks",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "BusinessProcess",
+          "elementId": "order-process",
+          "elementName": "Order Fulfillment Process",
+          "fieldPath": "apm.business-metrics",
+          "value": "metric-order-fulfillment-time,metric-order-success-rate",
+          "layer": "02-business"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessMetric",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "BusinessProcess",
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -496,6 +740,24 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessProcess"
+        ],
+        "04-application": [
+          "ApplicationService"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "BusinessProcess",
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -520,7 +782,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessInterface",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -529,6 +794,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -553,7 +828,11 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessObject",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "JSONSchema",
+          "x-business-object-ref Extension",
+          "x-security Extension"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -562,6 +841,18 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "07-data-model": [
+          "JSONSchema",
+          "x-business-object-ref Extension",
+          "x-security Extension"
+        ]
+      },
+      "sourceElementTypes": [
+        "JSONSchema",
+        "x-business-object-ref Extension",
+        "x-security Extension"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -586,7 +877,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessService",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -595,6 +889,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -619,7 +923,11 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "DataQualityMetric",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -628,6 +936,18 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "07-data-model": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ]
+      },
+      "sourceElementTypes": [
+        "JSONSchema",
+        "x-apm-data-quality-metrics Extension",
+        "x-security Extension"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -652,7 +972,11 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Governance",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "JSONSchema",
+          "x-data-governance Extension",
+          "x-security Extension"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -661,6 +985,18 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "07-data-model": [
+          "JSONSchema",
+          "x-data-governance Extension",
+          "x-security Extension"
+        ]
+      },
+      "sourceElementTypes": [
+        "JSONSchema",
+        "x-data-governance Extension",
+        "x-security Extension"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -680,12 +1016,23 @@
       ],
       "cardinality": "single",
       "format": "duration",
-      "description": "data owner reference",
-      "examples": [],
+      "description": "BusinessObject ownership by BusinessActor",
+      "examples": [
+        {
+          "elementType": "BusinessObject",
+          "elementId": "order-object",
+          "elementName": "Order",
+          "fieldPath": "data.governance-owner",
+          "value": "sales-rep",
+          "layer": "02-business"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "GovernanceOwner",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessObject"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -694,6 +1041,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessObject"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessObject"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -714,11 +1069,23 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to Retention in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "DataObject",
+          "elementId": "product-data",
+          "elementName": "product-data",
+          "fieldPath": "data.retention",
+          "value": "7years",
+          "layer": "04-application"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "Retention",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Data Properties",
+          "DataObject"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -727,6 +1094,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "Data Properties",
+          "DataObject"
+        ]
+      },
+      "sourceElementTypes": [
+        "Data Properties",
+        "DataObject"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -751,7 +1128,12 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Database",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -760,6 +1142,20 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "07-data-model": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ]
+      },
+      "sourceElementTypes": [
+        "JSONSchema",
+        "SchemaProperty",
+        "x-database Extension",
+        "x-security Extension"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -784,7 +1180,9 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Column",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Schema"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -793,6 +1191,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Schema"
+        ]
+      },
+      "sourceElementTypes": [
+        "Schema"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -817,7 +1223,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Table",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Schema",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -826,6 +1235,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Schema",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Schema",
+        "SecurityScheme"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -848,11 +1267,44 @@
       "cardinality": "single",
       "format": "duration",
       "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Node",
+          "elementId": "k8s-cluster",
+          "elementName": "k8s-cluster",
+          "fieldPath": "motivation.constrained-by",
+          "value": "constraint-aws-infrastructure,constraint-budget-500k",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "Node",
+          "elementId": "postgres-cluster",
+          "elementName": "postgres-cluster",
+          "fieldPath": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-databases",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "SystemSoftware",
+          "elementId": "postgres",
+          "elementName": "postgres",
+          "fieldPath": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-licenses",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "ConstrainedBy",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Artifact",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -861,6 +1313,28 @@
       "relationshipCategory": "governance",
       "archimateAlignment": null,
       "bidirectional": true,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "Artifact",
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Artifact",
+        "CommunicationNetwork",
+        "Node",
+        "Operation",
+        "SecurityScheme",
+        "SystemSoftware",
+        "TechnologyService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -881,12 +1355,32 @@
       ],
       "cardinality": "single",
       "format": "string",
-      "description": "comma-separated Value IDs",
-      "examples": [],
+      "description": "BusinessService delivers Value",
+      "examples": [
+        {
+          "elementType": "BusinessService",
+          "elementId": "order-service",
+          "elementName": "Order Processing Service",
+          "fieldPath": "motivation.delivers-value",
+          "value": "value-customer-convenience,value-operational-efficiency",
+          "layer": "02-business"
+        },
+        {
+          "elementType": "ApplicationService",
+          "elementId": "product-service",
+          "elementName": "product-service",
+          "fieldPath": "motivation.delivers-value",
+          "value": "value-customer-convenience",
+          "layer": "04-application"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "DeliversValue",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "BusinessService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -895,6 +1389,18 @@
       "relationshipCategory": "traceability",
       "archimateAlignment": null,
       "bidirectional": true,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessService"
+        ],
+        "04-application": [
+          "ApplicationService"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "BusinessService"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -918,11 +1424,43 @@
       "cardinality": "single",
       "format": "duration",
       "description": "comma-separated Requirement IDs this function fulfills",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Node",
+          "elementId": "k8s-cluster",
+          "elementName": "k8s-cluster",
+          "fieldPath": "motivation.fulfills-requirements",
+          "value": "req-horizontal-scaling,req-99-95-availability",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "Node",
+          "elementId": "postgres-cluster",
+          "elementName": "postgres-cluster",
+          "fieldPath": "motivation.fulfills-requirements",
+          "value": "req-acid-compliance,req-replication",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "SystemSoftware",
+          "elementId": "postgres",
+          "elementName": "postgres",
+          "fieldPath": "motivation.fulfills-requirements",
+          "value": "req-acid-transactions,req-encryption-at-rest",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "FulfillsRequirement",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationFunction",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -931,6 +1469,28 @@
       "relationshipCategory": "traceability",
       "archimateAlignment": null,
       "bidirectional": true,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "ApplicationFunction"
+        ],
+        "05-technology": [
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationFunction",
+        "CommunicationNetwork",
+        "Node",
+        "Operation",
+        "SecurityScheme",
+        "SystemSoftware"
+      ],
       "strength": "high",
       "isRequired": false
     },
@@ -954,12 +1514,48 @@
       ],
       "cardinality": "single",
       "format": "string",
-      "description": "string[] (Principle IDs that guide this API, optional)",
-      "examples": [],
+      "description": "BusinessService governed by Principles",
+      "examples": [
+        {
+          "elementType": "BusinessService",
+          "elementId": "order-service",
+          "elementName": "Order Processing Service",
+          "fieldPath": "motivation.governed-by-principles",
+          "value": "principle-customer-first,principle-automation",
+          "layer": "02-business"
+        },
+        {
+          "elementType": "ApplicationService",
+          "elementId": "product-service",
+          "elementName": "product-service",
+          "fieldPath": "motivation.governed-by-principles",
+          "value": "principle-api-first,principle-cloud-native",
+          "layer": "04-application"
+        },
+        {
+          "elementType": "Node",
+          "elementId": "k8s-cluster",
+          "elementName": "k8s-cluster",
+          "fieldPath": "motivation.governed-by-principles",
+          "value": "principle-cloud-native,principle-auto-scaling",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "GovernedByPrinciple",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationFunction",
+          "ApplicationService",
+          "BusinessService",
+          "CommunicationNetwork",
+          "Node",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -968,6 +1564,38 @@
       "relationshipCategory": "governance",
       "archimateAlignment": null,
       "bidirectional": true,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessService"
+        ],
+        "04-application": [
+          "ApplicationFunction",
+          "ApplicationService"
+        ],
+        "05-technology": [
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "06-api": [
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationFunction",
+        "ApplicationService",
+        "BusinessService",
+        "CommunicationNetwork",
+        "Node",
+        "OpenAPIDocument",
+        "Operation",
+        "SecurityScheme",
+        "SystemSoftware",
+        "TechnologyService"
+      ],
       "strength": "high",
       "isRequired": false
     },
@@ -991,12 +1619,43 @@
       ],
       "cardinality": "single",
       "format": "string",
-      "description": "comma-separated Goal IDs this service supports",
-      "examples": [],
+      "description": "BusinessService supports Goals",
+      "examples": [
+        {
+          "elementType": "BusinessService",
+          "elementId": "order-service",
+          "elementName": "Order Processing Service",
+          "fieldPath": "motivation.supports-goals",
+          "value": "goal-customer-satisfaction,goal-revenue-growth",
+          "layer": "02-business"
+        },
+        {
+          "elementType": "ApplicationService",
+          "elementId": "product-service",
+          "elementName": "product-service",
+          "fieldPath": "motivation.supports-goals",
+          "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+          "layer": "04-application"
+        },
+        {
+          "elementType": "TechnologyService",
+          "elementId": "container-platform",
+          "elementName": "container-platform",
+          "fieldPath": "motivation.supports-goals",
+          "value": "goal-deployment-automation,goal-horizontal-scaling",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "SupportsGoal",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "ApplicationService",
+          "BusinessService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1005,6 +1664,28 @@
       "relationshipCategory": "traceability",
       "archimateAlignment": null,
       "bidirectional": true,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessService"
+        ],
+        "04-application": [
+          "ApplicationService"
+        ],
+        "05-technology": [
+          "TechnologyService"
+        ],
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "ApplicationService",
+        "BusinessService",
+        "Operation",
+        "SecurityScheme",
+        "TechnologyService"
+      ],
       "strength": "high",
       "isRequired": false
     },
@@ -1025,11 +1706,30 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to Classification in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Artifact",
+          "elementId": "product-db",
+          "elementName": "product-db",
+          "fieldPath": "security.classification",
+          "value": "internal",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "Artifact",
+          "elementId": "customer-db",
+          "elementName": "customer-db",
+          "fieldPath": "security.classification",
+          "value": "restricted",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "Classification",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Artifact"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1038,6 +1738,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "Artifact"
+        ]
+      },
+      "sourceElementTypes": [
+        "Artifact"
+      ],
       "strength": "low",
       "isRequired": false
     },
@@ -1058,11 +1766,23 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to Pii in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "DataObject",
+          "elementId": "product-data",
+          "elementName": "product-data",
+          "fieldPath": "data.pii",
+          "value": "false",
+          "layer": "04-application"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "Pii",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Data Properties",
+          "DataObject"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1071,6 +1791,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "04-application": [
+          "Data Properties",
+          "DataObject"
+        ]
+      },
+      "sourceElementTypes": [
+        "Data Properties",
+        "DataObject"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1095,7 +1825,9 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Encrypted",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Schema"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1104,6 +1836,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Schema"
+        ]
+      },
+      "sourceElementTypes": [
+        "Schema"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1124,11 +1864,30 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to EncryptionRequired in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Artifact",
+          "elementId": "product-db",
+          "elementName": "product-db",
+          "fieldPath": "security.encryption-required",
+          "value": "true",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "Artifact",
+          "elementId": "customer-db",
+          "elementName": "customer-db",
+          "fieldPath": "security.encryption-required",
+          "value": "true",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "EncryptionRequired",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Artifact"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1137,6 +1896,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "Artifact"
+        ]
+      },
+      "sourceElementTypes": [
+        "Artifact"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1157,11 +1924,30 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to EncryptionType in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Artifact",
+          "elementId": "product-db",
+          "elementName": "product-db",
+          "fieldPath": "security.encryption-type",
+          "value": "both",
+          "layer": "05-technology"
+        },
+        {
+          "elementType": "Artifact",
+          "elementId": "customer-db",
+          "elementName": "customer-db",
+          "fieldPath": "security.encryption-type",
+          "value": "both",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "EncryptionType",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Artifact"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1170,6 +1956,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "Artifact"
+        ]
+      },
+      "sourceElementTypes": [
+        "Artifact"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1192,11 +1986,23 @@
       "cardinality": "single",
       "format": "duration",
       "description": "contains personally identifiable information",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "Artifact",
+          "elementId": "customer-db",
+          "elementName": "customer-db",
+          "fieldPath": "security.pii",
+          "value": "true",
+          "layer": "05-technology"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "Pii",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Artifact",
+          "Schema"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1205,6 +2011,18 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "05-technology": [
+          "Artifact"
+        ],
+        "06-api": [
+          "Schema"
+        ]
+      },
+      "sourceElementTypes": [
+        "Artifact",
+        "Schema"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1225,11 +2043,22 @@
       "cardinality": "single",
       "format": "string",
       "description": "security control references",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "BusinessProcess",
+          "elementId": "order-process",
+          "elementName": "Order Fulfillment Process",
+          "fieldPath": "process.security-controls",
+          "value": "control-order-approval,control-payment-verification",
+          "layer": "02-business"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "SecurityControl",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessProcess"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1238,6 +2067,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessProcess"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessProcess"
+      ],
       "strength": "high",
       "isRequired": false
     },
@@ -1258,11 +2095,22 @@
       "cardinality": "single",
       "format": "duration",
       "description": "Links to SeparationOfDuty in target layer",
-      "examples": [],
+      "examples": [
+        {
+          "elementType": "BusinessProcess",
+          "elementId": "order-process",
+          "elementName": "Order Fulfillment Process",
+          "fieldPath": "process.separation-of-duty",
+          "value": "true",
+          "layer": "02-business"
+        }
+      ],
       "validationRules": {
         "targetExists": true,
         "targetType": "SeparationOfDuty",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "BusinessProcess"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1271,6 +2119,14 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "02-business": [
+          "BusinessProcess"
+        ]
+      },
+      "sourceElementTypes": [
+        "BusinessProcess"
+      ],
       "strength": "medium",
       "isRequired": false
     },
@@ -1295,7 +2151,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Permission",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1304,6 +2163,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "critical",
       "isRequired": false
     },
@@ -1328,7 +2197,10 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "SecureResource",
-        "sourceElementTypesValid": [],
+        "sourceElementTypesValid": [
+          "Operation",
+          "SecurityScheme"
+        ],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1337,6 +2209,16 @@
       "relationshipCategory": null,
       "archimateAlignment": null,
       "bidirectional": false,
+      "sourceElementTypesByLayer": {
+        "06-api": [
+          "Operation",
+          "SecurityScheme"
+        ]
+      },
+      "sourceElementTypes": [
+        "Operation",
+        "SecurityScheme"
+      ],
       "strength": "critical",
       "isRequired": false
     }

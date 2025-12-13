@@ -1,8 +1,8 @@
-# ✅ GraphML Export Solution - READY TO USE
+# ✅ GraphML Export
 
-Since the LadybugDB Docker image isn't available, I've created a **GraphML export solution** that works perfectly for visualizing the spec ontology.
+## Overview
 
-## What Was Created
+This new feature provides a simple way to export the entire specification ontology as a GraphML file, which can be easily visualized using popular graph tools like yEd, Gephi, or Cytoscape. This allows architects and engineers to explore the architecture layers, link types, and relationships visually without needing to set up a graph database.
 
 ### 1. GraphML Exporter Script ✅
 **File**: `scripts/tools/export_graphml.py`

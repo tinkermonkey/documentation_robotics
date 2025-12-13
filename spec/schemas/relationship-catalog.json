@@ -45,8 +45,20 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["02", "04", "05"],
+      "applicableLayers": ["01", "02", "04", "05"],
       "examples": [
+        {
+          "source": "Goal",
+          "target": "Goal",
+          "description": "High-level goal aggregates sub-goals",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Requirement",
+          "target": "Requirement",
+          "description": "High-level requirement aggregates detailed requirements",
+          "layer": "01-motivation"
+        },
         {
           "source": "Product",
           "target": "BusinessService",
@@ -87,8 +99,20 @@
         "transitivity": true,
         "symmetry": false
       },
-      "applicableLayers": ["02", "04", "05", "06", "07"],
+      "applicableLayers": ["01", "02", "04", "05", "06", "07"],
       "examples": [
+        {
+          "source": "Goal",
+          "target": "Value",
+          "description": "Goal realizes value for stakeholders",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Outcome",
+          "target": "Goal",
+          "description": "Outcome realizes achievement of goal",
+          "layer": "01-motivation"
+        },
         {
           "source": "ApplicationService",
           "target": "BusinessService",
@@ -119,6 +143,116 @@
           "source": "BusinessActor",
           "target": "BusinessRole",
           "description": "Business actor assigned to business role"
+        }
+      ]
+    },
+    {
+      "id": "association",
+      "predicate": "association",
+      "inversePredicate": "associated-by",
+      "category": "structural",
+      "archimateAlignment": "Association",
+      "description": "Generic relationship indicating elements are related or connected",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": true
+      },
+      "applicableLayers": ["01", "02", "04", "05"],
+      "examples": [
+        {
+          "source": "Stakeholder",
+          "target": "Driver",
+          "description": "Stakeholder has concern represented by driver",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Stakeholder",
+          "target": "Goal",
+          "description": "Stakeholder has interest in goal",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Requirement",
+          "target": "Constraint",
+          "description": "Requirement is limited by constraint",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Value",
+          "target": "Stakeholder",
+          "description": "Value is desired by stakeholder",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Outcome",
+          "target": "Value",
+          "description": "Outcome demonstrates value achievement",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Meaning",
+          "target": "Value",
+          "description": "Meaning interprets significance of value",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Meaning",
+          "target": "Outcome",
+          "description": "Meaning provides context for outcome",
+          "layer": "01-motivation"
+        }
+      ]
+    },
+    {
+      "id": "influence",
+      "predicate": "influence",
+      "inversePredicate": "influenced-by",
+      "category": "behavioral",
+      "archimateAlignment": "Influence",
+      "description": "Element affects or impacts another element",
+      "semantics": {
+        "directionality": "bidirectional",
+        "transitivity": false,
+        "symmetry": false
+      },
+      "applicableLayers": ["01", "02", "04"],
+      "examples": [
+        {
+          "source": "Driver",
+          "target": "Assessment",
+          "description": "Driver creates need for assessment",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Driver",
+          "target": "Goal",
+          "description": "Driver motivates goal definition",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Assessment",
+          "target": "Goal",
+          "description": "Assessment informs goal setting",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Goal",
+          "target": "Principle",
+          "description": "Goal drives principle establishment",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Principle",
+          "target": "Requirement",
+          "description": "Principle guides requirement definition",
+          "layer": "01-motivation"
+        },
+        {
+          "source": "Constraint",
+          "target": "Requirement",
+          "description": "Constraint restricts requirement scope",
+          "layer": "01-motivation"
         }
       ]
     },
@@ -703,10 +837,10 @@
   ],
 
   "metadata": {
-    "totalRelationships": 31,
+    "totalRelationships": 33,
     "categoryCounts": {
-      "structural": 5,
-      "behavioral": 4,
+      "structural": 6,
+      "behavioral": 5,
       "dependency": 3,
       "traceability": 4,
       "governance": 3,
@@ -715,7 +849,7 @@
       "ux": 3,
       "data": 3
     },
-    "archimateAligned": 9,
+    "archimateAligned": 11,
     "documentationRoboticsExtensions": 22
   }
 }

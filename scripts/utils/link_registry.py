@@ -28,6 +28,7 @@ class LinkType:
     inverse_predicate: Optional[str] = None
     relationship_category: Optional[str] = None
     source_element_types: Optional[List[str]] = None
+    source_element_types_by_layer: Optional[Dict[str, List[str]]] = None
     strength: Optional[str] = None
     is_required: Optional[bool] = None
     bidirectional: Optional[bool] = None
@@ -111,6 +112,7 @@ class LinkRegistry:
                 inverse_predicate=link_data.get("inversePredicate"),
                 relationship_category=link_data.get("relationshipCategory"),
                 source_element_types=link_data.get("sourceElementTypes"),
+                source_element_types_by_layer=link_data.get("sourceElementTypesByLayer"),
                 strength=link_data.get("strength"),
                 is_required=link_data.get("isRequired"),
                 bidirectional=link_data.get("bidirectional"),
