@@ -227,29 +227,33 @@ class TestChatWebSocketWithSDK(AioHTTPTestCase):
     async def test_websocket_chat_send_with_sdk(self):
         """Test chat.send with mocked SDK response."""
 
-        # Mock the query function
+        # Mock the query function and SDK classes
         async def mock_query(*args, **kwargs):
-            # Simulate AssistantMessage with TextBlock
-            from documentation_robotics.server.chat_handler import (
-                AssistantMessage,
-                ResultMessage,
-                TextBlock,
-            )
+            # Create mock SDK message classes
+            TextBlock = type("TextBlock", (), {})
+            AssistantMessage = type("AssistantMessage", (), {})
+            ResultMessage = type("ResultMessage", (), {})
 
             # Create mock objects
-            text_block = MagicMock(spec=TextBlock)
+            text_block = TextBlock()
             text_block.text = "Hello! I'm DrBot."
 
-            assistant_msg = MagicMock(spec=AssistantMessage)
+            assistant_msg = AssistantMessage()
             assistant_msg.content = [text_block]
 
-            result_msg = MagicMock(spec=ResultMessage)
+            result_msg = ResultMessage()
             result_msg.total_cost_usd = 0.001
 
             yield assistant_msg
             yield result_msg
 
-        with patch("documentation_robotics.server.chat_handler.query", side_effect=mock_query):
+        # Patch both the query function and the SDK classes at import time
+        with patch("claude_agent_sdk.query", side_effect=mock_query), \
+             patch("claude_agent_sdk.AssistantMessage"), \
+             patch("claude_agent_sdk.ResultMessage"), \
+             patch("claude_agent_sdk.TextBlock"), \
+             patch("claude_agent_sdk.ToolUseBlock"), \
+             patch("claude_agent_sdk.ClaudeAgentOptions"):
             async with self.client.ws_connect(
                 f"/ws?token={self.server.token}"
             ) as ws:

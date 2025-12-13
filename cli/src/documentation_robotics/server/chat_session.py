@@ -34,6 +34,7 @@ class ChatSession:
 
     # Resource limits
     MAX_HISTORY_MESSAGES = 50
+    SDK_CONTEXT_MESSAGES = 10  # Number of messages to include in SDK context
 
     def add_user_message(self, content: str) -> ChatMessage:
         """
@@ -87,10 +88,10 @@ class ChatSession:
         Format conversation history for SDK context.
 
         Returns:
-            Formatted conversation history (last 10 messages)
+            Formatted conversation history (last SDK_CONTEXT_MESSAGES messages)
         """
         lines = []
-        for msg in self.conversation_history[-10:]:  # Last 10 for context
+        for msg in self.conversation_history[-self.SDK_CONTEXT_MESSAGES :]:
             prefix = "User:" if msg.role == "user" else "DrBot:"
             lines.append(f"{prefix} {msg.content}")
         return "\n".join(lines)
@@ -126,7 +127,7 @@ class SessionManager:
         Create a new chat session.
 
         If the maximum number of concurrent sessions is reached,
-        the oldest inactive session is removed.
+        the oldest inactive session is removed synchronously (task cancelled but not awaited).
 
         Returns:
             Newly created ChatSession
@@ -136,7 +137,12 @@ class SessionManager:
             oldest_id = min(
                 self._sessions.keys(), key=lambda k: self._sessions[k].created_at
             )
-            self.remove_session(oldest_id)
+            # Synchronous removal for session creation context
+            session = self._sessions.get(oldest_id)
+            if session and session.active_task and not session.active_task.done():
+                session.active_task.cancel()
+            if oldest_id in self._sessions:
+                del self._sessions[oldest_id]
 
         session_id = str(uuid.uuid4())
         session = ChatSession(session_id=session_id)
@@ -155,11 +161,11 @@ class SessionManager:
         """
         return self._sessions.get(session_id)
 
-    def remove_session(self, session_id: str) -> None:
+    async def remove_session(self, session_id: str) -> None:
         """
         Remove a session.
 
-        Cancels any active tasks before removing.
+        Cancels any active tasks before removing and waits for proper cleanup.
 
         Args:
             session_id: Session identifier
@@ -168,6 +174,10 @@ class SessionManager:
             session = self._sessions[session_id]
             if session.active_task and not session.active_task.done():
                 session.active_task.cancel()
+                try:
+                    await session.active_task
+                except asyncio.CancelledError:
+                    pass
             del self._sessions[session_id]
 
     @property

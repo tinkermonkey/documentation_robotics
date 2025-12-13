@@ -16,7 +16,6 @@ from .chat_protocol import (
     create_chat_complete,
     create_chat_error,
     create_chat_response_chunk,
-    create_chat_status,
     create_chat_tool_invoke,
 )
 from .chat_session import ChatSession, SessionManager
@@ -295,7 +294,7 @@ class ChatHandler:
         Args:
             ws: WebSocket response object
             session: Chat session
-            params: Request parameters
+            params: Request parameters (included for API consistency, currently unused)
             request_id: Request ID for response
         """
         cancelled = await session.cancel_active_task()
@@ -323,9 +322,13 @@ class ChatHandler:
             request_id: Request ID for response
         """
         await ws.send_json(
-            create_chat_status(
-                self.sdk_status.available,
-                self.sdk_status.version,
-                self.sdk_status.error,
-            )
+            {
+                "jsonrpc": "2.0",
+                "result": {
+                    "sdk_available": self.sdk_status.available,
+                    "sdk_version": self.sdk_status.version,
+                    "error_message": self.sdk_status.error,
+                },
+                "id": request_id,
+            }
         )

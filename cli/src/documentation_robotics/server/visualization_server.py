@@ -502,9 +502,9 @@ class VisualizationServer:
 
         finally:
             # Clean up chat session
-            if ws in self._ws_sessions:
+            if self.chat_handler and ws in self._ws_sessions:
                 session = self._ws_sessions[ws]
-                self.chat_handler.session_manager.remove_session(session.session_id)
+                await self.chat_handler.session_manager.remove_session(session.session_id)
                 del self._ws_sessions[ws]
 
             # Remove from active connections

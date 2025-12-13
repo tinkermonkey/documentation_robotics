@@ -162,13 +162,13 @@ class TestChatHandler:
 
         await chat_handler.handle_message(mock_ws, message, test_session)
 
-        # Should send status response
+        # Should send status response as JSON-RPC result
         mock_ws.send_json.assert_called_once()
         call_args = mock_ws.send_json.call_args[0][0]
-        # The status response comes as params in a notification
-        assert call_args["method"] == "chat.status"
-        assert call_args["params"]["sdk_available"] is True
-        assert call_args["params"]["sdk_version"] == "1.0.0"
+        assert call_args["jsonrpc"] == "2.0"
+        assert call_args["id"] == "1"
+        assert call_args["result"]["sdk_available"] is True
+        assert call_args["result"]["sdk_version"] == "1.0.0"
 
     @pytest.mark.asyncio
     @pytest.mark.skipif(

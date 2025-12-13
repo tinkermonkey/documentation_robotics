@@ -174,12 +174,13 @@ class TestSessionManager:
 
         assert retrieved is None
 
-    def test_remove_session(self):
+    @pytest.mark.asyncio
+    async def test_remove_session(self):
         """Test removing a session."""
         manager = SessionManager()
         session = manager.create_session()
 
-        manager.remove_session(session.session_id)
+        await manager.remove_session(session.session_id)
 
         assert manager.active_session_count == 0
         assert manager.get_session(session.session_id) is None
@@ -195,15 +196,13 @@ class TestSessionManager:
             await asyncio.sleep(10)
 
         session.active_task = asyncio.create_task(long_task())
+        task_ref = session.active_task  # Keep reference before removal
 
-        # Remove session
-        manager.remove_session(session.session_id)
-
-        # Wait for cancellation to propagate
-        await asyncio.sleep(0.1)
+        # Remove session (this should await the cancellation)
+        await manager.remove_session(session.session_id)
 
         # Task should be cancelled
-        assert session.active_task.cancelled()
+        assert task_ref.cancelled()
 
     def test_max_concurrent_sessions(self):
         """Test that old sessions are removed when max is reached."""
