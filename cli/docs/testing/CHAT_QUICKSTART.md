@@ -35,13 +35,24 @@ Press Ctrl+C to stop the server
 
 **Keep this terminal running!** The chat needs the server to be active.
 
-### Step 2: Start the Chat in a New Terminal
+### Step 2: Get the Authentication Token
+
+In the visualize server output from Step 1, you'll see a URL like:
+```
+http://localhost:8080?token=abc123xyz456...
+```
+
+**Copy the token** (the part after `?token=`). You'll need it for the next step.
+
+### Step 3: Start the Chat in a New Terminal
 
 Open a **second terminal** and run:
 
 ```bash
-dr chat --port 8080
+dr chat --port 8080 --token abc123xyz456...
 ```
+
+Replace `abc123xyz456...` with the actual token from Step 2.
 
 You should see:
 ```
@@ -59,7 +70,7 @@ Type 'help' for available commands.
 You:
 ```
 
-### Step 3: Chat with DrBot
+### Step 4: Chat with DrBot
 
 Try these example queries:
 
@@ -109,7 +120,7 @@ DrBot: The api-endpoint-create-order has these dependencies:
 [Dependency graph...]
 ```
 
-### Step 4: Exit
+### Step 5: Exit
 
 When done, type:
 ```

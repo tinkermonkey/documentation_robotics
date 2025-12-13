@@ -116,6 +116,27 @@ async def chat_session(
         console.print("[dim]Make sure the visualization server is running:[/dim]")
         console.print(f"[dim]  dr visualize --port {port}[/dim]\n")
         sys.exit(1)
+    except aiohttp.ClientResponseError as e:
+        if e.status == 403:
+            console.print(
+                "[red]✗ Authentication failed (403 Forbidden)[/red]",
+                style="bold",
+            )
+            console.print()
+            console.print("[yellow]The server requires a valid authentication token.[/yellow]")
+            console.print()
+            console.print("[bold]To get the token:[/bold]")
+            console.print("1. Look at the 'dr visualize' output")
+            console.print("2. Find the URL that looks like:")
+            console.print("   [cyan]http://localhost:8080?token=abc123xyz...[/cyan]")
+            console.print("3. Copy the token (the part after 'token=')")
+            console.print()
+            console.print("[bold]Then run:[/bold]")
+            console.print(f"   [cyan]dr chat --port {port} --token <your-token>[/cyan]")
+            console.print()
+        else:
+            console.print(f"[red]✗ Server error ({e.status}): {e.message}[/red]", style="bold")
+        sys.exit(1)
     except Exception as e:
         console.print(f"[red]✗ Error: {e}[/red]", style="bold")
         sys.exit(1)
@@ -245,7 +266,8 @@ def show_help() -> None:
 @click.option(
     "--token",
     type=str,
-    help="Authentication token (if server requires it)",
+    required=True,
+    help="Authentication token from 'dr visualize' output (required)",
 )
 @click.option(
     "--conversation-id",
@@ -269,25 +291,19 @@ def chat(
 
         dr visualize --port 8080
 
-    Then in another terminal, start the chat:
+    The server will display a URL with an authentication token like:
+        http://localhost:8080?token=abc123xyz...
 
-        dr chat --port 8080
+    Copy the token and use it to connect:
 
-    If the server requires authentication, you can provide the token:
-
-        dr chat --port 8080 --token <token>
+        dr chat --port 8080 --token abc123xyz...
 
     Examples:
 
-        dr chat                              # Connect to default port
-        dr chat --port 3000                  # Connect to custom port
-        dr chat --conversation-id abc123     # Resume conversation
+        dr chat --port 8080 --token abc123xyz
+        dr chat --port 3000 --token xyz789
+        dr chat --port 8080 --token abc123 --conversation-id 550e8400...
     """
-    # Use a default test token if none provided
-    # In production, you'd get this from the visualization server
-    if not token:
-        token = "test-token"
-
     try:
         asyncio.run(chat_session(host, port, token, conversation_id))
     except KeyboardInterrupt:
