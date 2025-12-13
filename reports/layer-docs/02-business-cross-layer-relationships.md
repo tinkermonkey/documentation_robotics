@@ -1,6 +1,98 @@
+# Business Layer - Cross-Layer Relationships
+
 ## Cross-Layer Relationships
 
 **Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Cross-Layer Relationship Diagram
+
+```mermaid
+graph TB
+  subgraph thisLayer["02: Business Layer"]
+    thisBusinessInterface["BusinessInterface"]
+    thisBusinessMetric["BusinessMetric"]
+    thisBusinessObject["BusinessObject"]
+    thisBusinessService["BusinessService"]
+  end
+
+  %% Target layers
+  subgraph target01Layer["01: Motivation Layer"]
+    target01DeliversValue["DeliversValue"]
+    target01GovernedByPrinciple["GovernedByPrinciple"]
+    target01SupportsGoal["SupportsGoal"]
+  end
+  subgraph target02Layer["02: Business Layer"]
+    target02BusinessMetric["BusinessMetric"]
+  end
+  subgraph target03Layer["03: Security Layer"]
+    target03SecurityControl["SecurityControl"]
+    target03SeparationOfDuty["SeparationOfDuty"]
+  end
+  subgraph target04Layer["04: Application Layer"]
+    target04MasterDataSource["MasterDataSource"]
+    target04ProcessStep["ProcessStep"]
+    target04RealizedByProces["RealizedByProces"]
+    target04RepresentedByDataobject["RepresentedByDataobject"]
+  end
+  subgraph target07Layer["07: Data Model Layer"]
+    target07GovernanceOwner["GovernanceOwner"]
+  end
+
+  %% Source layers
+  subgraph source04Layer["04: Application Layer"]
+    source04Node["Any Application Layer entity"]
+  end
+  subgraph source06Layer["06: API Layer"]
+    source06Node["Any API Layer entity"]
+  end
+  subgraph source07Layer["07: Data Model Layer"]
+    source07Node["Any Data Model Layer entity"]
+  end
+
+  %% Outgoing relationships
+  thisBusinessInterface -->|master-data-source| target04MasterDataSource
+  thisBusinessInterface -->|process-steps| target04ProcessStep
+  thisBusinessInterface -->|realized-by-process| target04RealizedByProces
+  thisBusinessInterface -->|represented-by-dataobject| target04RepresentedByDataobject
+  thisBusinessInterface -->|business-metrics| target02BusinessMetric
+  thisBusinessInterface -->|governance-owner| target07GovernanceOwner
+  thisBusinessInterface -->|delivers-value| target01DeliversValue
+  thisBusinessInterface -->|governed-by-principles| target01GovernedByPrinciple
+  thisBusinessInterface -->|supports-goals| target01SupportsGoal
+  thisBusinessInterface -->|security-controls| target03SecurityControl
+  thisBusinessInterface -->|separation-of-duty| target03SeparationOfDuty
+
+  %% Incoming relationships
+  source04Node -->|business-metrics| thisBusinessMetric
+  source06Node -->|business-metrics| thisBusinessMetric
+  source06Node -->|business-interface-ref| thisBusinessInterface
+  source07Node -->|business-object-ref| thisBusinessObject
+  source06Node -->|business-service-ref| thisBusinessService
+
+  %% Styling
+  classDef thisLayerStyle fill:#4ECDC4,stroke:#333,stroke-width:3px
+  classDef targetLayerStyle fill:#FFD700,stroke:#333,stroke-width:2px
+  classDef sourceLayerStyle fill:#E17055,stroke:#333,stroke-width:2px
+
+  class thisBusinessInterface thisLayerStyle
+  class thisBusinessMetric thisLayerStyle
+  class thisBusinessObject thisLayerStyle
+  class thisBusinessService thisLayerStyle
+  class target01DeliversValue targetLayerStyle
+  class target01GovernedByPrinciple targetLayerStyle
+  class target01SupportsGoal targetLayerStyle
+  class target02BusinessMetric targetLayerStyle
+  class target03SecurityControl targetLayerStyle
+  class target03SeparationOfDuty targetLayerStyle
+  class target04MasterDataSource targetLayerStyle
+  class target04ProcessStep targetLayerStyle
+  class target04RealizedByProces targetLayerStyle
+  class target04RepresentedByDataobject targetLayerStyle
+  class target07GovernanceOwner targetLayerStyle
+  class source04Node sourceLayerStyle
+  class source06Node sourceLayerStyle
+  class source07Node sourceLayerStyle
+```
 
 ### Outgoing Relationships (This Layer → Other Layers)
 
@@ -10,18 +102,18 @@ Links from entities in this layer to entities in other layers.
 
 Links to strategic goals, requirements, principles, and constraints.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `delivers-value` | Any | DeliversValue | `motivation.delivers-value` | medium | No | comma-separated Value IDs |
-| `governed-by-principles` | Any | GovernedByPrinciple | `motivation.governed-by-principles`, `x-governed-by-principles` | high | No | string[] (Principle IDs that guide this API, optional) |
-| `supports-goals` | Any | SupportsGoal | `motivation.supports-goals`, `x-supports-goals` | high | No | comma-separated Goal IDs this service supports |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `delivers-value` | BusinessService | DeliversValue | `motivation.delivers-value` | medium | No | BusinessService delivers Value | [✓](../../spec/schemas/link-registry.json) |
+| `governed-by-principles` | BusinessService | GovernedByPrinciple | `motivation.governed-by-principles`, `x-governed-by-principles` | high | No | BusinessService governed by Principles | [✓](../../spec/schemas/link-registry.json) |
+| `supports-goals` | BusinessService | SupportsGoal | `motivation.supports-goals`, `x-supports-goals` | high | No | BusinessService supports Goals | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
 properties:
   motivation.delivers-value:
     type: string
-    description: comma-separated Value IDs
+    description: BusinessService delivers Value
     example: "target-id-1"
 ```
 
@@ -29,9 +121,9 @@ properties:
 
 Links to business services, processes, and actors.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `business-metrics` | Any | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | medium | No | comma-separated business metric IDs this service tracks |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `business-metrics` | BusinessProcess | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | medium | No | comma-separated business metric IDs this service tracks | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -46,10 +138,10 @@ properties:
 
 Links to security models, resources, and controls.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `security-controls` | Any | SecurityControl | `process.security-controls` | high | No | security control references |
-| `separation-of-duty` | Any | SeparationOfDuty | `process.separation-of-duty` | medium | No | Links to SeparationOfDuty in target layer |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `security-controls` | BusinessProcess | SecurityControl | `process.security-controls` | high | No | security control references | [✓](../../spec/schemas/link-registry.json) |
+| `separation-of-duty` | BusinessProcess | SeparationOfDuty | `process.separation-of-duty` | medium | No | Links to SeparationOfDuty in target layer | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -64,19 +156,19 @@ properties:
 
 Links to application layer elements.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `master-data-source` | Any | MasterDataSource | `application.master-data-source` | medium | No | authoritative DataObject for this business object |
-| `process-steps` | Any | ProcessStep | `application.process-steps` | medium | No | which specific ApplicationProcess steps realize this business process |
-| `realized-by-process` | Any | RealizedByProces | `application.realized-by-process` | medium | No | ApplicationProcess ID that automates this business process |
-| `represented-by-dataobject` | Any | RepresentedByDataobject | `application.represented-by-dataobject` | medium | No | DataObject ID that represents this business concept in applications |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `master-data-source` | BusinessObject | MasterDataSource | `application.master-data-source` | medium | No | BusinessObject master data source from DataObject | ✗ |
+| `process-steps` | BusinessProcess | ProcessStep | `application.process-steps` | medium | No | which specific ApplicationProcess steps realize this business process | ✗ |
+| `realized-by-process` | BusinessProcess | RealizedByProces | `application.realized-by-process` | medium | No | ApplicationService - **BusinessProcess** automated by ApplicationProcess | ✗ |
+| `represented-by-dataobject` | BusinessObject | RepresentedByDataobject | `application.represented-by-dataobject` | medium | No | BusinessObject represented in DataObject | ✗ |
 
 **Example**:
 ```yaml
 properties:
   application.master-data-source:
     type: string
-    description: authoritative DataObject for this business object
+    description: BusinessObject master data source from DataObject
     example: "target-id-1"
 ```
 
@@ -84,16 +176,16 @@ properties:
 
 Links to data schemas, tables, and columns.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `governance-owner` | Any | GovernanceOwner | `data.governance-owner` | medium | No | data owner reference |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `governance-owner` | BusinessObject | GovernanceOwner | `data.governance-owner` | medium | No | BusinessObject ownership by BusinessActor | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
 properties:
   data.governance-owner:
     type: string
-    description: data owner reference
+    description: BusinessObject ownership by BusinessActor
     example: "target-id-1"
 ```
 
@@ -103,62 +195,26 @@ Links from entities in other layers to entities in this layer.
 
 #### From Business Layer (02)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `business-metrics` | Any | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks |
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `business-metrics` | BusinessProcess | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks | [✓](../../spec/schemas/link-registry.json) |
 
 #### From Application Layer (04)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `business-metrics` | Any | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks |
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `business-metrics` | ApplicationService | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks | [✓](../../spec/schemas/link-registry.json) |
 
 #### From API Layer (06)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `business-metrics` | Any | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks |
-| `business-interface-ref` | Any | BusinessInterface | `x-business-interface-ref` | string (BusinessInterface.id, optional) |
-| `business-service-ref` | Any | BusinessService | `x-business-service-ref` | string (BusinessService.id, optional) |
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `business-metrics` | Operation, SecurityScheme | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | comma-separated business metric IDs this service tracks | [✓](../../spec/schemas/link-registry.json) |
+| `business-interface-ref` | Operation, SecurityScheme | BusinessInterface | `x-business-interface-ref` | string (BusinessInterface.id, optional) | ✗ |
+| `business-service-ref` | Operation, SecurityScheme | BusinessService | `x-business-service-ref` | string (BusinessService.id, optional) | ✗ |
 
 #### From Data Model Layer (07)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `business-object-ref` | Any | BusinessObject | `x-business-object-ref` | string (BusinessObject.id reference, optional) |
-
-### Cross-Layer Relationship Diagram
-
-```mermaid
-graph TB
-  ThisLayer["02: Business Layer"]
-
-  Target01["01: Motivation Layer"]
-  Target02["02: Business Layer"]
-  Target03["03: Security Layer"]
-  Target04["04: Application Layer"]
-  Target07["07: Data Model Layer"]
-
-  Source04["04: Application Layer"]
-  Source06["06: API Layer"]
-  Source07["07: Data Model Layer"]
-
-  ThisLayer -->|delivers-value, governed-by-principles, ...| Target01
-  ThisLayer -->|business-metrics| Target02
-  ThisLayer -->|security-controls, separation-of-duty| Target03
-  ThisLayer -->|master-data-source, process-steps, ...| Target04
-  ThisLayer -->|governance-owner| Target07
-  Source04 -->|business-metrics| ThisLayer
-  Source06 -->|business-interface-ref, business-metrics, ...| ThisLayer
-  Source07 -->|business-object-ref| ThisLayer
-
-  style ThisLayer fill:#4ECDC4,stroke:#333,stroke-width:3px
-  style Target01 fill:#FFD700
-  style Target02 fill:#FF6B6B
-  style Target03 fill:#95E1D3
-  style Target04 fill:#45B7D1
-  style Target07 fill:#F8B500
-  style Source04 fill:#6C5CE7
-  style Source06 fill:#FDCB6E
-  style Source07 fill:#00B894
-```
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `business-object-ref` | JSONSchema, x-business-object-ref Extension, x-security Extension | BusinessObject | `x-business-object-ref` | string (BusinessObject.id reference, optional) | ✗ |

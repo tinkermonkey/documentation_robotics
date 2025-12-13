@@ -122,19 +122,36 @@ class LayerDocGenerator:
             lines.append("")
 
             # Generate table
-            lines.append("| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |")
-            lines.append("|-----------|----------------|----------------|------------|----------|----------|-------------|")
+            lines.append("| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |")
+            lines.append("|-----------|----------------|----------------|------------|----------|----------|-------------|------------|")
 
             for link in links_by_target[target_layer]:
                 predicate = link.predicate or "TBD"
-                source_types = ", ".join(link.source_element_types) if link.source_element_types else "Any"
+                # Show specific source element types for this layer if available
+                if link.source_element_types_by_layer and layer_id in link.source_element_types_by_layer:
+                    source_types = ", ".join(link.source_element_types_by_layer[layer_id])
+                elif link.source_element_types:
+                    # Fallback to flat list
+                    source_types = ", ".join(link.source_element_types)
+                else:
+                    # Show which layer(s) the link comes from
+                    layer_name = self.layer_names.get(layer_id, layer_id)
+                    source_types = f"Any {layer_name} entity"
+
                 target_types = ", ".join(link.target_element_types) if link.target_element_types else "Any"
                 field_paths = ", ".join([f"`{fp}`" for fp in link.field_paths])
                 strength = link.strength or "Medium"
                 required = "Yes" if link.is_required else "No"
                 description = link.description[:100] + "..." if len(link.description) > 100 else link.description
 
-                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {strength} | {required} | {description} |")
+                # Check if documented (has description and examples)
+                if link.description and link.examples:
+                    schema_file = f"../../spec/schemas/link-registry.json"
+                    doc_link = f"[✓]({schema_file})"
+                else:
+                    doc_link = "✗"
+
+                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {strength} | {required} | {description} | {doc_link} |")
 
             lines.append("")
 
@@ -199,17 +216,34 @@ class LayerDocGenerator:
             lines.append("")
 
             # Generate table
-            lines.append("| Predicate | Source Element | Target Element | Field Path | Description |")
-            lines.append("|-----------|----------------|----------------|------------|-------------|")
+            lines.append("| Predicate | Source Element | Target Element | Field Path | Description | Documented |")
+            lines.append("|-----------|----------------|----------------|------------|-------------|------------|")
 
             for link in links_by_source[source_layer]:
                 predicate = link.predicate or "TBD"
-                source_types = ", ".join(link.source_element_types) if link.source_element_types else "Any"
+                # Show specific source element types for this layer if available
+                if link.source_element_types_by_layer and source_layer in link.source_element_types_by_layer:
+                    source_types = ", ".join(link.source_element_types_by_layer[source_layer])
+                elif link.source_element_types:
+                    # Fallback to flat list
+                    source_types = ", ".join(link.source_element_types)
+                else:
+                    # Show the source layer name
+                    source_layer_name = self.layer_names.get(source_layer, source_layer)
+                    source_types = f"Any {source_layer_name} entity"
+
                 target_types = ", ".join(link.target_element_types) if link.target_element_types else "Any"
                 field_paths = ", ".join([f"`{fp}`" for fp in link.field_paths])
                 description = link.description[:100] + "..." if len(link.description) > 100 else link.description
 
-                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {description} |")
+                # Check if documented (has description and examples)
+                if link.description and link.examples:
+                    schema_file = f"../../spec/schemas/link-registry.json"
+                    doc_link = f"[✓]({schema_file})"
+                else:
+                    doc_link = "✗"
+
+                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {description} | {doc_link} |")
 
             lines.append("")
 
@@ -235,100 +269,163 @@ class LayerDocGenerator:
         layer_name = self.layer_names.get(layer_id, layer_id)
         layer_num = layer_id.split("-")[0]
 
-        # Central node
-        lines.append(f'  ThisLayer["{layer_num}: {layer_name}"]')
-        lines.append("")
+        # Get incoming relationships to collect target entity types
+        incoming = self.registry.get_links_by_target_layer(layer_id)
+
+        # Collect unique target entity types for this layer
+        target_entity_types = set()
+        for link in incoming:
+            target_entity_types.update(link.target_element_types)
+
+        # Central layer as subgraph with individual entity types
+        lines.append(f'  subgraph thisLayer["{layer_num}: {layer_name}"]')
+
+        if target_entity_types:
+            # Show individual entity types that are targets of cross-layer links
+            for entity_type in sorted(target_entity_types):
+                safe_id = entity_type.replace(" ", "").replace("-", "")
+                lines.append(f'    this{safe_id}["{entity_type}"]')
+        else:
+            # Fallback if no specific entity types
+            lines.append(f'    ThisLayerNode["Entities in {layer_name}"]')
+
+        lines.extend(["  end", ""])
 
         # Outgoing relationships
         outgoing = self.registry.get_links_by_source_layer(layer_id)
         target_layers = sorted(set(link.target_layer for link in outgoing))
 
-        for target_layer in target_layers:
-            target_name = self.layer_names.get(target_layer, target_layer)
-            target_num = target_layer.split("-")[0]
-            var_name = f"Target{target_num}"
-            lines.append(f'  {var_name}["{target_num}: {target_name}"]')
+        if target_layers:
+            lines.append("  %% Target layers")
+            for target_layer in target_layers:
+                target_name = self.layer_names.get(target_layer, target_layer)
+                target_num = target_layer.split("-")[0]
+                var_name = f"target{target_num}"
 
-        lines.append("")
+                # Get entity types for this target layer
+                target_entities = set()
+                for link in outgoing:
+                    if link.target_layer == target_layer:
+                        target_entities.update(link.target_element_types)
 
-        # Incoming relationships
-        incoming = self.registry.get_links_by_target_layer(layer_id)
+                lines.append(f'  subgraph {var_name}Layer["{target_num}: {target_name}"]')
+
+                if target_entities:
+                    for entity_type in sorted(target_entities):
+                        safe_id = entity_type.replace(" ", "").replace("-", "")
+                        lines.append(f'    {var_name}{safe_id}["{entity_type}"]')
+                else:
+                    lines.append(f'    {var_name}Node["Entities in {target_name}"]')
+
+                lines.append("  end")
+            lines.append("")
+
+        # Source layers with incoming relationships
         source_layers = sorted(set(
             source_layer
             for link in incoming
             for source_layer in link.source_layers
+            if source_layer != layer_id  # Skip self-references
         ))
 
-        for source_layer in source_layers:
-            if source_layer == layer_id:  # Skip self-references
-                continue
-            source_name = self.layer_names.get(source_layer, source_layer)
-            source_num = source_layer.split("-")[0]
-            var_name = f"Source{source_num}"
-            lines.append(f'  {var_name}["{source_num}: {source_name}"]')
+        if source_layers:
+            lines.append("  %% Source layers")
+            for source_layer in source_layers:
+                source_name = self.layer_names.get(source_layer, source_layer)
+                source_num = source_layer.split("-")[0]
+                var_name = f"source{source_num}"
 
-        lines.append("")
+                lines.extend([
+                    f'  subgraph {var_name}Layer["{source_num}: {source_name}"]',
+                    f'    {var_name}Node["Any {source_name} entity"]',
+                    "  end",
+                ])
+            lines.append("")
 
-        # Add edges
-        for target_layer in target_layers:
-            target_num = target_layer.split("-")[0]
-            var_name = f"Target{target_num}"
+        # Add edges - outgoing relationships
+        if outgoing:
+            lines.append("  %% Outgoing relationships")
+            for link in outgoing:
+                target_num = link.target_layer.split("-")[0]
 
-            # Get predicates for this connection
-            predicates = set(
-                link.predicate for link in outgoing
-                if link.target_layer == target_layer and link.predicate
-            )
+                # Find source node
+                if target_entity_types:
+                    source_nodes = [f'this{et.replace(" ", "").replace("-", "")}' for et in sorted(target_entity_types)]
+                    source_node = source_nodes[0] if source_nodes else "ThisLayerNode"
+                else:
+                    source_node = "ThisLayerNode"
 
-            if predicates:
-                predicate_label = ", ".join(sorted(predicates)[:2])  # Show up to 2
-                if len(predicates) > 2:
-                    predicate_label += ", ..."
-                lines.append(f'  ThisLayer -->|{predicate_label}| {var_name}')
-            else:
-                lines.append(f'  ThisLayer --> {var_name}')
+                # Find target nodes
+                for target_entity in link.target_element_types:
+                    safe_id = target_entity.replace(" ", "").replace("-", "")
+                    target_node = f'target{target_num}{safe_id}'
+                    predicate = link.predicate or ""
 
-        for source_layer in source_layers:
-            if source_layer == layer_id:
-                continue
-            source_num = source_layer.split("-")[0]
-            var_name = f"Source{source_num}"
+                    if predicate:
+                        lines.append(f'  {source_node} -->|{predicate}| {target_node}')
+                    else:
+                        lines.append(f'  {source_node} --> {target_node}')
+            lines.append("")
 
-            # Get predicates for this connection
-            predicates = set(
-                link.predicate
-                for link in incoming
-                if source_layer in link.source_layers and link.predicate
-            )
+        # Add edges - incoming relationships
+        if incoming:
+            lines.append("  %% Incoming relationships")
+            for link in incoming:
+                for source_layer in link.source_layers:
+                    if source_layer == layer_id:
+                        continue
 
-            if predicates:
-                predicate_label = ", ".join(sorted(predicates)[:2])
-                if len(predicates) > 2:
-                    predicate_label += ", ..."
-                lines.append(f'  {var_name} -->|{predicate_label}| ThisLayer')
-            else:
-                lines.append(f'  {var_name} --> ThisLayer')
+                    source_num = source_layer.split("-")[0]
+                    source_node = f'source{source_num}Node'
 
-        lines.append("")
+                    # Connect to specific target entities
+                    for target_entity in link.target_element_types:
+                        safe_id = target_entity.replace(" ", "").replace("-", "")
+                        target_node = f'this{safe_id}'
+                        predicate = link.predicate or ""
+
+                        if predicate:
+                            lines.append(f'  {source_node} -->|{predicate}| {target_node}')
+                        else:
+                            lines.append(f'  {source_node} --> {target_node}')
+            lines.append("")
 
         # Styling
-        lines.append("  style ThisLayer fill:#4ECDC4,stroke:#333,stroke-width:3px")
+        lines.extend([
+            "  %% Styling",
+            "  classDef thisLayerStyle fill:#4ECDC4,stroke:#333,stroke-width:3px",
+            "  classDef targetLayerStyle fill:#FFD700,stroke:#333,stroke-width:2px",
+            "  classDef sourceLayerStyle fill:#E17055,stroke:#333,stroke-width:2px",
+            "",
+        ])
 
-        # Color target layers
-        for i, target_layer in enumerate(target_layers):
+        # Style this layer's nodes
+        if target_entity_types:
+            for entity_type in sorted(target_entity_types):
+                safe_id = entity_type.replace(" ", "").replace("-", "")
+                lines.append(f"  class this{safe_id} thisLayerStyle")
+        else:
+            lines.append("  class ThisLayerNode thisLayerStyle")
+
+        # Style target nodes
+        for target_layer in target_layers:
             target_num = target_layer.split("-")[0]
-            var_name = f"Target{target_num}"
-            colors = ["#FFD700", "#FF6B6B", "#95E1D3", "#45B7D1", "#F8B500"]
-            lines.append(f"  style {var_name} fill:{colors[i % len(colors)]}")
+            target_entities = set()
+            for link in outgoing:
+                if link.target_layer == target_layer:
+                    target_entities.update(link.target_element_types)
 
-        # Color source layers
-        for i, source_layer in enumerate(source_layers):
-            if source_layer == layer_id:
-                continue
+            if target_entities:
+                for entity_type in sorted(target_entities):
+                    safe_id = entity_type.replace(" ", "").replace("-", "")
+                    lines.append(f"  class target{target_num}{safe_id} targetLayerStyle")
+            else:
+                lines.append(f"  class target{target_num}Node targetLayerStyle")
+
+        # Style source nodes
+        for source_layer in source_layers:
             source_num = source_layer.split("-")[0]
-            var_name = f"Source{source_num}"
-            colors = ["#E17055", "#6C5CE7", "#FDCB6E", "#00B894", "#D63031"]
-            lines.append(f"  style {var_name} fill:{colors[i % len(colors)]}")
+            lines.append(f"  class source{source_num}Node sourceLayerStyle")
 
         lines.append("```")
         lines.append("")
@@ -344,21 +441,25 @@ class LayerDocGenerator:
         Returns:
             Complete markdown section
         """
+        layer_name = self.layer_names.get(layer_id, layer_id)
+
         lines = [
+            f"# {layer_name} - Cross-Layer Relationships",
+            "",
             "## Cross-Layer Relationships",
             "",
             "**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.",
             "",
         ]
 
+        # Diagram (moved to top, right after overview)
+        lines.append(self.generate_cross_layer_diagram(layer_id))
+
         # Outgoing relationships
         lines.append(self.generate_outgoing_relationships_section(layer_id))
 
         # Incoming relationships
         lines.append(self.generate_incoming_relationships_section(layer_id))
-
-        # Diagram
-        lines.append(self.generate_cross_layer_diagram(layer_id))
 
         return "\n".join(lines)
 

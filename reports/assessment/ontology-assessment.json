@@ -9,10 +9,10 @@
     "unique_link_types_used": 24
   },
   "predicates": {
-    "total_predicates": 115,
-    "categorized_predicates": 77,
-    "uncategorized_predicates": 191,
-    "xml_relationship_types": 7
+    "total_predicates": 116,
+    "categorized_predicates": 79,
+    "uncategorized_predicates": 205,
+    "xml_relationship_types": 8
   },
   "gaps": {
     "total_gaps": 221,
@@ -176,7 +176,7 @@
     "**PRIORITY 1**: Address 5 high-priority gaps identified in gap analysis report.",
     "**PRIORITY 2**: Review 14 unused link types for deprecation or add examples to documentation.",
     "**PRIORITY 3**: Register 133 field paths found in docs but missing from link-registry.json.",
-    "**PRIORITY 4**: Categorize 191 predicates currently in 'Other' category (71.3% of total).",
+    "**PRIORITY 4**: Categorize 205 predicates currently in 'Other' category (72.2% of total).",
     "**PRIORITY 5**: Define inverse predicates for 39 relationships to enable bidirectional navigation.",
     "**PRIORITY 6**: Improve element coverage. Layer 01 has 10 entities with no documented links.",
     "**PRIORITY 7**: Define links for 12 missing expected layer pairs (see gap analysis report).",

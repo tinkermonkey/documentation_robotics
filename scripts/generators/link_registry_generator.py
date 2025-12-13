@@ -160,6 +160,181 @@ class LinkRegistryGenerator:
         # Default: medium
         return "medium"
 
+    def _is_non_entity_heading(self, heading: str) -> bool:
+        """Check if a heading is a non-entity section.
+
+        Args:
+            heading: Cleaned heading text
+
+        Returns:
+            True if this is a non-entity section heading
+        """
+        # Exact matches for common section names
+        non_entity_headings = {
+            "Structural Relationships",
+            "Behavioral Relationships",
+            "Other Relationships",
+            "Dependency Relationships",
+            "Core Validation",
+            "Cross-Layer Reference Validation",
+            "Property Format Validation",
+            "Core Modeling",
+            "Cross-Layer Integration",
+            "Security and Governance",
+            "Data Governance",
+            "Observability",
+            "Testing",
+            "Core OpenAPI Structure",
+            "Core OpenAPI Practices",
+            "Cross-Layer Integration Practices",
+            "Integration Examples",
+            "Benefits Summary",
+            "Cloud Properties",
+            "Infrastructure-as-Code",
+            "Performance Properties",
+            "Monitoring Properties",
+        }
+
+        if heading in non_entity_headings:
+            return True
+
+        # Pattern-based filters
+        if (heading.startswith("To ") or
+            heading.startswith("From ") or
+            heading.startswith("Why ") or
+            heading.startswith("Example ") or
+            heading.startswith("For ") or
+            heading.endswith(" Validation") or
+            heading.endswith(" Best Practices") or
+            heading.endswith(" Practices") or
+            "Integration" in heading and ("Best Practices" in heading or "Validation" in heading or "Practices" in heading)):
+            return True
+
+        return False
+
+    def _extract_integration_point_description(self, field_path: str, source_layers: List[str]) -> Optional[str]:
+        """Extract relationship description from Integration Points section.
+
+        Args:
+            field_path: Field path like "motivation.supports-goals"
+            source_layers: Source layer IDs to search
+
+        Returns:
+            Description string or None
+        """
+        for layer_id in source_layers:
+            layer_file = self.layers_path / f"{layer_id}-layer.md"
+            if not layer_file.exists():
+                continue
+
+            content = layer_file.read_text(encoding="utf-8")
+
+            # Find Integration Points section
+            section_match = re.search(
+                r'## Integration Points\s*\n(.*?)(?=\n## |$)',
+                content,
+                re.DOTALL
+            )
+
+            if not section_match:
+                continue
+
+            section_content = section_match.group(1)
+
+            # Look for lines mentioning this field path
+            # Format: "- **Entity** verb **Target** (field.path property)"
+            pattern = rf'\*\*(\w+)\*\*\s+(.+?)\s+\*\*(\w+)\*\*\s*\(({re.escape(field_path)})\s+property\)'
+            match = re.search(pattern, section_content)
+
+            if match:
+                source_entity, verb, target_entity, _ = match.groups()
+                return f"{source_entity} {verb} {target_entity}"
+
+        return None
+
+    def _extract_examples_from_xml(self, field_paths: List[str], source_layers: List[str]) -> List[Dict[str, Any]]:
+        """Extract usage examples from Example Model XML sections.
+
+        Args:
+            field_paths: Field paths to search for
+            source_layers: Source layer IDs to search
+
+        Returns:
+            List of example dictionaries
+        """
+        examples = []
+
+        for layer_id in source_layers:
+            layer_file = self.layers_path / f"{layer_id}-layer.md"
+            if not layer_file.exists():
+                continue
+
+            content = layer_file.read_text(encoding="utf-8")
+
+            # Find Example Model section
+            section_match = re.search(
+                r'## Example Model\s*\n(.*?)(?=\n## |$)',
+                content,
+                re.DOTALL
+            )
+
+            if not section_match:
+                continue
+
+            section_content = section_match.group(1)
+
+            # Extract XML blocks
+            xml_blocks = re.findall(r'```xml\n(.*?)\n```', section_content, re.DOTALL)
+
+            for xml_content in xml_blocks:
+                # Find all element blocks WITH their opening tag
+                element_pattern = r'<element\s+([^>]*)>(.*?)</element>'
+                element_matches = re.finditer(element_pattern, xml_content, re.DOTALL)
+
+                for element_match in element_matches:
+                    attrs_str = element_match.group(1)
+                    element_content = element_match.group(2)
+
+                    # Extract id and type from attributes
+                    id_match = re.search(r'id="([^"]+)"', attrs_str)
+                    type_match = re.search(r'type="([^"]+)"', attrs_str)
+
+                    if not (id_match and type_match):
+                        continue
+
+                    element_id = id_match.group(1)
+                    element_type = type_match.group(1)
+
+                    # Extract name from element content
+                    name_match = re.search(r'<name>([^<]+)</name>', element_content)
+                    element_name = name_match.group(1) if name_match else element_id
+
+                    # Check if this element has any of our field paths
+                    for field_path in field_paths:
+                        property_match = re.search(
+                            rf'<property key="{re.escape(field_path)}">([^<]+)</property>',
+                            element_content
+                        )
+
+                        if property_match:
+                            value = property_match.group(1).strip()
+
+                            example = {
+                                "elementType": element_type,
+                                "elementId": element_id,
+                                "elementName": element_name,
+                                "fieldPath": field_path,
+                                "value": value,
+                                "layer": layer_id
+                            }
+                            examples.append(example)
+
+                            # Limit to 3 examples per link type
+                            if len(examples) >= 3:
+                                return examples
+
+        return examples
+
     def _extract_source_element_types(self, field_paths: List[str], source_layers: List[str]) -> List[str]:
         """Extract source element types from layer markdown files.
 
@@ -173,7 +348,7 @@ class LinkRegistryGenerator:
         element_types = set()
 
         for layer_id in source_layers:
-            layer_file = self.layers_path / f"{layer_id}.md"
+            layer_file = self.layers_path / f"{layer_id}-layer.md"
             if not layer_file.exists():
                 continue
 
@@ -187,6 +362,10 @@ class LinkRegistryGenerator:
             for entity in entities:
                 # Clean entity name
                 entity_clean = entity.strip()
+
+                # Skip non-entity sections
+                if self._is_non_entity_heading(entity_clean):
+                    continue
 
                 # Search for field path usage near this entity
                 # Look for YAML properties section after entity heading
@@ -232,6 +411,21 @@ class LinkRegistryGenerator:
             if predicate:
                 relationship = self._find_relationship_by_predicate(predicate)
 
+            # Extract enhanced description from Integration Points
+            integration_description = self._extract_integration_point_description(
+                link_type.field_paths[0] if link_type.field_paths else "",
+                link_type.source_layers
+            )
+
+            # Use enhanced description if found, otherwise keep existing
+            description = integration_description or link_type.description
+
+            # Extract examples from Example Model XML
+            xml_examples = self._extract_examples_from_xml(
+                link_type.field_paths,
+                link_type.source_layers
+            )
+
             # Build enhanced link type
             enhanced = {
                 "id": link_type.id,
@@ -243,8 +437,8 @@ class LinkRegistryGenerator:
                 "fieldPaths": link_type.field_paths,
                 "cardinality": link_type.cardinality,
                 "format": link_type.format,
-                "description": link_type.description,
-                "examples": link_type.examples,  # Keep existing (empty for now)
+                "description": description,
+                "examples": xml_examples,  # Now populated from Example Model
                 "validationRules": link_type.validation_rules,
             }
 
@@ -262,13 +456,27 @@ class LinkRegistryGenerator:
                 enhanced["archimateAlignment"] = None
                 enhanced["bidirectional"] = False
 
-            # Extract source element types
-            source_element_types = self._extract_source_element_types(
-                link_type.field_paths,
-                link_type.source_layers
-            )
-            if source_element_types:
-                enhanced["sourceElementTypes"] = source_element_types
+            # Extract source element types per layer
+            source_element_types_by_layer = {}
+            for source_layer in link_type.source_layers:
+                layer_element_types = self._extract_source_element_types(
+                    link_type.field_paths,
+                    [source_layer]
+                )
+                if layer_element_types:
+                    source_element_types_by_layer[source_layer] = layer_element_types
+
+            # Add both formats for backwards compatibility
+            if source_element_types_by_layer:
+                enhanced["sourceElementTypesByLayer"] = source_element_types_by_layer
+                # Flat list for backwards compatibility
+                all_types = []
+                for types in source_element_types_by_layer.values():
+                    all_types.extend(types)
+                enhanced["sourceElementTypes"] = sorted(list(set(all_types)))
+            else:
+                enhanced["sourceElementTypesByLayer"] = {}
+                enhanced["sourceElementTypes"] = []
 
             # Determine strength
             enhanced["strength"] = self._determine_strength(link_type.category, link_type.id)
@@ -280,7 +488,7 @@ class LinkRegistryGenerator:
             # Enhanced validation rules
             enhanced["validationRules"] = {
                 **link_type.validation_rules,
-                "sourceElementTypesValid": source_element_types,
+                "sourceElementTypesValid": enhanced.get("sourceElementTypes", []),
                 "minimumCardinality": min_card,
                 "maximumCardinality": None,  # null = unlimited
             }

@@ -1,4 +1,4 @@
-# Navigation Layer - Cross-Layer Relationships
+# 10-iac - Cross-Layer Relationships
 
 ## Cross-Layer Relationships
 
@@ -8,8 +8,8 @@
 
 ```mermaid
 graph TB
-  subgraph thisLayer["10: Navigation Layer"]
-    ThisLayerNode["Entities in Navigation Layer"]
+  subgraph thisLayer["10: 10-iac"]
+    ThisLayerNode["Entities in 10-iac"]
   end
 
   %% Styling

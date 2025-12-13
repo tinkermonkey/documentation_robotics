@@ -338,21 +338,34 @@ Value:
 ### Structural Relationships
 
 - **Aggregation**: Goal aggregates sub-Goals
+- **Aggregation**: Requirement aggregates sub-Requirements
 - **Realization**: Outcome realizes Goal
-- **Specialization**: Requirement specializes Requirement (parent-child)
+- **Realization**: Goal realizes Value
 
 ### Influence Relationships
 
-- **Association**: Stakeholder associated with Driver
 - **Influence**: Driver influences Assessment
+- **Influence**: Driver influences Goal
 - **Influence**: Assessment influences Goal
+- **Influence**: Goal influences Principle
+- **Influence**: Goal influences Requirement
 - **Influence**: Principle influences Requirement
+- **Influence**: Principle influences Constraint
+- **Influence**: Constraint influences Requirement
+- **Influence**: Outcome influences Goal
+- **Influence**: Requirement influences Requirement
 
-### Other Relationships
+### Association Relationships
 
+- **Association**: Stakeholder associated with Driver
 - **Association**: Stakeholder associated with Goal
+- **Association**: Stakeholder associated with Requirement
+- **Association**: Driver associated with Stakeholder
 - **Association**: Requirement associated with Constraint
-- **Realization**: Goal realizes Value
+- **Association**: Value associated with Stakeholder
+- **Association**: Outcome associated with Value
+- **Association**: Meaning associated with Value
+- **Association**: Meaning associated with Outcome
 
 ## Example Model
 
@@ -430,14 +443,54 @@ Value:
     <property key="outcome.metrics">4.2 App Store rating, 15K downloads in first month</property>
   </element>
 
+  <!-- Meaning -->
+  <element id="clv-meaning" type="Meaning">
+    <name>Customer Lifetime Value Understanding</name>
+    <documentation>Retained customers have 3x higher CLV; 5% retention increase yields 25-95% profit boost</documentation>
+  </element>
+
+  <element id="nps-meaning" type="Meaning">
+    <name>NPS Achievement Context</name>
+    <documentation>NPS 45 indicates top-quartile SaaS performance, correlates with 8% churn reduction</documentation>
+  </element>
+
+  <!-- Sub-Goal (for aggregation example) -->
+  <element id="ios-goal" type="Goal">
+    <name>Launch iOS Application</name>
+    <documentation>Deliver native iOS app supporting iPhone and iPad</documentation>
+  </element>
+
+  <!-- Sub-Requirement (for aggregation example) -->
+  <element id="ios-14-req" type="Requirement">
+    <name>iOS 14 Compatibility</name>
+    <documentation>App must support iOS 14.0 and above</documentation>
+    <property key="requirementType">technical</property>
+  </element>
+
   <!-- Relationships -->
   <relationship type="Association" source="product-manager" target="mobile-goal"/>
+  <relationship type="Association" source="product-manager" target="market-competition"/>
+  <relationship type="Association" source="product-manager" target="ios-support"/>
+  <relationship type="Association" source="market-competition" target="product-manager"/>
   <relationship type="Influence" source="market-competition" target="mobile-gap"/>
+  <relationship type="Influence" source="market-competition" target="mobile-goal"/>
   <relationship type="Influence" source="mobile-gap" target="mobile-goal"/>
+  <relationship type="Influence" source="mobile-goal" target="api-first"/>
+  <relationship type="Influence" source="mobile-goal" target="ios-support"/>
   <relationship type="Influence" source="api-first" target="ios-support"/>
+  <relationship type="Influence" source="api-first" target="budget-constraint"/>
   <relationship type="Association" source="ios-support" target="budget-constraint"/>
+  <relationship type="Influence" source="budget-constraint" target="ios-support"/>
+  <relationship type="Influence" source="ios-support" target="ios-14-req"/>
   <relationship type="Realization" source="mobile-goal" target="customer-value"/>
+  <relationship type="Association" source="customer-value" target="product-manager"/>
   <relationship type="Realization" source="app-launched" target="mobile-goal"/>
+  <relationship type="Influence" source="app-launched" target="mobile-goal"/>
+  <relationship type="Association" source="app-launched" target="customer-value"/>
+  <relationship type="Association" source="clv-meaning" target="customer-value"/>
+  <relationship type="Association" source="nps-meaning" target="app-launched"/>
+  <relationship type="Aggregation" source="mobile-goal" target="ios-goal"/>
+  <relationship type="Aggregation" source="ios-support" target="ios-14-req"/>
 </model>
 ```
 

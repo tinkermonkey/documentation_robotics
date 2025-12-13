@@ -1,6 +1,98 @@
+# Application Layer - Cross-Layer Relationships
+
 ## Cross-Layer Relationships
 
 **Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Cross-Layer Relationship Diagram
+
+```mermaid
+graph TB
+  subgraph thisLayer["04: Application Layer"]
+    thisElement["Element"]
+    thisMasterDataSource["MasterDataSource"]
+    thisProcessStep["ProcessStep"]
+    thisRealizedByProces["RealizedByProces"]
+    thisRepresentedByDataobject["RepresentedByDataobject"]
+  end
+
+  %% Target layers
+  subgraph target01Layer["01: Motivation Layer"]
+    target01DeliversValue["DeliversValue"]
+    target01FulfillsRequirement["FulfillsRequirement"]
+    target01GovernedByPrinciple["GovernedByPrinciple"]
+    target01SupportsGoal["SupportsGoal"]
+  end
+  subgraph target02Layer["02: Business Layer"]
+    target02BusinessMetric["BusinessMetric"]
+  end
+  subgraph target03Layer["03: Security Layer"]
+    target03Pii["Pii"]
+  end
+  subgraph target07Layer["07: Data Model Layer"]
+    target07Retention["Retention"]
+  end
+  subgraph target11Layer["11: 11-apm"]
+    target11SlaTargetAvailability["SlaTargetAvailability"]
+    target11SlaTargetLatency["SlaTargetLatency"]
+    target11Traced["Traced"]
+  end
+
+  %% Source layers
+  subgraph source02Layer["02: Business Layer"]
+    source02Node["Any Business Layer entity"]
+  end
+  subgraph source06Layer["06: API Layer"]
+    source06Node["Any API Layer entity"]
+  end
+  subgraph source07Layer["07: Data Model Layer"]
+    source07Node["Any Data Model Layer entity"]
+  end
+
+  %% Outgoing relationships
+  thisElement -->|sla-target-availability| target11SlaTargetAvailability
+  thisElement -->|sla-target-latency| target11SlaTargetLatency
+  thisElement -->|traced| target11Traced
+  thisElement -->|business-metrics| target02BusinessMetric
+  thisElement -->|retention| target07Retention
+  thisElement -->|delivers-value| target01DeliversValue
+  thisElement -->|fulfills-requirements| target01FulfillsRequirement
+  thisElement -->|governed-by-principles| target01GovernedByPrinciple
+  thisElement -->|supports-goals| target01SupportsGoal
+  thisElement -->|pii| target03Pii
+
+  %% Incoming relationships
+  source02Node -->|master-data-source| thisMasterDataSource
+  source02Node -->|process-steps| thisProcessStep
+  source02Node -->|realized-by-process| thisRealizedByProces
+  source02Node -->|represented-by-dataobject| thisRepresentedByDataobject
+  source06Node -->|archimate-ref| thisElement
+  source07Node -->|archimate-ref| thisElement
+
+  %% Styling
+  classDef thisLayerStyle fill:#4ECDC4,stroke:#333,stroke-width:3px
+  classDef targetLayerStyle fill:#FFD700,stroke:#333,stroke-width:2px
+  classDef sourceLayerStyle fill:#E17055,stroke:#333,stroke-width:2px
+
+  class thisElement thisLayerStyle
+  class thisMasterDataSource thisLayerStyle
+  class thisProcessStep thisLayerStyle
+  class thisRealizedByProces thisLayerStyle
+  class thisRepresentedByDataobject thisLayerStyle
+  class target01DeliversValue targetLayerStyle
+  class target01FulfillsRequirement targetLayerStyle
+  class target01GovernedByPrinciple targetLayerStyle
+  class target01SupportsGoal targetLayerStyle
+  class target02BusinessMetric targetLayerStyle
+  class target03Pii targetLayerStyle
+  class target07Retention targetLayerStyle
+  class target11SlaTargetAvailability targetLayerStyle
+  class target11SlaTargetLatency targetLayerStyle
+  class target11Traced targetLayerStyle
+  class source02Node sourceLayerStyle
+  class source06Node sourceLayerStyle
+  class source07Node sourceLayerStyle
+```
 
 ### Outgoing Relationships (This Layer → Other Layers)
 
@@ -10,19 +102,19 @@ Links from entities in this layer to entities in other layers.
 
 Links to strategic goals, requirements, principles, and constraints.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `delivers-value` | Any | DeliversValue | `motivation.delivers-value` | medium | No | comma-separated Value IDs |
-| `fulfills-requirements` | Any | FulfillsRequirement | `motivation.fulfills-requirements`, `x-fulfills-requirements` | high | No | comma-separated Requirement IDs this function fulfills |
-| `governed-by-principles` | Any | GovernedByPrinciple | `motivation.governed-by-principles`, `x-governed-by-principles` | high | No | string[] (Principle IDs that guide this API, optional) |
-| `supports-goals` | Any | SupportsGoal | `motivation.supports-goals`, `x-supports-goals` | high | No | comma-separated Goal IDs this service supports |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `delivers-value` | ApplicationService | DeliversValue | `motivation.delivers-value` | medium | No | BusinessService delivers Value | [✓](../../spec/schemas/link-registry.json) |
+| `fulfills-requirements` | ApplicationFunction | FulfillsRequirement | `motivation.fulfills-requirements`, `x-fulfills-requirements` | high | No | comma-separated Requirement IDs this function fulfills | [✓](../../spec/schemas/link-registry.json) |
+| `governed-by-principles` | ApplicationFunction, ApplicationService | GovernedByPrinciple | `motivation.governed-by-principles`, `x-governed-by-principles` | high | No | BusinessService governed by Principles | [✓](../../spec/schemas/link-registry.json) |
+| `supports-goals` | ApplicationService | SupportsGoal | `motivation.supports-goals`, `x-supports-goals` | high | No | BusinessService supports Goals | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
 properties:
   motivation.delivers-value:
     type: string
-    description: comma-separated Value IDs
+    description: BusinessService delivers Value
     example: "target-id-1"
 ```
 
@@ -30,9 +122,9 @@ properties:
 
 Links to business services, processes, and actors.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `business-metrics` | Any | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | medium | No | comma-separated business metric IDs this service tracks |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `business-metrics` | ApplicationService | BusinessMetric | `apm.business-metrics`, `x-apm-business-metrics` | medium | No | comma-separated business metric IDs this service tracks | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -47,9 +139,9 @@ properties:
 
 Links to security models, resources, and controls.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `pii` | Any | Pii | `data.pii` | medium | No | Links to Pii in target layer |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `pii` | Data Properties, DataObject | Pii | `data.pii` | medium | No | Links to Pii in target layer | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -64,9 +156,9 @@ properties:
 
 Links to data schemas, tables, and columns.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `retention` | Any | Retention | `data.retention` | medium | No | Links to Retention in target layer |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `retention` | Data Properties, DataObject | Retention | `data.retention` | medium | No | Links to Retention in target layer | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -81,11 +173,11 @@ properties:
 
 Links to 11-apm elements.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description |
-|-----------|----------------|----------------|------------|----------|----------|-------------|
-| `sla-target-availability` | Any | SlaTargetAvailability | `apm.sla-target-availability`, `x-apm-sla-target-availability` | medium | No | string (e.g., "99.95%", "99.99%", optional) |
-| `sla-target-latency` | Any | SlaTargetLatency | `apm.sla-target-latency`, `x-apm-sla-target-latency` | medium | No | string (e.g., "200ms", "500ms", optional) |
-| `traced` | Any | Traced | `apm.traced` | medium | No | Links to Traced in target layer |
+| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |
+|-----------|----------------|----------------|------------|----------|----------|-------------|------------|
+| `sla-target-availability` | ApplicationService | SlaTargetAvailability | `apm.sla-target-availability`, `x-apm-sla-target-availability` | medium | No | string (e.g., "99.95%", "99.99%", optional) | [✓](../../spec/schemas/link-registry.json) |
+| `sla-target-latency` | ApplicationService | SlaTargetLatency | `apm.sla-target-latency`, `x-apm-sla-target-latency` | medium | No | string (e.g., "200ms", "500ms", optional) | [✓](../../spec/schemas/link-registry.json) |
+| `traced` | ApplicationService, Data Properties | Traced | `apm.traced` | medium | No | Links to Traced in target layer | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 ```yaml
@@ -102,57 +194,21 @@ Links from entities in other layers to entities in this layer.
 
 #### From Business Layer (02)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `master-data-source` | Any | MasterDataSource | `application.master-data-source` | authoritative DataObject for this business object |
-| `process-steps` | Any | ProcessStep | `application.process-steps` | which specific ApplicationProcess steps realize this business process |
-| `realized-by-process` | Any | RealizedByProces | `application.realized-by-process` | ApplicationProcess ID that automates this business process |
-| `represented-by-dataobject` | Any | RepresentedByDataobject | `application.represented-by-dataobject` | DataObject ID that represents this business concept in applications |
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `master-data-source` | BusinessObject | MasterDataSource | `application.master-data-source` | BusinessObject master data source from DataObject | ✗ |
+| `process-steps` | BusinessProcess | ProcessStep | `application.process-steps` | which specific ApplicationProcess steps realize this business process | ✗ |
+| `realized-by-process` | BusinessProcess | RealizedByProces | `application.realized-by-process` | ApplicationService - **BusinessProcess** automated by ApplicationProcess | ✗ |
+| `represented-by-dataobject` | BusinessObject | RepresentedByDataobject | `application.represented-by-dataobject` | BusinessObject represented in DataObject | ✗ |
 
 #### From API Layer (06)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `archimate-ref` | Any | Element | `x-archimate-ref` | string (Element.id reference to ApplicationService) |
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `archimate-ref` | OpenAPIDocument, Operation, SecurityScheme | Element | `x-archimate-ref` | string (Element.id reference to ApplicationService) | ✗ |
 
 #### From Data Model Layer (07)
 
-| Predicate | Source Element | Target Element | Field Path | Description |
-|-----------|----------------|----------------|------------|-------------|
-| `archimate-ref` | Any | Element | `x-archimate-ref` | string (Element.id reference to ApplicationService) |
-
-### Cross-Layer Relationship Diagram
-
-```mermaid
-graph TB
-  ThisLayer["04: Application Layer"]
-
-  Target01["01: Motivation Layer"]
-  Target02["02: Business Layer"]
-  Target03["03: Security Layer"]
-  Target07["07: Data Model Layer"]
-  Target11["11: 11-apm"]
-
-  Source02["02: Business Layer"]
-  Source06["06: API Layer"]
-  Source07["07: Data Model Layer"]
-
-  ThisLayer -->|delivers-value, fulfills-requirements, ...| Target01
-  ThisLayer -->|business-metrics| Target02
-  ThisLayer -->|pii| Target03
-  ThisLayer -->|retention| Target07
-  ThisLayer -->|sla-target-availability, sla-target-latency, ...| Target11
-  Source02 -->|master-data-source, process-steps, ...| ThisLayer
-  Source06 -->|archimate-ref| ThisLayer
-  Source07 -->|archimate-ref| ThisLayer
-
-  style ThisLayer fill:#4ECDC4,stroke:#333,stroke-width:3px
-  style Target01 fill:#FFD700
-  style Target02 fill:#FF6B6B
-  style Target03 fill:#95E1D3
-  style Target07 fill:#45B7D1
-  style Target11 fill:#F8B500
-  style Source02 fill:#E17055
-  style Source06 fill:#6C5CE7
-  style Source07 fill:#FDCB6E
-```
+| Predicate | Source Element | Target Element | Field Path | Description | Documented |
+|-----------|----------------|----------------|------------|-------------|------------|
+| `archimate-ref` | JSONSchema, x-security Extension | Element | `x-archimate-ref` | string (Element.id reference to ApplicationService) | ✗ |

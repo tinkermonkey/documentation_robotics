@@ -23,10 +23,10 @@ evaluating coverage, consistency, maturity, and identifying areas for improvemen
 
 | Metric | Value |
 |--------|-------|
-| Total Unique Predicates | 115 |
-| Categorized Predicates | 77 |
-| Uncategorized Predicates | 191 |
-| XML Relationship Types | 7 |
+| Total Unique Predicates | 116 |
+| Categorized Predicates | 79 |
+| Uncategorized Predicates | 205 |
+| XML Relationship Types | 8 |
 
 ## Gap Summary
 
@@ -70,7 +70,7 @@ The following recommendations are prioritized based on impact and urgency:
 
 3. **PRIORITY 3**: Register 133 field paths found in docs but missing from link-registry.json.
 
-4. **PRIORITY 4**: Categorize 191 predicates currently in 'Other' category (71.3% of total).
+4. **PRIORITY 4**: Categorize 205 predicates currently in 'Other' category (72.2% of total).
 
 5. **PRIORITY 5**: Define inverse predicates for 39 relationships to enable bidirectional navigation.
 
