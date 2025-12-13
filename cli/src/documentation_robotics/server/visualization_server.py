@@ -21,6 +21,8 @@ from aiohttp import web
 from rich.console import Console
 
 from ..core.model import Model
+from .chat_handler import ChatHandler
+from .chat_session import ChatSession
 from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
@@ -98,9 +100,15 @@ class VisualizationServer:
         # WebSocket connections
         self.websockets: Set[web.WebSocketResponse] = set()
 
+        # Chat sessions per WebSocket
+        self._ws_sessions: Dict[web.WebSocketResponse, ChatSession] = {}
+
         # Loaded data
         self.specification: Optional[Dict[str, Any]] = None
         self.model_serializer: Optional[ModelSerializer] = None
+
+        # Chat handler
+        self.chat_handler: Optional[ChatHandler] = None
 
         # Initialize model serializer if model is provided (test mode)
         if self.model is not None:
@@ -124,6 +132,17 @@ class VisualizationServer:
             Full URL with token query parameter
         """
         return f"http://{self.host}:{self.port}/?token={self.token}"
+
+    def _get_model_context(self) -> Dict[str, Any]:
+        """
+        Get model context for DrBot.
+
+        Returns:
+            Dictionary containing model metadata for Claude context
+        """
+        if self.model_serializer:
+            return self.model_serializer.serialize_model()
+        return {}
 
     # Public handler methods (used by tests)
     async def handle_health(self, request: web.Request) -> web.Response:
@@ -226,6 +245,12 @@ class VisualizationServer:
             self.model = Model(self.model_path, enable_cache=True, lazy_load=False)
 
         self.model_serializer = ModelSerializer(self.model)
+
+        # Initialize chat handler
+        self.chat_handler = ChatHandler(
+            model_path=self.model_path,
+            model_context_provider=self._get_model_context,
+        )
 
         # Create aiohttp application with authentication middleware
         self.app = web.Application(middlewares=[self.auth_middleware])
@@ -476,6 +501,12 @@ class VisualizationServer:
             await self._send_error(ws, str(e))
 
         finally:
+            # Clean up chat session
+            if ws in self._ws_sessions:
+                session = self._ws_sessions[ws]
+                self.chat_handler.session_manager.remove_session(session.session_id)
+                del self._ws_sessions[ws]
+
             # Remove from active connections
             self.websockets.discard(ws)
 
@@ -530,6 +561,15 @@ class VisualizationServer:
             # Handle test messages
             if message_type == "test":
                 await ws.send_json({"type": "response", "message": "Test message received"})
+
+            # Check for JSON-RPC chat messages
+            elif data.get("jsonrpc") == "2.0":
+                # Get or create session for this WebSocket
+                if ws not in self._ws_sessions:
+                    self._ws_sessions[ws] = self.chat_handler.session_manager.create_session()
+                session = self._ws_sessions[ws]
+                await self.chat_handler.handle_message(ws, message, session)
+
             else:
                 # Future: Handle client commands (changeset switching, etc.)
                 console.print(f"[dim]Received message type: {message_type}[/dim]")
