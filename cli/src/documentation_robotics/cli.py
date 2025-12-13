@@ -12,6 +12,7 @@ from . import __version__
 from .commands import (
     add,
     changeset,
+    chat,
     claude,
     conformance,
     copilot,
@@ -108,6 +109,8 @@ cli.add_command(links.links_group)
 cli.add_command(migrate.migrate)
 # Visualization
 cli.add_command(visualize.visualize)
+# Chat (DrBot test harness)
+cli.add_command(chat.chat)
 
 
 def main() -> None:

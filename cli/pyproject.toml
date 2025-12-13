@@ -86,8 +86,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=documentation_robotics --cov-report=term-missing"
+addopts = "-v --cov=src/documentation_robotics --cov-report=term-missing"
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/documentation_robotics"]
+omit = ["*/tests/*", "*/test_*.py"]
 
 [tool.black]
 line-length = 100

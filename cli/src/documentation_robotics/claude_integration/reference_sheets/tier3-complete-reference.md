@@ -2415,7 +2415,7 @@ business.service.orders:
 dr add motivation goal --name "Missing Goal"
 
 # FIX Option 2: Remove invalid reference
-dr update-element business.service.orders --unset motivation.supports-goals
+dr update business.service.orders --set motivation.supports-goals=
 
 # FIX Option 3: Correct typo (get suggestions)
 dr links types --category motivation  # See valid targets
@@ -2502,11 +2502,11 @@ dr migrate
 # Preview changes (dry run)
 dr migrate --dry-run
 
-# Apply migrations to latest version
-dr migrate
+# Apply all migrations to latest version
+dr migrate --apply
 
 # Migrate to specific version
-dr migrate --to-version 0.2.0
+dr migrate --apply --to-version 0.2.0
 
 # Validate migrated model
 dr validate --validate-links
@@ -2578,7 +2578,7 @@ dr migrate --dry-run
 # - 2 format corrections
 
 # Step 4: Apply migration
-dr migrate
+dr migrate --apply
 
 # Step 5: Validate result
 dr validate --validate-links --strict-links
@@ -3058,7 +3058,7 @@ dr find motivation.goal.missing-goal
 # Fix by creating target or removing reference
 dr add motivation goal --name "Missing Goal"
 # OR
-dr update-element business.service.orders --unset supports-goals
+dr update business.service.orders --set supports-goals=
 ```
 
 **Issue: "Projection failed"**

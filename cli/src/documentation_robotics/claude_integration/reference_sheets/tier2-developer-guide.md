@@ -1002,8 +1002,8 @@ dr migrate
 # Preview changes without applying
 dr migrate --dry-run
 
-# Apply migrations (default behavior)
-dr migrate
+# Apply all migrations
+dr migrate --apply
 
 # Validate migrated model
 dr validate --validate-links
@@ -1027,10 +1027,11 @@ dr validate --validate-links
 git checkout -b migrate-to-v0.2.0
 
 # Check and preview
+dr migrate
 dr migrate --dry-run
 
 # Apply migration
-dr migrate
+dr migrate --apply
 
 # Validate result
 dr validate --validate-links --strict-links
@@ -1131,7 +1132,7 @@ dr changeset create "new-payment-feature" --type feature
 # 2. Make changes (all commands work in changeset context)
 dr add business service --name "Crypto Payments"
 dr add application service --name "Blockchain Adapter"
-dr update-element business.service.crypto-payments --set status=experimental
+dr update business.service.crypto-payments --set status=experimental
 
 # 3. Review changes
 dr changeset status              # See what changed
