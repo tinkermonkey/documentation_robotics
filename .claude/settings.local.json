@@ -47,7 +47,13 @@
       "WebFetch(domain:www.archimetric.com)",
       "Bash(gh pr diff:*)",
       "Bash(gh pr view:*)",
-      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && gh pr diff 45 -- {} | head -100')"
+      "Bash(xargs -I {} sh -c 'echo \"\"\"\"=== {} ===\"\"\"\" && gh pr diff 45 -- {} | head -100')",
+      "Bash(source:*)",
+      "Bash(timeout 10 python:*)",
+      "Bash(timeout 15 python:*)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.claude.com)",
+      "Bash(dr visualize --help:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -74,7 +74,8 @@ class VisualizationServer:
         if isinstance(model_or_path, Model) or hasattr(model_or_path, "layers"):
             # Test signature: VisualizationServer(model, host, port)
             self.model = model_or_path
-            self.model_path = getattr(model_or_path, "model_path", None)
+            # Get root_path from model for chat handler/orchestrator
+            self.model_path = getattr(model_or_path, "root_path", None)
             self.spec_path = None
             self.host = host_or_spec
             self.port = port_or_host

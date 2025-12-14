@@ -1,310 +1,292 @@
 """
-Chat command - interactive CLI for testing DrBot chat capabilities.
+Chat command - self-contained interactive CLI for DrBot.
 
-This provides a command-line interface for testing the DrBot chat system
-without requiring a web UI. It connects to the visualization server's
-WebSocket chat endpoint and provides an interactive REPL.
+This provides a command-line interface for chatting with DrBot without requiring
+a separate server. It directly invokes the DrBotOrchestrator in-process.
 """
 
 import asyncio
-import json
+import signal
 import sys
+import traceback
 import uuid
 from pathlib import Path
 from typing import Optional
 
-import aiohttp
 import click
 from rich.console import Console
-from rich.live import Live
 from rich.markdown import Markdown
 from rich.panel import Panel
+
+from ..server.chat_session import ChatSession
+from ..server.drbot_orchestrator import DrBotOrchestrator
 
 console = Console()
 
 
-async def chat_session(
-    host: str,
-    port: int,
-    token: str,
-    conversation_id: Optional[str] = None,
+def _setup_signal_handler() -> None:
+    """Set up graceful Ctrl+C handling."""
+
+    def handler(signum, frame):
+        console.print("\n[dim]Chat ended[/dim]")
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, handler)
+
+
+def _resolve_model_path(model_dir: Optional[str]) -> Path:
+    """
+    Find and validate model directory.
+
+    Args:
+        model_dir: Override model directory path
+
+    Returns:
+        Path to model directory
+
+    Raises:
+        click.Abort: If model not found
+    """
+    if model_dir:
+        model_path = Path(model_dir)
+    else:
+        # Look for documentation-robotics/model in current directory
+        model_path = Path.cwd() / "documentation-robotics" / "model"
+
+        # Fallback: look for .dr structure
+        if not model_path.exists():
+            dr_dir = Path.cwd() / ".dr"
+            if dr_dir.exists():
+                model_path = Path.cwd()
+
+    # Validate model exists
+    if not model_path.exists():
+        console.print("[red]Error: No DR model found[/red]")
+        console.print(f"[dim]Searched: {model_path}[/dim]")
+        console.print("\n[yellow]Run 'dr init' to create a model[/yellow]")
+        raise click.Abort()
+
+    return model_path
+
+
+def _show_welcome(model_path: Path, orchestrator: DrBotOrchestrator) -> None:
+    """
+    Display welcome banner with model info.
+
+    Args:
+        model_path: Path to model directory
+        orchestrator: DrBot orchestrator instance
+    """
+    context = orchestrator.build_model_context()
+    manifest = context.get("manifest", {})
+
+    console.print(
+        Panel.fit(
+            "[bold]DrBot - Documentation Robotics Chat[/bold]\n\n"
+            f"Model: {manifest.get('name', 'Unknown')}\n"
+            f"Path: {model_path}\n\n"
+            "[dim]Commands: 'help', 'clear', 'exit'[/dim]",
+            border_style="cyan",
+        )
+    )
+
+
+def _show_help() -> None:
+    """Show help information."""
+    help_text = """
+**Commands**
+- `help` - Show this help
+- `clear` - Clear screen
+- `exit` or `quit` - Exit chat
+
+**Capabilities**
+DrBot can help you explore your DR model:
+- List elements: "Show me all API operations"
+- Find elements: "What is business.service.orders?"
+- Search: "Find anything related to payments"
+- Trace dependencies: "What depends on the Order API?"
+- Modify model: "Add a REST endpoint for user login"
+
+**Example Questions**
+- "List all business services"
+- "Find all elements related to authentication"
+- "What are the dependencies for api.operation.create-order?"
+"""
+    console.print(Panel(Markdown(help_text), title="Help", border_style="cyan"))
+
+
+async def _get_user_input() -> str:
+    """
+    Get user input asynchronously.
+
+    Returns:
+        User input string
+
+    Note:
+        Returns "exit" on EOFError or KeyboardInterrupt
+    """
+    loop = asyncio.get_event_loop()
+    try:
+        user_input = await loop.run_in_executor(None, input, "\nYou: ")
+        return user_input.strip()
+    except (EOFError, KeyboardInterrupt):
+        return "exit"
+
+
+async def _process_message(
+    orchestrator: DrBotOrchestrator, session: ChatSession, user_message: str
 ) -> None:
     """
-    Run an interactive chat session with DrBot.
+    Process one user message and stream the response.
 
     Args:
-        host: Server host
-        port: Server port
-        token: Authentication token
-        conversation_id: Optional conversation ID to resume
+        orchestrator: DrBot orchestrator instance
+        session: Chat session for conversation history
+        user_message: User's message
     """
-    if not conversation_id:
-        conversation_id = str(uuid.uuid4())
+    # Add to history
+    session.add_user_message(user_message)
 
-    url = f"ws://{host}:{port}/ws?token={token}"
+    # Get model context
+    context = orchestrator.build_model_context()
+    conversation_history = session.get_conversation_for_sdk()
 
-    console.print("[bold]DrBot Chat Test Harness[/bold]\n")
-    console.print(f"[dim]Connecting to {host}:{port}...[/dim]")
-    console.print(f"[dim]Conversation ID: {conversation_id}[/dim]\n")
+    # Stream response
+    accumulated_text = ""
+    tool_invocations = []
+
+    console.print("\n[bold cyan]DrBot:[/bold cyan] ", end="")
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.ws_connect(url) as ws:
-                console.print("[green]✓ Connected to DrBot[/green]\n")
-                console.print("[yellow]Type your message and press Enter.[/yellow]")
-                console.print("[yellow]Type 'exit' or 'quit' to end the session.[/yellow]")
-                console.print("[yellow]Type 'help' for available commands.[/yellow]\n")
+        async for message in orchestrator.handle_message(
+            user_message, context, conversation_history
+        ):
+            # Handle dictionary-based messages
+            if isinstance(message, dict):
+                msg_type = message.get("type")
 
-                # Run message handler in background
-                receive_task = asyncio.create_task(receive_messages(ws))
+                if msg_type == "text_delta":
+                    # Stream text chunks
+                    text = message.get("text", "")
+                    accumulated_text += text
+                    console.print(text, end="")
 
-                try:
-                    # Interactive input loop
-                    while True:
-                        # Get user input
-                        try:
-                            user_input = await asyncio.get_event_loop().run_in_executor(
-                                None, input, "You: "
-                            )
-                        except EOFError:
-                            break
+                elif msg_type == "tool_use":
+                    # Show tool invocation
+                    tool_name = message.get("name")
+                    tool_input = message.get("input", {})
+                    tool_invocations.append({"name": tool_name, "input": tool_input})
+                    console.print(f"\n[dim]🔧 {tool_name}[/dim]", end="")
 
-                        if not user_input.strip():
-                            continue
+                elif msg_type == "complete":
+                    # Final completion
+                    if not accumulated_text and message.get("text"):
+                        accumulated_text = message["text"]
+                        console.print(message["text"], end="")
 
-                        # Handle commands
-                        if user_input.lower() in ["exit", "quit"]:
-                            console.print("\n[dim]Ending chat session...[/dim]")
-                            break
-                        elif user_input.lower() == "help":
-                            show_help()
-                            continue
-                        elif user_input.lower() == "clear":
-                            console.clear()
-                            continue
+        console.print()  # Final newline
 
-                        # Send chat message
-                        request_id = str(uuid.uuid4())
-                        message = {
-                            "jsonrpc": "2.0",
-                            "method": "chat/request",
-                            "params": {
-                                "message": user_input,
-                                "conversationId": conversation_id,
-                                "requestId": request_id,
-                            },
-                            "id": request_id,
-                        }
+        # Add to session history
+        session.add_assistant_message(accumulated_text, tool_invocations)
 
-                        await ws.send_json(message)
-
-                except KeyboardInterrupt:
-                    console.print("\n[dim]Interrupted by user[/dim]")
-                finally:
-                    # Cancel background task
-                    receive_task.cancel()
-                    try:
-                        await receive_task
-                    except asyncio.CancelledError:
-                        pass
-
-    except aiohttp.ClientConnectorError:
-        console.print(
-            f"[red]✗ Could not connect to server at {host}:{port}[/red]",
-            style="bold",
-        )
-        console.print("[dim]Make sure the visualization server is running:[/dim]")
-        console.print(f"[dim]  dr visualize --port {port}[/dim]\n")
-        sys.exit(1)
-    except aiohttp.ClientResponseError as e:
-        if e.status == 403:
-            console.print(
-                "[red]✗ Authentication failed (403 Forbidden)[/red]",
-                style="bold",
-            )
-            console.print()
-            console.print("[yellow]The server requires a valid authentication token.[/yellow]")
-            console.print()
-            console.print("[bold]To get the token:[/bold]")
-            console.print("1. Look at the 'dr visualize' output")
-            console.print("2. Find the URL that looks like:")
-            console.print("   [cyan]http://localhost:8080?token=abc123xyz...[/cyan]")
-            console.print("3. Copy the token (the part after 'token=')")
-            console.print()
-            console.print("[bold]Then run:[/bold]")
-            console.print(f"   [cyan]dr chat --port {port} --token <your-token>[/cyan]")
-            console.print()
-        else:
-            console.print(f"[red]✗ Server error ({e.status}): {e.message}[/red]", style="bold")
-        sys.exit(1)
     except Exception as e:
-        console.print(f"[red]✗ Error: {e}[/red]", style="bold")
-        sys.exit(1)
+        console.print(f"\n[red]Error: {e}[/red]")
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
 
 
-async def receive_messages(ws: aiohttp.ClientWebSocketResponse) -> None:
+async def _run_chat_session(model_dir: Optional[str]) -> None:
     """
-    Receive and display messages from the WebSocket.
+    Run the main chat session REPL.
 
     Args:
-        ws: WebSocket connection
+        model_dir: Override model directory path
     """
-    current_response = []
+    # Set up signal handler
+    _setup_signal_handler()
 
-    async for msg in ws:
-        if msg.type == aiohttp.WSMsgType.TEXT:
-            try:
-                data = json.loads(msg.data)
+    # Check for Anthropic SDK availability early
+    try:
+        import anthropic
+    except ImportError:
+        console.print("[red]Anthropic SDK not installed[/red]")
+        console.print("\n[yellow]Install with:[/yellow]")
+        console.print("  pip install anthropic")
+        console.print()
+        raise click.Abort()
 
-                # Handle different message types
-                if "method" in data:
-                    method = data["method"]
+    # Resolve and validate model path
+    model_path = _resolve_model_path(model_dir)
 
-                    if method == "chat/response":
-                        # Accumulate response chunks
-                        params = data.get("params", {})
-                        text = params.get("text", "")
-                        is_final = params.get("isFinal", False)
+    # Initialize components
+    try:
+        orchestrator = DrBotOrchestrator(model_path)
+    except Exception as e:
+        console.print(f"[red]Error initializing DrBot: {e}[/red]")
+        console.print(f"[dim]{traceback.format_exc()}[/dim]")
+        raise click.Abort()
 
-                        if text:
-                            current_response.append(text)
-                            # Print chunk without newline
-                            if not current_response or len(current_response) == 1:
-                                console.print("\n[bold cyan]DrBot:[/bold cyan] ", end="")
-                            console.print(text, end="")
+    session = ChatSession(session_id=str(uuid.uuid4()))
 
-                        if is_final:
-                            console.print("\n")  # End the response
-                            current_response = []
+    # Show welcome banner
+    _show_welcome(model_path, orchestrator)
 
-                    elif method == "chat/tool_invoke":
-                        # Show tool invocation
-                        params = data.get("params", {})
-                        tool_name = params.get("toolName", "unknown")
-                        console.print(
-                            f"\n[dim]🔧 Tool invoked: {tool_name}[/dim]",
-                        )
+    # Run REPL loop
+    while True:
+        user_input = await _get_user_input()
 
-                    elif method == "chat/status":
-                        # Show status updates
-                        params = data.get("params", {})
-                        status = params.get("status", "")
-                        message = params.get("message", "")
+        if not user_input:
+            continue
 
-                        if status == "processing":
-                            console.print(f"[dim]⏳ {message}[/dim]")
-                        elif status == "error":
-                            console.print(f"[red]✗ Error: {message}[/red]")
-                        elif status == "completed":
-                            cost = params.get("totalCost")
-                            if cost:
-                                console.print(
-                                    f"[dim]✓ Completed (cost: ${cost:.4f})[/dim]"
-                                )
-
-                elif "error" in data:
-                    # Handle JSON-RPC errors
-                    error = data["error"]
-                    console.print(
-                        f"\n[red]Error {error.get('code')}: {error.get('message')}[/red]"
-                    )
-                    current_response = []
-
-            except json.JSONDecodeError:
-                console.print(f"[yellow]⚠ Received non-JSON message: {msg.data}[/yellow]")
-
-        elif msg.type == aiohttp.WSMsgType.ERROR:
-            console.print(f"[red]WebSocket error: {ws.exception()}[/red]")
+        # Handle commands
+        if user_input.lower() in ["exit", "quit"]:
+            console.print("\n[dim]Chat ended[/dim]")
             break
+        elif user_input.lower() == "help":
+            _show_help()
+            continue
+        elif user_input.lower() == "clear":
+            console.clear()
+            continue
 
-
-def show_help() -> None:
-    """Display help information."""
-    help_text = """
-    **DrBot Chat Commands**
-
-    - Type any message to chat with DrBot
-    - `help` - Show this help message
-    - `clear` - Clear the screen
-    - `exit` or `quit` - End the chat session
-
-    **DrBot Capabilities**
-
-    DrBot is an AI assistant that can help you explore and modify your
-    Documentation Robotics model. It has expertise in the 12-layer DR
-    architecture and can:
-
-    - List elements in any layer (`dr_list`)
-    - Find specific elements by ID (`dr_find`)
-    - Search for elements by pattern (`dr_search`)
-    - Trace dependencies between elements (`dr_trace`)
-    - Delegate to dr-architect for model modifications
-
-    **Examples**
-
-    - "List all services in the business layer"
-    - "Find the element business-service-orders"
-    - "Search for elements related to authentication"
-    - "Trace dependencies for api-endpoint-create-order"
-    """
-    console.print(Panel(Markdown(help_text), title="Help", border_style="cyan"))
+        # Process message
+        await _process_message(orchestrator, session, user_input)
 
 
 @click.command()
 @click.option(
-    "--port",
-    type=int,
-    default=8080,
-    help="Server port (default: 8080)",
+    "--model-dir",
+    type=click.Path(exists=True),
+    help="Override model directory path",
 )
-@click.option(
-    "--host",
-    type=str,
-    default="localhost",
-    help="Server host (default: localhost)",
-)
-@click.option(
-    "--token",
-    type=str,
-    required=True,
-    help="Authentication token from 'dr visualize' output (required)",
-)
-@click.option(
-    "--conversation-id",
-    type=str,
-    help="Resume a previous conversation by ID",
-)
-def chat(
-    port: int,
-    host: str,
-    token: Optional[str],
-    conversation_id: Optional[str],
-) -> None:
+def chat(model_dir: Optional[str]) -> None:
     """
-    Interactive chat with DrBot (test harness).
+    Interactive chat with DrBot.
 
-    This command provides a command-line interface for testing DrBot's
-    chat capabilities without requiring a web UI. It connects to the
-    visualization server's WebSocket endpoint.
+    This command provides a self-contained chat interface with DrBot,
+    the AI assistant for Documentation Robotics. No separate server
+    is required - it runs entirely in-process.
 
-    Before using this command, start the visualization server:
-
-        dr visualize --port 8080
-
-    The server will display a URL with an authentication token like:
-        http://localhost:8080?token=abc123xyz...
-
-    Copy the token and use it to connect:
-
-        dr chat --port 8080 --token abc123xyz...
+    DrBot can help you explore and modify your DR model:
+    - List elements in any layer
+    - Find specific elements by ID
+    - Search for elements by pattern
+    - Trace dependencies between elements
+    - Delegate to dr-architect for model modifications
 
     Examples:
 
-        dr chat --port 8080 --token abc123xyz
-        dr chat --port 3000 --token xyz789
-        dr chat --port 8080 --token abc123 --conversation-id 550e8400...
+        # Start chat in current directory
+        dr chat
+
+        # Use a specific model directory
+        dr chat --model-dir /path/to/model
+
+    Once in the chat, try these questions:
+    - "List all business services"
+    - "Find all elements related to authentication"
+    - "What are the dependencies for api.operation.create-order?"
     """
     try:
-        asyncio.run(chat_session(host, port, token, conversation_id))
+        asyncio.run(_run_chat_session(model_dir))
     except KeyboardInterrupt:
-        console.print("\n[dim]Chat session ended[/dim]")
+        console.print("\n[dim]Chat ended[/dim]")

@@ -20,6 +20,7 @@ from .chat_protocol import (
     create_chat_tool_invoke,
 )
 from .chat_session import ChatSession, SessionManager
+from .drbot_orchestrator import DrBotOrchestrator
 from .sdk_detector import SDKStatus, detect_claude_agent_sdk
 
 console = Console()
@@ -46,6 +47,11 @@ class ChatHandler:
         self.model_context_provider = model_context_provider
         self.session_manager = SessionManager()
         self._sdk_status: Optional[SDKStatus] = None
+        self.orchestrator: Optional[DrBotOrchestrator] = None
+
+        # Initialize DrBot orchestrator if model path is provided
+        if model_path:
+            self.orchestrator = DrBotOrchestrator(model_path)
 
     @property
     def sdk_status(self) -> SDKStatus:
@@ -160,15 +166,29 @@ class ChatHandler:
         try:
             await asyncio.wait_for(task, timeout=self.RESPONSE_TIMEOUT)
         except asyncio.TimeoutError:
+            console.print(f"[red]Chat request {request_id} timed out after {self.RESPONSE_TIMEOUT}s[/red]")
             await ws.send_json(
                 create_chat_error(request_id, ChatErrorCodes.INTERNAL_ERROR, "Request timed out")
             )
         except asyncio.CancelledError:
+            console.print(f"[yellow]Chat request {request_id} cancelled by user[/yellow]")
             await ws.send_json(
                 create_chat_error(
                     request_id,
                     ChatErrorCodes.OPERATION_CANCELLED,
                     "Operation cancelled by user",
+                )
+            )
+        except Exception as e:
+            # Catch any unhandled exceptions from the task
+            console.print(f"[red]Unhandled error in chat request {request_id}: {e}[/red]")
+            import traceback
+            traceback.print_exc()
+            await ws.send_json(
+                create_chat_error(
+                    request_id,
+                    ChatErrorCodes.INTERNAL_ERROR,
+                    f"Internal error: {str(e)}",
                 )
             )
 
@@ -192,28 +212,41 @@ class ChatHandler:
         """
         from claude_agent_sdk import (
             AssistantMessage,
-            ClaudeAgentOptions,
             ResultMessage,
             TextBlock,
             ToolUseBlock,
-            query,
         )
 
-        # Configure SDK options (DrBot orchestrator config)
-        # Claude will decide which tools to use based on the user's message
-        options = ClaudeAgentOptions(
-            allowed_tools=["Read", "Bash", "Glob", "Grep"],
-            permission_mode="default",
-            cwd=str(self.model_path) if self.model_path else None,
-            max_turns=10,
-        )
+        # Use DrBotOrchestrator if available, otherwise fall back to basic SDK
+        if not self.orchestrator:
+            await ws.send_json(
+                create_chat_error(
+                    request_id,
+                    ChatErrorCodes.INTERNAL_ERROR,
+                    "DrBot orchestrator not initialized",
+                )
+            )
+            return
+
+        # Get model context
+        context = {}
+        if self.model_context_provider:
+            try:
+                context = self.model_context_provider()
+            except Exception as e:
+                console.print(f"[yellow]Warning: Could not get model context: {e}[/yellow]")
+
+        # Get conversation history for context
+        conversation_history = session.get_conversation_for_sdk()
 
         accumulated_text = ""
         tool_invocations = []
         total_cost = None
 
         try:
-            async for message in query(prompt=user_message, options=options):
+            async for message in self.orchestrator.handle_message(
+                user_message, context, conversation_history
+            ):
                 if isinstance(message, AssistantMessage):
                     for block in message.content:
                         if isinstance(block, TextBlock):
@@ -260,6 +293,8 @@ class ChatHandler:
 
         except Exception as e:
             console.print(f"[red]Chat query error: {e}[/red]")
+            import traceback
+            traceback.print_exc()
             await ws.send_json(
                 create_chat_error(
                     request_id,
