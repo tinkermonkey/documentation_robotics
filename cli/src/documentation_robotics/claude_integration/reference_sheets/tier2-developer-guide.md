@@ -1002,8 +1002,8 @@ dr migrate
 # Preview changes without applying
 dr migrate --dry-run
 
-# Apply migrations (default behavior)
-dr migrate
+# Apply all migrations
+dr migrate --force
 
 # Validate migrated model
 dr validate --validate-links
@@ -1027,10 +1027,11 @@ dr validate --validate-links
 git checkout -b migrate-to-v0.2.0
 
 # Check and preview
+dr migrate
 dr migrate --dry-run
 
 # Apply migration
-dr migrate
+dr migrate --force
 
 # Validate result
 dr validate --validate-links --strict-links

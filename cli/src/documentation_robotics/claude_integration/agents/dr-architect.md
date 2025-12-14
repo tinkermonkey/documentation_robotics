@@ -711,7 +711,7 @@ dr changeset abandon <changeset-id>
 4. **Apply migration:**
 
    ```bash
-   dr migrate
+   dr migrate --force
    ```
 
 5. **Validate thoroughly:**
@@ -858,7 +858,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
 | Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
 | Update element   | `dr update-element <element-id> --set key=value`   | `dr update-element business.service.orders --set criticality=high` |
-| Update with spec | `dr update-element <element-id> --spec file.yaml`  | `dr update-element business.service.orders --spec updates.yaml`    |
+| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`            |
 | Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                                  |
 | List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
 | Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
@@ -920,7 +920,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ----------------- | ---------------------- | ---------------------- |
 | Check migration   | `dr migrate`           | `dr migrate`           |
 | Preview migration | `dr migrate --dry-run` | `dr migrate --dry-run` |
-| Apply migration   | `dr migrate`           | `dr migrate`           |
+| Apply migration   | `dr migrate --force`   | `dr migrate --force`   |
 
 ## Common Anti-Patterns to Avoid
 

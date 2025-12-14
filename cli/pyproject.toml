@@ -8,14 +8,13 @@ version = "0.7.3"
 description = "CLI tool for managing federated architecture data models"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
 authors = [
     {name = "tinkermonkey"}
 ]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
@@ -43,6 +42,8 @@ dependencies = [
     # Web server for visualization
     "aiohttp>=3.9.0",
     "watchdog>=3.0.0",
+    # AI chat integration
+    "anthropic>=0.75.0",
     # "documentation-robotics-viewer>=0.1.0",
 ]
 
@@ -86,8 +87,12 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
-addopts = "-v --cov=documentation_robotics --cov-report=term-missing"
+addopts = "-v --cov=src/documentation_robotics --cov-report=term-missing"
 asyncio_mode = "auto"
+
+[tool.coverage.run]
+source = ["src/documentation_robotics"]
+omit = ["*/tests/*", "*/test_*.py"]
 
 [tool.black]
 line-length = 100

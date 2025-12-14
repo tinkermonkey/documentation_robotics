@@ -5,8 +5,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from documentation_robotics.core.element import Element
-from documentation_robotics.core.model import Model
 
 
 @pytest.fixture
@@ -20,6 +18,8 @@ def temp_dir():
 @pytest.fixture
 def sample_element():
     """Create a sample element for testing."""
+    from documentation_robotics.core.element import Element
+
     return Element(
         id="business.service.test-service",
         element_type="service",
@@ -36,6 +36,8 @@ def sample_element():
 @pytest.fixture
 def sample_element_with_refs():
     """Create a sample element with references."""
+    from documentation_robotics.core.element import Element
+
     return Element(
         id="application.service.test-app-service",
         element_type="service",
@@ -53,6 +55,7 @@ def sample_element_with_refs():
 def initialized_model(temp_dir):
     """Create an initialized model for testing."""
     from documentation_robotics.commands.init import ModelInitializer
+    from documentation_robotics.core.model import Model
 
     initializer = ModelInitializer(
         root_path=temp_dir,

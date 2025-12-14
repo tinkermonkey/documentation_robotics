@@ -7,12 +7,22 @@ from typing import Any, Dict, List, Optional
 
 # Message type constants
 MESSAGE_TYPES = {
+    # Existing model synchronization types
     "initial_state": "Full model state on WebSocket connection",
     "element_updated": "Single element changed",
     "element_added": "New element created",
     "element_removed": "Element deleted",
     "layer_updated": "Entire layer changed",
     "error": "Error message",
+    # Chat message types (JSON-RPC 2.0)
+    "chat_request": "User message to DrBot",
+    "chat_response_chunk": "DrBot response chunk (streaming)",
+    "chat_tool_invoke": "DrBot tool invocation notification",
+    "chat_tool_result": "Tool execution result",
+    "chat_complete": "Response complete signal",
+    "chat_error": "Chat-specific error",
+    "chat_cancel": "Cancel ongoing operation",
+    "chat_status": "SDK availability status",
 }
 
 

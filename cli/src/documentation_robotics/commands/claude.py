@@ -823,7 +823,10 @@ def install(reference_only, commands_only, agents_only, force):
         components = ["agents"]
 
     try:
-        manager.install(components=components, force=force)
+        # Disable progress spinner when prompts might be needed
+        # to avoid UI conflicts between spinner and Confirm.ask()
+        show_progress = force
+        manager.install(components=components, force=force, show_progress=show_progress)
     except Exception as e:
         console.print(f"[red]✗ Error during installation: {e}[/]")
         raise click.Abort()
@@ -845,7 +848,10 @@ def update(dry_run, force):
     manager = ClaudeIntegrationManager()
 
     try:
-        manager.update(dry_run=dry_run, force=force)
+        # Disable progress spinner when prompts might be needed
+        # to avoid UI conflicts between spinner and Confirm.ask()
+        show_progress = force or dry_run
+        manager.update(dry_run=dry_run, force=force, show_progress=show_progress)
     except Exception as e:
         console.print(f"[red]✗ Error during update: {e}[/]")
         raise click.Abort()
