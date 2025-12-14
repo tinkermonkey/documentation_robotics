@@ -44,11 +44,13 @@ Defines static structural dependencies between elements. These relationships des
 **Description**: Indicates that an element is composed of other elements that are essential to its definition. The composed elements cannot meaningfully exist independently of the composite.
 
 **Examples**:
+
 - BusinessCollaboration composes BusinessRole
 - ApplicationComponent composes ApplicationInterface
 - Technology composes TechnologyNode
 
 **Usage in Layers**:
+
 - Business Layer: BusinessCollaboration → BusinessRole
 - Application Layer: ApplicationComponent → ApplicationInterface
 - Technology Layer: Node → Device
@@ -66,11 +68,13 @@ Defines static structural dependencies between elements. These relationships des
 **Description**: Indicates that an element groups or contains other elements, but the contained elements can exist independently.
 
 **Examples**:
+
 - Product aggregates BusinessService
 - ApplicationComponent aggregates ApplicationService
 - Location aggregates Node
 
 **Usage in Layers**:
+
 - Business Layer: Product → BusinessService
 - Application Layer: ApplicationComponent → ApplicationService
 - Technology Layer: Location → Node
@@ -88,11 +92,13 @@ Defines static structural dependencies between elements. These relationships des
 **Description**: Indicates that an element is a more specific variant of another element, inheriting its properties.
 
 **Examples**:
+
 - PremiumAccount specializes Account
 - RESTAPIOperation specializes APIOperation
 - PostgresDB specializes Database
 
 **Usage in Layers**:
+
 - All layers support specialization for entity types
 
 ---
@@ -108,11 +114,13 @@ Defines static structural dependencies between elements. These relationships des
 **Description**: Indicates that an implementation element realizes the behavior or structure defined by an abstract element.
 
 **Examples**:
+
 - ApplicationService realizes BusinessService
 - TechnologyService realizes ApplicationService
 - APIOperation realizes ApplicationInterface
 
 **Usage in Layers**:
+
 - Application → Business: ApplicationService realizes BusinessService
 - Technology → Application: TechnologyService realizes ApplicationService
 - API → Application: APIOperation realizes ApplicationInterface
@@ -130,11 +138,13 @@ Defines static structural dependencies between elements. These relationships des
 **Description**: Indicates that an active structure element (actor, component) is assigned to perform a behavior or fulfill a role.
 
 **Examples**:
+
 - BusinessActor assigned-to BusinessRole
 - ApplicationComponent assigned-to ApplicationFunction
 - Node assigned-to TechnologyFunction
 
 **Usage in Layers**:
+
 - Business Layer: BusinessActor → BusinessRole
 - Application Layer: ApplicationComponent → ApplicationFunction
 - Technology Layer: Node → TechnologyFunction
@@ -156,11 +166,13 @@ Defines dynamic execution and flow relationships between behavioral elements.
 **Description**: Indicates that an event or the completion of one behavior initiates another behavior.
 
 **Examples**:
+
 - BusinessEvent triggers BusinessProcess
 - APIOperation triggers ApplicationFunction
 - DataChange triggers EventHandler
 
 **Usage in Layers**:
+
 - Business Layer: BusinessEvent → BusinessProcess
 - Application Layer: ApplicationEvent → ApplicationFunction
 - API Layer: APIOperation → ApplicationFunction
@@ -178,11 +190,13 @@ Defines dynamic execution and flow relationships between behavioral elements.
 **Description**: Indicates sequential ordering or data/control flow between behaviors.
 
 **Examples**:
+
 - BusinessProcess flows-to BusinessProcess
 - ApplicationFunction flows-to ApplicationFunction
 - UIState flows-to UIState
 
 **Usage in Layers**:
+
 - Business Layer: BusinessProcess → BusinessProcess
 - Application Layer: ApplicationFunction → ApplicationFunction
 - UX Layer: UIState → UIState
@@ -200,11 +214,13 @@ Defines dynamic execution and flow relationships between behavioral elements.
 **Description**: Indicates that a service provides functionality to consumers.
 
 **Examples**:
+
 - BusinessService serves BusinessActor
 - ApplicationService serves ApplicationComponent
 - TechnologyService serves TechnologyComponent
 
 **Usage in Layers**:
+
 - Business Layer: BusinessService → BusinessActor
 - Application Layer: ApplicationService → ApplicationComponent
 - Technology Layer: TechnologyService → TechnologyComponent
@@ -222,11 +238,13 @@ Defines dynamic execution and flow relationships between behavioral elements.
 **Description**: Indicates that a behavioral element reads or writes a passive structure element.
 
 **Examples**:
+
 - BusinessProcess accesses BusinessObject
 - ApplicationFunction accesses DataObject
 - APIOperation accesses Database
 
 **Usage in Layers**:
+
 - Business Layer: BusinessProcess → BusinessObject
 - Application Layer: ApplicationFunction → DataObject
 - API Layer: APIOperation → DataObject
@@ -247,11 +265,13 @@ Defines usage and dependency between elements.
 **Description**: Indicates that an element depends on another element to function properly.
 
 **Examples**:
+
 - ApplicationComponent uses TechnologyService
 - BusinessProcess uses ApplicationService
 - UIComponent uses ApplicationService
 
 **Usage in Layers**:
+
 - Application → Technology: ApplicationComponent uses TechnologyService
 - Business → Application: BusinessProcess uses ApplicationService
 - UX → Application: UIComponent uses ApplicationService
@@ -268,11 +288,13 @@ Defines usage and dependency between elements.
 **Description**: Indicates a reference or link to another element without implying functional dependency.
 
 **Examples**:
+
 - DataObject references Schema
 - APIOperation references BusinessService
 - UIView references Entity
 
 **Usage in Layers**:
+
 - Data Model → Schema: DataObject references JSONSchema
 - API → Business: APIOperation references BusinessService
 - UX → Domain: UIView references EntityType
@@ -289,11 +311,13 @@ Defines usage and dependency between elements.
 **Description**: Indicates a hard dependency where an element cannot function without another element.
 
 **Examples**:
+
 - ApplicationService depends-on DataObject
 - APIEndpoint depends-on ApplicationService
 - UIComponent depends-on DataService
 
 **Usage in Layers**:
+
 - Application Layer: ApplicationService → DataObject
 - API Layer: APIEndpoint → ApplicationService
 - UX Layer: UIComponent → DataService
@@ -315,11 +339,13 @@ Links implementation to strategic elements. These relationships flow upward from
 **Description**: Indicates that an implementation element contributes to achieving one or more strategic goals.
 
 **Examples**:
+
 - BusinessService supports-goals Goal("Increase Revenue")
 - ApplicationService supports-goals Goal("Improve Customer Satisfaction")
 - APIOperation supports-goals Goal("Reduce Response Time")
 
 **Usage in Layers**:
+
 - Business → Motivation: BusinessService → Goal
 - Application → Motivation: ApplicationService → Goal
 - API → Motivation: APIOperation → Goal
@@ -337,11 +363,13 @@ Links implementation to strategic elements. These relationships flow upward from
 **Description**: Indicates that an implementation element satisfies one or more requirements.
 
 **Examples**:
+
 - ApplicationService fulfills-requirements Requirement("Must support OAuth 2.0")
 - APIOperation fulfills-requirements Requirement("Must return JSON")
 - SecurityControl fulfills-requirements Requirement("Must encrypt at rest")
 
 **Usage in Layers**:
+
 - Application → Motivation: ApplicationService → Requirement
 - API → Motivation: APIOperation → Requirement
 - Security → Motivation: SecurityControl → Requirement
@@ -359,11 +387,13 @@ Links implementation to strategic elements. These relationships flow upward from
 **Description**: Indicates that an element delivers or creates business value.
 
 **Examples**:
+
 - BusinessService delivers-value Value("Customer Loyalty")
 - Product delivers-value Value("Revenue Growth")
 - Feature delivers-value Value("User Engagement")
 
 **Usage in Layers**:
+
 - Business → Motivation: BusinessService → Value
 - Product → Motivation: Product → Value
 
@@ -380,11 +410,13 @@ Links implementation to strategic elements. These relationships flow upward from
 **Description**: Indicates that a metric or KPI measures the achievement of an outcome.
 
 **Examples**:
+
 - Metric("Response Time") measures-outcome Outcome("Fast Performance")
 - Metric("Customer Satisfaction Score") measures-outcome Outcome("Happy Customers")
 - SLA measures-outcome Outcome("Reliable Service")
 
 **Usage in Layers**:
+
 - APM → Motivation: Metric → Outcome
 - Testing → Motivation: TestSuite → Outcome
 
@@ -405,11 +437,13 @@ Links elements to governance constraints and architectural principles.
 **Description**: Indicates that an element adheres to one or more architectural principles.
 
 **Examples**:
+
 - ApplicationService governed-by-principles Principle("API First")
 - DataModel governed-by-principles Principle("Single Source of Truth")
 - APIOperation governed-by-principles Principle("RESTful Design")
 
 **Usage in Layers**:
+
 - Application → Motivation: ApplicationService → Principle
 - Data Model → Motivation: DataModel → Principle
 - API → Motivation: APIOperation → Principle
@@ -427,11 +461,13 @@ Links elements to governance constraints and architectural principles.
 **Description**: Indicates that an element is subject to constraints that limit its design or implementation.
 
 **Examples**:
+
 - TechnologyComponent constrained-by Constraint("Must use approved libraries")
 - APIOperation constrained-by Constraint("Rate limit: 1000 req/min")
 - DataObject constrained-by Constraint("GDPR compliance required")
 
 **Usage in Layers**:
+
 - Technology → Motivation: TechnologyComponent → Constraint
 - API → Motivation: APIOperation → Constraint
 - Data Model → Motivation: DataObject → Constraint
@@ -449,11 +485,13 @@ Links elements to governance constraints and architectural principles.
 **Description**: Indicates that an element actively enforces or validates a requirement.
 
 **Examples**:
+
 - NavigationGuard enforces-requirement Requirement("Must be authenticated")
 - ValidationRule enforces-requirement Requirement("Email must be valid")
 - SecurityControl enforces-requirement Requirement("MFA required")
 
 **Usage in Layers**:
+
 - Navigation → Motivation: NavigationGuard → Requirement
 - Security → Motivation: SecurityControl → Requirement
 
@@ -474,6 +512,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that an operation or service participates in a distributed trace.
 
 **Examples**:
+
 - APIOperation traces DistributedTrace
 - ApplicationService traces TransactionFlow
 
@@ -488,6 +527,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that an element is monitored for health or performance.
 
 **Examples**:
+
 - HealthCheck monitors ApplicationService
 - Metric monitors APIEndpoint
 
@@ -502,6 +542,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that a metric measures a specific aspect of an element.
 
 **Examples**:
+
 - Metric("Response Time") measures APIOperation
 - Metric("Error Rate") measures ApplicationService
 
@@ -518,6 +559,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that a security control protects an element.
 
 **Examples**:
+
 - SecurityControl protects ApplicationService
 - EncryptionPolicy protects DataObject
 
@@ -532,6 +574,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates authentication relationships.
 
 **Examples**:
+
 - AuthenticationService authenticates User
 - OAuth2Flow authenticates APIClient
 
@@ -546,6 +589,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates authorization relationships.
 
 **Examples**:
+
 - Role authorizes Operation
 - Permission authorizes Access
 
@@ -562,6 +606,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that a component renders another component or view.
 
 **Examples**:
+
 - UIComponent renders UIView
 - LayoutComponent renders ContentComponent
 
@@ -576,6 +621,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates data binding between UI and data elements.
 
 **Examples**:
+
 - UIComponent binds-to DataObject
 - FormField binds-to EntityProperty
 
@@ -590,6 +636,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates navigation relationships between views or routes.
 
 **Examples**:
+
 - UIView navigates-to UIView
 - Route navigates-to Route
 
@@ -606,6 +653,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates mapping between data models at different abstraction levels.
 
 **Examples**:
+
 - BusinessObject maps-to DataObject
 - DataObject maps-to DatabaseTable
 
@@ -620,6 +668,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates foreign key references between database tables.
 
 **Examples**:
+
 - OrderTable references-table CustomerTable
 - LineItemTable references-table ProductTable
 
@@ -634,6 +683,7 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 **Description**: Indicates that a field is calculated or derived from other fields.
 
 **Examples**:
+
 - TotalPrice derives-from (Quantity, UnitPrice)
 - FullName derives-from (FirstName, LastName)
 
@@ -643,18 +693,18 @@ Documentation Robotics extensions beyond ArchiMate for specialized domains.
 
 ### Quick Reference Table
 
-| Category | Predicate Count | ArchiMate Aligned |
-|----------|-----------------|-------------------|
-| Structural | 5 | 5 |
-| Behavioral | 4 | 4 |
-| Dependency | 3 | 0 |
-| Traceability | 4 | 0 |
-| Governance | 3 | 0 |
-| APM | 3 | 0 |
-| Security | 3 | 0 |
-| UX | 3 | 0 |
-| Data | 3 | 0 |
-| **Total** | **31** | **9** |
+| Category     | Predicate Count | ArchiMate Aligned |
+| ------------ | --------------- | ----------------- |
+| Structural   | 5               | 5                 |
+| Behavioral   | 4               | 4                 |
+| Dependency   | 3               | 0                 |
+| Traceability | 4               | 0                 |
+| Governance   | 3               | 0                 |
+| APM          | 3               | 0                 |
+| Security     | 3               | 0                 |
+| UX           | 3               | 0                 |
+| Data         | 3               | 0                 |
+| **Total**    | **31**          | **9**             |
 
 ### Bidirectional Pairs
 
@@ -749,6 +799,6 @@ Field paths encode predicates in YAML/JSON property definitions:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 2.0.0 | 2025-12-10 | Initial comprehensive taxonomy with 31 predicates across 6 categories |
+| Version | Date       | Changes                                                               |
+| ------- | ---------- | --------------------------------------------------------------------- |
+| 2.0.0   | 2025-12-10 | Initial comprehensive taxonomy with 31 predicates across 6 categories |

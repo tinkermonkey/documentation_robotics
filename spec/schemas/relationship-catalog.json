@@ -2,9 +2,9 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "Relationship Catalog",
   "description": "Comprehensive catalog of semantic relationship types for Documentation Robotics",
-  "version": "2.0.0",
-  "generatedBy": "Manual (to be automated in Week 6)",
-  "lastUpdated": "2025-12-10",
+  "version": "2.0.1",
+  "generatedBy": "Manual",
+  "lastUpdated": "2025-12-14",
 
   "relationshipTypes": [
     {
@@ -19,7 +19,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["02", "04", "05"],
+      "applicableLayers": ["02", "03", "04", "05"],
       "examples": [
         {
           "source": "BusinessCollaboration",
@@ -45,7 +45,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["01", "02", "04", "05"],
+      "applicableLayers": ["01", "02", "03", "04", "05"],
       "examples": [
         {
           "source": "Goal",
@@ -137,7 +137,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["02", "04", "05"],
+      "applicableLayers": ["02", "03", "04", "05"],
       "examples": [
         {
           "source": "BusinessActor",
@@ -148,8 +148,8 @@
     },
     {
       "id": "association",
-      "predicate": "association",
-      "inversePredicate": "associated-by",
+      "predicate": "associated-with",
+      "inversePredicate": "associated-with",
       "category": "structural",
       "archimateAlignment": "Association",
       "description": "Generic relationship indicating elements are related or connected",
@@ -158,7 +158,7 @@
         "transitivity": false,
         "symmetry": true
       },
-      "applicableLayers": ["01", "02", "04", "05"],
+      "applicableLayers": ["01", "02", "03", "04", "05"],
       "examples": [
         {
           "source": "Stakeholder",
@@ -357,7 +357,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["02", "04", "05", "09"],
+      "applicableLayers": ["02", "03", "04", "05", "09"],
       "examples": [
         {
           "source": "ApplicationComponent",
@@ -367,7 +367,7 @@
       ]
     },
     {
-      "id": "references",
+      "id": "reference",
       "predicate": "references",
       "inversePredicate": "referenced-by",
       "category": "dependency",
@@ -378,7 +378,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["04", "06", "07", "09"],
+      "applicableLayers": ["03", "04", "06", "07", "09"],
       "examples": [
         {
           "source": "DataObject",
@@ -527,7 +527,7 @@
       ]
     },
     {
-      "id": "constrained-by",
+      "id": "constrainedby",
       "predicate": "constrained-by",
       "inversePredicate": "constrains",
       "category": "governance",
@@ -538,7 +538,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["04", "05", "06", "07"],
+      "applicableLayers": ["03", "04", "05", "06", "07"],
       "fieldPaths": ["motivation.constrained-by", "x-constrained-by"],
       "examples": [
         {
@@ -681,7 +681,7 @@
       ]
     },
     {
-      "id": "authorizes",
+      "id": "authorization",
       "predicate": "authorizes",
       "inversePredicate": "authorized-by",
       "category": "security",
@@ -813,7 +813,7 @@
       ]
     },
     {
-      "id": "derives-from",
+      "id": "derivedfrom",
       "predicate": "derives-from",
       "inversePredicate": "derived-by",
       "category": "data",
@@ -824,7 +824,7 @@
         "transitivity": false,
         "symmetry": false
       },
-      "applicableLayers": ["07", "08"],
+      "applicableLayers": ["03", "07", "08"],
       "fieldPaths": ["data.derives-from", "x-derives-from"],
       "examples": [
         {

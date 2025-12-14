@@ -788,7 +788,11 @@ Classification:
       masking: full
 ```
 
-### Actor (STS-ml Inspired)
+### Classification
+
+_Note: Classification is a sub-type component of DataClassification, defined above._
+
+### Actor
 
 ```yaml
 Actor:
@@ -902,7 +906,7 @@ ActorDependency:
       criticality: high
 ```
 
-### InformationEntity (STS-ml Inspired)
+### InformationEntity
 
 ```yaml
 InformationEntity:
@@ -983,7 +987,7 @@ InformationRight:
         constraint: "only to internal actors"
 ```
 
-### Delegation (STS-ml Inspired)
+### Delegation
 
 ```yaml
 Delegation:
@@ -1038,7 +1042,7 @@ Delegation:
         retainControl: true
 ```
 
-### SecurityConstraints (STS-ml Inspired)
+### SecurityConstraints
 
 ```yaml
 SecurityConstraints:
@@ -1120,7 +1124,19 @@ NeedToKnow:
       message: "Salary information requires payroll processing context"
 ```
 
-### SocialDependency (STS-ml Inspired)
+### SeparationOfDuty
+
+_Note: SeparationOfDuty is a sub-type component of SecurityConstraints, defined above._
+
+### BindingOfDuty
+
+_Note: BindingOfDuty is a sub-type component of SecurityConstraints, defined above._
+
+### NeedToKnow
+
+_Note: NeedToKnow is a sub-type component of SecurityConstraints, defined above._
+
+### SocialDependency
 
 ```yaml
 SocialDependency:
@@ -1169,7 +1185,7 @@ SocialDependency:
       commitmentRefs: ["constraint-inventory-sla"]
 ```
 
-### AccountabilityRequirement (STS-ml Inspired)
+### AccountabilityRequirement
 
 ```yaml
 AccountabilityRequirement:
@@ -1263,7 +1279,7 @@ Evidence:
       strength: "strong"
 ```
 
-### Threat (STS-ml Inspired)
+### Threat
 
 ```yaml
 Threat:
@@ -2201,62 +2217,681 @@ threats:
         implementedBy: ["req-need-to-know-cost"]
 ```
 
+## Example Model
+
+The following XML example demonstrates intra-layer relationships using ArchiMate-style XML format for tooling compatibility.
+
+```xml
+<model>
+  <!-- ============================= -->
+  <!-- SecurityModel (Root Container) -->
+  <!-- ============================= -->
+  <element id="security-model-product" type="SecurityModel">
+    <name>Product Application Security Model</name>
+    <property key="application">product-management</property>
+    <!-- Cross-layer property -->
+    <property key="motivation.governed-by-principles">principle-least-privilege</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Authentication & Password -->
+  <!-- ============================= -->
+  <element id="auth-config-oauth2" type="AuthenticationConfig">
+    <name>OAuth2 Authentication</name>
+    <property key="provider">oauth2</property>
+    <property key="sessionTimeout">30</property>
+    <property key="mfaRequired">true</property>
+  </element>
+
+  <element id="password-policy-strong" type="PasswordPolicy">
+    <name>Strong Password Policy</name>
+    <property key="minLength">12</property>
+    <property key="requireUppercase">true</property>
+    <property key="requireNumbers">true</property>
+    <property key="requireSpecialChars">true</property>
+    <property key="expiryDays">90</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Roles -->
+  <!-- ============================= -->
+  <element id="role-admin" type="Role">
+    <name>Administrator</name>
+    <property key="level">100</property>
+    <property key="isSystemRole">true</property>
+  </element>
+
+  <element id="role-product-manager" type="Role">
+    <name>Product Manager</name>
+    <property key="level">70</property>
+    <property key="inheritsFrom">editor</property>
+  </element>
+
+  <element id="role-editor" type="Role">
+    <name>Editor</name>
+    <property key="level">50</property>
+    <property key="inheritsFrom">viewer</property>
+  </element>
+
+  <element id="role-viewer" type="Role">
+    <name>Viewer</name>
+    <property key="level">10</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Permissions -->
+  <!-- ============================= -->
+  <element id="perm-product-read" type="Permission">
+    <name>product.read</name>
+    <property key="scope">global</property>
+    <property key="resource">product</property>
+    <property key="action">read</property>
+  </element>
+
+  <element id="perm-product-create" type="Permission">
+    <name>product.create</name>
+    <property key="scope">global</property>
+    <property key="resource">product</property>
+    <property key="action">create</property>
+  </element>
+
+  <element id="perm-product-update" type="Permission">
+    <name>product.update</name>
+    <property key="scope">global</property>
+    <property key="resource">product</property>
+    <property key="action">update</property>
+  </element>
+
+  <element id="perm-product-delete" type="Permission">
+    <name>product.delete</name>
+    <property key="scope">global</property>
+    <property key="resource">product</property>
+    <property key="action">delete</property>
+  </element>
+
+  <element id="perm-price-approve" type="Permission">
+    <name>product.price.approve</name>
+    <property key="scope">global</property>
+    <property key="resource">product</property>
+    <property key="action">approve-price</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Secure Resources -->
+  <!-- ============================= -->
+  <element id="resource-product-api" type="SecureResource">
+    <name>Product API</name>
+    <property key="type">api</property>
+    <property key="sensitivity">confidential</property>
+  </element>
+
+  <element id="resource-product-pricing" type="SecureResource">
+    <name>Product Pricing Data</name>
+    <property key="type">data</property>
+    <property key="sensitivity">highly-confidential</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Resource Operations -->
+  <!-- ============================= -->
+  <element id="op-get-product" type="ResourceOperation">
+    <name>GET /products/:id</name>
+    <property key="method">GET</property>
+    <property key="path">/products/:id</property>
+  </element>
+
+  <element id="op-create-product" type="ResourceOperation">
+    <name>POST /products</name>
+    <property key="method">POST</property>
+    <property key="path">/products</property>
+  </element>
+
+  <element id="op-update-product" type="ResourceOperation">
+    <name>PUT /products/:id</name>
+    <property key="method">PUT</property>
+    <property key="path">/products/:id</property>
+  </element>
+
+  <element id="op-delete-product" type="ResourceOperation">
+    <name>DELETE /products/:id</name>
+    <property key="method">DELETE</property>
+    <property key="path">/products/:id</property>
+  </element>
+
+  <element id="op-approve-price" type="ResourceOperation">
+    <name>POST /products/:id/approve-price</name>
+    <property key="method">POST</property>
+    <property key="path">/products/:id/approve-price</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Field Access Control -->
+  <!-- ============================= -->
+  <element id="field-cost-data" type="FieldAccessControl">
+    <name>Product Cost Field Access</name>
+    <property key="fieldPath">product.cost</property>
+    <property key="masking">redact</property>
+  </element>
+
+  <element id="field-supplier-data" type="FieldAccessControl">
+    <name>Supplier Information Field Access</name>
+    <property key="fieldPath">product.supplier</property>
+    <property key="masking">hash</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Access Conditions -->
+  <!-- ============================= -->
+  <element id="access-cond-business-hours" type="AccessCondition">
+    <name>Business Hours Only</name>
+    <property key="expression">time.hour >= 9 && time.hour <= 17</property>
+  </element>
+
+  <element id="access-cond-mfa-verified" type="AccessCondition">
+    <name>MFA Verified</name>
+    <property key="expression">user.mfaVerified === true</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Validation Rules -->
+  <!-- ============================= -->
+  <element id="validation-price-range" type="ValidationRule">
+    <name>Price Range Validation</name>
+    <property key="pattern">^[0-9]+(\.[0-9]{1,2})?$</property>
+    <property key="min">0</property>
+    <property key="max">1000000</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Security Policies -->
+  <!-- ============================= -->
+  <element id="policy-mfa-admin" type="SecurityPolicy">
+    <name>MFA Required for Admin Operations</name>
+    <property key="priority">90</property>
+    <property key="target">api</property>
+  </element>
+
+  <element id="policy-rate-limit" type="SecurityPolicy">
+    <name>API Rate Limiting Policy</name>
+    <property key="priority">80</property>
+    <property key="target">api</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Policy Rules -->
+  <!-- ============================= -->
+  <element id="rule-require-mfa-delete" type="PolicyRule">
+    <name>Require MFA for Delete Operations</name>
+    <property key="effect">allow</property>
+    <property key="priority">100</property>
+  </element>
+
+  <element id="rule-throttle-requests" type="PolicyRule">
+    <name>Throttle API Requests</name>
+    <property key="effect">enforce</property>
+    <property key="priority">90</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Conditions -->
+  <!-- ============================= -->
+  <element id="cond-delete-operation" type="Condition">
+    <name>Delete Operation Check</name>
+    <property key="expression">operation.name === 'deleteProduct'</property>
+  </element>
+
+  <element id="cond-rate-exceeded" type="Condition">
+    <name>Rate Limit Exceeded Check</name>
+    <property key="expression">requests.perMinute > 100</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Policy Actions -->
+  <!-- ============================= -->
+  <element id="action-require-mfa" type="PolicyAction">
+    <name>Require MFA</name>
+    <property key="type">require-mfa</property>
+  </element>
+
+  <element id="action-throttle" type="PolicyAction">
+    <name>Throttle Request</name>
+    <property key="type">rate-limit</property>
+  </element>
+
+  <element id="action-audit-access" type="PolicyAction">
+    <name>Audit Access</name>
+    <property key="type">audit</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Rate Limiting -->
+  <!-- ============================= -->
+  <element id="rate-limit-api" type="RateLimit">
+    <name>API Rate Limit</name>
+    <property key="maxRequests">100</property>
+    <property key="windowSeconds">60</property>
+    <property key="action">throttle</property>
+  </element>
+
+  <element id="rate-limit-sensitive" type="RateLimit">
+    <name>Sensitive Operations Rate Limit</name>
+    <property key="maxRequests">10</property>
+    <property key="windowSeconds">60</property>
+    <property key="action">block</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Audit Configuration -->
+  <!-- ============================= -->
+  <element id="audit-comprehensive" type="AuditConfig">
+    <name>Comprehensive Audit Logging</name>
+    <property key="level">comprehensive</property>
+    <property key="includePayloads">true</property>
+    <property key="storage">secure-log-storage</property>
+  </element>
+
+  <element id="audit-basic" type="AuditConfig">
+    <name>Basic Audit Logging</name>
+    <property key="level">basic</property>
+    <property key="includePayloads">false</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Data Classification -->
+  <!-- ============================= -->
+  <element id="data-class-policy" type="DataClassification">
+    <name>Product Data Classification Policy</name>
+    <property key="scheme">sensitivity-based</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Classifications -->
+  <!-- ============================= -->
+  <element id="class-public" type="Classification">
+    <name>Public</name>
+    <property key="level">public</property>
+    <property key="encryption">none</property>
+  </element>
+
+  <element id="class-internal" type="Classification">
+    <name>Internal</name>
+    <property key="level">internal</property>
+    <property key="encryption">at-rest</property>
+  </element>
+
+  <element id="class-confidential" type="Classification">
+    <name>Confidential</name>
+    <property key="level">confidential</property>
+    <property key="encryption">both</property>
+  </element>
+
+  <element id="class-highly-confidential" type="Classification">
+    <name>Highly Confidential</name>
+    <property key="level">highly-confidential</property>
+    <property key="encryption">both</property>
+    <property key="keyRotation">30</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Retention Policies -->
+  <!-- ============================= -->
+  <element id="ret-7years" type="RetentionPolicy">
+    <name>7 Year Retention</name>
+    <property key="period">7years</property>
+    <property key="deleteAfter">true</property>
+  </element>
+
+  <element id="ret-90days" type="RetentionPolicy">
+    <name>90 Day Retention</name>
+    <property key="period">90days</property>
+    <property key="deleteAfter">true</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Information Entities -->
+  <!-- ============================= -->
+  <element id="info-pricing-data" type="InformationEntity">
+    <name>Product Pricing Information</name>
+    <property key="type">sensitive</property>
+  </element>
+
+  <element id="info-supplier-data" type="InformationEntity">
+    <name>Supplier Information</name>
+    <property key="type">confidential</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Information Rights -->
+  <!-- ============================= -->
+  <element id="right-pricing-read" type="InformationRight">
+    <name>Read Pricing Data</name>
+    <property key="operation">read</property>
+    <property key="purpose">pricing-analysis</property>
+  </element>
+
+  <element id="right-pricing-modify" type="InformationRight">
+    <name>Modify Pricing Data</name>
+    <property key="operation">modify</property>
+    <property key="purpose">pricing-management</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Actors (STS-ml) -->
+  <!-- ============================= -->
+  <element id="actor-pricing-analyst" type="Actor">
+    <name>Pricing Analyst</name>
+    <property key="type">role</property>
+    <property key="trustLevel">high</property>
+  </element>
+
+  <element id="actor-product-manager-user" type="Actor">
+    <name>Product Manager User</name>
+    <property key="type">role</property>
+    <property key="trustLevel">high</property>
+  </element>
+
+  <element id="actor-external-auditor" type="Actor">
+    <name>External Auditor</name>
+    <property key="type">external</property>
+    <property key="trustLevel">medium</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Actor Objectives -->
+  <!-- ============================= -->
+  <element id="obj-pricing-accuracy" type="ActorObjective">
+    <name>Ensure Pricing Accuracy</name>
+    <property key="criticality">critical</property>
+  </element>
+
+  <element id="obj-competitive-analysis" type="ActorObjective">
+    <name>Perform Competitive Analysis</name>
+    <property key="criticality">high</property>
+  </element>
+
+  <element id="obj-audit-compliance" type="ActorObjective">
+    <name>Verify Audit Compliance</name>
+    <property key="criticality">critical</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Actor Dependencies -->
+  <!-- ============================= -->
+  <element id="dep-pricing-approval" type="ActorDependency">
+    <name>Pricing Approval Dependency</name>
+    <property key="type">permission</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Delegations -->
+  <!-- ============================= -->
+  <element id="del-temp-pricing-access" type="Delegation">
+    <name>Temporary Pricing Access Delegation</name>
+    <property key="delegationType">execution</property>
+    <property key="retainOversight">true</property>
+    <property key="duration">7days</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Social Dependencies -->
+  <!-- ============================= -->
+  <element id="social-dep-audit" type="SocialDependency">
+    <name>Auditor Trust Relationship</name>
+    <property key="trustLevel">verified</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Security Constraints -->
+  <!-- ============================= -->
+  <element id="constraints-pricing" type="SecurityConstraints">
+    <name>Pricing Security Constraints</name>
+    <property key="domain">pricing</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Separation of Duty -->
+  <!-- ============================= -->
+  <element id="sod-price-approval" type="SeparationOfDuty">
+    <name>Price Change Separation</name>
+    <property key="tasks">["propose-price-change", "approve-price-change"]</property>
+    <property key="enforcement">strict</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Binding of Duty -->
+  <!-- ============================= -->
+  <element id="bod-order-fulfill" type="BindingOfDuty">
+    <name>Order Fulfillment Binding</name>
+    <property key="tasks">["create-order", "fulfill-order"]</property>
+    <property key="reason">audit-trail</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Need to Know -->
+  <!-- ============================= -->
+  <element id="n2k-supplier-info" type="NeedToKnow">
+    <name>Supplier Information Need-to-Know</name>
+    <property key="justificationRequired">true</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Threats -->
+  <!-- ============================= -->
+  <element id="threat-price-manipulation" type="Threat">
+    <name>Unauthorized Price Manipulation</name>
+    <property key="likelihood">medium</property>
+    <property key="impact">high</property>
+  </element>
+
+  <element id="threat-data-exfiltration" type="Threat">
+    <name>Supplier Data Exfiltration</name>
+    <property key="likelihood">low</property>
+    <property key="impact">critical</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Countermeasures -->
+  <!-- ============================= -->
+  <element id="cm-dual-approval" type="Countermeasure">
+    <name>Dual Approval for Price Changes</name>
+    <property key="type">separation-of-duty</property>
+    <property key="effectiveness">high</property>
+  </element>
+
+  <element id="cm-access-logging" type="Countermeasure">
+    <name>Comprehensive Access Logging</name>
+    <property key="type">audit-trail</property>
+    <property key="effectiveness">medium</property>
+  </element>
+
+  <element id="cm-field-masking" type="Countermeasure">
+    <name>Sensitive Field Masking</name>
+    <property key="type">data-protection</property>
+    <property key="effectiveness">high</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Accountability Requirements -->
+  <!-- ============================= -->
+  <element id="acc-price-changes" type="AccountabilityRequirement">
+    <name>Price Change Accountability</name>
+    <property key="action">approve-price-change</property>
+    <property key="nonRepudiation">true</property>
+    <property key="purposeDeclaration">mandatory</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- Evidence -->
+  <!-- ============================= -->
+  <element id="ev-digital-signature" type="Evidence">
+    <name>Digital Signature Evidence</name>
+    <property key="type">digital-signature</property>
+    <property key="strength">cryptographic</property>
+  </element>
+
+  <element id="ev-audit-log" type="Evidence">
+    <name>Audit Log Evidence</name>
+    <property key="type">audit-trail</property>
+    <property key="strength">high</property>
+  </element>
+
+  <!-- ============================= -->
+  <!-- RELATIONSHIPS -->
+  <!-- ============================= -->
+
+  <!-- Priority 1: Core RBAC Relationships -->
+  <relationship type="Composition" source="security-model-product" target="auth-config-oauth2"/>
+  <relationship type="Composition" source="security-model-product" target="role-admin"/>
+  <relationship type="Composition" source="security-model-product" target="role-product-manager"/>
+  <relationship type="Composition" source="security-model-product" target="resource-product-api"/>
+  <relationship type="Composition" source="security-model-product" target="policy-mfa-admin"/>
+  <relationship type="Composition" source="security-model-product" target="data-class-policy"/>
+  <relationship type="Aggregation" source="role-product-manager" target="perm-product-update"/>
+  <relationship type="Aggregation" source="role-editor" target="perm-product-create"/>
+  <relationship type="Aggregation" source="role-viewer" target="perm-product-read"/>
+  <relationship type="Specialization" source="role-product-manager" target="role-editor"/>
+  <relationship type="Specialization" source="role-editor" target="role-viewer"/>
+  <relationship type="Authorization" source="perm-product-update" target="resource-product-api"/>
+  <relationship type="Authorization" source="perm-product-delete" target="resource-product-api"/>
+  <relationship type="Composition" source="resource-product-api" target="op-update-product"/>
+  <relationship type="Composition" source="resource-product-api" target="op-delete-product"/>
+  <relationship type="Composition" source="resource-product-api" target="field-cost-data"/>
+  <relationship type="Composition" source="auth-config-oauth2" target="password-policy-strong"/>
+
+  <!-- Priority 2: ABAC/Policy Relationships -->
+  <relationship type="Composition" source="policy-mfa-admin" target="rule-require-mfa-delete"/>
+  <relationship type="Composition" source="policy-rate-limit" target="rule-throttle-requests"/>
+  <relationship type="Composition" source="rule-require-mfa-delete" target="cond-delete-operation"/>
+  <relationship type="Composition" source="rule-throttle-requests" target="cond-rate-exceeded"/>
+  <relationship type="Composition" source="rule-require-mfa-delete" target="action-require-mfa"/>
+  <relationship type="Composition" source="rule-throttle-requests" target="action-throttle"/>
+  <relationship type="Uses" source="action-throttle" target="rate-limit-api"/>
+  <relationship type="Uses" source="action-audit-access" target="audit-comprehensive"/>
+  <relationship type="Composition" source="op-delete-product" target="access-cond-mfa-verified"/>
+  <relationship type="Composition" source="op-approve-price" target="rate-limit-sensitive"/>
+  <relationship type="Composition" source="op-approve-price" target="audit-comprehensive"/>
+  <relationship type="Composition" source="field-cost-data" target="access-cond-business-hours"/>
+  <relationship type="Composition" source="field-cost-data" target="validation-price-range"/>
+
+  <!-- Priority 3: Data Classification Relationships -->
+  <relationship type="Composition" source="data-class-policy" target="class-public"/>
+  <relationship type="Composition" source="data-class-policy" target="class-confidential"/>
+  <relationship type="Composition" source="data-class-policy" target="class-highly-confidential"/>
+  <relationship type="Reference" source="class-confidential" target="ret-7years"/>
+  <relationship type="Reference" source="class-highly-confidential" target="ret-7years"/>
+  <relationship type="Reference" source="class-confidential" target="audit-comprehensive"/>
+  <relationship type="Reference" source="class-public" target="audit-basic"/>
+  <relationship type="Composition" source="info-pricing-data" target="right-pricing-read"/>
+  <relationship type="Composition" source="info-pricing-data" target="right-pricing-modify"/>
+  <relationship type="Reference" source="info-pricing-data" target="class-highly-confidential"/>
+  <relationship type="Reference" source="info-supplier-data" target="class-confidential"/>
+  <relationship type="Reference" source="right-pricing-read" target="actor-pricing-analyst"/>
+  <relationship type="DerivedFrom" source="right-pricing-modify" target="perm-price-approve"/>
+  <relationship type="Reference" source="audit-comprehensive" target="ret-7years"/>
+
+  <!-- Priority 4: Threat Modeling Relationships -->
+  <relationship type="Composition" source="security-model-product" target="threat-price-manipulation"/>
+  <relationship type="Composition" source="security-model-product" target="threat-data-exfiltration"/>
+  <relationship type="Composition" source="threat-price-manipulation" target="cm-dual-approval"/>
+  <relationship type="Composition" source="threat-data-exfiltration" target="cm-access-logging"/>
+  <relationship type="Composition" source="threat-data-exfiltration" target="cm-field-masking"/>
+  <relationship type="Reference" source="threat-price-manipulation" target="resource-product-pricing"/>
+  <relationship type="Reference" source="threat-data-exfiltration" target="info-supplier-data"/>
+  <relationship type="Reference" source="cm-dual-approval" target="constraints-pricing"/>
+  <relationship type="Reference" source="cm-access-logging" target="policy-rate-limit"/>
+
+  <!-- Priority 5: STS-ml Actor Modeling -->
+  <relationship type="Composition" source="security-model-product" target="actor-pricing-analyst"/>
+  <relationship type="Composition" source="security-model-product" target="actor-product-manager-user"/>
+  <relationship type="Composition" source="actor-pricing-analyst" target="obj-pricing-accuracy"/>
+  <relationship type="Composition" source="actor-pricing-analyst" target="obj-competitive-analysis"/>
+  <relationship type="Composition" source="actor-external-auditor" target="obj-audit-compliance"/>
+  <relationship type="Composition" source="actor-pricing-analyst" target="dep-pricing-approval"/>
+  <relationship type="Assignment" source="actor-product-manager-user" target="role-product-manager"/>
+  <relationship type="Assignment" source="actor-pricing-analyst" target="role-editor"/>
+  <relationship type="Reference" source="dep-pricing-approval" target="actor-product-manager-user"/>
+  <relationship type="Reference" source="dep-pricing-approval" target="obj-pricing-accuracy"/>
+  <relationship type="Composition" source="security-model-product" target="del-temp-pricing-access"/>
+  <relationship type="Reference" source="del-temp-pricing-access" target="actor-product-manager-user"/>
+  <relationship type="Reference" source="del-temp-pricing-access" target="perm-price-approve"/>
+  <relationship type="Reference" source="del-temp-pricing-access" target="obj-pricing-accuracy"/>
+  <relationship type="Reference" source="social-dep-audit" target="actor-external-auditor"/>
+  <relationship type="Composition" source="security-model-product" target="social-dep-audit"/>
+
+  <!-- Priority 6: Security Constraints -->
+  <relationship type="Composition" source="security-model-product" target="constraints-pricing"/>
+  <relationship type="Composition" source="constraints-pricing" target="sod-price-approval"/>
+  <relationship type="Composition" source="constraints-pricing" target="bod-order-fulfill"/>
+  <relationship type="Composition" source="constraints-pricing" target="n2k-supplier-info"/>
+  <relationship type="ConstrainedBy" source="sod-price-approval" target="role-product-manager"/>
+  <relationship type="ConstrainedBy" source="sod-price-approval" target="role-admin"/>
+  <relationship type="Reference" source="sod-price-approval" target="op-approve-price"/>
+  <relationship type="ConstrainedBy" source="bod-order-fulfill" target="role-editor"/>
+  <relationship type="Protects" source="n2k-supplier-info" target="info-supplier-data"/>
+  <relationship type="Reference" source="n2k-supplier-info" target="obj-competitive-analysis"/>
+
+  <!-- Priority 7: Accountability and Evidence -->
+  <relationship type="Composition" source="security-model-product" target="acc-price-changes"/>
+  <relationship type="Composition" source="acc-price-changes" target="ev-digital-signature"/>
+  <relationship type="Composition" source="acc-price-changes" target="ev-audit-log"/>
+  <relationship type="Reference" source="acc-price-changes" target="audit-comprehensive"/>
+  <relationship type="Reference" source="acc-price-changes" target="op-approve-price"/>
+  <relationship type="Reference" source="acc-price-changes" target="info-pricing-data"/>
+  <relationship type="Reference" source="ev-digital-signature" target="audit-comprehensive"/>
+  <relationship type="Specialization" source="cond-delete-operation" target="access-cond-mfa-verified"/>
+  <relationship type="Uses" source="password-policy-strong" target="validation-price-range"/>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer (WHY)
 
-- **Actor** references **Stakeholder** (stakeholderRef)
-- **ActorObjective** references **Goal** (motivationGoalRef)
-- **Threat** references **Assessment** (assessmentRef)
-- **Threat.mitigatedByRequirements** references **Requirement** IDs
-- **SocialDependency.commitmentRefs** references **Constraint** IDs
-- **Requirement** properties specify security implementation details
-
-**Example Flow**:
-
-```
-Stakeholder → Goal → Assessment (threat) → Requirement → Security Implementation
-     ↓          ↓            ↓                   ↓               ↓
-   Actor  → Objective  →  Threat    →  Permission Rule  →  Access Control
-```
+- **Actor** references **Stakeholder** (stakeholderRef property)
+- **ActorObjective** references **Goal** (motivationGoalRef property)
+- **Threat** references **Assessment** (assessmentRef property)
+- **Threat** mitigated by **Requirement** (mitigatedByRequirements property)
+- **SocialDependency** commits to **Constraint** (commitmentRefs property)
+- **Requirement** specifies **Security Implementation** (requirement.properties property)
 
 ### To Business Layer (WHO)
 
-- **Actor** references **BusinessActor** (businessActorRef)
-- **BusinessService** is secured by ResourceOperation
-- **BusinessProcess** authorization mapped from roles
+- **Actor** references **BusinessActor** (businessActorRef property)
+- **ResourceOperation** secures **BusinessService** (secures.businessService property)
+- **Role** authorizes **BusinessProcess** (authorizes.businessProcess property)
 
 ### To ArchiMate Application Layer
 
-- SecurityModel references ApplicationComponent
-- Resource authorization maps to ApplicationService
+- **SecurityModel** references **ApplicationComponent** (applicationComponentRef property)
+- **ResourceAuthorization** maps to **ApplicationService** (mapsTo.applicationService property)
 
 ### To API Layer (OpenAPI)
 
-- ResourceOperation maps to OpenAPI operations
-- Security schemes reference authentication config
+- **ResourceOperation** maps to **OpenAPI Operation** (mapsTo.apiOperation property)
+- **SecurityScheme** references **Authentication Config** (authenticationConfig property)
 
 ### To Data Model Layer (JSON Schema)
 
-- FieldAccessControl maps to schema properties
-- Data classification guides x-security extensions
+- **FieldAccessControl** maps to **Schema Property** (mapsTo.schemaProperty property)
+- **DataClassification** guides **Security Extension** (x-security.classification property)
 
 ### To UX Layer
 
-- Screen access control via NavigationGuard
-- Field visibility based on permissions
+- **NavigationGuard** controls **Screen Access** (controls.screenAccess property)
+- **Permission** controls **Field Visibility** (controls.fieldVisibility property)
 
 ### To Navigation Layer
 
-- Route guards reference roles/permissions
-- Authentication requirements
+- **RouteGuard** references **Role** (requiresRole property)
+- **RouteGuard** references **Permission** (requiresPermission property)
+- **Route** requires **Authentication** (requiresAuth property)
 
 ### To Data Store Layer
 
-- Encryption requirements for columns
-- Audit trail requirements
+- **EncryptionRequirement** applies to **Column** (appliesToColumn property)
+- **AuditRequirement** applies to **Table** (appliesToTable property)
 
 ## Validation
 
@@ -2289,6 +2924,93 @@ Validation Checks:
   - Accountability evidence types are valid
   - Objective references in actors and dependencies are consistent
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

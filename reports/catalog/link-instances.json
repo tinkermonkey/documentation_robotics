@@ -1,19 +1,20 @@
 {
   "summary": {
-    "total_instances": 98,
+    "total_instances": 167,
     "unique_link_types_used": 24,
-    "xml_relationships": 24,
+    "xml_relationships": 176,
     "layers_analyzed": 12
   },
   "link_stats": {
     "security-process-security-controls": {
       "link_type_name": "Process Security Controls",
-      "total_instances": 1,
+      "total_instances": 2,
       "layers_used": [
         "02"
       ],
       "unique_values": [
-        "control-id-1,control-id-2"
+        "control-id-1,control-id-2",
+        "control-order-approval,control-payment-verification"
       ],
       "instances": [
         {
@@ -21,16 +22,23 @@
           "value": "control-id-1,control-id-2",
           "source_layer": "02",
           "source_element": null
+        },
+        {
+          "field_path": "process.security-controls",
+          "value": "control-order-approval,control-payment-verification",
+          "source_layer": "02",
+          "source_element": null
         }
       ]
     },
     "security-process-separation-of-duty": {
       "link_type_name": "Process Separation Of Duty",
-      "total_instances": 1,
+      "total_instances": 2,
       "layers_used": [
         "02"
       ],
       "unique_values": [
+        "true",
         "true|false"
       ],
       "instances": [
@@ -39,24 +47,37 @@
           "value": "true|false",
           "source_layer": "02",
           "source_element": null
+        },
+        {
+          "field_path": "process.separation-of-duty",
+          "value": "true",
+          "source_layer": "02",
+          "source_element": null
         }
       ]
     },
     "business-apm-business-metrics": {
       "link_type_name": "Apm Business Metrics",
-      "total_instances": 3,
+      "total_instances": 4,
       "layers_used": [
         "02",
         "04"
       ],
       "unique_values": [
         "metric-id-1,metric-id-2",
+        "metric-order-fulfillment-time,metric-order-success-rate",
         "metric-product-views,metric-product-searches,metric-catalog-accuracy"
       ],
       "instances": [
         {
           "field_path": "apm.business-metrics",
           "value": "metric-id-1,metric-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.business-metrics",
+          "value": "metric-order-fulfillment-time,metric-order-success-rate",
           "source_layer": "02",
           "source_element": null
         },
@@ -112,12 +133,13 @@
     },
     "motivation-delivers-value": {
       "link_type_name": "Delivers Value",
-      "total_instances": 3,
+      "total_instances": 5,
       "layers_used": [
         "02",
         "04"
       ],
       "unique_values": [
+        "value-customer-convenience",
         "value-customer-convenience,value-operational-efficiency",
         "value-id-1,value-id-2"
       ],
@@ -125,6 +147,12 @@
         {
           "field_path": "motivation.delivers-value",
           "value": "value-id-1,value-id-2",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.delivers-value",
+          "value": "value-customer-convenience,value-operational-efficiency",
           "source_layer": "02",
           "source_element": null
         },
@@ -139,20 +167,36 @@
           "value": "value-customer-convenience,value-operational-efficiency",
           "source_layer": "04",
           "source_element": null
+        },
+        {
+          "field_path": "motivation.delivers-value",
+          "value": "value-customer-convenience",
+          "source_layer": "04",
+          "source_element": null
         }
       ]
     },
     "motivation-supports-goals": {
       "link_type_name": "Supports Goals",
-      "total_instances": 6,
+      "total_instances": 17,
       "layers_used": [
         "02",
         "04",
-        "05"
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12"
       ],
       "unique_values": [
+        "goal-customer-satisfaction,goal-revenue-growth",
         "goal-deployment-automation,goal-horizontal-scaling",
+        "goal-example",
         "goal-id-1,goal-id-2",
+        "goal-product-catalog-accuracy,goal-customer-satisfaction",
         "goal-product-catalog-accuracy,goal-mobile-app-launch",
         "goal-system-reliability,goal-data-integrity"
       ],
@@ -165,6 +209,12 @@
         },
         {
           "field_path": "motivation.supports-goals",
+          "value": "goal-customer-satisfaction,goal-revenue-growth",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
           "value": "goal-id-1,goal-id-2",
           "source_layer": "04",
           "source_element": null
@@ -172,6 +222,12 @@
         {
           "field_path": "motivation.supports-goals",
           "value": "goal-product-catalog-accuracy,goal-mobile-app-launch",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
           "source_layer": "04",
           "source_element": null
         },
@@ -192,31 +248,100 @@
           "value": "goal-deployment-automation,goal-horizontal-scaling",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-deployment-automation,goal-horizontal-scaling",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-system-reliability,goal-data-integrity",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "06",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "07",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "08",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "09",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "10",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "11",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.supports-goals",
+          "value": "goal-example",
+          "source_layer": "12",
+          "source_element": null
         }
       ]
     },
     "motivation-governed-by-principles": {
       "link_type_name": "Governed By Principles",
-      "total_instances": 20,
+      "total_instances": 36,
       "layers_used": [
         "02",
+        "03",
         "04",
-        "05"
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12"
       ],
       "unique_values": [
+        "principle-api-first,principle-cloud-native",
         "principle-api-first,principle-security-by-design",
         "principle-async-messaging,principle-event-driven-architecture",
+        "principle-cloud-native,principle-auto-scaling",
         "principle-cloud-native,principle-auto-scaling,principle-containerization",
         "principle-cloud-native,principle-container-orchestration",
+        "principle-cloud-native,principle-containerization",
         "principle-containerization,principle-immutable-infrastructure",
+        "principle-customer-first,principle-automation",
         "principle-edge-caching,principle-low-latency",
         "principle-encrypted-transit,principle-secure-connectivity",
+        "principle-example",
         "principle-high-availability,principle-data-durability",
         "principle-high-performance,principle-reverse-proxy",
         "principle-id-1,principle-id-2",
+        "principle-least-privilege",
         "principle-open-source-first,principle-acid-compliance",
         "principle-open-source-first,principle-acid-compliance,principle-data-integrity",
         "principle-serverless-first,principle-pay-per-use",
+        "principle-zero-trust,principle-network-segmentation",
         "principle-zero-trust,principle-network-segmentation,principle-defense-in-depth"
       ],
       "instances": [
@@ -224,6 +349,18 @@
           "field_path": "motivation.governed-by-principles",
           "value": "principle-id-1,principle-id-2",
           "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-customer-first,principle-automation",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-least-privilege",
+          "source_layer": "03",
           "source_element": null
         },
         {
@@ -241,6 +378,12 @@
         {
           "field_path": "motivation.governed-by-principles",
           "value": "principle-api-first,principle-security-by-design",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-api-first,principle-cloud-native",
           "source_layer": "04",
           "source_element": null
         },
@@ -339,22 +482,107 @@
           "value": "principle-cloud-native,principle-container-orchestration",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-cloud-native,principle-auto-scaling",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-high-availability,principle-data-durability",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-open-source-first,principle-acid-compliance",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-cloud-native,principle-containerization",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-high-availability,principle-data-durability",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-zero-trust,principle-network-segmentation",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "06",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "07",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "08",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "09",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "10",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "11",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.governed-by-principles",
+          "value": "principle-example",
+          "source_layer": "12",
+          "source_element": null
         }
       ]
     },
     "data-governance-owner": {
       "link_type_name": "Governance Owner",
-      "total_instances": 1,
+      "total_instances": 2,
       "layers_used": [
         "02"
       ],
       "unique_values": [
-        "business-actor-id"
+        "business-actor-id",
+        "sales-rep"
       ],
       "instances": [
         {
           "field_path": "data.governance-owner",
           "value": "business-actor-id",
+          "source_layer": "02",
+          "source_element": null
+        },
+        {
+          "field_path": "data.governance-owner",
+          "value": "sales-rep",
           "source_layer": "02",
           "source_element": null
         }
@@ -398,20 +626,24 @@
     },
     "motivation-fulfills-requirements": {
       "link_type_name": "Fulfills Requirements",
-      "total_instances": 14,
+      "total_instances": 18,
       "layers_used": [
         "04",
         "05"
       ],
       "unique_values": [
+        "req-acid-compliance,req-replication",
         "req-acid-compliance,req-replication,req-backup-recovery",
+        "req-acid-transactions,req-encryption-at-rest",
         "req-acid-transactions,req-encryption-at-rest,req-point-in-time-recovery",
         "req-container-support,req-oci-compliance",
         "req-encrypted-communication,req-ipsec-protocol",
         "req-event-driven-processing,req-auto-scaling",
         "req-global-distribution,req-sub-100ms-response",
+        "req-horizontal-scaling,req-99-95-availability",
         "req-horizontal-scaling,req-99-95-availability,req-container-orchestration",
         "req-message-persistence,req-message-ordering,req-delivery-guarantees",
+        "req-network-isolation,req-dmz-architecture",
         "req-network-isolation,req-dmz-architecture,req-private-subnet-isolation",
         "req-tls-termination,req-load-balancing,req-http2-support",
         "requirement-id-1,requirement-id-2"
@@ -500,12 +732,36 @@
           "value": "req-global-distribution,req-sub-100ms-response",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-horizontal-scaling,req-99-95-availability",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-acid-compliance,req-replication",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-acid-transactions,req-encryption-at-rest",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.fulfills-requirements",
+          "value": "req-network-isolation,req-dmz-architecture",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "apm-traced": {
       "link_type_name": "Traced",
-      "total_instances": 2,
+      "total_instances": 3,
       "layers_used": [
         "04"
       ],
@@ -525,17 +781,24 @@
           "value": "true",
           "source_layer": "04",
           "source_element": null
+        },
+        {
+          "field_path": "apm.traced",
+          "value": "true",
+          "source_layer": "04",
+          "source_element": null
         }
       ]
     },
     "apm-sla-target-latency": {
       "link_type_name": "Sla Target Latency",
-      "total_instances": 3,
+      "total_instances": 4,
       "layers_used": [
         "04",
         "05"
       ],
       "unique_values": [
+        "10ms",
         "200ms",
         "200ms|500ms|1000ms",
         "5ms|10ms|50ms"
@@ -558,12 +821,18 @@
           "value": "5ms|10ms|50ms",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-latency",
+          "value": "10ms",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "apm-sla-target-availability": {
       "link_type_name": "Sla Target Availability",
-      "total_instances": 5,
+      "total_instances": 7,
       "layers_used": [
         "04",
         "05"
@@ -603,16 +872,30 @@
           "value": "99.95%",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.95%",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.sla-target-availability",
+          "value": "99.99%",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "security-data-pii": {
       "link_type_name": "Data Pii",
-      "total_instances": 1,
+      "total_instances": 3,
       "layers_used": [
         "04"
       ],
       "unique_values": [
+        "false",
+        "true",
         "true|false"
       ],
       "instances": [
@@ -621,16 +904,29 @@
           "value": "true|false",
           "source_layer": "04",
           "source_element": null
+        },
+        {
+          "field_path": "data.pii",
+          "value": "false",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "data.pii",
+          "value": "true",
+          "source_layer": "04",
+          "source_element": null
         }
       ]
     },
     "data-retention": {
       "link_type_name": "Retention",
-      "total_instances": 1,
+      "total_instances": 4,
       "layers_used": [
         "04"
       ],
       "unique_values": [
+        "7years",
         "90days|1year|7years"
       ],
       "instances": [
@@ -639,12 +935,30 @@
           "value": "90days|1year|7years",
           "source_layer": "04",
           "source_element": null
+        },
+        {
+          "field_path": "data.retention",
+          "value": "7years",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "data.retention",
+          "value": "7years",
+          "source_layer": "04",
+          "source_element": null
+        },
+        {
+          "field_path": "data.retention",
+          "value": "7years",
+          "source_layer": "04",
+          "source_element": null
         }
       ]
     },
     "motivation-constrained-by": {
       "link_type_name": "Constrained By",
-      "total_instances": 14,
+      "total_instances": 20,
       "layers_used": [
         "05"
       ],
@@ -652,6 +966,8 @@
         "constraint-amqp-protocol-required",
         "constraint-aws-infrastructure,constraint-budget-500k",
         "constraint-backup-retention-30days,constraint-disaster-recovery-sla",
+        "constraint-data-retention-7years",
+        "constraint-eu-data-residency",
         "constraint-eu-data-residency,constraint-gdpr-compliance",
         "constraint-gdpr-compliance,constraint-data-retention-7years",
         "constraint-id-1,constraint-id-2",
@@ -744,12 +1060,48 @@
           "value": "constraint-backup-retention-30days,constraint-disaster-recovery-sla",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-aws-infrastructure,constraint-budget-500k",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-databases",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-no-proprietary-licenses",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-eu-data-residency",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-data-retention-7years",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "motivation.constrained-by",
+          "value": "constraint-gdpr-compliance,constraint-data-retention-7years",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "apm-health-monitored": {
       "link_type_name": "Health Monitored",
-      "total_instances": 3,
+      "total_instances": 5,
       "layers_used": [
         "05"
       ],
@@ -761,6 +1113,18 @@
         {
           "field_path": "apm.health-monitored",
           "value": "true|false",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.health-monitored",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "apm.health-monitored",
+          "value": "true",
           "source_layer": "05",
           "source_element": null
         },
@@ -780,7 +1144,7 @@
     },
     "apm-health-check-endpoint": {
       "link_type_name": "Health Check Endpoint",
-      "total_instances": 2,
+      "total_instances": 3,
       "layers_used": [
         "05"
       ],
@@ -800,12 +1164,18 @@
           "value": "/healthz",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "apm.health-check-endpoint",
+          "value": "/healthz",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "security-encryption-required": {
       "link_type_name": "Encryption Required",
-      "total_instances": 4,
+      "total_instances": 6,
       "layers_used": [
         "05"
       ],
@@ -817,6 +1187,18 @@
         {
           "field_path": "security.encryption-required",
           "value": "true|false",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-required",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-required",
+          "value": "true",
           "source_layer": "05",
           "source_element": null
         },
@@ -842,7 +1224,7 @@
     },
     "security-encryption-type": {
       "link_type_name": "Encryption Type",
-      "total_instances": 3,
+      "total_instances": 5,
       "layers_used": [
         "05"
       ],
@@ -869,14 +1251,33 @@
           "value": "at-rest",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "security.encryption-type",
+          "value": "both",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.encryption-type",
+          "value": "both",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     },
     "security-classification": {
       "link_type_name": "Classification",
-      "total_instances": 5,
+      "total_instances": 14,
       "layers_used": [
-        "05"
+        "05",
+        "06",
+        "07",
+        "08",
+        "09",
+        "10",
+        "11",
+        "12"
       ],
       "unique_values": [
         "confidential",
@@ -914,12 +1315,66 @@
           "value": "restricted",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "restricted",
+          "source_layer": "05",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "06",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "07",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "08",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "09",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "10",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "11",
+          "source_element": null
+        },
+        {
+          "field_path": "security.classification",
+          "value": "internal",
+          "source_layer": "12",
+          "source_element": null
         }
       ]
     },
     "security-pii": {
       "link_type_name": "Pii",
-      "total_instances": 2,
+      "total_instances": 3,
       "layers_used": [
         "05"
       ],
@@ -939,178 +1394,1248 @@
           "value": "true",
           "source_layer": "05",
           "source_element": null
+        },
+        {
+          "field_path": "security.pii",
+          "value": "true",
+          "source_layer": "05",
+          "source_element": null
         }
       ]
     }
   },
   "xml_relationships": [
     {
-      "type": "Association",
-      "source": "product-manager",
-      "target": "mobile-goal",
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Goal",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Influence",
-      "source": "market-competition",
-      "target": "mobile-gap",
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Driver",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Influence",
-      "source": "mobile-gap",
-      "target": "mobile-goal",
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Requirement",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Influence",
-      "source": "api-first",
-      "target": "ios-support",
+      "type": "association",
+      "source": "Driver",
+      "target": "Stakeholder",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Association",
-      "source": "ios-support",
-      "target": "budget-constraint",
+      "type": "influence",
+      "source": "Driver",
+      "target": "Assessment",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "mobile-goal",
-      "target": "customer-value",
+      "type": "influence",
+      "source": "Driver",
+      "target": "Goal",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "app-launched",
-      "target": "mobile-goal",
+      "type": "influence",
+      "source": "Assessment",
+      "target": "Goal",
       "layer": "01",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/01-motivation-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "order-process",
-      "target": "order-service",
+      "type": "influence",
+      "source": "Goal",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Goal",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Principle",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Principle",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Requirement",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Constraint",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Requirement",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Goal",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Value",
+      "target": "Stakeholder",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Outcome",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Outcome",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Outcome",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Meaning",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Meaning",
+      "target": "Outcome",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Goal",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Requirement",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "BusinessActor",
+      "target": "BusinessRole",
       "layer": "02",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
     },
     {
-      "type": "Access",
-      "source": "order-process",
-      "target": "order-object",
+      "type": "aggregation",
+      "source": "BusinessCollaboration",
+      "target": "BusinessRole",
       "layer": "02",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
     },
     {
-      "type": "Serving",
-      "source": "order-service",
-      "target": "customer",
+      "type": "aggregation",
+      "source": "BusinessCollaboration",
+      "target": "BusinessRole",
       "layer": "02",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
     },
     {
-      "type": "Triggering",
-      "source": "order-received-event",
-      "target": "order-process",
+      "type": "aggregation",
+      "source": "Product",
+      "target": "BusinessService",
       "layer": "02",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
     },
     {
-      "type": "Serving",
-      "source": "customer-portal",
-      "target": "customer",
+      "type": "aggregation",
+      "source": "Product",
+      "target": "BusinessService",
       "layer": "02",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/02-business-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "product-api",
-      "target": "product-service",
+      "type": "aggregation",
+      "source": "Product",
+      "target": "Contract",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "BusinessRole",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "BusinessFunction",
+      "target": "BusinessService",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "BusinessProcess",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "flow",
+      "source": "BusinessProcess",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "BusinessFunction",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "BusinessCollaboration",
+      "target": "BusinessInteraction",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "BusinessInteraction",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "BusinessInterface",
+      "target": "BusinessRole",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "BusinessService",
+      "target": "BusinessRole",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "BusinessService",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Contract",
+      "target": "BusinessService",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Contract",
+      "target": "Contract",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Representation",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Representation",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "BusinessObject",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "BusinessEvent",
+      "target": "BusinessFunction",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "BusinessProcess",
+      "target": "BusinessEvent",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "BusinessActor",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "BusinessFunction",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "BusinessProcess",
+      "target": "Representation",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "BusinessProcess",
+      "target": "BusinessService",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "BusinessProcess",
+      "target": "BusinessObject",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "BusinessService",
+      "target": "BusinessActor",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "BusinessEvent",
+      "target": "BusinessProcess",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "BusinessInterface",
+      "target": "BusinessActor",
+      "layer": "02",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/02-business-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "AuthenticationConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "SecureResource",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "SecurityPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "DataClassification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Role",
+      "target": "Permission",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Role",
+      "target": "Permission",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Role",
+      "target": "Permission",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Role",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Role",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "authorization",
+      "source": "Permission",
+      "target": "SecureResource",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "authorization",
+      "source": "Permission",
+      "target": "SecureResource",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecureResource",
+      "target": "ResourceOperation",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecureResource",
+      "target": "ResourceOperation",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecureResource",
+      "target": "FieldAccessControl",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "AuthenticationConfig",
+      "target": "PasswordPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityPolicy",
+      "target": "PolicyRule",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityPolicy",
+      "target": "PolicyRule",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "PolicyRule",
+      "target": "Condition",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "PolicyRule",
+      "target": "Condition",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "PolicyRule",
+      "target": "PolicyAction",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "PolicyRule",
+      "target": "PolicyAction",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "uses",
+      "source": "PolicyAction",
+      "target": "RateLimit",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "uses",
+      "source": "PolicyAction",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "ResourceOperation",
+      "target": "AccessCondition",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "ResourceOperation",
+      "target": "RateLimit",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "ResourceOperation",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "FieldAccessControl",
+      "target": "AccessCondition",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "FieldAccessControl",
+      "target": "ValidationRule",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "DataClassification",
+      "target": "Classification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "DataClassification",
+      "target": "Classification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "DataClassification",
+      "target": "Classification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Classification",
+      "target": "RetentionPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Classification",
+      "target": "RetentionPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Classification",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Classification",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "InformationEntity",
+      "target": "InformationRight",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "InformationEntity",
+      "target": "InformationRight",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "InformationEntity",
+      "target": "Classification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "InformationEntity",
+      "target": "Classification",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "InformationRight",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "derivedfrom",
+      "source": "InformationRight",
+      "target": "Permission",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "AuditConfig",
+      "target": "RetentionPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Threat",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Threat",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Threat",
+      "target": "Countermeasure",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Threat",
+      "target": "Countermeasure",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Threat",
+      "target": "Countermeasure",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Threat",
+      "target": "SecureResource",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Threat",
+      "target": "InformationEntity",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Countermeasure",
+      "target": "SecurityConstraints",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Countermeasure",
+      "target": "SecurityPolicy",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Actor",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Actor",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Actor",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Actor",
+      "target": "ActorDependency",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "Actor",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "Actor",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "ActorDependency",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "ActorDependency",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "Delegation",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Delegation",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Delegation",
+      "target": "Permission",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Delegation",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "SocialDependency",
+      "target": "Actor",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "SocialDependency",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "SecurityConstraints",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityConstraints",
+      "target": "SeparationOfDuty",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityConstraints",
+      "target": "BindingOfDuty",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityConstraints",
+      "target": "NeedToKnow",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "constrainedby",
+      "source": "SeparationOfDuty",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "constrainedby",
+      "source": "SeparationOfDuty",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "SeparationOfDuty",
+      "target": "ResourceOperation",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "constrainedby",
+      "source": "BindingOfDuty",
+      "target": "Role",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "protects",
+      "source": "NeedToKnow",
+      "target": "InformationEntity",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "NeedToKnow",
+      "target": "ActorObjective",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityModel",
+      "target": "AccountabilityRequirement",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "AccountabilityRequirement",
+      "target": "Evidence",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "AccountabilityRequirement",
+      "target": "Evidence",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "AccountabilityRequirement",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "AccountabilityRequirement",
+      "target": "ResourceOperation",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "AccountabilityRequirement",
+      "target": "InformationEntity",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Evidence",
+      "target": "AuditConfig",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Condition",
+      "target": "AccessCondition",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "uses",
+      "source": "PasswordPolicy",
+      "target": "ValidationRule",
+      "layer": "03",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/03-security-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "ApplicationCollaboration",
+      "target": "ApplicationComponent",
       "layer": "04",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Access",
-      "source": "product-service",
-      "target": "product-data",
+      "type": "aggregation",
+      "source": "ApplicationCollaboration",
+      "target": "ApplicationComponent",
       "layer": "04",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Serving",
-      "source": "rest-interface",
-      "target": "product-api",
+      "type": "composition",
+      "source": "ApplicationComponent",
+      "target": "ApplicationInterface",
       "layer": "04",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Serving",
-      "source": "product-service",
-      "target": "product-ui",
+      "type": "composition",
+      "source": "ApplicationComponent",
+      "target": "ApplicationInterface",
       "layer": "04",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Triggering",
-      "source": "product-updated-event",
-      "target": "product-api",
+      "type": "composition",
+      "source": "ApplicationProcess",
+      "target": "ApplicationProcess",
       "layer": "04",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/04-application-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Assignment",
-      "source": "postgres",
-      "target": "postgres-cluster",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "assignment",
+      "source": "ApplicationComponent",
+      "target": "ApplicationFunction",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "k8s-cluster",
-      "target": "container-platform",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "assignment",
+      "source": "ApplicationComponent",
+      "target": "ApplicationFunction",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Realization",
-      "source": "postgres-cluster",
-      "target": "database-service",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "assignment",
+      "source": "ApplicationCollaboration",
+      "target": "ApplicationInteraction",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Assignment",
-      "source": "product-db",
-      "target": "postgres-cluster",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "realization",
+      "source": "ApplicationComponent",
+      "target": "ApplicationService",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Assignment",
-      "source": "customer-db",
-      "target": "postgres-cluster",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "realization",
+      "source": "ApplicationComponent",
+      "target": "ApplicationService",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Association",
-      "source": "k8s-cluster",
-      "target": "vpc",
-      "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "type": "realization",
+      "source": "ApplicationFunction",
+      "target": "ApplicationService",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
     },
     {
-      "type": "Association",
-      "source": "postgres-cluster",
-      "target": "vpc",
+      "type": "realization",
+      "source": "ApplicationProcess",
+      "target": "ApplicationService",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "ApplicationService",
+      "target": "ApplicationInterface",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "ApplicationService",
+      "target": "ApplicationInterface",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "DataObject",
+      "target": "DataObject",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "ApplicationEvent",
+      "target": "ApplicationComponent",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "ApplicationEvent",
+      "target": "ApplicationFunction",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "ApplicationEvent",
+      "target": "ApplicationProcess",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "ApplicationProcess",
+      "target": "ApplicationEvent",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "flow",
+      "source": "ApplicationService",
+      "target": "ApplicationService",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "flow",
+      "source": "ApplicationProcess",
+      "target": "ApplicationProcess",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "ApplicationService",
+      "target": "DataObject",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "ApplicationFunction",
+      "target": "DataObject",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "ApplicationProcess",
+      "target": "DataObject",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "ApplicationInteraction",
+      "target": "DataObject",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "ApplicationInterface",
+      "target": "ApplicationComponent",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "ApplicationInterface",
+      "target": "ApplicationComponent",
+      "layer": "04",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/04-application-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "SystemSoftware",
+      "target": "Node",
       "layer": "05",
-      "location": "/home/austinsand/workspace/orchestrator/documentation_robotics/spec/layers/05-technology-layer.md"
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Node",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Node",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "Artifact",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "Artifact",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Node",
+      "target": "CommunicationNetwork",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Node",
+      "target": "CommunicationNetwork",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
     }
   ]
 }

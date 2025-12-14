@@ -1543,72 +1543,69 @@ x-security:
 }
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example Schema with cross-layer properties -->
+  <element id="product-schema" type="Schema">
+    <n>Product Schema</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer
 
-- **Security governance**: x-security.governedBy.constraintRefs, requirementRefs, principleRefs link field-level security policies to Motivation Layer
-- **Data governance**: x-data-governance.governedBy.principleRefs, requirementRefs, constraintRefs link schema-level data architecture decisions to Motivation Layer
-- **Data architecture principles**: Links schemas to principles like "principle-canonical-data-model", "principle-event-sourcing", "principle-data-normalization"
-- **Data requirements**: Links schemas to requirements like "req-master-data-management", "req-audit-trail", "req-customer-360-view"
-- **Data constraints**: Links schemas to constraints like "constraint-sox-compliance", "constraint-7year-retention", "constraint-no-pii-in-analytics"
-- **UX principles**: x-ui.governedBy.principleRefs ensures UI rendering follows UX principles
-- **Compliance traceability**: Proves data policies implement regulatory requirements at both field and schema levels
-- **Separation of concerns**: x-security for security/privacy, x-data-governance for architecture/design, x-ui for user experience
+- **Schema** governed by **Principle** (x-security.governedBy.principleRefs property)
+- **Schema** governed by **Requirement** (x-security.governedBy.requirementRefs property)
+- **Schema** governed by **Constraint** (x-security.governedBy.constraintRefs property)
+- **Schema** governed by **Principle** (x-data-governance.governedBy.principleRefs property)
+- **Schema** governed by **Requirement** (x-data-governance.governedBy.requirementRefs property)
+- **Schema** governed by **Constraint** (x-data-governance.governedBy.constraintRefs property)
+- **Schema** governed by **Principle** (x-ui.governedBy.principleRefs property)
 
 ### To Business Layer
 
-- **Bidirectional traceability**:
-  - BusinessObject.spec.schema-id → JSONSchema (downward documentation reference)
-  - JSONSchema.x-business-object-ref → BusinessObject (upward implementation reference)
-- **Business impact analysis**: Enables understanding which business concepts are affected by schema changes
-- **Domain-driven design**: Links technical data models to business domain concepts
-- **Complete lineage**: Business concept → Application data → Schema → Database → Metrics
+- **BusinessObject** references **Schema** (spec.schema-id property)
+- **Schema** references **BusinessObject** (x-business-object-ref property)
 
 ### To ArchiMate Application Layer
 
-- **Schema references DataObject**: x-archimate-ref links schema to application-level DataObject
-- **Technical traceability**: Enables traceability from application components to data structures
+- **Schema** references **DataObject** (x-archimate-ref property)
 
 ### To API Layer (OpenAPI)
 
-- OpenAPI schemas reference or embed JSON Schemas via $ref
-- Ensures API request/response match data model
-- Single source of truth for data types
+- **OpenAPI** references **Schema** ($ref property)
 
 ### To UX Layer
 
-- FieldDefinition.dataBinding.schemaRef references schema properties
-- x-ui extension provides rendering hints
-- Ensures forms match data structure
+- **FieldDefinition** references **Schema** (dataBinding.schemaRef property)
 
 ### To Data Store Layer
 
-- x-database extension maps to physical database
-- Column definitions, indexes, constraints
-- Enables database schema generation
+- **Schema** maps to **Database** (x-database property)
 
 ### To Security Layer
 
-- x-security extension defines access control
-- PII and encryption metadata
-- Data classification and retention
+- **Schema** defines **AccessControl** (x-security property)
 
 ### To APM/Observability Layer
 
-- **Data quality monitoring**: x-apm-data-quality-metrics links schemas to data quality Metrics in APM Layer
-- **Completeness tracking**: Monitor required field completion rates (e.g., "metric-customer-email-completeness")
-- **Accuracy monitoring**: Track data validation success rates (e.g., "metric-product-price-validity")
-- **Consistency monitoring**: Measure cross-field validation success (e.g., "metric-order-item-sum-matches-total")
-- **Freshness tracking**: Monitor data staleness and update frequency (e.g., "metric-customer-last-updated-age")
-- **Uniqueness tracking**: Detect duplicate records (e.g., "metric-customer-duplicate-rate")
-- **Integrity tracking**: Monitor referential integrity (e.g., "metric-order-customer-reference-integrity")
-- **Goal validation**: Links data quality metrics to business goal achievement (e.g., "goal-data-accuracy", "goal-customer-360-view")
-- **SLA enforcement**: Enables data quality SLAs and compliance reporting
-- **Complete traceability chain**: Goal → Data Requirement → Schema → Data Quality Metric → Outcome
-- **Industry alignment**: Follows DAMA DMBOK and ISO 8000 data quality frameworks
+- **Schema** links to **Metric** (x-apm-data-quality-metrics property)
 
 ## Validation
 
@@ -1629,6 +1626,93 @@ Features:
   - Error reporting
   - Schema compilation
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

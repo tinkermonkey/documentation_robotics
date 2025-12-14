@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/01-motivation-layer.schema.json",
-  "title": "Motivation Layer Schema",
+  "title": "Motivation Layer Layer Schema",
   "description": "Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.",
   "type": "object",
   "properties": {
@@ -100,19 +100,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "StakeholderType": {
-          "type": "string",
-          "enum": [
-            "internal",
-            "external",
-            "customer",
-            "partner",
-            "regulator"
-          ]
+          "$ref": "#/definitions/StakeholderType"
         }
       }
     },
@@ -139,20 +127,7 @@
           "minLength": 1
         },
         "category": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "DriverCategory": {
-          "type": "string",
-          "enum": [
-            "market",
-            "regulatory",
-            "technology",
-            "competitive",
-            "operational",
-            "strategic"
-          ]
+          "$ref": "#/definitions/DriverCategory"
         }
       }
     },
@@ -179,20 +154,7 @@
           "minLength": 1
         },
         "assessmentType": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "AssessmentType": {
-          "type": "string",
-          "enum": [
-            "strength",
-            "weakness",
-            "opportunity",
-            "threat",
-            "risk",
-            "gap"
-          ]
+          "$ref": "#/definitions/AssessmentType"
         }
       }
     },
@@ -219,7 +181,7 @@
           "minLength": 1
         },
         "priority": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Priority"
         },
         "properties": {
           "type": "object",
@@ -243,17 +205,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "Priority": {
-          "type": "string",
-          "enum": [
-            "critical",
-            "high",
-            "medium",
-            "low"
-          ]
         }
       }
     },
@@ -280,7 +231,7 @@
           "minLength": 1
         },
         "status": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/OutcomeStatus"
         },
         "properties": {
           "type": "object",
@@ -300,17 +251,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "OutcomeStatus": {
-          "type": "string",
-          "enum": [
-            "planned",
-            "in-progress",
-            "achieved",
-            "not-achieved"
-          ]
         }
       }
     },
@@ -337,7 +277,7 @@
           "minLength": 1
         },
         "category": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PrincipleCategory"
         },
         "properties": {
           "type": "object",
@@ -357,19 +297,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "PrincipleCategory": {
-          "type": "string",
-          "enum": [
-            "business",
-            "data",
-            "application",
-            "technology",
-            "security",
-            "integration"
-          ]
         }
       }
     },
@@ -397,10 +324,10 @@
           "minLength": 1
         },
         "requirementType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/RequirementType"
         },
         "priority": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Priority"
         },
         "properties": {
           "type": "object",
@@ -437,28 +364,6 @@
             }
           }
         }
-      },
-      "definitions": {
-        "RequirementType": {
-          "type": "string",
-          "enum": [
-            "functional",
-            "non-functional",
-            "business",
-            "technical",
-            "compliance",
-            "user"
-          ]
-        },
-        "Priority": {
-          "type": "string",
-          "enum": [
-            "critical",
-            "high",
-            "medium",
-            "low"
-          ]
-        }
       }
     },
     "Constraint": {
@@ -484,7 +389,7 @@
           "minLength": 1
         },
         "constraintType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ConstraintType"
         },
         "properties": {
           "type": "object",
@@ -516,19 +421,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "ConstraintType": {
-          "type": "string",
-          "enum": [
-            "budget",
-            "time",
-            "technology",
-            "regulatory",
-            "organizational",
-            "resource"
-          ]
         }
       }
     },
@@ -578,7 +470,7 @@
           "minLength": 1
         },
         "valueType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ValueType"
         },
         "properties": {
           "type": "object",
@@ -599,27 +491,100 @@
             }
           }
         }
-      },
-      "definitions": {
-        "ValueType": {
-          "type": "string",
-          "enum": [
-            "financial",
-            "customer",
-            "operational",
-            "strategic",
-            "social"
-          ]
-        }
       }
-    }
-  },
-  "$defs": {
-    "relationships": {
-      "$ref": "common/relationships.schema.json#/definitions"
     },
-    "predicates": {
-      "$ref": "common/predicates.schema.json#/definitions"
+    "StakeholderType": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "external",
+        "customer",
+        "partner",
+        "regulator"
+      ]
+    },
+    "DriverCategory": {
+      "type": "string",
+      "enum": [
+        "market",
+        "regulatory",
+        "technology",
+        "competitive",
+        "operational",
+        "strategic"
+      ]
+    },
+    "AssessmentType": {
+      "type": "string",
+      "enum": [
+        "strength",
+        "weakness",
+        "opportunity",
+        "threat",
+        "risk",
+        "gap"
+      ]
+    },
+    "Priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "OutcomeStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "in-progress",
+        "achieved",
+        "not-achieved"
+      ]
+    },
+    "PrincipleCategory": {
+      "type": "string",
+      "enum": [
+        "business",
+        "data",
+        "application",
+        "technology",
+        "security",
+        "integration"
+      ]
+    },
+    "RequirementType": {
+      "type": "string",
+      "enum": [
+        "functional",
+        "non-functional",
+        "business",
+        "technical",
+        "compliance",
+        "user"
+      ]
+    },
+    "ConstraintType": {
+      "type": "string",
+      "enum": [
+        "budget",
+        "time",
+        "technology",
+        "regulatory",
+        "organizational",
+        "resource"
+      ]
+    },
+    "ValueType": {
+      "type": "string",
+      "enum": [
+        "financial",
+        "customer",
+        "operational",
+        "strategic",
+        "social"
+      ]
     }
   }
 }

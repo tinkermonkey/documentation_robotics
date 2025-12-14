@@ -15,11 +15,11 @@ Requirement → Fulfilled By:
 
 ## Link Types Used
 
-| Layer | Link Type | Field Path |
-|-------|-----------|------------|
+| Layer          | Link Type             | Field Path                                                |
+| -------------- | --------------------- | --------------------------------------------------------- |
 | 04-application | Fulfills Requirements | motivation.fulfills-requirements, x-fulfills-requirements |
-| 05-technology | Fulfills Requirements | motivation.fulfills-requirements, x-fulfills-requirements |
-| 06-api | Fulfills Requirements | motivation.fulfills-requirements, x-fulfills-requirements |
+| 05-technology  | Fulfills Requirements | motivation.fulfills-requirements, x-fulfills-requirements |
+| 06-api         | Fulfills Requirements | motivation.fulfills-requirements, x-fulfills-requirements |
 
 ## Traceability Chain
 

@@ -38,16 +38,16 @@ class IntraLayerReportGenerator:
         # Header
         lines.extend(self._generate_header(analysis))
 
-        # Diagram (moved to top, right after overview)
+        # Diagram (right after overview)
         lines.extend(self._generate_mermaid_diagram(analysis))
+
+        # Summary (moved to top, right after diagram)
+        lines.extend(self._generate_layer_summary(analysis))
 
         # Entity sections
         for entity_name in sorted(analysis.entity_profiles.keys()):
             profile = analysis.entity_profiles[entity_name]
             lines.extend(self._generate_entity_section(profile))
-
-        # Summary
-        lines.extend(self._generate_layer_summary(analysis))
 
         return "\n".join(lines)
 
@@ -119,8 +119,16 @@ class IntraLayerReportGenerator:
 
                 in_catalog = "✓" if rel.in_relationship_catalog else "✗"
 
-                # Generate documentation link
+                # Generate source link
                 layer_file = f"../../spec/layers/{rel.layer_id}-layer.md"
+                if rel.source_location == "xml_example":
+                    source_link = f"[XML]({layer_file}#example-model)"
+                elif rel.documented:
+                    source_link = f"[Doc]({layer_file}#relationships)"
+                else:
+                    source_link = rel.source_location
+
+                # Generate documentation link
                 if rel.documented:
                     doc_link = f"[✓]({layer_file}#relationships)"
                 else:
@@ -128,7 +136,7 @@ class IntraLayerReportGenerator:
 
                 lines.append(
                     f"| {rel.relationship_type} | {rel.target_entity} | `{rel.predicate}` | "
-                    f"{status} | {rel.source_location} | {in_catalog} | {doc_link} |"
+                    f"{status} | {source_link} | {in_catalog} | {doc_link} |"
                 )
 
             lines.append("")
@@ -162,8 +170,16 @@ class IntraLayerReportGenerator:
 
                 in_catalog = "✓" if rel.in_relationship_catalog else "✗"
 
-                # Generate documentation link
+                # Generate source link
                 layer_file = f"../../spec/layers/{rel.layer_id}-layer.md"
+                if rel.source_location == "xml_example":
+                    source_link = f"[XML]({layer_file}#example-model)"
+                elif rel.documented:
+                    source_link = f"[Doc]({layer_file}#relationships)"
+                else:
+                    source_link = rel.source_location
+
+                # Generate documentation link
                 if rel.documented:
                     doc_link = f"[✓]({layer_file}#relationships)"
                 else:
@@ -171,7 +187,7 @@ class IntraLayerReportGenerator:
 
                 lines.append(
                     f"| {rel.relationship_type} | {rel.source_entity} | `{rel.predicate}` | "
-                    f"{status} | {rel.source_location} | {in_catalog} | {doc_link} |"
+                    f"{status} | {source_link} | {in_catalog} | {doc_link} |"
                 )
 
             lines.append("")
@@ -294,7 +310,8 @@ class IntraLayerReportGenerator:
             "|--------|----------|----------|-------|--------------|--------|",
         ])
 
-        total_relationships = 0
+        # Calculate sum of all entity totals (entity perspective, each relationship counted twice)
+        entity_perspective_total = 0
 
         for entity_name in sorted(analysis.entity_profiles.keys()):
             profile = analysis.entity_profiles[entity_name]
@@ -304,15 +321,15 @@ class IntraLayerReportGenerator:
             meets_target = "✓" if total >= analysis.COVERAGE_TARGET else "✗"
             status = "Complete" if total >= analysis.COVERAGE_TARGET else f"Needs {analysis.COVERAGE_TARGET - total}"
 
-            total_relationships += total
+            entity_perspective_total += total
 
             lines.append(
                 f"| {entity_name} | {outgoing} | {incoming} | {total} | {meets_target} | {status} |"
             )
 
-        # Totals row
+        # Totals row - show sum of entity totals for consistency
         lines.extend([
-            f"| **TOTAL** | **-** | **-** | **{total_relationships}** | **{analysis.entities_meeting_target}/{analysis.total_entities}** | **{analysis.entity_coverage_percentage:.1f}%** |",
+            f"| **TOTAL** | **-** | **-** | **{entity_perspective_total}** | **{analysis.entities_meeting_target}/{analysis.total_entities}** | **{analysis.entity_coverage_percentage:.1f}%** |",
             "",
         ])
 
@@ -320,8 +337,9 @@ class IntraLayerReportGenerator:
         lines.extend([
             "### Relationship Statistics",
             "",
-            f"- **Total Intra-Layer Relationships**: {analysis.total_relationships}",
-            f"- **Average Relationships per Entity**: {total_relationships / analysis.total_entities:.1f}",
+            f"- **Total Unique Relationships**: {analysis.total_relationships}",
+            f"- **Total Connections (Entity Perspective)**: {entity_perspective_total}",
+            f"- **Average Connections per Entity**: {entity_perspective_total / analysis.total_entities:.1f}",
             f"- **Entity Coverage Target**: {analysis.COVERAGE_TARGET}+ relationships",
             "",
         ])

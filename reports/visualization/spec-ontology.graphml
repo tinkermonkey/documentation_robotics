@@ -419,6 +419,18 @@
       <data key="d3">structural</data>
       <data key="d2">Active element assigned to behavior or role</data>
     </node>
+    <node id="predicate_association">
+      <data key="d1">Predicate</data>
+      <data key="d0">association</data>
+      <data key="d3">structural</data>
+      <data key="d2">Generic relationship indicating elements are related or connected</data>
+    </node>
+    <node id="predicate_influence">
+      <data key="d1">Predicate</data>
+      <data key="d0">influence</data>
+      <data key="d3">behavioral</data>
+      <data key="d2">Element affects or impacts another element</data>
+    </node>
     <node id="predicate_triggers">
       <data key="d1">Predicate</data>
       <data key="d0">triggers</data>
@@ -574,6 +586,1272 @@
       <data key="d0">derives-from</data>
       <data key="d3">data</data>
       <data key="d2">Calculated field relationships</data>
+    </node>
+    <node id="entity_01_Stakeholder">
+      <data key="d1">EntityType</data>
+      <data key="d0">Stakeholder</data>
+      <data key="d4">01</data>
+      <data key="d2">Individual, team, or organization with interest in the outcome</data>
+    </node>
+    <node id="entity_01_Driver">
+      <data key="d1">EntityType</data>
+      <data key="d0">Driver</data>
+      <data key="d4">01</data>
+      <data key="d2">External or internal condition that motivates an organization</data>
+    </node>
+    <node id="entity_01_Assessment">
+      <data key="d1">EntityType</data>
+      <data key="d0">Assessment</data>
+      <data key="d4">01</data>
+      <data key="d2">Outcome of analysis of the state of affairs</data>
+    </node>
+    <node id="entity_01_Goal">
+      <data key="d1">EntityType</data>
+      <data key="d0">Goal</data>
+      <data key="d4">01</data>
+      <data key="d2">High-level statement of intent, direction, or desired end state</data>
+    </node>
+    <node id="entity_01_Outcome">
+      <data key="d1">EntityType</data>
+      <data key="d0">Outcome</data>
+      <data key="d4">01</data>
+      <data key="d2">End result that has been achieved</data>
+    </node>
+    <node id="entity_01_Principle">
+      <data key="d1">EntityType</data>
+      <data key="d0">Principle</data>
+      <data key="d4">01</data>
+      <data key="d2">Normative property of all systems in a given context</data>
+    </node>
+    <node id="entity_01_Requirement">
+      <data key="d1">EntityType</data>
+      <data key="d0">Requirement</data>
+      <data key="d4">01</data>
+      <data key="d2">Statement of need that must be realized</data>
+    </node>
+    <node id="entity_01_Constraint">
+      <data key="d1">EntityType</data>
+      <data key="d0">Constraint</data>
+      <data key="d4">01</data>
+      <data key="d2">Restriction on the way in which a system is realized</data>
+    </node>
+    <node id="entity_01_Meaning">
+      <data key="d1">EntityType</data>
+      <data key="d0">Meaning</data>
+      <data key="d4">01</data>
+      <data key="d2">Knowledge or expertise present in a representation</data>
+    </node>
+    <node id="entity_01_Value">
+      <data key="d1">EntityType</data>
+      <data key="d0">Value</data>
+      <data key="d4">01</data>
+      <data key="d2">Relative worth, utility, or importance of something</data>
+    </node>
+    <node id="entity_02_BusinessActor">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessActor</data>
+      <data key="d4">02</data>
+      <data key="d2">An organizational entity capable of performing behavior</data>
+    </node>
+    <node id="entity_02_BusinessRole">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessRole</data>
+      <data key="d4">02</data>
+      <data key="d2">The responsibility for performing specific behavior</data>
+    </node>
+    <node id="entity_02_BusinessCollaboration">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessCollaboration</data>
+      <data key="d4">02</data>
+      <data key="d2">Aggregate of business roles working together</data>
+    </node>
+    <node id="entity_02_BusinessInterface">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessInterface</data>
+      <data key="d4">02</data>
+      <data key="d2">Point of access where business service is available</data>
+    </node>
+    <node id="entity_02_BusinessProcess">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessProcess</data>
+      <data key="d4">02</data>
+      <data key="d2">Sequence of business behaviors achieving a result</data>
+    </node>
+    <node id="entity_02_BusinessFunction">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessFunction</data>
+      <data key="d4">02</data>
+      <data key="d2">Collection of business behavior based on criteria</data>
+    </node>
+    <node id="entity_02_BusinessInteraction">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessInteraction</data>
+      <data key="d4">02</data>
+      <data key="d2">Unit of collective behavior by collaboration</data>
+    </node>
+    <node id="entity_02_BusinessEvent">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessEvent</data>
+      <data key="d4">02</data>
+      <data key="d2">Something that happens and influences behavior</data>
+    </node>
+    <node id="entity_02_BusinessService">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessService</data>
+      <data key="d4">02</data>
+      <data key="d2">Service that fulfills a business need</data>
+    </node>
+    <node id="entity_02_BusinessObject">
+      <data key="d1">EntityType</data>
+      <data key="d0">BusinessObject</data>
+      <data key="d4">02</data>
+      <data key="d2">Concept used within business domain</data>
+    </node>
+    <node id="entity_02_Contract">
+      <data key="d1">EntityType</data>
+      <data key="d0">Contract</data>
+      <data key="d4">02</data>
+      <data key="d2">Formal specification of agreement</data>
+    </node>
+    <node id="entity_02_Representation">
+      <data key="d1">EntityType</data>
+      <data key="d0">Representation</data>
+      <data key="d4">02</data>
+      <data key="d2">Perceptible form of business object</data>
+    </node>
+    <node id="entity_02_Product">
+      <data key="d1">EntityType</data>
+      <data key="d0">Product</data>
+      <data key="d4">02</data>
+      <data key="d2">Coherent collection of services with a value</data>
+    </node>
+    <node id="entity_03_SecurityModel">
+      <data key="d1">EntityType</data>
+      <data key="d0">SecurityModel</data>
+      <data key="d4">03</data>
+      <data key="d2">Complete security model for application</data>
+    </node>
+    <node id="entity_03_AuthenticationConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">AuthenticationConfig</data>
+      <data key="d4">03</data>
+      <data key="d2">Authentication configuration</data>
+    </node>
+    <node id="entity_03_PasswordPolicy">
+      <data key="d1">EntityType</data>
+      <data key="d0">PasswordPolicy</data>
+      <data key="d4">03</data>
+      <data key="d2">Password requirements</data>
+    </node>
+    <node id="entity_03_Role">
+      <data key="d1">EntityType</data>
+      <data key="d0">Role</data>
+      <data key="d4">03</data>
+      <data key="d2">User role definition</data>
+    </node>
+    <node id="entity_03_Permission">
+      <data key="d1">EntityType</data>
+      <data key="d0">Permission</data>
+      <data key="d4">03</data>
+      <data key="d2">Permission definition</data>
+    </node>
+    <node id="entity_03_SecureResource">
+      <data key="d1">EntityType</data>
+      <data key="d0">SecureResource</data>
+      <data key="d4">03</data>
+      <data key="d2">Protected resource definition</data>
+    </node>
+    <node id="entity_03_ResourceOperation">
+      <data key="d1">EntityType</data>
+      <data key="d0">ResourceOperation</data>
+      <data key="d4">03</data>
+      <data key="d2">Operation on a resource</data>
+    </node>
+    <node id="entity_03_AccessCondition">
+      <data key="d1">EntityType</data>
+      <data key="d0">AccessCondition</data>
+      <data key="d4">03</data>
+      <data key="d2">Conditional access rule</data>
+    </node>
+    <node id="entity_03_FieldAccessControl">
+      <data key="d1">EntityType</data>
+      <data key="d0">FieldAccessControl</data>
+      <data key="d4">03</data>
+      <data key="d2">Field-level access control</data>
+    </node>
+    <node id="entity_03_SecurityPolicy">
+      <data key="d1">EntityType</data>
+      <data key="d0">SecurityPolicy</data>
+      <data key="d4">03</data>
+      <data key="d2">Declarative security policy</data>
+    </node>
+    <node id="entity_03_PolicyRule">
+      <data key="d1">EntityType</data>
+      <data key="d0">PolicyRule</data>
+      <data key="d4">03</data>
+      <data key="d2">Individual policy rule</data>
+    </node>
+    <node id="entity_03_PolicyAction">
+      <data key="d1">EntityType</data>
+      <data key="d0">PolicyAction</data>
+      <data key="d4">03</data>
+      <data key="d2">Action to take when policy rule matches</data>
+    </node>
+    <node id="entity_03_DataClassification">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataClassification</data>
+      <data key="d4">03</data>
+      <data key="d2">Data classification and protection policies</data>
+    </node>
+    <node id="entity_03_Classification">
+      <data key="d1">EntityType</data>
+      <data key="d0">Classification</data>
+      <data key="d4">03</data>
+      <data key="d2">A single classification level defining data sensitivity and protection requirements</data>
+    </node>
+    <node id="entity_03_Actor">
+      <data key="d1">EntityType</data>
+      <data key="d0">Actor</data>
+      <data key="d4">03</data>
+      <data key="d2">Actor in the system (beyond roles)</data>
+    </node>
+    <node id="entity_03_ActorObjective">
+      <data key="d1">EntityType</data>
+      <data key="d0">ActorObjective</data>
+      <data key="d4">03</data>
+      <data key="d2">Security-related objective or goal of an actor</data>
+    </node>
+    <node id="entity_03_ActorDependency">
+      <data key="d1">EntityType</data>
+      <data key="d0">ActorDependency</data>
+      <data key="d4">03</data>
+      <data key="d2">Dependency between actors</data>
+    </node>
+    <node id="entity_03_InformationEntity">
+      <data key="d1">EntityType</data>
+      <data key="d0">InformationEntity</data>
+      <data key="d4">03</data>
+      <data key="d2">Information asset with fine-grained rights</data>
+    </node>
+    <node id="entity_03_InformationRight">
+      <data key="d1">EntityType</data>
+      <data key="d0">InformationRight</data>
+      <data key="d4">03</data>
+      <data key="d2">Fine-grained information access rights</data>
+    </node>
+    <node id="entity_03_Delegation">
+      <data key="d1">EntityType</data>
+      <data key="d0">Delegation</data>
+      <data key="d4">03</data>
+      <data key="d2">Explicit delegation of permissions or goals</data>
+    </node>
+    <node id="entity_03_SecurityConstraints">
+      <data key="d1">EntityType</data>
+      <data key="d0">SecurityConstraints</data>
+      <data key="d4">03</data>
+      <data key="d2">Security patterns and constraints</data>
+    </node>
+    <node id="entity_03_SeparationOfDuty">
+      <data key="d1">EntityType</data>
+      <data key="d0">SeparationOfDuty</data>
+      <data key="d4">03</data>
+      <data key="d2">Different actors must perform related tasks</data>
+    </node>
+    <node id="entity_03_BindingOfDuty">
+      <data key="d1">EntityType</data>
+      <data key="d0">BindingOfDuty</data>
+      <data key="d4">03</data>
+      <data key="d2">Same actor must complete related tasks</data>
+    </node>
+    <node id="entity_03_NeedToKnow">
+      <data key="d1">EntityType</data>
+      <data key="d0">NeedToKnow</data>
+      <data key="d4">03</data>
+      <data key="d2">Information access based on objective/purpose requirements</data>
+    </node>
+    <node id="entity_03_SocialDependency">
+      <data key="d1">EntityType</data>
+      <data key="d0">SocialDependency</data>
+      <data key="d4">03</data>
+      <data key="d2">Dependencies and trust between actors</data>
+    </node>
+    <node id="entity_03_AccountabilityRequirement">
+      <data key="d1">EntityType</data>
+      <data key="d0">AccountabilityRequirement</data>
+      <data key="d4">03</data>
+      <data key="d2">Accountability and non-repudiation requirements</data>
+    </node>
+    <node id="entity_03_Evidence">
+      <data key="d1">EntityType</data>
+      <data key="d0">Evidence</data>
+      <data key="d4">03</data>
+      <data key="d2">Evidence required for accountability</data>
+    </node>
+    <node id="entity_03_Threat">
+      <data key="d1">EntityType</data>
+      <data key="d0">Threat</data>
+      <data key="d4">03</data>
+      <data key="d2">Security threat and countermeasures</data>
+    </node>
+    <node id="entity_03_Countermeasure">
+      <data key="d1">EntityType</data>
+      <data key="d0">Countermeasure</data>
+      <data key="d4">03</data>
+      <data key="d2">Security countermeasure for a threat</data>
+    </node>
+    <node id="entity_03_RateLimit">
+      <data key="d1">EntityType</data>
+      <data key="d0">RateLimit</data>
+      <data key="d4">03</data>
+      <data key="d2">Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair </data>
+    </node>
+    <node id="entity_03_AuditConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">AuditConfig</data>
+      <data key="d4">03</data>
+      <data key="d2">Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.</data>
+    </node>
+    <node id="entity_03_Condition">
+      <data key="d1">EntityType</data>
+      <data key="d0">Condition</data>
+      <data key="d4">03</data>
+      <data key="d2">A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource</data>
+    </node>
+    <node id="entity_03_RetentionPolicy">
+      <data key="d1">EntityType</data>
+      <data key="d0">RetentionPolicy</data>
+      <data key="d4">03</data>
+      <data key="d2">Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requireme</data>
+    </node>
+    <node id="entity_03_ValidationRule">
+      <data key="d1">EntityType</data>
+      <data key="d0">ValidationRule</data>
+      <data key="d4">03</data>
+      <data key="d2">Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces</data>
+    </node>
+    <node id="entity_04_ApplicationComponent">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationComponent</data>
+      <data key="d4">04</data>
+      <data key="d2">Modular, deployable, and replaceable part of a system</data>
+    </node>
+    <node id="entity_04_ApplicationCollaboration">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationCollaboration</data>
+      <data key="d4">04</data>
+      <data key="d2">Aggregate of application components working together</data>
+    </node>
+    <node id="entity_04_ApplicationInterface">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationInterface</data>
+      <data key="d4">04</data>
+      <data key="d2">Point of access where application service is available</data>
+    </node>
+    <node id="entity_04_ApplicationFunction">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationFunction</data>
+      <data key="d4">04</data>
+      <data key="d2">Automated behavior performed by application component</data>
+    </node>
+    <node id="entity_04_ApplicationInteraction">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationInteraction</data>
+      <data key="d4">04</data>
+      <data key="d2">Unit of collective application behavior</data>
+    </node>
+    <node id="entity_04_ApplicationProcess">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationProcess</data>
+      <data key="d4">04</data>
+      <data key="d2">Sequence of application behaviors</data>
+    </node>
+    <node id="entity_04_ApplicationEvent">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationEvent</data>
+      <data key="d4">04</data>
+      <data key="d2">Application state change notification</data>
+    </node>
+    <node id="entity_04_ApplicationService">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApplicationService</data>
+      <data key="d4">04</data>
+      <data key="d2">Service that exposes application functionality</data>
+    </node>
+    <node id="entity_04_DataObject">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataObject</data>
+      <data key="d4">04</data>
+      <data key="d2">Data structured for automated processing</data>
+    </node>
+    <node id="entity_05_Node">
+      <data key="d1">EntityType</data>
+      <data key="d0">Node</data>
+      <data key="d4">05</data>
+      <data key="d2">Computational or physical resource that hosts artifacts</data>
+    </node>
+    <node id="entity_05_Device">
+      <data key="d1">EntityType</data>
+      <data key="d0">Device</data>
+      <data key="d4">05</data>
+      <data key="d2">Physical IT resource with processing capability</data>
+    </node>
+    <node id="entity_05_SystemSoftware">
+      <data key="d1">EntityType</data>
+      <data key="d0">SystemSoftware</data>
+      <data key="d4">05</data>
+      <data key="d2">Software that provides platform for applications</data>
+    </node>
+    <node id="entity_05_TechnologyCollaboration">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyCollaboration</data>
+      <data key="d4">05</data>
+      <data key="d2">Aggregate of nodes working together</data>
+    </node>
+    <node id="entity_05_TechnologyInterface">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyInterface</data>
+      <data key="d4">05</data>
+      <data key="d2">Point of access where technology services are available</data>
+    </node>
+    <node id="entity_05_Path">
+      <data key="d1">EntityType</data>
+      <data key="d0">Path</data>
+      <data key="d4">05</data>
+      <data key="d2">Link between nodes through which they exchange</data>
+    </node>
+    <node id="entity_05_CommunicationNetwork">
+      <data key="d1">EntityType</data>
+      <data key="d0">CommunicationNetwork</data>
+      <data key="d4">05</data>
+      <data key="d2">Set of structures that connects nodes</data>
+    </node>
+    <node id="entity_05_TechnologyFunction">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyFunction</data>
+      <data key="d4">05</data>
+      <data key="d2">Collection of technology behavior</data>
+    </node>
+    <node id="entity_05_TechnologyProcess">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyProcess</data>
+      <data key="d4">05</data>
+      <data key="d2">Sequence of technology behaviors</data>
+    </node>
+    <node id="entity_05_TechnologyInteraction">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyInteraction</data>
+      <data key="d4">05</data>
+      <data key="d2">Unit of collective technology behavior</data>
+    </node>
+    <node id="entity_05_TechnologyEvent">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyEvent</data>
+      <data key="d4">05</data>
+      <data key="d2">Technology state change</data>
+    </node>
+    <node id="entity_05_TechnologyService">
+      <data key="d1">EntityType</data>
+      <data key="d0">TechnologyService</data>
+      <data key="d4">05</data>
+      <data key="d2">Externally visible unit of technology functionality</data>
+    </node>
+    <node id="entity_05_Artifact">
+      <data key="d1">EntityType</data>
+      <data key="d0">Artifact</data>
+      <data key="d4">05</data>
+      <data key="d2">Physical piece of data used or produced</data>
+    </node>
+    <node id="entity_06_OpenAPIDocument">
+      <data key="d1">EntityType</data>
+      <data key="d0">OpenAPIDocument</data>
+      <data key="d4">06</data>
+      <data key="d2">Root of an OpenAPI specification file</data>
+    </node>
+    <node id="entity_06_Info">
+      <data key="d1">EntityType</data>
+      <data key="d0">Info</data>
+      <data key="d4">06</data>
+      <data key="d2">Metadata about the API</data>
+    </node>
+    <node id="entity_06_Server">
+      <data key="d1">EntityType</data>
+      <data key="d0">Server</data>
+      <data key="d4">06</data>
+      <data key="d2">Server where the API is available</data>
+    </node>
+    <node id="entity_06_Paths">
+      <data key="d1">EntityType</data>
+      <data key="d0">Paths</data>
+      <data key="d4">06</data>
+      <data key="d2">Available API endpoints and operations</data>
+    </node>
+    <node id="entity_06_PathItem">
+      <data key="d1">EntityType</data>
+      <data key="d0">PathItem</data>
+      <data key="d4">06</data>
+      <data key="d2">Operations available on a path</data>
+    </node>
+    <node id="entity_06_Operation">
+      <data key="d1">EntityType</data>
+      <data key="d0">Operation</data>
+      <data key="d4">06</data>
+      <data key="d2">Single API operation (HTTP method on a path)</data>
+    </node>
+    <node id="entity_06_Parameter">
+      <data key="d1">EntityType</data>
+      <data key="d0">Parameter</data>
+      <data key="d4">06</data>
+      <data key="d2">Parameter for an operation</data>
+    </node>
+    <node id="entity_06_RequestBody">
+      <data key="d1">EntityType</data>
+      <data key="d0">RequestBody</data>
+      <data key="d4">06</data>
+      <data key="d2">Request payload for an operation</data>
+    </node>
+    <node id="entity_06_Responses">
+      <data key="d1">EntityType</data>
+      <data key="d0">Responses</data>
+      <data key="d4">06</data>
+      <data key="d2">Possible responses from an operation</data>
+    </node>
+    <node id="entity_06_Response">
+      <data key="d1">EntityType</data>
+      <data key="d0">Response</data>
+      <data key="d4">06</data>
+      <data key="d2">Single response definition</data>
+    </node>
+    <node id="entity_06_MediaType">
+      <data key="d1">EntityType</data>
+      <data key="d0">MediaType</data>
+      <data key="d4">06</data>
+      <data key="d2">Media type and schema for request/response body</data>
+    </node>
+    <node id="entity_06_Components">
+      <data key="d1">EntityType</data>
+      <data key="d0">Components</data>
+      <data key="d4">06</data>
+      <data key="d2">Reusable component definitions</data>
+    </node>
+    <node id="entity_06_Schema">
+      <data key="d1">EntityType</data>
+      <data key="d0">Schema</data>
+      <data key="d4">06</data>
+      <data key="d2">Data type definition (JSON Schema subset)</data>
+    </node>
+    <node id="entity_06_Tag">
+      <data key="d1">EntityType</data>
+      <data key="d0">Tag</data>
+      <data key="d4">06</data>
+      <data key="d2">A metadata label used to group and categorize API operations for documentation organization. Enables logical grouping of endpoints in generated API documentation.</data>
+    </node>
+    <node id="entity_06_ExternalDocumentation">
+      <data key="d1">EntityType</data>
+      <data key="d0">ExternalDocumentation</data>
+      <data key="d4">06</data>
+      <data key="d2">A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Links API elements to comprehensive documentation.</data>
+    </node>
+    <node id="entity_06_Contact">
+      <data key="d1">EntityType</data>
+      <data key="d0">Contact</data>
+      <data key="d4">06</data>
+      <data key="d2">Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.</data>
+    </node>
+    <node id="entity_06_License">
+      <data key="d1">EntityType</data>
+      <data key="d0">License</data>
+      <data key="d4">06</data>
+      <data key="d2">Specifies the legal license under which the API is provided, including license name and URL to full terms. Clarifies usage rights for API consumers.</data>
+    </node>
+    <node id="entity_06_ServerVariable">
+      <data key="d1">EntityType</data>
+      <data key="d0">ServerVariable</data>
+      <data key="d4">06</data>
+      <data key="d2">A variable placeholder in server URL templates that can be substituted at runtime. Enables dynamic server addressing for different environments or tenants.</data>
+    </node>
+    <node id="entity_06_Header">
+      <data key="d1">EntityType</data>
+      <data key="d0">Header</data>
+      <data key="d4">06</data>
+      <data key="d2">Defines HTTP header parameters for requests or responses, specifying name, schema, required status, and description. Documents header-based communication requirements.</data>
+    </node>
+    <node id="entity_06_Link">
+      <data key="d1">EntityType</data>
+      <data key="d0">Link</data>
+      <data key="d4">06</data>
+      <data key="d2">Describes a relationship between API responses and subsequent operations, enabling hypermedia-driven API navigation. Supports HATEOAS design patterns.</data>
+    </node>
+    <node id="entity_06_Callback">
+      <data key="d1">EntityType</data>
+      <data key="d0">Callback</data>
+      <data key="d4">06</data>
+      <data key="d2">Defines a webhook or callback URL pattern where the API will send asynchronous notifications. Enables event-driven integrations and async workflows.</data>
+    </node>
+    <node id="entity_06_Example">
+      <data key="d1">EntityType</data>
+      <data key="d0">Example</data>
+      <data key="d4">06</data>
+      <data key="d2">Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.</data>
+    </node>
+    <node id="entity_06_Encoding">
+      <data key="d1">EntityType</data>
+      <data key="d0">Encoding</data>
+      <data key="d4">06</data>
+      <data key="d2">Specifies serialization details for multipart request body properties, including content-type, headers, and encoding style. Handles complex content negotiation.</data>
+    </node>
+    <node id="entity_06_OAuthFlows">
+      <data key="d1">EntityType</data>
+      <data key="d0">OAuthFlows</data>
+      <data key="d4">06</data>
+      <data key="d2">Configuration for OAuth 2.0 authentication flows (implicit, password, clientCredentials, authorizationCode), specifying authorization URLs, token URLs, and scopes. Defines OAuth security implementatio</data>
+    </node>
+    <node id="entity_06_OAuthFlow">
+      <data key="d1">EntityType</data>
+      <data key="d0">OAuthFlow</data>
+      <data key="d4">06</data>
+      <data key="d2">Individual OAuth 2.0 flow configuration</data>
+    </node>
+    <node id="entity_06_SecurityScheme">
+      <data key="d1">EntityType</data>
+      <data key="d0">SecurityScheme</data>
+      <data key="d4">06</data>
+      <data key="d2">Security mechanism for the API</data>
+    </node>
+    <node id="entity_07_JSONSchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">JSONSchema</data>
+      <data key="d4">07</data>
+      <data key="d2">Root schema document</data>
+    </node>
+    <node id="entity_07_JSONType">
+      <data key="d1">EntityType</data>
+      <data key="d0">JSONType</data>
+      <data key="d4">07</data>
+      <data key="d2">Core JSON data types</data>
+    </node>
+    <node id="entity_07_StringSchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">StringSchema</data>
+      <data key="d4">07</data>
+      <data key="d2">StringSchema validation rules</data>
+    </node>
+    <node id="entity_07_NumericSchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">NumericSchema</data>
+      <data key="d4">07</data>
+      <data key="d2">NumericSchema validation rules</data>
+    </node>
+    <node id="entity_07_ArraySchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">ArraySchema</data>
+      <data key="d4">07</data>
+      <data key="d2">ArraySchema validation rules</data>
+    </node>
+    <node id="entity_07_ObjectSchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">ObjectSchema</data>
+      <data key="d4">07</data>
+      <data key="d2">ObjectSchema validation rules</data>
+    </node>
+    <node id="entity_07_SchemaComposition">
+      <data key="d1">EntityType</data>
+      <data key="d0">SchemaComposition</data>
+      <data key="d4">07</data>
+      <data key="d2">Combining multiple schemas</data>
+    </node>
+    <node id="entity_07_Reference">
+      <data key="d1">EntityType</data>
+      <data key="d0">Reference</data>
+      <data key="d4">07</data>
+      <data key="d2">Reference to another schema</data>
+    </node>
+    <node id="entity_07_SchemaDefinition">
+      <data key="d1">EntityType</data>
+      <data key="d0">SchemaDefinition</data>
+      <data key="d4">07</data>
+      <data key="d2">A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.</data>
+    </node>
+    <node id="entity_07_SchemaProperty">
+      <data key="d1">EntityType</data>
+      <data key="d0">SchemaProperty</data>
+      <data key="d4">07</data>
+      <data key="d2">Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.</data>
+    </node>
+    <node id="entity_07_DataGovernance">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataGovernance</data>
+      <data key="d4">07</data>
+      <data key="d2">Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.</data>
+    </node>
+    <node id="entity_07_DataQualityMetrics">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataQualityMetrics</data>
+      <data key="d4">07</data>
+      <data key="d2">Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.</data>
+    </node>
+    <node id="entity_07_DatabaseMapping">
+      <data key="d1">EntityType</data>
+      <data key="d0">DatabaseMapping</data>
+      <data key="d4">07</data>
+      <data key="d2">Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.</data>
+    </node>
+    <node id="entity_07_x-business-object-ref">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-business-object-ref</data>
+      <data key="d4">07</data>
+      <data key="d2">Reference to BusinessObject this schema implements</data>
+    </node>
+    <node id="entity_07_x-data-governance">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-data-governance</data>
+      <data key="d4">07</data>
+      <data key="d2">Data model governance metadata (root-level)</data>
+    </node>
+    <node id="entity_07_x-apm-data-quality-metrics">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-apm-data-quality-metrics</data>
+      <data key="d4">07</data>
+      <data key="d2">Links schema to data quality metrics in APM/Observability Layer</data>
+    </node>
+    <node id="entity_07_x-database">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-database</data>
+      <data key="d4">07</data>
+      <data key="d2">Database mapping information</data>
+    </node>
+    <node id="entity_07_x-ui">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-ui</data>
+      <data key="d4">07</data>
+      <data key="d2">UI rendering hints</data>
+    </node>
+    <node id="entity_07_x-security">
+      <data key="d1">EntityType</data>
+      <data key="d0">x-security</data>
+      <data key="d4">07</data>
+      <data key="d2">Security and privacy metadata</data>
+    </node>
+    <node id="entity_08_Database">
+      <data key="d1">EntityType</data>
+      <data key="d0">Database</data>
+      <data key="d4">08</data>
+      <data key="d2">Database instance containing schemas</data>
+    </node>
+    <node id="entity_08_DatabaseSchema">
+      <data key="d1">EntityType</data>
+      <data key="d0">DatabaseSchema</data>
+      <data key="d4">08</data>
+      <data key="d2">Logical grouping of database objects</data>
+    </node>
+    <node id="entity_08_Table">
+      <data key="d1">EntityType</data>
+      <data key="d0">Table</data>
+      <data key="d4">08</data>
+      <data key="d2">Database table definition</data>
+    </node>
+    <node id="entity_08_Column">
+      <data key="d1">EntityType</data>
+      <data key="d0">Column</data>
+      <data key="d4">08</data>
+      <data key="d2">Table column definition</data>
+    </node>
+    <node id="entity_08_Constraint">
+      <data key="d1">EntityType</data>
+      <data key="d0">Constraint</data>
+      <data key="d4">08</data>
+      <data key="d2">Table constraint</data>
+    </node>
+    <node id="entity_08_Index">
+      <data key="d1">EntityType</data>
+      <data key="d0">Index</data>
+      <data key="d4">08</data>
+      <data key="d2">Database index for query optimization</data>
+    </node>
+    <node id="entity_08_View">
+      <data key="d1">EntityType</data>
+      <data key="d0">View</data>
+      <data key="d4">08</data>
+      <data key="d2">Database view</data>
+    </node>
+    <node id="entity_08_Trigger">
+      <data key="d1">EntityType</data>
+      <data key="d0">Trigger</data>
+      <data key="d4">08</data>
+      <data key="d2">A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement.</data>
+    </node>
+    <node id="entity_08_Sequence">
+      <data key="d1">EntityType</data>
+      <data key="d0">Sequence</data>
+      <data key="d4">08</data>
+      <data key="d2">A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers.</data>
+    </node>
+    <node id="entity_08_Function">
+      <data key="d1">EntityType</data>
+      <data key="d0">Function</data>
+      <data key="d4">08</data>
+      <data key="d2">A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.</data>
+    </node>
+    <node id="entity_09_UXLibrary">
+      <data key="d1">EntityType</data>
+      <data key="d0">UXLibrary</data>
+      <data key="d4">09</data>
+      <data key="d2">Collection of reusable UI components and sub-views that can be shared across applications</data>
+    </node>
+    <node id="entity_09_LibraryComponent">
+      <data key="d1">EntityType</data>
+      <data key="d0">LibraryComponent</data>
+      <data key="d4">09</data>
+      <data key="d2">Reusable UI component definition that can be instantiated in multiple UXSpecs</data>
+    </node>
+    <node id="entity_09_LibrarySubView">
+      <data key="d1">EntityType</data>
+      <data key="d0">LibrarySubView</data>
+      <data key="d4">09</data>
+      <data key="d2">Reusable grouping of components that can be composed into views</data>
+    </node>
+    <node id="entity_09_StatePattern">
+      <data key="d1">EntityType</data>
+      <data key="d0">StatePattern</data>
+      <data key="d4">09</data>
+      <data key="d2">Reusable state machine pattern for common UX flows</data>
+    </node>
+    <node id="entity_09_ActionPattern">
+      <data key="d1">EntityType</data>
+      <data key="d0">ActionPattern</data>
+      <data key="d4">09</data>
+      <data key="d2">Reusable action configuration for common user interactions</data>
+    </node>
+    <node id="entity_09_UXApplication">
+      <data key="d1">EntityType</data>
+      <data key="d0">UXApplication</data>
+      <data key="d4">09</data>
+      <data key="d2">Application-level UX configuration that groups UXSpecs and defines shared settings</data>
+    </node>
+    <node id="entity_09_UXSpec">
+      <data key="d1">EntityType</data>
+      <data key="d0">UXSpec</data>
+      <data key="d4">09</data>
+      <data key="d2">Complete UX specification for a single experience (visual, voice, chat, SMS)</data>
+    </node>
+    <node id="entity_09_ExperienceState">
+      <data key="d1">EntityType</data>
+      <data key="d0">ExperienceState</data>
+      <data key="d4">09</data>
+      <data key="d2">Distinct state that the experience can be in (works across all channels)</data>
+    </node>
+    <node id="entity_09_StateAction">
+      <data key="d1">EntityType</data>
+      <data key="d0">StateAction</data>
+      <data key="d4">09</data>
+      <data key="d2">Action executed during state lifecycle</data>
+    </node>
+    <node id="entity_09_StateTransition">
+      <data key="d1">EntityType</data>
+      <data key="d0">StateTransition</data>
+      <data key="d4">09</data>
+      <data key="d2">Transition from current state to another state</data>
+    </node>
+    <node id="entity_09_Condition">
+      <data key="d1">EntityType</data>
+      <data key="d0">Condition</data>
+      <data key="d4">09</data>
+      <data key="d2">Boolean expression for guard conditions</data>
+    </node>
+    <node id="entity_09_View">
+      <data key="d1">EntityType</data>
+      <data key="d0">View</data>
+      <data key="d4">09</data>
+      <data key="d2">Routable grouping of components (a complete user experience)</data>
+    </node>
+    <node id="entity_09_SubView">
+      <data key="d1">EntityType</data>
+      <data key="d0">SubView</data>
+      <data key="d4">09</data>
+      <data key="d2">Instance of a LibrarySubView or custom sub-view definition</data>
+    </node>
+    <node id="entity_09_ComponentInstance">
+      <data key="d1">EntityType</data>
+      <data key="d0">ComponentInstance</data>
+      <data key="d4">09</data>
+      <data key="d2">Instance of a LibraryComponent with application-specific configuration</data>
+    </node>
+    <node id="entity_09_ActionComponent">
+      <data key="d1">EntityType</data>
+      <data key="d0">ActionComponent</data>
+      <data key="d4">09</data>
+      <data key="d2">Interactive element that triggers actions (button, menu, link, voice command)</data>
+    </node>
+    <node id="entity_09_ValidationRule">
+      <data key="d1">EntityType</data>
+      <data key="d0">ValidationRule</data>
+      <data key="d4">09</data>
+      <data key="d2">Client-side validation rule for a field</data>
+    </node>
+    <node id="entity_09_LayoutConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">LayoutConfig</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.</data>
+    </node>
+    <node id="entity_09_ErrorConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">ErrorConfig</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.</data>
+    </node>
+    <node id="entity_09_ApiConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">ApiConfig</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for API integration within UI components, specifying endpoints, request/response mapping, authentication, and caching strategies. Connects UI to backend services.</data>
+    </node>
+    <node id="entity_09_DataConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataConfig</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.</data>
+    </node>
+    <node id="entity_09_PerformanceTargets">
+      <data key="d1">EntityType</data>
+      <data key="d0">PerformanceTargets</data>
+      <data key="d4">09</data>
+      <data key="d2">Defines performance SLAs for UI components including load time, interaction responsiveness, and rendering thresholds. Enables performance monitoring and optimization.</data>
+    </node>
+    <node id="entity_09_ComponentReference">
+      <data key="d1">EntityType</data>
+      <data key="d0">ComponentReference</data>
+      <data key="d4">09</data>
+      <data key="d2">A reference to another UI component that can be embedded or composed within a parent component. Enables component reuse and modular UI architecture.</data>
+    </node>
+    <node id="entity_09_TransitionTemplate">
+      <data key="d1">EntityType</data>
+      <data key="d0">TransitionTemplate</data>
+      <data key="d4">09</data>
+      <data key="d2">Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.</data>
+    </node>
+    <node id="entity_09_StateActionTemplate">
+      <data key="d1">EntityType</data>
+      <data key="d0">StateActionTemplate</data>
+      <data key="d4">09</data>
+      <data key="d2">A reusable template defining actions to execute during component state transitions. Enables standardized behavior patterns for common state changes.</data>
+    </node>
+    <node id="entity_09_TableColumn">
+      <data key="d1">EntityType</data>
+      <data key="d0">TableColumn</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.</data>
+    </node>
+    <node id="entity_09_ChartSeries">
+      <data key="d1">EntityType</data>
+      <data key="d0">ChartSeries</data>
+      <data key="d4">09</data>
+      <data key="d2">Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.</data>
+    </node>
+    <node id="entity_10_NavigationGraph">
+      <data key="d1">EntityType</data>
+      <data key="d0">NavigationGraph</data>
+      <data key="d4">10</data>
+      <data key="d2">Complete navigation structure for application</data>
+    </node>
+    <node id="entity_10_Route">
+      <data key="d1">EntityType</data>
+      <data key="d0">Route</data>
+      <data key="d4">10</data>
+      <data key="d2">Single route/destination in the application (channel-agnostic)</data>
+    </node>
+    <node id="entity_10_RouteMeta">
+      <data key="d1">EntityType</data>
+      <data key="d0">RouteMeta</data>
+      <data key="d4">10</data>
+      <data key="d2">Route metadata</data>
+    </node>
+    <node id="entity_10_BreadcrumbConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">BreadcrumbConfig</data>
+      <data key="d4">10</data>
+      <data key="d2">Configuration for breadcrumb navigation display, specifying path generation rules, separator styles, truncation behavior, and home link settings. Provides users with location context and navigation hi</data>
+    </node>
+    <node id="entity_10_NavigationTransition">
+      <data key="d1">EntityType</data>
+      <data key="d0">NavigationTransition</data>
+      <data key="d4">10</data>
+      <data key="d2">Transition from one route to another</data>
+    </node>
+    <node id="entity_10_NavigationGuard">
+      <data key="d1">EntityType</data>
+      <data key="d0">NavigationGuard</data>
+      <data key="d4">10</data>
+      <data key="d2">Guard condition for route access</data>
+    </node>
+    <node id="entity_10_GuardCondition">
+      <data key="d1">EntityType</data>
+      <data key="d0">GuardCondition</data>
+      <data key="d4">10</data>
+      <data key="d2">Condition expression for guard</data>
+    </node>
+    <node id="entity_10_GuardAction">
+      <data key="d1">EntityType</data>
+      <data key="d0">GuardAction</data>
+      <data key="d4">10</data>
+      <data key="d2">Action when guard denies access</data>
+    </node>
+    <node id="entity_10_NavigationFlow">
+      <data key="d1">EntityType</data>
+      <data key="d0">NavigationFlow</data>
+      <data key="d4">10</data>
+      <data key="d2">Sequence of routes that realizes a business process</data>
+    </node>
+    <node id="entity_10_FlowStep">
+      <data key="d1">EntityType</data>
+      <data key="d0">FlowStep</data>
+      <data key="d4">10</data>
+      <data key="d2">One step in a navigation flow</data>
+    </node>
+    <node id="entity_10_ContextVariable">
+      <data key="d1">EntityType</data>
+      <data key="d0">ContextVariable</data>
+      <data key="d4">10</data>
+      <data key="d2">Shared variable across flow steps (Gap #1: Cross-experience state)</data>
+    </node>
+    <node id="entity_10_DataMapping">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataMapping</data>
+      <data key="d4">10</data>
+      <data key="d2">Maps data between flow context and experience (Gap #2: Data handoff)</data>
+    </node>
+    <node id="entity_10_ProcessTracking">
+      <data key="d1">EntityType</data>
+      <data key="d0">ProcessTracking</data>
+      <data key="d4">10</data>
+      <data key="d2">Tracks business process instance across flow (Gap #3: Process correlation)</data>
+    </node>
+    <node id="entity_10_FlowAnalytics">
+      <data key="d1">EntityType</data>
+      <data key="d0">FlowAnalytics</data>
+      <data key="d4">10</data>
+      <data key="d2">Analytics for funnel tracking (Gap #9: Funnel analytics)</data>
+    </node>
+    <node id="entity_10_NotificationAction">
+      <data key="d1">EntityType</data>
+      <data key="d0">NotificationAction</data>
+      <data key="d4">10</data>
+      <data key="d2">Notification to send during flow step</data>
+    </node>
+    <node id="entity_11_Span">
+      <data key="d1">EntityType</data>
+      <data key="d0">Span</data>
+      <data key="d4">11</data>
+      <data key="d2">Unit of work in distributed tracing</data>
+    </node>
+    <node id="entity_11_SpanEvent">
+      <data key="d1">EntityType</data>
+      <data key="d0">SpanEvent</data>
+      <data key="d4">11</data>
+      <data key="d2">Timestamped event during span execution</data>
+    </node>
+    <node id="entity_11_SpanLink">
+      <data key="d1">EntityType</data>
+      <data key="d0">SpanLink</data>
+      <data key="d4">11</data>
+      <data key="d2">Link to related span (different trace or parent)</data>
+    </node>
+    <node id="entity_11_SpanStatus">
+      <data key="d1">EntityType</data>
+      <data key="d0">SpanStatus</data>
+      <data key="d4">11</data>
+      <data key="d2">Outcome of span execution</data>
+    </node>
+    <node id="entity_11_LogRecord">
+      <data key="d1">EntityType</data>
+      <data key="d0">LogRecord</data>
+      <data key="d4">11</data>
+      <data key="d2">OpenTelemetry log entry</data>
+    </node>
+    <node id="entity_11_Resource">
+      <data key="d1">EntityType</data>
+      <data key="d0">Resource</data>
+      <data key="d4">11</data>
+      <data key="d2">Immutable representation of entity producing telemetry</data>
+    </node>
+    <node id="entity_11_InstrumentationScope">
+      <data key="d1">EntityType</data>
+      <data key="d0">InstrumentationScope</data>
+      <data key="d4">11</data>
+      <data key="d2">Logical unit of code that generates telemetry</data>
+    </node>
+    <node id="entity_11_ExporterConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">ExporterConfig</data>
+      <data key="d4">11</data>
+      <data key="d2">Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent</data>
+    </node>
+    <node id="entity_11_InstrumentationConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">InstrumentationConfig</data>
+      <data key="d4">11</data>
+      <data key="d2">Configuration for automatic or manual instrumentation of application code, specifying which libraries, frameworks, or code paths to instrument and capture telemetry from.</data>
+    </node>
+    <node id="entity_11_LogProcessor">
+      <data key="d1">EntityType</data>
+      <data key="d0">LogProcessor</data>
+      <data key="d4">11</data>
+      <data key="d2">A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.</data>
+    </node>
+    <node id="entity_11_MeterConfig">
+      <data key="d1">EntityType</data>
+      <data key="d0">MeterConfig</data>
+      <data key="d4">11</data>
+      <data key="d2">Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated.</data>
+    </node>
+    <node id="entity_11_MetricInstrument">
+      <data key="d1">EntityType</data>
+      <data key="d0">MetricInstrument</data>
+      <data key="d4">11</data>
+      <data key="d2">Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.</data>
+    </node>
+    <node id="entity_11_Attribute">
+      <data key="d1">EntityType</data>
+      <data key="d0">Attribute</data>
+      <data key="d4">11</data>
+      <data key="d2">Key-value pair metadata</data>
+    </node>
+    <node id="entity_11_APMConfiguration">
+      <data key="d1">EntityType</data>
+      <data key="d0">APMConfiguration</data>
+      <data key="d4">11</data>
+      <data key="d2">Complete APM configuration for an application</data>
+    </node>
+    <node id="entity_11_TraceConfiguration">
+      <data key="d1">EntityType</data>
+      <data key="d0">TraceConfiguration</data>
+      <data key="d4">11</data>
+      <data key="d2">Distributed tracing configuration</data>
+    </node>
+    <node id="entity_11_LogConfiguration">
+      <data key="d1">EntityType</data>
+      <data key="d0">LogConfiguration</data>
+      <data key="d4">11</data>
+      <data key="d2">Logging configuration</data>
+    </node>
+    <node id="entity_11_MetricConfiguration">
+      <data key="d1">EntityType</data>
+      <data key="d0">MetricConfiguration</data>
+      <data key="d4">11</data>
+      <data key="d2">Metrics configuration</data>
+    </node>
+    <node id="entity_11_DataQualityMetrics">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataQualityMetrics</data>
+      <data key="d4">11</data>
+      <data key="d2">Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)</data>
+    </node>
+    <node id="entity_11_DataQualityMetric">
+      <data key="d1">EntityType</data>
+      <data key="d0">DataQualityMetric</data>
+      <data key="d4">11</data>
+      <data key="d2">Individual data quality metric</data>
+    </node>
+    <node id="entity_12_TestCoverageModel">
+      <data key="d1">EntityType</data>
+      <data key="d0">TestCoverageModel</data>
+      <data key="d4">12</data>
+      <data key="d2">Complete test coverage model for application</data>
+    </node>
+    <node id="entity_12_TestCoverageTarget">
+      <data key="d1">EntityType</data>
+      <data key="d0">TestCoverageTarget</data>
+      <data key="d4">12</data>
+      <data key="d2">An artifact or functionality that requires test coverage</data>
+    </node>
+    <node id="entity_12_TargetInputField">
+      <data key="d1">EntityType</data>
+      <data key="d0">TargetInputField</data>
+      <data key="d4">12</data>
+      <data key="d2">Input field associated with a coverage target</data>
+    </node>
+    <node id="entity_12_InputSpacePartition">
+      <data key="d1">EntityType</data>
+      <data key="d0">InputSpacePartition</data>
+      <data key="d4">12</data>
+      <data key="d2">Partitioning of an input dimension into testable categories</data>
+    </node>
+    <node id="entity_12_PartitionValue">
+      <data key="d1">EntityType</data>
+      <data key="d0">PartitionValue</data>
+      <data key="d4">12</data>
+      <data key="d2">A specific partition within the input space</data>
+    </node>
+    <node id="entity_12_PartitionDependency">
+      <data key="d1">EntityType</data>
+      <data key="d0">PartitionDependency</data>
+      <data key="d4">12</data>
+      <data key="d2">Constraint between partition values across fields</data>
+    </node>
+    <node id="entity_12_ContextVariation">
+      <data key="d1">EntityType</data>
+      <data key="d0">ContextVariation</data>
+      <data key="d4">12</data>
+      <data key="d2">Different context in which functionality can be invoked</data>
+    </node>
+    <node id="entity_12_EnvironmentFactor">
+      <data key="d1">EntityType</data>
+      <data key="d0">EnvironmentFactor</data>
+      <data key="d4">12</data>
+      <data key="d2">Environmental condition that may affect behavior</data>
+    </node>
+    <node id="entity_12_OutcomeCategory">
+      <data key="d1">EntityType</data>
+      <data key="d0">OutcomeCategory</data>
+      <data key="d4">12</data>
+      <data key="d2">Category of expected outcomes (not specific assertions)</data>
+    </node>
+    <node id="entity_12_CoverageRequirement">
+      <data key="d1">EntityType</data>
+      <data key="d0">CoverageRequirement</data>
+      <data key="d4">12</data>
+      <data key="d2">Requirement for test coverage of a target</data>
+    </node>
+    <node id="entity_12_InputPartitionSelection">
+      <data key="d1">EntityType</data>
+      <data key="d0">InputPartitionSelection</data>
+      <data key="d4">12</data>
+      <data key="d2">Selection of partition values to include in coverage</data>
+    </node>
+    <node id="entity_12_CoverageExclusion">
+      <data key="d1">EntityType</data>
+      <data key="d0">CoverageExclusion</data>
+      <data key="d4">12</data>
+      <data key="d2">Explicit exclusion from coverage with justification</data>
+    </node>
+    <node id="entity_12_TestCaseSketch">
+      <data key="d1">EntityType</data>
+      <data key="d0">TestCaseSketch</data>
+      <data key="d4">12</data>
+      <data key="d2">Abstract test case selecting specific partition values</data>
+    </node>
+    <node id="entity_12_InputSelection">
+      <data key="d1">EntityType</data>
+      <data key="d0">InputSelection</data>
+      <data key="d4">12</data>
+      <data key="d2">Specific partition value selected for a test case</data>
+    </node>
+    <node id="entity_12_CoverageSummary">
+      <data key="d1">EntityType</data>
+      <data key="d0">CoverageSummary</data>
+      <data key="d4">12</data>
+      <data key="d2">Summary of coverage status (can be computed or declared)</data>
+    </node>
+    <node id="entity_12_TargetCoverageSummary">
+      <data key="d1">EntityType</data>
+      <data key="d0">TargetCoverageSummary</data>
+      <data key="d4">12</data>
+      <data key="d2">Coverage metrics summary for a single test coverage target</data>
+    </node>
+    <node id="entity_12_CoverageGap">
+      <data key="d1">EntityType</data>
+      <data key="d0">CoverageGap</data>
+      <data key="d4">12</data>
+      <data key="d2">Identified gap in test coverage requiring attention</data>
     </node>
     <edge id="e0" source="linktype_apm-criticality" target="layer_06">
       <data key="d10">LINKS_FROM</data>
@@ -1047,129 +2325,798 @@
       <data key="d10">INVERSE_OF</data>
       <data key="d12">structural</data>
     </edge>
-    <edge id="e99" source="predicate_triggers" target="predicate_triggered-by">
+    <edge id="e99" source="predicate_association" target="predicate_associated-by">
+      <data key="d10">INVERSE_OF</data>
+      <data key="d12">structural</data>
+    </edge>
+    <edge id="e100" source="predicate_influence" target="predicate_influenced-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">behavioral</data>
     </edge>
-    <edge id="e100" source="predicate_flows-to" target="predicate_flows-from">
+    <edge id="e101" source="predicate_triggers" target="predicate_triggered-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">behavioral</data>
     </edge>
-    <edge id="e101" source="predicate_serves" target="predicate_served-by">
+    <edge id="e102" source="predicate_flows-to" target="predicate_flows-from">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">behavioral</data>
     </edge>
-    <edge id="e102" source="predicate_accesses" target="predicate_accessed-by">
+    <edge id="e103" source="predicate_serves" target="predicate_served-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">behavioral</data>
     </edge>
-    <edge id="e103" source="predicate_uses" target="predicate_used-by">
+    <edge id="e104" source="predicate_accesses" target="predicate_accessed-by">
+      <data key="d10">INVERSE_OF</data>
+      <data key="d12">behavioral</data>
+    </edge>
+    <edge id="e105" source="predicate_uses" target="predicate_used-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">dependency</data>
     </edge>
-    <edge id="e104" source="predicate_references" target="predicate_referenced-by">
+    <edge id="e106" source="predicate_references" target="predicate_referenced-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">dependency</data>
     </edge>
-    <edge id="e105" source="predicate_depends-on" target="predicate_dependency-of">
+    <edge id="e107" source="predicate_depends-on" target="predicate_dependency-of">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">dependency</data>
     </edge>
-    <edge id="e106" source="predicate_supports-goals" target="predicate_supported-by">
+    <edge id="e108" source="predicate_supports-goals" target="predicate_supported-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">traceability</data>
     </edge>
-    <edge id="e107" source="predicate_fulfills-requirements" target="predicate_fulfilled-by">
+    <edge id="e109" source="predicate_fulfills-requirements" target="predicate_fulfilled-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">traceability</data>
     </edge>
-    <edge id="e108" source="predicate_delivers-value" target="predicate_delivered-by">
+    <edge id="e110" source="predicate_delivers-value" target="predicate_delivered-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">traceability</data>
     </edge>
-    <edge id="e109" source="predicate_measures-outcome" target="predicate_measured-by">
+    <edge id="e111" source="predicate_measures-outcome" target="predicate_measured-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">traceability</data>
     </edge>
-    <edge id="e110" source="predicate_governed-by-principles" target="predicate_governs">
+    <edge id="e112" source="predicate_governed-by-principles" target="predicate_governs">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">governance</data>
     </edge>
-    <edge id="e111" source="predicate_constrained-by" target="predicate_constrains">
+    <edge id="e113" source="predicate_constrained-by" target="predicate_constrains">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">governance</data>
     </edge>
-    <edge id="e112" source="predicate_enforces-requirement" target="predicate_enforced-by">
+    <edge id="e114" source="predicate_enforces-requirement" target="predicate_enforced-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">governance</data>
     </edge>
-    <edge id="e113" source="predicate_traces" target="predicate_traced-by">
+    <edge id="e115" source="predicate_traces" target="predicate_traced-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">apm</data>
     </edge>
-    <edge id="e114" source="predicate_monitors" target="predicate_monitored-by">
+    <edge id="e116" source="predicate_monitors" target="predicate_monitored-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">apm</data>
     </edge>
-    <edge id="e115" source="predicate_measures" target="predicate_measured-by">
+    <edge id="e117" source="predicate_measures" target="predicate_measured-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">apm</data>
     </edge>
-    <edge id="e116" source="predicate_protects" target="predicate_protected-by">
+    <edge id="e118" source="predicate_protects" target="predicate_protected-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">security</data>
     </edge>
-    <edge id="e117" source="predicate_authenticates" target="predicate_authenticated-by">
+    <edge id="e119" source="predicate_authenticates" target="predicate_authenticated-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">security</data>
     </edge>
-    <edge id="e118" source="predicate_authorizes" target="predicate_authorized-by">
+    <edge id="e120" source="predicate_authorizes" target="predicate_authorized-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">security</data>
     </edge>
-    <edge id="e119" source="predicate_renders" target="predicate_rendered-by">
+    <edge id="e121" source="predicate_renders" target="predicate_rendered-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">ux</data>
     </edge>
-    <edge id="e120" source="predicate_binds-to" target="predicate_bound-by">
+    <edge id="e122" source="predicate_binds-to" target="predicate_bound-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">ux</data>
     </edge>
-    <edge id="e121" source="predicate_navigates-to" target="predicate_navigated-from">
+    <edge id="e123" source="predicate_navigates-to" target="predicate_navigated-from">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">ux</data>
     </edge>
-    <edge id="e122" source="predicate_maps-to" target="predicate_mapped-from">
+    <edge id="e124" source="predicate_maps-to" target="predicate_mapped-from">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">data</data>
     </edge>
-    <edge id="e123" source="predicate_references-table" target="predicate_table-referenced-by">
+    <edge id="e125" source="predicate_references-table" target="predicate_table-referenced-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">data</data>
     </edge>
-    <edge id="e124" source="predicate_derives-from" target="predicate_derived-by">
+    <edge id="e126" source="predicate_derives-from" target="predicate_derived-by">
       <data key="d10">INVERSE_OF</data>
       <data key="d12">data</data>
     </edge>
-    <edge id="e125" source="linktype_motivation-constrained-by" target="predicate_constrained-by">
+    <edge id="e127" source="layer_01" target="entity_01_Stakeholder">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e128" source="layer_01" target="entity_01_Driver">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e129" source="layer_01" target="entity_01_Assessment">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e130" source="layer_01" target="entity_01_Goal">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e131" source="layer_01" target="entity_01_Outcome">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e132" source="layer_01" target="entity_01_Principle">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e133" source="layer_01" target="entity_01_Requirement">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e134" source="layer_01" target="entity_01_Constraint">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e135" source="layer_01" target="entity_01_Meaning">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e136" source="layer_01" target="entity_01_Value">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e137" source="layer_02" target="entity_02_BusinessActor">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e138" source="layer_02" target="entity_02_BusinessRole">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e139" source="layer_02" target="entity_02_BusinessCollaboration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e140" source="layer_02" target="entity_02_BusinessInterface">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e141" source="layer_02" target="entity_02_BusinessProcess">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e142" source="layer_02" target="entity_02_BusinessFunction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e143" source="layer_02" target="entity_02_BusinessInteraction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e144" source="layer_02" target="entity_02_BusinessEvent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e145" source="layer_02" target="entity_02_BusinessService">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e146" source="layer_02" target="entity_02_BusinessObject">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e147" source="layer_02" target="entity_02_Contract">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e148" source="layer_02" target="entity_02_Representation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e149" source="layer_02" target="entity_02_Product">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e150" source="layer_03" target="entity_03_SecurityModel">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e151" source="layer_03" target="entity_03_AuthenticationConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e152" source="layer_03" target="entity_03_PasswordPolicy">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e153" source="layer_03" target="entity_03_Role">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e154" source="layer_03" target="entity_03_Permission">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e155" source="layer_03" target="entity_03_SecureResource">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e156" source="layer_03" target="entity_03_ResourceOperation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e157" source="layer_03" target="entity_03_AccessCondition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e158" source="layer_03" target="entity_03_FieldAccessControl">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e159" source="layer_03" target="entity_03_SecurityPolicy">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e160" source="layer_03" target="entity_03_PolicyRule">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e161" source="layer_03" target="entity_03_PolicyAction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e162" source="layer_03" target="entity_03_DataClassification">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e163" source="layer_03" target="entity_03_Classification">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e164" source="layer_03" target="entity_03_Actor">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e165" source="layer_03" target="entity_03_ActorObjective">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e166" source="layer_03" target="entity_03_ActorDependency">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e167" source="layer_03" target="entity_03_InformationEntity">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e168" source="layer_03" target="entity_03_InformationRight">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e169" source="layer_03" target="entity_03_Delegation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e170" source="layer_03" target="entity_03_SecurityConstraints">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e171" source="layer_03" target="entity_03_SeparationOfDuty">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e172" source="layer_03" target="entity_03_BindingOfDuty">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e173" source="layer_03" target="entity_03_NeedToKnow">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e174" source="layer_03" target="entity_03_SocialDependency">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e175" source="layer_03" target="entity_03_AccountabilityRequirement">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e176" source="layer_03" target="entity_03_Evidence">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e177" source="layer_03" target="entity_03_Threat">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e178" source="layer_03" target="entity_03_Countermeasure">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e179" source="layer_03" target="entity_03_RateLimit">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e180" source="layer_03" target="entity_03_AuditConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e181" source="layer_03" target="entity_03_Condition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e182" source="layer_03" target="entity_03_RetentionPolicy">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e183" source="layer_03" target="entity_03_ValidationRule">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e184" source="layer_04" target="entity_04_ApplicationComponent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e185" source="layer_04" target="entity_04_ApplicationCollaboration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e186" source="layer_04" target="entity_04_ApplicationInterface">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e187" source="layer_04" target="entity_04_ApplicationFunction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e188" source="layer_04" target="entity_04_ApplicationInteraction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e189" source="layer_04" target="entity_04_ApplicationProcess">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e190" source="layer_04" target="entity_04_ApplicationEvent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e191" source="layer_04" target="entity_04_ApplicationService">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e192" source="layer_04" target="entity_04_DataObject">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e193" source="layer_05" target="entity_05_Node">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e194" source="layer_05" target="entity_05_Device">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e195" source="layer_05" target="entity_05_SystemSoftware">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e196" source="layer_05" target="entity_05_TechnologyCollaboration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e197" source="layer_05" target="entity_05_TechnologyInterface">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e198" source="layer_05" target="entity_05_Path">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e199" source="layer_05" target="entity_05_CommunicationNetwork">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e200" source="layer_05" target="entity_05_TechnologyFunction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e201" source="layer_05" target="entity_05_TechnologyProcess">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e202" source="layer_05" target="entity_05_TechnologyInteraction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e203" source="layer_05" target="entity_05_TechnologyEvent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e204" source="layer_05" target="entity_05_TechnologyService">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e205" source="layer_05" target="entity_05_Artifact">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e206" source="layer_06" target="entity_06_OpenAPIDocument">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e207" source="layer_06" target="entity_06_Info">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e208" source="layer_06" target="entity_06_Server">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e209" source="layer_06" target="entity_06_Paths">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e210" source="layer_06" target="entity_06_PathItem">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e211" source="layer_06" target="entity_06_Operation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e212" source="layer_06" target="entity_06_Parameter">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e213" source="layer_06" target="entity_06_RequestBody">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e214" source="layer_06" target="entity_06_Responses">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e215" source="layer_06" target="entity_06_Response">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e216" source="layer_06" target="entity_06_MediaType">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e217" source="layer_06" target="entity_06_Components">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e218" source="layer_06" target="entity_06_Schema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e219" source="layer_06" target="entity_06_Tag">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e220" source="layer_06" target="entity_06_ExternalDocumentation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e221" source="layer_06" target="entity_06_Contact">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e222" source="layer_06" target="entity_06_License">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e223" source="layer_06" target="entity_06_ServerVariable">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e224" source="layer_06" target="entity_06_Header">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e225" source="layer_06" target="entity_06_Link">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e226" source="layer_06" target="entity_06_Callback">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e227" source="layer_06" target="entity_06_Example">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e228" source="layer_06" target="entity_06_Encoding">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e229" source="layer_06" target="entity_06_OAuthFlows">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e230" source="layer_06" target="entity_06_OAuthFlow">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e231" source="layer_06" target="entity_06_SecurityScheme">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e232" source="layer_07" target="entity_07_JSONSchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e233" source="layer_07" target="entity_07_JSONType">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e234" source="layer_07" target="entity_07_StringSchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e235" source="layer_07" target="entity_07_NumericSchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e236" source="layer_07" target="entity_07_ArraySchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e237" source="layer_07" target="entity_07_ObjectSchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e238" source="layer_07" target="entity_07_SchemaComposition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e239" source="layer_07" target="entity_07_Reference">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e240" source="layer_07" target="entity_07_SchemaDefinition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e241" source="layer_07" target="entity_07_SchemaProperty">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e242" source="layer_07" target="entity_07_DataGovernance">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e243" source="layer_07" target="entity_07_DataQualityMetrics">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e244" source="layer_07" target="entity_07_DatabaseMapping">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e245" source="layer_07" target="entity_07_x-business-object-ref">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e246" source="layer_07" target="entity_07_x-data-governance">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e247" source="layer_07" target="entity_07_x-apm-data-quality-metrics">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e248" source="layer_07" target="entity_07_x-database">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e249" source="layer_07" target="entity_07_x-ui">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e250" source="layer_07" target="entity_07_x-security">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e251" source="layer_08" target="entity_08_Database">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e252" source="layer_08" target="entity_08_DatabaseSchema">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e253" source="layer_08" target="entity_08_Table">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e254" source="layer_08" target="entity_08_Column">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e255" source="layer_08" target="entity_08_Constraint">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e256" source="layer_08" target="entity_08_Index">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e257" source="layer_08" target="entity_08_View">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e258" source="layer_08" target="entity_08_Trigger">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e259" source="layer_08" target="entity_08_Sequence">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e260" source="layer_08" target="entity_08_Function">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e261" source="layer_09" target="entity_09_UXLibrary">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e262" source="layer_09" target="entity_09_LibraryComponent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e263" source="layer_09" target="entity_09_LibrarySubView">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e264" source="layer_09" target="entity_09_StatePattern">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e265" source="layer_09" target="entity_09_ActionPattern">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e266" source="layer_09" target="entity_09_UXApplication">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e267" source="layer_09" target="entity_09_UXSpec">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e268" source="layer_09" target="entity_09_ExperienceState">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e269" source="layer_09" target="entity_09_StateAction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e270" source="layer_09" target="entity_09_StateTransition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e271" source="layer_09" target="entity_09_Condition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e272" source="layer_09" target="entity_09_View">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e273" source="layer_09" target="entity_09_SubView">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e274" source="layer_09" target="entity_09_ComponentInstance">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e275" source="layer_09" target="entity_09_ActionComponent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e276" source="layer_09" target="entity_09_ValidationRule">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e277" source="layer_09" target="entity_09_LayoutConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e278" source="layer_09" target="entity_09_ErrorConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e279" source="layer_09" target="entity_09_ApiConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e280" source="layer_09" target="entity_09_DataConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e281" source="layer_09" target="entity_09_PerformanceTargets">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e282" source="layer_09" target="entity_09_ComponentReference">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e283" source="layer_09" target="entity_09_TransitionTemplate">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e284" source="layer_09" target="entity_09_StateActionTemplate">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e285" source="layer_09" target="entity_09_TableColumn">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e286" source="layer_09" target="entity_09_ChartSeries">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e287" source="layer_10" target="entity_10_NavigationGraph">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e288" source="layer_10" target="entity_10_Route">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e289" source="layer_10" target="entity_10_RouteMeta">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e290" source="layer_10" target="entity_10_BreadcrumbConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e291" source="layer_10" target="entity_10_NavigationTransition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e292" source="layer_10" target="entity_10_NavigationGuard">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e293" source="layer_10" target="entity_10_GuardCondition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e294" source="layer_10" target="entity_10_GuardAction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e295" source="layer_10" target="entity_10_NavigationFlow">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e296" source="layer_10" target="entity_10_FlowStep">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e297" source="layer_10" target="entity_10_ContextVariable">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e298" source="layer_10" target="entity_10_DataMapping">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e299" source="layer_10" target="entity_10_ProcessTracking">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e300" source="layer_10" target="entity_10_FlowAnalytics">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e301" source="layer_10" target="entity_10_NotificationAction">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e302" source="layer_11" target="entity_11_Span">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e303" source="layer_11" target="entity_11_SpanEvent">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e304" source="layer_11" target="entity_11_SpanLink">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e305" source="layer_11" target="entity_11_SpanStatus">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e306" source="layer_11" target="entity_11_LogRecord">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e307" source="layer_11" target="entity_11_Resource">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e308" source="layer_11" target="entity_11_InstrumentationScope">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e309" source="layer_11" target="entity_11_ExporterConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e310" source="layer_11" target="entity_11_InstrumentationConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e311" source="layer_11" target="entity_11_LogProcessor">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e312" source="layer_11" target="entity_11_MeterConfig">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e313" source="layer_11" target="entity_11_MetricInstrument">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e314" source="layer_11" target="entity_11_Attribute">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e315" source="layer_11" target="entity_11_APMConfiguration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e316" source="layer_11" target="entity_11_TraceConfiguration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e317" source="layer_11" target="entity_11_LogConfiguration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e318" source="layer_11" target="entity_11_MetricConfiguration">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e319" source="layer_11" target="entity_11_DataQualityMetrics">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e320" source="layer_11" target="entity_11_DataQualityMetric">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e321" source="layer_12" target="entity_12_TestCoverageModel">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e322" source="layer_12" target="entity_12_TestCoverageTarget">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e323" source="layer_12" target="entity_12_TargetInputField">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e324" source="layer_12" target="entity_12_InputSpacePartition">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e325" source="layer_12" target="entity_12_PartitionValue">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e326" source="layer_12" target="entity_12_PartitionDependency">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e327" source="layer_12" target="entity_12_ContextVariation">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e328" source="layer_12" target="entity_12_EnvironmentFactor">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e329" source="layer_12" target="entity_12_OutcomeCategory">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e330" source="layer_12" target="entity_12_CoverageRequirement">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e331" source="layer_12" target="entity_12_InputPartitionSelection">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e332" source="layer_12" target="entity_12_CoverageExclusion">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e333" source="layer_12" target="entity_12_TestCaseSketch">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e334" source="layer_12" target="entity_12_InputSelection">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e335" source="layer_12" target="entity_12_CoverageSummary">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e336" source="layer_12" target="entity_12_TargetCoverageSummary">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e337" source="layer_12" target="entity_12_CoverageGap">
+      <data key="d10">DEFINES</data>
+    </edge>
+    <edge id="e338" source="linktype_motivation-constrained-by" target="predicate_constrained-by">
       <data key="d10">USES_PREDICATE</data>
       <data key="d12">motivation</data>
     </edge>
-    <edge id="e126" source="linktype_motivation-delivers-value" target="predicate_delivers-value">
+    <edge id="e339" source="linktype_motivation-delivers-value" target="predicate_delivers-value">
       <data key="d10">USES_PREDICATE</data>
       <data key="d12">motivation</data>
     </edge>
-    <edge id="e127" source="linktype_motivation-fulfills-requirements" target="predicate_fulfills-requirements">
+    <edge id="e340" source="linktype_motivation-fulfills-requirements" target="predicate_fulfills-requirements">
       <data key="d10">USES_PREDICATE</data>
       <data key="d12">motivation</data>
     </edge>
-    <edge id="e128" source="linktype_motivation-governed-by-principles" target="predicate_governed-by-principles">
+    <edge id="e341" source="linktype_motivation-governed-by-principles" target="predicate_governed-by-principles">
       <data key="d10">USES_PREDICATE</data>
       <data key="d12">motivation</data>
     </edge>
-    <edge id="e129" source="linktype_motivation-supports-goals" target="predicate_supports-goals">
+    <edge id="e342" source="linktype_motivation-supports-goals" target="predicate_supports-goals">
       <data key="d10">USES_PREDICATE</data>
       <data key="d12">motivation</data>
+    </edge>
+    <edge id="e343" source="linktype_business-interface-ref" target="entity_02_BusinessInterface">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">business</data>
+    </edge>
+    <edge id="e344" source="linktype_business-object-ref" target="entity_02_BusinessObject">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">business</data>
+    </edge>
+    <edge id="e345" source="linktype_business-service-ref" target="entity_02_BusinessService">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">business</data>
+    </edge>
+    <edge id="e346" source="linktype_security-classification" target="entity_03_Classification">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">security</data>
+    </edge>
+    <edge id="e347" source="linktype_security-process-separation-of-duty" target="entity_03_SeparationOfDuty">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">security</data>
+    </edge>
+    <edge id="e348" source="linktype_security-required-permissions" target="entity_03_Permission">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">security</data>
+    </edge>
+    <edge id="e349" source="linktype_security-resource" target="entity_03_SecureResource">
+      <data key="d10">TARGETS_ENTITY</data>
+      <data key="d12">security</data>
     </edge>
   </graph>
 </graphml>

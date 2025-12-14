@@ -66,14 +66,10 @@ class LinkInstanceCatalog:
         self.layers_path = self.spec_root / "layers"
         self.registry = registry or LinkRegistry()
 
-        # Patterns for extraction
-        self.property_pattern = re.compile(
-            r'^\s*-\s+key:\s*"([^"]+)"\s*\n\s*value:\s*"([^"]*)"',
-            re.MULTILINE
-        )
-        self.xml_relationship_pattern = re.compile(
-            r'<relationship\s+type="([^"]+)"\s+source="([^"]+)"\s+target="([^"]+)"\s*/>'
-        )
+        # NEW: Use shared relationship parser
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from utils.relationship_parser import RelationshipParser
+        self.relationship_parser = RelationshipParser(registry=self.registry)
 
     def _find_spec_root(self) -> Path:
         """Auto-detect spec root directory."""
@@ -149,11 +145,17 @@ class LinkInstanceCatalog:
 
         content = layer_file.read_text(encoding="utf-8")
 
-        # Extract property-based links
-        property_matches = self.property_pattern.finditer(content)
-        for match in property_matches:
-            field_path = match.group(1)
-            value = match.group(2)
+        # NEW: Use shared parser to extract all relationships
+        parse_result = self.relationship_parser.parse_all_formats(content, layer_id, layer_file)
+
+        # Extract property-based link instances
+        for relationship in parse_result.relationships:
+            # Only process property-based relationships (YAML and XML properties)
+            if relationship.format_type not in ["yaml_property", "xml_property"]:
+                continue
+
+            field_path = relationship.field_path
+            value = relationship.value
 
             # Find matching link type
             matching_links = self.registry.find_links_by_field_path(field_path)
@@ -167,20 +169,16 @@ class LinkInstanceCatalog:
                     location=str(layer_file),
                 ))
 
-        # Extract XML relationships (structural, intra-layer)
-        xml_matches = self.xml_relationship_pattern.finditer(content)
-        for match in xml_matches:
-            rel_type = match.group(1)
-            source = match.group(2)
-            target = match.group(3)
-
-            xml_rels.append({
-                "type": rel_type,
-                "source": source,
-                "target": target,
-                "layer": layer_id,
-                "location": str(layer_file),
-            })
+        # Extract XML relationships from parse result
+        for relationship in parse_result.relationships:
+            if relationship.format_type == "xml_relationship":
+                xml_rels.append({
+                    "type": relationship.relationship_type,
+                    "source": relationship.source,
+                    "target": relationship.target,
+                    "layer": layer_id,
+                    "location": relationship.location,
+                })
 
         return instances, xml_rels
 

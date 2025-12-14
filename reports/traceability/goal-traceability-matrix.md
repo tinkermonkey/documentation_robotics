@@ -13,12 +13,12 @@ Goal → Supported By:
 
 ## Link Types Used
 
-| Layer | Link Type | Field Path |
-|-------|-----------|------------|
-| 02-business | Supports Goals | motivation.supports-goals, x-supports-goals |
+| Layer          | Link Type      | Field Path                                  |
+| -------------- | -------------- | ------------------------------------------- |
+| 02-business    | Supports Goals | motivation.supports-goals, x-supports-goals |
 | 04-application | Supports Goals | motivation.supports-goals, x-supports-goals |
-| 05-technology | Supports Goals | motivation.supports-goals, x-supports-goals |
-| 06-api | Supports Goals | motivation.supports-goals, x-supports-goals |
+| 05-technology  | Supports Goals | motivation.supports-goals, x-supports-goals |
+| 06-api         | Supports Goals | motivation.supports-goals, x-supports-goals |
 
 ## Traceability Chain
 

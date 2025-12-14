@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/03-security-layer.schema.json",
-  "title": "Security Layer Schema",
+  "title": "Security Layer Layer Schema",
   "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",
   "type": "object",
   "properties": {
@@ -385,7 +385,7 @@
           "minLength": 1
         },
         "provider": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/AuthProvider"
         },
         "sessionTimeout": {
           "type": "integer"
@@ -396,20 +396,6 @@
         "passwordPolicy": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "AuthProvider": {
-          "type": "string",
-          "enum": [
-            "oauth2",
-            "openid-connect",
-            "saml",
-            "jwt",
-            "session",
-            "api-key",
-            "certificate"
-          ]
         }
       }
     },
@@ -532,7 +518,7 @@
           "minLength": 1
         },
         "scope": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PermissionScope"
         },
         "resource": {
           "type": "string",
@@ -541,17 +527,6 @@
         "action": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "PermissionScope": {
-          "type": "string",
-          "enum": [
-            "global",
-            "resource",
-            "attribute",
-            "owner"
-          ]
         }
       }
     },
@@ -579,7 +554,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ResourceType"
         },
         "description": {
           "type": "string",
@@ -598,18 +573,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "ResourceType": {
-          "type": "string",
-          "enum": [
-            "api",
-            "screen",
-            "data",
-            "file",
-            "service"
-          ]
         }
       }
     },
@@ -689,7 +652,7 @@
           "minLength": 1
         },
         "operator": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ConditionOperator"
         },
         "value": {
           "type": "string",
@@ -700,39 +663,7 @@
           "minLength": 1
         },
         "source": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "ConditionOperator": {
-          "type": "string",
-          "enum": [
-            "equals",
-            "notEquals",
-            "in",
-            "notIn",
-            "greaterThan",
-            "lessThan",
-            "greaterThanOrEqual",
-            "lessThanOrEqual",
-            "contains",
-            "notContains",
-            "startsWith",
-            "endsWith",
-            "matches",
-            "exists",
-            "notExists"
-          ]
-        },
-        "DataSource": {
-          "type": "string",
-          "enum": [
-            "constant",
-            "user-attribute",
-            "resource-field",
-            "context",
-            "computed"
-          ]
+          "$ref": "#/definitions/DataSource"
         }
       }
     },
@@ -761,18 +692,6 @@
         "description": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "MaskingStrategy": {
-          "type": "string",
-          "enum": [
-            "none",
-            "partial",
-            "full",
-            "hash",
-            "redact"
-          ]
         }
       }
     },
@@ -806,7 +725,7 @@
           "type": "integer"
         },
         "target": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PolicyTarget"
         },
         "rules": {
           "type": "array",
@@ -814,17 +733,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "PolicyTarget": {
-          "type": "string",
-          "enum": [
-            "all",
-            "api",
-            "data",
-            "screen"
-          ]
         }
       }
     },
@@ -852,7 +760,7 @@
           "minLength": 1
         },
         "effect": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PolicyEffect"
         },
         "message": {
           "type": "string",
@@ -864,17 +772,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "PolicyEffect": {
-          "type": "string",
-          "enum": [
-            "allow",
-            "deny",
-            "audit",
-            "warn"
-          ]
         }
       }
     },
@@ -898,29 +795,10 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ActionType"
         },
         "parameters": {
           "type": "object"
-        }
-      },
-      "definitions": {
-        "ActionType": {
-          "type": "string",
-          "enum": [
-            "allow",
-            "deny",
-            "audit-access",
-            "require-mfa",
-            "require-approval",
-            "apply-mask",
-            "apply-encryption",
-            "apply-retention",
-            "notify",
-            "rate-limit",
-            "check-ip-whitelist",
-            "check-time-window"
-          ]
         }
       }
     },
@@ -964,7 +842,7 @@
       ],
       "properties": {
         "level": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ClassificationLevel"
         },
         "label": {
           "type": "string",
@@ -973,45 +851,6 @@
         "description": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "ClassificationLevel": {
-          "type": "string",
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted"
-          ]
-        },
-        "EncryptionRequirement": {
-          "type": "string",
-          "enum": [
-            "none",
-            "in-transit",
-            "at-rest",
-            "both",
-            "end-to-end"
-          ]
-        },
-        "AccessControlLevel": {
-          "type": "string",
-          "enum": [
-            "open",
-            "authenticated",
-            "role-based",
-            "attribute-based"
-          ]
-        },
-        "AuditLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "minimal",
-            "standard",
-            "comprehensive"
-          ]
         }
       }
     },
@@ -1034,14 +873,14 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ActorType"
         },
         "description": {
           "type": "string",
           "minLength": 1
         },
         "trustLevel": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TrustLevel"
         },
         "objectives": {
           "type": "array",
@@ -1056,27 +895,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "ActorType": {
-          "type": "string",
-          "enum": [
-            "role",
-            "agent",
-            "organization",
-            "system"
-          ]
-        },
-        "TrustLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "low",
-            "medium",
-            "high",
-            "full"
-          ]
         }
       }
     },
@@ -1103,18 +921,7 @@
           "minLength": 1
         },
         "criticality": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "Criticality": {
-          "type": "string",
-          "enum": [
-            "low",
-            "medium",
-            "high",
-            "critical"
-          ]
+          "$ref": "#/definitions/Criticality"
         }
       }
     },
@@ -1152,7 +959,7 @@
           "minLength": 1
         },
         "criticality": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Criticality"
         }
       }
     },
@@ -1179,7 +986,7 @@
           "minLength": 1
         },
         "classification": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ClassificationLevel"
         },
         "authorizationRequirements": {
           "type": "array",
@@ -1248,21 +1055,11 @@
           "minLength": 1
         },
         "delegationType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/DelegationType"
         },
         "description": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "DelegationType": {
-          "type": "string",
-          "enum": [
-            "execution",
-            "permission",
-            "approval"
-          ]
         }
       }
     },
@@ -1460,18 +1257,7 @@
           "minLength": 1
         },
         "criticality": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "VerificationLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "manual",
-            "automated",
-            "continuous"
-          ]
+          "$ref": "#/definitions/Criticality"
         }
       }
     },
@@ -1509,21 +1295,10 @@
           "type": "boolean"
         },
         "purposeDeclaration": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/RequirementLevel"
         },
         "challengeable": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "RequirementLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "optional",
-            "required",
-            "mandatory"
-          ]
         }
       }
     },
@@ -1547,39 +1322,14 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/EvidenceType"
         },
         "strength": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/EvidenceStrength"
         },
         "source": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "EvidenceType": {
-          "type": "string",
-          "enum": [
-            "digital-signature",
-            "timestamp",
-            "ip-address",
-            "device-fingerprint",
-            "biometric",
-            "user-authentication",
-            "access-reason",
-            "approval-chain",
-            "video-recording"
-          ]
-        },
-        "EvidenceStrength": {
-          "type": "string",
-          "enum": [
-            "weak",
-            "moderate",
-            "strong",
-            "cryptographic"
-          ]
         }
       }
     },
@@ -1613,10 +1363,10 @@
           "minLength": 1
         },
         "likelihood": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Likelihood"
         },
         "impact": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Impact"
         },
         "countermeasures": {
           "type": "array",
@@ -1624,28 +1374,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "Likelihood": {
-          "type": "string",
-          "enum": [
-            "very-low",
-            "low",
-            "medium",
-            "high",
-            "very-high"
-          ]
-        },
-        "Impact": {
-          "type": "string",
-          "enum": [
-            "negligible",
-            "low",
-            "medium",
-            "high",
-            "critical"
-          ]
         }
       }
     },
@@ -1677,21 +1405,10 @@
           "minLength": 1
         },
         "effectiveness": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Effectiveness"
         },
         "implemented": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "Effectiveness": {
-          "type": "string",
-          "enum": [
-            "low",
-            "medium",
-            "high",
-            "very-high"
-          ]
         }
       }
     },
@@ -1723,32 +1440,11 @@
           "minLength": 1
         },
         "scope": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/RateLimitScope"
         },
         "keyBy": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "RateLimitScope": {
-          "type": "string",
-          "enum": [
-            "global",
-            "user",
-            "ip",
-            "api-key",
-            "tenant"
-          ]
-        },
-        "RateLimitAction": {
-          "type": "string",
-          "enum": [
-            "reject",
-            "queue",
-            "throttle",
-            "degrade"
-          ]
         }
       }
     },
@@ -1775,7 +1471,7 @@
           "type": "boolean"
         },
         "level": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/AuditLevel"
         },
         "includePayload": {
           "type": "boolean"
@@ -1786,36 +1482,6 @@
         "sanitizeFields": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "AuditLevel": {
-          "type": "string",
-          "enum": [
-            "none",
-            "minimal",
-            "standard",
-            "detailed",
-            "comprehensive"
-          ]
-        },
-        "StorageClass": {
-          "type": "string",
-          "enum": [
-            "hot",
-            "warm",
-            "cold",
-            "archive"
-          ]
-        },
-        "DestinationType": {
-          "type": "string",
-          "enum": [
-            "database",
-            "log-service",
-            "siem",
-            "file"
-          ]
         }
       }
     },
@@ -1846,17 +1512,7 @@
           "minLength": 1
         },
         "evaluationType": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "EvaluationType": {
-          "type": "string",
-          "enum": [
-            "synchronous",
-            "asynchronous",
-            "cached"
-          ]
+          "$ref": "#/definitions/EvaluationType"
         }
       }
     },
@@ -1886,18 +1542,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "DeletionMethod": {
-          "type": "string",
-          "enum": [
-            "soft",
-            "hard",
-            "cryptographic",
-            "overwrite",
-            "physical"
-          ]
-        }
       }
     },
     "ValidationRule": {
@@ -1921,7 +1565,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ValidationRuleType"
         },
         "value": {
           "type": "string",
@@ -1932,43 +1576,338 @@
           "minLength": 1
         },
         "severity": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "ValidationRuleType": {
-          "type": "string",
-          "enum": [
-            "required",
-            "pattern",
-            "minLength",
-            "maxLength",
-            "min",
-            "max",
-            "enum",
-            "email",
-            "url",
-            "date",
-            "custom"
-          ]
-        },
-        "ValidationSeverity": {
-          "type": "string",
-          "enum": [
-            "error",
-            "warning",
-            "info"
-          ]
+          "$ref": "#/definitions/ValidationSeverity"
         }
       }
-    }
-  },
-  "$defs": {
-    "relationships": {
-      "$ref": "common/relationships.schema.json#/definitions"
     },
-    "predicates": {
-      "$ref": "common/predicates.schema.json#/definitions"
+    "AuthProvider": {
+      "type": "string",
+      "enum": [
+        "oauth2",
+        "openid-connect",
+        "saml",
+        "jwt",
+        "session",
+        "api-key",
+        "certificate"
+      ]
+    },
+    "PermissionScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "resource",
+        "attribute",
+        "owner"
+      ]
+    },
+    "ResourceType": {
+      "type": "string",
+      "enum": [
+        "api",
+        "screen",
+        "data",
+        "file",
+        "service"
+      ]
+    },
+    "ConditionOperator": {
+      "type": "string",
+      "enum": [
+        "equals",
+        "notEquals",
+        "in",
+        "notIn",
+        "greaterThan",
+        "lessThan",
+        "greaterThanOrEqual",
+        "lessThanOrEqual",
+        "contains",
+        "notContains",
+        "startsWith",
+        "endsWith",
+        "matches",
+        "exists",
+        "notExists"
+      ]
+    },
+    "DataSource": {
+      "type": "string",
+      "enum": [
+        "constant",
+        "user-attribute",
+        "resource-field",
+        "context",
+        "computed"
+      ]
+    },
+    "MaskingStrategy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "partial",
+        "full",
+        "hash",
+        "redact"
+      ]
+    },
+    "PolicyTarget": {
+      "type": "string",
+      "enum": [
+        "all",
+        "api",
+        "data",
+        "screen"
+      ]
+    },
+    "PolicyEffect": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny",
+        "audit",
+        "warn"
+      ]
+    },
+    "ActionType": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny",
+        "audit-access",
+        "require-mfa",
+        "require-approval",
+        "apply-mask",
+        "apply-encryption",
+        "apply-retention",
+        "notify",
+        "rate-limit",
+        "check-ip-whitelist",
+        "check-time-window"
+      ]
+    },
+    "ClassificationLevel": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "EncryptionRequirement": {
+      "type": "string",
+      "enum": [
+        "none",
+        "in-transit",
+        "at-rest",
+        "both",
+        "end-to-end"
+      ]
+    },
+    "AccessControlLevel": {
+      "type": "string",
+      "enum": [
+        "open",
+        "authenticated",
+        "role-based",
+        "attribute-based"
+      ]
+    },
+    "AuditLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "minimal",
+        "standard",
+        "detailed",
+        "comprehensive"
+      ]
+    },
+    "ActorType": {
+      "type": "string",
+      "enum": [
+        "role",
+        "agent",
+        "organization",
+        "system"
+      ]
+    },
+    "TrustLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "full"
+      ]
+    },
+    "Criticality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "DelegationType": {
+      "type": "string",
+      "enum": [
+        "execution",
+        "permission",
+        "approval"
+      ]
+    },
+    "VerificationLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "manual",
+        "automated",
+        "continuous"
+      ]
+    },
+    "RequirementLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "optional",
+        "required",
+        "mandatory"
+      ]
+    },
+    "EvidenceType": {
+      "type": "string",
+      "enum": [
+        "digital-signature",
+        "timestamp",
+        "ip-address",
+        "device-fingerprint",
+        "biometric",
+        "user-authentication",
+        "access-reason",
+        "approval-chain",
+        "video-recording"
+      ]
+    },
+    "EvidenceStrength": {
+      "type": "string",
+      "enum": [
+        "weak",
+        "moderate",
+        "strong",
+        "cryptographic"
+      ]
+    },
+    "Likelihood": {
+      "type": "string",
+      "enum": [
+        "very-low",
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
+    },
+    "Impact": {
+      "type": "string",
+      "enum": [
+        "negligible",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "Effectiveness": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
+    },
+    "RateLimitScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "user",
+        "ip",
+        "api-key",
+        "tenant"
+      ]
+    },
+    "RateLimitAction": {
+      "type": "string",
+      "enum": [
+        "reject",
+        "queue",
+        "throttle",
+        "degrade"
+      ]
+    },
+    "StorageClass": {
+      "type": "string",
+      "enum": [
+        "hot",
+        "warm",
+        "cold",
+        "archive"
+      ]
+    },
+    "DestinationType": {
+      "type": "string",
+      "enum": [
+        "database",
+        "log-service",
+        "siem",
+        "file"
+      ]
+    },
+    "EvaluationType": {
+      "type": "string",
+      "enum": [
+        "synchronous",
+        "asynchronous",
+        "cached"
+      ]
+    },
+    "DeletionMethod": {
+      "type": "string",
+      "enum": [
+        "soft",
+        "hard",
+        "cryptographic",
+        "overwrite",
+        "physical"
+      ]
+    },
+    "ValidationRuleType": {
+      "type": "string",
+      "enum": [
+        "required",
+        "pattern",
+        "minLength",
+        "maxLength",
+        "min",
+        "max",
+        "enum",
+        "email",
+        "url",
+        "date",
+        "custom"
+      ]
+    },
+    "ValidationSeverity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
     }
   }
 }

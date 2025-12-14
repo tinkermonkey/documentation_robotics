@@ -1874,136 +1874,173 @@ dataQuality:
         fulfillsRequirements: ["req-real-time-inventory"]
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example Metric with cross-layer properties -->
+  <element id="product-metric" type="Metric">
+    <n>Product Metric</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
-### To Motivation Layer (Enhanced)
+### To Motivation Layer
 
-**Goals & Outcomes:**
+- **Metric** contributes to **Goal** (motivationMapping.contributesToGoal property)
+- **Metric** measures **Outcome** (motivationMapping.measuresOutcome property)
+- **Metric** fulfills **Requirement** (motivationMapping.fulfillsRequirements property)
+- **APMConfiguration** governed by **Principle** (motivationMapping.governedByPrinciples property)
+- **TraceConfiguration** governed by **Principle** (sampler.governedByPrinciples property)
+- **DataQualityMetric** governed by **Principle** (motivationMapping.governedByPrinciples property)
 
-- `motivationMapping.contributesToGoal` - Metrics link to Goals they measure
-- `motivationMapping.measuresOutcome` - Metrics track Outcome achievement
-- `motivationMapping.kpiFormula` - Defines goal achievement calculation
+### To Business Layer
 
-**Requirements Fulfillment (NEW):**
-
-- `motivationMapping.fulfillsRequirements` - Metrics validate Requirements (especially NFRs)
-- `motivationMapping.validationCriteria` - SLA/NFR threshold validation
-- Examples: API latency requirements, availability SLAs, data quality requirements
-
-**Principle Governance (NEW):**
-
-- `APMConfiguration.motivationMapping.governedByPrinciples` - Observability strategy governed by Principles
-- `TraceConfiguration.sampler.governedByPrinciples` - Sampling decisions driven by Principles
-- `DataQualityMetric.motivationMapping.governedByPrinciples` - Data quality governed by Principles
-- Examples: Cost optimization, privacy by design, observability-first principles
-
-**Traceability Benefits:**
-
-- Proves goal achievement through quantitative measurement
-- Validates NFR compliance with real-time metrics
-- Demonstrates architectural principle adherence
-
-### To Business Layer (Enhanced)
-
-**Business Process Performance (NEW):**
-
-- `Span.businessProcess` - Traces link to BusinessProcess
-- `Span.processStepName` - Specific process step tracking
-- `MetricInstrument.businessProcessRef` - Metrics measure process performance
-- `MetricInstrument.processStepName` - Step-level process metrics
-- Enables business process mining and end-to-end process optimization
-
-**Business Service Monitoring:**
-
-- BusinessProcess KPI targets validated by metrics
-- Business metrics track service-level performance
+- **Span** references **BusinessProcess** (businessProcess property)
+- **Span** references **ProcessStep** (processStepName property)
+- **MetricInstrument** references **BusinessProcess** (businessProcessRef property)
+- **MetricInstrument** references **ProcessStep** (processStepName property)
 
 ### To ArchiMate Application Layer
 
-- TraceConfiguration references ApplicationService
-- Span names map to ApplicationFunction operations
-- Resource attributes identify ApplicationComponent
+- **TraceConfiguration** references **ApplicationService** (applicationService property)
+- **Span** references **ApplicationFunction** (name property)
+- **Resource** references **ApplicationComponent** (attributes property)
 
-### To Technology Layer (NEW)
+### To Technology Layer
 
-**Infrastructure Attribution:**
-
-- `Resource.technology.component.id` - Links to Technology Layer components
-- `Resource.technology.framework` - Framework identification (React, Spring Boot, etc.)
-- `Resource.technology.runtime` - Runtime environment tracking
-- `Resource.cloud.cost-center` - FinOps cost attribution
-- Enables infrastructure performance analysis and cost allocation
+- **Resource** references **TechnologyComponent** (technology.component.id property)
+- **Resource** references **Framework** (technology.framework property)
+- **Resource** references **Runtime** (technology.runtime property)
+- **Resource** references **CostCenter** (cloud.cost-center property)
 
 ### To API Layer (OpenAPI)
 
-- Span names match OpenAPI operationIds
-- HTTP attributes follow OpenAPI parameters
-- Enables automatic instrumentation of APIs
-- API operation SLA targets validated by metrics
+- **Span** references **APIOperation** (name property)
 
-### To Data Model Layer (Enhanced)
+### To Data Model Layer
 
-**Data Quality Monitoring (NEW - Critical):**
+- **DataQualityMetric** references **Schema** (dataModelSchemaId property)
 
-- `DataQualityMetrics.dataModelSchemaId` - Links to JSON Schema definitions
-- `DataQualityMetric` types: completeness, accuracy, freshness, consistency, integrity
-- Closes the loop on Data Model Layer's `x-apm-data-quality-metrics` reference
-- Enables data governance and quality validation
+### To UX Layer
 
-### To UX Layer (Enhanced)
+- **MetricInstrument** references **UXComponent** (uxComponentRef property)
 
-**Real User Monitoring (NEW):**
+### To Navigation Layer
 
-- `MetricInstrument.uxComponentRef` - Links to UX Layer screens/components
-- `webVitals` metrics - Core Web Vitals (LCP, FID, CLS)
-- Page load time metrics per UX component
-- User interaction error tracking
-- Enables UX performance optimization and user journey analysis
-
-**End-to-End Tracing:**
-
-- Frontend traces link to backend traces
-- User interactions generate client spans
-- End-to-end transaction tracing
-
-### To Navigation Layer (NEW)
-
-**Navigation Flow Performance:**
-
-- `MetricInstrument.navigationRouteRef` - Links to Navigation routes
-- Route transition time metrics
-- Navigation guard execution performance
-- Navigation error tracking
-- Enables identification of UX bottlenecks in navigation flows
+- **MetricInstrument** references **Route** (navigationRouteRef property)
 
 ### To Data Store Layer
 
-- Database spans track query performance
-- Connection pool metrics
-- Query optimization insights
+- **Span** tracks **QueryPerformance** (database property)
 
-### To Security Layer (Enhanced)
+### To Security Layer
 
-**Accountability & Audit (NEW):**
+- **LogConfiguration** references **AccountabilityRequirement** (auditConfiguration.accountabilityRequirementRefs property)
+- **MetricInstrument** references **Threat** (securityThreatRef property)
+- **MetricInstrument** references **Control** (securityControlRef property)
+- **MetricInstrument** references **AccountabilityRequirement** (securityAccountabilityRef property)
 
-- `LogConfiguration.auditConfiguration.accountabilityRequirementRefs` - Links to AccountabilityRequirements
-- `LogConfiguration.auditConfiguration.retentionPeriod` - Driven by security requirements
-- `LogConfiguration.auditConfiguration.nonRepudiation` - Cryptographic audit integrity
+## Intra-Layer Relationships
 
-**Threat Detection (NEW):**
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
 
-- `MetricInstrument.securityThreatRef` - Metrics linked to Threats they detect
-- `MetricInstrument.securityControlRef` - Metrics monitor security Controls
-- `MetricInstrument.securityAccountabilityRef` - Links to accountability requirements
-- Examples: Failed auth attempts → brute force threat, unauthorized access → RBAC control
+### Structural Relationships
 
-**Security Monitoring:**
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-- Audit logs include trace context
-- Security events tracked in spans
-- Anomaly detection via metrics
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

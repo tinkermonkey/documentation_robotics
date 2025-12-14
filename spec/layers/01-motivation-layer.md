@@ -500,61 +500,60 @@ Value:
 
 ### To Business Layer
 
-- Goal drives BusinessService
-- Requirement constrains BusinessProcess
-- Stakeholder is BusinessActor
-- Value delivered by Product
+- **Goal** drives **BusinessService** (motivation.supports-goals property)
+- **Requirement** constrains **BusinessProcess** (motivation.fulfills-requirements property)
+- **Stakeholder** is **BusinessActor** (stakeholder.actor-ref property)
+- **Value** delivered by **Product** (motivation.delivers-value property)
 
 ### To Application Layer
 
-- **Goal → ApplicationService**: Services declare which Goals they support (motivation.supports-goals)
-- **Value → ApplicationService**: Services declare which Values they deliver (motivation.delivers-value)
-- **Principle → ApplicationService**: Services declare governing Principles (motivation.governed-by-principles)
-- Requirement constrains ApplicationService
-- Principle guides ApplicationComponent design
-- Constraint limits ApplicationComponent choices
+- **Goal** supported by **ApplicationService** (motivation.supports-goals property)
+- **Value** delivered by **ApplicationService** (motivation.delivers-value property)
+- **Principle** governs **ApplicationService** (motivation.governed-by-principles property)
+- **Requirement** fulfilled by **ApplicationService** (motivation.fulfills-requirements property)
+- **Principle** guides **ApplicationComponent** (motivation.governed-by-principles property)
+- **Constraint** limits **ApplicationComponent** (motivation.constrained-by property)
 
 ### To Technology Layer
 
-- Requirement constrains Node selection
-- Constraint limits TechnologyService options
-- Principle guides technology choices
+- **Requirement** constrains **Node** (motivation.fulfills-requirements property)
+- **Constraint** limits **TechnologyService** (motivation.constrained-by property)
+- **Principle** guides **TechnologyService** (motivation.governed-by-principles property)
 
 ### To API Layer
 
-- **Requirement → API Operations**: Operations declare which Requirements they fulfill (x-fulfills-requirements)
-- **Principle → API Design**: API specifications declare governing Principles (x-governed-by-principles)
-- Principle guides API design patterns (REST, versioning, backwards compatibility)
+- **Requirement** fulfilled by **API Operation** (x-fulfills-requirements property)
+- **Principle** governs **API Specification** (x-governed-by-principles property)
+- **Principle** guides **API Design** (x-governed-by-principles property)
 
 ### To Data Model Layer
 
-- **Constraint → Data Retention**: Schemas reference Constraints that drive retention policies (x-security.governedBy.constraintRefs)
-- **Requirement → Data Protection**: Schemas reference Requirements for data protection (x-security.governedBy.requirementRefs)
-- **Principle → Data Design**: Schemas reference Principles that guide data modeling (x-security.governedBy.principleRefs, x-ui.governedBy.principleRefs)
+- **Constraint** drives **Data Retention** (x-security.governedBy.constraintRefs property)
+- **Requirement** protects **Data** (x-security.governedBy.requirementRefs property)
+- **Principle** guides **Data Design** (x-security.governedBy.principleRefs property)
 
 ### To Data Store Layer
 
-- **Constraint → Physical Schema**: Table comments reference Constraints driving policies (x-governed-by-constraints)
-- **Requirement → Database Design**: Table/column comments reference Requirements (x-governed-by-requirements)
-- **Principle → Database Architecture**: Table comments reference Principles (x-governed-by-principles)
+- **Constraint** drives **Physical Schema** (x-governed-by-constraints property)
+- **Requirement** constrains **Database Design** (x-governed-by-requirements property)
+- **Principle** governs **Database Architecture** (x-governed-by-principles property)
 
 ### To UX Layer
 
-- **Goal → Screen/Feature**: UX specs declare which Goals they support (motivationAlignment.supportsGoals)
-- **Value → User Experience**: UX specs declare which Values they deliver (motivationAlignment.deliversValue)
-- **Principle → UX Design**: UX specs declare governing UX Principles (motivationAlignment.governedByPrinciples)
+- **Goal** supported by **Screen** (motivationAlignment.supportsGoals property)
+- **Value** delivered by **User Experience** (motivationAlignment.deliversValue property)
+- **Principle** governs **UX Design** (motivationAlignment.governedByPrinciples property)
 
 ### To Navigation Layer
 
-- **Principle → Navigation Design**: Navigation graphs declare governing Principles (governedByPrinciples)
-- NavigationGuard enforces security Requirements
+- **Principle** governs **Navigation Design** (governedByPrinciples property)
+- **Requirement** enforced by **NavigationGuard** (enforcesRequirements property)
 
 ### To APM/Observability Layer
 
-- **Goal → Business Metrics**: Metrics declare which Goals they measure (motivationMapping.contributesToGoal)
-- **Outcome → Measurement**: Metrics declare which Outcomes they validate (motivationMapping.measuresOutcome)
-- **KPI Formulas**: Metrics define how to calculate goal achievement (motivationMapping.kpiFormula)
-- Enables closed-loop feedback on goal attainment
+- **Goal** measured by **Business Metric** (motivationMapping.contributesToGoal property)
+- **Outcome** validated by **Measurement** (motivationMapping.measuresOutcome property)
+- **Goal** calculated by **KPI Formula** (motivationMapping.kpiFormula property)
 
 ## Traceability
 
@@ -570,6 +569,57 @@ Example: Customer (Stakeholder)
   � Support iOS and Android (Requirement)
   � Mobile ApplicationComponent
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
 
 ## Validation Rules
 

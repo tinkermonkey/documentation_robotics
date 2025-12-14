@@ -1087,50 +1087,67 @@ coverageSummary:
       affectedRequirements: ["cr-order-primary"]
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example TestCase with cross-layer properties -->
+  <element id="product-test" type="TestCase">
+    <n>Product Test</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined:
 
 ### To Motivation Layer (WHY)
 
-- **CoverageRequirement.requirementRefs** → links to Requirement IDs
-- **CoverageRequirement.riskAssessmentRef** → links to Assessment ID
-- Enables traceability from business requirements to test coverage
+- **CoverageRequirement** links to **Requirement** (requirementRefs property)
+- **CoverageRequirement** links to **Assessment** (riskAssessmentRef property)
 
 ### To Business Layer (WHAT processes)
 
-- **TestCoverageTarget.businessProcessRef** → links to BusinessProcess ID
-- **TestCoverageTarget.workflowStepRef** → links to specific workflow step
-- Enables workflow step coverage analysis
+- **TestCoverageTarget** links to **BusinessProcess** (businessProcessRef property)
+- **TestCoverageTarget** links to **WorkflowStep** (workflowStepRef property)
 
 ### To UX Layer (WHAT interfaces)
 
-- **TestCoverageTarget.formRef** → links to Form ID
-- **InputSpacePartition.formFieldRef** → links to form field definitions
-- Enables form field combination coverage
+- **TestCoverageTarget** links to **Form** (formRef property)
+- **InputSpacePartition** links to **FormField** (formFieldRef property)
 
 ### To API Layer (WHAT services)
 
-- **TestCoverageTarget.apiOperationRef** → links to OpenAPI operationId
-- **InputSpacePartition.apiParameterRef** → links to API parameters
-- **OutcomeCategory.httpStatusRange** → maps to expected responses
+- **TestCoverageTarget** links to **API Operation** (apiOperationRef property)
+- **InputSpacePartition** links to **API Parameter** (apiParameterRef property)
+- **OutcomeCategory** maps to **HTTP Status** (httpStatusRange property)
 
 ### To Data Model Layer (HOW to partition)
 
-- **InputSpacePartition.dataModelFieldRef** → links to JSON Schema field
-- **InputSpacePartition.jsonSchemaRef** → links to schema constraints
-- Schema constraints inform partition boundaries
+- **InputSpacePartition** links to **Schema Field** (dataModelFieldRef property)
+- **InputSpacePartition** links to **JSON Schema** (jsonSchemaRef property)
 
 ### To Security Layer (WHO and access)
 
-- **ContextVariation.securityRoleRef** → links to Security Role
-- **ContextVariation.actorRef** → links to Security Actor
-- **OutcomeCategory.securityConstraintRefs** → links to constraints that trigger outcomes
+- **ContextVariation** links to **Security Role** (securityRoleRef property)
+- **ContextVariation** links to **Security Actor** (actorRef property)
+- **OutcomeCategory** links to **Security Constraint** (securityConstraintRefs property)
 
 ### To Navigation Layer (HOW to reach)
 
-- **TestCoverageTarget.navigationRouteRef** → links to Route
-- **ContextVariation.entryPointRef** → links to navigation entry point
+- **TestCoverageTarget** links to **Route** (navigationRouteRef property)
+- **ContextVariation** links to **Entry Point** (entryPointRef property)
 
 ## Validation
 
@@ -1189,6 +1206,93 @@ Track implementation progress:
 1. Planned vs. Implemented sketches
 2. Manual vs. Automated tests
 3. Coverage percentage per target
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

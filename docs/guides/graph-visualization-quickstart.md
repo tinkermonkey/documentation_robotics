@@ -48,6 +48,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Install**: https://www.yworks.com/products/yed/download (Free, cross-platform)
 
 **Steps**:
+
 1. Generate GraphML: `python scripts/tools/export_graphml.py`
 2. Open yEd
 3. File → Open → `reports/visualization/spec-ontology.graphml`
@@ -55,6 +56,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 5. Edit → Properties → Style nodes by type
 
 **Pro Tips**:
+
 - Right-click nodes → Properties to see all attributes
 - Tools → Fit Node to Label for better readability
 - Use color coding: Edit → Manage Palette → Create palette from node types
@@ -66,6 +68,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Install**: https://gephi.org/users/download/ (Free, cross-platform)
 
 **Steps**:
+
 1. Generate full export: `python scripts/tools/export_graphml.py --include-entities`
 2. Open Gephi
 3. File → Open → `reports/visualization/spec-ontology-full.graphml`
@@ -74,6 +77,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 6. Statistics → Average Degree, Modularity, PageRank
 
 **Pro Tips**:
+
 - Color nodes by "type" attribute (Appearance → Nodes → Partition → type)
 - Size nodes by degree (Appearance → Nodes → Ranking → Degree)
 - Use Filters to show only specific node types or categories
@@ -86,6 +90,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Install**: https://cytoscape.org/download.html (Free, cross-platform)
 
 **Steps**:
+
 1. Generate GraphML: `python scripts/tools/export_graphml.py`
 2. Open Cytoscape
 3. File → Import → Network from File → `spec-ontology.graphml`
@@ -93,6 +98,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 5. Style → Create visual style based on node type
 
 **Pro Tips**:
+
 - Use VizMapper for advanced styling
 - Calculate shortest paths for traceability analysis
 - Export session for reuse
@@ -100,11 +106,13 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 ### Option 4: Online Viewers (No Install Required)
 
 **GraphOnline**: https://graphonline.ru/en/
+
 1. Upload `spec-ontology.graphml`
 2. Visualize in browser
 3. Limited features but works on any device
 
 **WebCola**: http://marvl.infotech.monash.edu/webcola/
+
 1. Works with GraphML
 2. Good for quick viewing
 3. No installation needed
@@ -116,12 +124,14 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Question**: "Which layers link to the Motivation layer?"
 
 **In yEd**:
+
 1. Open `spec-ontology.graphml`
 2. Edit → Find → "Motivation Layer"
 3. Right-click node → Select → Incoming Edges
 4. See all layers that reference motivation layer
 
 **In Gephi**:
+
 1. Open graph
 2. Filters → Topology → Neighbors → Select "Motivation Layer" node
 3. Filter settings: Mode = "Predecessors"
@@ -132,12 +142,14 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Question**: "Which link types connect the most layers?"
 
 **In Gephi**:
+
 1. Open graph
 2. Statistics → Average Degree → Run
 3. Data Laboratory → Nodes → Sort by "Degree" (descending)
 4. Look at LinkType nodes with highest degree
 
 **In yEd**:
+
 1. Tools → Analyze → Centrality → Betweenness Centrality
 2. View → Show Properties
 3. Sort by betweenness value
@@ -147,11 +159,13 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Question**: "How do requirements flow from Motivation → API layer?"
 
 **In Cytoscape**:
+
 1. Select "layer_01" (Motivation) and "layer_06" (API)
 2. Tools → Shortest Path → Find paths
 3. View relationship chain
 
 **In Gephi**:
+
 1. Filters → Attributes → Equal → relationship → "LINKS_TO"
 2. Show only LINKS_TO edges
 3. Visually trace from layer 01 → layer 06
@@ -161,6 +175,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 **Question**: "Which predicates are most commonly used?"
 
 **In Gephi**:
+
 1. Statistics → Degree → Run
 2. Data Laboratory → Nodes → Filter by type = "Predicate"
 3. Sort by "In-Degree" (how many LinkTypes use this predicate)
@@ -168,25 +183,31 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 ## Export Variants
 
 ### Standard Export (Recommended)
+
 ```bash
 python scripts/tools/export_graphml.py
 ```
+
 - **Size**: ~47 KB
 - **Nodes**: 81 (Layers + LinkTypes + Predicates)
 - **Best for**: Overview, quick analysis
 
 ### Full Export (With Entities)
+
 ```bash
 python scripts/tools/export_graphml.py --include-entities
 ```
+
 - **Size**: ~200+ KB
 - **Nodes**: 292 (includes all 211 entity types from schemas)
 - **Best for**: Complete ontology view, detailed analysis
 
 ### Minimal Export (Layers Only)
+
 ```bash
 python scripts/tools/export_graphml.py --minimal
 ```
+
 - **Size**: ~10 KB
 - **Nodes**: 50 (just Layers and LinkTypes)
 - **Best for**: High-level architecture view
@@ -198,6 +219,7 @@ python scripts/tools/export_graphml.py --minimal
 Use these colors in your visualization tool:
 
 **Link Type Categories**:
+
 - `motivation` → Gold (#FFD700)
 - `business` → Red (#FF6B6B)
 - `security` → Crimson (#DC143C)
@@ -209,6 +231,7 @@ Use these colors in your visualization tool:
 - `navigation` → Gray (#DFE6E9)
 
 **Node Types**:
+
 - `Layer` → Large circles, blue
 - `LinkType` → Medium squares, colored by category
 - `Predicate` → Small diamonds, gray
@@ -217,35 +240,42 @@ Use these colors in your visualization tool:
 ### Layout Recommendations
 
 **Hierarchical Layout** (yEd):
+
 - Good for: Layer-based architecture view
 - Settings: Orientation = Top to Bottom, Orthogonal edges
 
 **Force Atlas 2** (Gephi):
+
 - Good for: Discovering clusters and communities
 - Settings: Scaling = 2.0, Gravity = 1.0, Prevent Overlap = true
 
 **Prefuse Force Directed** (Cytoscape):
+
 - Good for: Balanced, readable network view
 - Settings: Default settings work well
 
 ## Troubleshooting
 
 ### Graph looks cluttered
+
 - Use the minimal export: `--minimal`
 - Filter to show only specific node types
 - Increase spacing in layout settings
 
 ### Can't see node labels
+
 - yEd: Tools → Fit Node to Label
 - Gephi: Appearance → Nodes → Labels → Show labels
 - Cytoscape: Style → Label → Set label column to "name"
 
 ### File won't open
+
 - Check file exists: `ls -lh reports/visualization/spec-ontology.graphml`
 - Validate XML: `xmllint reports/visualization/spec-ontology.graphml`
 - Try regenerating: `python scripts/tools/export_graphml.py --force`
 
 ### Graph is too large
+
 - Use standard export instead of `--include-entities`
 - Filter to show only specific layers or categories
 - Increase available memory for Gephi (edit gephi.conf)
@@ -273,6 +303,7 @@ After visualization:
 ### Custom Exports
 
 Edit `scripts/tools/export_graphml.py` to:
+
 - Add custom node/edge attributes
 - Filter by specific criteria
 - Include additional metadata

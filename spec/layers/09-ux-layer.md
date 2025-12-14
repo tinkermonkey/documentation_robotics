@@ -2607,90 +2607,81 @@ views:
 5. **Create application config**: Define `UXApplication` with library dependencies
 6. **Refactor UXSpecs**: Replace inline definitions with library references
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example Screen with cross-layer properties -->
+  <element id="product-screen" type="Screen">
+    <n>Product Screen</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer
 
-- **Experiences support Goals**: `motivationAlignment.supportsGoals` links UX to business objectives
-- **Experiences deliver Value**: `motivationAlignment.deliversValue` shows user value contribution
-- **Principles guide UX design**: `motivationAlignment.governedByPrinciples` ensures consistent UX (accessibility, mobile-first, multi-channel, etc.)
-- **Requirements fulfillment**: `motivationAlignment.fulfillsRequirements` enables requirements traceability from requirements through implementation
-- **Product alignment**: Validates features deliver business value
-- **Traceability**: Requirement -> UXSpec -> API -> Implementation creates complete audit trail
+- **Experience** supports **Goal** (motivationAlignment.supportsGoals property)
+- **Experience** delivers **Value** (motivationAlignment.deliversValue property)
+- **Experience** governed by **Principle** (motivationAlignment.governedByPrinciples property)
+- **Experience** fulfills **Requirement** (motivationAlignment.fulfillsRequirements property)
 
 ### To Business Layer
 
-- **Process support**: `business.supportsProcesses` links UX experiences to BusinessProcess entities they support
-- **Service realization**: `business.realizesServices` shows which BusinessService entities are realized through the UX
-- **Actor targeting**: `business.targetActors` documents which BusinessActor types the experience is designed for
-- **Role targeting**: `business.targetRoles` specifies which BusinessRole types use the experience
-- **Business context**: Provides business justification for why UX experiences exist
-- **Traceability**: BusinessProcess -> UXSpec -> Metrics enables process optimization
+- **Experience** supports **BusinessProcess** (business.supportsProcesses property)
+- **Experience** realizes **BusinessService** (business.realizesServices property)
+- **Experience** targets **BusinessActor** (business.targetActors property)
+- **Experience** targets **BusinessRole** (business.targetRoles property)
 
 ### To Application Layer
 
-- **UXApplication.application**: Links UX application to Application entity
-- **UXSpec.application**: Links experience to UXApplication
-- **Multi-app systems**: Different UX applications for different use cases (customer portal, admin panel, mobile app)
-- **Application context**: Each UX spec belongs to a specific application
+- **UXApplication** links to **Application** (application property)
+- **UXSpec** links to **UXApplication** (application property)
 
 ### To ArchiMate Application Layer
 
-- UXApplication references ApplicationComponent via archimateElement
-- Maps to frontend ApplicationComponent types
+- **UXApplication** references **ApplicationComponent** (archimateElement property)
 
 ### To Security Layer
 
-- **Application-level security**: `UXApplication.security.model` references SecurityModel, `defaultRequiredRoles` sets baseline access
-- **Experience-level security**: `UXSpec.security` can override application defaults
-- **View-level security**: `View.security.resourceRef` links to SecureResource (type: screen), `requiredRoles` and `requiredPermissions` control view access
-- **Component-level security**: `ComponentInstance.security.fieldAccess` references SecureResource field-level controls, `visibleToRoles` and `editableByRoles` enable fine-grained access control
-- **Library defaults**: `LibraryComponent.securityDefaults` provides default security configuration
-- **Implementation**: Enables runtime access control, security testing, and audit compliance
-- **Traceability**: SecurityModel -> UXApplication -> UXSpec -> Component enables security requirement validation
+- **UXApplication** references **SecurityModel** (security.model property)
+- **UXSpec** references **SecurityModel** (security property)
+- **View** references **SecureResource** (security.resourceRef property)
+- **ComponentInstance** references **SecureResource** (security.fieldAccess property)
 
 ### To API Layer (OpenAPI)
 
-- StateAction.api.operationId references OpenAPI operations
-- StatePattern parameters can reference API operations via `apiOperation` type
-- ComponentInstance.dataSource references API operations
-- Ensures UI actions align with available APIs
+- **StateAction** references **APIOperation** (api.operationId property)
+- **ComponentInstance** references **APIOperation** (dataSource property)
 
 ### To Data Model Layer (JSON Schema)
 
-- ComponentInstance.dataBinding.schemaRef points to schema properties
-- LibraryComponent.dataBindingTemplate defines binding patterns
-- Ensures components match data structure
-- Validation alignment across layers
+- **ComponentInstance** references **Schema** (dataBinding.schemaRef property)
 
 ### To Navigation Layer
 
-- **View to Route**: View.route references Route identifier
-- **Action navigation**: ActionComponent navigation actions reference Routes
-- **State triggers navigation**: Experience state transitions trigger route changes
-- **Flow integration**: NavigationFlow steps reference UXSpec files and entry states
-  - `FlowStep.route` -> Route -> `Route.experience` -> UXSpec file
-  - `FlowStep.experience.entryState` specifies which ExperienceState to begin at
-  - `FlowStep.experience.exitTrigger` defines what completes the experience step
-- **Data flow**: NavigationFlow.dataTransfer maps flow context to/from UX experience state
-  - Input mappings populate experience initial state (e.g., `routeParams`, form defaults)
-  - Output mappings extract data from experience to flow context (e.g., form results, selections)
-- **Shared context**: NavigationFlow.sharedContext provides cross-experience state management
-  - Solves shopping cart, wizard progress, and multi-step form persistence
-  - Context variables accessible via JSONPath in StateAction data sources
+- **View** references **Route** (route property)
+- **ActionComponent** references **Route** (navigation property)
+- **FlowStep** references **Route** (route property)
+- **FlowStep** enters **ExperienceState** (experience.entryState property)
 
 ### To APM/Observability Layer
 
-- **Metric linkage**: `apm.measuredByMetrics` links UX experiences to metrics that measure their effectiveness
-- **Performance targets**: `apm.performanceTargets` defines expected performance characteristics (load time, latency, error rates, completion rates)
-- **Closed-loop measurement**: Goal -> UXSpec -> Metrics -> Goal validation enables data-driven UX optimization
-- **Frontend traces**: User interactions generate client spans that link to backend traces
-- **End-to-end tracing**: Complete transaction visibility across UX and backend systems
-- **UX metrics**: Load time, interaction latency, error rates, completion rates, field validation errors
-- **Business metrics**: Conversion rates, feature adoption, user satisfaction scores
-- **Traceability**: UXSpec -> Metrics -> Goal measurement validates UX effectiveness
+- **Experience** links to **Metric** (apm.measuredByMetrics property)
+- **Experience** defines **PerformanceTarget** (apm.performanceTargets property)
 
 ## Validation
 
@@ -2844,6 +2835,93 @@ Common States (All Channels):
   - error
   - success
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

@@ -1374,18 +1374,37 @@ security:
   - {} # Some endpoints are public
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example APIOperation with cross-layer properties -->
+  <element id="api-get-product" type="APIOperation">
+    <n>Get Product</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer
 
-- **Operations support Goals**: x-supports-goals links API operations to business objectives they enable
-- **Operations fulfill Requirements**: x-fulfills-requirements links API endpoints to Requirements they implement
-- **Principles guide API design**: x-governed-by-principles ensures API follows design Principles (REST, versioning, etc.)
-- **Operations constrained by regulatory/compliance**: x-constrained-by links operations to Constraints (GDPR, data retention, audit requirements)
-- **Requirements traceability**: Complete chain from business need goal requirement API operation
-- **Architecture decision records**: Principles explain "why" certain API designs were chosen
+- **API Operation** supports **Goal** (x-supports-goals property)
+- **API Operation** fulfills **Requirement** (x-fulfills-requirements property)
+- **API** governed by **Principle** (x-governed-by-principles property)
+- **API Operation** constrained by **Constraint** (x-constrained-by property)
 
 **Example Traceability Chain**:
 
@@ -1399,10 +1418,8 @@ Goal (goal-customer-satisfaction)
 
 ### To Business Layer
 
-- **Operations realize BusinessServices**: x-business-service-ref links operations to the business capability they implement
-- **Operations exposed via BusinessInterface**: x-business-interface-ref links operations to business access points (web portal, partner API, etc.)
-- **Digital manifestation**: API operations are the digital realization of business services
-- **Business impact analysis**: Enables understanding which business services are affected when APIs change
+- **API Operation** realizes **BusinessService** (x-business-service-ref property)
+- **API Operation** exposed via **BusinessInterface** (x-business-interface-ref property)
 
 **Bidirectional Navigation**:
 
@@ -1411,29 +1428,24 @@ Goal (goal-customer-satisfaction)
 
 ### To ArchiMate Application Layer
 
-- OpenAPI document references ApplicationService via x-archimate-ref
-- Operation maps to ApplicationFunction or ApplicationService
-- Enables traceability from business requirements to API implementation
+- **OpenAPI Document** references **ApplicationService** (x-archimate-ref property)
+- **API Operation** maps to **ApplicationFunction** (operationId property)
 
 ### To Data Model Layer (JSON Schema)
 
-- Schema definitions reference or embed JSON Schemas
-- Ensures API contracts match data model
-- Single source of truth for data structures
+- **Schema** references **JSON Schema** (schema.$ref property)
+- **RequestBody** embeds **JSON Schema** (content.schema property)
 
 ### To UX Layer
 
-- StateAction.api.operationId references Operation.operationId
-- Enables UI to call correct API operations
-- Type-safe form-to-API binding
+- **StateAction** references **API Operation** (api.operationId property)
 
 ### To Security Layer
 
-- **SecurityScheme definitions**: Map to SecurityModel authentication configuration
-- **Operation security requirements**: Enforce access control via OpenAPI security field
-- **x-security-resource**: Links operation to SecureResource for detailed authorization rules
-- **x-required-permissions**: Explicitly declares Permission.name[] required for operation
-- **Enhanced security traceability**: From operation required permissions roles actors
+- **SecurityScheme** maps to **SecurityModel** (securitySchemes property)
+- **API Operation** enforces **Access Control** (security property)
+- **API Operation** links to **SecureResource** (x-security-resource property)
+- **API Operation** requires **Permission** (x-required-permissions property)
 
 **Security Integration Flow**:
 
@@ -1449,11 +1461,11 @@ Operation (createProduct)
 
 ### To APM/Observability Layer
 
-- **Distributed tracing**: x-apm-trace enables operation-level tracing
-- **SLA targets**: x-apm-sla-target-latency and x-apm-sla-target-availability define operation-specific performance requirements
-- **Business metrics**: x-apm-business-metrics links operations to the business metrics they affect
-- **Criticality classification**: x-apm-criticality defines operation importance for monitoring prioritization
-- **Operation-level monitoring**: Different SLAs for different operations (search vs. write, read vs. delete)
+- **API Operation** enables **Distributed Tracing** (x-apm-trace property)
+- **API Operation** defines **SLA Latency Target** (x-apm-sla-target-latency property)
+- **API Operation** defines **SLA Availability Target** (x-apm-sla-target-availability property)
+- **API Operation** tracks **Business Metric** (x-apm-business-metrics property)
+- **API Operation** has **Criticality** (x-apm-criticality property)
 - **Goal validation**: Links API performance to business goal achievement measurement
 
 **APM Integration Example**:
@@ -1531,6 +1543,93 @@ Consistency Checks:
   - Public operations (no auth) should not have high criticality
   - x-business-service-ref should be consistent across related operations
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

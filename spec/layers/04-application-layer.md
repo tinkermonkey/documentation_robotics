@@ -306,28 +306,77 @@ DataObject:
 
 ## Relationships
 
+This section documents the intra-layer relationships available within the Application Layer. All relationship types align with ArchiMate 3.2 semantics and are catalogued in the relationship catalog.
+
 ### Structural Relationships
 
-- **Composition**: ApplicationCollaboration contains ApplicationComponents
-- **Assignment**: ApplicationComponent assigned to ApplicationFunction
-- **Realization**: ApplicationComponent realizes ApplicationService
+Structural relationships define static connections between elements, establishing composition, aggregation, assignment, realization, and specialization patterns.
+
+#### Aggregation
+
+- **ApplicationCollaboration aggregates ApplicationComponent**: Collaborations aggregate multiple components working together
+
+#### Composition
+
+- **ApplicationComponent composes ApplicationInterface**: Components compose interfaces as their access points
+- **ApplicationProcess composes ApplicationProcess**: Complex processes decompose into sub-processes
+
+#### Assignment
+
+- **ApplicationComponent assigned-to ApplicationFunction**: Components are assigned to perform functions
+- **ApplicationCollaboration assigned-to ApplicationInteraction**: Collaborations are assigned to perform interactions
+
+#### Realization
+
+- **ApplicationComponent realizes ApplicationService**: Components realize the services they provide
+- **ApplicationFunction realizes ApplicationService**: Functions realize abstract service behavior
+- **ApplicationProcess realizes ApplicationService**: Processes realize services through their execution
+- **ApplicationService realizes ApplicationInterface**: Services are realized through interfaces (how services become accessible)
+
+#### Specialization
+
+- **DataObject specializes DataObject**: Data objects support type hierarchies (e.g., OrderData specializes TransactionData)
 
 ### Behavioral Relationships
 
-- **Triggering**: ApplicationEvent triggers ApplicationProcess
-- **Flow**: ApplicationService flows to ApplicationService
-- **Access**: ApplicationService accesses DataObject
+Behavioral relationships describe dynamic interactions between elements, including triggering, flow, and data access patterns.
+
+#### Triggering
+
+- **ApplicationEvent triggers ApplicationComponent**: Events trigger component behavior
+- **ApplicationEvent triggers ApplicationFunction**: Events trigger function execution
+- **ApplicationEvent triggers ApplicationProcess**: Events trigger process execution
+- **ApplicationProcess triggers ApplicationEvent**: Processes emit events upon completion or state changes
+
+#### Flow
+
+- **ApplicationService flows-to ApplicationService**: Services flow sequentially in service orchestration
+- **ApplicationProcess flows-to ApplicationProcess**: Processes flow sequentially in workflows
+
+#### Access
+
+- **ApplicationService accesses DataObject**: Services access data during operation
+- **ApplicationFunction accesses DataObject**: Functions read/write data objects during execution
+- **ApplicationProcess accesses DataObject**: Processes access data during execution sequences
+- **ApplicationInteraction accesses DataObject**: Interactions access data during collective behavior
 
 ### Dependency Relationships
 
-- **Serving**: ApplicationInterface serves ApplicationComponent
-- **Used By**: ApplicationService used by BusinessProcess
+Dependency relationships describe serving and usage patterns between application elements.
+
+#### Serving
+
+- **ApplicationInterface serves ApplicationComponent**: Interfaces serve as access points to components
+
+#### Used By
+
+- **ApplicationService used-by BusinessProcess**: Application services are used by business processes (cross-layer)
 
 ## Example Model
 
 ```xml
 <model>
-  <!-- Application Component -->
+  <!-- Application Components -->
   <element id="product-api" type="ApplicationComponent">
     <n>Product API</n>
     <documentation>RESTful API for product management</documentation>
@@ -341,7 +390,19 @@ DataObject:
     <property key="spec.ux">specs/product-ui.yaml</property>
   </element>
 
-  <!-- Application Service -->
+  <element id="order-service" type="ApplicationComponent">
+    <n>Order Service</n>
+    <documentation>Microservice for order processing</documentation>
+    <property key="implementation.framework">spring</property>
+  </element>
+
+  <!-- Application Collaboration -->
+  <element id="ecommerce-platform" type="ApplicationCollaboration">
+    <n>E-Commerce Platform</n>
+    <documentation>Collaboration of microservices for e-commerce</documentation>
+  </element>
+
+  <!-- Application Services -->
   <element id="product-service" type="ApplicationService">
     <n>Product Service</n>
     <property key="spec.openapi">specs/product-service.yaml</property>
@@ -352,34 +413,137 @@ DataObject:
     <property key="motivation.governed-by-principles">principle-api-first,principle-cloud-native</property>
   </element>
 
-  <!-- Application Interface -->
+  <element id="order-management-service" type="ApplicationService">
+    <n>Order Management Service</n>
+    <property key="service.version">1.5.0</property>
+  </element>
+
+  <!-- Application Interfaces -->
   <element id="rest-interface" type="ApplicationInterface">
     <n>REST API Interface</n>
     <property key="interface.endpoint">https://api.example.com/v2</property>
   </element>
 
-  <!-- Data Object -->
-  <element id="product-data" type="DataObject">
-    <n>Product Data</n>
-    <property key="spec.schema">schemas/product.json</property>
-    <property key="spec.database">schemas/products-table.sql</property>
-    <property key="data.pii">false</property>
-    <property key="data.retention">7years</property>
+  <element id="graphql-interface" type="ApplicationInterface">
+    <n>GraphQL API Interface</n>
+    <property key="interface.endpoint">https://api.example.com/graphql</property>
   </element>
 
-  <!-- Application Event -->
+  <!-- Application Functions -->
+  <element id="validate-product-data" type="ApplicationFunction">
+    <n>Validate Product Data</n>
+    <documentation>Validates product information against business rules</documentation>
+  </element>
+
+  <element id="calculate-order-total" type="ApplicationFunction">
+    <n>Calculate Order Total</n>
+    <documentation>Calculates total cost including tax and shipping</documentation>
+  </element>
+
+  <!-- Application Interactions -->
+  <element id="product-sync-interaction" type="ApplicationInteraction">
+    <n>Product Synchronization</n>
+    <documentation>Interaction for syncing product data across services</documentation>
+  </element>
+
+  <!-- Application Processes -->
+  <element id="order-fulfillment-process" type="ApplicationProcess">
+    <n>Order Fulfillment Process</n>
+    <documentation>End-to-end order processing workflow</documentation>
+    <property key="process.orchestration">specs/order-fulfillment.yaml</property>
+  </element>
+
+  <element id="validate-order-subprocess" type="ApplicationProcess">
+    <n>Validate Order Subprocess</n>
+    <documentation>Validation step within order fulfillment</documentation>
+  </element>
+
+  <element id="payment-processing-process" type="ApplicationProcess">
+    <n>Payment Processing</n>
+    <documentation>Process for handling payment transactions</documentation>
+  </element>
+
+  <!-- Application Events -->
   <element id="product-updated-event" type="ApplicationEvent">
     <n>ProductUpdated Event</n>
     <property key="event.schema">schemas/product-updated-event.json</property>
     <property key="event.topic">products.updated</property>
   </element>
 
+  <element id="order-completed-event" type="ApplicationEvent">
+    <n>OrderCompleted Event</n>
+    <property key="event.schema">schemas/order-completed-event.json</property>
+    <property key="event.topic">orders.completed</property>
+  </element>
+
+  <!-- Data Objects -->
+  <element id="product-data" type="DataObject">
+    <n>Product Data</n>
+    <property key="spec.schema">schemas/product.json</property>
+    <property key="spec.database">schemas/products-table.sql</property>
+    <property key="data.pii">false</property>
+    <property key="data.retention">61320h</property>
+  </element>
+
+  <element id="order-data" type="DataObject">
+    <n>Order Data</n>
+    <property key="spec.schema">schemas/order.json</property>
+    <property key="data.pii">true</property>
+    <property key="data.retention">61320h</property>
+  </element>
+
+  <element id="transaction-data" type="DataObject">
+    <n>Transaction Data</n>
+    <documentation>Base type for all transaction records</documentation>
+    <property key="data.retention">61320h</property>
+  </element>
+
   <!-- Relationships -->
+
+  <!-- Structural: Aggregation -->
+  <relationship type="Aggregation" source="ecommerce-platform" target="product-api"/>
+  <relationship type="Aggregation" source="ecommerce-platform" target="order-service"/>
+
+  <!-- Structural: Composition -->
+  <relationship type="Composition" source="product-api" target="rest-interface"/>
+  <relationship type="Composition" source="order-service" target="graphql-interface"/>
+  <relationship type="Composition" source="order-fulfillment-process" target="validate-order-subprocess"/>
+
+  <!-- Structural: Assignment -->
+  <relationship type="Assignment" source="product-api" target="validate-product-data"/>
+  <relationship type="Assignment" source="order-service" target="calculate-order-total"/>
+  <relationship type="Assignment" source="ecommerce-platform" target="product-sync-interaction"/>
+
+  <!-- Structural: Realization -->
   <relationship type="Realization" source="product-api" target="product-service"/>
-  <relationship type="Access" source="product-service" target="product-data"/>
-  <relationship type="Serving" source="rest-interface" target="product-api"/>
-  <relationship type="Serving" source="product-service" target="product-ui"/>
+  <relationship type="Realization" source="order-service" target="order-management-service"/>
+  <relationship type="Realization" source="validate-product-data" target="product-service"/>
+  <relationship type="Realization" source="order-fulfillment-process" target="order-management-service"/>
+  <relationship type="Realization" source="product-service" target="rest-interface"/>
+  <relationship type="Realization" source="order-management-service" target="graphql-interface"/>
+
+  <!-- Structural: Specialization -->
+  <relationship type="Specialization" source="order-data" target="transaction-data"/>
+
+  <!-- Behavioral: Triggering -->
   <relationship type="Triggering" source="product-updated-event" target="product-api"/>
+  <relationship type="Triggering" source="product-updated-event" target="validate-product-data"/>
+  <relationship type="Triggering" source="order-completed-event" target="order-fulfillment-process"/>
+  <relationship type="Triggering" source="payment-processing-process" target="order-completed-event"/>
+
+  <!-- Behavioral: Flow -->
+  <relationship type="Flow" source="product-service" target="order-management-service"/>
+  <relationship type="Flow" source="validate-order-subprocess" target="payment-processing-process"/>
+
+  <!-- Behavioral: Access -->
+  <relationship type="Access" source="product-service" target="product-data"/>
+  <relationship type="Access" source="validate-product-data" target="product-data"/>
+  <relationship type="Access" source="order-fulfillment-process" target="order-data"/>
+  <relationship type="Access" source="product-sync-interaction" target="product-data"/>
+
+  <!-- Dependency: Serving -->
+  <relationship type="Serving" source="rest-interface" target="product-api"/>
+  <relationship type="Serving" source="graphql-interface" target="order-service"/>
 </model>
 ```
 
@@ -389,38 +553,37 @@ DataObject:
 
 ### To Motivation Layer
 
-- **Services support Goals**: ApplicationService.properties["motivation.supports-goals"] links services to business objectives
-- **Services deliver Value**: ApplicationService.properties["motivation.delivers-value"] shows value contribution
-- **Principles guide design**: ApplicationService.properties["motivation.governed-by-principles"] ensures architectural consistency
-- **Functions fulfill Requirements**: ApplicationFunction.properties["motivation.fulfills-requirements"] provides fine-grained requirement traceability
-- **Functions governed by Principles**: ApplicationFunction.properties["motivation.governed-by-principles"] ensures function-level compliance
-- **Portfolio management**: Enables capability-based planning and investment prioritization
+- **ApplicationService** supports **Goal** (motivation.supports-goals property)
+- **ApplicationService** delivers **Value** (motivation.delivers-value property)
+- **ApplicationService** governed by **Principle** (motivation.governed-by-principles property)
+- **ApplicationFunction** fulfills **Requirement** (motivation.fulfills-requirements property)
+- **ApplicationFunction** governed by **Principle** (motivation.governed-by-principles property)
 
 ### From Business Layer
 
-- ApplicationService realizes BusinessService
-- ApplicationProcess supports BusinessProcess (referenced by BusinessProcess.application.realized-by-process)
-- DataObject represents BusinessObject (referenced by BusinessObject.application.represented-by-dataobject)
+- **ApplicationService** realizes **BusinessService** (application.realized-by-service property)
+- **ApplicationProcess** supports **BusinessProcess** (application.realized-by-process property)
+- **DataObject** represents **BusinessObject** (application.represented-by-dataobject property)
 
 ### To Technology Layer
 
-- ApplicationComponent deployed on Node
-- ApplicationService uses TechnologyService
-- DataObject stored in Artifact
+- **ApplicationComponent** deployed on **Node** (technology.deployed-on property)
+- **ApplicationService** uses **TechnologyService** (technology.uses-service property)
+- **DataObject** stored in **Artifact** (technology.stored-in property)
 
 ### To APM/Observability Layer
 
-- **Services tracked by metrics**: ApplicationService.properties["apm.business-metrics"] links services to business KPIs
-- **SLA targets defined**: ApplicationService.properties["apm.sla-target-latency"] and ["apm.sla-target-availability"] specify service levels
-- **Distributed tracing**: ApplicationService.properties["apm.traced"] enables observability
-- **Goal validation**: Enables closed-loop feedback on business objective achievement
+- **ApplicationService** tracked by **Business Metric** (apm.business-metrics property)
+- **ApplicationService** monitored for **SLA Target** (apm.sla-target-latency property)
+- **ApplicationService** monitored for **Availability** (apm.sla-target-availability property)
+- **ApplicationService** traced by **APM** (apm.traced property)
 
 ### To External Specifications
 
-- ApplicationService → OpenAPI specification
-- DataObject → JSON Schema
-- ApplicationComponent → UX specification
-- ApplicationEvent → Event schema
+- **ApplicationService** defined by **OpenAPI Specification** (spec.openapi property)
+- **DataObject** defined by **JSON Schema** (spec.schema property)
+- **ApplicationComponent** defined by **UX Specification** (spec.ux property)
+- **ApplicationEvent** defined by **Event Schema** (spec.asyncapi property)
 
 ## Property Conventions
 
@@ -457,6 +620,57 @@ data.encrypted: "true|false" # Encryption at rest
 data.retention: "90days|1year" # Retention period
 data.classification: "public|internal|confidential"
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
 
 ## Validation Rules
 

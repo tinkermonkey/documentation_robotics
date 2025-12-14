@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/06-api-layer.schema.json",
-  "title": "API Layer Schema",
+  "title": "API Layer Layer Schema",
   "description": "Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.",
   "type": "object",
   "properties": {
@@ -213,17 +213,19 @@
           "minLength": 1
         },
         "openapi": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "OpenAPI version"
         },
         "info": {
-          "$ref": "#/definitions/required"
+          "$ref": "#/definitions/Info"
         },
         "servers": {
           "type": "string",
           "minLength": 1
         },
         "paths": {
-          "$ref": "#/definitions/required"
+          "type": "object",
+          "description": "API paths"
         },
         "components": {
           "type": "string",
@@ -264,14 +266,16 @@
           "minLength": 1
         },
         "title": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "API title"
         },
         "description": {
           "type": "string",
           "minLength": 1
         },
         "version": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "API version"
         },
         "termsOfService": {
           "type": "string",
@@ -307,7 +311,8 @@
           "minLength": 1
         },
         "url": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "Server URL"
         },
         "description": {
           "type": "string",
@@ -468,10 +473,18 @@
           "minLength": 1
         },
         "name": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "Parameter name"
         },
         "in": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "enum": [
+            "query",
+            "header",
+            "path",
+            "cookie"
+          ],
+          "description": "Parameter location"
         },
         "description": {
           "type": "string",
@@ -485,29 +498,6 @@
         },
         "allowEmptyValue": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "ParameterLocation": {
-          "type": "string",
-          "enum": [
-            "query",
-            "header",
-            "path",
-            "cookie"
-          ]
-        },
-        "ParameterStyle": {
-          "type": "string",
-          "enum": [
-            "matrix",
-            "label",
-            "form",
-            "simple",
-            "spaceDelimited",
-            "pipeDelimited",
-            "deepObject"
-          ]
         }
       }
     },
@@ -575,7 +565,8 @@
           "minLength": 1
         },
         "description": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "Response description"
         }
       }
     },
@@ -772,7 +763,8 @@
           "minLength": 1
         },
         "name": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "Tag name"
         },
         "description": {
           "type": "string",
@@ -798,7 +790,9 @@
           "minLength": 1
         },
         "url": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "format": "uri",
+          "description": "Documentation URL"
         }
       }
     },
@@ -846,7 +840,8 @@
           "minLength": 1
         },
         "name": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "License name"
         },
         "url": {
           "type": "string",
@@ -874,7 +869,8 @@
           "minLength": 1
         },
         "default": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "description": "Default value"
         },
         "enum": {
           "type": "string",
@@ -1085,7 +1081,8 @@
           "minLength": 1
         },
         "scopes": {
-          "$ref": "#/definitions/required"
+          "type": "object",
+          "description": "Available scopes"
         }
       }
     },
@@ -1107,7 +1104,14 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/required"
+          "type": "string",
+          "enum": [
+            "apiKey",
+            "http",
+            "oauth2",
+            "openIdConnect"
+          ],
+          "description": "Security scheme type"
         },
         "description": {
           "type": "string",
@@ -1129,26 +1133,37 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "SecurityType": {
-          "type": "string",
-          "enum": [
-            "apiKey",
-            "http",
-            "oauth2",
-            "openIdConnect"
-          ]
-        }
       }
-    }
-  },
-  "$defs": {
-    "relationships": {
-      "$ref": "common/relationships.schema.json#/definitions"
     },
-    "predicates": {
-      "$ref": "common/predicates.schema.json#/definitions"
+    "ParameterLocation": {
+      "type": "string",
+      "enum": [
+        "query",
+        "header",
+        "path",
+        "cookie"
+      ]
+    },
+    "ParameterStyle": {
+      "type": "string",
+      "enum": [
+        "matrix",
+        "label",
+        "form",
+        "simple",
+        "spaceDelimited",
+        "pipeDelimited",
+        "deepObject"
+      ]
+    },
+    "SecurityType": {
+      "type": "string",
+      "enum": [
+        "apiKey",
+        "http",
+        "oauth2",
+        "openIdConnect"
+      ]
     }
   }
 }

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
-  "title": "Data Model Layer Schema",
+  "title": "Data Model Layer Layer Schema",
   "description": "Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.",
   "type": "object",
   "properties": {
@@ -180,13 +180,6 @@
           "type": "string",
           "minLength": 1
         },
-        "definitions": {
-          "type": "array",
-          "description": "Contains relationship",
-          "items": {
-            "type": "string"
-          }
-        },
         "properties": {
           "type": "array",
           "description": "Contains relationship",
@@ -204,7 +197,8 @@
       ],
       "properties": {
         "value": {
-          "$ref": "#/definitions/enum"
+          "type": "string",
+          "description": "String value"
         }
       }
     },
@@ -230,33 +224,7 @@
           "minLength": 1
         },
         "format": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "StringFormat": {
-          "type": "string",
-          "enum": [
-            "date-time",
-            "date",
-            "time",
-            "email",
-            "idn-email",
-            "hostname",
-            "idn-hostname",
-            "ipv4",
-            "ipv6",
-            "uri",
-            "uri-reference",
-            "iri",
-            "iri-reference",
-            "json-pointer",
-            "relative-json-pointer",
-            "regex",
-            "uuid",
-            "phone",
-            "credit-card"
-          ]
+          "$ref": "#/definitions/StringFormat"
         }
       }
     },
@@ -521,18 +489,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "DataClassificationLevel": {
-          "type": "string",
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted",
-            "secret"
-          ]
-        }
       }
     },
     "DataQualityMetrics": {
@@ -598,77 +554,6 @@
         "engine": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "SQLType": {
-          "type": "string",
-          "enum": [
-            "VARCHAR",
-            "CHAR",
-            "TEXT",
-            "CLOB",
-            "INTEGER",
-            "SMALLINT",
-            "BIGINT",
-            "SERIAL",
-            "BIGSERIAL",
-            "DECIMAL",
-            "NUMERIC",
-            "FLOAT",
-            "DOUBLE",
-            "BOOLEAN",
-            "DATE",
-            "TIME",
-            "TIMESTAMP",
-            "TIMESTAMPTZ",
-            "INTERVAL",
-            "JSON",
-            "JSONB",
-            "UUID",
-            "BYTEA",
-            "BLOB",
-            "ARRAY"
-          ]
-        },
-        "ReferentialAction": {
-          "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET_NULL",
-            "SET_DEFAULT",
-            "RESTRICT",
-            "NO_ACTION"
-          ]
-        },
-        "IndexType": {
-          "type": "string",
-          "enum": [
-            "BTREE",
-            "HASH",
-            "GIN",
-            "GIST",
-            "BRIN"
-          ]
-        },
-        "ConstraintType": {
-          "type": "string",
-          "enum": [
-            "PRIMARY_KEY",
-            "UNIQUE",
-            "FOREIGN_KEY",
-            "CHECK",
-            "NOT_NULL",
-            "EXCLUSION"
-          ]
-        },
-        "PartitionStrategy": {
-          "type": "string",
-          "enum": [
-            "RANGE",
-            "LIST",
-            "HASH"
-          ]
         }
       }
     },
@@ -788,57 +673,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "SQLType": {
-          "type": "string",
-          "enum": [
-            "VARCHAR",
-            "TEXT",
-            "INTEGER",
-            "BIGINT",
-            "SERIAL",
-            "BIGSERIAL",
-            "DECIMAL",
-            "NUMERIC",
-            "BOOLEAN",
-            "DATE",
-            "TIMESTAMP",
-            "TIMESTAMPTZ",
-            "JSON",
-            "JSONB",
-            "UUID",
-            "BYTEA"
-          ]
-        },
-        "ReferentialAction": {
-          "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET_NULL",
-            "RESTRICT",
-            "NO_ACTION",
-            "SET_DEFAULT"
-          ]
-        },
-        "IndexType": {
-          "type": "string",
-          "enum": [
-            "BTREE",
-            "HASH",
-            "GIN",
-            "GIST"
-          ]
-        },
-        "ConstraintType": {
-          "type": "string",
-          "enum": [
-            "PRIMARY_KEY",
-            "UNIQUE",
-            "FOREIGN_KEY",
-            "CHECK"
-          ]
-        }
       }
     },
     "x-ui": {
@@ -867,7 +701,7 @@
           "minLength": 1
         },
         "component": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/UIComponent"
         },
         "label": {
           "type": "string",
@@ -893,30 +727,6 @@
         "group": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "UIComponent": {
-          "type": "string",
-          "enum": [
-            "text-input",
-            "textarea",
-            "number-input",
-            "email-input",
-            "password-input",
-            "date-picker",
-            "datetime-picker",
-            "select",
-            "multi-select",
-            "autocomplete",
-            "checkbox",
-            "radio-group",
-            "toggle",
-            "slider",
-            "file-upload",
-            "rich-text-editor",
-            "color-picker"
-          ]
         }
       }
     },
@@ -950,47 +760,153 @@
           "type": "boolean"
         },
         "classification": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/SecurityClassification"
         },
         "retention": {
           "type": "string",
           "minLength": 1
         },
         "masking": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/MaskingStrategy"
         },
         "redaction": {
           "type": "boolean"
         }
-      },
-      "definitions": {
-        "SecurityClassification": {
-          "type": "string",
-          "enum": [
-            "public",
-            "internal",
-            "confidential",
-            "restricted"
-          ]
-        },
-        "MaskingStrategy": {
-          "type": "string",
-          "enum": [
-            "none",
-            "partial",
-            "full",
-            "hash"
-          ]
-        }
       }
-    }
-  },
-  "$defs": {
-    "relationships": {
-      "$ref": "common/relationships.schema.json#/definitions"
     },
-    "predicates": {
-      "$ref": "common/predicates.schema.json#/definitions"
+    "items": {
+      "type": "string"
+    },
+    "StringFormat": {
+      "type": "string",
+      "enum": [
+        "date-time",
+        "date",
+        "time",
+        "email",
+        "idn-email",
+        "hostname",
+        "idn-hostname",
+        "ipv4",
+        "ipv6",
+        "uri",
+        "uri-reference",
+        "iri",
+        "iri-reference",
+        "json-pointer",
+        "relative-json-pointer",
+        "regex",
+        "uuid",
+        "phone",
+        "credit-card"
+      ]
+    },
+    "DataClassificationLevel": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted",
+        "secret"
+      ]
+    },
+    "SQLType": {
+      "type": "string",
+      "enum": [
+        "VARCHAR",
+        "TEXT",
+        "INTEGER",
+        "BIGINT",
+        "SERIAL",
+        "BIGSERIAL",
+        "DECIMAL",
+        "NUMERIC",
+        "BOOLEAN",
+        "DATE",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "JSON",
+        "JSONB",
+        "UUID",
+        "BYTEA"
+      ]
+    },
+    "ReferentialAction": {
+      "type": "string",
+      "enum": [
+        "CASCADE",
+        "SET_NULL",
+        "RESTRICT",
+        "NO_ACTION",
+        "SET_DEFAULT"
+      ]
+    },
+    "IndexType": {
+      "type": "string",
+      "enum": [
+        "BTREE",
+        "HASH",
+        "GIN",
+        "GIST"
+      ]
+    },
+    "ConstraintType": {
+      "type": "string",
+      "enum": [
+        "PRIMARY_KEY",
+        "UNIQUE",
+        "FOREIGN_KEY",
+        "CHECK"
+      ]
+    },
+    "PartitionStrategy": {
+      "type": "string",
+      "enum": [
+        "RANGE",
+        "LIST",
+        "HASH"
+      ]
+    },
+    "UIComponent": {
+      "type": "string",
+      "enum": [
+        "text-input",
+        "textarea",
+        "number-input",
+        "email-input",
+        "password-input",
+        "date-picker",
+        "datetime-picker",
+        "select",
+        "multi-select",
+        "autocomplete",
+        "checkbox",
+        "radio-group",
+        "toggle",
+        "slider",
+        "file-upload",
+        "rich-text-editor",
+        "color-picker"
+      ]
+    },
+    "SecurityClassification": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "MaskingStrategy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "partial",
+        "full",
+        "hash"
+      ]
     }
   }
 }

@@ -18,6 +18,16 @@ from utils.link_registry import LinkRegistry
 class LayerDocGenerator:
     """Generates relationship documentation sections for layers."""
 
+    # Mapping from relationship-style names to actual entity names
+    # TODO: Fix link registry data to use correct entity names directly
+    ENTITY_NAME_CORRECTIONS = {
+        "ConstrainedBy": "Constraint",
+        "DeliversValue": "Value",
+        "FulfillsRequirement": "Requirement",
+        "GovernedByPrinciple": "Principle",
+        "SupportsGoal": "Goal",
+    }
+
     def __init__(self, spec_root: Optional[Path] = None):
         """Initialize the generator.
 
@@ -30,6 +40,17 @@ class LayerDocGenerator:
 
         # Map layer IDs to names
         self.layer_names = self._extract_layer_names()
+
+    def _correct_entity_name(self, entity_name: str) -> str:
+        """Correct entity names that are actually relationship names.
+
+        Args:
+            entity_name: Potentially incorrect entity name
+
+        Returns:
+            Corrected entity name
+        """
+        return self.ENTITY_NAME_CORRECTIONS.get(entity_name, entity_name)
 
     def _find_spec_root(self) -> Path:
         """Auto-detect spec root directory."""
@@ -122,8 +143,8 @@ class LayerDocGenerator:
             lines.append("")
 
             # Generate table
-            lines.append("| Predicate | Source Element | Target Element | Field Path | Strength | Required | Description | Documented |")
-            lines.append("|-----------|----------------|----------------|------------|----------|----------|-------------|------------|")
+            lines.append("| Predicate | Source Element | Target Element | Field Path | Description | Documented |")
+            lines.append("|-----------|----------------|----------------|------------|-------------|------------|")
 
             for link in links_by_target[target_layer]:
                 predicate = link.predicate or "TBD"
@@ -138,10 +159,10 @@ class LayerDocGenerator:
                     layer_name = self.layer_names.get(layer_id, layer_id)
                     source_types = f"Any {layer_name} entity"
 
-                target_types = ", ".join(link.target_element_types) if link.target_element_types else "Any"
+                # Correct entity names (fix relationship names being used as entity names)
+                corrected_types = [self._correct_entity_name(t) for t in link.target_element_types] if link.target_element_types else []
+                target_types = ", ".join(corrected_types) if corrected_types else "Any"
                 field_paths = ", ".join([f"`{fp}`" for fp in link.field_paths])
-                strength = link.strength or "Medium"
-                required = "Yes" if link.is_required else "No"
                 description = link.description[:100] + "..." if len(link.description) > 100 else link.description
 
                 # Check if documented (has description and examples)
@@ -151,7 +172,7 @@ class LayerDocGenerator:
                 else:
                     doc_link = "✗"
 
-                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {strength} | {required} | {description} | {doc_link} |")
+                lines.append(f"| `{predicate}` | {source_types} | {target_types} | {field_paths} | {description} | {doc_link} |")
 
             lines.append("")
 
@@ -232,7 +253,9 @@ class LayerDocGenerator:
                     source_layer_name = self.layer_names.get(source_layer, source_layer)
                     source_types = f"Any {source_layer_name} entity"
 
-                target_types = ", ".join(link.target_element_types) if link.target_element_types else "Any"
+                # Correct entity names (fix relationship names being used as entity names)
+                corrected_types = [self._correct_entity_name(t) for t in link.target_element_types] if link.target_element_types else []
+                target_types = ", ".join(corrected_types) if corrected_types else "Any"
                 field_paths = ", ".join([f"`{fp}`" for fp in link.field_paths])
                 description = link.description[:100] + "..." if len(link.description) > 100 else link.description
 
@@ -275,7 +298,9 @@ class LayerDocGenerator:
         # Collect unique target entity types for this layer
         target_entity_types = set()
         for link in incoming:
-            target_entity_types.update(link.target_element_types)
+            # Correct entity names before adding to set
+            corrected_types = [self._correct_entity_name(t) for t in link.target_element_types]
+            target_entity_types.update(corrected_types)
 
         # Central layer as subgraph with individual entity types
         lines.append(f'  subgraph thisLayer["{layer_num}: {layer_name}"]')
@@ -312,8 +337,10 @@ class LayerDocGenerator:
 
                 if target_entities:
                     for entity_type in sorted(target_entities):
-                        safe_id = entity_type.replace(" ", "").replace("-", "")
-                        lines.append(f'    {var_name}{safe_id}["{entity_type}"]')
+                        # Correct entity name before creating node
+                        corrected_entity = self._correct_entity_name(entity_type)
+                        safe_id = corrected_entity.replace(" ", "").replace("-", "")
+                        lines.append(f'    {var_name}{safe_id}["{corrected_entity}"]')
                 else:
                     lines.append(f'    {var_name}Node["Entities in {target_name}"]')
 
@@ -357,7 +384,9 @@ class LayerDocGenerator:
 
                 # Find target nodes
                 for target_entity in link.target_element_types:
-                    safe_id = target_entity.replace(" ", "").replace("-", "")
+                    # Correct entity name before creating node ID
+                    corrected_entity = self._correct_entity_name(target_entity)
+                    safe_id = corrected_entity.replace(" ", "").replace("-", "")
                     target_node = f'target{target_num}{safe_id}'
                     predicate = link.predicate or ""
 
@@ -380,7 +409,9 @@ class LayerDocGenerator:
 
                     # Connect to specific target entities
                     for target_entity in link.target_element_types:
-                        safe_id = target_entity.replace(" ", "").replace("-", "")
+                        # Correct entity name before creating node ID
+                        corrected_entity = self._correct_entity_name(target_entity)
+                        safe_id = corrected_entity.replace(" ", "").replace("-", "")
                         target_node = f'this{safe_id}'
                         predicate = link.predicate or ""
 

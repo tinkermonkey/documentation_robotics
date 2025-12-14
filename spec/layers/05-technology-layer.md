@@ -790,41 +790,49 @@ Artifact:
 
 ### To Motivation Layer
 
-- **TechnologyService supports Goals**: TechnologyService.properties["motivation.supports-goals"] links infrastructure SLAs to business objectives
-- **Technology governed by Principles**: Node, SystemSoftware, CommunicationNetwork, and TechnologyService reference architectural Principles that guide technology selection
-- **Technology constrained by Constraints**: Node (budget, vendor), SystemSoftware (license), CommunicationNetwork (regulatory), Artifact (retention) reference limiting Constraints
-- **Technology fulfills Requirements**: Node, SystemSoftware, CommunicationNetwork reference technical and non-functional Requirements they satisfy
-- **Complete traceability**: From business goals → architectural principles → technology choices → infrastructure implementation
+- **TechnologyService** supports **Goal** (motivation.supports-goals property)
+- **Node** governed by **Principle** (motivation.governed-by-principles property)
+- **SystemSoftware** governed by **Principle** (motivation.governed-by-principles property)
+- **CommunicationNetwork** governed by **Principle** (motivation.governed-by-principles property)
+- **TechnologyService** governed by **Principle** (motivation.governed-by-principles property)
+- **Node** constrained by **Constraint** (motivation.constrained-by property)
+- **SystemSoftware** constrained by **Constraint** (motivation.constrained-by property)
+- **CommunicationNetwork** constrained by **Constraint** (motivation.constrained-by property)
+- **Artifact** constrained by **Constraint** (motivation.constrained-by property)
+- **Node** fulfills **Requirement** (motivation.fulfills-requirements property)
+- **SystemSoftware** fulfills **Requirement** (motivation.fulfills-requirements property)
+- **CommunicationNetwork** fulfills **Requirement** (motivation.fulfills-requirements property)
 
 ### To APM/Observability Layer
 
-- **TechnologyService SLA monitoring**: TechnologyService.properties["apm.sla-target-availability"] and ["apm.sla-target-latency"] define service level targets
-- **Health monitoring**: TechnologyService.properties["apm.health-monitored"] and ["apm.health-check-endpoint"] enable infrastructure health tracking
-- **Infrastructure metrics**: Technology layer elements generate infrastructure metrics (CPU, memory, network, disk)
-- **Goal validation**: Links technology SLAs to business goal achievement measurement
+- **TechnologyService** monitored for **SLA Availability** (apm.sla-target-availability property)
+- **TechnologyService** monitored for **SLA Latency** (apm.sla-target-latency property)
+- **TechnologyService** monitored for **Health** (apm.health-monitored property)
+- **TechnologyService** provides **Health Endpoint** (apm.health-check-endpoint property)
 
 ### To Security Layer
 
-- **Artifact encryption and classification**: Artifact.properties["security.*"] defines encryption requirements and data classification
-- **Network security policies**: CommunicationNetwork security requirements drive firewall rules and segmentation
-- **Compliance mapping**: Security constraints on Artifacts and Networks enforce regulatory compliance
+- **Artifact** requires **Encryption** (security.encryption-required property)
+- **Artifact** uses **Encryption Type** (security.encryption-type property)
+- **Artifact** has **Classification** (security.classification property)
+- **CommunicationNetwork** enforces **Security Policies** (security.policies property)
 
 ### From Application Layer
 
-- Node hosts ApplicationComponent
-- TechnologyService serves ApplicationService
-- Artifact stores DataObject
+- **Node** hosts **ApplicationComponent** (technology.deployed-on property)
+- **TechnologyService** serves **ApplicationService** (technology.uses-service property)
+- **Artifact** stores **DataObject** (technology.stored-in property)
 
 ### To Physical Layer (if used)
 
-- Node deployed on Device
-- Path uses Facility networks
+- **Node** deployed on **Device** (physical.device property)
+- **Path** uses **Facility** (physical.facility property)
 
 ### To Infrastructure-as-Code
 
-- Node → Terraform modules
-- CommunicationNetwork → Cloud network definitions
-- SystemSoftware → Ansible playbooks
+- **Node** defined by **Terraform Module** (iac.terraform property)
+- **CommunicationNetwork** defined by **Cloud Network** (iac.network property)
+- **SystemSoftware** deployed by **Ansible Playbook** (iac.ansible property)
 
 ## Property Conventions
 
@@ -863,6 +871,57 @@ service.monitoring: "prometheus|datadog|newrelic"
 service.alerting: "pagerduty|opsgenie"
 service.logging: "elasticsearch|splunk"
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
 
 ## Validation Rules
 

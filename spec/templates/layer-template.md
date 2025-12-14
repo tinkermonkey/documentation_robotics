@@ -1,6 +1,6 @@
 # Layer NN: [Layer Name]
 
-**Version**: 2.0.0
+**Version**: 0.6.0
 **Status**: [Draft | Active | Deprecated]
 **Last Updated**: YYYY-MM-DD
 
@@ -24,12 +24,14 @@
 **Purpose**: [Brief description of what this entity represents]
 
 **Properties**:
+
 - `id`: Unique identifier (UUID format)
 - `name`: Human-readable name
 - `description`: Detailed description
 - [Additional properties specific to this entity type]
 
 **Example**:
+
 ```yaml
 id: entity-example-1
 name: Example Entity
@@ -47,13 +49,14 @@ description: A sample entity demonstrating the structure
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-|--------------|----------------|----------------|-----------|-------------------|-------------|-------------|
-| Composition | [ParentEntity] | [ChildEntity] | `composes` | `composed-of` | 1:N | [Description of composition relationship] |
-| Aggregation | [ContainerEntity] | [MemberEntity] | `aggregates` | `aggregated-by` | 1:N | [Description of aggregation relationship] |
-| Specialization | [SpecificEntity] | [GeneralEntity] | `specializes` | `generalized-by` | N:1 | [Description of inheritance relationship] |
+| Relationship   | Source Element    | Target Element  | Predicate     | Inverse Predicate | Cardinality | Description                               |
+| -------------- | ----------------- | --------------- | ------------- | ----------------- | ----------- | ----------------------------------------- |
+| Composition    | [ParentEntity]    | [ChildEntity]   | `composes`    | `composed-of`     | 1:N         | [Description of composition relationship] |
+| Aggregation    | [ContainerEntity] | [MemberEntity]  | `aggregates`  | `aggregated-by`   | 1:N         | [Description of aggregation relationship] |
+| Specialization | [SpecificEntity]  | [GeneralEntity] | `specializes` | `generalized-by`  | N:1         | [Description of inheritance relationship] |
 
 **Example**:
+
 ```xml
 <!-- Composition example -->
 <relationship type="Composition" source="parent-entity-1" target="child-entity-1"/>
@@ -66,13 +69,14 @@ Relationships that define the composition, aggregation, and specialization of en
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-|--------------|----------------|----------------|-----------|-------------------|-------------|-------------|
-| Triggering | [EventEntity] | [ProcessEntity] | `triggers` | `triggered-by` | N:N | [Description of triggering relationship] |
-| Flow | [ProcessA] | [ProcessB] | `flows-to` | `flows-from` | N:N | [Description of flow relationship] |
-| Access | [BehaviorEntity] | [DataEntity] | `accesses` | `accessed-by` | N:N | [Description of access relationship] |
+| Relationship | Source Element   | Target Element  | Predicate  | Inverse Predicate | Cardinality | Description                              |
+| ------------ | ---------------- | --------------- | ---------- | ----------------- | ----------- | ---------------------------------------- |
+| Triggering   | [EventEntity]    | [ProcessEntity] | `triggers` | `triggered-by`    | N:N         | [Description of triggering relationship] |
+| Flow         | [ProcessA]       | [ProcessB]      | `flows-to` | `flows-from`      | N:N         | [Description of flow relationship]       |
+| Access       | [BehaviorEntity] | [DataEntity]    | `accesses` | `accessed-by`     | N:N         | [Description of access relationship]     |
 
 **Example**:
+
 ```xml
 <!-- Triggering example -->
 <relationship type="Triggering" source="event-1" target="process-1"/>
@@ -111,14 +115,15 @@ Links from entities in this layer to entities in other layers.
 
 Links to strategic goals, requirements, principles, and constraints.
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Examples |
-|-----------|----------------|----------------|------------|----------|----------|----------|
-| `supports-goals` | [EntityType] | Goal | `motivation.supports-goals` | High | No | [See examples below] |
-| `fulfills-requirements` | [EntityType] | Requirement | `motivation.fulfills-requirements` | High | No | [See examples below] |
-| `governed-by-principles` | [EntityType] | Principle | `motivation.governed-by-principles` | High | No | [See examples below] |
-| `constrained-by` | [EntityType] | Constraint | `motivation.constrained-by` | Medium | No | [See examples below] |
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples             |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------------------- |
+| `supports-goals`         | [EntityType]   | Goal           | `motivation.supports-goals`         | High     | No       | [See examples below] |
+| `fulfills-requirements`  | [EntityType]   | Requirement    | `motivation.fulfills-requirements`  | High     | No       | [See examples below] |
+| `governed-by-principles` | [EntityType]   | Principle      | `motivation.governed-by-principles` | High     | No       | [See examples below] |
+| `constrained-by`         | [EntityType]   | Constraint     | `motivation.constrained-by`         | Medium   | No       | [See examples below] |
 
 **Example**:
+
 ```yaml
 # Entity linking to goals
 properties:
@@ -134,9 +139,9 @@ properties:
 
 [Repeat structure for each target layer this layer links to]
 
-| Predicate | Source Element | Target Element | Field Path | Strength | Required | Examples |
-|-----------|----------------|----------------|------------|----------|----------|----------|
-| `[predicate]` | [EntityType] | [TargetEntity] | `[field.path]` | [Level] | [Yes/No] | [Examples] |
+| Predicate     | Source Element | Target Element | Field Path     | Strength | Required | Examples   |
+| ------------- | -------------- | -------------- | -------------- | -------- | -------- | ---------- |
+| `[predicate]` | [EntityType]   | [TargetEntity] | `[field.path]` | [Level]  | [Yes/No] | [Examples] |
 
 ### Incoming Relationships (Other Layers → This Layer)
 
@@ -146,11 +151,12 @@ Links from entities in other layers to entities in this layer.
 
 [Description of what these incoming links represent]
 
-| Predicate | Source Element | Source Layer | Target Element | Field Path | Description |
-|-----------|----------------|--------------|----------------|------------|-------------|
-| `[predicate]` | [SourceEntity] | NN-[layer] | [EntityType] | `[field.path]` | [Description] |
+| Predicate     | Source Element | Source Layer | Target Element | Field Path     | Description   |
+| ------------- | -------------- | ------------ | -------------- | -------------- | ------------- |
+| `[predicate]` | [SourceEntity] | NN-[layer]   | [EntityType]   | `[field.path]` | [Description] |
 
 **Usage Example**:
+
 ```yaml
 # Another layer referencing this layer's entities
 properties:
@@ -314,10 +320,10 @@ All entities must validate against: `spec/schemas/NN-[layer-name]-layer.schema.j
 
 ## Version History
 
-| Version | Date | Changes | Author |
-|---------|------|---------|--------|
-| 2.0.0 | YYYY-MM-DD | Enhanced with intra-layer and cross-layer relationship sections | [Author] |
-| 1.0.0 | YYYY-MM-DD | Initial version | [Author] |
+| Version | Date       | Changes                                                         | Author   |
+| ------- | ---------- | --------------------------------------------------------------- | -------- |
+| 0.6.0   | YYYY-MM-DD | Enhanced with intra-layer and cross-layer relationship sections | [Author] |
+| 1.0.0   | YYYY-MM-DD | Initial version                                                 | [Author] |
 
 ---
 

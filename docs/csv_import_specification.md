@@ -13,6 +13,7 @@ This specification defines the CSV format required for importing hierarchical ta
 ## File Format Requirements
 
 ### Basic Format
+
 - **File Type:** CSV (Comma-Separated Values)
 - **Encoding:** UTF-8
 - **Line Endings:** Any standard format (LF, CRLF)
@@ -21,6 +22,7 @@ This specification defines the CSV format required for importing hierarchical ta
 - **Text Qualifier:** Double quotes (`"`) for fields containing commas or line breaks
 
 ### File Structure
+
 The CSV file must contain a header row followed by data rows. Each row represents a single entity (Layer, Domain, or Term) in the taxonomy hierarchy.
 
 ---
@@ -29,16 +31,17 @@ The CSV file must contain a header row followed by data rows. Each row represent
 
 ### Required Columns
 
-| Column Name | Type | Required | Max Length | Description |
-|------------|------|----------|------------|-------------|
-| `Depth` | Integer | Yes | - | Hierarchy level (0=Layer, 1=Domain, 2+=Term) |
-| `Title` | String | Yes | 255 | Display name of the entity |
-| `Definition` | String | No | - | Descriptive text explaining the entity |
-| `ID` | String (UUID) | No | 36 | Unique identifier (auto-generated if omitted) |
+| Column Name  | Type          | Required | Max Length | Description                                   |
+| ------------ | ------------- | -------- | ---------- | --------------------------------------------- |
+| `Depth`      | Integer       | Yes      | -          | Hierarchy level (0=Layer, 1=Domain, 2+=Term)  |
+| `Title`      | String        | Yes      | 255        | Display name of the entity                    |
+| `Definition` | String        | No       | -          | Descriptive text explaining the entity        |
+| `ID`         | String (UUID) | No       | 36         | Unique identifier (auto-generated if omitted) |
 
 ### Column Details
 
 #### `Depth` (Required)
+
 - **Type:** Integer (0 or positive)
 - **Purpose:** Determines the type and hierarchy level of the entity
 - **Values:**
@@ -52,6 +55,7 @@ The CSV file must contain a header row followed by data rows. Each row represent
 - **Error Handling:** Rows with missing or invalid Depth values are skipped with a warning
 
 #### `Title` (Required)
+
 - **Type:** String
 - **Purpose:** Human-readable name for the entity
 - **Constraints:**
@@ -60,6 +64,7 @@ The CSV file must contain a header row followed by data rows. Each row represent
 - **Behavior:** Used for display and as the primary identifier
 
 #### `Definition` (Optional)
+
 - **Type:** String (multiline supported)
 - **Purpose:** Detailed description or definition of the entity
 - **Constraints:**
@@ -68,6 +73,7 @@ The CSV file must contain a header row followed by data rows. Each row represent
 - **Behavior:** Provides context and meaning for the entity
 
 #### `ID` (Optional)
+
 - **Type:** String (UUID format recommended)
 - **Purpose:** Unique identifier for the entity
 - **Constraints:**
@@ -152,13 +158,13 @@ The import utility uses **upsert** logic based on the `ID` field:
 
 ### Error Handling
 
-| Error Condition | Behavior |
-|----------------|----------|
-| Missing or invalid `Depth` | Row skipped with warning |
-| Missing `Title` | Row processed (may fail at database level) |
-| Duplicate `ID` | Error logged, row skipped, transaction rolled back |
-| Term without Domain context | Row skipped with warning |
-| Invalid parent relationship | Row skipped with warning |
+| Error Condition             | Behavior                                           |
+| --------------------------- | -------------------------------------------------- |
+| Missing or invalid `Depth`  | Row skipped with warning                           |
+| Missing `Title`             | Row processed (may fail at database level)         |
+| Duplicate `ID`              | Error logged, row skipped, transaction rolled back |
+| Term without Domain context | Row skipped with warning                           |
+| Invalid parent relationship | Row skipped with warning                           |
 
 ### Transaction Boundaries
 
@@ -185,6 +191,7 @@ Depth,Title,Definition,ID
 ```
 
 **Result Structure:**
+
 ```
 Layer: Business Concepts
 ├── Domain: Finance
@@ -211,6 +218,7 @@ Depth,Title,Definition,ID
 ```
 
 **Result Structure:**
+
 ```
 Layer: Technical Architecture
 └── Domain: Frontend
@@ -236,6 +244,7 @@ Depth,Title,Definition,ID
 ```
 
 **Result Structure:**
+
 ```
 Layer: Taxonomy
 └── Domain: Biology
@@ -297,6 +306,7 @@ python utils/import_csv.py -f /path/to/file.csv --test
 ### Database Schema Compatibility
 
 This CSV format is designed for the Context Studio database schema where:
+
 - Layers, Domains, and Terms may be stored in separate tables OR a unified `structure_nodes` table with a `node_type` discriminator
 - Parent-child relationships are managed through foreign key references
 - UUIDs are stored as strings in SQLite
@@ -320,18 +330,22 @@ This CSV format is designed for the Context Studio database schema where:
 ### Common Issues
 
 **Issue:** "Row missing or invalid Depth"
+
 - **Cause:** Depth column contains non-integer values or is empty
 - **Fix:** Ensure all Depth values are integers (0, 1, 2, etc.)
 
 **Issue:** "No domain found for term"
+
 - **Cause:** Term (Depth 2+) appears before any Domain (Depth 1)
 - **Fix:** Reorder rows so Domains appear before their Terms
 
 **Issue:** "Duplicate Term with id"
+
 - **Cause:** ID already exists in database
 - **Fix:** Remove ID column to auto-generate, or use unique IDs
 
 **Issue:** "File not found"
+
 - **Cause:** Invalid file path
 - **Fix:** Use absolute paths or verify relative path is correct
 
@@ -352,9 +366,9 @@ This CSV format is designed for the Context Studio database schema where:
 
 ## Version History
 
-| Version | Date | Changes |
-|---------|------|---------|
-| 1.0 | 2025-12-12 | Initial specification based on `utils/import_csv.py` |
+| Version | Date       | Changes                                              |
+| ------- | ---------- | ---------------------------------------------------- |
+| 1.0     | 2025-12-12 | Initial specification based on `utils/import_csv.py` |
 
 ---
 

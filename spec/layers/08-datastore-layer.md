@@ -1135,52 +1135,65 @@ Naming Convention:
     - V003__migrate_product_categories.sql
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example Table with cross-layer properties -->
+  <element id="products-table" type="Table">
+    <n>Products Table</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer
 
-- **Constraints drive retention**: x-governed-by-constraints links table retention policies to regulatory Constraints
-- **Requirements drive schema**: x-governed-by-requirements traces database design to Requirements
-- **Principles guide design**: x-governed-by-principles ensures database follows architectural Principles (normalization, data ownership, etc.)
-- **Compliance proof**: Table/column comments provide audit trail for compliance
+- **Table** governed by **Constraint** (x-governed-by-constraints property)
+- **Table** driven by **Requirement** (x-governed-by-requirements property)
+- **Table** guided by **Principle** (x-governed-by-principles property)
 
 ### To Data Model Layer (JSON Schema)
 
-- Table COMMENT includes x-json-schema path
-- Column COMMENT includes x-json-schema-path
-- Ensures database matches logical data model
-- Enables bidirectional sync
+- **Table** references **JSON Schema** (x-json-schema property)
+- **Column** references **Schema Path** (x-json-schema-path property)
 
 ### To ArchiMate Technology Layer
 
-- Table COMMENT includes x-archimate-ref to Artifact
-- Enables traceability to architecture
-- Links physical to logical
+- **Table** references **Artifact** (x-archimate-ref property)
 
 ### To Security Layer
 
-- Column metadata (x-pii, x-encrypted)
-- Table metadata (x-retention, x-classification)
-- Audit fields (created_at, updated_at, deleted_at)
+- **Column** has **PII Flag** (x-pii property)
+- **Column** has **Encryption Flag** (x-encrypted property)
+- **Table** has **Retention Policy** (x-retention property)
+- **Table** has **Classification** (x-classification property)
 
 ### To APM/Observability Layer
 
-- **Database performance monitoring**: x-apm-performance-metrics links tables to database performance Metrics
-- **Query performance**: Track query latency, execution plans, slow queries (e.g., "metric-products-query-latency-p95")
-- **Table growth**: Monitor table size, row count trends, storage usage (e.g., "metric-products-table-size-bytes")
-- **Index health**: Track index hit rates, unused indexes, index bloat (e.g., "metric-products-index-hit-rate")
-- **Write performance**: Monitor insert/update/delete throughput (e.g., "metric-products-write-throughput")
-- **Data quality at table level**: x-apm-data-quality-metrics links tables to database integrity Metrics
-- **Constraint violations**: Track CHECK, UNIQUE, NOT NULL violations (e.g., "metric-products-constraint-violations")
-- **Referential integrity**: Monitor foreign key constraint failures (e.g., "metric-products-fk-integrity-rate")
-- **Record counts**: Track daily record counts for anomaly detection (e.g., "metric-products-record-count-daily")
-- **Null violations**: Detect unexpected nulls in critical columns (e.g., "metric-products-null-violations")
-- **Complete traceability**: Goal → Requirement → Schema → Table → Performance/Quality Metric → Outcome
-- **SLA validation**: Links physical database performance to business SLAs and goals
-- **Operational monitoring**: Enables alerts when database health degrades
-- **Capacity planning**: Historical metrics inform scaling and optimization decisions
+- **Table** monitored by **Performance Metric** (x-apm-performance-metrics property)
+- **Table** tracked for **Query Performance** (metric.query-latency property)
+- **Table** tracked for **Table Growth** (metric.table-size property)
+- **Table** tracked for **Index Health** (metric.index-hit-rate property)
+- **Table** tracked for **Write Performance** (metric.write-throughput property)
+- **Table** monitored by **Data Quality Metric** (x-apm-data-quality-metrics property)
+- **Table** tracked for **Constraint Violations** (metric.constraint-violations property)
+- **Table** tracked for **Referential Integrity** (metric.fk-integrity-rate property)
+- **Table** tracked for **Record Counts** (metric.record-count property)
+- **Table** tracked for **Null Violations** (metric.null-violations property)
 
 ## Database-Specific Features
 
@@ -1221,6 +1234,93 @@ CREATE FULLTEXT INDEX idx_products_fulltext
 ALTER TABLE products
     ADD COLUMN metadata JSON;
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 

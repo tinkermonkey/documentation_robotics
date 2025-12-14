@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/02-business-layer.schema.json",
-  "title": "Business Layer Schema",
+  "title": "Business Layer Layer Schema",
   "description": "Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.",
   "type": "object",
   "properties": {
@@ -373,7 +373,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/EventType"
         },
         "properties": {
           "type": "object",
@@ -393,16 +393,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "EventType": {
-          "type": "string",
-          "enum": [
-            "time-driven",
-            "state-change",
-            "external"
-          ]
         }
       }
     },
@@ -448,36 +438,22 @@
               "type": "object",
               "properties": {
                 "delivers-value": {
-                  "allOf": [
-                    {
-                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/delivers-value"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "optional, comma-separated Value IDs"
                 },
                 "supports-goals": {
-                  "allOf": [
-                    {
-                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/supports-goals"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "optional, comma-separated Goal IDs"
                 },
                 "governed-by-principles": {
-                  "allOf": [
-                    {
-                      "$ref": "common/relationships.schema.json#/definitions/MotivationProperties/properties/governed-by"
-                    }
-                  ]
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
                 }
               }
             }
           }
         }
-      },
-      "allOf": [
-        {
-          "$ref": "common/relationships.schema.json#/definitions/ConditionalCriticalityRequirements"
-        }
-      ]
+      }
     },
     "BusinessObject": {
       "type": "object",
@@ -608,18 +584,7 @@
           "minLength": 1
         },
         "format": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "RepresentationFormat": {
-          "type": "string",
-          "enum": [
-            "document",
-            "report",
-            "form",
-            "message"
-          ]
+          "$ref": "#/definitions/RepresentationFormat"
         }
       }
     },
@@ -659,14 +624,23 @@
           }
         }
       }
-    }
-  },
-  "$defs": {
-    "relationships": {
-      "$ref": "common/relationships.schema.json#/definitions"
     },
-    "predicates": {
-      "$ref": "common/predicates.schema.json#/definitions"
+    "EventType": {
+      "type": "string",
+      "enum": [
+        "time-driven",
+        "state-change",
+        "external"
+      ]
+    },
+    "RepresentationFormat": {
+      "type": "string",
+      "enum": [
+        "document",
+        "report",
+        "form",
+        "message"
+      ]
     }
   }
 }

@@ -244,6 +244,10 @@ Want to use this for modeling your project?
 4. **Learn More**
    - Browse [spec/examples/](spec/examples/)
    - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
+   - Review [docs/guides/](docs/guides/) for implementation guides:
+     - [Relationship Documentation Guide](docs/guides/relationship-documentation.md)
+     - [GraphML Export Guide](docs/guides/graphml-export.md)
+     - [Graph Visualization Quickstart](docs/guides/graph-visualization-quickstart.md)
 
 Evaluating this approach?
 

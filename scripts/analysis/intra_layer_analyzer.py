@@ -145,11 +145,6 @@ class LayerIntraRelationshipReport:
 class IntraLayerAnalyzer:
     """Analyzes and extracts intra-layer relationships from layer specifications."""
 
-    # Regex patterns
-    XML_RELATIONSHIP_PATTERN = re.compile(
-        r'<relationship\s+type="([^"]+)"\s+source="([^"]+)"\s+target="([^"]+)"\s*/>'
-    )
-
     def __init__(self, spec_root: Optional[Path] = None):
         """Initialize the analyzer.
 
@@ -161,6 +156,11 @@ class IntraLayerAnalyzer:
 
         # CLOSED LOOP: Reuse existing parser
         self.markdown_parser = MarkdownLayerParser()
+
+        # NEW: Use shared relationship parser
+        sys.path.insert(0, str(Path(__file__).parent.parent))
+        from utils.relationship_parser import RelationshipParser
+        self.relationship_parser = RelationshipParser()
 
         # Load relationship catalog
         self.relationship_catalog = self._load_relationship_catalog()
@@ -211,8 +211,17 @@ class IntraLayerAnalyzer:
         # Read raw content for relationship extraction
         content = layer_file.read_text(encoding="utf-8")
 
-        # Extract relationships from different sources
-        xml_relationships = self._extract_xml_relationships(content, layer_id)
+        # NEW: Use shared parser for XML relationships
+        parse_result = self.relationship_parser.parse_all_formats(content, layer_id, layer_file)
+
+        # Filter to intra-layer XML relationships only
+        xml_relationships = [
+            self._convert_to_intra_layer_relationship(r)
+            for r in parse_result.relationships
+            if r.format_type == "xml_relationship" and r.is_intra_layer
+        ]
+
+        # Keep existing documented relationship extraction
         documented_relationships = self._extract_documented_relationships(content, layer_id)
 
         # Build entity profiles
@@ -244,12 +253,11 @@ class IntraLayerAnalyzer:
         reports = {}
 
         for layer_file in sorted(self.layers_path.glob("*.md")):
-            # Extract layer ID from filename
-            match = re.match(r"(\d{2}-[\w-]+)", layer_file.stem)
-            if not match:
+            # Extract layer ID from filename (e.g., "02-business-layer.md" -> "02-business")
+            if not layer_file.stem.endswith("-layer"):
                 continue
 
-            layer_id = match.group(1)
+            layer_id = layer_file.stem.replace("-layer", "")
 
             try:
                 report = self.analyze_layer(layer_id)
@@ -260,60 +268,33 @@ class IntraLayerAnalyzer:
 
         return reports
 
-    def _extract_xml_relationships(
-        self, content: str, layer_id: str
-    ) -> List[IntraLayerRelationship]:
-        """Extract relationships from <relationship> XML tags in examples.
+    def _convert_to_intra_layer_relationship(
+        self, parsed_rel
+    ) -> IntraLayerRelationship:
+        """Convert ParsedRelationship to IntraLayerRelationship.
 
         Args:
-            content: Layer markdown content
-            layer_id: Layer identifier
+            parsed_rel: ParsedRelationship from shared parser
 
         Returns:
-            List of extracted relationships
+            IntraLayerRelationship for this analyzer
         """
-        relationships = []
-
-        # First, build a map of element IDs to types
-        element_pattern = re.compile(
-            r'<element\s+id="([^"]+)"\s+type="([^"]+)"',
-            re.IGNORECASE,
+        rel = IntraLayerRelationship(
+            relationship_type=parsed_rel.relationship_type,
+            source_entity=parsed_rel.source,
+            target_entity=parsed_rel.target,
+            predicate=parsed_rel.predicate or "",
+            inverse_predicate=parsed_rel.inverse_predicate,
+            source_location="xml_example",
+            layer_id=parsed_rel.layer_id,
+            has_xml_example=True,
         )
-        element_id_to_type = {}
-        for element_id, element_type in element_pattern.findall(content):
-            element_id_to_type[element_id] = element_type
 
-        # Find all XML relationship tags
-        matches = self.XML_RELATIONSHIP_PATTERN.findall(content)
+        # Check if in catalog
+        rel.in_relationship_catalog = self._match_to_catalog(rel, parsed_rel.layer_id)
+        rel.archimate_alignment = self._get_archimate_alignment(parsed_rel.relationship_type)
 
-        for rel_type, source_id, target_id in matches:
-            # Look up entity types from IDs
-            source_entity = element_id_to_type.get(source_id)
-            target_entity = element_id_to_type.get(target_id)
-
-            # Check if this is an intra-layer relationship
-            # (both source and target must be entity types in this layer)
-            if source_entity and target_entity:
-                # Check if both are entities in this layer
-                if self._is_intra_layer_relationship(source_entity, target_entity, content):
-                    rel = IntraLayerRelationship(
-                        relationship_type=rel_type.lower(),
-                        source_entity=source_entity,
-                        target_entity=target_entity,
-                        predicate=self._get_predicate_for_type(rel_type),
-                        inverse_predicate=self._get_inverse_predicate_for_type(rel_type),
-                        source_location="xml_example",
-                        layer_id=layer_id,
-                        has_xml_example=True,
-                    )
-
-                    # Check if in catalog
-                    rel.in_relationship_catalog = self._match_to_catalog(rel, layer_id)
-                    rel.archimate_alignment = self._get_archimate_alignment(rel.relationship_type)
-
-                    relationships.append(rel)
-
-        return relationships
+        return rel
 
     def _extract_documented_relationships(
         self, content: str, layer_id: str
@@ -329,9 +310,9 @@ class IntraLayerAnalyzer:
         """
         relationships = []
 
-        # Find Relationships section
+        # Find Relationships section (stop at next h2 header or end of file)
         relationships_section_match = re.search(
-            r"^##\s+Relationships\s*$(.+?)(?=^##|\Z)",
+            r"^##\s+Relationships\s*$(.+?)(?=^##\s+[^#]|\Z)",
             content,
             re.MULTILINE | re.DOTALL,
         )
@@ -341,18 +322,19 @@ class IntraLayerAnalyzer:
 
         section_content = relationships_section_match.group(1)
 
-        # Pattern: - **RelationshipType**: Entity predicate Entity
-        # Example: - **Aggregation**: Goal aggregates sub-Goals
+        # Pattern: - **SourceEntity predicate TargetEntity**: Description
+        # Example: - **Product aggregates BusinessService**: Products bundle services...
         relationship_line_pattern = re.compile(
-            r"-\s+\*\*([^*]+)\*\*:\s+(\w+)\s+([\w-]+)\s+([\w-]+)",
+            r"-\s+\*\*(\w+)\s+([\w-]+)\s+(\w+)\*\*:",
             re.IGNORECASE,
         )
 
         for match in relationship_line_pattern.finditer(section_content):
-            relationship_type = match.group(1).strip()
-            source_entity = match.group(2)
-            predicate = match.group(3)
-            target_entity = match.group(4)
+            source_entity = match.group(1)
+            predicate = match.group(2)
+            target_entity = match.group(3)
+            # Infer relationship type from predicate
+            relationship_type = predicate.replace("-", " ")
 
             rel = IntraLayerRelationship(
                 relationship_type=relationship_type.lower(),
@@ -538,10 +520,11 @@ class IntraLayerAnalyzer:
         layer_num = layer_id.split("-")[0]
 
         for catalog_rel in self.relationship_catalog.get("relationshipTypes", []):
-            # Match by relationship type or predicate
+            # Match by relationship type, predicate, or inverse predicate
             type_match = (
                 catalog_rel.get("id", "").lower() == rel.relationship_type.lower()
                 or catalog_rel.get("predicate") == rel.predicate
+                or catalog_rel.get("inversePredicate") == rel.predicate
             )
 
             if type_match:

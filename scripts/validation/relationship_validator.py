@@ -15,6 +15,7 @@ from uuid import UUID
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 from utils.link_registry import LinkRegistry
+from utils.relationship_parser import RelationshipParser, ParsedRelationship
 
 
 @dataclass
@@ -42,6 +43,7 @@ class ValidationReport:
     layers_validated: int
     links_validated: int
     validation_passed: bool
+    format_breakdown: Dict[str, int] = field(default_factory=dict)  # NEW: Count by format type
 
 
 class RelationshipValidator:
@@ -73,8 +75,11 @@ class RelationshipValidator:
         self.layers_path = self.spec_root / "layers"
         self.registry = registry or LinkRegistry()
 
-        # Patterns for extraction
-        self.property_pattern = re.compile(r'^\s*-\s+key:\s*"([^"]+)"\s*\n\s*value:\s*"([^"]*)"', re.MULTILINE)
+        # NEW: Use shared relationship parser
+        self.parser = RelationshipParser(
+            registry=self.registry,
+            relationship_catalog=self._load_relationship_catalog()
+        )
 
     def _find_spec_root(self) -> Path:
         """Auto-detect spec root directory."""
@@ -89,6 +94,16 @@ class RelationshipValidator:
 
         return spec_root
 
+    def _load_relationship_catalog(self) -> Dict:
+        """Load relationship catalog from JSON."""
+        catalog_path = self.spec_root / "schemas" / "relationship-catalog.json"
+
+        if not catalog_path.exists():
+            return {"relationshipTypes": []}
+
+        with open(catalog_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+
     def validate(self, layer_id: Optional[str] = None) -> ValidationReport:
         """Perform comprehensive relationship validation.
 
@@ -101,6 +116,7 @@ class RelationshipValidator:
         issues: List[ValidationIssue] = []
         layers_validated = 0
         links_validated = 0
+        format_counts: Dict[str, int] = {}
 
         # Determine which layers to validate
         if layer_id:
@@ -114,10 +130,14 @@ class RelationshipValidator:
             if not lid:
                 continue
 
-            layer_issues, link_count = self._validate_layer(layer_file, lid)
+            layer_issues, link_count, layer_format_counts = self._validate_layer(layer_file, lid)
             issues.extend(layer_issues)
             layers_validated += 1
             links_validated += link_count
+
+            # Aggregate format counts
+            for format_type, count in layer_format_counts.items():
+                format_counts[format_type] = format_counts.get(format_type, 0) + count
 
         # Categorize issues
         errors = [i for i in issues if i.severity == "error"]
@@ -132,120 +152,144 @@ class RelationshipValidator:
             layers_validated=layers_validated,
             links_validated=links_validated,
             validation_passed=(len(errors) == 0),
+            format_breakdown=format_counts,
         )
 
     def _extract_layer_id(self, filename: str) -> Optional[str]:
-        """Extract layer ID from filename."""
-        match = re.match(r'^(\d+)-', filename)
+        """Extract layer ID from filename (e.g., '02-business' from '02-business-layer.md')."""
+        match = re.match(r'^(\d+-[a-z-]+)-layer\.md$', filename)
         return match.group(1) if match else None
 
-    def _validate_layer(self, layer_file: Path, layer_id: str) -> Tuple[List[ValidationIssue], int]:
-        """Validate relationships in a single layer file."""
+    def _validate_layer(self, layer_file: Path, layer_id: str) -> Tuple[List[ValidationIssue], int, Dict[str, int]]:
+        """Validate relationships in a single layer file.
+
+        Returns:
+            Tuple of (issues, link_count, format_counts)
+        """
         issues: List[ValidationIssue] = []
-        link_count = 0
 
         content = layer_file.read_text(encoding="utf-8")
 
-        # Extract all property definitions
-        property_matches = self.property_pattern.finditer(content)
+        # NEW: Parse all relationship formats using shared parser
+        parse_result = self.parser.parse_all_formats(content, layer_id, layer_file)
 
-        for match in property_matches:
-            field_path = match.group(1)
-            value = match.group(2)
+        # Validate each parsed relationship
+        for relationship in parse_result.relationships:
+            rel_issues = self._validate_parsed_relationship(relationship, layer_id, str(layer_file))
+            issues.extend(rel_issues)
 
-            # Find matching link type in registry
-            matching_links = self.registry.find_links_by_field_path(field_path)
+        # Add any parser errors/warnings
+        for error in parse_result.errors:
+            issues.append(ValidationIssue(
+                severity="error",
+                category="parsing",
+                message=error,
+                location=str(layer_file),
+            ))
 
-            if not matching_links:
-                # Field path not in registry (already reported by coverage analyzer)
-                continue
+        for warning in parse_result.warnings:
+            issues.append(ValidationIssue(
+                severity="warning",
+                category="parsing",
+                message=warning,
+                location=str(layer_file),
+            ))
 
-            link_type = matching_links[0]  # Use first match
-            link_count += 1
+        link_count = len(parse_result.relationships)
+        format_counts = parse_result.metadata.get('by_format', {})
 
-            # Validate this link instance
-            link_issues = self._validate_link_instance(
-                link_type, field_path, value, layer_id, str(layer_file)
-            )
-            issues.extend(link_issues)
+        return issues, link_count, format_counts
 
-        return issues, link_count
-
-    def _validate_link_instance(
+    def _validate_parsed_relationship(
         self,
-        link_type,
-        field_path: str,
-        value: str,
+        relationship: ParsedRelationship,
         layer_id: str,
         location: str,
     ) -> List[ValidationIssue]:
-        """Validate a single link instance."""
+        """Validate a parsed relationship (replaces old _validate_link_instance).
+
+        This method validates relationships from all 4 formats using a unified approach.
+        """
         issues: List[ValidationIssue] = []
 
-        # 1. Schema validation - check source layer
-        if layer_id not in link_type.source_layers:
+        # Use parser's built-in validation first
+        parser_issues = self.parser.validate_relationship(relationship, strict=True)
+
+        # Convert parser issues to ValidationIssue format
+        for parser_issue in parser_issues:
             issues.append(ValidationIssue(
-                severity="error",
-                category="schema",
-                message=f"Link type '{link_type.id}' used in invalid source layer",
-                location=location,
-                field_path=field_path,
-                expected=f"One of: {', '.join(link_type.source_layers)}",
-                actual=layer_id,
-                suggestion=f"This link should only be used in layers: {', '.join(link_type.source_layers)}",
+                severity=parser_issue.get('severity', 'warning'),
+                category=parser_issue.get('category', 'validation'),
+                message=parser_issue.get('message', ''),
+                location=parser_issue.get('location', location),
+                field_path=parser_issue.get('field_path'),
+                expected=parser_issue.get('expected'),
+                actual=parser_issue.get('actual'),
+                suggestion=parser_issue.get('suggestion'),
             ))
 
-        # 2. Cardinality validation
-        if link_type.is_array:
-            # Should be comma-separated list
-            if value and ',' not in value and len(value.split()) == 1:
-                issues.append(ValidationIssue(
-                    severity="warning",
-                    category="cardinality",
-                    message=f"Link expects array but appears to have single value",
-                    location=location,
-                    field_path=field_path,
-                    expected="Comma-separated list",
-                    actual=value,
-                    suggestion="Use comma-separated format: value1,value2,value3",
-                ))
-        else:
-            # Should be single value
-            if value and ',' in value:
-                issues.append(ValidationIssue(
-                    severity="error",
-                    category="cardinality",
-                    message=f"Link expects single value but has multiple",
-                    location=location,
-                    field_path=field_path,
-                    expected="Single value",
-                    actual=value,
-                    suggestion="Remove extra values or use array-type link",
-                ))
+        # Format-specific validation
+        if relationship.format_type in ["yaml_property", "xml_property"]:
+            # Validate against link registry
+            link_type_id = relationship.properties.get('link_type_id')
+            if link_type_id:
+                link_type = self.registry.link_types.get(link_type_id)
+                if link_type:
+                    # Schema validation - check source layer
+                    if layer_id not in link_type.source_layers:
+                        issues.append(ValidationIssue(
+                            severity="error",
+                            category="schema",
+                            message=f"Link type '{link_type.id}' used in invalid source layer",
+                            location=location,
+                            field_path=relationship.field_path,
+                            expected=f"One of: {', '.join(link_type.source_layers)}",
+                            actual=layer_id,
+                            suggestion=f"This link should only be used in layers: {', '.join(link_type.source_layers)}",
+                        ))
 
-        # 3. Format validation
-        if value:
-            format_issues = self._validate_format(link_type.format, value, field_path, location)
-            issues.extend(format_issues)
+                    # Required validation
+                    if link_type.is_required and not relationship.value:
+                        issues.append(ValidationIssue(
+                            severity="error",
+                            category="required",
+                            message=f"Required link '{link_type.id}' is missing value",
+                            location=location,
+                            field_path=relationship.field_path,
+                            expected="Non-empty value",
+                            actual="empty",
+                            suggestion=f"This link is required: {link_type.description}",
+                        ))
 
-        # 4. Required validation (if field is marked as required)
-        if link_type.is_required and not value:
-            issues.append(ValidationIssue(
-                severity="error",
-                category="required",
-                message=f"Required link '{link_type.id}' is missing value",
-                location=location,
-                field_path=field_path,
-                expected="Non-empty value",
-                actual="empty",
-                suggestion=f"This link is required: {link_type.description}",
-            ))
+        elif relationship.format_type == "xml_relationship":
+            # Validate XML relationships (intra-layer)
+            # Predicate validation is already handled by parser
+            pass
+
+        elif relationship.format_type == "integration_point":
+            # Integration points are documentation - validate consistency
+            if relationship.field_path:
+                # Check if mentioned property exists in registry
+                link_types = self.registry.find_links_by_field_path(relationship.field_path)
+                if not link_types:
+                    issues.append(ValidationIssue(
+                        severity="warning",
+                        category="reference",
+                        message=f"Integration point references unknown property '{relationship.field_path}'",
+                        location=location,
+                        field_path=relationship.field_path,
+                        suggestion="Add this property to link-registry.json or remove reference",
+                    ))
 
         return issues
 
     def _validate_format(self, format_type: str, value: str, field_path: str, location: str) -> List[ValidationIssue]:
         """Validate value format."""
         issues: List[ValidationIssue] = []
+
+        # Skip validation for documentation examples (pipe-separated options)
+        if '|' in value:
+            return issues
 
         # Split array values
         values = [v.strip() for v in value.split(',')] if ',' in value else [value]
@@ -322,9 +366,23 @@ class RelationshipValidator:
             f"- **Warnings**: {len(report.warnings)} ⚠️",
             f"- **Info**: {len(report.info)} ℹ️",
             f"- **Layers Validated**: {report.layers_validated}",
-            f"- **Links Validated**: {report.links_validated}",
+            f"- **Relationships Validated**: {report.links_validated}",
             "",
         ])
+
+        # NEW: Breakdown by format
+        if report.format_breakdown:
+            lines.extend([
+                "## Relationships by Format",
+                "",
+                "| Format | Count |",
+                "|--------|-------|",
+            ])
+            for format_type, count in sorted(report.format_breakdown.items()):
+                # Make format names more readable
+                format_display = format_type.replace('_', ' ').title()
+                lines.append(f"| {format_display} | {count} |")
+            lines.append("")
 
         # Issues by severity
         if report.errors:

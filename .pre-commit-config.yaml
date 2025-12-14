@@ -85,7 +85,7 @@ repos:
     hooks:
       - id: validate-markdown-specs
         name: Validate markdown layer specifications
-        entry: python scripts/validate_markdown.py --all
+        entry: python scripts/validate.py --markdown --all
         language: system
         files: ^spec/layers/.*\.md$
         pass_filenames: false
@@ -100,7 +100,7 @@ repos:
 
       - id: validate-link-registry
         name: Validate link registry is synchronized
-        entry: python scripts/validate_markdown.py --validate-links
+        entry: python scripts/validate.py --relationships --all
         language: system
         files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
         pass_filenames: false

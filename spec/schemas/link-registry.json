@@ -121,7 +121,7 @@
         "apm.health-check-endpoint"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "string",
       "description": "health check endpoint",
       "examples": [
         {
@@ -173,7 +173,7 @@
         "apm.health-monitored"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "whether health is actively monitored",
       "examples": [
         {
@@ -423,7 +423,7 @@
         "apm.traced"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "Links to Traced in target layer",
       "examples": [
         {
@@ -520,8 +520,8 @@
       "fieldPaths": [
         "application.process-steps"
       ],
-      "cardinality": "single",
-      "format": "duration",
+      "cardinality": "array",
+      "format": "reference",
       "description": "which specific ApplicationProcess steps realize this business process",
       "examples": [],
       "validationRules": {
@@ -564,7 +564,7 @@
         "application.realized-by-process"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "reference",
       "description": "ApplicationService - **BusinessProcess** automated by ApplicationProcess",
       "examples": [],
       "validationRules": {
@@ -710,8 +710,8 @@
         "apm.business-metrics",
         "x-apm-business-metrics"
       ],
-      "cardinality": "single",
-      "format": "duration",
+      "cardinality": "array",
+      "format": "reference",
       "description": "comma-separated business metric IDs this service tracks",
       "examples": [
         {
@@ -1015,7 +1015,7 @@
         "data.governance-owner"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "reference",
       "description": "BusinessObject ownership by BusinessActor",
       "examples": [
         {
@@ -1264,8 +1264,8 @@
         "motivation.constrained-by",
         "x-constrained-by"
       ],
-      "cardinality": "single",
-      "format": "duration",
+      "cardinality": "array",
+      "format": "reference",
       "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
       "examples": [
         {
@@ -1353,8 +1353,8 @@
       "fieldPaths": [
         "motivation.delivers-value"
       ],
-      "cardinality": "single",
-      "format": "string",
+      "cardinality": "array",
+      "format": "reference",
       "description": "BusinessService delivers Value",
       "examples": [
         {
@@ -1421,8 +1421,8 @@
         "motivation.fulfills-requirements",
         "x-fulfills-requirements"
       ],
-      "cardinality": "single",
-      "format": "duration",
+      "cardinality": "array",
+      "format": "reference",
       "description": "comma-separated Requirement IDs this function fulfills",
       "examples": [
         {
@@ -1500,9 +1500,16 @@
       "category": "motivation",
       "sourceLayers": [
         "02-business",
+        "03-security",
         "04-application",
         "05-technology",
-        "06-api"
+        "06-api",
+        "07-data-model",
+        "08-datastore",
+        "09-ux",
+        "10-navigation",
+        "11-apm-observability",
+        "12-testing"
       ],
       "targetLayer": "01-motivation",
       "targetElementTypes": [
@@ -1512,8 +1519,8 @@
         "motivation.governed-by-principles",
         "x-governed-by-principles"
       ],
-      "cardinality": "single",
-      "format": "string",
+      "cardinality": "array",
+      "format": "reference",
       "description": "BusinessService governed by Principles",
       "examples": [
         {
@@ -1582,6 +1589,27 @@
           "OpenAPIDocument",
           "Operation",
           "SecurityScheme"
+        ],
+        "03-security": [
+          "BusinessService"
+        ],
+        "07-data-model": [
+          "BusinessService"
+        ],
+        "08-datastore": [
+          "BusinessService"
+        ],
+        "09-ux": [
+          "BusinessService"
+        ],
+        "10-navigation": [
+          "BusinessService"
+        ],
+        "11-apm-observability": [
+          "BusinessService"
+        ],
+        "12-testing": [
+          "BusinessService"
         ]
       },
       "sourceElementTypes": [
@@ -1605,9 +1633,16 @@
       "category": "motivation",
       "sourceLayers": [
         "02-business",
+        "03-security",
         "04-application",
         "05-technology",
-        "06-api"
+        "06-api",
+        "07-data-model",
+        "08-datastore",
+        "09-ux",
+        "10-navigation",
+        "11-apm-observability",
+        "12-testing"
       ],
       "targetLayer": "01-motivation",
       "targetElementTypes": [
@@ -1617,8 +1652,8 @@
         "motivation.supports-goals",
         "x-supports-goals"
       ],
-      "cardinality": "single",
-      "format": "string",
+      "cardinality": "array",
+      "format": "reference",
       "description": "BusinessService supports Goals",
       "examples": [
         {
@@ -1677,6 +1712,27 @@
         "06-api": [
           "Operation",
           "SecurityScheme"
+        ],
+        "03-security": [
+          "BusinessService"
+        ],
+        "07-data-model": [
+          "BusinessService"
+        ],
+        "08-datastore": [
+          "BusinessService"
+        ],
+        "09-ux": [
+          "BusinessService"
+        ],
+        "10-navigation": [
+          "BusinessService"
+        ],
+        "11-apm-observability": [
+          "BusinessService"
+        ],
+        "12-testing": [
+          "BusinessService"
         ]
       },
       "sourceElementTypes": [
@@ -1694,7 +1750,17 @@
       "name": "Classification",
       "category": "security",
       "sourceLayers": [
-        "05-technology"
+        "02-business",
+        "03-security",
+        "04-application",
+        "05-technology",
+        "06-api",
+        "07-data-model",
+        "08-datastore",
+        "09-ux",
+        "10-navigation",
+        "11-apm-observability",
+        "12-testing"
       ],
       "targetLayer": "03-security",
       "targetElementTypes": [
@@ -1704,7 +1770,7 @@
         "security.classification"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "string",
       "description": "Links to Classification in target layer",
       "examples": [
         {
@@ -1741,6 +1807,36 @@
       "sourceElementTypesByLayer": {
         "05-technology": [
           "Artifact"
+        ],
+        "02-business": [
+          "Artifact"
+        ],
+        "03-security": [
+          "Artifact"
+        ],
+        "04-application": [
+          "Artifact"
+        ],
+        "06-api": [
+          "Artifact"
+        ],
+        "07-data-model": [
+          "Artifact"
+        ],
+        "08-datastore": [
+          "Artifact"
+        ],
+        "09-ux": [
+          "Artifact"
+        ],
+        "10-navigation": [
+          "Artifact"
+        ],
+        "11-apm-observability": [
+          "Artifact"
+        ],
+        "12-testing": [
+          "Artifact"
         ]
       },
       "sourceElementTypes": [
@@ -1764,7 +1860,7 @@
         "data.pii"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "Links to Pii in target layer",
       "examples": [
         {
@@ -1862,7 +1958,7 @@
         "security.encryption-required"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "Links to EncryptionRequired in target layer",
       "examples": [
         {
@@ -1922,7 +2018,7 @@
         "security.encryption-type"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "string",
       "description": "Links to EncryptionType in target layer",
       "examples": [
         {
@@ -1984,7 +2080,7 @@
         "x-pii"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "contains personally identifiable information",
       "examples": [
         {
@@ -2040,7 +2136,7 @@
       "fieldPaths": [
         "process.security-controls"
       ],
-      "cardinality": "single",
+      "cardinality": "array",
       "format": "string",
       "description": "security control references",
       "examples": [
@@ -2093,7 +2189,7 @@
         "process.separation-of-duty"
       ],
       "cardinality": "single",
-      "format": "duration",
+      "format": "boolean",
       "description": "Links to SeparationOfDuty in target layer",
       "examples": [
         {

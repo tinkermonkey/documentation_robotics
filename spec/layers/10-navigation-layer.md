@@ -1370,69 +1370,81 @@ flows:
         name: "Confirmation"
 ```
 
+## Example Model
+
+The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+
+```xml
+<model>
+  <!-- Example NavigationFlow with cross-layer properties -->
+  <element id="product-flow" type="NavigationFlow">
+    <n>Product Navigation</n>
+    <documentation>Example demonstrating cross-layer property usage</documentation>
+
+    <!-- Motivation Layer Integration -->
+    <property key="motivation.supports-goals">goal-example</property>
+    <property key="motivation.governed-by-principles">principle-example</property>
+
+    <!-- Security Layer Integration -->
+    <property key="security.classification">internal</property>
+  </element>
+</model>
+```
+
 ## Integration Points
 
 **For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Motivation Layer
 
-- **Principles guide navigation**: `NavigationGraph.governedByPrinciples` ensures navigation follows UX Principles (user-centric, accessibility, multi-channel, etc.)
-- **Flows support Goals**: `NavigationFlow.motivation.supportsGoals` links user journeys to business objectives, enabling goal-based impact analysis
-- **Flows deliver Value**: `NavigationFlow.motivation.deliversValue` shows which stakeholder values are delivered through user journeys
-- **Routes fulfill Requirements**: `Route.motivation.fulfillsRequirements` enables requirements traceability from requirements through navigation to implementation
-- **Guards enforce Requirements**: `NavigationGuard.motivation.enforcesRequirement` creates audit trail proving security/access control requirements are enforced
-- **End-to-end traceability**: Stakeholder → Goal → NavigationFlow → Route → UXSpec → Metrics enables complete value chain validation
-- **Compliance support**: NavigationGuard → Requirement traceability is critical for security audits (SOC 2, ISO 27001, NIST)
+- **NavigationGraph** governed by **Principle** (governedByPrinciples property)
+- **NavigationFlow** supports **Goal** (motivation.supportsGoals property)
+- **NavigationFlow** delivers **Value** (motivation.deliversValue property)
+- **Route** fulfills **Requirement** (motivation.fulfillsRequirements property)
+- **NavigationGuard** enforces **Requirement** (motivation.enforcesRequirement property)
 
 ### To Business Layer
 
-- **NavigationFlow realizes BusinessProcess**: `NavigationFlow.business.realizesProcess` links flows to BusinessProcess entities
-- **Flows realize BusinessServices**: `NavigationFlow.business.realizesServices` shows which services are delivered through the flow
-- **Process instance tracking**: `ProcessTracking.processInstanceId` correlates UX flow with business process instances
-- **End-to-end traceability**: BusinessProcess → NavigationFlow → UXSpec → Implementation provides complete audit trail
+- **NavigationFlow** realizes **BusinessProcess** (business.realizesProcess property)
+- **NavigationFlow** realizes **BusinessService** (business.realizesServices property)
+- **ProcessTracking** tracks **ProcessInstance** (processInstanceId property)
 
 ### To ArchiMate Application Layer
 
-- Route references ApplicationComponent via archimateRef
-- Navigation structure maps to application structure
+- **Route** references **ApplicationComponent** (archimateRef property)
 
 ### To UX Layer
 
-- **Route to Experience**: Route.experience references UX spec file
-- **View to Route**: View.route references Route.identifier
-- **Action navigation**: ActionComponent navigation actions reference Route.identifier
-- **State to transition**: Navigation transitions trigger ExperienceState changes
-- **Flow entry points**: FlowStep.experience.entryState specifies which UXSpec state to enter
-- **Data handoff**: FlowStep.dataTransfer maps data between flow context and UX experience state
+- **Route** references **Experience** (experience property)
+- **View** references **Route** (route property)
+- **ActionComponent** references **Route** (navigation property)
+- **Navigation** triggers **ExperienceState** (transition property)
+- **FlowStep** enters **ExperienceState** (experience.entryState property)
+- **FlowStep** transfers **Data** (dataTransfer property)
 
 ### To API Layer
 
-- **Guards call API operations**: `NavigationGuard.api.operationId` explicitly references API operations used for validation (e.g., checking resource existence, authorization)
-- **Guard API methods**: `NavigationGuard.api.method` specifies HTTP method used for guard validation calls
-- **Experience state actions**: Trigger navigation transitions
-- **Async integration**: `FlowStep.async` defines long-running API operations with polling/webhooks
-- **Compensation actions**: `FlowStep.compensation.compensationAction` references API operations for rollback
-- **Dependency analysis**: Explicit guard → API links enable architectural analysis of navigation dependencies
+- **NavigationGuard** calls **APIOperation** (api.operationId property)
+- **NavigationGuard** uses **HTTPMethod** (api.method property)
+- **FlowStep** uses **AsyncOperation** (async property)
+- **FlowStep** compensates with **APIOperation** (compensation.compensationAction property)
 
 ### To Security Layer
 
-- RouteMeta.roles/permissions reference SecurityModel
-- NavigationGuard enforces access control
-- Authentication/authorization integration
-- **Collaborative flows**: FlowStep.collaboration.assignedTo enforces role-based task assignment
+- **RouteMeta** references **SecurityModel** (roles property)
+- **NavigationGuard** enforces **AccessControl** (permissions property)
+- **FlowStep** assigns to **Role** (collaboration.assignedTo property)
 
 ### To Data Model Layer
 
-- **Context variables**: ContextVariable.schemaRef references JSON Schema definitions
-- **Type safety**: Shared context variables are typed via JSON Schema
-- **Data validation**: DataMapping ensures type-safe data transfer between experiences
+- **ContextVariable** references **Schema** (schemaRef property)
+- **DataMapping** validates **Data** (validation property)
 
 ### To APM/Observability Layer
 
-- **Funnel metrics**: FlowAnalytics.funnelMetrics tracks conversion through flow steps
-- **Drop-off alerts**: FlowAnalytics.dropoffAlerts triggers alerts when users abandon flows
-- **Process monitoring**: ProcessTracking enables flow instance monitoring and recovery
-- **End-to-end tracing**: Flow instance ID enables distributed tracing across experiences
+- **FlowAnalytics** tracks **FunnelMetric** (funnelMetrics property)
+- **FlowAnalytics** triggers **Alert** (dropoffAlerts property)
+- **ProcessTracking** monitors **FlowInstance** (instanceId property)
 
 ## Validation
 
@@ -1529,6 +1541,93 @@ Consistency Warnings:
   - If Route has guards, consider adding motivation.fulfillsRequirements for the guarded capability (warning)
   - If NavigationGuard enforces security, it SHOULD have motivation.enforcesRequirement for audit compliance (warning)
 ```
+
+## Intra-Layer Relationships
+
+**Purpose**: Define structural and behavioral relationships between entities within this layer.
+
+### Structural Relationships
+
+Relationships that define the composition, aggregation, and specialization of entities within this layer.
+
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
+| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
+| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
+| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+
+### Behavioral Relationships
+
+Relationships that define interactions, flows, and dependencies between entities within this layer.
+
+| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
+| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
+| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+
+---
+
+## Cross-Layer Relationships
+
+**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
+
+### Outgoing Relationships (This Layer → Other Layers)
+
+Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
+| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
+| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
+| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
+| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
+| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+
+### Incoming Relationships (Other Layers → This Layer)
+
+Links from entities in other layers to entities in this layer.
+
+(To be documented based on actual usage patterns)
+
+---
+
+## Validation Rules
+
+### Entity Validation
+
+- **Required Fields**: `id`, `name`, `description`
+- **ID Format**: UUID v4 or kebab-case string
+- **Name**: Non-empty string, max 200 characters
+- **Description**: Non-empty string, max 1000 characters
+
+### Relationship Validation
+
+#### Intra-Layer Relationships
+
+- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
+- **Source Validation**: Must reference existing entity in this layer
+- **Target Validation**: Must reference existing entity in this layer
+- **Cardinality**: Enforced based on relationship type
+
+#### Cross-Layer Relationships
+
+- **Target Existence**: Referenced entities must exist in target layer
+- **Target Type**: Must match allowed target element types
+- **Cardinality**:
+  - Array fields: Multiple references allowed
+  - Single fields: One reference only
+- **Format Validation**:
+  - UUID fields: Valid UUID v4 format
+  - ID fields: Valid identifier format
+  - Enum fields: Must match allowed values
+
+### Schema Validation
+
+All entities must validate against the layer schema file in `spec/schemas/`.
+
+---
 
 ## Best Practices
 
