@@ -125,6 +125,10 @@ class TestChatWithRealOrchestrator:
     """Tests that use real orchestrator without mocking (requires SDK)."""
 
     @pytest.mark.asyncio
+    @pytest.mark.skipif(
+        __import__("os").getenv("ANTHROPIC_API_KEY") is None,
+        reason="Requires ANTHROPIC_API_KEY (skipped in CI)",
+    )
     async def test_orchestrator_sdk_check_without_sdk(self, tmp_path):
         """Test that orchestrator raises clear error when SDK not available."""
         # Create a minimal model for testing
