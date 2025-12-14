@@ -201,6 +201,6 @@ This model achieves **Full Conformance**:
 
 ---
 
-**Spec Version**: 0.5.0
+**Spec Version**: 0.6.0
 **Conformance Level**: Full
-**Last Updated**: 2025-12-09
+**Last Updated**: 2025-12-14

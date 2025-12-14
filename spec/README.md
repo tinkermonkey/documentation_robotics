@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](.)
+[![Specification](https://img.shields.io/badge/Specification-v0.6.0-blue)](.)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.7.2-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.5.0
+**Version:** 0.6.0
 **Status:** Draft
-**Last Updated:** 2025-12-09
+**Last Updated:** 2025-12-14
 
 ## Overview
 
@@ -222,6 +222,23 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 
 ## Recent Enhancements
 
+### Ontology Refinement & Relationship Modeling (v0.6.0)
+
+The v0.6.0 release delivers comprehensive relationship modeling across all 12 layers:
+
+- **📖 Relationship Taxonomy** - Formalized 6 categories with 60+ predicates (ArchiMate 3.2 aligned)
+  - Structural, Behavioral, Dependency, Traceability, Governance, Domain-Specific
+  - Bidirectional navigation with inverse predicates
+  - Formal semantics for transitivity and symmetry
+- **🔗 Enhanced Cross-Layer References** - 60+ documented reference patterns
+  - 4 pattern types: X-Extensions, Dot-Notation, Nested Objects, Direct Fields
+  - Naming conventions and best practices
+- **📐 Common Schema Infrastructure** - 5 new schemas for relationship validation
+  - Predicates, relationships, link registry, relationship catalog
+- **📋 Layer Template** - Standardized template for consistency across all layers
+
+See [CHANGELOG.md](CHANGELOG.md#060---2025-12-14) for complete details.
+
 ### UX Layer Three-Tier Architecture (v0.5.0)
 
 The UX Layer has been redesigned with a three-tier component library architecture that optimizes for both reusability and simplicity:
@@ -333,10 +350,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.5.0
-**Release Date:** 2025-12-09
+**Current Version:** 0.6.0
+**Release Date:** 2025-12-14
 **Status:** Draft
-**Next Review:** 2025-06-09
+**Next Review:** 2025-06-14
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -386,7 +403,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.5.0},
+  version = {0.6.0},
   year = {2025},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

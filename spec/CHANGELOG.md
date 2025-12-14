@@ -5,6 +5,158 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2025-12-14
+
+### Added
+
+- **Relationship Taxonomy** ([spec/core/07-relationship-taxonomy.md](core/07-relationship-taxonomy.md))
+  - Comprehensive formalization of 6 relationship categories with 60+ distinct predicates
+  - **Categories**: Structural, Behavioral, Dependency, Traceability, Governance, Domain-Specific
+  - ArchiMate 3.2 alignment with software-specific extensions
+  - Bidirectional navigation support (every relationship has an inverse predicate)
+  - Formal semantics for transitivity, symmetry, and cardinality
+  - Traceability-first design for upward-flowing requirement chains
+
+- **Enhanced Cross-Layer Reference Registry** ([spec/core/06-cross-layer-reference-registry-enhanced.md](core/06-cross-layer-reference-registry-enhanced.md))
+  - Catalog of 60+ cross-layer reference patterns across all 12 layers
+  - **4 Reference Pattern Types**:
+    - Pattern A: X-Extensions (OpenAPI/JSON Schema compatibility)
+    - Pattern B: Dot-Notation Properties (upward references)
+    - Pattern C: Nested Objects (complex relationships)
+    - Pattern D: Direct Field Names (standard references)
+  - Naming conventions and best practices for cross-layer integration
+  - Examples for each pattern with rationale
+
+- **Common Schema Infrastructure**:
+  - `common/predicates.schema.json` (493 lines) - Predicate definitions for relationship types
+  - `common/relationships.schema.json` (791 lines) - Relationship type schemas
+  - `link-registry.schema.json` (339 lines) - Schema for link registry validation
+  - `relationship-catalog.json` (855 lines) - Catalog of all available relationship types
+  - `relationship-type.schema.json` (227 lines) - Schema for relationship type definitions
+
+- **Layer Template** ([spec/templates/layer-template.md](templates/layer-template.md))
+  - Standardized template for layer specification documents (341 lines)
+  - Ensures consistency across all 12 layer specifications
+  - Includes sections for: Overview, Entities, Relationships, Cross-Layer Integration, Examples
+
+### Changed
+
+- **All 12 Layer Specifications Enhanced with Relationship Modeling**:
+  - **Motivation Layer** (+173 lines):
+    - Expanded relationship sections with structural, influence, and association relationships
+    - Added sub-goal and sub-requirement aggregation examples
+    - Enhanced with Meaning entity relationships to Value and Outcome
+  - **Business Layer** (+466 lines):
+    - Comprehensive relationship catalog: composition, aggregation, assignment, triggering, flow, serving
+    - Cross-layer integration patterns with all 11 other layers
+    - Enhanced example models with relationship instances
+  - **Security Layer** (+794 lines):
+    - Major expansion of security relationship modeling
+    - Enhanced threat modeling with attack patterns and vulnerabilities
+    - Comprehensive permission and role assignment relationships
+  - **Application Layer** (+294 lines):
+    - Enhanced composition, aggregation, and serving relationships
+    - Deployment and interaction relationship patterns
+  - **Technology Layer** (+99 lines):
+    - Infrastructure relationship modeling improvements
+  - **API Layer** (+157 lines):
+    - Enhanced operation and endpoint relationship patterns
+  - **Data Model Layer** (+162 lines):
+    - Entity relationship and schema composition enhancements
+  - **Datastore Layer** (+156 lines):
+    - Storage and persistence relationship patterns
+  - **UX Layer** (+186 lines):
+    - Component composition and library reference relationships
+  - **Navigation Layer** (+171 lines):
+    - Route and flow relationship enhancements
+  - **APM/Observability Layer** (+209 lines):
+    - Metric and tracing relationship patterns
+  - **Testing Layer** (+144 lines):
+    - Test coverage and traceability relationship patterns
+
+- **All 12 Layer Schemas Regenerated with Enhanced Relationship Definitions**:
+  - Motivation Layer Schema (+235 lines): Enhanced relationship properties
+  - Business Layer Schema (+44 lines): Updated entity relationships
+  - Security Layer Schema (767 line restructuring): Major relationship enhancements
+  - Application Layer Schema (+118 lines): Deployment relationships
+  - Technology Layer Schema (+228 lines): Infrastructure relationships
+  - API Layer Schema (+123 lines): Operation relationships
+  - Data Model Layer Schema (358 line restructuring): Entity relationships
+  - Datastore Layer Schema (364 line restructuring): Storage relationships
+  - UX Layer Schema (750 line restructuring): Component relationships
+  - Navigation Layer Schema (+244 lines): Route relationships
+  - APM Layer Schema (538 line restructuring): Metric relationships
+  - Testing Layer Schema (298 line restructuring): Coverage relationships
+
+- **Link Registry Significantly Expanded** ([spec/schemas/link-registry.json](schemas/link-registry.json))
+  - +1,745 lines of relationship and link definitions
+  - Comprehensive catalog of all cross-layer reference patterns
+  - Enhanced with bidirectional link tracking
+  - Formal validation rules for relationship integrity
+
+### Fixed
+
+- **Testing Layer Schema Title** - Removed duplicate "Layer" in title
+  - Was: "Testing Layer Layer Schema"
+  - Now: "Testing Layer Schema"
+
+### Removed
+
+- **Conformance Documentation** (moved to separate repository):
+  - `conformance/README.md` (124 lines)
+  - `conformance/certification-process.md` (279 lines)
+  - `conformance/test-suite.md` (296 lines)
+  - Total: 699 lines removed
+
+- **Layer Integration Guide** - Superseded by enhanced layer specifications
+  - `guides/LAYER_INTEGRATION_GUIDE.md` (526 lines)
+  - Content integrated into individual layer specifications
+
+### Migration Path
+
+Models on v0.5.0 can use spec v0.6.0 without changes:
+
+```bash
+# Update CLI to use spec v0.6.0 (requires CLI v0.7.3+)
+# No model migration required - backward compatible
+```
+
+**What Changed**:
+- Enhanced relationship definitions (additive only)
+- New common schemas (tools can leverage for validation)
+- Improved documentation (no structural changes)
+
+**Backward Compatibility**:
+- All v0.5.0 models remain valid under v0.6.0
+- New relationship types are optional enhancements
+- Existing validation rules preserved
+
+**Taking Advantage of New Features**:
+1. **Enhanced Relationship Modeling**: Use new predicate types from taxonomy
+2. **Cross-Layer References**: Leverage documented reference patterns
+3. **Common Schemas**: Validate relationships using new common schemas
+4. **Link Registry**: Use expanded link catalog for relationship validation
+
+See individual layer specifications for detailed relationship examples and usage patterns.
+
+---
+
+### Technical Details
+
+**Schema Generation**: All schemas regenerated using `scripts/generate_schemas.py --all`
+
+**Documentation**:
+- Total spec size: ~50,000 lines
+- Net additions: +6,296 lines
+- 40 files modified
+
+**Validation**: All layer schemas validate successfully against JSON Schema Draft 7
+
+**Tools Support**:
+- CLI v0.7.3+ required for full spec v0.6.0 support
+- Enhanced relationship validation in `dr validate --strict`
+- Link registry validation in `dr validate --validate-links`
+
 ## [0.5.0] - 2025-12-09
 
 ### Changed
