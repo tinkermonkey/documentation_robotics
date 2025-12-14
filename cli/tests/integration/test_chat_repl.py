@@ -1,8 +1,7 @@
 """Integration tests for chat REPL functionality."""
 
-import asyncio
-from pathlib import Path
-from unittest.mock import AsyncMock, MagicMock, patch
+import importlib.util
+from unittest.mock import patch
 
 import pytest
 from documentation_robotics.commands.chat import _process_message
@@ -53,6 +52,7 @@ class TestChatProcessMessage:
     @pytest.mark.asyncio
     async def test_process_simple_message(self, test_orchestrator, test_session):
         """Test processing a simple chat message."""
+
         # Mock the orchestrator's handle_message to return dict-based messages
         async def mock_handle_message(*args, **kwargs):
             yield {"type": "text_delta", "text": "Hello! I'm DrBot."}
@@ -72,6 +72,7 @@ class TestChatProcessMessage:
     @pytest.mark.asyncio
     async def test_process_message_with_tool_invocation(self, test_orchestrator, test_session):
         """Test processing a message that triggers tool invocation."""
+
         # Mock the orchestrator's handle_message with tool use (dict-based format)
         async def mock_handle_message(*args, **kwargs):
             # Tool invocation
@@ -136,11 +137,7 @@ class TestChatWithRealOrchestrator:
         orchestrator = DrBotOrchestrator(tmp_path)
 
         # Check if SDK is actually available
-        try:
-            from claude_agent_sdk import ClaudeAgentOptions
-            has_real_sdk = True
-        except ImportError:
-            has_real_sdk = False
+        has_real_sdk = importlib.util.find_spec("claude_agent_sdk") is not None
 
         if not has_real_sdk:
             # If SDK not installed, should get clear ImportError
@@ -172,14 +169,15 @@ class TestChatWithRealOrchestrator:
         # Process a simple message that should trigger dr_list
         try:
             await _process_message(
-                test_orchestrator,
-                test_session,
-                "What layers are present in this model?"
+                test_orchestrator, test_session, "What layers are present in this model?"
             )
 
             # If we got here without errors, the orchestrator is working
             assert len(test_session.conversation_history) >= 1
-            assert test_session.conversation_history[0].content == "What layers are present in this model?"
+            assert (
+                test_session.conversation_history[0].content
+                == "What layers are present in this model?"
+            )
 
         except ImportError as e:
             # Should get clear error message if SDK not installed
@@ -224,6 +222,7 @@ class TestChatSessionHistory:
     @pytest.mark.asyncio
     async def test_get_conversation_for_sdk(self, test_orchestrator, test_session):
         """Test formatting conversation for SDK."""
+
         # Mock with dict-based format
         async def mock_handle_message(*args, **kwargs):
             yield {"type": "text_delta", "text": "Response"}

@@ -11,6 +11,7 @@ The DrBot chat functionality requires the Claude Agent SDK. The CLI has built-in
 The visualize command checks for the SDK at startup and displays a clear message:
 
 **✅ SDK Installed:**
+
 ```
 Starting visualization server...
 
@@ -22,6 +23,7 @@ Starting visualization server...
 ```
 
 **⚠️ SDK Not Installed:**
+
 ```
 Starting visualization server...
 
@@ -96,6 +98,7 @@ python -c "import claude_agent_sdk; print('SDK installed successfully')"
 ```
 
 Expected output:
+
 ```
 SDK installed successfully
 ```
@@ -115,16 +118,19 @@ python -c "import claude_agent_sdk; print(f'Version: {claude_agent_sdk.__version
 **Solutions:**
 
 1. **Check you're in the right virtual environment:**
+
    ```bash
    which python  # Should point to your venv
    ```
 
 2. **Install the SDK:**
+
    ```bash
    pip install claude-agent-sdk
    ```
 
 3. **Verify installation:**
+
    ```bash
    pip list | grep claude-agent-sdk
    ```
@@ -136,11 +142,13 @@ python -c "import claude_agent_sdk; print(f'Version: {claude_agent_sdk.__version
 **Solutions:**
 
 1. **Check Python version:**
+
    ```bash
    python --version
    ```
 
 2. **Reinstall in correct environment:**
+
    ```bash
    # Activate your virtual environment first
    source .venv/bin/activate
@@ -148,6 +156,7 @@ python -c "import claude_agent_sdk; print(f'Version: {claude_agent_sdk.__version
    ```
 
 3. **Check import path:**
+
    ```bash
    python -c "import sys; import claude_agent_sdk; print(claude_agent_sdk.__file__)"
    ```
@@ -159,6 +168,7 @@ python -c "import claude_agent_sdk; print(f'Version: {claude_agent_sdk.__version
 **This is not an error!** The server works fine, but chat features are disabled.
 
 **To enable chat:**
+
 ```bash
 pip install claude-agent-sdk
 # Then restart the server
@@ -189,6 +199,7 @@ Here's where SDK availability is checked:
    - 💡 Error includes installation command
 
 3. **Installs SDK:**
+
    ```bash
    pip install claude-agent-sdk
    ```

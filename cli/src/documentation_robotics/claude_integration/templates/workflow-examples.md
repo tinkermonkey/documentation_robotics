@@ -1337,7 +1337,7 @@ dr search <keyword>
 
 ```
 dr add <layer> <type> --batch-file elements.yaml
-dr update <pattern> --set key=value
+dr update-element <pattern> --set key=value
 ```
 
 ### Validation

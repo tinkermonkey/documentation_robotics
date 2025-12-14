@@ -1003,7 +1003,7 @@ dr migrate
 dr migrate --dry-run
 
 # Apply all migrations
-dr migrate --apply
+dr migrate --force
 
 # Validate migrated model
 dr validate --validate-links
@@ -1031,7 +1031,7 @@ dr migrate
 dr migrate --dry-run
 
 # Apply migration
-dr migrate --apply
+dr migrate --force
 
 # Validate result
 dr validate --validate-links --strict-links
@@ -1132,7 +1132,7 @@ dr changeset create "new-payment-feature" --type feature
 # 2. Make changes (all commands work in changeset context)
 dr add business service --name "Crypto Payments"
 dr add application service --name "Blockchain Adapter"
-dr update business.service.crypto-payments --set status=experimental
+dr update-element business.service.crypto-payments --set status=experimental
 
 # 3. Review changes
 dr changeset status              # See what changed

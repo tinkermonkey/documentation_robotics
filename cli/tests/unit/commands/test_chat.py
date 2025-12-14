@@ -121,17 +121,8 @@ class TestChatCommand:
         manifest = model_dir / "manifest.yaml"
         manifest.write_text("name: Test\nspecVersion: 0.5.0\n")
 
-        # Mock SDK import to fail by patching __import__ for anthropic
-        def mock_import(name, *args, **kwargs):
-            if name == "anthropic":
-                raise ImportError("No module named 'anthropic'")
-            return original_import(name, *args, **kwargs)
-
-        import builtins
-
-        original_import = builtins.__import__
-
-        with patch("builtins.__import__", side_effect=mock_import):
+        # Mock find_spec to return None (SDK not available)
+        with patch("importlib.util.find_spec", return_value=None):
             runner = CliRunner()
             result = runner.invoke(chat, ["--model-dir", str(model_dir.parent.parent)])
 

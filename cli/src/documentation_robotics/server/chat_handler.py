@@ -166,7 +166,9 @@ class ChatHandler:
         try:
             await asyncio.wait_for(task, timeout=self.RESPONSE_TIMEOUT)
         except asyncio.TimeoutError:
-            console.print(f"[red]Chat request {request_id} timed out after {self.RESPONSE_TIMEOUT}s[/red]")
+            console.print(
+                f"[red]Chat request {request_id} timed out after {self.RESPONSE_TIMEOUT}s[/red]"
+            )
             await ws.send_json(
                 create_chat_error(request_id, ChatErrorCodes.INTERNAL_ERROR, "Request timed out")
             )
@@ -183,6 +185,7 @@ class ChatHandler:
             # Catch any unhandled exceptions from the task
             console.print(f"[red]Unhandled error in chat request {request_id}: {e}[/red]")
             import traceback
+
             traceback.print_exc()
             await ws.send_json(
                 create_chat_error(
@@ -294,6 +297,7 @@ class ChatHandler:
         except Exception as e:
             console.print(f"[red]Chat query error: {e}[/red]")
             import traceback
+
             traceback.print_exc()
             await ws.send_json(
                 create_chat_error(

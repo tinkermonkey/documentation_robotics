@@ -10,10 +10,7 @@ Tests the complete chat flow without starting a real server:
 
 import asyncio
 import json
-import uuid
-from pathlib import Path
-from typing import Any, Dict
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 from aiohttp import web
@@ -33,12 +30,14 @@ def test_model(tmp_path):
 
     # Create a minimal manifest
     manifest_file = model_dir / "manifest.yaml"
-    manifest_file.write_text("""
+    manifest_file.write_text(
+        """
 name: Test Model
 specVersion: 0.5.0
 created: 2024-01-01T00:00:00Z
 updated: 2024-01-01T00:00:00Z
-""")
+"""
+    )
 
     # Create layer directories
     for layer in ["business", "api", "application", "technology"]:
@@ -47,12 +46,14 @@ updated: 2024-01-01T00:00:00Z
     # Create a sample element file for testing
     business_dir = model_dir / "business"
     service_file = business_dir / "customer-service.yaml"
-    service_file.write_text("""
+    service_file.write_text(
+        """
 id: business.service.customer-service
 type: service
 name: Customer Service
 description: Handles customer operations
-""")
+"""
+    )
 
     # Load the model
     model = Model(tmp_path, enable_cache=False, lazy_load=True)
@@ -175,6 +176,7 @@ class TestChatHandlerIntegration:
     @pytest.mark.asyncio
     async def test_chat_cancel_request(self, chat_handler, mock_ws, test_session):
         """Test chat.cancel request."""
+
         # Create a dummy active task
         async def dummy_task():
             await asyncio.sleep(10)
@@ -403,8 +405,7 @@ class TestChatWithSDK:
             # Yield an AssistantMessage with TextBlock
             text_block = TextBlock(text="Hello!")
             assistant_msg = AssistantMessage(
-                content=[text_block],
-                model="claude-sonnet-4-5-20250929"
+                content=[text_block], model="claude-sonnet-4-5-20250929"
             )
             yield assistant_msg
 
@@ -416,14 +417,12 @@ class TestChatWithSDK:
                 is_error=False,
                 num_turns=1,
                 session_id="test-session",
-                total_cost_usd=0.0001
+                total_cost_usd=0.0001,
             )
             yield result_msg
 
         # Patch at the right place - the orchestrator's handle_message
-        with patch.object(
-            chat_handler.orchestrator, "handle_message", new=mock_handle_message
-        ):
+        with patch.object(chat_handler.orchestrator, "handle_message", new=mock_handle_message):
             message = json.dumps(
                 {
                     "jsonrpc": "2.0",
@@ -443,5 +442,9 @@ class TestChatWithSDK:
             assert len(response_chunks) > 0, f"No response chunks found. Calls: {calls}"
 
             # Check for completion
-            completions = [c for c in calls if "result" in c and c.get("result", {}).get("status") == "complete"]
+            completions = [
+                c
+                for c in calls
+                if "result" in c and c.get("result", {}).get("status") == "complete"
+            ]
             assert len(completions) > 0, f"No completions found. Calls: {calls}"

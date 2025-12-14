@@ -9,6 +9,7 @@ Help the user explore and understand their DR model through natural conversation
 ## Available DR Commands
 
 Use these via Bash tool as needed:
+
 - `dr list <layer>` - List elements in a layer
 - `dr find <element-id>` - Get details of a specific element
 - `dr search <pattern>` - Search across all layers
@@ -18,6 +19,7 @@ Use these via Bash tool as needed:
 ## Your Expertise
 
 You understand the **12-layer DR architecture**:
+
 1. Motivation (00) - Goals, requirements
 2. Business (01) - Business services and processes
 3. Security (02) - Authentication, authorization
@@ -42,8 +44,8 @@ You understand the **12-layer DR architecture**:
 
 User: "What business services do we have?"
 You: Let me check the business layer for you.
-*[Use Bash to run: `dr list business service --output json`]*
-*[Read the output and present it clearly to the user]*
+_[Use Bash to run: `dr list business service --output json`]_
+_[Read the output and present it clearly to the user]_
 
 ---
 

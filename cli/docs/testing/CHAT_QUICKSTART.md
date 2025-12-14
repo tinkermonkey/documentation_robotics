@@ -14,6 +14,7 @@ dr visualize --port 8080
 ```
 
 You should see output like:
+
 ```
 Starting visualization server...
 
@@ -38,6 +39,7 @@ Press Ctrl+C to stop the server
 ### Step 2: Get the Authentication Token
 
 In the visualize server output from Step 1, you'll see a URL like:
+
 ```
 http://localhost:8080?token=abc123xyz456...
 ```
@@ -55,6 +57,7 @@ dr chat --port 8080 --token abc123xyz456...
 Replace `abc123xyz456...` with the actual token from Step 2.
 
 You should see:
+
 ```
 DrBot Chat Test Harness
 
@@ -75,6 +78,7 @@ You:
 Try these example queries:
 
 #### List Elements
+
 ```
 You: List all services in the business layer
 
@@ -88,6 +92,7 @@ DrBot: I found 3 services in the business layer:
 ```
 
 #### Find Specific Element
+
 ```
 You: Find business-service-orders
 
@@ -99,6 +104,7 @@ DrBot: Found element: business-service-orders
 ```
 
 #### Search
+
 ```
 You: Search for anything related to authentication
 
@@ -110,6 +116,7 @@ DrBot: Found 5 elements matching "authentication":
 ```
 
 #### Trace Dependencies
+
 ```
 You: What depends on api-endpoint-create-order?
 
@@ -123,6 +130,7 @@ DrBot: The api-endpoint-create-order has these dependencies:
 ### Step 5: Exit
 
 When done, type:
+
 ```
 You: exit
 ```
@@ -142,6 +150,7 @@ pip install claude-agent-sdk
 ```
 
 Or if using the dev dependencies:
+
 ```bash
 pip install -e ".[dev]"
 ```
@@ -210,6 +219,7 @@ You: Tell me more about the first one
 ### Watch Server Logs
 
 In the terminal where `dr visualize` is running, you'll see:
+
 - Incoming chat requests
 - Tool invocations
 - Errors and warnings
@@ -217,6 +227,7 @@ In the terminal where `dr visualize` is running, you'll see:
 ### Check Response Times
 
 The status messages show processing time and costs:
+
 ```
 ⏳ Processing your request...
 ✓ Completed (cost: $0.0123)
@@ -225,6 +236,7 @@ The status messages show processing time and costs:
 ### Verbose Output
 
 For more detailed output, you can modify the chat handler's logging in:
+
 ```
 src/documentation_robotics/server/chat_handler.py
 ```
@@ -236,6 +248,7 @@ src/documentation_robotics/server/chat_handler.py
 **Problem:** Chat can't connect to the server
 
 **Solutions:**
+
 1. Make sure `dr visualize` is running in another terminal
 2. Check the port matches: `dr visualize --port 8080` and `dr chat --port 8080`
 3. Check for firewall issues blocking localhost connections
@@ -245,11 +258,13 @@ src/documentation_robotics/server/chat_handler.py
 **Problem:** Message sent but no response appears
 
 **Possible causes:**
+
 1. **Claude Agent SDK not installed** - Install with `pip install claude-agent-sdk`
 2. **SDK initialization failed** - Check the visualize server logs for errors
 3. **Model path issue** - Make sure the server has access to your model
 
 **Debug steps:**
+
 1. Check the visualize server terminal for errors
 2. Verify SDK is available: `python -c "import claude_agent_sdk; print('OK')"`
 3. Try a simple query first: "help"
@@ -260,6 +275,7 @@ src/documentation_robotics/server/chat_handler.py
 
 **Solution:**
 Get the token from the visualize server output and use it:
+
 ```bash
 dr chat --port 8080 --token <token-from-server-output>
 ```
@@ -269,6 +285,7 @@ dr chat --port 8080 --token <token-from-server-output>
 **Problem:** Chat becomes unresponsive
 
 **Solutions:**
+
 1. Press `Ctrl+C` to interrupt
 2. Restart both the server and chat
 3. Check for deadlocks in server logs

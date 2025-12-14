@@ -9,7 +9,7 @@ DrBot uses Claude's reasoning for all decisions, with access to:
 import asyncio
 import json
 from pathlib import Path
-from typing import Any, AsyncIterator, Dict, List, Optional, Union
+from typing import Any, AsyncIterator, Dict, List, Optional
 
 import yaml
 
@@ -30,6 +30,7 @@ HAS_SDK = HAS_ANTHROPIC
 # Simple stub for backward compatibility with tests
 class _ToolStub:
     """Stub object for legacy tool creation methods (tests only)."""
+
     def __init__(self, name: str):
         self.name = name
         # Add handler property for tests that check tool.handler
@@ -167,9 +168,12 @@ class DrBotOrchestrator:
             "--print",
             "--dangerously-skip-permissions",
             "--verbose",
-            "--system-prompt", system_prompt,
-            "--tools", "Bash,Read",  # Allow running dr commands and reading files
-            "--output-format", "stream-json",
+            "--system-prompt",
+            system_prompt,
+            "--tools",
+            "Bash,Read",  # Allow running dr commands and reading files
+            "--output-format",
+            "stream-json",
             stdin=asyncio.subprocess.PIPE,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
@@ -178,7 +182,7 @@ class DrBotOrchestrator:
 
         # Send user message via stdin
         if proc.stdin:
-            proc.stdin.write(user_message.encode('utf-8'))
+            proc.stdin.write(user_message.encode("utf-8"))
             await proc.stdin.drain()
             proc.stdin.close()
 
@@ -187,7 +191,7 @@ class DrBotOrchestrator:
         if proc.stdout:
             async for line in proc.stdout:
                 try:
-                    event = json.loads(line.decode('utf-8').strip())
+                    event = json.loads(line.decode("utf-8").strip())
 
                     # Handle different event types
                     if event.get("type") == "assistant":
@@ -241,7 +245,9 @@ class DrBotOrchestrator:
         """
         # Try Claude Code CLI first (uses OAuth, no API key needed)
         try:
-            async for msg in self._handle_via_claude_cli(user_message, context, conversation_history):
+            async for msg in self._handle_via_claude_cli(
+                user_message, context, conversation_history
+            ):
                 yield msg
             return
         except FileNotFoundError:
@@ -295,11 +301,13 @@ class DrBotOrchestrator:
                     elif event.type == "content_block_start":
                         if hasattr(event.content_block, "type"):
                             if event.content_block.type == "tool_use":
-                                tool_uses.append({
-                                    "id": event.content_block.id,
-                                    "name": event.content_block.name,
-                                    "input": event.content_block.input,
-                                })
+                                tool_uses.append(
+                                    {
+                                        "id": event.content_block.id,
+                                        "name": event.content_block.name,
+                                        "input": event.content_block.input,
+                                    }
+                                )
 
                 # Get final message
                 final_message = await stream.get_final_message()
@@ -313,10 +321,12 @@ class DrBotOrchestrator:
                     break
 
                 # Handle tool calls
-                messages.append({
-                    "role": "assistant",
-                    "content": final_message.content,
-                })
+                messages.append(
+                    {
+                        "role": "assistant",
+                        "content": final_message.content,
+                    }
+                )
 
                 tool_results = []
                 for tool_use in final_message.content:
@@ -331,17 +341,21 @@ class DrBotOrchestrator:
                         # Execute tool
                         result = await self._execute_tool(tool_use.name, tool_use.input)
 
-                        tool_results.append({
-                            "type": "tool_result",
-                            "tool_use_id": tool_use.id,
-                            "content": result,
-                        })
+                        tool_results.append(
+                            {
+                                "type": "tool_result",
+                                "tool_use_id": tool_use.id,
+                                "content": result,
+                            }
+                        )
 
                 # Add tool results to conversation
-                messages.append({
-                    "role": "user",
-                    "content": tool_results,
-                })
+                messages.append(
+                    {
+                        "role": "user",
+                        "content": tool_results,
+                    }
+                )
 
         # If we hit max turns, yield completion
         yield {
@@ -509,16 +523,28 @@ class DrBotOrchestrator:
         """Implementation of dr_list tool."""
         # Valid DR layer names
         valid_layers = [
-            "motivation", "business", "security", "application", "technology",
-            "api", "data_model", "datastore", "ux", "navigation", "apm", "testing",
+            "motivation",
+            "business",
+            "security",
+            "application",
+            "technology",
+            "api",
+            "data_model",
+            "datastore",
+            "ux",
+            "navigation",
+            "apm",
+            "testing",
         ]
 
         # Validate layer
         if layer not in valid_layers:
-            return json.dumps({
-                "error": f"Invalid layer '{layer}'. Must be one of: {', '.join(valid_layers)}",
-                "valid_layers": valid_layers,
-            })
+            return json.dumps(
+                {
+                    "error": f"Invalid layer '{layer}'. Must be one of: {', '.join(valid_layers)}",
+                    "valid_layers": valid_layers,
+                }
+            )
 
         # Build command
         cmd_parts = ["dr", "list", layer]
@@ -546,9 +572,6 @@ class DrBotOrchestrator:
 
     async def _delegate_to_architect_impl(self, task_description: str) -> str:
         """Implementation of delegate_to_architect tool."""
-        # Load dr-architect expertise for context
-        architect_guidance = self._load_dr_architect_prompt()
-
         # Provide structured guidance based on task
         guidance = {
             "task": task_description,
@@ -577,15 +600,15 @@ class DrBotOrchestrator:
                 "dr_find - Get details of specific elements",
                 "dr_trace - Check dependencies",
                 "Bash - Run 'dr add' or 'dr validate' commands",
-                "Edit/Write - Modify YAML files directly"
+                "Edit/Write - Modify YAML files directly",
             ],
             "example_commands": self._get_example_commands_for_task(task_description),
             "best_practices": [
                 "Always validate after making changes: 'dr validate'",
                 "Check existing elements first to avoid duplicates",
                 "Follow naming conventions: {layer}.{type}.{kebab-case-name}",
-                "Higher layers can only reference lower layers"
-            ]
+                "Higher layers can only reference lower layers",
+            ],
         }
 
         return json.dumps(guidance, indent=2)

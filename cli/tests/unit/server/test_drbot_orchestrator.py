@@ -8,7 +8,6 @@ import pytest
 from documentation_robotics.server.drbot_orchestrator import (
     DRBOT_SYSTEM_PROMPT,
     HAS_ANTHROPIC,
-    HAS_SDK,
     DrBotOrchestrator,
 )
 
@@ -292,7 +291,7 @@ class TestDrBotOrchestrator:
         assert (
             callable(tool_def)
             or isinstance(tool_def, dict)
-            or hasattr(tool_def, 'name')  # SdkMcpTool has a 'name' attribute
+            or hasattr(tool_def, "name")  # SdkMcpTool has a 'name' attribute
         )
 
     def test_create_dr_find_tool(self, mock_model_path):
@@ -340,7 +339,6 @@ class TestDrBotOrchestrator:
         This verifies that we're using the Anthropic API directly
         instead of the broken subprocess approach.
         """
-        import os
 
         orchestrator = DrBotOrchestrator(mock_model_path)
         context = orchestrator.build_model_context()
@@ -348,7 +346,9 @@ class TestDrBotOrchestrator:
         # Call the real SDK code path
         messages = []
         try:
-            async for message in orchestrator.handle_message("How many layers are in this model?", context):
+            async for message in orchestrator.handle_message(
+                "How many layers are in this model?", context
+            ):
                 messages.append(message)
                 if len(messages) >= 1:
                     break

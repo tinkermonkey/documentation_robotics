@@ -27,6 +27,7 @@ Launch the Documentation Robotics visualization server with embedded authenticat
 ## Expected Output Format
 
 The server will output:
+
 1. Model loading status: "✓ Model loaded successfully (N layers)"
 2. A panel with the magic link containing the auth token
 3. Server details: host, port, model path
@@ -39,6 +40,7 @@ Extract the magic link from the panel and present it prominently to the user.
 ## Security Note
 
 The URL contains an authentication token. Remind the user:
+
 - This token grants access to their DR model
 - Don't share the URL publicly
 - The token is valid while the server is running

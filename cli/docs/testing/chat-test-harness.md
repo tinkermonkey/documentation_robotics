@@ -7,6 +7,7 @@ The `dr chat` command provides a command-line interface for testing DrBot's chat
 ## Prerequisites
 
 1. **Start the visualization server** in one terminal:
+
    ```bash
    dr visualize --port 8080
    ```
@@ -57,27 +58,33 @@ Once in the chat session, you can use these commands:
 DrBot can help you explore and modify your Documentation Robotics model:
 
 ### List Elements
+
 ```
 List all services in the business layer
 ```
 
 ### Find Elements
+
 ```
 Find the element business-service-orders
 ```
 
 ### Search
+
 ```
 Search for elements related to authentication
 ```
 
 ### Trace Dependencies
+
 ```
 Trace dependencies for api-endpoint-create-order
 ```
 
 ### Model Modifications
+
 DrBot will delegate to the `dr-architect` agent for write operations:
+
 ```
 Add a new service called user-management to the business layer
 ```
@@ -145,6 +152,7 @@ Chat session ended
 The chat harness uses JSON-RPC 2.0 over WebSocket:
 
 **Request:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -159,6 +167,7 @@ The chat harness uses JSON-RPC 2.0 over WebSocket:
 ```
 
 **Response (streaming):**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -172,6 +181,7 @@ The chat harness uses JSON-RPC 2.0 over WebSocket:
 ```
 
 **Tool Invocation:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -179,12 +189,13 @@ The chat harness uses JSON-RPC 2.0 over WebSocket:
   "params": {
     "conversationId": "550e8400-e29b-41d4-a716-446655440000",
     "toolName": "dr_list",
-    "toolInput": {"layer": "business", "element_type": "service"}
+    "toolInput": { "layer": "business", "element_type": "service" }
   }
 }
 ```
 
 **Status Update:**
+
 ```json
 {
   "jsonrpc": "2.0",
@@ -201,6 +212,7 @@ The chat harness uses JSON-RPC 2.0 over WebSocket:
 ### Error Handling
 
 The harness handles:
+
 - Connection failures (server not running)
 - Authentication errors (invalid token)
 - WebSocket errors
@@ -214,6 +226,7 @@ The harness handles:
 **Problem:** `Could not connect to server at localhost:8080`
 
 **Solution:** Make sure the visualization server is running:
+
 ```bash
 dr visualize --port 8080
 ```
@@ -223,6 +236,7 @@ dr visualize --port 8080
 **Problem:** WebSocket connection rejected
 
 **Solution:** Provide the correct token from the visualization server:
+
 ```bash
 dr chat --port 8080 --token <token>
 ```
@@ -232,6 +246,7 @@ dr chat --port 8080 --token <token>
 **Problem:** Messages sent but no response from DrBot
 
 **Possible causes:**
+
 1. Claude Agent SDK not installed
 2. Server not configured for chat
 3. Network issues
@@ -241,11 +256,13 @@ dr chat --port 8080 --token <token>
 ## Development
 
 To modify the chat harness, edit:
+
 - `src/documentation_robotics/commands/chat.py` - Main chat command
 - `src/documentation_robotics/server/chat_handler.py` - Server-side handler
 - `src/documentation_robotics/server/chat_protocol.py` - Protocol definitions
 
 Run tests:
+
 ```bash
 pytest tests/unit/server/test_chat_handler.py -v
 ```

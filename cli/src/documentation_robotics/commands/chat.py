@@ -6,6 +6,7 @@ a separate server. It directly invokes the DrBotOrchestrator in-process.
 """
 
 import asyncio
+import importlib.util
 import signal
 import sys
 import traceback
@@ -205,9 +206,7 @@ async def _run_chat_session(model_dir: Optional[str]) -> None:
     _setup_signal_handler()
 
     # Check for Anthropic SDK availability early
-    try:
-        import anthropic
-    except ImportError:
+    if importlib.util.find_spec("anthropic") is None:
         console.print("[red]Anthropic SDK not installed[/red]")
         console.print("\n[yellow]Install with:[/yellow]")
         console.print("  pip install anthropic")
