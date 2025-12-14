@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/04-application-layer.schema.json",
-  "title": "Application Layer Schema",
+  "title": "Application Layer Layer Schema",
   "description": "Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.",
   "type": "object",
   "properties": {
@@ -93,7 +93,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ComponentType"
         },
         "properties": {
           "type": "object",
@@ -122,18 +122,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "ComponentType": {
-          "type": "string",
-          "enum": [
-            "frontend",
-            "backend",
-            "mobile",
-            "desktop",
-            "service"
-          ]
         }
       }
     },
@@ -190,7 +178,7 @@
           "minLength": 1
         },
         "protocol": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/InterfaceProtocol"
         },
         "properties": {
           "type": "object",
@@ -215,19 +203,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "InterfaceProtocol": {
-          "type": "string",
-          "enum": [
-            "REST",
-            "GraphQL",
-            "SOAP",
-            "gRPC",
-            "WebSocket",
-            "Message Queue"
-          ]
         }
       }
     },
@@ -309,18 +284,7 @@
           "minLength": 1
         },
         "pattern": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "InteractionPattern": {
-          "type": "string",
-          "enum": [
-            "request-response",
-            "publish-subscribe",
-            "async-messaging",
-            "streaming"
-          ]
+          "$ref": "#/definitions/InteractionPattern"
         }
       }
     },
@@ -389,7 +353,7 @@
           "minLength": 1
         },
         "eventType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ApplicationEventType"
         },
         "properties": {
           "type": "object",
@@ -409,17 +373,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "ApplicationEventType": {
-          "type": "string",
-          "enum": [
-            "domain-event",
-            "integration-event",
-            "system-event",
-            "audit-event"
-          ]
         }
       }
     },
@@ -446,7 +399,7 @@
           "minLength": 1
         },
         "serviceType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ServiceType"
         },
         "properties": {
           "type": "object",
@@ -514,17 +467,6 @@
             }
           }
         }
-      },
-      "definitions": {
-        "ServiceType": {
-          "type": "string",
-          "enum": [
-            "synchronous",
-            "asynchronous",
-            "batch",
-            "streaming"
-          ]
-        }
       }
     },
     "DataObject": {
@@ -581,6 +523,54 @@
           }
         }
       }
+    },
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "frontend",
+        "backend",
+        "mobile",
+        "desktop",
+        "service"
+      ]
+    },
+    "InterfaceProtocol": {
+      "type": "string",
+      "enum": [
+        "REST",
+        "GraphQL",
+        "SOAP",
+        "gRPC",
+        "WebSocket",
+        "Message Queue"
+      ]
+    },
+    "InteractionPattern": {
+      "type": "string",
+      "enum": [
+        "request-response",
+        "publish-subscribe",
+        "async-messaging",
+        "streaming"
+      ]
+    },
+    "ApplicationEventType": {
+      "type": "string",
+      "enum": [
+        "domain-event",
+        "integration-event",
+        "system-event",
+        "audit-event"
+      ]
+    },
+    "ServiceType": {
+      "type": "string",
+      "enum": [
+        "synchronous",
+        "asynchronous",
+        "batch",
+        "streaming"
+      ]
     }
   }
 }

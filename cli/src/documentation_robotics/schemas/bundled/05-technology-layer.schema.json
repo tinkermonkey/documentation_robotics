@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/05-technology-layer.schema.json",
-  "title": "Technology Layer Schema",
+  "title": "Technology Layer Layer Schema",
   "description": "Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.",
   "type": "object",
   "properties": {
@@ -121,7 +121,7 @@
           "minLength": 1
         },
         "nodeType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/NodeType"
         },
         "properties": {
           "type": "object",
@@ -172,19 +172,6 @@
             }
           }
         }
-      },
-      "definitions": {
-        "NodeType": {
-          "type": "string",
-          "enum": [
-            "server",
-            "container",
-            "vm",
-            "kubernetes-cluster",
-            "serverless-function",
-            "database-cluster"
-          ]
-        }
       }
     },
     "Device": {
@@ -210,7 +197,7 @@
           "minLength": 1
         },
         "deviceType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/DeviceType"
         },
         "properties": {
           "type": "object",
@@ -230,18 +217,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "DeviceType": {
-          "type": "string",
-          "enum": [
-            "server",
-            "workstation",
-            "mobile",
-            "iot-device",
-            "network-device"
-          ]
         }
       }
     },
@@ -268,7 +243,7 @@
           "minLength": 1
         },
         "softwareType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/SystemSoftwareType"
         },
         "properties": {
           "type": "object",
@@ -305,19 +280,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "SystemSoftwareType": {
-          "type": "string",
-          "enum": [
-            "operating-system",
-            "database",
-            "middleware",
-            "container-runtime",
-            "web-server",
-            "message-broker"
-          ]
         }
       }
     },
@@ -374,7 +336,7 @@
           "minLength": 1
         },
         "protocol": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TechProtocol"
         },
         "properties": {
           "type": "object",
@@ -394,21 +356,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "TechProtocol": {
-          "type": "string",
-          "enum": [
-            "HTTP",
-            "HTTPS",
-            "TCP",
-            "UDP",
-            "WebSocket",
-            "AMQP",
-            "MQTT",
-            "SQL"
-          ]
         }
       }
     },
@@ -435,7 +382,7 @@
           "minLength": 1
         },
         "pathType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PathType"
         },
         "properties": {
           "type": "object",
@@ -455,17 +402,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "PathType": {
-          "type": "string",
-          "enum": [
-            "network",
-            "vpn",
-            "direct-connect",
-            "internet"
-          ]
         }
       }
     },
@@ -492,7 +428,7 @@
           "minLength": 1
         },
         "networkType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/NetworkType"
         },
         "properties": {
           "type": "object",
@@ -529,18 +465,6 @@
               }
             }
           }
-        }
-      },
-      "definitions": {
-        "NetworkType": {
-          "type": "string",
-          "enum": [
-            "lan",
-            "wan",
-            "vpn",
-            "internet",
-            "cdn"
-          ]
         }
       }
     },
@@ -651,19 +575,7 @@
           "minLength": 1
         },
         "eventType": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "TechEventType": {
-          "type": "string",
-          "enum": [
-            "startup",
-            "shutdown",
-            "failure",
-            "scaling",
-            "maintenance"
-          ]
+          "$ref": "#/definitions/TechEventType"
         }
       }
     },
@@ -690,7 +602,7 @@
           "minLength": 1
         },
         "serviceType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TechServiceType"
         },
         "properties": {
           "type": "object",
@@ -749,18 +661,6 @@
             }
           }
         }
-      },
-      "definitions": {
-        "TechServiceType": {
-          "type": "string",
-          "enum": [
-            "infrastructure",
-            "platform",
-            "storage",
-            "compute",
-            "network"
-          ]
-        }
       }
     },
     "Artifact": {
@@ -786,7 +686,7 @@
           "minLength": 1
         },
         "artifactType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ArtifactType"
         },
         "properties": {
           "type": "object",
@@ -846,20 +746,102 @@
             }
           }
         }
-      },
-      "definitions": {
-        "ArtifactType": {
-          "type": "string",
-          "enum": [
-            "database",
-            "file",
-            "configuration",
-            "binary",
-            "log",
-            "backup"
-          ]
-        }
       }
+    },
+    "NodeType": {
+      "type": "string",
+      "enum": [
+        "server",
+        "container",
+        "vm",
+        "kubernetes-cluster",
+        "serverless-function",
+        "database-cluster"
+      ]
+    },
+    "DeviceType": {
+      "type": "string",
+      "enum": [
+        "server",
+        "workstation",
+        "mobile",
+        "iot-device",
+        "network-device"
+      ]
+    },
+    "SystemSoftwareType": {
+      "type": "string",
+      "enum": [
+        "operating-system",
+        "database",
+        "middleware",
+        "container-runtime",
+        "web-server",
+        "message-broker"
+      ]
+    },
+    "TechProtocol": {
+      "type": "string",
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "TCP",
+        "UDP",
+        "WebSocket",
+        "AMQP",
+        "MQTT",
+        "SQL"
+      ]
+    },
+    "PathType": {
+      "type": "string",
+      "enum": [
+        "network",
+        "vpn",
+        "direct-connect",
+        "internet"
+      ]
+    },
+    "NetworkType": {
+      "type": "string",
+      "enum": [
+        "lan",
+        "wan",
+        "vpn",
+        "internet",
+        "cdn"
+      ]
+    },
+    "TechEventType": {
+      "type": "string",
+      "enum": [
+        "startup",
+        "shutdown",
+        "failure",
+        "scaling",
+        "maintenance"
+      ]
+    },
+    "TechServiceType": {
+      "type": "string",
+      "enum": [
+        "infrastructure",
+        "platform",
+        "storage",
+        "compute",
+        "network"
+      ]
+    },
+    "ArtifactType": {
+      "type": "string",
+      "enum": [
+        "database",
+        "file",
+        "configuration",
+        "binary",
+        "log",
+        "backup"
+      ]
     }
   }
 }

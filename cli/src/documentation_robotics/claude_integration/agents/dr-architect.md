@@ -711,7 +711,7 @@ dr changeset abandon <changeset-id>
 4. **Apply migration:**
 
    ```bash
-   dr migrate --apply
+   dr migrate
    ```
 
 5. **Validate thoroughly:**
@@ -854,15 +854,15 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                    |
-| ---------------- | -------------------------------------------------- | ---------------------------------------------------------- |
-| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                  |
-| Update element   | `dr update <element-id> --set key=value`           | `dr update business.service.orders --set criticality=high` |
-| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`    |
-| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                          |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                              |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                      |
-| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                        |
+| Task             | Command                                            | Example                                                            |
+| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
+| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
+| Update element   | `dr update-element <element-id> --set key=value`   | `dr update-element business.service.orders --set criticality=high` |
+| Update with spec | `dr update-element <element-id> --spec file.yaml`  | `dr update-element business.service.orders --spec updates.yaml`    |
+| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                                  |
+| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
+| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
+| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                                |
 
 ### Validation Operations
 
@@ -920,7 +920,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ----------------- | ---------------------- | ---------------------- |
 | Check migration   | `dr migrate`           | `dr migrate`           |
 | Preview migration | `dr migrate --dry-run` | `dr migrate --dry-run` |
-| Apply migration   | `dr migrate --apply`   | `dr migrate --apply`   |
+| Apply migration   | `dr migrate`           | `dr migrate`           |
 
 ## Common Anti-Patterns to Avoid
 

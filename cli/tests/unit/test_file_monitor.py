@@ -5,7 +5,6 @@ Tests the FileMonitor and ModelFileEventHandler classes for detecting
 and debouncing file system events in the model directory.
 """
 
-import asyncio
 import time
 from unittest.mock import Mock
 
@@ -119,9 +118,8 @@ class TestModelFileEventHandler:
 
         assert layer is None
 
-    @pytest.mark.asyncio
-    async def test_debounce_processing_async(self, temp_dir):
-        """Test debounced event processing with asyncio."""
+    def test_debounce_processing(self, temp_dir):
+        """Test debounced event processing."""
         callback = Mock()
         handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.1)
 
@@ -134,7 +132,7 @@ class TestModelFileEventHandler:
         handler._schedule_event("created", str(test_file))
 
         # Wait for debounce processing
-        await asyncio.sleep(0.15)
+        time.sleep(0.15)
 
         # Callback should have been called
         callback.assert_called_once()
@@ -143,8 +141,7 @@ class TestModelFileEventHandler:
         assert args[1] == "business"
         assert args[2] == test_file
 
-    @pytest.mark.asyncio
-    async def test_debounce_prevents_duplicate_events(self, temp_dir):
+    def test_debounce_prevents_duplicate_events(self, temp_dir):
         """Test debouncing prevents duplicate events within window."""
         callback = Mock()
         handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.1)
@@ -159,16 +156,15 @@ class TestModelFileEventHandler:
         handler._schedule_event("modified", str(test_file))
 
         # Wait for debounce processing
-        await asyncio.sleep(0.15)
+        time.sleep(0.15)
 
         # Callback should only be called once (events consolidated)
         assert callback.call_count == 1
 
-    @pytest.mark.asyncio
-    async def test_schedule_event_stores_metadata(self, temp_dir):
+    def test_schedule_event_stores_metadata(self, temp_dir):
         """Test scheduled events store timestamp and metadata."""
         callback = Mock()
-        handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.2)
+        handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.1)
 
         test_file = temp_dir / "business" / "service.yaml"
         test_file.parent.mkdir(parents=True)
@@ -176,12 +172,8 @@ class TestModelFileEventHandler:
 
         handler._schedule_event("created", str(test_file))
 
-        # Check pending events immediately after scheduling (before debounce completes)
-        await asyncio.sleep(0.01)  # Small delay to let scheduling happen
-
-        # Since debounce task may have started, check if event was scheduled and/or processed
-        # Wait for full debounce
-        await asyncio.sleep(0.25)
+        # Wait for debounce processing
+        time.sleep(0.15)
 
         # Verify callback was called with correct metadata
         callback.assert_called_once()
@@ -190,8 +182,8 @@ class TestModelFileEventHandler:
         assert args[1] == "business"
         assert args[2] == test_file
 
-    def test_process_events_sync_fallback(self, temp_dir):
-        """Test synchronous event processing fallback."""
+    def test_process_events_directly(self, temp_dir):
+        """Test direct event processing."""
         callback = Mock()
         handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.05)
 
@@ -199,9 +191,9 @@ class TestModelFileEventHandler:
         test_file.parent.mkdir(parents=True)
         test_file.touch()
 
-        # Schedule event and process synchronously
+        # Schedule event and wait for processing
         handler._schedule_event("created", str(test_file))
-        handler._process_events_sync()
+        time.sleep(0.1)
 
         # Callback should have been called
         callback.assert_called_once()
@@ -275,13 +267,16 @@ class TestFileMonitor:
 
         assert monitor.is_running() is False
 
-    @pytest.mark.asyncio
-    async def test_file_creation_triggers_callback(self, temp_dir):
+    def test_file_creation_triggers_callback(self, temp_dir):
         """Test file creation triggers callback."""
         callback = Mock()
-        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
+        # Use polling observer for reliable test behavior
+        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1, use_polling=True)
 
         monitor.start()
+
+        # Give polling observer time to start (polls every second by default)
+        time.sleep(0.2)
 
         # Create a new file
         layer_dir = temp_dir / "business"
@@ -289,8 +284,8 @@ class TestFileMonitor:
         test_file = layer_dir / "new-service.yaml"
         test_file.write_text("name: Test Service")
 
-        # Wait for debounce + processing
-        await asyncio.sleep(0.2)
+        # Wait for polling detection + debounce + processing
+        time.sleep(1.5)
 
         monitor.stop()
 
@@ -301,8 +296,7 @@ class TestFileMonitor:
         assert args[0] in ("created", "modified")
         assert args[1] == "business"
 
-    @pytest.mark.asyncio
-    async def test_file_modification_triggers_callback(self, temp_dir):
+    def test_file_modification_triggers_callback(self, temp_dir):
         """Test file modification triggers callback."""
         callback = Mock()
 
@@ -312,14 +306,18 @@ class TestFileMonitor:
         test_file = layer_dir / "existing-service.yaml"
         test_file.write_text("name: Original Service")
 
-        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
+        # Use polling observer for reliable test behavior
+        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1, use_polling=True)
         monitor.start()
+
+        # Give polling observer time to start
+        time.sleep(0.2)
 
         # Modify the file
         test_file.write_text("name: Updated Service")
 
-        # Wait for debounce + processing
-        await asyncio.sleep(0.2)
+        # Wait for polling detection + debounce + processing
+        time.sleep(1.5)
 
         monitor.stop()
 
@@ -329,8 +327,7 @@ class TestFileMonitor:
         assert args[0] == "modified"
         assert args[1] == "business"
 
-    @pytest.mark.asyncio
-    async def test_file_deletion_triggers_callback(self, temp_dir):
+    def test_file_deletion_triggers_callback(self, temp_dir):
         """Test file deletion triggers callback."""
         callback = Mock()
 
@@ -340,14 +337,18 @@ class TestFileMonitor:
         test_file = layer_dir / "to-delete.yaml"
         test_file.write_text("name: Service to Delete")
 
-        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
+        # Use polling observer for reliable test behavior
+        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1, use_polling=True)
         monitor.start()
+
+        # Give polling observer time to start
+        time.sleep(0.2)
 
         # Delete the file
         test_file.unlink()
 
-        # Wait for debounce + processing
-        await asyncio.sleep(0.2)
+        # Wait for polling detection + debounce + processing
+        time.sleep(1.5)
 
         monitor.stop()
 
@@ -357,8 +358,7 @@ class TestFileMonitor:
         assert args[0] == "deleted"
         assert args[1] == "business"
 
-    @pytest.mark.asyncio
-    async def test_non_yaml_files_ignored(self, temp_dir):
+    def test_non_yaml_files_ignored(self, temp_dir):
         """Test non-YAML files are ignored by monitor."""
         callback = Mock()
         monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
@@ -372,15 +372,14 @@ class TestFileMonitor:
         test_file.write_text("Some notes")
 
         # Wait for potential processing
-        await asyncio.sleep(0.2)
+        time.sleep(0.3)
 
         monitor.stop()
 
         # Callback should NOT have been called
         callback.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_manifest_changes_ignored(self, temp_dir):
+    def test_manifest_changes_ignored(self, temp_dir):
         """Test manifest.yaml changes are ignored."""
         callback = Mock()
         monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
@@ -392,20 +391,23 @@ class TestFileMonitor:
         manifest_file.write_text("version: 1.0.0")
 
         # Wait for potential processing
-        await asyncio.sleep(0.2)
+        time.sleep(0.3)
 
         monitor.stop()
 
         # Callback should NOT have been called
         callback.assert_not_called()
 
-    @pytest.mark.asyncio
-    async def test_recursive_monitoring(self, temp_dir):
+    def test_recursive_monitoring(self, temp_dir):
         """Test monitor detects changes in nested directories."""
         callback = Mock()
-        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
+        # Use polling observer for reliable test behavior
+        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1, use_polling=True)
 
         monitor.start()
+
+        # Give polling observer time to start
+        time.sleep(0.2)
 
         # Create nested directory structure
         nested_dir = temp_dir / "business" / "services" / "customer"
@@ -413,8 +415,8 @@ class TestFileMonitor:
         test_file = nested_dir / "profile-service.yaml"
         test_file.write_text("name: Profile Service")
 
-        # Wait for debounce + processing
-        await asyncio.sleep(0.2)
+        # Wait for polling detection + debounce + processing
+        time.sleep(1.5)
 
         monitor.stop()
 
@@ -425,13 +427,16 @@ class TestFileMonitor:
         assert args[0] in ("created", "modified")
         assert args[1] == "business"
 
-    @pytest.mark.asyncio
-    async def test_multiple_layers_monitored(self, temp_dir):
+    def test_multiple_layers_monitored(self, temp_dir):
         """Test monitor detects changes across multiple layers."""
         callback = Mock()
-        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1)
+        # Use polling observer for reliable test behavior
+        monitor = FileMonitor(temp_dir, callback, debounce_seconds=0.1, use_polling=True)
 
         monitor.start()
+
+        # Give polling observer time to start
+        time.sleep(0.2)
 
         # Create files in different layers
         business_dir = temp_dir / "business"
@@ -442,8 +447,8 @@ class TestFileMonitor:
         app_dir.mkdir()
         (app_dir / "component.yaml").write_text("name: Application Component")
 
-        # Wait for debounce + processing
-        await asyncio.sleep(0.2)
+        # Wait for polling detection + debounce + processing
+        time.sleep(1.5)
 
         monitor.stop()
 
@@ -466,7 +471,7 @@ class TestEventHandlerErrorHandling:
 
         # Should not raise exception
         handler._schedule_event("created", str(test_file))
-        handler._process_events_sync()
+        time.sleep(0.1)
 
         # Callback was called despite error
         callback.assert_called_once()
@@ -482,7 +487,7 @@ class TestEventHandlerErrorHandling:
 
         # Should not raise exception
         handler._schedule_event("created", str(test_file))
-        handler._process_events_sync()
+        time.sleep(0.1)
 
         callback.assert_called_once()
 
@@ -497,7 +502,7 @@ class TestEventHandlerErrorHandling:
 
         # Should not raise exception
         handler._schedule_event("created", str(test_file))
-        handler._process_events_sync()
+        time.sleep(0.1)
 
         callback.assert_called_once()
 
@@ -514,16 +519,11 @@ class TestDebouncing:
         test_file.parent.mkdir(parents=True)
         test_file.touch()
 
-        # Manually add events to pending without triggering async processing
-        event_key = f"modified:{test_file}"
-        current_time = time.time()
-        handler._pending_events[event_key] = (current_time, "modified", "business", test_file)
+        # Schedule event
+        handler._schedule_event("modified", str(test_file))
 
-        # Wait for debounce window
-        time.sleep(0.06)
-
-        # Process events synchronously
-        handler._process_events_sync()
+        # Wait for debounce window + processing
+        time.sleep(0.1)
 
         # Event should be processed
         callback.assert_called_once()
@@ -531,8 +531,7 @@ class TestDebouncing:
         assert args[0] == "modified"
         assert args[1] == "business"
 
-    @pytest.mark.asyncio
-    async def test_different_files_not_consolidated(self, temp_dir):
+    def test_different_files_not_consolidated(self, temp_dir):
         """Test events for different files are not consolidated."""
         callback = Mock()
         handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.1)
@@ -550,13 +549,12 @@ class TestDebouncing:
         handler._schedule_event("created", str(file2))
 
         # Wait for processing
-        await asyncio.sleep(0.15)
+        time.sleep(0.15)
 
         # Callback should be called twice (once for each file)
         assert callback.call_count == 2
 
-    @pytest.mark.asyncio
-    async def test_different_event_types_not_consolidated(self, temp_dir):
+    def test_different_event_types_not_consolidated(self, temp_dir):
         """Test different event types for same file are tracked separately."""
         callback = Mock()
         handler = ModelFileEventHandler(temp_dir, callback, debounce_seconds=0.1)
@@ -570,7 +568,7 @@ class TestDebouncing:
         handler._schedule_event("modified", str(test_file))
 
         # Wait for processing
-        await asyncio.sleep(0.15)
+        time.sleep(0.15)
 
         # Callback should be called twice (once for each event type)
         assert callback.call_count == 2

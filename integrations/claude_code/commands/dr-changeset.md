@@ -415,7 +415,7 @@ When users are working with changesets, all modeling commands automatically work
 ```bash
 # These automatically work in active changeset:
 dr add business service --name "New Service"
-dr update business.service.existing --set status=updated
+dr update-element business.service.existing --set status=updated
 dr remove business.service.old
 
 # No special syntax needed - changeset is transparent

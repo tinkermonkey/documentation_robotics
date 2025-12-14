@@ -15,7 +15,7 @@ This involves exploring the codebase, identifying architectural components (APIs
    - **Data Models**: Look for ORM entities, SQL files, DTOs, or type definitions.
 
 3. **Ingestion**: For each identified element, generate and execute \`dr\` commands to add it to the model.
-   - Use \`dr add <kind> <id> --title "..."\` to create elements.
+   - Use \`dr add <kind> <id> --name "..."\` to create elements.
    - Use \`dr update <id> --set ...\` to add details.
 
 ## Tool Usage
@@ -33,7 +33,7 @@ Agent:
 3. *Identifies Express.js.*
 4. *Executes \`find src -name "*routes.ts"\`.*
 5. *Reads a route file.*
-6. *Executes \`dr add api user.service.api --title "User API"\`.*
+6. *Executes \`dr add api user.service.api --name "User API"\`.*
 
 ## Instructions
 - Start by exploring the codebase to understand the context.

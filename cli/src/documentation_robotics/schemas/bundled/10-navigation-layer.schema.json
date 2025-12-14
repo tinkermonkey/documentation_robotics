@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/10-navigation-layer.schema.json",
-  "title": "Navigation Layer Schema",
+  "title": "Navigation Layer Layer Schema",
   "description": "Defines application routing, navigation flows, transitions, and guards for channel-agnostic navigation across web, mobile, voice, and chat interfaces.",
   "type": "object",
   "properties": {
@@ -193,17 +193,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "RouteType": {
-          "type": "string",
-          "enum": [
-            "experience",
-            "redirect",
-            "external"
-          ]
+          "$ref": "#/definitions/RouteType"
         }
       }
     },
@@ -294,25 +284,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "TruncationType": {
-          "type": "string",
-          "enum": [
-            "none",
-            "middle",
-            "start",
-            "end"
-          ]
-        },
-        "BreadcrumbMode": {
-          "type": "string",
-          "enum": [
-            "static",
-            "dynamic",
-            "hybrid"
-          ]
-        }
       }
     },
     "NavigationTransition": {
@@ -344,7 +315,7 @@
           "minLength": 1
         },
         "trigger": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/NavigationTrigger"
         },
         "description": {
           "type": "string",
@@ -356,22 +327,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "NavigationTrigger": {
-          "type": "string",
-          "enum": [
-            "user-action",
-            "submit",
-            "success",
-            "failure",
-            "cancel",
-            "automatic",
-            "deeplink",
-            "back",
-            "timeout"
-          ]
         }
       }
     },
@@ -395,7 +350,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/GuardType"
         },
         "description": {
           "type": "string",
@@ -403,30 +358,6 @@
         },
         "order": {
           "type": "integer"
-        }
-      },
-      "definitions": {
-        "GuardType": {
-          "type": "string",
-          "enum": [
-            "authentication",
-            "authorization",
-            "validation",
-            "data-loaded",
-            "custom"
-          ]
-        },
-        "HttpMethod": {
-          "type": "string",
-          "enum": [
-            "GET",
-            "POST",
-            "PUT",
-            "DELETE",
-            "PATCH",
-            "HEAD",
-            "OPTIONS"
-          ]
         }
       }
     },
@@ -483,7 +414,7 @@
           "minLength": 1
         },
         "action": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/GuardActionType"
         },
         "target": {
           "type": "string",
@@ -495,17 +426,6 @@
         },
         "preserveRoute": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "GuardActionType": {
-          "type": "string",
-          "enum": [
-            "redirect",
-            "show-error",
-            "navigate-back",
-            "abort"
-          ]
         }
       }
     },
@@ -572,17 +492,6 @@
         "required": {
           "type": "boolean"
         }
-      },
-      "definitions": {
-        "WaitType": {
-          "type": "string",
-          "enum": [
-            "user-action",
-            "approval",
-            "external-event",
-            "timeout"
-          ]
-        }
       }
     },
     "ContextVariable": {
@@ -610,34 +519,14 @@
           "minLength": 1
         },
         "scope": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ContextScope"
         },
         "persistedIn": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/StorageType"
         },
         "defaultValue": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "ContextScope": {
-          "type": "string",
-          "enum": [
-            "flow",
-            "session",
-            "user"
-          ]
-        },
-        "StorageType": {
-          "type": "string",
-          "enum": [
-            "memory",
-            "session-storage",
-            "local-storage",
-            "server-session",
-            "database"
-          ]
         }
       }
     },
@@ -767,7 +656,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/NotificationType"
         },
         "template": {
           "type": "string",
@@ -777,18 +666,113 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "NotificationType": {
-          "type": "string",
-          "enum": [
-            "email",
-            "sms",
-            "push",
-            "webhook"
-          ]
-        }
       }
+    },
+    "RouteType": {
+      "type": "string",
+      "enum": [
+        "experience",
+        "redirect",
+        "external"
+      ]
+    },
+    "TruncationType": {
+      "type": "string",
+      "enum": [
+        "none",
+        "middle",
+        "start",
+        "end"
+      ]
+    },
+    "BreadcrumbMode": {
+      "type": "string",
+      "enum": [
+        "static",
+        "dynamic",
+        "hybrid"
+      ]
+    },
+    "NavigationTrigger": {
+      "type": "string",
+      "enum": [
+        "user-action",
+        "submit",
+        "success",
+        "failure",
+        "cancel",
+        "automatic",
+        "deeplink",
+        "back",
+        "timeout"
+      ]
+    },
+    "GuardType": {
+      "type": "string",
+      "enum": [
+        "authentication",
+        "authorization",
+        "validation",
+        "data-loaded",
+        "custom"
+      ]
+    },
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    "GuardActionType": {
+      "type": "string",
+      "enum": [
+        "redirect",
+        "show-error",
+        "navigate-back",
+        "abort"
+      ]
+    },
+    "WaitType": {
+      "type": "string",
+      "enum": [
+        "user-action",
+        "approval",
+        "external-event",
+        "timeout"
+      ]
+    },
+    "ContextScope": {
+      "type": "string",
+      "enum": [
+        "flow",
+        "session",
+        "user"
+      ]
+    },
+    "StorageType": {
+      "type": "string",
+      "enum": [
+        "memory",
+        "session-storage",
+        "local-storage",
+        "server-session",
+        "database"
+      ]
+    },
+    "NotificationType": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "push",
+        "webhook"
+      ]
     }
   }
 }

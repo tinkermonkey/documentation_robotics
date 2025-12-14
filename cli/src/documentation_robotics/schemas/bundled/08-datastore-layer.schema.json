@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
-  "title": "Datastore Layer Schema",
+  "title": "Datastore Layer Layer Schema",
   "description": "Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.",
   "type": "object",
   "properties": {
@@ -97,7 +97,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/DatabaseType"
         },
         "version": {
           "type": "string",
@@ -117,19 +117,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "DatabaseType": {
-          "type": "string",
-          "enum": [
-            "PostgreSQL",
-            "MySQL",
-            "SQLite",
-            "MariaDB",
-            "Oracle",
-            "SQL Server"
-          ]
         }
       }
     },
@@ -272,47 +259,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "SQLDataType": {
-          "type": "string",
-          "enum": [
-            "SMALLINT",
-            "INTEGER",
-            "BIGINT",
-            "SERIAL",
-            "BIGSERIAL",
-            "DECIMAL(precision, scale)",
-            "NUMERIC(precision, scale)",
-            "REAL",
-            "DOUBLE PRECISION",
-            "CHAR(length)",
-            "VARCHAR(length)",
-            "TEXT",
-            "BYTEA",
-            "BLOB",
-            "BOOLEAN",
-            "DATE",
-            "TIME",
-            "TIMESTAMP",
-            "TIMESTAMPTZ",
-            "INTERVAL",
-            "JSON",
-            "JSONB",
-            "UUID",
-            "INTEGER[]",
-            "TEXT[]",
-            "etc.",
-            "ENUM('value1', 'value2', ...)"
-          ]
-        },
-        "GenerationType": {
-          "type": "string",
-          "enum": [
-            "ALWAYS",
-            "BY_DEFAULT"
-          ]
-        }
       }
     },
     "Constraint": {
@@ -334,29 +280,7 @@
           "minLength": 1
         },
         "type": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "ConstraintType": {
-          "type": "string",
-          "enum": [
-            "PRIMARY_KEY",
-            "UNIQUE",
-            "FOREIGN_KEY",
-            "CHECK",
-            "EXCLUSION"
-          ]
-        },
-        "ReferentialAction": {
-          "type": "string",
-          "enum": [
-            "CASCADE",
-            "SET_NULL",
-            "SET_DEFAULT",
-            "RESTRICT",
-            "NO_ACTION"
-          ]
+          "$ref": "#/definitions/ConstraintType"
         }
       }
     },
@@ -396,19 +320,6 @@
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "IndexMethod": {
-          "type": "string",
-          "enum": [
-            "BTREE",
-            "HASH",
-            "GIN",
-            "GIST",
-            "BRIN",
-            "SP-GIST"
-          ]
-        }
       }
     },
     "View": {
@@ -434,16 +345,6 @@
         },
         "materialized": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "RefreshMode": {
-          "type": "string",
-          "enum": [
-            "ON_COMMIT",
-            "ON_DEMAND",
-            "SCHEDULED"
-          ]
         }
       }
     },
@@ -475,14 +376,14 @@
           "minLength": 1
         },
         "timing": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TriggerTiming"
         },
         "events": {
           "type": "string",
           "minLength": 1
         },
         "forEach": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TriggerForEach"
         },
         "functionName": {
           "type": "string",
@@ -494,32 +395,6 @@
         },
         "enabled": {
           "type": "boolean"
-        }
-      },
-      "definitions": {
-        "TriggerTiming": {
-          "type": "string",
-          "enum": [
-            "BEFORE",
-            "AFTER",
-            "INSTEAD_OF"
-          ]
-        },
-        "TriggerEvent": {
-          "type": "string",
-          "enum": [
-            "INSERT",
-            "UPDATE",
-            "DELETE",
-            "TRUNCATE"
-          ]
-        },
-        "TriggerForEach": {
-          "type": "string",
-          "enum": [
-            "ROW",
-            "STATEMENT"
-          ]
         }
       }
     },
@@ -545,7 +420,7 @@
           "minLength": 1
         },
         "dataType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/SequenceDataType"
         },
         "startValue": {
           "type": "integer"
@@ -568,16 +443,6 @@
         "ownedBy": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "SequenceDataType": {
-          "type": "string",
-          "enum": [
-            "SMALLINT",
-            "INTEGER",
-            "BIGINT"
-          ]
         }
       }
     },
@@ -605,23 +470,23 @@
           "minLength": 1
         },
         "language": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/FunctionLanguage"
         },
         "returnType": {
           "type": "string",
           "minLength": 1
         },
         "volatility": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/FunctionVolatility"
         },
         "parallel": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ParallelSafety"
         },
         "strict": {
           "type": "boolean"
         },
         "security": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/SecurityDefiner"
         },
         "cost": {
           "type": "integer"
@@ -629,52 +494,171 @@
         "rows": {
           "type": "integer"
         }
-      },
-      "definitions": {
-        "FunctionLanguage": {
-          "type": "string",
-          "enum": [
-            "SQL",
-            "PLPGSQL",
-            "PLPYTHON3U",
-            "PLPERL",
-            "PLPYTHON",
-            "C"
-          ]
-        },
-        "FunctionVolatility": {
-          "type": "string",
-          "enum": [
-            "IMMUTABLE",
-            "STABLE",
-            "VOLATILE"
-          ]
-        },
-        "ParallelSafety": {
-          "type": "string",
-          "enum": [
-            "UNSAFE",
-            "RESTRICTED",
-            "SAFE"
-          ]
-        },
-        "SecurityDefiner": {
-          "type": "string",
-          "enum": [
-            "INVOKER",
-            "DEFINER"
-          ]
-        },
-        "ParameterMode": {
-          "type": "string",
-          "enum": [
-            "IN",
-            "OUT",
-            "INOUT",
-            "VARIADIC"
-          ]
-        }
       }
+    },
+    "DatabaseType": {
+      "type": "string",
+      "enum": [
+        "PostgreSQL",
+        "MySQL",
+        "SQLite",
+        "MariaDB",
+        "Oracle",
+        "SQL Server"
+      ]
+    },
+    "SQLDataType": {
+      "type": "string",
+      "enum": [
+        "SMALLINT",
+        "INTEGER",
+        "BIGINT",
+        "SERIAL",
+        "BIGSERIAL",
+        "DECIMAL(precision, scale)",
+        "NUMERIC(precision, scale)",
+        "REAL",
+        "DOUBLE PRECISION",
+        "CHAR(length)",
+        "VARCHAR(length)",
+        "TEXT",
+        "BYTEA",
+        "BLOB",
+        "BOOLEAN",
+        "DATE",
+        "TIME",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "INTERVAL",
+        "JSON",
+        "JSONB",
+        "UUID",
+        "INTEGER[]",
+        "TEXT[]",
+        "etc.",
+        "ENUM('value1', 'value2', ...)"
+      ]
+    },
+    "GenerationType": {
+      "type": "string",
+      "enum": [
+        "ALWAYS",
+        "BY_DEFAULT"
+      ]
+    },
+    "ConstraintType": {
+      "type": "string",
+      "enum": [
+        "PRIMARY_KEY",
+        "UNIQUE",
+        "FOREIGN_KEY",
+        "CHECK",
+        "EXCLUSION"
+      ]
+    },
+    "ReferentialAction": {
+      "type": "string",
+      "enum": [
+        "CASCADE",
+        "SET_NULL",
+        "SET_DEFAULT",
+        "RESTRICT",
+        "NO_ACTION"
+      ]
+    },
+    "IndexMethod": {
+      "type": "string",
+      "enum": [
+        "BTREE",
+        "HASH",
+        "GIN",
+        "GIST",
+        "BRIN",
+        "SP-GIST"
+      ]
+    },
+    "RefreshMode": {
+      "type": "string",
+      "enum": [
+        "ON_COMMIT",
+        "ON_DEMAND",
+        "SCHEDULED"
+      ]
+    },
+    "TriggerTiming": {
+      "type": "string",
+      "enum": [
+        "BEFORE",
+        "AFTER",
+        "INSTEAD_OF"
+      ]
+    },
+    "TriggerEvent": {
+      "type": "string",
+      "enum": [
+        "INSERT",
+        "UPDATE",
+        "DELETE",
+        "TRUNCATE"
+      ]
+    },
+    "TriggerForEach": {
+      "type": "string",
+      "enum": [
+        "ROW",
+        "STATEMENT"
+      ]
+    },
+    "SequenceDataType": {
+      "type": "string",
+      "enum": [
+        "SMALLINT",
+        "INTEGER",
+        "BIGINT"
+      ]
+    },
+    "FunctionLanguage": {
+      "type": "string",
+      "enum": [
+        "SQL",
+        "PLPGSQL",
+        "PLPYTHON3U",
+        "PLPERL",
+        "PLPYTHON",
+        "C"
+      ]
+    },
+    "FunctionVolatility": {
+      "type": "string",
+      "enum": [
+        "IMMUTABLE",
+        "STABLE",
+        "VOLATILE"
+      ]
+    },
+    "ParallelSafety": {
+      "type": "string",
+      "enum": [
+        "UNSAFE",
+        "RESTRICTED",
+        "SAFE"
+      ]
+    },
+    "SecurityDefiner": {
+      "type": "string",
+      "enum": [
+        "INVOKER",
+        "DEFINER"
+      ]
+    },
+    "ParameterMode": {
+      "type": "string",
+      "enum": [
+        "IN",
+        "OUT",
+        "INOUT",
+        "VARIADIC"
+      ]
     }
   }
 }

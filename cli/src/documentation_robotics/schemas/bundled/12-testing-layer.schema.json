@@ -217,10 +217,10 @@
           "minLength": 1
         },
         "targetType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/TargetType"
         },
         "priority": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Priority"
         },
         "applicableContexts": {
           "type": "array",
@@ -242,30 +242,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "TargetType": {
-          "type": "string",
-          "enum": [
-            "workflow",
-            "workflow-step",
-            "form",
-            "api-operation",
-            "data-transform",
-            "navigation-path",
-            "integration",
-            "composite"
-          ]
-        },
-        "Priority": {
-          "type": "string",
-          "enum": [
-            "critical",
-            "high",
-            "medium",
-            "low"
-          ]
         }
       }
     },
@@ -301,17 +277,7 @@
           "minLength": 1
         },
         "relevance": {
-          "$ref": "#/definitions/enum"
-        }
-      },
-      "definitions": {
-        "FieldRelevance": {
-          "type": "string",
-          "enum": [
-            "primary",
-            "secondary",
-            "contextual"
-          ]
+          "$ref": "#/definitions/FieldRelevance"
         }
       }
     },
@@ -343,7 +309,7 @@
           "minLength": 1
         },
         "presenceRule": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PresenceRule"
         },
         "partitions": {
           "type": "array",
@@ -358,16 +324,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "PresenceRule": {
-          "type": "string",
-          "enum": [
-            "required",
-            "optional",
-            "conditional"
-          ]
         }
       }
     },
@@ -410,23 +366,11 @@
           "minLength": 1
         },
         "category": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/PartitionCategory"
         },
         "representativeValue": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "PartitionCategory": {
-          "type": "string",
-          "enum": [
-            "typical",
-            "boundary",
-            "invalid",
-            null,
-            "special"
-          ]
         }
       }
     },
@@ -460,7 +404,7 @@
           "minLength": 1
         },
         "effect": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/DependencyEffect"
         },
         "affectedValues": {
           "type": "string",
@@ -469,17 +413,6 @@
         "description": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "DependencyEffect": {
-          "type": "string",
-          "enum": [
-            "requires",
-            "excludes",
-            "enables",
-            "modifies"
-          ]
         }
       }
     },
@@ -506,7 +439,7 @@
           "minLength": 1
         },
         "contextType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/ContextType"
         },
         "environmentFactors": {
           "type": "array",
@@ -514,18 +447,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "ContextType": {
-          "type": "string",
-          "enum": [
-            "ui-entry",
-            "api-entry",
-            "event-triggered",
-            "scheduled",
-            "integration"
-          ]
         }
       }
     },
@@ -586,27 +507,11 @@
           "minLength": 1
         },
         "outcomeType": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/OutcomeType"
         },
         "httpStatusRange": {
           "type": "string",
           "minLength": 1
-        }
-      },
-      "definitions": {
-        "OutcomeType": {
-          "type": "string",
-          "enum": [
-            "success",
-            "validation-error",
-            "authorization-denied",
-            "not-found",
-            "conflict",
-            "precondition-failed",
-            "idempotent-noop",
-            "partial-success",
-            "error"
-          ]
         }
       }
     },
@@ -633,10 +538,10 @@
           "minLength": 1
         },
         "coverageCriteria": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/CoverageCriteria"
         },
         "priority": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/Priority"
         },
         "inputPartitionSelections": {
           "type": "array",
@@ -665,20 +570,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "CoverageCriteria": {
-          "type": "string",
-          "enum": [
-            "exhaustive",
-            "pairwise",
-            "each-choice",
-            "boundary",
-            "risk-based",
-            "happy-path",
-            "error-path"
-          ]
         }
       }
     },
@@ -781,7 +672,7 @@
           "minLength": 1
         },
         "status": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/SketchStatus"
         },
         "inputSelections": {
           "type": "array",
@@ -789,33 +680,6 @@
           "items": {
             "type": "string"
           }
-        }
-      },
-      "definitions": {
-        "SketchStatus": {
-          "type": "string",
-          "enum": [
-            "planned",
-            "implemented",
-            "automated",
-            "manual",
-            "blocked",
-            "deprecated"
-          ]
-        },
-        "ImplementationFormat": {
-          "type": "string",
-          "enum": [
-            "gherkin",
-            "postman",
-            "jest",
-            "pytest",
-            "playwright",
-            "cypress",
-            "robot",
-            "manual",
-            "other"
-          ]
         }
       }
     },
@@ -938,24 +802,140 @@
           "minLength": 1
         },
         "severity": {
-          "$ref": "#/definitions/enum"
+          "$ref": "#/definitions/GapSeverity"
         },
         "affectedRequirements": {
           "type": "string",
           "minLength": 1
         }
-      },
-      "definitions": {
-        "GapSeverity": {
-          "type": "string",
-          "enum": [
-            "critical",
-            "high",
-            "medium",
-            "low"
-          ]
-        }
       }
+    },
+    "TargetType": {
+      "type": "string",
+      "enum": [
+        "workflow",
+        "workflow-step",
+        "form",
+        "api-operation",
+        "data-transform",
+        "navigation-path",
+        "integration",
+        "composite"
+      ]
+    },
+    "Priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "FieldRelevance": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "contextual"
+      ]
+    },
+    "PresenceRule": {
+      "type": "string",
+      "enum": [
+        "required",
+        "optional",
+        "conditional"
+      ]
+    },
+    "PartitionCategory": {
+      "type": "string",
+      "enum": [
+        "typical",
+        "boundary",
+        "invalid",
+        null,
+        "special"
+      ]
+    },
+    "DependencyEffect": {
+      "type": "string",
+      "enum": [
+        "requires",
+        "excludes",
+        "enables",
+        "modifies"
+      ]
+    },
+    "ContextType": {
+      "type": "string",
+      "enum": [
+        "ui-entry",
+        "api-entry",
+        "event-triggered",
+        "scheduled",
+        "integration"
+      ]
+    },
+    "OutcomeType": {
+      "type": "string",
+      "enum": [
+        "success",
+        "validation-error",
+        "authorization-denied",
+        "not-found",
+        "conflict",
+        "precondition-failed",
+        "idempotent-noop",
+        "partial-success",
+        "error"
+      ]
+    },
+    "CoverageCriteria": {
+      "type": "string",
+      "enum": [
+        "exhaustive",
+        "pairwise",
+        "each-choice",
+        "boundary",
+        "risk-based",
+        "happy-path",
+        "error-path"
+      ]
+    },
+    "SketchStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "implemented",
+        "automated",
+        "manual",
+        "blocked",
+        "deprecated"
+      ]
+    },
+    "ImplementationFormat": {
+      "type": "string",
+      "enum": [
+        "gherkin",
+        "postman",
+        "jest",
+        "pytest",
+        "playwright",
+        "cypress",
+        "robot",
+        "manual",
+        "other"
+      ]
+    },
+    "GapSeverity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
     }
   }
 }

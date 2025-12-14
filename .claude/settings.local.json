@@ -53,7 +53,8 @@
       "Bash(timeout 15 python:*)",
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.claude.com)",
-      "Bash(dr visualize --help:*)"
+      "Bash(dr visualize --help:*)",
+      "Bash(dr migrate --help:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
