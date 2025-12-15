@@ -1376,22 +1376,210 @@ security:
 
 ## Example Model
 
-The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
+The following XML example demonstrates intra-layer and cross-layer relationships using ArchiMate-style XML format.
 
 ```xml
 <model>
-  <!-- Example APIOperation with cross-layer properties -->
-  <element id="api-get-product" type="APIOperation">
-    <n>Get Product</n>
-    <documentation>Example demonstrating cross-layer property usage</documentation>
+  <!-- OpenAPI Document -->
+  <element id="product-api" type="OpenAPIDocument">
+    <n>Product API</n>
+    <documentation>Product catalog API specification</documentation>
+  </element>
 
-    <!-- Motivation Layer Integration -->
-    <property key="motivation.supports-goals">goal-example</property>
-    <property key="motivation.governed-by-principles">principle-example</property>
+  <!-- Info -->
+  <element id="api-info" type="Info">
+    <n>Product API Info</n>
+  </element>
 
-    <!-- Security Layer Integration -->
+  <!-- Contact -->
+  <element id="api-contact" type="Contact">
+    <n>API Team</n>
+  </element>
+
+  <!-- License -->
+  <element id="api-license" type="License">
+    <n>MIT License</n>
+  </element>
+
+  <!-- Components -->
+  <element id="api-components" type="Components">
+    <n>Reusable Components</n>
+  </element>
+
+  <!-- Servers -->
+  <element id="production-server" type="Server">
+    <n>Production Server</n>
+  </element>
+
+  <element id="env-variable" type="ServerVariable">
+    <n>Environment Variable</n>
+  </element>
+
+  <!-- Tags -->
+  <element id="products-tag" type="Tag">
+    <n>Products</n>
+  </element>
+
+  <element id="api-docs" type="ExternalDocumentation">
+    <n>API Documentation</n>
+  </element>
+
+  <!-- Paths and Operations -->
+  <element id="api-paths" type="Paths">
+    <n>API Paths</n>
+  </element>
+
+  <element id="products-path" type="PathItem">
+    <n>/products</n>
+  </element>
+
+  <element id="get-products" type="Operation">
+    <n>Get Products</n>
+    <documentation>List all products</documentation>
+
+    <!-- Cross-layer properties -->
+    <property key="motivation.supports-goals">goal-customer-satisfaction</property>
+    <property key="motivation.governed-by-principles">principle-api-first</property>
     <property key="security.classification">internal</property>
   </element>
+
+  <element id="query-param" type="Parameter">
+    <n>category parameter</n>
+  </element>
+
+  <element id="products-responses" type="Responses">
+    <n>Product Responses</n>
+  </element>
+
+  <element id="success-response" type="Response">
+    <n>200 Success</n>
+  </element>
+
+  <element id="json-media-type" type="MediaType">
+    <n>application/json</n>
+  </element>
+
+  <element id="product-schema" type="Schema">
+    <n>Product Schema</n>
+  </element>
+
+  <element id="product-array-schema" type="Schema">
+    <n>Product Array Schema</n>
+  </element>
+
+  <element id="product-example" type="Example">
+    <n>Product Example</n>
+  </element>
+
+  <element id="content-encoding" type="Encoding">
+    <n>Content Encoding</n>
+  </element>
+
+  <element id="content-header" type="Header">
+    <n>Content-Type Header</n>
+  </element>
+
+  <element id="callback-definition" type="Callback">
+    <n>Webhook Callback</n>
+  </element>
+
+  <element id="webhook-path" type="PathItem">
+    <n>/webhooks/product-updated</n>
+  </element>
+
+  <element id="oauth2-scheme" type="SecurityScheme">
+    <n>OAuth 2.0</n>
+  </element>
+
+  <element id="oauth-flows" type="OAuthFlows">
+    <n>OAuth Flows</n>
+  </element>
+
+  <element id="auth-code-flow" type="OAuthFlow">
+    <n>Authorization Code Flow</n>
+  </element>
+
+  <element id="security-requirement" type="SecurityRequirement">
+    <n>OAuth Required</n>
+  </element>
+
+  <element id="product-link" type="Link">
+    <n>Get Product Link</n>
+  </element>
+
+  <element id="post-products" type="Operation">
+    <n>Create Product</n>
+  </element>
+
+  <element id="request-body" type="RequestBody">
+    <n>Product Request Body</n>
+  </element>
+
+  <!-- Composition Relationships -->
+  <relationship type="Composition" source="product-api" target="api-info"/>
+  <relationship type="Composition" source="product-api" target="api-paths"/>
+  <relationship type="Composition" source="product-api" target="api-components"/>
+  <relationship type="Composition" source="api-paths" target="products-path"/>
+  <relationship type="Composition" source="products-path" target="get-products"/>
+  <relationship type="Composition" source="get-products" target="query-param"/>
+  <relationship type="Composition" source="get-products" target="products-responses"/>
+  <relationship type="Composition" source="post-products" target="request-body"/>
+  <relationship type="Composition" source="products-responses" target="success-response"/>
+  <relationship type="Composition" source="request-body" target="json-media-type"/>
+  <relationship type="Composition" source="success-response" target="json-media-type"/>
+  <relationship type="Composition" source="success-response" target="content-header"/>
+  <relationship type="Composition" source="success-response" target="product-link"/>
+  <relationship type="Composition" source="json-media-type" target="product-schema"/>
+  <relationship type="Composition" source="json-media-type" target="product-example"/>
+  <relationship type="Composition" source="json-media-type" target="content-encoding"/>
+  <relationship type="Composition" source="api-components" target="product-schema"/>
+  <relationship type="Composition" source="api-components" target="success-response"/>
+  <relationship type="Composition" source="api-components" target="query-param"/>
+  <relationship type="Composition" source="api-components" target="product-example"/>
+  <relationship type="Composition" source="api-components" target="request-body"/>
+  <relationship type="Composition" source="api-components" target="content-header"/>
+  <relationship type="Composition" source="api-components" target="oauth2-scheme"/>
+  <relationship type="Composition" source="api-components" target="product-link"/>
+  <relationship type="Composition" source="api-components" target="callback-definition"/>
+  <relationship type="Composition" source="api-info" target="api-contact"/>
+  <relationship type="Composition" source="api-info" target="api-license"/>
+  <relationship type="Composition" source="oauth2-scheme" target="oauth-flows"/>
+  <relationship type="Composition" source="oauth-flows" target="auth-code-flow"/>
+
+  <!-- Aggregation Relationships -->
+  <relationship type="Aggregation" source="product-api" target="production-server"/>
+  <relationship type="Aggregation" source="product-api" target="products-tag"/>
+  <relationship type="Aggregation" source="product-api" target="security-requirement"/>
+  <relationship type="Aggregation" source="production-server" target="env-variable"/>
+  <relationship type="Aggregation" source="products-path" target="query-param"/>
+  <relationship type="Aggregation" source="get-products" target="callback-definition"/>
+  <relationship type="Aggregation" source="get-products" target="security-requirement"/>
+
+  <!-- Specialization Relationships -->
+  <relationship type="Specialization" source="product-array-schema" target="product-schema"/>
+
+  <!-- Reference Relationships -->
+  <relationship type="Reference" source="product-array-schema" target="product-schema"/>
+  <relationship type="Reference" source="query-param" target="product-schema"/>
+  <relationship type="Reference" source="content-header" target="product-schema"/>
+  <relationship type="Reference" source="product-link" target="post-products"/>
+  <relationship type="Reference" source="callback-definition" target="webhook-path"/>
+  <relationship type="Reference" source="get-products" target="products-tag"/>
+  <relationship type="Reference" source="products-tag" target="api-docs"/>
+  <relationship type="Reference" source="product-api" target="api-docs"/>
+  <relationship type="Reference" source="content-encoding" target="content-header"/>
+  <relationship type="Reference" source="env-variable" target="production-server"/>
+  <relationship type="Reference" source="auth-code-flow" target="oauth-flows"/>
+
+  <!-- Triggering Relationships -->
+  <relationship type="Triggering" source="post-products" target="callback-definition"/>
+
+  <!-- Serving Relationships -->
+  <relationship type="Serving" source="oauth2-scheme" target="get-products"/>
+
+  <!-- Association Relationships -->
+  <relationship type="Association" source="api-contact" target="product-api"/>
+  <relationship type="Association" source="api-license" target="product-api"/>
 </model>
 ```
 
@@ -1552,19 +1740,107 @@ Consistency Checks:
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+#### Composition Relationships
+
+Whole-part relationships where the part cannot exist without the whole.
+
+| Source Element  | Target Element | Predicate  | Inverse Predicate | Cardinality | Description                                                           |
+| --------------- | -------------- | ---------- | ----------------- | ----------- | --------------------------------------------------------------------- |
+| OpenAPIDocument | Info           | `composes` | `composed-of`     | 1:1         | API document contains exactly one info object with API metadata       |
+| OpenAPIDocument | Paths          | `composes` | `composed-of`     | 1:1         | API document contains exactly one paths object defining endpoints     |
+| OpenAPIDocument | Components     | `composes` | `composed-of`     | 1:0..1      | API document may contain a components object for reusable definitions |
+| Paths           | PathItem       | `composes` | `composed-of`     | 1:N         | Paths object contains path items keyed by URL pattern                 |
+| PathItem        | Operation      | `composes` | `composed-of`     | 1:N         | Path item contains operations for each HTTP method                    |
+| Operation       | Parameter      | `composes` | `composed-of`     | 1:N         | Operation contains its parameters                                     |
+| Operation       | RequestBody    | `composes` | `composed-of`     | 1:0..1      | Operation may contain a request body                                  |
+| Operation       | Responses      | `composes` | `composed-of`     | 1:1         | Operation contains a responses object                                 |
+| Responses       | Response       | `composes` | `composed-of`     | 1:N         | Responses object contains response definitions keyed by status code   |
+| RequestBody     | MediaType      | `composes` | `composed-of`     | 1:N         | Request body contains media type definitions                          |
+| Response        | MediaType      | `composes` | `composed-of`     | 1:N         | Response contains media type definitions for content                  |
+| Response        | Header         | `composes` | `composed-of`     | 1:N         | Response contains header definitions                                  |
+| Response        | Link           | `composes` | `composed-of`     | 1:N         | Response contains link definitions for HATEOAS navigation             |
+| MediaType       | Schema         | `composes` | `composed-of`     | 1:0..1      | Media type contains schema definition                                 |
+| MediaType       | Example        | `composes` | `composed-of`     | 1:N         | Media type contains example definitions                               |
+| MediaType       | Encoding       | `composes` | `composed-of`     | 1:N         | Media type contains encoding definitions for multipart content        |
+| Components      | Schema         | `composes` | `composed-of`     | 1:N         | Components object contains reusable schema definitions                |
+| Components      | Response       | `composes` | `composed-of`     | 1:N         | Components object contains reusable response definitions              |
+| Components      | Parameter      | `composes` | `composed-of`     | 1:N         | Components object contains reusable parameter definitions             |
+| Components      | Example        | `composes` | `composed-of`     | 1:N         | Components object contains reusable example definitions               |
+| Components      | RequestBody    | `composes` | `composed-of`     | 1:N         | Components object contains reusable request body definitions          |
+| Components      | Header         | `composes` | `composed-of`     | 1:N         | Components object contains reusable header definitions                |
+| Components      | SecurityScheme | `composes` | `composed-of`     | 1:N         | Components object contains security scheme definitions                |
+| Components      | Link           | `composes` | `composed-of`     | 1:N         | Components object contains reusable link definitions                  |
+| Components      | Callback       | `composes` | `composed-of`     | 1:N         | Components object contains reusable callback definitions              |
+| Info            | Contact        | `composes` | `composed-of`     | 1:0..1      | Info object may contain contact information                           |
+| Info            | License        | `composes` | `composed-of`     | 1:0..1      | Info object may contain license information                           |
+| SecurityScheme  | OAuthFlows     | `composes` | `composed-of`     | 1:0..1      | OAuth2 security scheme contains OAuth flows configuration             |
+
+#### Aggregation Relationships
+
+Whole-part relationships where the part can exist independently.
+
+| Source Element  | Target Element      | Predicate    | Inverse Predicate | Cardinality | Description                                              |
+| --------------- | ------------------- | ------------ | ----------------- | ----------- | -------------------------------------------------------- |
+| OpenAPIDocument | Server              | `aggregates` | `aggregated-by`   | 1:N         | API document aggregates server definitions               |
+| OpenAPIDocument | Tag                 | `aggregates` | `aggregated-by`   | 1:N         | API document aggregates tag definitions for grouping     |
+| OpenAPIDocument | SecurityRequirement | `aggregates` | `aggregated-by`   | 1:N         | API document aggregates global security requirements     |
+| Server          | ServerVariable      | `aggregates` | `aggregated-by`   | 1:N         | Server aggregates its URL template variables             |
+| PathItem        | Parameter           | `aggregates` | `aggregated-by`   | 1:N         | Path item aggregates shared parameters across operations |
+| Operation       | Callback            | `aggregates` | `aggregated-by`   | 1:N         | Operation aggregates callback definitions                |
+| Operation       | SecurityRequirement | `aggregates` | `aggregated-by`   | 1:N         | Operation aggregates its security requirements           |
+
+#### Specialization Relationships
+
+Type-subtype relationships (inheritance).
+
+| Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description                                                 |
+| -------------- | -------------- | ------------- | ----------------- | ----------- | ----------------------------------------------------------- |
+| Schema         | Schema         | `specializes` | `generalized-by`  | N:1         | Schema specializes another schema through allOf/oneOf/anyOf |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+#### Reference Relationships
+
+Pointer references between entities without ownership semantics.
+
+| Source Element  | Target Element        | Predicate    | Inverse Predicate | Cardinality | Description                                          |
+| --------------- | --------------------- | ------------ | ----------------- | ----------- | ---------------------------------------------------- |
+| Schema          | Schema                | `references` | `referenced-by`   | N:N         | Schema references another schema via $ref            |
+| Parameter       | Schema                | `references` | `referenced-by`   | N:1         | Parameter references a schema for its data type      |
+| Header          | Schema                | `references` | `referenced-by`   | N:1         | Header references a schema for its data type         |
+| Link            | Operation             | `references` | `referenced-by`   | N:1         | Link references target operation via operationId     |
+| Callback        | PathItem              | `references` | `referenced-by`   | N:1         | Callback references path item for webhook definition |
+| Operation       | Tag                   | `references` | `referenced-by`   | N:N         | Operation references tags for categorization         |
+| Tag             | ExternalDocumentation | `references` | `referenced-by`   | N:0..1      | Tag references external documentation                |
+| OpenAPIDocument | ExternalDocumentation | `references` | `referenced-by`   | 1:0..1      | API document references external documentation       |
+| Encoding        | Header                | `references` | `referenced-by`   | N:N         | Encoding references headers for multipart content    |
+
+#### Triggering Relationships
+
+Event-driven relationships where one entity initiates another.
+
+| Source Element | Target Element | Predicate  | Inverse Predicate | Cardinality | Description                                    |
+| -------------- | -------------- | ---------- | ----------------- | ----------- | ---------------------------------------------- |
+| Operation      | Callback       | `triggers` | `triggered-by`    | 1:N         | Operation triggers callback webhooks on events |
+
+#### Serving Relationships
+
+Service availability relationships.
+
+| Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description                                      |
+| -------------- | -------------- | --------- | ----------------- | ----------- | ------------------------------------------------ |
+| SecurityScheme | Operation      | `serves`  | `served-by`       | N:N         | Security scheme serves operations requiring auth |
+
+#### Association Relationships
+
+Generic relationships indicating elements are related.
+
+| Source Element | Target Element  | Predicate         | Inverse Predicate | Cardinality | Description                                             |
+| -------------- | --------------- | ----------------- | ----------------- | ----------- | ------------------------------------------------------- |
+| Contact        | OpenAPIDocument | `associated-with` | `associated-with` | N:1         | Contact is associated with API document for support     |
+| License        | OpenAPIDocument | `associated-with` | `associated-with` | N:1         | License is associated with API document for legal terms |
 
 ---
 
@@ -1580,18 +1856,73 @@ Links from entities in this layer to entities in other layers.
 
 Links to strategic goals, requirements, principles, and constraints.
 
-| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
-| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
-| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
-| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
-| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
-| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
+| Predicate                | Source Element  | Target Element | Field Path                 | Strength | Required | Examples                                                  |
+| ------------------------ | --------------- | -------------- | -------------------------- | -------- | -------- | --------------------------------------------------------- |
+| `supports-goals`         | Operation       | Goal           | `x-supports-goals`         | High     | No       | `GET /products` supports `goal-customer-satisfaction`     |
+| `supports-goals`         | OpenAPIDocument | Goal           | `x-supports-goals`         | High     | No       | Product API supports `goal-digital-channel-growth`        |
+| `fulfills-requirements`  | Operation       | Requirement    | `x-fulfills-requirements`  | High     | No       | `POST /orders` fulfills `req-order-creation-capability`   |
+| `governed-by-principles` | Operation       | Principle      | `x-governed-by-principles` | High     | No       | API operations governed by `principle-api-first`          |
+| `governed-by-principles` | OpenAPIDocument | Principle      | `x-governed-by-principles` | High     | No       | API document governed by `principle-rest-conventions`     |
+| `constrained-by`         | Operation       | Constraint     | `x-constrained-by`         | Medium   | No       | `DELETE /customers/{id}` constrained by `constraint-gdpr` |
+
+#### To Business Layer (02)
+
+Links to business services and interfaces.
+
+| Predicate     | Source Element | Target Element    | Field Path                 | Strength | Required | Examples                                                    |
+| ------------- | -------------- | ----------------- | -------------------------- | -------- | -------- | ----------------------------------------------------------- |
+| `realizes`    | Operation      | BusinessService   | `x-business-service-ref`   | High     | No       | `GET /products` realizes `business-service-product-catalog` |
+| `exposed-via` | Operation      | BusinessInterface | `x-business-interface-ref` | Medium   | No       | Operation exposed via `business-interface-customer-portal`  |
+
+#### To Application Layer (04)
+
+Links to application services and components.
+
+| Predicate  | Source Element  | Target Element     | Field Path        | Strength | Required | Examples                                       |
+| ---------- | --------------- | ------------------ | ----------------- | -------- | -------- | ---------------------------------------------- |
+| `realizes` | OpenAPIDocument | ApplicationService | `x-archimate-ref` | High     | No       | Product API realizes `app-service-product-api` |
+
+#### To Data Model Layer (07)
+
+Links to JSON Schema definitions.
+
+| Predicate    | Source Element | Target Element | Field Path    | Strength | Required | Examples                                             |
+| ------------ | -------------- | -------------- | ------------- | -------- | -------- | ---------------------------------------------------- |
+| `references` | Schema         | JSONSchema     | `schema.$ref` | High     | Yes      | API schema references `#/components/schemas/Product` |
+
+#### To Security Layer (03)
+
+Links to security resources and permissions.
+
+| Predicate             | Source Element | Target Element | Field Path               | Strength | Required | Examples                                              |
+| --------------------- | -------------- | -------------- | ------------------------ | -------- | -------- | ----------------------------------------------------- |
+| `protected-by`        | Operation      | SecureResource | `x-security-resource`    | High     | No       | Operation protected by `product-api` resource         |
+| `requires-permission` | Operation      | Permission     | `x-required-permissions` | High     | No       | `POST /products` requires `product.create` permission |
+
+#### To APM Layer (11)
+
+Links to observability and monitoring elements.
+
+| Predicate        | Source Element | Target Element | Field Path                 | Strength | Required | Examples                                         |
+| ---------------- | -------------- | -------------- | -------------------------- | -------- | -------- | ------------------------------------------------ |
+| `measured-by`    | Operation      | Metric         | `x-apm-business-metrics`   | Medium   | No       | Operation measured by `metric-api-response-time` |
+| `has-sla-target` | Operation      | SLATarget      | `x-apm-sla-target-latency` | Medium   | No       | Operation has SLA target of `200ms`              |
 
 ### Incoming Relationships (Other Layers → This Layer)
 
 Links from entities in other layers to entities in this layer.
 
-(To be documented based on actual usage patterns)
+#### From UX Layer (09)
+
+| Predicate | Source Element | Target Element | Field Path        | Strength | Required | Examples                                 |
+| --------- | -------------- | -------------- | ----------------- | -------- | -------- | ---------------------------------------- |
+| `invokes` | StateAction    | Operation      | `api.operationId` | High     | No       | UI action invokes `getProduct` operation |
+
+#### From Testing Layer (12)
+
+| Predicate | Source Element | Target Element | Field Path         | Strength | Required | Examples                                      |
+| --------- | -------------- | -------------- | ------------------ | -------- | -------- | --------------------------------------------- |
+| `tests`   | TestCase       | Operation      | `target.operation` | High     | No       | Test case validates `createProduct` operation |
 
 ---
 

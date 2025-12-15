@@ -4,17 +4,17 @@
 
 - **Total Link Instances**: 167
 - **Unique Link Types Used**: 24
-- **XML Relationships**: 176
+- **XML Relationships**: 307
 - **Layers Analyzed**: 12
 
 ## Top 20 Most Used Link Types
 
 | Rank | Link Type                           | Name                       | Instances | Layers                                     | Unique Values |
 | ---- | ----------------------------------- | -------------------------- | --------- | ------------------------------------------ | ------------- |
-| 1    | motivation-governed-by-principles   | Governed By Principles     | 36        | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12 | 21            |
+| 1    | motivation-governed-by-principles   | Governed By Principles     | 36        | 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12 | 22            |
 | 2    | motivation-constrained-by           | Constrained By             | 20        | 05                                         | 12            |
 | 3    | motivation-fulfills-requirements    | Fulfills Requirements      | 18        | 04, 05                                     | 15            |
-| 4    | motivation-supports-goals           | Supports Goals             | 17        | 02, 04, 05, 06, 07, 08, 09, 10, 11, 12     | 7             |
+| 4    | motivation-supports-goals           | Supports Goals             | 17        | 02, 04, 05, 06, 07, 08, 09, 10, 11, 12     | 8             |
 | 5    | security-classification             | Classification             | 14        | 05, 06, 07, 08, 09, 10, 11, 12             | 4             |
 | 6    | apm-sla-target-availability         | Sla Target Availability    | 7         | 04, 05                                     | 3             |
 | 7    | security-encryption-required        | Encryption Required        | 6         | 05                                         | 2             |
@@ -50,27 +50,27 @@
 
 ## XML Structural Relationships
 
-Found 176 XML relationship declarations:
+Found 307 XML relationship declarations:
 
-| Type           | Count | Layers         |
-| -------------- | ----- | -------------- |
-| access         | 8     | 02, 04         |
-| aggregation    | 12    | 01, 02, 03, 04 |
-| assignment     | 12    | 02, 03, 04, 05 |
-| association    | 12    | 01, 02, 05     |
-| authorization  | 2     | 03             |
-| composition    | 51    | 02, 03, 04     |
-| constrainedby  | 3     | 03             |
-| derivedfrom    | 1     | 03             |
-| flow           | 3     | 02, 04         |
-| influence      | 10    | 01             |
-| protects       | 1     | 03             |
-| realization    | 14    | 01, 02, 04, 05 |
-| reference      | 24    | 03             |
-| serving        | 7     | 02, 04         |
-| specialization | 6     | 02, 03, 04     |
-| triggering     | 7     | 02, 04         |
-| uses           | 3     | 03             |
+| Type           | Count | Layers                 |
+| -------------- | ----- | ---------------------- |
+| access         | 13    | 02, 04, 05             |
+| aggregation    | 30    | 01, 02, 03, 04, 05, 06 |
+| assignment     | 14    | 02, 03, 04, 05         |
+| association    | 22    | 01, 02, 05, 06         |
+| authorization  | 2     | 03                     |
+| composition    | 83    | 02, 03, 04, 05, 06     |
+| constrainedby  | 3     | 03                     |
+| derivedfrom    | 1     | 03                     |
+| flow           | 5     | 02, 04, 05             |
+| influence      | 28    | 01                     |
+| protects       | 1     | 03                     |
+| realization    | 28    | 01, 02, 04, 05         |
+| reference      | 35    | 03, 06                 |
+| serving        | 10    | 02, 04, 05, 06         |
+| specialization | 18    | 01, 02, 03, 04, 05, 06 |
+| triggering     | 11    | 02, 04, 05, 06         |
+| uses           | 3     | 03                     |
 
 ## Detailed Link Type Statistics
 
@@ -203,7 +203,7 @@ Sample values:
 
 Sample values:
 
-- `7years`
+- `61320h`
 - `90days|1year|7years`
 
 ### Constrained By (`motivation-constrained-by`)
@@ -252,31 +252,31 @@ Sample values:
 
 - **Total Instances**: 36
 - **Layers Used**: 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12
-- **Unique Values**: 21
+- **Unique Values**: 22
 
 Sample values:
 
+- `principle-api-first`
 - `principle-api-first,principle-cloud-native`
 - `principle-api-first,principle-security-by-design`
 - `principle-async-messaging,principle-event-driven-architecture`
 - `principle-cloud-native,principle-auto-scaling`
-- `principle-cloud-native,principle-auto-scaling,principle-containerization`
-- ... and 16 more
+- ... and 17 more
 
 ### Supports Goals (`motivation-supports-goals`)
 
 - **Total Instances**: 17
 - **Layers Used**: 02, 04, 05, 06, 07, 08, 09, 10, 11, 12
-- **Unique Values**: 7
+- **Unique Values**: 8
 
 Sample values:
 
+- `goal-customer-satisfaction`
 - `goal-customer-satisfaction,goal-revenue-growth`
 - `goal-deployment-automation,goal-horizontal-scaling`
 - `goal-example`
 - `goal-id-1,goal-id-2`
-- `goal-product-catalog-accuracy,goal-customer-satisfaction`
-- ... and 2 more
+- ... and 3 more
 
 ### Classification (`security-classification`)
 

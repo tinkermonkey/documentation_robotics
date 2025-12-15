@@ -25,6 +25,7 @@ graph TB
     target02BusinessService["BusinessService"]
   end
   subgraph target03Layer["03: Security Layer"]
+    target03Classification["Classification"]
     target03Encrypted["Encrypted"]
     target03Permission["Permission"]
     target03Pii["Pii"]
@@ -59,6 +60,7 @@ graph TB
   ThisLayerNode -->|fulfills-requirements| target01Requirement
   ThisLayerNode -->|governed-by-principles| target01Principle
   ThisLayerNode -->|supports-goals| target01Goal
+  ThisLayerNode -->|classification| target03Classification
   ThisLayerNode -->|encrypted| target03Encrypted
   ThisLayerNode -->|pii| target03Pii
   ThisLayerNode -->|required-permissions| target03Permission
@@ -77,6 +79,7 @@ graph TB
   class target02BusinessInterface targetLayerStyle
   class target02BusinessMetric targetLayerStyle
   class target02BusinessService targetLayerStyle
+  class target03Classification targetLayerStyle
   class target03Encrypted targetLayerStyle
   class target03Permission targetLayerStyle
   class target03Pii targetLayerStyle
@@ -143,20 +146,21 @@ properties:
 
 Links to security models, resources, and controls.
 
-| Predicate              | Source Element            | Target Element | Field Path               | Description                                  | Documented                                 |
-| ---------------------- | ------------------------- | -------------- | ------------------------ | -------------------------------------------- | ------------------------------------------ |
-| `encrypted`            | Schema                    | Encrypted      | `x-encrypted`            | boolean                                      | ✗                                          |
-| `pii`                  | Schema                    | Pii            | `security.pii`, `x-pii`  | contains personally identifiable information | [✓](../../spec/schemas/link-registry.json) |
-| `required-permissions` | Operation, SecurityScheme | Permission     | `x-required-permissions` | string[] (Permission.name[], optional)       | ✗                                          |
-| `security-resource`    | Operation, SecurityScheme | SecureResource | `x-security-resource`    | string (SecureResource.resource, optional)   | ✗                                          |
+| Predicate              | Source Element            | Target Element | Field Path                | Description                                  | Documented                                 |
+| ---------------------- | ------------------------- | -------------- | ------------------------- | -------------------------------------------- | ------------------------------------------ |
+| `classification`       | Artifact                  | Classification | `security.classification` | Links to Classification in target layer      | [✓](../../spec/schemas/link-registry.json) |
+| `encrypted`            | Schema                    | Encrypted      | `x-encrypted`             | boolean                                      | ✗                                          |
+| `pii`                  | Schema                    | Pii            | `security.pii`, `x-pii`   | contains personally identifiable information | [✓](../../spec/schemas/link-registry.json) |
+| `required-permissions` | Operation, SecurityScheme | Permission     | `x-required-permissions`  | string[] (Permission.name[], optional)       | ✗                                          |
+| `security-resource`    | Operation, SecurityScheme | SecureResource | `x-security-resource`     | string (SecureResource.resource, optional)   | ✗                                          |
 
 **Example**:
 
 ```yaml
 properties:
-  x-encrypted:
+  security.classification:
     type: string
-    description: boolean
+    description: Links to Classification in target layer
     example: "target-id-1"
 ```
 

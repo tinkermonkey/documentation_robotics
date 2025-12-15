@@ -467,30 +467,242 @@ Value:
     <property key="requirementType">technical</property>
   </element>
 
-  <!-- Relationships -->
-  <relationship type="Association" source="product-manager" target="mobile-goal"/>
-  <relationship type="Association" source="product-manager" target="market-competition"/>
-  <relationship type="Association" source="product-manager" target="ios-support"/>
-  <relationship type="Association" source="market-competition" target="product-manager"/>
-  <relationship type="Influence" source="market-competition" target="mobile-gap"/>
-  <relationship type="Influence" source="market-competition" target="mobile-goal"/>
-  <relationship type="Influence" source="mobile-gap" target="mobile-goal"/>
-  <relationship type="Influence" source="mobile-goal" target="api-first"/>
-  <relationship type="Influence" source="mobile-goal" target="ios-support"/>
-  <relationship type="Influence" source="api-first" target="ios-support"/>
-  <relationship type="Influence" source="api-first" target="budget-constraint"/>
-  <relationship type="Association" source="ios-support" target="budget-constraint"/>
-  <relationship type="Influence" source="budget-constraint" target="ios-support"/>
-  <relationship type="Influence" source="ios-support" target="ios-14-req"/>
-  <relationship type="Realization" source="mobile-goal" target="customer-value"/>
-  <relationship type="Association" source="customer-value" target="product-manager"/>
-  <relationship type="Realization" source="app-launched" target="mobile-goal"/>
-  <relationship type="Influence" source="app-launched" target="mobile-goal"/>
-  <relationship type="Association" source="app-launched" target="customer-value"/>
-  <relationship type="Association" source="clv-meaning" target="customer-value"/>
-  <relationship type="Association" source="nps-meaning" target="app-launched"/>
+  <!-- Additional Goals for hierarchy examples -->
+  <element id="strategic-goal" type="Goal">
+    <name>Expand Digital Presence</name>
+    <documentation>Strategic goal to increase digital channels</documentation>
+    <property key="goal.type">strategic</property>
+  </element>
+
+  <element id="android-goal" type="Goal">
+    <name>Launch Android Application</name>
+    <documentation>Deliver native Android app</documentation>
+  </element>
+
+  <!-- Additional Requirements for hierarchy examples -->
+  <element id="functional-req" type="Requirement">
+    <name>Functional Requirements</name>
+    <documentation>Aggregate of all functional requirements</documentation>
+    <property key="requirementType">functional</property>
+  </element>
+
+  <element id="nonfunctional-req" type="Requirement">
+    <name>Non-Functional Requirements</name>
+    <documentation>Aggregate of all non-functional requirements</documentation>
+    <property key="requirementType">nonfunctional</property>
+  </element>
+
+  <!-- Additional Principles for hierarchy examples -->
+  <element id="architecture-principle" type="Principle">
+    <name>Architecture Principles</name>
+    <documentation>Aggregate of architecture-related principles</documentation>
+    <property key="category">architecture</property>
+  </element>
+
+  <element id="security-principle" type="Principle">
+    <name>Security by Design</name>
+    <documentation>Security must be built into every layer</documentation>
+    <property key="category">security</property>
+  </element>
+
+  <!-- Additional Constraints for hierarchy examples -->
+  <element id="regulatory-constraint" type="Constraint">
+    <name>GDPR Compliance Required</name>
+    <documentation>Must comply with GDPR requirements</documentation>
+    <property key="constraintType">regulatory</property>
+  </element>
+
+  <element id="time-constraint" type="Constraint">
+    <name>Launch by Q4 2024</name>
+    <documentation>Must launch before end of Q4</documentation>
+    <property key="constraintType">time</property>
+  </element>
+
+  <!-- Additional Values for specialization examples -->
+  <element id="financial-value" type="Value">
+    <name>Revenue Growth</name>
+    <documentation>Increase revenue through new channels</documentation>
+    <property key="valueType">financial</property>
+  </element>
+
+  <element id="operational-value" type="Value">
+    <name>Operational Efficiency</name>
+    <documentation>Streamline processes and reduce costs</documentation>
+    <property key="valueType">operational</property>
+  </element>
+
+  <!-- Additional Outcomes -->
+  <element id="revenue-outcome" type="Outcome">
+    <name>20% Revenue Increase Achieved</name>
+    <property key="status">achieved</property>
+    <property key="outcome.metrics">Revenue up 22% YoY</property>
+  </element>
+
+  <!-- Additional Stakeholders -->
+  <element id="cto" type="Stakeholder">
+    <name>Chief Technology Officer</name>
+    <documentation>Responsible for technical strategy</documentation>
+  </element>
+
+  <!-- ============================= -->
+  <!-- INTRA-LAYER RELATIONSHIPS -->
+  <!-- ============================= -->
+
+  <!-- STRUCTURAL RELATIONSHIPS -->
+
+  <!-- Aggregation: Goal → Goal (4 examples) -->
+  <relationship type="Aggregation" source="strategic-goal" target="mobile-goal"/>
   <relationship type="Aggregation" source="mobile-goal" target="ios-goal"/>
+  <relationship type="Aggregation" source="mobile-goal" target="android-goal"/>
+
+  <!-- Aggregation: Requirement → Requirement (3 examples) -->
   <relationship type="Aggregation" source="ios-support" target="ios-14-req"/>
+  <relationship type="Aggregation" source="functional-req" target="ios-support"/>
+  <relationship type="Aggregation" source="nonfunctional-req" target="budget-constraint"/>
+
+  <!-- Aggregation: Principle → Principle (2 examples) -->
+  <relationship type="Aggregation" source="architecture-principle" target="api-first"/>
+  <relationship type="Aggregation" source="architecture-principle" target="security-principle"/>
+
+  <!-- Aggregation: Constraint → Constraint (2 examples) -->
+  <relationship type="Aggregation" source="regulatory-constraint" target="budget-constraint"/>
+  <relationship type="Aggregation" source="time-constraint" target="budget-constraint"/>
+
+  <!-- Realization: Outcome → Goal (3 examples) -->
+  <relationship type="Realization" source="app-launched" target="mobile-goal"/>
+  <relationship type="Realization" source="app-launched" target="strategic-goal"/>
+  <relationship type="Realization" source="revenue-outcome" target="strategic-goal"/>
+
+  <!-- Realization: Goal → Value (3 examples) -->
+  <relationship type="Realization" source="mobile-goal" target="customer-value"/>
+  <relationship type="Realization" source="strategic-goal" target="financial-value"/>
+  <relationship type="Realization" source="ios-goal" target="customer-value"/>
+
+  <!-- Realization: Requirement → Goal (2 examples) -->
+  <relationship type="Realization" source="ios-support" target="mobile-goal"/>
+  <relationship type="Realization" source="functional-req" target="strategic-goal"/>
+
+  <!-- Realization: Requirement → Principle (2 examples) -->
+  <relationship type="Realization" source="ios-support" target="api-first"/>
+  <relationship type="Realization" source="functional-req" target="architecture-principle"/>
+
+  <!-- Realization: Constraint → Principle (2 examples) -->
+  <relationship type="Realization" source="budget-constraint" target="architecture-principle"/>
+  <relationship type="Realization" source="regulatory-constraint" target="security-principle"/>
+
+  <!-- Specialization: Goal → Goal (2 examples) -->
+  <relationship type="Specialization" source="mobile-goal" target="strategic-goal"/>
+  <relationship type="Specialization" source="ios-goal" target="mobile-goal"/>
+
+  <!-- Specialization: Requirement → Requirement (2 examples) -->
+  <relationship type="Specialization" source="ios-14-req" target="ios-support"/>
+  <relationship type="Specialization" source="ios-support" target="functional-req"/>
+
+  <!-- Specialization: Constraint → Constraint (2 examples) -->
+  <relationship type="Specialization" source="budget-constraint" target="regulatory-constraint"/>
+  <relationship type="Specialization" source="time-constraint" target="regulatory-constraint"/>
+
+  <!-- Specialization: Principle → Principle (2 examples) -->
+  <relationship type="Specialization" source="api-first" target="architecture-principle"/>
+  <relationship type="Specialization" source="security-principle" target="architecture-principle"/>
+
+  <!-- Specialization: Value → Value (2 examples) -->
+  <relationship type="Specialization" source="customer-value" target="financial-value"/>
+  <relationship type="Specialization" source="operational-value" target="financial-value"/>
+
+  <!-- BEHAVIORAL RELATIONSHIPS -->
+
+  <!-- Influence: Driver → Goal (2 examples) -->
+  <relationship type="Influence" source="market-competition" target="mobile-goal"/>
+  <relationship type="Influence" source="market-competition" target="strategic-goal"/>
+
+  <!-- Influence: Driver → Requirement (2 examples) -->
+  <relationship type="Influence" source="market-competition" target="ios-support"/>
+  <relationship type="Influence" source="market-competition" target="functional-req"/>
+
+  <!-- Influence: Driver → Principle (1 example) -->
+  <relationship type="Influence" source="market-competition" target="api-first"/>
+
+  <!-- Influence: Driver → Constraint (1 example) -->
+  <relationship type="Influence" source="market-competition" target="time-constraint"/>
+
+  <!-- Influence: Assessment → Goal (2 examples) -->
+  <relationship type="Influence" source="mobile-gap" target="mobile-goal"/>
+  <relationship type="Influence" source="mobile-gap" target="strategic-goal"/>
+
+  <!-- Influence: Assessment → Requirement (1 example) -->
+  <relationship type="Influence" source="mobile-gap" target="ios-support"/>
+
+  <!-- Influence: Goal → Requirement (2 examples) -->
+  <relationship type="Influence" source="mobile-goal" target="ios-support"/>
+  <relationship type="Influence" source="strategic-goal" target="functional-req"/>
+
+  <!-- Influence: Goal → Principle (2 examples) -->
+  <relationship type="Influence" source="mobile-goal" target="api-first"/>
+  <relationship type="Influence" source="strategic-goal" target="architecture-principle"/>
+
+  <!-- Influence: Principle → Requirement (2 examples) -->
+  <relationship type="Influence" source="api-first" target="ios-support"/>
+  <relationship type="Influence" source="architecture-principle" target="functional-req"/>
+
+  <!-- Influence: Principle → Constraint (2 examples) -->
+  <relationship type="Influence" source="api-first" target="budget-constraint"/>
+  <relationship type="Influence" source="security-principle" target="regulatory-constraint"/>
+
+  <!-- Influence: Constraint → Requirement (2 examples) -->
+  <relationship type="Influence" source="budget-constraint" target="ios-support"/>
+  <relationship type="Influence" source="time-constraint" target="functional-req"/>
+
+  <!-- Influence: Value → Goal (2 examples) -->
+  <relationship type="Influence" source="customer-value" target="mobile-goal"/>
+  <relationship type="Influence" source="financial-value" target="strategic-goal"/>
+
+  <!-- Influence: Value → Principle (1 example) -->
+  <relationship type="Influence" source="customer-value" target="api-first"/>
+
+  <!-- Influence: Stakeholder → Goal (2 examples) -->
+  <relationship type="Influence" source="product-manager" target="mobile-goal"/>
+  <relationship type="Influence" source="cto" target="strategic-goal"/>
+
+  <!-- Influence: Stakeholder → Requirement (2 examples) -->
+  <relationship type="Influence" source="product-manager" target="ios-support"/>
+  <relationship type="Influence" source="cto" target="functional-req"/>
+
+  <!-- Influence: Stakeholder → Value (2 examples) -->
+  <relationship type="Influence" source="product-manager" target="customer-value"/>
+  <relationship type="Influence" source="cto" target="operational-value"/>
+
+  <!-- Association: Stakeholder → Driver (2 examples) -->
+  <relationship type="Association" source="product-manager" target="market-competition"/>
+  <relationship type="Association" source="cto" target="market-competition"/>
+
+  <!-- Association: Stakeholder → Assessment (2 examples) -->
+  <relationship type="Association" source="product-manager" target="mobile-gap"/>
+  <relationship type="Association" source="cto" target="mobile-gap"/>
+
+  <!-- Association: Stakeholder → Outcome (2 examples) -->
+  <relationship type="Association" source="product-manager" target="app-launched"/>
+  <relationship type="Association" source="cto" target="revenue-outcome"/>
+
+  <!-- Association: Goal → Outcome (2 examples) -->
+  <relationship type="Association" source="mobile-goal" target="app-launched"/>
+  <relationship type="Association" source="strategic-goal" target="revenue-outcome"/>
+
+  <!-- Association: Requirement → Outcome (1 example) -->
+  <relationship type="Association" source="ios-support" target="app-launched"/>
+
+  <!-- Association: Driver → Assessment (1 example) -->
+  <relationship type="Association" source="market-competition" target="mobile-gap"/>
+
+  <!-- Association: Value → Meaning (2 examples) -->
+  <relationship type="Association" source="customer-value" target="clv-meaning"/>
+  <relationship type="Association" source="financial-value" target="clv-meaning"/>
+
+  <!-- Association: Goal → Meaning (1 example) -->
+  <relationship type="Association" source="mobile-goal" target="nps-meaning"/>
+
+  <!-- Association: Assessment → Outcome (1 example) -->
+  <relationship type="Association" source="mobile-gap" target="app-launched"/>
 </model>
 ```
 
@@ -578,19 +790,54 @@ Example: Customer (Stakeholder)
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description                                                   |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ------------------------------------------------------------- |
+| Aggregation    | Goal           | Goal           | `aggregates`  | `aggregated-by`   | 1:N         | Strategic goals decompose into operational sub-goals          |
+| Aggregation    | Requirement    | Requirement    | `aggregates`  | `aggregated-by`   | 1:N         | Business requirements decompose into detailed requirements    |
+| Aggregation    | Principle      | Principle      | `aggregates`  | `aggregated-by`   | 1:N         | High-level principles group related sub-principles            |
+| Aggregation    | Constraint     | Constraint     | `aggregates`  | `aggregated-by`   | 1:N         | Aggregate constraints group related restrictions              |
+| Realization    | Outcome        | Goal           | `realizes`    | `realized-by`     | N:1         | Achieved outcomes realize intended goals                      |
+| Realization    | Goal           | Value          | `realizes`    | `realized-by`     | N:M         | Goals realize stakeholder value propositions                  |
+| Realization    | Requirement    | Goal           | `realizes`    | `realized-by`     | N:M         | Requirements are means to achieve goal ends                   |
+| Realization    | Requirement    | Principle      | `realizes`    | `realized-by`     | N:M         | Requirements operationalize abstract principles               |
+| Realization    | Constraint     | Principle      | `realizes`    | `realized-by`     | N:M         | Constraints enforce principle boundaries                      |
+| Specialization | Goal           | Goal           | `specializes` | `generalized-by`  | N:1         | Goal type hierarchy (SecurityGoal, BusinessGoal, etc.)        |
+| Specialization | Requirement    | Requirement    | `specializes` | `generalized-by`  | N:1         | Requirement type hierarchy (Functional, NonFunctional, etc.)  |
+| Specialization | Constraint     | Constraint     | `specializes` | `generalized-by`  | N:1         | Constraint type hierarchy (Budget, Time, Regulatory, etc.)    |
+| Specialization | Principle      | Principle      | `specializes` | `generalized-by`  | N:1         | Principle category hierarchy (Architecture, Security, etc.)   |
+| Specialization | Value          | Value          | `specializes` | `generalized-by`  | N:1         | Value type hierarchy (Financial, Customer, Operational, etc.) |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element | Target Element | Predicate         | Inverse Predicate | Cardinality | Description                                      |
+| ------------ | -------------- | -------------- | ----------------- | ----------------- | ----------- | ------------------------------------------------ |
+| Influence    | Driver         | Goal           | `influences`      | `influenced-by`   | N:N         | External/internal drivers influence goal setting |
+| Influence    | Driver         | Requirement    | `influences`      | `influenced-by`   | N:N         | Drivers shape requirements                       |
+| Influence    | Driver         | Principle      | `influences`      | `influenced-by`   | N:N         | Drivers inform principle development             |
+| Influence    | Driver         | Constraint     | `influences`      | `influenced-by`   | N:N         | Drivers create constraints                       |
+| Influence    | Assessment     | Goal           | `influences`      | `influenced-by`   | N:N         | Assessments influence goal priorities            |
+| Influence    | Assessment     | Requirement    | `influences`      | `influenced-by`   | N:N         | Assessments shape requirement definitions        |
+| Influence    | Goal           | Requirement    | `influences`      | `influenced-by`   | N:N         | Goals drive requirement specification            |
+| Influence    | Goal           | Principle      | `influences`      | `influenced-by`   | N:N         | Strategic goals shape guiding principles         |
+| Influence    | Principle      | Requirement    | `influences`      | `influenced-by`   | N:N         | Principles guide requirement formulation         |
+| Influence    | Principle      | Constraint     | `influences`      | `influenced-by`   | N:N         | Principles define constraints                    |
+| Influence    | Constraint     | Requirement    | `influences`      | `influenced-by`   | N:N         | Constraints limit requirement scope              |
+| Influence    | Value          | Goal           | `influences`      | `influenced-by`   | N:N         | Stakeholder values drive goal definition         |
+| Influence    | Value          | Principle      | `influences`      | `influenced-by`   | N:N         | Values inform principle development              |
+| Influence    | Stakeholder    | Goal           | `influences`      | `influenced-by`   | N:N         | Stakeholders influence goal priorities           |
+| Influence    | Stakeholder    | Requirement    | `influences`      | `influenced-by`   | N:N         | Stakeholders drive requirements                  |
+| Influence    | Stakeholder    | Value          | `influences`      | `influenced-by`   | N:N         | Stakeholders define values                       |
+| Association  | Stakeholder    | Driver         | `associated-with` | `associated-with` | N:N         | Stakeholders associated with drivers             |
+| Association  | Stakeholder    | Assessment     | `associated-with` | `associated-with` | N:N         | Stakeholders provide assessments                 |
+| Association  | Stakeholder    | Outcome        | `associated-with` | `associated-with` | N:N         | Stakeholders concerned with outcomes             |
+| Association  | Goal           | Outcome        | `associated-with` | `associated-with` | N:N         | Goals tracked by outcomes                        |
+| Association  | Requirement    | Outcome        | `associated-with` | `associated-with` | N:N         | Requirements validated by outcomes               |
+| Association  | Driver         | Assessment     | `associated-with` | `associated-with` | N:N         | Drivers evaluated through assessments            |
+| Association  | Value          | Meaning        | `associated-with` | `associated-with` | N:N         | Values defined by meanings                       |
+| Association  | Goal           | Meaning        | `associated-with` | `associated-with` | N:N         | Goals clarified by meanings                      |
+| Association  | Assessment     | Outcome        | `associated-with` | `associated-with` | N:N         | Assessments measure outcomes                     |
 
 ---
 

@@ -140,6 +140,203 @@
     }
   },
   "definitions": {
+    "SpanKind": {
+      "type": "string",
+      "enum": [
+        "INTERNAL",
+        "SERVER",
+        "CLIENT",
+        "PRODUCER",
+        "CONSUMER"
+      ]
+    },
+    "StatusCode": {
+      "type": "string",
+      "enum": [
+        "UNSET",
+        "OK",
+        "ERROR"
+      ]
+    },
+    "SeverityNumber": {
+      "type": "string",
+      "enum": [
+        "UNSPECIFIED",
+        "TRACE",
+        "TRACE2",
+        "TRACE3",
+        "TRACE4",
+        "DEBUG",
+        "DEBUG2",
+        "DEBUG3",
+        "DEBUG4",
+        "INFO",
+        "INFO2",
+        "INFO3",
+        "INFO4",
+        "WARN",
+        "WARN2",
+        "WARN3",
+        "WARN4",
+        "ERROR",
+        "ERROR2",
+        "ERROR3",
+        "ERROR4",
+        "FATAL",
+        "FATAL2",
+        "FATAL3",
+        "FATAL4"
+      ]
+    },
+    "ExporterType": {
+      "type": "string",
+      "enum": [
+        "otlp",
+        "jaeger",
+        "zipkin",
+        "prometheus",
+        "console",
+        "file",
+        "logging",
+        "noop"
+      ]
+    },
+    "ExporterProtocol": {
+      "type": "string",
+      "enum": [
+        "grpc",
+        "http",
+        "http/json"
+      ]
+    },
+    "CompressionType": {
+      "type": "string",
+      "enum": [
+        "none",
+        "gzip",
+        "zstd"
+      ]
+    },
+    "AuthType": {
+      "type": "string",
+      "enum": [
+        "none",
+        "api-key",
+        "bearer",
+        "basic",
+        "oauth2",
+        "mTLS"
+      ]
+    },
+    "InstrumentationType": {
+      "type": "string",
+      "enum": [
+        "http",
+        "database",
+        "redis",
+        "grpc",
+        "messaging",
+        "graphql",
+        "aws-sdk",
+        "mongodb",
+        "elasticsearch",
+        "fs",
+        "dns",
+        "net",
+        "custom"
+      ]
+    },
+    "LogProcessorType": {
+      "type": "string",
+      "enum": [
+        "batch",
+        "resource",
+        "filter",
+        "transform",
+        "sampling",
+        "redact",
+        "routing",
+        "memory-limiter",
+        "custom"
+      ]
+    },
+    "TransformOperation": {
+      "type": "string",
+      "enum": [
+        "set-attribute",
+        "delete-attribute",
+        "rename-attribute",
+        "hash-attribute",
+        "truncate-body",
+        "extract-attribute",
+        "convert-severity"
+      ]
+    },
+    "AggregationTemporality": {
+      "type": "string",
+      "enum": [
+        "delta",
+        "cumulative"
+      ]
+    },
+    "InstrumentType": {
+      "type": "string",
+      "enum": [
+        "counter",
+        "up_down_counter",
+        "gauge",
+        "histogram",
+        "observable_counter",
+        "observable_up_down_counter",
+        "observable_gauge"
+      ]
+    },
+    "SamplerType": {
+      "type": "string",
+      "enum": [
+        "always_on",
+        "always_off",
+        "traceidratio",
+        "parentbased_always_on",
+        "parentbased_always_off",
+        "parentbased_traceidratio"
+      ]
+    },
+    "PropagatorType": {
+      "type": "string",
+      "enum": [
+        "w3c-trace-context",
+        "w3c-baggage",
+        "b3",
+        "jaeger",
+        "xray",
+        "ottrace"
+      ]
+    },
+    "LogLevel": {
+      "type": "string",
+      "enum": [
+        "TRACE",
+        "DEBUG",
+        "INFO",
+        "WARN",
+        "ERROR",
+        "FATAL"
+      ]
+    },
+    "DataQualityType": {
+      "type": "string",
+      "enum": [
+        "completeness",
+        "accuracy",
+        "freshness",
+        "consistency",
+        "uniqueness",
+        "validity",
+        "timeliness",
+        "integrity"
+      ]
+    },
     "Span": {
       "type": "object",
       "description": "Unit of work in distributed tracing",
@@ -837,253 +1034,6 @@
           "type": "boolean"
         }
       }
-    },
-    "SpanKind": {
-      "type": "string",
-      "enum": [
-        "INTERNAL",
-        "SERVER",
-        "CLIENT",
-        "PRODUCER",
-        "CONSUMER"
-      ]
-    },
-    "StatusCode": {
-      "type": "string",
-      "enum": [
-        "UNSET",
-        "OK",
-        "ERROR"
-      ]
-    },
-    "SeverityNumber": {
-      "type": "string",
-      "enum": [
-        {
-          "UNSPECIFIED": 0
-        },
-        {
-          "TRACE": 1
-        },
-        {
-          "TRACE2": 2
-        },
-        {
-          "TRACE3": 3
-        },
-        {
-          "TRACE4": 4
-        },
-        {
-          "DEBUG": 5
-        },
-        {
-          "DEBUG2": 6
-        },
-        {
-          "DEBUG3": 7
-        },
-        {
-          "DEBUG4": 8
-        },
-        {
-          "INFO": 9
-        },
-        {
-          "INFO2": 10
-        },
-        {
-          "INFO3": 11
-        },
-        {
-          "INFO4": 12
-        },
-        {
-          "WARN": 13
-        },
-        {
-          "WARN2": 14
-        },
-        {
-          "WARN3": 15
-        },
-        {
-          "WARN4": 16
-        },
-        {
-          "ERROR": 17
-        },
-        {
-          "ERROR2": 18
-        },
-        {
-          "ERROR3": 19
-        },
-        {
-          "ERROR4": 20
-        },
-        {
-          "FATAL": 21
-        },
-        {
-          "FATAL2": 22
-        },
-        {
-          "FATAL3": 23
-        },
-        {
-          "FATAL4": 24
-        }
-      ]
-    },
-    "ExporterType": {
-      "type": "string",
-      "enum": [
-        "otlp",
-        "jaeger",
-        "zipkin",
-        "prometheus",
-        "console",
-        "file",
-        "logging",
-        "noop"
-      ]
-    },
-    "ExporterProtocol": {
-      "type": "string",
-      "enum": [
-        "grpc",
-        "http",
-        "http/json"
-      ]
-    },
-    "CompressionType": {
-      "type": "string",
-      "enum": [
-        "none",
-        "gzip",
-        "zstd"
-      ]
-    },
-    "AuthType": {
-      "type": "string",
-      "enum": [
-        "none",
-        "api-key",
-        "bearer",
-        "basic",
-        "oauth2",
-        "mTLS"
-      ]
-    },
-    "InstrumentationType": {
-      "type": "string",
-      "enum": [
-        "http",
-        "database",
-        "redis",
-        "grpc",
-        "messaging",
-        "graphql",
-        "aws-sdk",
-        "mongodb",
-        "elasticsearch",
-        "fs",
-        "dns",
-        "net",
-        "custom"
-      ]
-    },
-    "LogProcessorType": {
-      "type": "string",
-      "enum": [
-        "batch",
-        "resource",
-        "filter",
-        "transform",
-        "sampling",
-        "redact",
-        "routing",
-        "memory-limiter",
-        "custom"
-      ]
-    },
-    "TransformOperation": {
-      "type": "string",
-      "enum": [
-        "set-attribute",
-        "delete-attribute",
-        "rename-attribute",
-        "hash-attribute",
-        "truncate-body",
-        "extract-attribute",
-        "convert-severity"
-      ]
-    },
-    "AggregationTemporality": {
-      "type": "string",
-      "enum": [
-        "delta",
-        "cumulative"
-      ]
-    },
-    "InstrumentType": {
-      "type": "string",
-      "enum": [
-        "counter",
-        "up_down_counter",
-        "gauge",
-        "histogram",
-        "observable_counter",
-        "observable_up_down_counter",
-        "observable_gauge"
-      ]
-    },
-    "SamplerType": {
-      "type": "string",
-      "enum": [
-        "always_on",
-        "always_off",
-        "traceidratio",
-        "parentbased_always_on",
-        "parentbased_always_off",
-        "parentbased_traceidratio"
-      ]
-    },
-    "PropagatorType": {
-      "type": "string",
-      "enum": [
-        "w3c-trace-context",
-        "w3c-baggage",
-        "b3",
-        "jaeger",
-        "xray",
-        "ottrace"
-      ]
-    },
-    "LogLevel": {
-      "type": "string",
-      "enum": [
-        "TRACE",
-        "DEBUG",
-        "INFO",
-        "WARN",
-        "ERROR",
-        "FATAL"
-      ]
-    },
-    "DataQualityType": {
-      "type": "string",
-      "enum": [
-        "completeness",
-        "accuracy",
-        "freshness",
-        "consistency",
-        "uniqueness",
-        "validity",
-        "timeliness",
-        "integrity"
-      ]
     }
   }
 }

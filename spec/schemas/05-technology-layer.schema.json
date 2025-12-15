@@ -98,6 +98,101 @@
     }
   },
   "definitions": {
+    "NodeType": {
+      "type": "string",
+      "enum": [
+        "server",
+        "container",
+        "vm",
+        "kubernetes-cluster",
+        "serverless-function",
+        "database-cluster"
+      ]
+    },
+    "DeviceType": {
+      "type": "string",
+      "enum": [
+        "server",
+        "workstation",
+        "mobile",
+        "iot-device",
+        "network-device"
+      ]
+    },
+    "SystemSoftwareType": {
+      "type": "string",
+      "enum": [
+        "operating-system",
+        "database",
+        "middleware",
+        "container-runtime",
+        "web-server",
+        "message-broker"
+      ]
+    },
+    "TechProtocol": {
+      "type": "string",
+      "enum": [
+        "HTTP",
+        "HTTPS",
+        "TCP",
+        "UDP",
+        "WebSocket",
+        "AMQP",
+        "MQTT",
+        "SQL"
+      ]
+    },
+    "PathType": {
+      "type": "string",
+      "enum": [
+        "network",
+        "vpn",
+        "direct-connect",
+        "internet"
+      ]
+    },
+    "NetworkType": {
+      "type": "string",
+      "enum": [
+        "lan",
+        "wan",
+        "vpn",
+        "internet",
+        "cdn"
+      ]
+    },
+    "TechEventType": {
+      "type": "string",
+      "enum": [
+        "startup",
+        "shutdown",
+        "failure",
+        "scaling",
+        "maintenance"
+      ]
+    },
+    "TechServiceType": {
+      "type": "string",
+      "enum": [
+        "infrastructure",
+        "platform",
+        "storage",
+        "compute",
+        "network"
+      ]
+    },
+    "ArtifactType": {
+      "type": "string",
+      "enum": [
+        "database",
+        "file",
+        "configuration",
+        "binary",
+        "log",
+        "backup"
+      ]
+    },
     "Node": {
       "type": "object",
       "description": "Computational or physical resource that hosts artifacts",
@@ -747,101 +842,6 @@
           }
         }
       }
-    },
-    "NodeType": {
-      "type": "string",
-      "enum": [
-        "server",
-        "container",
-        "vm",
-        "kubernetes-cluster",
-        "serverless-function",
-        "database-cluster"
-      ]
-    },
-    "DeviceType": {
-      "type": "string",
-      "enum": [
-        "server",
-        "workstation",
-        "mobile",
-        "iot-device",
-        "network-device"
-      ]
-    },
-    "SystemSoftwareType": {
-      "type": "string",
-      "enum": [
-        "operating-system",
-        "database",
-        "middleware",
-        "container-runtime",
-        "web-server",
-        "message-broker"
-      ]
-    },
-    "TechProtocol": {
-      "type": "string",
-      "enum": [
-        "HTTP",
-        "HTTPS",
-        "TCP",
-        "UDP",
-        "WebSocket",
-        "AMQP",
-        "MQTT",
-        "SQL"
-      ]
-    },
-    "PathType": {
-      "type": "string",
-      "enum": [
-        "network",
-        "vpn",
-        "direct-connect",
-        "internet"
-      ]
-    },
-    "NetworkType": {
-      "type": "string",
-      "enum": [
-        "lan",
-        "wan",
-        "vpn",
-        "internet",
-        "cdn"
-      ]
-    },
-    "TechEventType": {
-      "type": "string",
-      "enum": [
-        "startup",
-        "shutdown",
-        "failure",
-        "scaling",
-        "maintenance"
-      ]
-    },
-    "TechServiceType": {
-      "type": "string",
-      "enum": [
-        "infrastructure",
-        "platform",
-        "storage",
-        "compute",
-        "network"
-      ]
-    },
-    "ArtifactType": {
-      "type": "string",
-      "enum": [
-        "database",
-        "file",
-        "configuration",
-        "binary",
-        "log",
-        "backup"
-      ]
     }
   }
 }

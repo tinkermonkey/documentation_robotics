@@ -63,14 +63,15 @@ JSONType:
   attributes:
     value: string [enum]
 
-  values:
-    - string
-    - number # Any numeric value
-    - integer # Whole numbers only
-    - boolean
-    - object
-    - array
-    - "null"
+  enums:
+    string:
+      - string
+      - number # Any numeric value
+      - integer # Whole numbers only
+      - boolean
+      - object
+      - array
+      - "null"
 
   # Can also be array of types for unions
   example: ["string", "null"] # Nullable string
@@ -1627,6 +1628,52 @@ Features:
   - Schema compilation
 ```
 
+## Relationships
+
+### Structural Relationships
+
+- **JSONSchema composes SchemaDefinition**: Schema documents compose reusable schema definitions
+- **JSONSchema composes SchemaProperty**: Schema documents compose root-level properties
+- **SchemaDefinition composes SchemaProperty**: Schema definitions compose their properties
+- **ObjectSchema composes SchemaProperty**: Object schemas compose their properties
+- **ArraySchema composes SchemaProperty**: Array schemas compose item schema definitions
+- **DatabaseMapping composes SchemaProperty**: Database mapping composes column property mappings
+- **JSONSchema aggregates DataGovernance**: Schemas aggregate governance metadata
+- **JSONSchema aggregates DataQualityMetrics**: Schemas aggregate quality metrics configuration
+- **JSONSchema aggregates DatabaseMapping**: Schemas aggregate database mapping metadata
+- **SchemaComposition aggregates SchemaDefinition**: Schema compositions aggregate schemas via allOf/anyOf/oneOf
+- **DataGovernance aggregates DataQualityMetrics**: Governance aggregates associated quality metrics
+- **SchemaDefinition specializes SchemaDefinition**: Schema definitions extend other definitions via allOf inheritance
+- **SchemaProperty specializes SchemaProperty**: Schema properties specialize base property definitions
+- **ObjectSchema specializes SchemaDefinition**: Object schema is a specialized schema definition
+- **ArraySchema specializes SchemaDefinition**: Array schema is a specialized schema definition
+- **StringSchema specializes SchemaProperty**: String schema specializes property with string constraints
+- **NumericSchema specializes SchemaProperty**: Numeric schema specializes property with numeric constraints
+- **SchemaComposition specializes SchemaDefinition**: Composition (allOf/anyOf/oneOf) is a specialized definition
+- **SchemaDefinition realizes JSONType**: Schema definitions realize JSON types
+- **StringSchema realizes JSONType**: String schema realizes the string JSON type
+- **NumericSchema realizes JSONType**: Numeric schema realizes number/integer JSON types
+- **ObjectSchema realizes JSONType**: Object schema realizes the object JSON type
+- **ArraySchema realizes JSONType**: Array schema realizes the array JSON type
+
+### Behavioral Relationships
+
+- **SchemaProperty references SchemaDefinition**: Properties reference schema definitions via $ref
+- **SchemaDefinition references SchemaDefinition**: Definitions reference other definitions via $ref
+- **Reference references SchemaDefinition**: $ref objects point to target schema definitions
+- **ArraySchema references SchemaDefinition**: Array items property references schema definition
+- **ObjectSchema references SchemaDefinition**: Object properties reference definitions via $ref
+- **StringSchema references SchemaDefinition**: String schema references enum definition for allowed values
+- **SchemaDefinition depends-on SchemaDefinition**: Definitions depend on other definitions for composition
+- **SchemaComposition depends-on SchemaDefinition**: Composition depends on schemas combined via allOf/anyOf/oneOf
+- **Reference depends-on SchemaDefinition**: $ref creates compile-time dependency on target definition
+- **SchemaProperty derives-from SchemaProperty**: Computed properties derive from source properties
+- **DataQualityMetrics accesses SchemaProperty**: Quality metrics access properties for validation
+- **DataQualityMetrics accesses SchemaDefinition**: Quality metrics access schema definitions for validation
+- **DataGovernance accesses SchemaProperty**: Governance rules access properties for classification
+- **SchemaProperty maps-to DatabaseMapping**: Properties map to database column definitions
+- **SchemaDefinition maps-to DatabaseMapping**: Schema definition maps to database table mapping
+
 ## Intra-Layer Relationships
 
 **Purpose**: Define structural and behavioral relationships between entities within this layer.
@@ -1635,19 +1682,53 @@ Features:
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element    | Target Element     | Predicate     | Inverse Predicate | Cardinality | Description                                                  |
+| -------------- | ----------------- | ------------------ | ------------- | ----------------- | ----------- | ------------------------------------------------------------ |
+| Composition    | JSONSchema        | SchemaDefinition   | `composes`    | `composed-of`     | 1:N         | Schema document composes reusable definitions                |
+| Composition    | JSONSchema        | SchemaProperty     | `composes`    | `composed-of`     | 1:N         | Schema document composes root-level properties               |
+| Composition    | SchemaDefinition  | SchemaProperty     | `composes`    | `composed-of`     | 1:N         | Definition composes its properties                           |
+| Composition    | ObjectSchema      | SchemaProperty     | `composes`    | `composed-of`     | 1:N         | Object schema composes its properties                        |
+| Composition    | ArraySchema       | SchemaProperty     | `composes`    | `composed-of`     | 1:N         | Array schema composes item definitions                       |
+| Composition    | DatabaseMapping   | SchemaProperty     | `composes`    | `composed-of`     | 1:N         | Database mapping composes column property mappings           |
+| Aggregation    | JSONSchema        | DataGovernance     | `aggregates`  | `aggregated-by`   | 1:1         | Schema aggregates governance metadata                        |
+| Aggregation    | JSONSchema        | DataQualityMetrics | `aggregates`  | `aggregated-by`   | 1:1         | Schema aggregates quality metrics config                     |
+| Aggregation    | JSONSchema        | DatabaseMapping    | `aggregates`  | `aggregated-by`   | 1:1         | Schema aggregates database mapping                           |
+| Aggregation    | SchemaComposition | SchemaDefinition   | `aggregates`  | `aggregated-by`   | 1:N         | Composition aggregates schemas via allOf/anyOf/oneOf         |
+| Aggregation    | DataGovernance    | DataQualityMetrics | `aggregates`  | `aggregated-by`   | 1:N         | Governance aggregates associated quality metrics             |
+| Specialization | SchemaDefinition  | SchemaDefinition   | `specializes` | `generalized-by`  | N:1         | Definition extends another via allOf inheritance             |
+| Specialization | SchemaProperty    | SchemaProperty     | `specializes` | `generalized-by`  | N:1         | Property specializes a base property definition              |
+| Specialization | ObjectSchema      | SchemaDefinition   | `specializes` | `generalized-by`  | N:1         | Object schema is a specialized schema definition             |
+| Specialization | ArraySchema       | SchemaDefinition   | `specializes` | `generalized-by`  | N:1         | Array schema is a specialized schema definition              |
+| Specialization | StringSchema      | SchemaProperty     | `specializes` | `generalized-by`  | N:1         | String schema specializes property with string constraints   |
+| Specialization | NumericSchema     | SchemaProperty     | `specializes` | `generalized-by`  | N:1         | Numeric schema specializes property with numeric constraints |
+| Specialization | SchemaComposition | SchemaDefinition   | `specializes` | `generalized-by`  | N:1         | Composition (allOf/anyOf/oneOf) is a specialized definition  |
+| Realization    | SchemaDefinition  | JSONType           | `realizes`    | `realized-by`     | N:1         | Definition realizes a JSON type                              |
+| Realization    | StringSchema      | JSONType           | `realizes`    | `realized-by`     | N:1         | String schema realizes the string JSON type                  |
+| Realization    | NumericSchema     | JSONType           | `realizes`    | `realized-by`     | N:1         | Numeric schema realizes number/integer JSON types            |
+| Realization    | ObjectSchema      | JSONType           | `realizes`    | `realized-by`     | N:1         | Object schema realizes the object JSON type                  |
+| Realization    | ArraySchema       | JSONType           | `realizes`    | `realized-by`     | N:1         | Array schema realizes the array JSON type                    |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element     | Target Element   | Predicate      | Inverse Predicate | Cardinality | Description                                                   |
+| ------------ | ------------------ | ---------------- | -------------- | ----------------- | ----------- | ------------------------------------------------------------- |
+| Reference    | SchemaProperty     | SchemaDefinition | `references`   | `referenced-by`   | N:1         | Property references a definition via $ref                     |
+| Reference    | SchemaDefinition   | SchemaDefinition | `references`   | `referenced-by`   | N:N         | Definition references other definitions via $ref              |
+| Reference    | Reference          | SchemaDefinition | `references`   | `referenced-by`   | 1:1         | $ref object points to target definition                       |
+| Reference    | ArraySchema        | SchemaDefinition | `references`   | `referenced-by`   | N:1         | Array items property references schema definition             |
+| Reference    | ObjectSchema       | SchemaDefinition | `references`   | `referenced-by`   | N:N         | Object properties reference definitions via $ref              |
+| Reference    | StringSchema       | SchemaDefinition | `references`   | `referenced-by`   | N:1         | String schema references enum definition for allowed values   |
+| Depends-On   | SchemaDefinition   | SchemaDefinition | `depends-on`   | `dependency-of`   | N:N         | Definition depends on other definitions for composition       |
+| Depends-On   | SchemaComposition  | SchemaDefinition | `depends-on`   | `dependency-of`   | N:N         | Composition depends on schemas combined via allOf/anyOf/oneOf |
+| Depends-On   | Reference          | SchemaDefinition | `depends-on`   | `dependency-of`   | 1:1         | $ref creates compile-time dependency on target definition     |
+| Derives-From | SchemaProperty     | SchemaProperty   | `derives-from` | `derived-by`      | N:N         | Computed property derives from source properties              |
+| Access       | DataQualityMetrics | SchemaProperty   | `accesses`     | `accessed-by`     | 1:N         | Quality metrics access properties for validation              |
+| Access       | DataQualityMetrics | SchemaDefinition | `accesses`     | `accessed-by`     | 1:N         | Quality metrics access schema definitions for validation      |
+| Access       | DataGovernance     | SchemaProperty   | `accesses`     | `accessed-by`     | 1:N         | Governance rules access properties for classification         |
+| Maps-To      | SchemaProperty     | DatabaseMapping  | `maps-to`      | `mapped-from`     | 1:1         | Property maps to database column definition                   |
+| Maps-To      | SchemaDefinition   | DatabaseMapping  | `maps-to`      | `mapped-from`     | N:1         | Schema definition maps to database table mapping              |
 
 ---
 

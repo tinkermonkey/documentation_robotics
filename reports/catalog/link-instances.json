@@ -2,7 +2,7 @@
   "summary": {
     "total_instances": 167,
     "unique_link_types_used": 24,
-    "xml_relationships": 176,
+    "xml_relationships": 307,
     "layers_analyzed": 12
   },
   "link_stats": {
@@ -192,6 +192,7 @@
         "12"
       ],
       "unique_values": [
+        "goal-customer-satisfaction",
         "goal-customer-satisfaction,goal-revenue-growth",
         "goal-deployment-automation,goal-horizontal-scaling",
         "goal-example",
@@ -263,7 +264,7 @@
         },
         {
           "field_path": "motivation.supports-goals",
-          "value": "goal-example",
+          "value": "goal-customer-satisfaction",
           "source_layer": "06",
           "source_element": null
         },
@@ -322,6 +323,7 @@
         "12"
       ],
       "unique_values": [
+        "principle-api-first",
         "principle-api-first,principle-cloud-native",
         "principle-api-first,principle-security-by-design",
         "principle-async-messaging,principle-event-driven-architecture",
@@ -521,7 +523,7 @@
         },
         {
           "field_path": "motivation.governed-by-principles",
-          "value": "principle-example",
+          "value": "principle-api-first",
           "source_layer": "06",
           "source_element": null
         },
@@ -926,7 +928,7 @@
         "04"
       ],
       "unique_values": [
-        "7years",
+        "61320h",
         "90days|1year|7years"
       ],
       "instances": [
@@ -938,19 +940,19 @@
         },
         {
           "field_path": "data.retention",
-          "value": "7years",
+          "value": "61320h",
           "source_layer": "04",
           "source_element": null
         },
         {
           "field_path": "data.retention",
-          "value": "7years",
+          "value": "61320h",
           "source_layer": "04",
           "source_element": null
         },
         {
           "field_path": "data.retention",
-          "value": "7years",
+          "value": "61320h",
           "source_layer": "04",
           "source_element": null
         }
@@ -1406,43 +1408,274 @@
   },
   "xml_relationships": [
     {
-      "type": "association",
-      "source": "Stakeholder",
+      "type": "aggregation",
+      "source": "Goal",
       "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "association",
-      "source": "Stakeholder",
-      "target": "Driver",
+      "type": "aggregation",
+      "source": "Goal",
+      "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "association",
-      "source": "Stakeholder",
+      "type": "aggregation",
+      "source": "Goal",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Requirement",
       "target": "Requirement",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "association",
-      "source": "Driver",
-      "target": "Stakeholder",
+      "type": "aggregation",
+      "source": "Requirement",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Requirement",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Principle",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Principle",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Constraint",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Constraint",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Outcome",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Outcome",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Outcome",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Goal",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Goal",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Goal",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Requirement",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Requirement",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Requirement",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Requirement",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Constraint",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Constraint",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Goal",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Goal",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Requirement",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Requirement",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Constraint",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Constraint",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Principle",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Principle",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Value",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Value",
+      "target": "Value",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
       "type": "influence",
       "source": "Driver",
-      "target": "Assessment",
+      "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
       "type": "influence",
       "source": "Driver",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Driver",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Driver",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Driver",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Driver",
+      "target": "Constraint",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Assessment",
       "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
@@ -1456,6 +1689,27 @@
     },
     {
       "type": "influence",
+      "source": "Assessment",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Goal",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Goal",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
       "source": "Goal",
       "target": "Principle",
       "layer": "01",
@@ -1464,6 +1718,13 @@
     {
       "type": "influence",
       "source": "Goal",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Principle",
       "target": "Requirement",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
@@ -1483,8 +1744,8 @@
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "association",
-      "source": "Requirement",
+      "type": "influence",
+      "source": "Principle",
       "target": "Constraint",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
@@ -1498,71 +1759,169 @@
     },
     {
       "type": "influence",
-      "source": "Requirement",
+      "source": "Constraint",
       "target": "Requirement",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "realization",
-      "source": "Goal",
-      "target": "Value",
-      "layer": "01",
-      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
-    },
-    {
-      "type": "association",
+      "type": "influence",
       "source": "Value",
-      "target": "Stakeholder",
-      "layer": "01",
-      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
-    },
-    {
-      "type": "realization",
-      "source": "Outcome",
       "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
       "type": "influence",
-      "source": "Outcome",
+      "source": "Value",
       "target": "Goal",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "association",
-      "source": "Outcome",
+      "type": "influence",
+      "source": "Value",
+      "target": "Principle",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
+      "target": "Goal",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
+      "target": "Requirement",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
+      "target": "Value",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "influence",
+      "source": "Stakeholder",
       "target": "Value",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
       "type": "association",
-      "source": "Meaning",
-      "target": "Value",
+      "source": "Stakeholder",
+      "target": "Driver",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
       "type": "association",
-      "source": "Meaning",
+      "source": "Stakeholder",
+      "target": "Driver",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Assessment",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Assessment",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Stakeholder",
       "target": "Outcome",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "aggregation",
-      "source": "Goal",
-      "target": "Goal",
+      "type": "association",
+      "source": "Stakeholder",
+      "target": "Outcome",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
     {
-      "type": "aggregation",
+      "type": "association",
+      "source": "Goal",
+      "target": "Outcome",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Goal",
+      "target": "Outcome",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
       "source": "Requirement",
-      "target": "Requirement",
+      "target": "Outcome",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Driver",
+      "target": "Assessment",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Value",
+      "target": "Meaning",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Value",
+      "target": "Meaning",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Goal",
+      "target": "Meaning",
+      "layer": "01",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Assessment",
+      "target": "Outcome",
       "layer": "01",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/01-motivation-layer.md"
     },
@@ -2636,6 +2995,566 @@
       "target": "CommunicationNetwork",
       "layer": "05",
       "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Device",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Node",
+      "target": "Device",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "TechnologyCollaboration",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "TechnologyCollaboration",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "TechnologyEvent",
+      "target": "TechnologyProcess",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "TechnologyProcess",
+      "target": "TechnologyEvent",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Path",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Path",
+      "target": "Node",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "Path",
+      "target": "CommunicationNetwork",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "TechnologyInterface",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "TechnologyInterface",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "TechnologyFunction",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "TechnologyProcess",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "SystemSoftware",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "SystemSoftware",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "TechnologyFunction",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "TechnologyProcess",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "access",
+      "source": "TechnologyInteraction",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "flow",
+      "source": "TechnologyProcess",
+      "target": "TechnologyProcess",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "TechnologyEvent",
+      "target": "TechnologyFunction",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "Node",
+      "target": "TechnologyFunction",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "assignment",
+      "source": "TechnologyCollaboration",
+      "target": "TechnologyInteraction",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Node",
+      "target": "TechnologyInterface",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SystemSoftware",
+      "target": "TechnologyInterface",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "flow",
+      "source": "TechnologyService",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Device",
+      "target": "CommunicationNetwork",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Artifact",
+      "target": "Artifact",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "realization",
+      "source": "SystemSoftware",
+      "target": "TechnologyService",
+      "layer": "05",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/05-technology-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "OpenAPIDocument",
+      "target": "Info",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "OpenAPIDocument",
+      "target": "Paths",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "OpenAPIDocument",
+      "target": "Components",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Paths",
+      "target": "PathItem",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "PathItem",
+      "target": "Operation",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Operation",
+      "target": "Parameter",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Operation",
+      "target": "Responses",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Operation",
+      "target": "RequestBody",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Responses",
+      "target": "Response",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "RequestBody",
+      "target": "MediaType",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Response",
+      "target": "MediaType",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Response",
+      "target": "Header",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Response",
+      "target": "Link",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "MediaType",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "MediaType",
+      "target": "Example",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "MediaType",
+      "target": "Encoding",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Response",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Parameter",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Example",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "RequestBody",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Header",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "SecurityScheme",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Link",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Components",
+      "target": "Callback",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Info",
+      "target": "Contact",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "Info",
+      "target": "License",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "SecurityScheme",
+      "target": "OAuthFlows",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "composition",
+      "source": "OAuthFlows",
+      "target": "OAuthFlow",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "OpenAPIDocument",
+      "target": "Server",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "OpenAPIDocument",
+      "target": "Tag",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "OpenAPIDocument",
+      "target": "SecurityRequirement",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Server",
+      "target": "ServerVariable",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "PathItem",
+      "target": "Parameter",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Operation",
+      "target": "Callback",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "aggregation",
+      "source": "Operation",
+      "target": "SecurityRequirement",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "specialization",
+      "source": "Schema",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Schema",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Parameter",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Header",
+      "target": "Schema",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Link",
+      "target": "Operation",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Callback",
+      "target": "PathItem",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Operation",
+      "target": "Tag",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Tag",
+      "target": "ExternalDocumentation",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "OpenAPIDocument",
+      "target": "ExternalDocumentation",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "Encoding",
+      "target": "Header",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "ServerVariable",
+      "target": "Server",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "reference",
+      "source": "OAuthFlow",
+      "target": "OAuthFlows",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "triggering",
+      "source": "Operation",
+      "target": "Callback",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "serving",
+      "source": "SecurityScheme",
+      "target": "Operation",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "Contact",
+      "target": "OpenAPIDocument",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
+    },
+    {
+      "type": "association",
+      "source": "License",
+      "target": "OpenAPIDocument",
+      "layer": "06",
+      "location": "/Users/austinsand/workspace/documentation_robotics/spec/layers/06-api-layer.md"
     }
   ]
 }

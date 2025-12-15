@@ -1,7 +1,7 @@
 """
 Chat handler for DrBot WebSocket integration.
 
-Handles JSON-RPC 2.0 chat messages and integrates with Claude Agent SDK.
+Handles JSON-RPC 2.0 chat messages and integrates with Anthropic SDK.
 """
 
 import asyncio
@@ -20,14 +20,13 @@ from .chat_protocol import (
     create_chat_tool_invoke,
 )
 from .chat_session import ChatSession, SessionManager
-from .drbot_orchestrator import DrBotOrchestrator
-from .sdk_detector import SDKStatus, detect_claude_agent_sdk
+from .drbot_orchestrator import HAS_ANTHROPIC, DrBotOrchestrator
 
 console = Console()
 
 
 class ChatHandler:
-    """Handles chat messages over WebSocket with Claude Agent SDK integration."""
+    """Handles chat messages over WebSocket with Anthropic SDK integration."""
 
     RESPONSE_TIMEOUT = 120  # seconds
 
@@ -46,19 +45,11 @@ class ChatHandler:
         self.model_path = model_path
         self.model_context_provider = model_context_provider
         self.session_manager = SessionManager()
-        self._sdk_status: Optional[SDKStatus] = None
         self.orchestrator: Optional[DrBotOrchestrator] = None
 
         # Initialize DrBot orchestrator if model path is provided
         if model_path:
             self.orchestrator = DrBotOrchestrator(model_path)
-
-    @property
-    def sdk_status(self) -> SDKStatus:
-        """Get cached SDK status."""
-        if self._sdk_status is None:
-            self._sdk_status = detect_claude_agent_sdk()
-        return self._sdk_status
 
     async def handle_message(
         self,
@@ -128,13 +119,13 @@ class ChatHandler:
             params: Request parameters
             request_id: Request ID for response
         """
-        # Check SDK availability
-        if not self.sdk_status.available:
+        # Check Anthropic SDK availability
+        if not HAS_ANTHROPIC:
             await ws.send_json(
                 create_chat_error(
                     request_id,
                     ChatErrorCodes.SDK_UNAVAILABLE,
-                    self.sdk_status.error or "Claude Agent SDK not available",
+                    "Anthropic SDK not available. Install with: pip install anthropic",
                 )
             )
             return
@@ -213,14 +204,7 @@ class ChatHandler:
             request_id: Request ID for response
             conversation_id: Conversation ID
         """
-        from claude_agent_sdk import (
-            AssistantMessage,
-            ResultMessage,
-            TextBlock,
-            ToolUseBlock,
-        )
-
-        # Use DrBotOrchestrator if available, otherwise fall back to basic SDK
+        # Use DrBotOrchestrator
         if not self.orchestrator:
             await ws.send_json(
                 create_chat_error(
@@ -250,37 +234,40 @@ class ChatHandler:
             async for message in self.orchestrator.handle_message(
                 user_message, context, conversation_history
             ):
-                if isinstance(message, AssistantMessage):
-                    for block in message.content:
-                        if isinstance(block, TextBlock):
-                            # Stream text chunks
-                            accumulated_text += block.text
-                            await ws.send_json(
-                                create_chat_response_chunk(
-                                    conversation_id,
-                                    block.text,
-                                    is_final=False,
-                                )
-                            )
-                        elif isinstance(block, ToolUseBlock):
-                            # Notify about tool invocation
-                            tool_invocations.append(
-                                {
-                                    "name": block.name,
-                                    "input": block.input,
-                                }
-                            )
-                            await ws.send_json(
-                                create_chat_tool_invoke(
-                                    conversation_id,
-                                    block.name,
-                                    block.input,
-                                    status="executing",
-                                )
-                            )
+                msg_type = message.get("type")
 
-                elif isinstance(message, ResultMessage):
-                    total_cost = getattr(message, "total_cost_usd", None)
+                if msg_type == "text_delta":
+                    # Stream text chunks
+                    text = message.get("text", "")
+                    accumulated_text += text
+                    await ws.send_json(
+                        create_chat_response_chunk(
+                            conversation_id,
+                            text,
+                            is_final=False,
+                        )
+                    )
+                elif msg_type == "tool_use":
+                    # Notify about tool invocation
+                    tool_name = message.get("name")
+                    tool_input = message.get("input", {})
+                    tool_invocations.append(
+                        {
+                            "name": tool_name,
+                            "input": tool_input,
+                        }
+                    )
+                    await ws.send_json(
+                        create_chat_tool_invoke(
+                            conversation_id,
+                            tool_name,
+                            tool_input,
+                            status="executing",
+                        )
+                    )
+                elif msg_type == "complete":
+                    # Completion message may include cost
+                    total_cost = message.get("cost")
 
             # Add complete response to session history
             session.add_assistant_message(accumulated_text, tool_invocations)
@@ -347,13 +334,23 @@ class ChatHandler:
             ws: WebSocket response object
             request_id: Request ID for response
         """
+        # Get Anthropic SDK version if available
+        sdk_version = "unknown"
+        if HAS_ANTHROPIC:
+            try:
+                import anthropic
+
+                sdk_version = getattr(anthropic, "__version__", "unknown")
+            except Exception:
+                pass
+
         await ws.send_json(
             {
                 "jsonrpc": "2.0",
                 "result": {
-                    "sdk_available": self.sdk_status.available,
-                    "sdk_version": self.sdk_status.version,
-                    "error_message": self.sdk_status.error,
+                    "sdk_available": HAS_ANTHROPIC,
+                    "sdk_version": sdk_version if HAS_ANTHROPIC else None,
+                    "error_message": None if HAS_ANTHROPIC else "Anthropic SDK not installed",
                 },
                 "id": request_id,
             }

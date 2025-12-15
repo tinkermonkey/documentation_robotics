@@ -211,27 +211,45 @@ class IntraLayerAnalyzer:
         # Read raw content for relationship extraction
         content = layer_file.read_text(encoding="utf-8")
 
-        # NEW: Use shared parser for XML relationships
+        # NEW: Use shared parser for all relationship formats
         parse_result = self.relationship_parser.parse_all_formats(content, layer_id, layer_file)
 
-        # Filter to intra-layer XML relationships only
+        # Filter to intra-layer relationships by format
+        markdown_table_relationships = [
+            self._convert_to_intra_layer_relationship(r)
+            for r in parse_result.relationships
+            if r.format_type == "markdown_table" and r.is_intra_layer
+        ]
+
         xml_relationships = [
             self._convert_to_intra_layer_relationship(r)
             for r in parse_result.relationships
             if r.format_type == "xml_relationship" and r.is_intra_layer
         ]
 
-        # Keep existing documented relationship extraction
-        documented_relationships = self._extract_documented_relationships(content, layer_id)
+        # Keep existing documented relationship extraction (bullet points)
+        bullet_relationships = self._extract_documented_relationships(content, layer_id)
 
-        # Build entity profiles
+        # Merge with precedence: markdown tables > bullets > XML
+        all_relationships = self._merge_with_precedence(
+            markdown_table_relationships,
+            bullet_relationships,
+            xml_relationships
+        )
+
+        # Build entity profiles using merged relationships
+        # Skip x- prefixed extension properties (they're not standalone entities)
         entity_profiles = {}
         for entity_name, entity_def in layer_spec.entities.items():
+            if entity_name.startswith("x-"):
+                # Extension properties are metadata, not entities
+                continue
+
             profile = self._build_entity_profile(
                 entity_name,
                 entity_def,
-                xml_relationships,
-                documented_relationships,
+                all_relationships,
+                all_relationships,  # Pass same list for both params (documented flag set during merge)
                 layer_id,
             )
             entity_profiles[entity_name] = profile
@@ -241,7 +259,7 @@ class IntraLayerAnalyzer:
             layer_spec=layer_spec,
             entity_profiles=entity_profiles,
             xml_relationships=xml_relationships,
-            documented_relationships=documented_relationships,
+            documented_relationships=all_relationships,  # Use merged relationships (includes tables, bullets, XML)
         )
 
     def analyze_all_layers(self) -> Dict[str, LayerIntraRelationshipReport]:
@@ -403,6 +421,56 @@ class IntraLayerAnalyzer:
                     profile.incoming_relationships.append(rel)
 
         return profile
+
+    def _merge_with_precedence(
+        self,
+        markdown_tables: List[IntraLayerRelationship],
+        bullets: List[IntraLayerRelationship],
+        xml: List[IntraLayerRelationship]
+    ) -> List[IntraLayerRelationship]:
+        """Merge relationships from multiple sources with precedence.
+
+        Precedence order: markdown tables > bullets > XML
+        Deduplicates based on (source, predicate, target) tuple.
+
+        Args:
+            markdown_tables: Relationships from markdown tables
+            bullets: Relationships from bullet points
+            xml: Relationships from XML examples
+
+        Returns:
+            Merged list with duplicates removed based on precedence
+        """
+        merged = []
+        seen = set()  # (source, predicate, target) tuples
+
+        # Priority 1: Markdown tables (highest precedence)
+        for rel in markdown_tables:
+            key = (rel.source_entity, rel.predicate, rel.target_entity)
+            if key not in seen:
+                seen.add(key)
+                # Mark as documented (from table)
+                rel.documented = True
+                rel.source_location = "markdown_table"
+                merged.append(rel)
+
+        # Priority 2: Bullet points (medium precedence)
+        for rel in bullets:
+            key = (rel.source_entity, rel.predicate, rel.target_entity)
+            if key not in seen:
+                seen.add(key)
+                # Already marked as documented by bullet parser
+                merged.append(rel)
+
+        # Priority 3: XML examples (lowest precedence, supplementary)
+        for rel in xml:
+            key = (rel.source_entity, rel.predicate, rel.target_entity)
+            if key not in seen:
+                seen.add(key)
+                # Already marked with has_xml_example by XML parser
+                merged.append(rel)
+
+        return merged
 
     def _is_intra_layer_relationship(
         self, source: str, target: str, content: str

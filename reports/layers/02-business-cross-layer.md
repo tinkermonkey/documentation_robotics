@@ -25,6 +25,7 @@ graph TB
     target02BusinessMetric["BusinessMetric"]
   end
   subgraph target03Layer["03: Security Layer"]
+    target03Classification["Classification"]
     target03SecurityControl["SecurityControl"]
     target03SeparationOfDuty["SeparationOfDuty"]
   end
@@ -59,6 +60,7 @@ graph TB
   thisBusinessInterface -->|delivers-value| target01Value
   thisBusinessInterface -->|governed-by-principles| target01Principle
   thisBusinessInterface -->|supports-goals| target01Goal
+  thisBusinessInterface -->|classification| target03Classification
   thisBusinessInterface -->|security-controls| target03SecurityControl
   thisBusinessInterface -->|separation-of-duty| target03SeparationOfDuty
 
@@ -82,6 +84,7 @@ graph TB
   class target01GovernedByPrinciple targetLayerStyle
   class target01SupportsGoal targetLayerStyle
   class target02BusinessMetric targetLayerStyle
+  class target03Classification targetLayerStyle
   class target03SecurityControl targetLayerStyle
   class target03SeparationOfDuty targetLayerStyle
   class target04MasterDataSource targetLayerStyle
@@ -146,6 +149,7 @@ Links to security models, resources, and controls.
 
 | Predicate            | Source Element  | Target Element   | Field Path                   | Description                               | Documented                                 |
 | -------------------- | --------------- | ---------------- | ---------------------------- | ----------------------------------------- | ------------------------------------------ |
+| `classification`     | Artifact        | Classification   | `security.classification`    | Links to Classification in target layer   | [✓](../../spec/schemas/link-registry.json) |
 | `security-controls`  | BusinessProcess | SecurityControl  | `process.security-controls`  | security control references               | [✓](../../spec/schemas/link-registry.json) |
 | `separation-of-duty` | BusinessProcess | SeparationOfDuty | `process.separation-of-duty` | Links to SeparationOfDuty in target layer | [✓](../../spec/schemas/link-registry.json) |
 
@@ -153,12 +157,10 @@ Links to security models, resources, and controls.
 
 ```yaml
 properties:
-  process.security-controls:
-    type: array
-    items:
-      type: string
-    description: security control references
-    example: ["target-id-1", "target-id-2"]
+  security.classification:
+    type: string
+    description: Links to Classification in target layer
+    example: "target-id-1"
 ```
 
 #### To Application Layer (04)

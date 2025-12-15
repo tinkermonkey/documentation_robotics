@@ -177,7 +177,8 @@ class RelationshipParser:
         # Build element map first (needed for XML relationship resolution)
         self._build_element_map(content)
 
-        # Parse each format
+        # Parse each format (markdown tables first for precedence)
+        result.relationships.extend(self.parse_markdown_tables(content, layer_id, location))
         result.relationships.extend(self.parse_xml_relationships(content, layer_id, location))
         result.relationships.extend(self.parse_yaml_properties(content, layer_id, location))
         result.relationships.extend(self.parse_xml_properties(content, layer_id, location))
@@ -456,6 +457,83 @@ class RelationshipParser:
             )
 
             relationships.append(relationship)
+
+        return relationships
+
+    def parse_markdown_tables(
+        self,
+        content: str,
+        layer_id: str,
+        location: str
+    ) -> List[ParsedRelationship]:
+        """Parse markdown tables from ## Intra-Layer Relationships section.
+
+        Extracts relationships from markdown tables with columns:
+        Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description
+
+        Tables are found in both "Structural Relationships" and "Behavioral Relationships" subsections.
+
+        Args:
+            content: Markdown file content
+            layer_id: Layer identifier (e.g., "07-data-model")
+            location: File path for error reporting
+
+        Returns:
+            List of ParsedRelationship objects with format_type="markdown_table"
+        """
+        relationships = []
+
+        # Find Intra-Layer Relationships section
+        intra_section = self._extract_intra_layer_section(content)
+        if not intra_section:
+            return relationships
+
+        # Calculate offset for line numbers
+        section_start = content.find(intra_section)
+        lines_before_section = content[:section_start].count('\n') if section_start >= 0 else 0
+
+        # Parse tables from section
+        tables = self._extract_markdown_tables(intra_section)
+
+        for table in tables:
+            for row_idx, row in enumerate(table['rows']):
+                # Skip rows with TBD or empty values
+                if self._is_placeholder_row(row):
+                    continue
+
+                # Extract values from columns
+                relationship_type = row.get('Relationship', '').strip()
+                source_element = row.get('Source Element', '').strip()
+                target_element = row.get('Target Element', '').strip()
+                predicate = self._strip_backticks(row.get('Predicate', ''))
+                inverse_predicate = self._strip_backticks(row.get('Inverse Predicate', ''))
+                cardinality = row.get('Cardinality', '').strip()
+                description = row.get('Description', '').strip()
+
+                # Validate required fields
+                if not (relationship_type and source_element and target_element):
+                    continue
+
+                # Create ParsedRelationship
+                relationship = ParsedRelationship(
+                    relationship_type=relationship_type.lower(),
+                    source=source_element,
+                    target=target_element,
+                    predicate=predicate if predicate else None,
+                    inverse_predicate=inverse_predicate if inverse_predicate else None,
+                    format_type="markdown_table",
+                    location=location,
+                    layer_id=layer_id,
+                    line_number=lines_before_section + table['line_offset'] + row_idx + 2,  # +2 for header row
+                    is_cross_layer=False,
+                    is_intra_layer=True,
+                    properties={
+                        'cardinality': cardinality,
+                        'description': description,
+                    }
+                )
+
+                relationships.append(relationship)
 
         return relationships
 
@@ -827,3 +905,108 @@ class RelationshipParser:
             if rel.get("predicate") == predicate or rel.get("inversePredicate") == predicate:
                 return True
         return False
+
+    def _extract_intra_layer_section(self, content: str) -> Optional[str]:
+        """Extract ## Intra-Layer Relationships section from markdown content.
+
+        Args:
+            content: Markdown file content
+
+        Returns:
+            Section content or None if not found
+        """
+        # Find section starting with ## Intra-Layer Relationships
+        # and ending at next ## heading or end of file
+        match = re.search(
+            r"^##\s+Intra-Layer\s+Relationships\s*$(.+?)(?=^##\s+[^#]|\Z)",
+            content,
+            re.MULTILINE | re.DOTALL | re.IGNORECASE
+        )
+        return match.group(1) if match else None
+
+    def _extract_markdown_tables(self, section: str) -> List[Dict[str, Any]]:
+        """Extract markdown tables from a section.
+
+        Args:
+            section: Section content containing tables
+
+        Returns:
+            List of table dictionaries with 'headers', 'rows', and 'line_offset'
+        """
+        tables = []
+        lines = section.split('\n')
+        i = 0
+
+        while i < len(lines):
+            line = lines[i]
+
+            # Check if this is a table header (contains pipes)
+            if '|' in line and i + 1 < len(lines):
+                # Next line should be separator (contains dashes and pipes)
+                separator = lines[i + 1]
+                if '|' in separator and '-' in separator:
+                    # Extract headers
+                    headers = [h.strip() for h in line.split('|') if h.strip()]
+
+                    # Extract rows
+                    rows = []
+                    row_start = i + 2
+                    j = row_start
+                    while j < len(lines):
+                        row_line = lines[j]
+                        if not row_line.strip() or '|' not in row_line:
+                            break
+
+                        # Parse row cells
+                        cells = [c.strip() for c in row_line.split('|') if c.strip()]
+                        if len(cells) == len(headers):
+                            row_dict = dict(zip(headers, cells))
+                            rows.append(row_dict)
+                        j += 1
+
+                    if rows:
+                        tables.append({
+                            'headers': headers,
+                            'rows': rows,
+                            'line_offset': i
+                        })
+
+                    i = j
+                    continue
+            i += 1
+
+        return tables
+
+    def _is_placeholder_row(self, row: Dict[str, str]) -> bool:
+        """Check if a table row contains placeholder values.
+
+        Args:
+            row: Dictionary mapping column names to values
+
+        Returns:
+            True if row contains TBD or empty required fields
+        """
+        # Check for TBD values
+        for value in row.values():
+            if '(TBD)' in value or value == 'TBD':
+                return True
+
+        # Check for empty required fields
+        source = row.get('Source Element', '').strip()
+        target = row.get('Target Element', '').strip()
+        relationship = row.get('Relationship', '').strip()
+
+        return not (source and target and relationship)
+
+    def _strip_backticks(self, text: str) -> str:
+        """Remove backticks from text (used for predicates in tables).
+
+        Args:
+            text: Text that may contain backticks
+
+        Returns:
+            Text with backticks removed
+        """
+        if not text:
+            return ''
+        return text.strip('`').strip()

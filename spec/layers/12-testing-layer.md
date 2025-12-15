@@ -1209,25 +1209,71 @@ Track implementation progress:
 
 ## Intra-Layer Relationships
 
-**Purpose**: Define structural and behavioral relationships between entities within this layer.
+**Purpose**: Define structural and behavioral relationships between entities within this layer, enabling comprehensive test coverage modeling with clear containment hierarchies and semantic connections between coverage targets, partitions, requirements, and test case sketches.
 
 ### Structural Relationships
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element          | Target Element          | Predicate     | Inverse Predicate | Cardinality | Description                                                                  |
+| -------------- | ----------------------- | ----------------------- | ------------- | ----------------- | ----------- | ---------------------------------------------------------------------------- |
+| Composition    | TestCoverageModel       | TestCoverageTarget      | `composes`    | `composed-of`     | 1:N         | Coverage model contains coverage targets defining what needs testing         |
+| Composition    | TestCoverageModel       | InputSpacePartition     | `composes`    | `composed-of`     | 1:N         | Coverage model contains input space partitions for all testable inputs       |
+| Composition    | TestCoverageModel       | ContextVariation        | `composes`    | `composed-of`     | 1:N         | Coverage model contains context variations for different entry points        |
+| Composition    | TestCoverageModel       | CoverageRequirement     | `composes`    | `composed-of`     | 1:N         | Coverage model contains coverage requirements specifying what must be tested |
+| Composition    | TestCoverageModel       | TestCaseSketch          | `composes`    | `composed-of`     | 1:N         | Coverage model contains abstract test case sketches                          |
+| Composition    | TestCoverageModel       | CoverageSummary         | `composes`    | `composed-of`     | 1:1         | Coverage model contains computed coverage summary                            |
+| Composition    | TestCoverageTarget      | TargetInputField        | `composes`    | `composed-of`     | 1:N         | Coverage target contains input fields relevant to testing                    |
+| Composition    | TestCoverageTarget      | OutcomeCategory         | `composes`    | `composed-of`     | 1:N         | Coverage target contains expected outcome categories                         |
+| Composition    | InputSpacePartition     | PartitionValue          | `composes`    | `composed-of`     | 1:N         | Input partition contains discrete partition values                           |
+| Composition    | InputSpacePartition     | PartitionDependency     | `composes`    | `composed-of`     | 1:N         | Input partition contains dependencies on other partitions                    |
+| Composition    | ContextVariation        | EnvironmentFactor       | `composes`    | `composed-of`     | 1:N         | Context variation contains environmental factors                             |
+| Composition    | CoverageRequirement     | InputPartitionSelection | `composes`    | `composed-of`     | 1:N         | Coverage requirement contains partition value selections                     |
+| Composition    | CoverageRequirement     | CoverageExclusion       | `composes`    | `composed-of`     | 1:N         | Coverage requirement contains justified exclusions                           |
+| Composition    | TestCaseSketch          | InputSelection          | `composes`    | `composed-of`     | 1:N         | Test case sketch contains specific input selections                          |
+| Composition    | CoverageSummary         | TargetCoverageSummary   | `composes`    | `composed-of`     | 1:N         | Coverage summary contains per-target metrics                                 |
+| Composition    | CoverageSummary         | CoverageGap             | `composes`    | `composed-of`     | 1:N         | Coverage summary contains identified gaps                                    |
+| Aggregation    | InputPartitionSelection | PartitionValue          | `aggregates`  | `aggregated-by`   | N:N         | Partition selection aggregates multiple partition values to cover            |
+| Aggregation    | TestCoverageTarget      | ContextVariation        | `aggregates`  | `aggregated-by`   | N:N         | Target aggregates applicable contexts (reusable across targets)              |
+| Aggregation    | CoverageRequirement     | ContextVariation        | `aggregates`  | `aggregated-by`   | N:N         | Requirement aggregates selected contexts for testing                         |
+| Aggregation    | CoverageRequirement     | OutcomeCategory         | `aggregates`  | `aggregated-by`   | N:N         | Requirement aggregates outcome categories to verify                          |
+| Specialization | PartitionValue          | PartitionValue          | `specializes` | `generalized-by`  | N:1         | Boundary, Invalid, Null values specialize base partition value               |
+| Specialization | OutcomeCategory         | OutcomeCategory         | `specializes` | `generalized-by`  | N:1         | Success, Error, Validation outcomes specialize base category                 |
+| Specialization | TestCaseSketch          | TestCaseSketch          | `specializes` | `generalized-by`  | N:1         | Automated, Manual, Blocked sketches specialize base sketch                   |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element          | Target Element          | Predicate    | Inverse Predicate | Cardinality | Description                                                            |
+| ------------ | ----------------------- | ----------------------- | ------------ | ----------------- | ----------- | ---------------------------------------------------------------------- |
+| Reference    | TestCaseSketch          | CoverageRequirement     | `references` | `referenced-by`   | N:1         | Test case sketch references coverage requirement it satisfies          |
+| Reference    | CoverageRequirement     | TestCoverageTarget      | `references` | `referenced-by`   | N:1         | Coverage requirement references target it covers                       |
+| Reference    | TargetInputField        | InputSpacePartition     | `references` | `referenced-by`   | N:1         | Input field references its partition definition                        |
+| Reference    | InputSelection          | InputSpacePartition     | `references` | `referenced-by`   | N:1         | Input selection references its source partition                        |
+| Reference    | InputSelection          | PartitionValue          | `references` | `referenced-by`   | N:1         | Input selection references selected partition value                    |
+| Reference    | PartitionDependency     | InputSpacePartition     | `references` | `referenced-by`   | N:1         | Partition dependency references dependent partition                    |
+| Reference    | PartitionDependency     | PartitionValue          | `references` | `referenced-by`   | N:N         | Partition dependency references affected partition values              |
+| Reference    | CoverageGap             | CoverageRequirement     | `references` | `referenced-by`   | N:N         | Coverage gap references affected requirements                          |
+| Reference    | TargetCoverageSummary   | TestCoverageTarget      | `references` | `referenced-by`   | N:1         | Target summary references the target being summarized                  |
+| Reference    | InputPartitionSelection | InputSpacePartition     | `references` | `referenced-by`   | N:1         | Partition selection references source partition                        |
+| Reference    | EnvironmentFactor       | PartitionValue          | `references` | `referenced-by`   | N:N         | Environment factor references partition values it affects              |
+| Reference    | CoverageExclusion       | PartitionValue          | `references` | `referenced-by`   | N:N         | Coverage exclusion references partition values to exclude from testing |
+| Triggering   | PartitionDependency     | PartitionValue          | `triggers`   | `triggered-by`    | 1:N         | Dependency condition triggers inclusion/exclusion of values            |
+| Triggering   | CoverageGap             | CoverageRequirement     | `triggers`   | `triggered-by`    | N:N         | Gap triggers need for additional coverage                              |
+| Flow         | TestCoverageTarget      | CoverageRequirement     | `flows-to`   | `flows-from`      | 1:N         | Target flows to requirements that specify its coverage                 |
+| Flow         | CoverageRequirement     | TestCaseSketch          | `flows-to`   | `flows-from`      | 1:N         | Requirement flows to sketches that implement it                        |
+| Flow         | InputSpacePartition     | InputPartitionSelection | `flows-to`   | `flows-from`      | 1:N         | Partition flows to selections that use it                              |
+| Depends-On   | TestCaseSketch          | ContextVariation        | `depends-on` | `dependency-of`   | N:1         | Test sketch depends on context for execution environment               |
+| Depends-On   | TestCaseSketch          | OutcomeCategory         | `depends-on` | `dependency-of`   | N:1         | Test sketch depends on expected outcome category                       |
+| Depends-On   | CoverageRequirement     | InputSpacePartition     | `depends-on` | `dependency-of`   | N:N         | Requirement depends on partitions for coverage criteria                |
+| Depends-On   | InputSelection          | PartitionDependency     | `depends-on` | `dependency-of`   | N:N         | Selection depends on partition dependencies for validity               |
+| Validates    | TestCaseSketch          | CoverageRequirement     | `validates`  | `validated-by`    | N:N         | Test sketch validates requirement is satisfied                         |
+| Validates    | TargetCoverageSummary   | TestCoverageTarget      | `validates`  | `validated-by`    | N:1         | Summary validates coverage completeness of target                      |
+| Serves       | InputSpacePartition     | TestCoverageTarget      | `serves`     | `served-by`       | N:N         | Partition serves target by defining testable input space               |
+| Serves       | ContextVariation        | TestCoverageTarget      | `serves`     | `served-by`       | N:N         | Context serves target by defining execution environments               |
+| Access       | TestCaseSketch          | InputSelection          | `accesses`   | `accessed-by`     | 1:N         | Test sketch accesses input selections for test execution               |
+| Access       | CoverageRequirement     | InputPartitionSelection | `accesses`   | `accessed-by`     | 1:N         | Requirement accesses partition selections for coverage                 |
 
 ---
 

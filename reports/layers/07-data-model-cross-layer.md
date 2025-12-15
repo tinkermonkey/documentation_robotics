@@ -19,8 +19,15 @@ graph TB
   end
 
   %% Target layers
+  subgraph target01Layer["01: Motivation Layer"]
+    target01Principle["Principle"]
+    target01Goal["Goal"]
+  end
   subgraph target02Layer["02: Business Layer"]
     target02BusinessObject["BusinessObject"]
+  end
+  subgraph target03Layer["03: Security Layer"]
+    target03Classification["Classification"]
   end
   subgraph target04Layer["04: Application Layer"]
     target04Element["Element"]
@@ -48,6 +55,9 @@ graph TB
   thisColumn -->|apm-data-quality-metrics| target07DataQualityMetric
   thisColumn -->|data-governance| target07Governance
   thisColumn -->|database| target07Database
+  thisColumn -->|governed-by-principles| target01Principle
+  thisColumn -->|supports-goals| target01Goal
+  thisColumn -->|classification| target03Classification
 
   %% Incoming relationships
   source02Node -->|governance-owner| thisGovernanceOwner
@@ -67,7 +77,10 @@ graph TB
   class thisGovernanceOwner thisLayerStyle
   class thisRetention thisLayerStyle
   class thisTable thisLayerStyle
+  class target01GovernedByPrinciple targetLayerStyle
+  class target01SupportsGoal targetLayerStyle
   class target02BusinessObject targetLayerStyle
+  class target03Classification targetLayerStyle
   class target04Element targetLayerStyle
   class target07DataQualityMetric targetLayerStyle
   class target07Database targetLayerStyle
@@ -80,6 +93,27 @@ graph TB
 ### Outgoing Relationships (This Layer → Other Layers)
 
 Links from entities in this layer to entities in other layers.
+
+#### To Motivation Layer (01)
+
+Links to strategic goals, requirements, principles, and constraints.
+
+| Predicate                | Source Element  | Target Element | Field Path                                                      | Description                            | Documented                                 |
+| ------------------------ | --------------- | -------------- | --------------------------------------------------------------- | -------------------------------------- | ------------------------------------------ |
+| `governed-by-principles` | BusinessService | Principle      | `motivation.governed-by-principles`, `x-governed-by-principles` | BusinessService governed by Principles | [✓](../../spec/schemas/link-registry.json) |
+| `supports-goals`         | BusinessService | Goal           | `motivation.supports-goals`, `x-supports-goals`                 | BusinessService supports Goals         | [✓](../../spec/schemas/link-registry.json) |
+
+**Example**:
+
+```yaml
+properties:
+  motivation.governed-by-principles:
+    type: array
+    items:
+      type: string
+    description: BusinessService governed by Principles
+    example: ["target-id-1", "target-id-2"]
+```
 
 #### To Business Layer (02)
 
@@ -96,6 +130,24 @@ properties:
   x-business-object-ref:
     type: string
     description: string (BusinessObject.id reference, optional)
+    example: "target-id-1"
+```
+
+#### To Security Layer (03)
+
+Links to security models, resources, and controls.
+
+| Predicate        | Source Element | Target Element | Field Path                | Description                             | Documented                                 |
+| ---------------- | -------------- | -------------- | ------------------------- | --------------------------------------- | ------------------------------------------ |
+| `classification` | Artifact       | Classification | `security.classification` | Links to Classification in target layer | [✓](../../spec/schemas/link-registry.json) |
+
+**Example**:
+
+```yaml
+properties:
+  security.classification:
+    type: string
+    description: Links to Classification in target layer
     example: "target-id-1"
 ```
 

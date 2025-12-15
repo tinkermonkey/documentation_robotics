@@ -2933,19 +2933,83 @@ Validation Checks:
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element            | Target Element            | Predicate     | Inverse Predicate | Cardinality | Description                                          |
+| -------------- | ------------------------- | ------------------------- | ------------- | ----------------- | ----------- | ---------------------------------------------------- |
+| Composition    | SecurityModel             | AuthenticationConfig      | `composes`    | `composed-of`     | 1:1         | Security model contains authentication configuration |
+| Composition    | SecurityModel             | Role                      | `composes`    | `composed-of`     | 1:N         | Security model contains role definitions             |
+| Composition    | SecurityModel             | Permission                | `composes`    | `composed-of`     | 1:N         | Security model contains permission definitions       |
+| Composition    | SecurityModel             | SecureResource            | `composes`    | `composed-of`     | 1:N         | Security model contains resource definitions         |
+| Composition    | SecurityModel             | SecurityPolicy            | `composes`    | `composed-of`     | 1:N         | Security model contains policies                     |
+| Composition    | SecurityModel             | DataClassification        | `composes`    | `composed-of`     | 1:1         | Security model contains data classification          |
+| Composition    | SecurityModel             | Actor                     | `composes`    | `composed-of`     | 1:N         | Security model contains STS-ml actors                |
+| Composition    | SecurityModel             | InformationEntity         | `composes`    | `composed-of`     | 1:N         | Security model contains information entities         |
+| Composition    | SecurityModel             | Delegation                | `composes`    | `composed-of`     | 1:N         | Security model contains delegation chains            |
+| Composition    | SecurityModel             | SecurityConstraints       | `composes`    | `composed-of`     | 1:1         | Security model contains security constraints         |
+| Composition    | SecurityModel             | SocialDependency          | `composes`    | `composed-of`     | 1:N         | Security model contains social dependencies          |
+| Composition    | SecurityModel             | Threat                    | `composes`    | `composed-of`     | 1:N         | Security model contains threat definitions           |
+| Composition    | SecurityModel             | AccountabilityRequirement | `composes`    | `composed-of`     | 1:N         | Security model contains accountability requirements  |
+| Composition    | AuthenticationConfig      | PasswordPolicy            | `composes`    | `composed-of`     | 1:1         | Authentication config contains password policy       |
+| Composition    | SecureResource            | ResourceOperation         | `composes`    | `composed-of`     | 1:N         | Resource defines allowed operations                  |
+| Composition    | SecureResource            | FieldAccessControl        | `composes`    | `composed-of`     | 1:N         | Resource has field-level access controls             |
+| Composition    | SecureResource            | RateLimit                 | `composes`    | `composed-of`     | 1:1         | Resource has rate limiting configuration             |
+| Composition    | SecureResource            | AuditConfig               | `composes`    | `composed-of`     | 1:1         | Resource has audit configuration                     |
+| Composition    | Permission                | AccessCondition           | `composes`    | `composed-of`     | 1:N         | Permission has conditional access rules              |
+| Composition    | SecurityPolicy            | PolicyRule                | `composes`    | `composed-of`     | 1:N         | Policy contains rules                                |
+| Composition    | SecurityPolicy            | ValidationRule            | `composes`    | `composed-of`     | 1:N         | Policy has validation rules                          |
+| Composition    | PolicyRule                | PolicyAction              | `composes`    | `composed-of`     | 1:N         | Rule defines actions to take                         |
+| Composition    | PolicyRule                | Condition                 | `composes`    | `composed-of`     | 1:N         | Rule has conditional logic                           |
+| Composition    | DataClassification        | Classification            | `composes`    | `composed-of`     | 1:N         | Classification system contains levels                |
+| Composition    | DataClassification        | RetentionPolicy           | `composes`    | `composed-of`     | 1:N         | Classification has retention policies                |
+| Composition    | Actor                     | ActorObjective            | `composes`    | `composed-of`     | 1:N         | Actor has security objectives                        |
+| Composition    | Actor                     | ActorDependency           | `composes`    | `composed-of`     | 1:N         | Actor has dependencies on others                     |
+| Composition    | InformationEntity         | InformationRight          | `composes`    | `composed-of`     | 1:N         | Information entity has access rights                 |
+| Composition    | SecurityConstraints       | SeparationOfDuty          | `composes`    | `composed-of`     | 1:N         | Constraints include separation of duty rules         |
+| Composition    | SecurityConstraints       | BindingOfDuty             | `composes`    | `composed-of`     | 1:N         | Constraints include binding of duty rules            |
+| Composition    | SecurityConstraints       | NeedToKnow                | `composes`    | `composed-of`     | 1:N         | Constraints include need-to-know restrictions        |
+| Composition    | Threat                    | Countermeasure            | `composes`    | `composed-of`     | 1:N         | Threat has associated countermeasures                |
+| Composition    | AccountabilityRequirement | Evidence                  | `composes`    | `composed-of`     | 1:N         | Accountability requirement needs evidence            |
+| Specialization | Role                      | Role                      | `specializes` | `generalized-by`  | N:1         | Role hierarchy (Admin extends User role)             |
+| Assignment     | Actor                     | Role                      | `assigned-to` | `assigns`         | N:N         | Actors assigned to roles for access control          |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship   | Source Element            | Target Element    | Predicate              | Inverse Predicate  | Cardinality | Description                                           |
+| -------------- | ------------------------- | ----------------- | ---------------------- | ------------------ | ----------- | ----------------------------------------------------- |
+| Authorization  | Role                      | Permission        | `authorizes`           | `authorized-by`    | N:N         | Roles grant permissions to users                      |
+| Authorization  | Permission                | SecureResource    | `authorizes`           | `authorized-by`    | N:N         | Permissions authorize resource access                 |
+| Authorization  | Permission                | ResourceOperation | `authorizes`           | `authorized-by`    | N:N         | Permissions authorize specific operations             |
+| Authorization  | InformationRight          | InformationEntity | `authorizes`           | `authorized-by`    | N:N         | Rights authorize information access (STS-ml)          |
+| Protection     | SecurityPolicy            | SecureResource    | `protects`             | `protected-by`     | N:N         | Policies protect resources                            |
+| Protection     | Role                      | SecureResource    | `protects`             | `protected-by`     | N:N         | Roles protect resources (implicit protection)         |
+| Protection     | Classification            | SecureResource    | `protects`             | `protected-by`     | N:N         | Data classification protects sensitive data           |
+| Protection     | Countermeasure            | SecureResource    | `protects`             | `protected-by`     | N:N         | Countermeasures protect resources from threats        |
+| Protection     | Countermeasure            | Actor             | `protects`             | `protected-by`     | N:N         | Countermeasures protect actors from threats           |
+| Enforcement    | SecurityPolicy            | Permission        | `enforces-requirement` | `enforced-by`      | N:N         | Policies enforce permission requirements              |
+| Authentication | AuthenticationConfig      | Actor             | `authenticates`        | `authenticated-by` | 1:N         | Auth config authenticates actors                      |
+| Reference      | FieldAccessControl        | Permission        | `references`           | `referenced-by`    | N:1         | Field access references permissions                   |
+| Reference      | Delegation                | Role              | `references`           | `referenced-by`    | N:1         | Delegation delegates role authority                   |
+| Reference      | Delegation                | Actor             | `references`           | `referenced-by`    | N:N         | Delegation involves actors (delegator/delegatee)      |
+| Reference      | ActorObjective            | SecurityPolicy    | `references`           | `referenced-by`    | N:N         | Actor objectives link to security policies            |
+| Reference      | ActorDependency           | InformationEntity | `references`           | `referenced-by`    | N:N         | Actor dependencies reference information              |
+| Reference      | SeparationOfDuty          | Role              | `references`           | `referenced-by`    | N:N         | SoD references conflicting roles                      |
+| Reference      | BindingOfDuty             | Role              | `references`           | `referenced-by`    | N:N         | BoD references required roles                         |
+| Reference      | Threat                    | SecureResource    | `references`           | `referenced-by`    | N:N         | Threats target resources                              |
+| Reference      | Threat                    | Actor             | `references`           | `referenced-by`    | N:N         | Threats target actors                                 |
+| Reference      | Countermeasure            | Threat            | `references`           | `referenced-by`    | N:N         | Countermeasures mitigate specific threats             |
+| Reference      | AccountabilityRequirement | Actor             | `references`           | `referenced-by`    | N:N         | Accountability applies to actors                      |
+| Reference      | Evidence                  | AuditConfig       | `references`           | `referenced-by`    | N:1         | Evidence references audit configuration               |
+| Reference      | AccessCondition           | Role              | `references`           | `referenced-by`    | N:N         | Access conditions reference roles                     |
+| Reference      | PolicyAction              | AuditConfig       | `references`           | `referenced-by`    | N:1         | Policy actions trigger audit events                   |
+| Reference      | RetentionPolicy           | AuditConfig       | `references`           | `referenced-by`    | N:1         | Retention policy affects audit retention              |
+| Reference      | NeedToKnow                | Actor             | `references`           | `referenced-by`    | N:N         | Need-to-know restrictions apply to actors             |
+| Association    | SocialDependency          | Actor             | `associated-with`      | `associated-with`  | N:N         | Social dependencies link actors (trust relationships) |
+| Association    | Countermeasure            | SecurityPolicy    | `associated-with`      | `associated-with`  | N:N         | Countermeasures implement policies                    |
+| Association    | RateLimit                 | SecurityPolicy    | `associated-with`      | `associated-with`  | N:1         | Rate limits enforce security policies                 |
+| Uses           | PasswordPolicy            | ValidationRule    | `uses`                 | `used-by`          | N:N         | Password policy uses validation rules                 |
+| Uses           | Condition                 | ValidationRule    | `uses`                 | `used-by`          | N:N         | Conditions use validation rules                       |
+| Uses           | ValidationRule            | Condition         | `uses`                 | `used-by`          | N:N         | Validation rules use conditional logic                |
 
 ---
 

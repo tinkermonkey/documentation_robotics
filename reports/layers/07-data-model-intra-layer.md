@@ -30,13 +30,45 @@ graph TB
     SchemaDefinition["SchemaDefinition"]
     SchemaProperty["SchemaProperty"]
     StringSchema["StringSchema"]
-    x-apm-data-quality-metrics["x-apm-data-quality-metrics"]
-    x-business-object-ref["x-business-object-ref"]
-    x-data-governance["x-data-governance"]
-    x-database["x-database"]
-    x-security["x-security"]
-    x-ui["x-ui"]
 
+    JSONSchema -->|composes| SchemaDefinition
+    JSONSchema -->|composes| SchemaProperty
+    JSONSchema -->|aggregates| DataGovernance
+    JSONSchema -->|aggregates| DataQualityMetrics
+    JSONSchema -->|aggregates| DatabaseMapping
+    StringSchema -->|specializes| SchemaProperty
+    StringSchema -->|realizes| JSONType
+    StringSchema -->|references| SchemaDefinition
+    NumericSchema -->|specializes| SchemaProperty
+    NumericSchema -->|realizes| JSONType
+    ArraySchema -->|composes| SchemaProperty
+    ArraySchema -->|specializes| SchemaDefinition
+    ArraySchema -->|realizes| JSONType
+    ArraySchema -->|references| SchemaDefinition
+    ObjectSchema -->|composes| SchemaProperty
+    ObjectSchema -->|specializes| SchemaDefinition
+    ObjectSchema -->|realizes| JSONType
+    ObjectSchema -->|references| SchemaDefinition
+    SchemaComposition -->|aggregates| SchemaDefinition
+    SchemaComposition -->|specializes| SchemaDefinition
+    SchemaComposition -.->|depends-on| SchemaDefinition
+    Reference -->|references| SchemaDefinition
+    Reference -.->|depends-on| SchemaDefinition
+    SchemaDefinition -->|composes| SchemaProperty
+    SchemaDefinition -->|specializes| SchemaDefinition
+    SchemaDefinition -->|realizes| JSONType
+    SchemaDefinition -->|references| SchemaDefinition
+    SchemaDefinition -.->|depends-on| SchemaDefinition
+    SchemaDefinition -->|maps-to| DatabaseMapping
+    SchemaProperty -->|specializes| SchemaProperty
+    SchemaProperty -->|references| SchemaDefinition
+    SchemaProperty -->|derives-from| SchemaProperty
+    SchemaProperty -->|maps-to| DatabaseMapping
+    DataGovernance -->|aggregates| DataQualityMetrics
+    DataGovernance -->|accesses| SchemaProperty
+    DataQualityMetrics -->|accesses| SchemaProperty
+    DataQualityMetrics -->|accesses| SchemaDefinition
+    DatabaseMapping -->|composes| SchemaProperty
   end
 
   %% Styling
@@ -47,62 +79,40 @@ graph TB
 
 ### Entity Coverage (Target: 2+ relationships per entity)
 
-- **Entities Meeting Target**: 0/19
-- **Entity Coverage**: 0.0%
-
-**Entities Below Target**:
-
-- JSONSchema: 0 relationship(s) (needs 2 more)
-- JSONType: 0 relationship(s) (needs 2 more)
-- StringSchema: 0 relationship(s) (needs 2 more)
-- NumericSchema: 0 relationship(s) (needs 2 more)
-- ArraySchema: 0 relationship(s) (needs 2 more)
-- ObjectSchema: 0 relationship(s) (needs 2 more)
-- SchemaComposition: 0 relationship(s) (needs 2 more)
-- Reference: 0 relationship(s) (needs 2 more)
-- SchemaDefinition: 0 relationship(s) (needs 2 more)
-- SchemaProperty: 0 relationship(s) (needs 2 more)
-- DataGovernance: 0 relationship(s) (needs 2 more)
-- DataQualityMetrics: 0 relationship(s) (needs 2 more)
-- DatabaseMapping: 0 relationship(s) (needs 2 more)
-- x-business-object-ref: 0 relationship(s) (needs 2 more)
-- x-data-governance: 0 relationship(s) (needs 2 more)
-- x-apm-data-quality-metrics: 0 relationship(s) (needs 2 more)
-- x-database: 0 relationship(s) (needs 2 more)
-- x-ui: 0 relationship(s) (needs 2 more)
-- x-security: 0 relationship(s) (needs 2 more)
+- **Entities Meeting Target**: 13/13
+- **Entity Coverage**: 100.0%
 
 ### Coverage Matrix
 
-| Entity                     | Outgoing | Incoming | Total | Meets Target | Status   |
-| -------------------------- | -------- | -------- | ----- | ------------ | -------- |
-| ArraySchema                | 0        | 0        | 0     | ✗            | Needs 2  |
-| DataGovernance             | 0        | 0        | 0     | ✗            | Needs 2  |
-| DataQualityMetrics         | 0        | 0        | 0     | ✗            | Needs 2  |
-| DatabaseMapping            | 0        | 0        | 0     | ✗            | Needs 2  |
-| JSONSchema                 | 0        | 0        | 0     | ✗            | Needs 2  |
-| JSONType                   | 0        | 0        | 0     | ✗            | Needs 2  |
-| NumericSchema              | 0        | 0        | 0     | ✗            | Needs 2  |
-| ObjectSchema               | 0        | 0        | 0     | ✗            | Needs 2  |
-| Reference                  | 0        | 0        | 0     | ✗            | Needs 2  |
-| SchemaComposition          | 0        | 0        | 0     | ✗            | Needs 2  |
-| SchemaDefinition           | 0        | 0        | 0     | ✗            | Needs 2  |
-| SchemaProperty             | 0        | 0        | 0     | ✗            | Needs 2  |
-| StringSchema               | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-apm-data-quality-metrics | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-business-object-ref      | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-data-governance          | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-database                 | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-security                 | 0        | 0        | 0     | ✗            | Needs 2  |
-| x-ui                       | 0        | 0        | 0     | ✗            | Needs 2  |
-| **TOTAL**                  | **-**    | **-**    | **0** | **0/19**     | **0.0%** |
+| Entity             | Outgoing | Incoming | Total  | Meets Target | Status     |
+| ------------------ | -------- | -------- | ------ | ------------ | ---------- |
+| ArraySchema        | 4        | 0        | 4      | ✓            | Complete   |
+| DataGovernance     | 2        | 1        | 3      | ✓            | Complete   |
+| DataQualityMetrics | 2        | 2        | 4      | ✓            | Complete   |
+| DatabaseMapping    | 1        | 3        | 4      | ✓            | Complete   |
+| JSONSchema         | 5        | 0        | 5      | ✓            | Complete   |
+| JSONType           | 0        | 5        | 5      | ✓            | Complete   |
+| NumericSchema      | 2        | 0        | 2      | ✓            | Complete   |
+| ObjectSchema       | 4        | 0        | 4      | ✓            | Complete   |
+| Reference          | 2        | 0        | 2      | ✓            | Complete   |
+| SchemaComposition  | 3        | 0        | 3      | ✓            | Complete   |
+| SchemaDefinition   | 6        | 16       | 22     | ✓            | Complete   |
+| SchemaProperty     | 4        | 11       | 15     | ✓            | Complete   |
+| StringSchema       | 3        | 0        | 3      | ✓            | Complete   |
+| **TOTAL**          | **-**    | **-**    | **76** | **13/13**    | **100.0%** |
 
 ### Relationship Statistics
 
-- **Total Unique Relationships**: 0
-- **Total Connections (Entity Perspective)**: 0
-- **Average Connections per Entity**: 0.0
+- **Total Unique Relationships**: 38
+- **Total Connections (Entity Perspective)**: 76
+- **Average Connections per Entity**: 5.8
 - **Entity Coverage Target**: 2+ relationships
+
+### Priority Gaps
+
+_These relationships appear frequently but are not in the catalog:_
+
+1. **depends-on (depends-on)** - Appears 6 time(s)
 
 ## Entity: ArraySchema
 
@@ -110,7 +120,12 @@ graph TB
 
 ### Outgoing Relationships (ArraySchema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | JSONType         | `realizes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaDefinition | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaProperty   | `composes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ArraySchema)
 
@@ -118,12 +133,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 4
+- **Outgoing**: 4
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 4/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -133,20 +148,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (DataGovernance → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity      | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------ | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | DataQualityMetrics | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| access            | SchemaProperty     | `accesses`   | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → DataGovernance)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | JSONSchema    | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 2
+- **Incoming**: 1
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -156,20 +176,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (DataQualityMetrics → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| access            | SchemaDefinition | `accesses` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| access            | SchemaProperty   | `accesses` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → DataQualityMetrics)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity  | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | DataGovernance | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| aggregation       | JSONSchema     | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 2
+- **Incoming**: 2
+- **Documented**: 4/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -179,20 +205,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (DatabaseMapping → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity  | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| composition       | SchemaProperty | `composes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → DatabaseMapping)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity    | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | JSONSchema       | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| maps-to           | SchemaDefinition | `maps-to`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| maps-to           | SchemaProperty   | `maps-to`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 1
+- **Incoming**: 3
+- **Documented**: 4/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -202,7 +234,13 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (JSONSchema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity      | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------ | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | DataGovernance     | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| aggregation       | DataQualityMetrics | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| aggregation       | DatabaseMapping    | `aggregates` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaDefinition   | `composes`   | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaProperty     | `composes`   | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → JSONSchema)
 
@@ -210,12 +248,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 5
+- **Outgoing**: 5
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 5/5
+- **With XML Examples**: 5/5
+- **In Catalog**: 5/5
 
 ---
 
@@ -229,16 +267,22 @@ _No outgoing intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → JSONType)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity    | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | ArraySchema      | `realizes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| realization       | NumericSchema    | `realizes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| realization       | ObjectSchema     | `realizes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| realization       | SchemaDefinition | `realizes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| realization       | StringSchema     | `realizes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
+- **Total Relationships**: 5
 - **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Incoming**: 5
+- **Documented**: 5/5
+- **With XML Examples**: 5/5
+- **In Catalog**: 5/5
 
 ---
 
@@ -248,7 +292,10 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (NumericSchema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity  | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | JSONType       | `realizes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaProperty | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → NumericSchema)
 
@@ -256,12 +303,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 2
+- **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 2/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -271,7 +318,12 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ObjectSchema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | JSONType         | `realizes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaDefinition | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaProperty   | `composes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ObjectSchema)
 
@@ -279,12 +331,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 4
+- **Outgoing**: 4
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 4/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -294,7 +346,10 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Reference → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| depends-on        | SchemaDefinition | `depends-on` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Reference)
 
@@ -302,12 +357,29 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 2
+- **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 2/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 1/2
+
+### Recommended Catalog Updates
+
+_The following relationships should be added to relationship-catalog.json:_
+
+**depends-on** (Reference → SchemaDefinition):
+
+```json
+{
+  "id": "depends-on",
+  "predicate": "depends-on",
+  "inversePredicate": "dependency-of",
+  "category": "structural",
+  "applicableLayers": ["07"],
+  "description": "Reference depends-on SchemaDefinition"
+}
+```
 
 ---
 
@@ -317,7 +389,11 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (SchemaComposition → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | SchemaDefinition | `aggregates`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| depends-on        | SchemaDefinition | `depends-on`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaDefinition | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → SchemaComposition)
 
@@ -325,12 +401,29 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 3
+- **Outgoing**: 3
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 2/3
+
+### Recommended Catalog Updates
+
+_The following relationships should be added to relationship-catalog.json:_
+
+**depends-on** (SchemaComposition → SchemaDefinition):
+
+```json
+{
+  "id": "depends-on",
+  "predicate": "depends-on",
+  "inversePredicate": "dependency-of",
+  "category": "structural",
+  "applicableLayers": ["07"],
+  "description": "SchemaComposition depends-on SchemaDefinition"
+}
+```
 
 ---
 
@@ -340,20 +433,89 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (SchemaDefinition → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| maps-to           | DatabaseMapping  | `maps-to`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| realization       | JSONType         | `realizes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| depends-on        | SchemaDefinition | `depends-on`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaDefinition | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaProperty   | `composes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → SchemaDefinition)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity      | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------ | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| reference         | ArraySchema        | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | ArraySchema        | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| access            | DataQualityMetrics | `accesses`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | JSONSchema         | `composes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | ObjectSchema       | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | ObjectSchema       | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| depends-on        | Reference          | `depends-on`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | Reference          | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| aggregation       | SchemaComposition  | `aggregates`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| depends-on        | SchemaComposition  | `depends-on`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaComposition  | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| depends-on        | SchemaDefinition   | `depends-on`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✗          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition   | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaDefinition   | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaProperty     | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | StringSchema       | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 22
+- **Outgoing**: 6
+- **Incoming**: 16
+- **Documented**: 22/22
+- **With XML Examples**: 22/22
+- **In Catalog**: 18/22
+
+### Recommended Catalog Updates
+
+_The following relationships should be added to relationship-catalog.json:_
+
+**depends-on** (SchemaDefinition → SchemaDefinition):
+
+```json
+{
+  "id": "depends-on",
+  "predicate": "depends-on",
+  "inversePredicate": "dependency-of",
+  "category": "structural",
+  "applicableLayers": ["07"],
+  "description": "SchemaDefinition depends-on SchemaDefinition"
+}
+```
+
+**depends-on** (SchemaDefinition → SchemaDefinition):
+
+```json
+{
+  "id": "depends-on",
+  "predicate": "depends-on",
+  "inversePredicate": "dependency-of",
+  "category": "structural",
+  "applicableLayers": ["07"],
+  "description": "SchemaDefinition depends-on SchemaDefinition"
+}
+```
+
+**depends-on** (SchemaComposition → SchemaDefinition):
+
+```json
+{
+  "id": "depends-on",
+  "predicate": "depends-on",
+  "inversePredicate": "dependency-of",
+  "category": "structural",
+  "applicableLayers": ["07"],
+  "description": "SchemaComposition depends-on SchemaDefinition"
+}
+```
+
+_...and 1 more relationships_
 
 ---
 
@@ -363,20 +525,37 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (SchemaProperty → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| maps-to           | DatabaseMapping  | `maps-to`      | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references`   | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| derives-from      | SchemaProperty   | `derives-from` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaProperty   | `specializes`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → SchemaProperty)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity      | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------ | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| composition       | ArraySchema        | `composes`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| access            | DataGovernance     | `accesses`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| access            | DataQualityMetrics | `accesses`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | DatabaseMapping    | `composes`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | JSONSchema         | `composes`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | NumericSchema      | `specializes`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | ObjectSchema       | `composes`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| composition       | SchemaDefinition   | `composes`     | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| derives-from      | SchemaProperty     | `derives-from` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaProperty     | `specializes`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | StringSchema       | `specializes`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 15
+- **Outgoing**: 4
+- **Incoming**: 11
+- **Documented**: 15/15
+- **With XML Examples**: 15/15
+- **In Catalog**: 15/15
 
 ---
 
@@ -386,7 +565,11 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (StringSchema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity    | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ---------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | JSONType         | `realizes`    | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| reference         | SchemaDefinition | `references`  | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
+| specialization    | SchemaProperty   | `specializes` | Documented + XML | [Doc](../../spec/layers/07-data-model-layer.md#relationships) | ✓          | [✓](../../spec/layers/07-data-model-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → StringSchema)
 
@@ -394,149 +577,11 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 3
+- **Outgoing**: 3
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-apm-data-quality-metrics
-
-**Definition**: Links schema to data quality metrics in APM/Observability Layer
-
-### Outgoing Relationships (x-apm-data-quality-metrics → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-apm-data-quality-metrics)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-business-object-ref
-
-**Definition**: Reference to BusinessObject this schema implements
-
-### Outgoing Relationships (x-business-object-ref → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-business-object-ref)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-data-governance
-
-**Definition**: Data model governance metadata (root-level)
-
-### Outgoing Relationships (x-data-governance → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-data-governance)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-database
-
-**Definition**: Database mapping information
-
-### Outgoing Relationships (x-database → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-database)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-security
-
-**Definition**: Security and privacy metadata
-
-### Outgoing Relationships (x-security → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-security)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
-
----
-
-## Entity: x-ui
-
-**Definition**: UI rendering hints
-
-### Outgoing Relationships (x-ui → Other Entities)
-
-_No outgoing intra-layer relationships documented._
-
-### Incoming Relationships (Other Entities → x-ui)
-
-_No incoming intra-layer relationships documented._
-
-### Relationship Summary
-
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---

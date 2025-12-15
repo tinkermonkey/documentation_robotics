@@ -58,7 +58,12 @@ class JSONSchemaGenerator:
         }
 
         # Generate entity array properties at top level
+        # Skip x- prefixed extension properties (they're not standalone entities)
         for entity_name, entity in layer_spec.entities.items():
+            if entity_name.startswith("x-"):
+                # Extension properties are only in definitions, not top-level collections
+                continue
+
             # Convert EntityName to entity-name-array format
             array_name = self._to_array_name(entity_name)
             schema["properties"][array_name] = {
@@ -67,9 +72,26 @@ class JSONSchemaGenerator:
                 "items": {"$ref": f"#/definitions/{entity_name}"},
             }
 
+        # Collect all enums from all entities first (for top-level definitions)
+        all_enums = {}
+        for entity_name, entity in layer_spec.entities.items():
+            if hasattr(entity, 'enums') and entity.enums:
+                # Add entity's enums to top-level definitions
+                for enum_name, enum_values in entity.enums.items():
+                    if enum_name not in all_enums:
+                        all_enums[enum_name] = enum_values
+                    # Note: If same enum name appears in multiple entities, first one wins
+                    # This is expected behavior for shared enums
+
+        # Add collected enums to top-level definitions
+        for enum_name, enum_values in all_enums.items():
+            # Normalize enum values to list of strings
+            normalized_values = self._normalize_enum_values(enum_values)
+            schema["definitions"][enum_name] = {"type": "string", "enum": normalized_values}
+
         # Generate entity definitions
         for entity_name, entity in layer_spec.entities.items():
-            schema["definitions"][entity_name] = self._generate_entity_schema(entity)
+            schema["definitions"][entity_name] = self._generate_entity_schema(entity, include_enums=False)
 
         # Add Relationship definition if we have relationship types
         if layer_spec.relationship_types:
@@ -84,11 +106,49 @@ class JSONSchemaGenerator:
 
         return schema
 
-    def _generate_entity_schema(self, entity: EntityDefinition) -> Dict[str, Any]:
+    def _normalize_enum_values(self, enum_values: Any) -> List[str]:
+        """Normalize enum values to a list of strings.
+
+        Handles two formats from YAML:
+        1. Simple list: ["value1", "value2"]
+        2. Dict list: [{"key1": val1}, {"key2": val2}] - extracts keys
+
+        Args:
+            enum_values: Enum values from YAML (list or dict)
+
+        Returns:
+            List of string enum values
+        """
+        if not enum_values:
+            return []
+
+        # If it's a list
+        if isinstance(enum_values, list):
+            normalized = []
+            for item in enum_values:
+                if isinstance(item, dict):
+                    # Extract keys from dict items (e.g., {"UNSPECIFIED": 0} -> "UNSPECIFIED")
+                    normalized.extend(item.keys())
+                elif isinstance(item, str):
+                    # Already a string
+                    normalized.append(item)
+                else:
+                    # Convert to string
+                    normalized.append(str(item))
+            return normalized
+        elif isinstance(enum_values, dict):
+            # If it's a dict, use the keys as enum values
+            return list(enum_values.keys())
+        else:
+            # Single value, wrap in list
+            return [str(enum_values)]
+
+    def _generate_entity_schema(self, entity: EntityDefinition, include_enums: bool = True) -> Dict[str, Any]:
         """Generate schema for a single entity.
 
         Args:
             entity: Entity definition
+            include_enums: Whether to include enum definitions (deprecated, enums now at top-level)
 
         Returns:
             JSON Schema definition for entity
@@ -162,12 +222,14 @@ class JSONSchemaGenerator:
                                 rel_spec
                             )
 
-        # Add enum definitions if present
-        if entity.enums:
+        # Add enum definitions if present (deprecated - enums now at top-level)
+        # Only include if explicitly requested for backward compatibility
+        if include_enums and entity.enums:
             if "definitions" not in entity_schema:
                 entity_schema["definitions"] = {}
             for enum_name, enum_values in entity.enums.items():
-                entity_schema["definitions"][enum_name] = {"type": "string", "enum": enum_values}
+                normalized_values = self._normalize_enum_values(enum_values)
+                entity_schema["definitions"][enum_name] = {"type": "string", "enum": normalized_values}
 
         return entity_schema
 

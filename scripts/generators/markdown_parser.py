@@ -298,9 +298,14 @@ class MarkdownLayerParser:
         Returns:
             AttributeSpec
         """
-        # Extract optional flag
+        # Extract optional/required flags
         is_optional = "(optional)" in spec.lower()
         spec = re.sub(r"\(optional\)", "", spec, flags=re.IGNORECASE).strip()
+
+        # Remove [required] marker (it's the opposite of optional, but we track via is_optional)
+        if "[required]" in spec.lower():
+            is_optional = False  # Explicitly mark as not optional
+            spec = re.sub(r"\[required\]", "", spec, flags=re.IGNORECASE).strip()
 
         # Extract format from parentheses
         format_match = re.search(r"\(([^)]+)\)", spec)
@@ -308,7 +313,7 @@ class MarkdownLayerParser:
         if format_match:
             spec = re.sub(r"\([^)]+\)", "", spec).strip()
 
-        # Extract enum reference from brackets (but not [PK])
+        # Extract enum reference from brackets (but not [PK] or [required])
         enum_match = re.search(r"\[(\w+)\]", spec)
         enum_ref = None
 
@@ -325,8 +330,9 @@ class MarkdownLayerParser:
             if bracket_content.lower() == "enum":
                 # When [enum] is used, the type itself is the enum name
                 enum_ref = type_str
-            elif bracket_content != "PK":
+            elif bracket_content.upper() not in ("PK", "REQUIRED"):
                 # Otherwise, brackets contain the enum type name
+                # Skip PK and REQUIRED as they're modifiers, not enum types
                 enum_ref = bracket_content
 
         # Normalize type

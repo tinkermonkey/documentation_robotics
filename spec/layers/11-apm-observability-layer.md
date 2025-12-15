@@ -1957,25 +1957,86 @@ The following XML example demonstrates cross-layer integration using ArchiMate-s
 
 ## Intra-Layer Relationships
 
-**Purpose**: Define structural and behavioral relationships between entities within this layer.
+**Purpose**: Define structural and behavioral relationships between entities within this layer, following OpenTelemetry standards for distributed tracing, metrics, and logging.
 
 ### Structural Relationships
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element        | Target Element        | Predicate     | Inverse Predicate | Cardinality | Description                                                   |
+| -------------- | --------------------- | --------------------- | ------------- | ----------------- | ----------- | ------------------------------------------------------------- |
+| Composition    | Span                  | SpanEvent             | `composes`    | `composed-of`     | 1:N         | Span contains timestamped events occurring during execution   |
+| Composition    | Span                  | SpanLink              | `composes`    | `composed-of`     | 1:N         | Span contains links to causally related spans                 |
+| Composition    | Span                  | SpanStatus            | `composes`    | `composed-of`     | 1:1         | Span contains exactly one status indicating outcome           |
+| Composition    | Span                  | Attribute             | `composes`    | `composed-of`     | 1:N         | Span contains key-value attributes for metadata               |
+| Composition    | SpanEvent             | Attribute             | `composes`    | `composed-of`     | 1:N         | Span event contains event-specific attributes                 |
+| Composition    | SpanLink              | Attribute             | `composes`    | `composed-of`     | 1:N         | Span link contains link-specific attributes                   |
+| Composition    | LogRecord             | Attribute             | `composes`    | `composed-of`     | 1:N         | Log record contains contextual attributes                     |
+| Composition    | Resource              | Attribute             | `composes`    | `composed-of`     | 1:N         | Resource contains identity and environment attributes         |
+| Composition    | InstrumentationScope  | Attribute             | `composes`    | `composed-of`     | 1:N         | Instrumentation scope contains scope-specific attributes      |
+| Composition    | APMConfiguration      | TraceConfiguration    | `composes`    | `composed-of`     | 1:1         | APM config contains trace configuration                       |
+| Composition    | APMConfiguration      | LogConfiguration      | `composes`    | `composed-of`     | 1:1         | APM config contains log configuration                         |
+| Composition    | APMConfiguration      | MetricConfiguration   | `composes`    | `composed-of`     | 1:1         | APM config contains metric configuration                      |
+| Composition    | TraceConfiguration    | InstrumentationConfig | `composes`    | `composed-of`     | 1:N         | Trace config composes instrumentation configurations          |
+| Composition    | LogConfiguration      | LogProcessor          | `composes`    | `composed-of`     | 1:N         | Log config composes processing pipeline stages                |
+| Composition    | MetricConfiguration   | MeterConfig           | `composes`    | `composed-of`     | 1:N         | Metric config composes meter configurations                   |
+| Composition    | MeterConfig           | MetricInstrument      | `composes`    | `composed-of`     | 1:N         | Meter config composes individual metric instruments           |
+| Composition    | DataQualityMetrics    | DataQualityMetric     | `composes`    | `composed-of`     | 1:N         | Quality metrics container composes individual metrics         |
+| Aggregation    | TraceConfiguration    | ExporterConfig        | `aggregates`  | `aggregated-by`   | 1:N         | Trace config aggregates trace exporters                       |
+| Aggregation    | LogConfiguration      | ExporterConfig        | `aggregates`  | `aggregated-by`   | 1:N         | Log config aggregates log exporters                           |
+| Aggregation    | MetricConfiguration   | ExporterConfig        | `aggregates`  | `aggregated-by`   | 1:N         | Metric config aggregates metric exporters                     |
+| Aggregation    | Resource              | Span                  | `aggregates`  | `aggregated-by`   | 1:N         | Resource aggregates all spans it produces                     |
+| Aggregation    | Resource              | LogRecord             | `aggregates`  | `aggregated-by`   | 1:N         | Resource aggregates all log records it produces               |
+| Aggregation    | InstrumentationScope  | Span                  | `aggregates`  | `aggregated-by`   | 1:N         | Instrumentation scope aggregates spans it generates           |
+| Aggregation    | InstrumentationScope  | MetricInstrument      | `aggregates`  | `aggregated-by`   | 1:N         | Instrumentation scope aggregates metrics it records           |
+| Aggregation    | InstrumentationScope  | LogRecord             | `aggregates`  | `aggregated-by`   | 1:N         | Instrumentation scope aggregates logs it emits                |
+| Specialization | MetricInstrument      | MetricInstrument      | `specializes` | `generalized-by`  | N:1         | Counter, Gauge, Histogram specialize base instrument          |
+| Specialization | LogProcessor          | LogProcessor          | `specializes` | `generalized-by`  | N:1         | Batch, Filter, Transform processors specialize base processor |
+| Specialization | ExporterConfig        | ExporterConfig        | `specializes` | `generalized-by`  | N:1         | OTLP, Jaeger, Prometheus exporters specialize base exporter   |
+| Specialization | InstrumentationConfig | InstrumentationConfig | `specializes` | `generalized-by`  | N:1         | HTTP, Database, gRPC configs specialize base instrumentation  |
+| Specialization | DataQualityMetric     | DataQualityMetric     | `specializes` | `generalized-by`  | N:1         | Completeness, Accuracy, Freshness specialize base metric      |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element        | Target Element       | Predicate    | Inverse Predicate | Cardinality | Description                                                                  |
+| ------------ | --------------------- | -------------------- | ------------ | ----------------- | ----------- | ---------------------------------------------------------------------------- |
+| Reference    | Span                  | Span                 | `references` | `referenced-by`   | N:N         | Span references parent span via parentSpanId (trace hierarchy)               |
+| Reference    | SpanLink              | Span                 | `references` | `referenced-by`   | N:1         | Span link references target span across traces                               |
+| Reference    | LogRecord             | Span                 | `references` | `referenced-by`   | N:1         | Log record references associated span via traceContext                       |
+| Reference    | MetricInstrument      | MeterConfig          | `references` | `referenced-by`   | N:1         | Metric instrument references its parent meter                                |
+| Reference    | LogProcessor          | ExporterConfig       | `references` | `referenced-by`   | N:N         | Log processor routes records to exporters                                    |
+| Reference    | SpanStatus            | Attribute            | `references` | `referenced-by`   | N:N         | Span status references attributes for status message details                 |
+| Reference    | DataQualityMetrics    | InstrumentationScope | `references` | `referenced-by`   | N:N         | Quality metrics collection references instrumentation scopes being monitored |
+| Triggering   | SpanEvent             | Span                 | `triggers`   | `triggered-by`    | N:1         | Span event triggers exception handling within span                           |
+| Triggering   | MetricInstrument      | DataQualityMetric    | `triggers`   | `triggered-by`    | 1:N         | Threshold violation triggers quality alert                                   |
+| Triggering   | DataQualityMetric     | LogRecord            | `triggers`   | `triggered-by`    | 1:N         | Quality violation triggers alert log record                                  |
+| Flow         | Span                  | Span                 | `flows-to`   | `flows-from`      | N:N         | Span flows to child spans (request propagation)                              |
+| Flow         | LogProcessor          | LogProcessor         | `flows-to`   | `flows-from`      | 1:1         | Log records flow through processor pipeline in order                         |
+| Flow         | LogProcessor          | ExporterConfig       | `flows-to`   | `flows-from`      | N:N         | Processed logs flow to configured exporters                                  |
+| Flow         | MetricInstrument      | ExporterConfig       | `flows-to`   | `flows-from`      | N:N         | Collected metrics flow to configured exporters                               |
+| Flow         | Span                  | ExporterConfig       | `flows-to`   | `flows-from`      | N:N         | Completed spans flow to configured exporters                                 |
+| Monitors     | MetricInstrument      | Resource             | `monitors`   | `monitored-by`    | N:1         | Metric instrument monitors resource performance                              |
+| Monitors     | DataQualityMetric     | Resource             | `monitors`   | `monitored-by`    | N:1         | Quality metric monitors data produced by resource                            |
+| Access       | LogProcessor          | Attribute            | `accesses`   | `accessed-by`     | 1:N         | Log processor accesses attributes for filtering/transformation               |
+| Access       | LogProcessor          | LogRecord            | `accesses`   | `accessed-by`     | 1:N         | Log processor accesses log records for processing                            |
+| Access       | MetricInstrument      | Attribute            | `accesses`   | `accessed-by`     | 1:N         | Metric instrument accesses attributes for labeling                           |
+| Access       | DataQualityMetric     | Attribute            | `accesses`   | `accessed-by`     | 1:N         | Quality metric accesses attributes for validation                            |
+| Depends-On   | Span                  | Resource             | `depends-on` | `dependency-of`   | N:1         | Span depends on resource for identity context                                |
+| Depends-On   | Span                  | InstrumentationScope | `depends-on` | `dependency-of`   | N:1         | Span depends on instrumentation scope for source context                     |
+| Depends-On   | LogRecord             | Resource             | `depends-on` | `dependency-of`   | N:1         | Log record depends on resource for identity context                          |
+| Depends-On   | LogRecord             | InstrumentationScope | `depends-on` | `dependency-of`   | N:1         | Log record depends on instrumentation scope                                  |
+| Depends-On   | MetricInstrument      | Resource             | `depends-on` | `dependency-of`   | N:1         | Metric instrument depends on resource for identity                           |
+| Depends-On   | MetricInstrument      | InstrumentationScope | `depends-on` | `dependency-of`   | N:1         | Metric instrument depends on instrumentation scope                           |
+| Depends-On   | ExporterConfig        | TraceConfiguration   | `depends-on` | `dependency-of`   | N:1         | Trace exporter depends on trace configuration                                |
+| Depends-On   | ExporterConfig        | LogConfiguration     | `depends-on` | `dependency-of`   | N:1         | Log exporter depends on log configuration                                    |
+| Depends-On   | ExporterConfig        | MetricConfiguration  | `depends-on` | `dependency-of`   | N:1         | Metric exporter depends on metric configuration                              |
+| Measures     | MetricInstrument      | Span                 | `measures`   | `measured-by`     | N:N         | Metric instrument measures span duration/count                               |
+| Measures     | MetricInstrument      | LogRecord            | `measures`   | `measured-by`     | N:N         | Metric instrument measures log event counts                                  |
+| Measures     | DataQualityMetric     | MetricInstrument     | `measures`   | `measured-by`     | 1:N         | Quality metric measures other instrument accuracy                            |
+| Serves       | InstrumentationConfig | Resource             | `serves`     | `served-by`       | N:N         | Instrumentation config serves resources it instruments                       |
+| Serves       | ExporterConfig        | APMConfiguration     | `serves`     | `served-by`       | N:1         | Exporter serves APM configuration by delivering telemetry                    |
 
 ---
 

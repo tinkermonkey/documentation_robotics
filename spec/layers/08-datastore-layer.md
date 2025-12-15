@@ -1243,19 +1243,53 @@ ALTER TABLE products
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description                                                         |
+| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ------------------------------------------------------------------- |
+| Composition    | Database       | DatabaseSchema | `composes`    | `composed-of`     | 1:N         | Database instance contains one or more schemas                      |
+| Composition    | DatabaseSchema | Table          | `composes`    | `composed-of`     | 1:N         | Schema contains tables as physical storage units                    |
+| Composition    | DatabaseSchema | View           | `composes`    | `composed-of`     | 1:N         | Schema contains views as virtual tables                             |
+| Composition    | DatabaseSchema | Function       | `composes`    | `composed-of`     | 1:N         | Schema contains stored functions                                    |
+| Composition    | DatabaseSchema | Sequence       | `composes`    | `composed-of`     | 1:N         | Schema contains sequence generators                                 |
+| Composition    | Table          | Column         | `composes`    | `composed-of`     | 1:N         | Table is composed of columns defining its structure                 |
+| Composition    | Table          | Constraint     | `composes`    | `composed-of`     | 1:N         | Table contains constraints enforcing data integrity                 |
+| Composition    | Table          | Index          | `composes`    | `composed-of`     | 1:N         | Table contains indexes for query optimization                       |
+| Composition    | Table          | Trigger        | `composes`    | `composed-of`     | 1:N         | Table contains triggers for reactive behavior                       |
+| Aggregation    | Database       | DatabaseSchema | `aggregates`  | `aggregated-by`   | 1:N         | Database aggregates multiple schemas for logical organization       |
+| Aggregation    | Index          | Column         | `aggregates`  | `aggregated-by`   | N:N         | Index aggregates one or more columns (composite indexes)            |
+| Aggregation    | Constraint     | Column         | `aggregates`  | `aggregated-by`   | N:N         | Constraint aggregates columns (composite keys, multi-column checks) |
+| Aggregation    | View           | Column         | `aggregates`  | `aggregated-by`   | N:N         | View selects and aggregates columns from source tables              |
+| Specialization | View           | Table          | `specializes` | `generalized-by`  | N:1         | View is a specialized virtual representation of table data          |
+| Specialization | Constraint     | Constraint     | `specializes` | `generalized-by`  | N:1         | Constraint types (PK, FK, UNIQUE, CHECK) specialize base constraint |
+| Specialization | Index          | Index          | `specializes` | `generalized-by`  | N:1         | Index methods (BTREE, HASH, GIN, GIST) specialize base index        |
+| Specialization | Function       | Function       | `specializes` | `generalized-by`  | N:1         | Function types (TRIGGER, SCALAR, TABLE) specialize base function    |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element | Target Element | Predicate      | Inverse Predicate | Cardinality | Description                                               |
+| ------------ | -------------- | -------------- | -------------- | ----------------- | ----------- | --------------------------------------------------------- |
+| Reference    | Constraint     | Table          | `references`   | `referenced-by`   | N:1         | Foreign key constraint references target table            |
+| Reference    | Constraint     | Column         | `references`   | `referenced-by`   | N:N         | Foreign key references specific columns in target table   |
+| Reference    | View           | Table          | `references`   | `referenced-by`   | N:N         | View definition queries one or more source tables         |
+| Reference    | View           | View           | `references`   | `referenced-by`   | N:N         | View can query other views (nested views)                 |
+| Reference    | Function       | Table          | `references`   | `referenced-by`   | N:N         | Function body references tables for queries/modifications |
+| Reference    | Function       | View           | `references`   | `referenced-by`   | N:N         | Function can query views                                  |
+| Reference    | Function       | Sequence       | `references`   | `referenced-by`   | N:N         | Function can use sequences for value generation           |
+| Triggering   | Trigger        | Function       | `triggers`     | `triggered-by`    | N:1         | Trigger executes specified function on event              |
+| Serving      | Sequence       | Column         | `serves`       | `served-by`       | N:1         | Sequence serves column by generating default values       |
+| Serving      | Index          | Table          | `serves`       | `served-by`       | N:1         | Index serves table by optimizing query performance        |
+| Serving      | Function       | Trigger        | `serves`       | `served-by`       | 1:N         | Function serves as trigger handler                        |
+| Access       | Index          | Column         | `accesses`     | `accessed-by`     | N:N         | Index provides fast access to indexed columns             |
+| Access       | View           | Column         | `accesses`     | `accessed-by`     | N:N         | View accesses columns from source tables                  |
+| Access       | Function       | Column         | `accesses`     | `accessed-by`     | N:N         | Function accesses table columns for read/write operations |
+| Depends-On   | View           | Table          | `depends-on`   | `dependency-of`   | N:N         | View depends on underlying tables for data                |
+| Depends-On   | View           | View           | `depends-on`   | `dependency-of`   | N:N         | Nested view depends on source views                       |
+| Depends-On   | Trigger        | Table          | `depends-on`   | `dependency-of`   | N:1         | Trigger depends on table for event source                 |
+| Depends-On   | Function       | Function       | `depends-on`   | `dependency-of`   | N:N         | Function can depend on other functions                    |
+| Depends-On   | Constraint     | Sequence       | `depends-on`   | `dependency-of`   | N:1         | Serial/identity column constraint depends on sequence     |
+| Derives-From | Column         | Column         | `derives-from` | `derived-by`      | N:N         | Generated column derives value from source columns        |
+| Derives-From | View           | Table          | `derives-from` | `derived-by`      | N:N         | Materialized view derives data from source tables         |
 
 ---
 

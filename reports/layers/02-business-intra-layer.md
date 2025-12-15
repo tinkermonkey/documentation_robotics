@@ -36,38 +36,38 @@ graph TB
     BusinessRole -->|assigned-to| BusinessProcess
     BusinessRole -->|assigned-to| BusinessFunction
     BusinessRole -->|specializes| BusinessRole
+    BusinessCollaboration -->|composes| BusinessRole
     BusinessCollaboration -->|aggregates| BusinessRole
     BusinessCollaboration -->|assigned-to| BusinessInteraction
-    BusinessCollaboration -->|composes| BusinessRole
-    BusinessInterface -->|serves| BusinessRole
     BusinessInterface -->|serves| BusinessActor
+    BusinessInterface -->|serves| BusinessRole
     BusinessProcess -->|composes| BusinessProcess
-    BusinessProcess -->|flows-to| BusinessProcess
-    BusinessProcess -->|triggers| BusinessEvent
-    BusinessProcess -->|accesses| Representation
     BusinessProcess -->|realizes| BusinessService
+    BusinessProcess -->|triggers| BusinessEvent
+    BusinessProcess -->|flows-to| BusinessProcess
     BusinessProcess -->|accesses| BusinessObject
-    BusinessFunction -->|realizes| BusinessService
+    BusinessProcess -->|accesses| Representation
     BusinessFunction -->|composes| BusinessProcess
+    BusinessFunction -->|realizes| BusinessService
     BusinessFunction -->|accesses| BusinessObject
-    BusinessInteraction -->|accesses| BusinessObject
     BusinessInteraction -->|realizes| BusinessService
     BusinessInteraction -->|triggers| BusinessProcess
     BusinessInteraction -->|flows-to| BusinessProcess
-    BusinessEvent -->|triggers| BusinessFunction
+    BusinessInteraction -->|accesses| BusinessObject
     BusinessEvent -->|triggers| BusinessProcess
+    BusinessEvent -->|triggers| BusinessFunction
     BusinessEvent -->|triggers| BusinessInteraction
+    BusinessService -->|serves| BusinessActor
     BusinessService -->|serves| BusinessRole
     BusinessService -->|serves| BusinessProcess
-    BusinessService -->|serves| BusinessActor
     BusinessObject -->|specializes| BusinessObject
     BusinessObject -->|associated-with| BusinessProcess
-    Contract -->|associated-with| BusinessService
     Contract -->|specializes| Contract
+    Contract -->|associated-with| BusinessService
     Representation -->|realizes| BusinessObject
+    Product -->|composes| BusinessService
     Product -->|aggregates| BusinessService
     Product -->|aggregates| Contract
-    Product -->|composes| BusinessService
   end
 
   %% Styling
@@ -113,25 +113,25 @@ graph TB
 
 ### Outgoing Relationships (BusinessActor → Other Entities)
 
-| Relationship Type | Target Entity   | Predicate     | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | ------------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| assignment        | BusinessProcess | `assigned-to` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| assignment        | BusinessRole    | `assigned-to` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity   | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| assigned to       | BusinessProcess | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| assigned to       | BusinessRole    | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessActor)
 
-| Relationship Type | Source Entity     | Predicate | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | ----------------- | --------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| serving           | BusinessInterface | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| serving           | BusinessService   | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity     | Predicate | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | ----------------- | --------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| serves            | BusinessInterface | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| serves            | BusinessService   | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 4
 - **Outgoing**: 2
 - **Incoming**: 2
-- **Documented**: 0/4
-- **With XML Examples**: 4/4
+- **Documented**: 4/4
+- **With XML Examples**: 0/4
 - **In Catalog**: 4/4
 
 ---
@@ -144,8 +144,8 @@ graph TB
 
 | Relationship Type | Target Entity       | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ------------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| assignment        | BusinessInteraction | `assigned-to` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| aggregation       | BusinessRole        | `aggregates`  | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| assigned to       | BusinessInteraction | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| aggregates        | BusinessRole        | `aggregates`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | composes          | BusinessRole        | `composes`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessCollaboration)
@@ -157,8 +157,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 3
 - **Outgoing**: 3
 - **Incoming**: 0
-- **Documented**: 1/3
-- **With XML Examples**: 2/3
+- **Documented**: 3/3
+- **With XML Examples**: 0/3
 - **In Catalog**: 3/3
 
 ---
@@ -171,23 +171,23 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Target Entity       | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ------------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| triggering        | BusinessFunction    | `triggers` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| triggers          | BusinessFunction    | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | triggers          | BusinessInteraction | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| triggering        | BusinessProcess     | `triggers` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| triggers          | BusinessProcess     | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessEvent)
 
-| Relationship Type | Source Entity   | Predicate  | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | ---------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| triggering        | BusinessProcess | `triggers` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity   | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| triggers          | BusinessProcess | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 4
 - **Outgoing**: 3
 - **Incoming**: 1
-- **Documented**: 1/4
-- **With XML Examples**: 3/4
+- **Documented**: 4/4
+- **With XML Examples**: 0/4
 - **In Catalog**: 4/4
 
 ---
@@ -198,17 +198,17 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (BusinessFunction → Other Entities)
 
-| Relationship Type | Target Entity   | Predicate  | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | ---------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| access            | BusinessObject  | `accesses` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| composition       | BusinessProcess | `composes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| realization       | BusinessService | `realizes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity   | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| accesses          | BusinessObject  | `accesses` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| composes          | BusinessProcess | `composes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| realizes          | BusinessService | `realizes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessFunction)
 
 | Relationship Type | Source Entity | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| triggering        | BusinessEvent | `triggers`    | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| triggers          | BusinessEvent | `triggers`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | assigned to       | BusinessRole  | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
@@ -216,8 +216,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 5
 - **Outgoing**: 3
 - **Incoming**: 2
-- **Documented**: 1/5
-- **With XML Examples**: 4/5
+- **Documented**: 5/5
+- **With XML Examples**: 0/5
 - **In Catalog**: 5/5
 
 ---
@@ -230,7 +230,7 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Target Entity   | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | --------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| access            | BusinessObject  | `accesses` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| accesses          | BusinessObject  | `accesses` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | flows to          | BusinessProcess | `flows-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | triggers          | BusinessProcess | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | realizes          | BusinessService | `realizes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
@@ -239,7 +239,7 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Source Entity         | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | --------------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| assignment        | BusinessCollaboration | `assigned-to` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| assigned to       | BusinessCollaboration | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | triggers          | BusinessEvent         | `triggers`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
@@ -247,8 +247,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 6
 - **Outgoing**: 4
 - **Incoming**: 2
-- **Documented**: 4/6
-- **With XML Examples**: 2/6
+- **Documented**: 6/6
+- **With XML Examples**: 0/6
 - **In Catalog**: 6/6
 
 ---
@@ -259,10 +259,10 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (BusinessInterface → Other Entities)
 
-| Relationship Type | Target Entity | Predicate | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | ------------- | --------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| serving           | BusinessActor | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| serving           | BusinessRole  | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity | Predicate | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | ------------- | --------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| serves            | BusinessActor | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| serves            | BusinessRole  | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessInterface)
 
@@ -273,8 +273,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 2
 - **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/2
-- **With XML Examples**: 2/2
+- **Documented**: 2/2
+- **With XML Examples**: 0/2
 - **In Catalog**: 2/2
 
 ---
@@ -287,26 +287,26 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Target Entity   | Predicate         | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | --------------- | ----------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| specialization    | BusinessObject  | `specializes`     | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| specializes       | BusinessObject  | `specializes`     | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | associated with   | BusinessProcess | `associated-with` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessObject)
 
-| Relationship Type | Source Entity       | Predicate     | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | ------------------- | ------------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| access            | BusinessFunction    | `accesses`    | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| access            | BusinessInteraction | `accesses`    | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| specialization    | BusinessObject      | `specializes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| access            | BusinessProcess     | `accesses`    | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| realization       | Representation      | `realizes`    | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity       | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | ------------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| accesses          | BusinessFunction    | `accesses`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| accesses          | BusinessInteraction | `accesses`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| specializes       | BusinessObject      | `specializes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| accesses          | BusinessProcess     | `accesses`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| realizes          | Representation      | `realizes`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 7
 - **Outgoing**: 2
 - **Incoming**: 5
-- **Documented**: 1/7
-- **With XML Examples**: 6/7
+- **Documented**: 7/7
+- **With XML Examples**: 0/7
 - **In Catalog**: 7/7
 
 ---
@@ -317,37 +317,37 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (BusinessProcess → Other Entities)
 
-| Relationship Type | Target Entity   | Predicate  | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | ---------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| triggering        | BusinessEvent   | `triggers` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| access            | BusinessObject  | `accesses` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| composition       | BusinessProcess | `composes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| flow              | BusinessProcess | `flows-to` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| realization       | BusinessService | `realizes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| access            | Representation  | `accesses` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity   | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| triggers          | BusinessEvent   | `triggers` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| accesses          | BusinessObject  | `accesses` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| composes          | BusinessProcess | `composes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| flows to          | BusinessProcess | `flows-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| realizes          | BusinessService | `realizes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| access            | Representation  | `accesses` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
 
 ### Incoming Relationships (Other Entities → BusinessProcess)
 
 | Relationship Type | Source Entity       | Predicate         | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ------------------- | ----------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| assignment        | BusinessActor       | `assigned-to`     | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| triggering        | BusinessEvent       | `triggers`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| composition       | BusinessFunction    | `composes`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| assigned to       | BusinessActor       | `assigned-to`     | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| triggers          | BusinessEvent       | `triggers`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| composes          | BusinessFunction    | `composes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | flows to          | BusinessInteraction | `flows-to`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | triggers          | BusinessInteraction | `triggers`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | associated with   | BusinessObject      | `associated-with` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| composition       | BusinessProcess     | `composes`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| flow              | BusinessProcess     | `flows-to`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| assignment        | BusinessRole        | `assigned-to`     | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| serving           | BusinessService     | `serves`          | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| composes          | BusinessProcess     | `composes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| flows to          | BusinessProcess     | `flows-to`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| assigned to       | BusinessRole        | `assigned-to`     | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| serves            | BusinessService     | `serves`          | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 16
 - **Outgoing**: 6
 - **Incoming**: 10
-- **Documented**: 3/16
-- **With XML Examples**: 13/16
+- **Documented**: 15/16
+- **With XML Examples**: 1/16
 - **In Catalog**: 16/16
 
 ---
@@ -361,27 +361,27 @@ _No incoming intra-layer relationships documented._
 | Relationship Type | Target Entity    | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ---------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
 | assigned to       | BusinessFunction | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| assignment        | BusinessProcess  | `assigned-to` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| assigned to       | BusinessProcess  | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | specializes       | BusinessRole     | `specializes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessRole)
 
 | Relationship Type | Source Entity         | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | --------------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| assignment        | BusinessActor         | `assigned-to` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| aggregation       | BusinessCollaboration | `aggregates`  | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| assigned to       | BusinessActor         | `assigned-to` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| aggregates        | BusinessCollaboration | `aggregates`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | composes          | BusinessCollaboration | `composes`    | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| serving           | BusinessInterface     | `serves`      | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| serves            | BusinessInterface     | `serves`      | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | specializes       | BusinessRole          | `specializes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| serving           | BusinessService       | `serves`      | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| serves            | BusinessService       | `serves`      | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 9
 - **Outgoing**: 3
 - **Incoming**: 6
-- **Documented**: 4/9
-- **With XML Examples**: 5/9
+- **Documented**: 9/9
+- **With XML Examples**: 0/9
 - **In Catalog**: 9/9
 
 ---
@@ -392,21 +392,21 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (BusinessService → Other Entities)
 
-| Relationship Type | Target Entity   | Predicate | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | --------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| serving           | BusinessActor   | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| serving           | BusinessProcess | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| serving           | BusinessRole    | `serves`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity   | Predicate | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | --------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| serves            | BusinessActor   | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| serves            | BusinessProcess | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| serves            | BusinessRole    | `serves`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → BusinessService)
 
 | Relationship Type | Source Entity       | Predicate         | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | ------------------- | ----------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| realization       | BusinessFunction    | `realizes`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| realizes          | BusinessFunction    | `realizes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | realizes          | BusinessInteraction | `realizes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| realization       | BusinessProcess     | `realizes`        | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| association       | Contract            | `associated-with` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
-| aggregation       | Product             | `aggregates`      | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| realizes          | BusinessProcess     | `realizes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| associated with   | Contract            | `associated-with` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| aggregates        | Product             | `aggregates`      | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | composes          | Product             | `composes`        | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
@@ -414,8 +414,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 9
 - **Outgoing**: 3
 - **Incoming**: 6
-- **Documented**: 2/9
-- **With XML Examples**: 7/9
+- **Documented**: 9/9
+- **With XML Examples**: 0/9
 - **In Catalog**: 9/9
 
 ---
@@ -426,25 +426,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Contract → Other Entities)
 
-| Relationship Type | Target Entity   | Predicate         | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | --------------- | ----------------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| association       | BusinessService | `associated-with` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| specialization    | Contract        | `specializes`     | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity   | Predicate         | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | --------------- | ----------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| associated with   | BusinessService | `associated-with` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| specializes       | Contract        | `specializes`     | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Contract)
 
-| Relationship Type | Source Entity | Predicate     | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | ------------- | ------------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| specialization    | Contract      | `specializes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
-| aggregation       | Product       | `aggregates`  | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity | Predicate     | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | ------------- | ------------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| specializes       | Contract      | `specializes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
+| aggregates        | Product       | `aggregates`  | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 4
 - **Outgoing**: 2
 - **Incoming**: 2
-- **Documented**: 0/4
-- **With XML Examples**: 4/4
+- **Documented**: 4/4
+- **With XML Examples**: 0/4
 - **In Catalog**: 4/4
 
 ---
@@ -457,9 +457,9 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Target Entity   | Predicate    | Status     | Source                                                      | In Catalog | Documented                                                |
 | ----------------- | --------------- | ------------ | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
-| aggregation       | BusinessService | `aggregates` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| aggregates        | BusinessService | `aggregates` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 | composes          | BusinessService | `composes`   | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
-| aggregation       | Contract        | `aggregates` | XML        | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗                                                         |
+| aggregates        | Contract        | `aggregates` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Product)
 
@@ -470,8 +470,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 3
 - **Outgoing**: 3
 - **Incoming**: 0
-- **Documented**: 1/3
-- **With XML Examples**: 2/3
+- **Documented**: 3/3
+- **With XML Examples**: 0/3
 - **In Catalog**: 3/3
 
 ---
@@ -482,9 +482,9 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Representation → Other Entities)
 
-| Relationship Type | Target Entity  | Predicate  | Status | Source                                                      | In Catalog | Documented |
-| ----------------- | -------------- | ---------- | ------ | ----------------------------------------------------------- | ---------- | ---------- |
-| realization       | BusinessObject | `realizes` | XML    | [XML](../../spec/layers/02-business-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity  | Predicate  | Status     | Source                                                      | In Catalog | Documented                                                |
+| ----------------- | -------------- | ---------- | ---------- | ----------------------------------------------------------- | ---------- | --------------------------------------------------------- |
+| realizes          | BusinessObject | `realizes` | Documented | [Doc](../../spec/layers/02-business-layer.md#relationships) | ✓          | [✓](../../spec/layers/02-business-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Representation)
 
@@ -497,8 +497,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 2
 - **Outgoing**: 1
 - **Incoming**: 1
-- **Documented**: 0/2
-- **With XML Examples**: 2/2
+- **Documented**: 1/2
+- **With XML Examples**: 1/2
 - **In Catalog**: 2/2
 
 ---

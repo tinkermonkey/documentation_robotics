@@ -12,7 +12,7 @@ from rich.console import Console
 from rich.panel import Panel
 
 from ..core.model import Model
-from ..server.sdk_detector import detect_claude_agent_sdk
+from ..server.drbot_orchestrator import HAS_ANTHROPIC
 from ..server.visualization_server import VisualizationServer
 
 console = Console()
@@ -121,12 +121,11 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
         console.print(f"✗ Error loading model: {e}", style="red bold")
         raise click.Abort()
 
-    # Check Claude Agent SDK availability
-    sdk_status = detect_claude_agent_sdk()
-    if not sdk_status.available:
+    # Check Anthropic SDK availability
+    if not HAS_ANTHROPIC:
         console.print()
         console.print(
-            "[yellow]⚠ Warning: Claude Agent SDK not installed[/yellow]",
+            "[yellow]⚠ Warning: Anthropic SDK not installed[/yellow]",
             style="bold",
         )
         console.print(
@@ -138,13 +137,20 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
             style="dim",
         )
         console.print(
-            "   [cyan]pip install claude-agent-sdk[/cyan]",
+            "   [cyan]pip install anthropic[/cyan]",
         )
         console.print()
     else:
-        console.print(
-            f"✓ [green]Claude Agent SDK available[/green] (v{sdk_status.version or 'unknown'})"
-        )
+        # Get Anthropic SDK version
+        sdk_version = "unknown"
+        try:
+            import anthropic
+
+            sdk_version = getattr(anthropic, "__version__", "unknown")
+        except Exception:
+            pass
+
+        console.print(f"✓ [green]Anthropic SDK available[/green] (v{sdk_version})")
         console.print("   Chat functionality (DrBot) is enabled")
 
     # Initialize server

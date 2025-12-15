@@ -773,7 +773,102 @@ Artifact:
     <property key="motivation.constrained-by">constraint-gdpr-compliance,constraint-data-retention-7years</property>
   </element>
 
-  <!-- Relationships -->
+  <!-- ============================= -->
+  <!-- Additional Technology Elements for Relationship Examples -->
+  <!-- ============================= -->
+
+  <!-- Devices -->
+  <element id="physical-server-1" type="Device">
+    <name>Dell PowerEdge R740</name>
+    <property key="device.manufacturer">Dell</property>
+    <property key="device.model">PowerEdge R740</property>
+  </element>
+
+  <!-- Paths -->
+  <element id="vpc-path-1" type="Path">
+    <name>VPC Internal Path</name>
+    <property key="path.bandwidth">10Gbps</property>
+    <property key="path.latency">1ms</property>
+  </element>
+
+  <!-- Technology Collaboration -->
+  <element id="k8s-node-cluster" type="TechnologyCollaboration">
+    <name>Kubernetes Node Cluster</name>
+  </element>
+
+  <!-- Technology Events -->
+  <element id="scale-out-event" type="TechnologyEvent">
+    <name>Auto-Scale Out Triggered</name>
+  </element>
+
+  <element id="deployment-complete-event" type="TechnologyEvent">
+    <name>Deployment Complete</name>
+  </element>
+
+  <!-- Technology Functions -->
+  <element id="load-balancing-function" type="TechnologyFunction">
+    <name>Load Balancing</name>
+  </element>
+
+  <element id="backup-function" type="TechnologyFunction">
+    <name>Database Backup</name>
+  </element>
+
+  <!-- Technology Processes -->
+  <element id="auto-scaling-process" type="TechnologyProcess">
+    <name>Auto-Scaling Process</name>
+    <property key="process.automation">kubernetes</property>
+  </element>
+
+  <element id="deployment-process" type="TechnologyProcess">
+    <name>Deployment Process</name>
+    <property key="process.automation">terraform</property>
+  </element>
+
+  <element id="backup-process" type="TechnologyProcess">
+    <name>Backup Process</name>
+  </element>
+
+  <!-- Technology Interactions -->
+  <element id="db-replication-interaction" type="TechnologyInteraction">
+    <name>Database Replication</name>
+  </element>
+
+  <!-- Technology Interfaces -->
+  <element id="postgres-port-5432" type="TechnologyInterface">
+    <name>PostgreSQL Port 5432</name>
+    <property key="interface.port">5432</property>
+    <property key="interface.protocol">TCP</property>
+  </element>
+
+  <element id="k8s-api-interface" type="TechnologyInterface">
+    <name>Kubernetes API Interface</name>
+    <property key="interface.port">6443</property>
+    <property key="interface.protocol">HTTPS</property>
+  </element>
+
+  <!-- Additional Artifacts -->
+  <element id="backup-artifact" type="Artifact">
+    <name>Database Backup Files</name>
+    <property key="artifact.format">binary</property>
+    <property key="artifact.size">1TB</property>
+  </element>
+
+  <element id="config-artifact" type="Artifact">
+    <name>Application Configuration</name>
+    <property key="artifact.format">json</property>
+  </element>
+
+  <!-- Additional Services -->
+  <element id="load-balancer-service" type="TechnologyService">
+    <name>Load Balancer Service</name>
+  </element>
+
+  <!-- ============================= -->
+  <!-- RELATIONSHIPS -->
+  <!-- ============================= -->
+
+  <!-- Existing Cross-Layer Relationships -->
   <relationship type="Assignment" source="postgres" target="postgres-cluster"/>
   <relationship type="Realization" source="k8s-cluster" target="container-platform"/>
   <relationship type="Realization" source="postgres-cluster" target="database-service"/>
@@ -781,6 +876,44 @@ Artifact:
   <relationship type="Assignment" source="customer-db" target="postgres-cluster"/>
   <relationship type="Association" source="k8s-cluster" target="vpc"/>
   <relationship type="Association" source="postgres-cluster" target="vpc"/>
+
+  <!-- ============================= -->
+  <!-- INTRA-LAYER RELATIONSHIPS -->
+  <!-- ============================= -->
+
+  <!-- Priority 1: Critical Infrastructure Patterns (13 relationships) -->
+  <relationship type="Composition" source="physical-server-1" target="k8s-cluster"/>
+  <relationship type="Aggregation" source="k8s-cluster" target="physical-server-1"/>
+  <relationship type="Aggregation" source="k8s-node-cluster" target="k8s-cluster"/>
+  <relationship type="Aggregation" source="k8s-node-cluster" target="postgres-cluster"/>
+  <relationship type="Triggering" source="scale-out-event" target="auto-scaling-process"/>
+  <relationship type="Triggering" source="deployment-process" target="deployment-complete-event"/>
+  <relationship type="Association" source="vpc-path-1" target="k8s-cluster"/>
+  <relationship type="Association" source="vpc-path-1" target="postgres-cluster"/>
+  <relationship type="Realization" source="vpc-path-1" target="vpc"/>
+  <relationship type="Serving" source="postgres-port-5432" target="database-service"/>
+  <relationship type="Serving" source="k8s-api-interface" target="container-platform"/>
+  <relationship type="Realization" source="load-balancing-function" target="load-balancer-service"/>
+  <relationship type="Realization" source="backup-process" target="database-service"/>
+
+  <!-- Priority 2: Behavioral Relationships (9 relationships) -->
+  <relationship type="Access" source="postgres" target="product-db"/>
+  <relationship type="Access" source="postgres" target="customer-db"/>
+  <relationship type="Access" source="backup-function" target="product-db"/>
+  <relationship type="Access" source="backup-process" target="backup-artifact"/>
+  <relationship type="Access" source="db-replication-interaction" target="customer-db"/>
+  <relationship type="Flow" source="deployment-process" target="auto-scaling-process"/>
+  <relationship type="Triggering" source="scale-out-event" target="load-balancing-function"/>
+  <relationship type="Assignment" source="k8s-cluster" target="load-balancing-function"/>
+  <relationship type="Assignment" source="k8s-node-cluster" target="db-replication-interaction"/>
+
+  <!-- Priority 3: Structural Completeness (6 relationships) -->
+  <relationship type="Composition" source="k8s-cluster" target="k8s-api-interface"/>
+  <relationship type="Composition" source="postgres" target="postgres-port-5432"/>
+  <relationship type="Flow" source="database-service" target="container-platform"/>
+  <relationship type="Association" source="physical-server-1" target="vpc"/>
+  <relationship type="Specialization" source="customer-db" target="product-db"/>
+  <relationship type="Realization" source="postgres" target="database-service"/>
 </model>
 ```
 
@@ -880,19 +1013,39 @@ service.logging: "elasticsearch|splunk"
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element          | Target Element        | Predicate         | Inverse Predicate | Cardinality | Description                                                                |
+| -------------- | ----------------------- | --------------------- | ----------------- | ----------------- | ----------- | -------------------------------------------------------------------------- |
+| Composition    | Device                  | Node                  | `composes`        | `composed-of`     | 1:N         | Physical devices host virtual/logical nodes (servers host VMs, containers) |
+| Composition    | Node                    | TechnologyInterface   | `composes`        | `composed-of`     | 1:N         | Nodes expose interfaces (server exposes HTTPS port)                        |
+| Composition    | SystemSoftware          | TechnologyInterface   | `composes`        | `composed-of`     | 1:N         | Software exposes interfaces (database exposes SQL interface)               |
+| Aggregation    | Node                    | Device                | `aggregates`      | `aggregated-by`   | 1:N         | Logical nodes may span multiple devices (cluster nodes across servers)     |
+| Aggregation    | TechnologyCollaboration | Node                  | `aggregates`      | `aggregated-by`   | 1:N         | HA clusters, Kubernetes clusters aggregate multiple nodes                  |
+| Specialization | Artifact                | Artifact              | `specializes`     | `generalized-by`  | N:1         | Artifact inheritance (CustomerDB specializes Database)                     |
+| Realization    | Path                    | CommunicationNetwork  | `realizes`        | `realized-by`     | N:1         | Concrete paths implement abstract network definitions                      |
+| Realization    | TechnologyFunction      | TechnologyService     | `realizes`        | `realized-by`     | N:1         | Technology functions implement services (load balancing function)          |
+| Realization    | TechnologyProcess       | TechnologyService     | `realizes`        | `realized-by`     | N:1         | Processes implement services (backup process realizes backup service)      |
+| Realization    | SystemSoftware          | TechnologyService     | `realizes`        | `realized-by`     | N:1         | Software realizes services (PostgreSQL realizes Database Service)          |
+| Assignment     | Node                    | TechnologyFunction    | `assigned-to`     | `performs`        | 1:N         | Nodes perform functions (server performs load balancing)                   |
+| Assignment     | TechnologyCollaboration | TechnologyInteraction | `assigned-to`     | `performed-by`    | 1:N         | Collaborations perform interactions (cluster performs replication)         |
+| Association    | Path                    | Node                  | `associated-with` | `associated-with` | N:N         | Network paths connect nodes (crucial for network topology modeling)        |
+| Association    | Device                  | CommunicationNetwork  | `associated-with` | `associated-with` | N:N         | Physical devices connect to networks                                       |
+| Serving        | TechnologyInterface     | TechnologyService     | `serves`          | `served-by`       | N:1         | Interfaces expose technology services (ports, endpoints)                   |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element        | Target Element     | Predicate  | Inverse Predicate | Cardinality | Description                                                           |
+| ------------ | --------------------- | ------------------ | ---------- | ----------------- | ----------- | --------------------------------------------------------------------- |
+| Triggering   | TechnologyEvent       | TechnologyProcess  | `triggers` | `triggered-by`    | 1:N         | Infrastructure events trigger automated processes (scaling, failover) |
+| Triggering   | TechnologyProcess     | TechnologyEvent    | `triggers` | `triggered-by`    | 1:N         | Processes emit events (deployment complete, backup finished)          |
+| Triggering   | TechnologyEvent       | TechnologyFunction | `triggers` | `triggered-by`    | 1:N         | Events trigger functions (failure event triggers recovery function)   |
+| Flow         | TechnologyProcess     | TechnologyProcess  | `flows-to` | `flows-from`      | N:N         | Process sequencing (deploy flows-to verify flows-to monitor)          |
+| Flow         | TechnologyService     | TechnologyService  | `flows-to` | `flows-from`      | N:N         | Service orchestration (auth service flows to API gateway)             |
+| Access       | SystemSoftware        | Artifact           | `accesses` | `accessed-by`     | N:N         | Software reads/writes artifacts (OS accesses log files)               |
+| Access       | TechnologyFunction    | Artifact           | `accesses` | `accessed-by`     | N:N         | Functions operate on artifacts (backup function accesses database)    |
+| Access       | TechnologyProcess     | Artifact           | `accesses` | `accessed-by`     | N:N         | Processes read/write data (ETL process accesses files)                |
+| Access       | TechnologyInteraction | Artifact           | `accesses` | `accessed-by`     | N:N         | Interactions exchange artifacts (replication accesses data)           |
 
 ---
 

@@ -44,6 +44,58 @@ graph TB
     ServerVariable["ServerVariable"]
     Tag["Tag"]
 
+    OpenAPIDocument -->|composes| Info
+    OpenAPIDocument -->|composes| Paths
+    OpenAPIDocument -->|composes| Components
+    OpenAPIDocument -->|aggregates| Server
+    OpenAPIDocument -->|aggregates| Tag
+    OpenAPIDocument -->|aggregates| SecurityRequirement
+    OpenAPIDocument -->|references| ExternalDocumentation
+    Info -->|composes| Contact
+    Info -->|composes| License
+    Server -->|aggregates| ServerVariable
+    Paths -->|composes| PathItem
+    PathItem -->|composes| Operation
+    PathItem -->|aggregates| Parameter
+    Operation -->|composes| Parameter
+    Operation -->|composes| Responses
+    Operation -->|composes| RequestBody
+    Operation -->|aggregates| Callback
+    Operation -->|aggregates| SecurityRequirement
+    Operation -->|references| Tag
+    Operation -->|triggers| Callback
+    Parameter -->|references| Schema
+    RequestBody -->|composes| MediaType
+    Responses -->|composes| Response
+    Response -->|composes| MediaType
+    Response -->|composes| Header
+    Response -->|composes| Link
+    MediaType -->|composes| Schema
+    MediaType -->|composes| Example
+    MediaType -->|composes| Encoding
+    Components -->|composes| Schema
+    Components -->|composes| Response
+    Components -->|composes| Parameter
+    Components -->|composes| Example
+    Components -->|composes| RequestBody
+    Components -->|composes| Header
+    Components -->|composes| SecurityScheme
+    Components -->|composes| Link
+    Components -->|composes| Callback
+    Schema -->|specializes| Schema
+    Schema -->|references| Schema
+    Tag -->|references| ExternalDocumentation
+    Contact -->|associated-with| OpenAPIDocument
+    License -->|associated-with| OpenAPIDocument
+    ServerVariable -->|references| Server
+    Header -->|references| Schema
+    Link -->|references| Operation
+    Callback -->|references| PathItem
+    Encoding -->|references| Header
+    OAuthFlows -->|composes| OAuthFlow
+    OAuthFlow -->|references| OAuthFlows
+    SecurityScheme -->|composes| OAuthFlows
+    SecurityScheme -->|serves| Operation
   end
 
   %% Styling
@@ -54,75 +106,46 @@ graph TB
 
 ### Entity Coverage (Target: 2+ relationships per entity)
 
-- **Entities Meeting Target**: 0/26
-- **Entity Coverage**: 0.0%
-
-**Entities Below Target**:
-
-- OpenAPIDocument: 0 relationship(s) (needs 2 more)
-- Info: 0 relationship(s) (needs 2 more)
-- Server: 0 relationship(s) (needs 2 more)
-- Paths: 0 relationship(s) (needs 2 more)
-- PathItem: 0 relationship(s) (needs 2 more)
-- Operation: 0 relationship(s) (needs 2 more)
-- Parameter: 0 relationship(s) (needs 2 more)
-- RequestBody: 0 relationship(s) (needs 2 more)
-- Responses: 0 relationship(s) (needs 2 more)
-- Response: 0 relationship(s) (needs 2 more)
-- MediaType: 0 relationship(s) (needs 2 more)
-- Components: 0 relationship(s) (needs 2 more)
-- Schema: 0 relationship(s) (needs 2 more)
-- Tag: 0 relationship(s) (needs 2 more)
-- ExternalDocumentation: 0 relationship(s) (needs 2 more)
-- Contact: 0 relationship(s) (needs 2 more)
-- License: 0 relationship(s) (needs 2 more)
-- ServerVariable: 0 relationship(s) (needs 2 more)
-- Header: 0 relationship(s) (needs 2 more)
-- Link: 0 relationship(s) (needs 2 more)
-- Callback: 0 relationship(s) (needs 2 more)
-- Example: 0 relationship(s) (needs 2 more)
-- Encoding: 0 relationship(s) (needs 2 more)
-- OAuthFlows: 0 relationship(s) (needs 2 more)
-- OAuthFlow: 0 relationship(s) (needs 2 more)
-- SecurityScheme: 0 relationship(s) (needs 2 more)
+- **Entities Meeting Target**: 26/26
+- **Entity Coverage**: 100.0%
 
 ### Coverage Matrix
 
-| Entity                | Outgoing | Incoming | Total | Meets Target | Status   |
-| --------------------- | -------- | -------- | ----- | ------------ | -------- |
-| Callback              | 0        | 0        | 0     | ✗            | Needs 2  |
-| Components            | 0        | 0        | 0     | ✗            | Needs 2  |
-| Contact               | 0        | 0        | 0     | ✗            | Needs 2  |
-| Encoding              | 0        | 0        | 0     | ✗            | Needs 2  |
-| Example               | 0        | 0        | 0     | ✗            | Needs 2  |
-| ExternalDocumentation | 0        | 0        | 0     | ✗            | Needs 2  |
-| Header                | 0        | 0        | 0     | ✗            | Needs 2  |
-| Info                  | 0        | 0        | 0     | ✗            | Needs 2  |
-| License               | 0        | 0        | 0     | ✗            | Needs 2  |
-| Link                  | 0        | 0        | 0     | ✗            | Needs 2  |
-| MediaType             | 0        | 0        | 0     | ✗            | Needs 2  |
-| OAuthFlow             | 0        | 0        | 0     | ✗            | Needs 2  |
-| OAuthFlows            | 0        | 0        | 0     | ✗            | Needs 2  |
-| OpenAPIDocument       | 0        | 0        | 0     | ✗            | Needs 2  |
-| Operation             | 0        | 0        | 0     | ✗            | Needs 2  |
-| Parameter             | 0        | 0        | 0     | ✗            | Needs 2  |
-| PathItem              | 0        | 0        | 0     | ✗            | Needs 2  |
-| Paths                 | 0        | 0        | 0     | ✗            | Needs 2  |
-| RequestBody           | 0        | 0        | 0     | ✗            | Needs 2  |
-| Response              | 0        | 0        | 0     | ✗            | Needs 2  |
-| Responses             | 0        | 0        | 0     | ✗            | Needs 2  |
-| Schema                | 0        | 0        | 0     | ✗            | Needs 2  |
-| SecurityScheme        | 0        | 0        | 0     | ✗            | Needs 2  |
-| Server                | 0        | 0        | 0     | ✗            | Needs 2  |
-| ServerVariable        | 0        | 0        | 0     | ✗            | Needs 2  |
-| Tag                   | 0        | 0        | 0     | ✗            | Needs 2  |
-| **TOTAL**             | **-**    | **-**    | **0** | **0/26**     | **0.0%** |
+| Entity                | Outgoing | Incoming | Total   | Meets Target | Status     |
+| --------------------- | -------- | -------- | ------- | ------------ | ---------- |
+| Callback              | 1        | 3        | 4       | ✓            | Complete   |
+| Components            | 9        | 1        | 10      | ✓            | Complete   |
+| Contact               | 1        | 1        | 2       | ✓            | Complete   |
+| Encoding              | 1        | 1        | 2       | ✓            | Complete   |
+| Example               | 0        | 2        | 2       | ✓            | Complete   |
+| ExternalDocumentation | 0        | 2        | 2       | ✓            | Complete   |
+| Header                | 1        | 3        | 4       | ✓            | Complete   |
+| Info                  | 2        | 1        | 3       | ✓            | Complete   |
+| License               | 1        | 1        | 2       | ✓            | Complete   |
+| Link                  | 1        | 2        | 3       | ✓            | Complete   |
+| MediaType             | 3        | 2        | 5       | ✓            | Complete   |
+| OAuthFlow             | 1        | 1        | 2       | ✓            | Complete   |
+| OAuthFlows            | 1        | 2        | 3       | ✓            | Complete   |
+| OpenAPIDocument       | 7        | 2        | 9       | ✓            | Complete   |
+| Operation             | 7        | 3        | 10      | ✓            | Complete   |
+| Parameter             | 1        | 3        | 4       | ✓            | Complete   |
+| PathItem              | 2        | 2        | 4       | ✓            | Complete   |
+| Paths                 | 1        | 1        | 2       | ✓            | Complete   |
+| RequestBody           | 1        | 2        | 3       | ✓            | Complete   |
+| Response              | 3        | 2        | 5       | ✓            | Complete   |
+| Responses             | 1        | 1        | 2       | ✓            | Complete   |
+| Schema                | 2        | 6        | 8       | ✓            | Complete   |
+| SecurityScheme        | 2        | 1        | 3       | ✓            | Complete   |
+| Server                | 1        | 2        | 3       | ✓            | Complete   |
+| ServerVariable        | 1        | 1        | 2       | ✓            | Complete   |
+| Tag                   | 1        | 2        | 3       | ✓            | Complete   |
+| **TOTAL**             | **-**    | **-**    | **102** | **26/26**    | **100.0%** |
 
 ### Relationship Statistics
 
-- **Total Unique Relationships**: 0
-- **Total Connections (Entity Perspective)**: 0
-- **Average Connections per Entity**: 0.0
+- **Total Unique Relationships**: 52
+- **Total Connections (Entity Perspective)**: 102
+- **Average Connections per Entity**: 3.9
 - **Entity Coverage Target**: 2+ relationships
 
 ## Entity: Callback
@@ -131,20 +154,26 @@ graph TB
 
 ### Outgoing Relationships (Callback → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | PathItem      | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Callback)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | Operation     | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| triggering        | Operation     | `triggers`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 1
+- **Incoming**: 3
+- **Documented**: 0/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -154,20 +183,32 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Components → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity  | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | -------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Callback       | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Example        | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Header         | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Link           | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Parameter      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | RequestBody    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Response       | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Schema         | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | SecurityScheme | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Components)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OpenAPIDocument | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 10
+- **Outgoing**: 9
+- **Incoming**: 1
+- **Documented**: 0/10
+- **With XML Examples**: 10/10
+- **In Catalog**: 10/10
 
 ---
 
@@ -177,20 +218,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Contact → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity   | Predicate         | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ----------------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| association       | OpenAPIDocument | `associated-with` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Contact)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Info          | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -200,20 +245,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Encoding → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Header        | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Encoding)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | MediaType     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -227,16 +276,19 @@ _No outgoing intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → Example)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | MediaType     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
+- **Total Relationships**: 2
 - **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Incoming**: 2
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -250,16 +302,19 @@ _No outgoing intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → ExternalDocumentation)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | OpenAPIDocument | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Tag             | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
+- **Total Relationships**: 2
 - **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Incoming**: 2
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -269,20 +324,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Header → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Schema        | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Header)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Encoding      | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Response      | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 1
+- **Incoming**: 3
+- **Documented**: 0/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -292,20 +353,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Info → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Contact       | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | License       | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Info)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OpenAPIDocument | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 2
+- **Incoming**: 1
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -315,20 +381,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (License → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity   | Predicate         | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ----------------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| association       | OpenAPIDocument | `associated-with` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → License)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Info          | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -338,20 +408,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Link → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Operation     | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Link)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Response      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -361,20 +436,27 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (MediaType → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Encoding      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Example       | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Schema        | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → MediaType)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | RequestBody   | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Response      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 5
+- **Outgoing**: 3
+- **Incoming**: 2
+- **Documented**: 0/5
+- **With XML Examples**: 5/5
+- **In Catalog**: 5/5
 
 ---
 
@@ -384,20 +466,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (OAuthFlow → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | OAuthFlows    | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → OAuthFlow)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OAuthFlows    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -407,20 +493,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (OAuthFlows → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OAuthFlow     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → OAuthFlows)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity  | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | -------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | OAuthFlow      | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | SecurityScheme | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -430,20 +521,31 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (OpenAPIDocument → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity         | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components            | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | ExternalDocumentation | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Info                  | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Paths                 | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | SecurityRequirement   | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | Server                | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | Tag                   | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → OpenAPIDocument)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate         | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ----------------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| association       | Contact       | `associated-with` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| association       | License       | `associated-with` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 9
+- **Outgoing**: 7
+- **Incoming**: 2
+- **Documented**: 0/9
+- **With XML Examples**: 9/9
+- **In Catalog**: 9/9
 
 ---
 
@@ -453,20 +555,32 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Operation → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity       | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| aggregation       | Callback            | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| triggering        | Callback            | `triggers`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Parameter           | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | RequestBody         | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Responses           | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | SecurityRequirement | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Tag                 | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Operation)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity  | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | -------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Link           | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | PathItem       | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| serving           | SecurityScheme | `serves`     | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 10
+- **Outgoing**: 7
+- **Incoming**: 3
+- **Documented**: 0/10
+- **With XML Examples**: 10/10
+- **In Catalog**: 10/10
 
 ---
 
@@ -476,20 +590,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Parameter → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Schema        | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Parameter)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Operation     | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | PathItem      | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 1
+- **Incoming**: 3
+- **Documented**: 0/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -499,20 +619,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (PathItem → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Operation     | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| aggregation       | Parameter     | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → PathItem)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Callback      | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Paths         | `composes`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 2
+- **Incoming**: 2
+- **Documented**: 0/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -522,20 +648,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Paths → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | PathItem      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Paths)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OpenAPIDocument | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -545,20 +675,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (RequestBody → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | MediaType     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → RequestBody)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Operation     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -568,20 +703,27 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Response → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Header        | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Link          | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | MediaType     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Response)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | Responses     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 5
+- **Outgoing**: 3
+- **Incoming**: 2
+- **Documented**: 0/5
+- **With XML Examples**: 5/5
+- **In Catalog**: 5/5
 
 ---
 
@@ -591,20 +733,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Responses → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Response      | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Responses)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Operation     | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -614,20 +760,30 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Schema → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate     | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Schema        | `references`  | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| specialization    | Schema        | `specializes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Schema)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate     | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes`    | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Header        | `references`  | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| composition       | MediaType     | `composes`    | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Parameter     | `references`  | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Schema        | `references`  | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| specialization    | Schema        | `specializes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 8
+- **Outgoing**: 2
+- **Incoming**: 6
+- **Documented**: 0/8
+- **With XML Examples**: 8/8
+- **In Catalog**: 8/8
 
 ---
 
@@ -637,20 +793,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (SecurityScheme → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | OAuthFlows    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| serving           | Operation     | `serves`   | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → SecurityScheme)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate  | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| composition       | Components    | `composes` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 2
+- **Incoming**: 1
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -660,20 +821,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Server → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity  | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | -------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| aggregation       | ServerVariable | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Server)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| aggregation       | OpenAPIDocument | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | ServerVariable  | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -683,20 +849,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ServerVariable → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | Server        | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → ServerVariable)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | ------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| aggregation       | Server        | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 0/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -706,19 +876,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Tag → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity         | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| reference         | ExternalDocumentation | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Incoming Relationships (Other Entities → Tag)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate    | Status | Source                                                 | In Catalog | Documented |
+| ----------------- | --------------- | ------------ | ------ | ------------------------------------------------------ | ---------- | ---------- |
+| aggregation       | OpenAPIDocument | `aggregates` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
+| reference         | Operation       | `references` | XML    | [XML](../../spec/layers/06-api-layer.md#example-model) | ✓          | ✗          |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 0/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---

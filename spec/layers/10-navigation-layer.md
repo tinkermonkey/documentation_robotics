@@ -1550,19 +1550,53 @@ Consistency Warnings:
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element       | Target Element       | Predicate     | Inverse Predicate | Cardinality | Description                                          |
+| -------------- | -------------------- | -------------------- | ------------- | ----------------- | ----------- | ---------------------------------------------------- |
+| Composition    | NavigationGraph      | Route                | `composes`    | `composed-of`     | 1:N         | Navigation graph composes its routes                 |
+| Composition    | NavigationGraph      | NavigationTransition | `composes`    | `composed-of`     | 1:N         | Navigation graph composes transition definitions     |
+| Composition    | NavigationGraph      | NavigationGuard      | `composes`    | `composed-of`     | 1:N         | Navigation graph composes guard definitions          |
+| Composition    | NavigationGuard      | GuardCondition       | `composes`    | `composed-of`     | 1:1         | Guard composes its condition expression              |
+| Composition    | NavigationGuard      | GuardAction          | `composes`    | `composed-of`     | 1:1         | Guard composes its denial action                     |
+| Composition    | NavigationFlow       | FlowStep             | `composes`    | `composed-of`     | 1:N         | Flow composes its sequential steps                   |
+| Composition    | NavigationFlow       | ContextVariable      | `composes`    | `composed-of`     | 1:N         | Flow composes shared context variables               |
+| Composition    | FlowStep             | DataMapping          | `composes`    | `composed-of`     | 1:N         | Flow step composes input/output data mappings        |
+| Composition    | Route                | RouteMeta            | `composes`    | `composed-of`     | 1:1         | Route composes its metadata                          |
+| Composition    | RouteMeta            | BreadcrumbConfig     | `composes`    | `composed-of`     | 1:1         | Route metadata composes breadcrumb configuration     |
+| Aggregation    | NavigationGraph      | NavigationFlow       | `aggregates`  | `aggregated-by`   | 1:N         | Navigation graph aggregates navigation flows         |
+| Aggregation    | NavigationFlow       | ProcessTracking      | `aggregates`  | `aggregated-by`   | 1:1         | Flow aggregates process tracking configuration       |
+| Aggregation    | NavigationFlow       | FlowAnalytics        | `aggregates`  | `aggregated-by`   | 1:1         | Flow aggregates analytics configuration              |
+| Aggregation    | FlowStep             | NotificationAction   | `aggregates`  | `aggregated-by`   | 1:1         | Flow step aggregates notification action             |
+| Aggregation    | Route                | NavigationGuard      | `aggregates`  | `aggregated-by`   | 1:N         | Route aggregates applicable guards                   |
+| Aggregation    | NavigationTransition | NavigationGuard      | `aggregates`  | `aggregated-by`   | 1:N         | Transition aggregates guards for that transition     |
+| Specialization | Route                | Route                | `specializes` | `generalized-by`  | N:1         | Child route specializes parent route (nested routes) |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element       | Target Element       | Predicate      | Inverse Predicate | Cardinality | Description                                                 |
+| ------------ | -------------------- | -------------------- | -------------- | ----------------- | ----------- | ----------------------------------------------------------- |
+| Flow         | NavigationTransition | Route                | `flows-to`     | `flows-from`      | N:1         | Transition flows from source route to target route          |
+| Flow         | FlowStep             | FlowStep             | `flows-to`     | `flows-from`      | 1:N         | Step flows to next step(s) via onSuccess/onFailure/onCancel |
+| Flow         | Route                | Route                | `flows-to`     | `flows-from`      | N:N         | Route flows to another via redirect                         |
+| Triggering   | NavigationTransition | Route                | `triggers`     | `triggered-by`    | N:1         | Transition trigger navigates to target route                |
+| Triggering   | NavigationGuard      | GuardAction          | `triggers`     | `triggered-by`    | 1:1         | Guard denial triggers guard action                          |
+| Triggering   | FlowStep             | NotificationAction   | `triggers`     | `triggered-by`    | 1:1         | Collaborative step triggers notification                    |
+| Reference    | Route                | Route                | `references`   | `referenced-by`   | N:1         | Route references parent route for hierarchy                 |
+| Reference    | Route                | Route                | `references`   | `referenced-by`   | N:1         | Route references redirect target route                      |
+| Reference    | FlowStep             | Route                | `references`   | `referenced-by`   | N:1         | Flow step references its associated route                   |
+| Reference    | GuardAction          | Route                | `references`   | `referenced-by`   | N:1         | Guard action references redirect target route               |
+| Reference    | BreadcrumbConfig     | Route                | `references`   | `referenced-by`   | N:N         | Breadcrumb config references routes in static path          |
+| Reference    | GuardCondition       | ContextVariable      | `references`   | `referenced-by`   | N:N         | Guard condition references context variables for evaluation |
+| Reference    | ProcessTracking      | FlowStep             | `references`   | `referenced-by`   | N:N         | Process tracking references flow steps being tracked        |
+| Reference    | FlowAnalytics        | FlowStep             | `references`   | `referenced-by`   | N:N         | Flow analytics references flow steps for metrics collection |
+| Serves       | NavigationGuard      | Route                | `serves`       | `served-by`       | N:N         | Guard serves routes requiring protection                    |
+| Serves       | NavigationGuard      | NavigationTransition | `serves`       | `served-by`       | N:N         | Guard serves transitions requiring validation               |
+| Access       | FlowStep             | ContextVariable      | `accesses`     | `accessed-by`     | N:N         | Step accesses shared context variables                      |
+| Access       | DataMapping          | ContextVariable      | `accesses`     | `accessed-by`     | N:1         | Data mapping accesses context variable for transfer         |
+| Depends-On   | FlowStep             | FlowStep             | `depends-on`   | `dependency-of`   | N:N         | Step depends on predecessor steps completing                |
+| Depends-On   | Route                | NavigationGuard      | `depends-on`   | `dependency-of`   | N:N         | Route depends on guards for access control                  |
+| Navigates-To | Route                | Route                | `navigates-to` | `navigated-from`  | N:N         | Route navigates to another route (via transitions)          |
 
 ---
 

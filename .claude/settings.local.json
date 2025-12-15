@@ -54,7 +54,19 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "WebFetch(domain:docs.claude.com)",
       "Bash(dr visualize --help:*)",
-      "Bash(dr migrate --help:*)"
+      "Bash(dr migrate --help:*)",
+      "WebFetch(domain:archimate.visual-paradigm.com)",
+      "Bash(.venv/bin/python:*)",
+      "Bash(for:*)",
+      "Bash(if grep -q \"^| Relationship\" \"$file\")",
+      "Bash(then echo \"HAS TABLE\")",
+      "Bash(else echo \"NO TABLE (bullet-point only)\")",
+      "Bash(fi)",
+      "Bash(done)",
+      "Bash(git log:*)",
+      "Bash(gh issue list:*)",
+      "Bash(gh pr list:*)",
+      "Bash(gh issue view:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

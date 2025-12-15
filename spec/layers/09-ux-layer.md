@@ -2844,19 +2844,95 @@ Common States (All Channels):
 
 Relationships that define the composition, aggregation, and specialization of entities within this layer.
 
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ----------- |
-| Composition    | (TBD)          | (TBD)          | `composes`    | `composed-of`     | 1:N         | (TBD)       |
-| Aggregation    | (TBD)          | (TBD)          | `aggregates`  | `aggregated-by`   | 1:N         | (TBD)       |
-| Specialization | (TBD)          | (TBD)          | `specializes` | `generalized-by`  | N:1         | (TBD)       |
+| Relationship   | Source Element    | Target Element      | Predicate     | Inverse Predicate | Cardinality | Description                                         |
+| -------------- | ----------------- | ------------------- | ------------- | ----------------- | ----------- | --------------------------------------------------- |
+| Composition    | UXLibrary         | LibraryComponent    | `composes`    | `composed-of`     | 1:N         | Library contains reusable UI components             |
+| Composition    | UXLibrary         | LibrarySubView      | `composes`    | `composed-of`     | 1:N         | Library contains reusable sub-view templates        |
+| Composition    | UXLibrary         | StatePattern        | `composes`    | `composed-of`     | 1:N         | Library contains reusable state machine patterns    |
+| Composition    | UXLibrary         | ActionPattern       | `composes`    | `composed-of`     | 1:N         | Library contains reusable action patterns           |
+| Composition    | UXApplication     | UXSpec              | `composes`    | `composed-of`     | 1:N         | Application contains multiple UX specifications     |
+| Composition    | UXSpec            | View                | `composes`    | `composed-of`     | 1:N         | UX specification composes its views                 |
+| Composition    | UXSpec            | ExperienceState     | `composes`    | `composed-of`     | 1:N         | UX specification composes experience states         |
+| Composition    | UXSpec            | ActionComponent     | `composes`    | `composed-of`     | 1:N         | UX specification composes global actions            |
+| Composition    | View              | SubView             | `composes`    | `composed-of`     | 1:N         | View composes sub-views for organization            |
+| Composition    | View              | ComponentInstance   | `composes`    | `composed-of`     | 1:N         | View composes component instances                   |
+| Composition    | View              | ActionComponent     | `composes`    | `composed-of`     | 1:N         | View composes action components                     |
+| Composition    | SubView           | ComponentInstance   | `composes`    | `composed-of`     | 1:N         | Sub-view composes component instances               |
+| Composition    | SubView           | SubView             | `composes`    | `composed-of`     | 1:N         | Sub-views can nest other sub-views                  |
+| Composition    | ExperienceState   | StateAction         | `composes`    | `composed-of`     | 1:N         | State composes onEnter/onExit actions               |
+| Composition    | ExperienceState   | StateTransition     | `composes`    | `composed-of`     | 1:N         | State composes outgoing transitions                 |
+| Composition    | StatePattern      | StateActionTemplate | `composes`    | `composed-of`     | 1:N         | Pattern composes action templates                   |
+| Composition    | StatePattern      | TransitionTemplate  | `composes`    | `composed-of`     | 1:N         | Pattern composes transition templates               |
+| Composition    | StateTransition   | StateAction         | `composes`    | `composed-of`     | 1:N         | Transition composes actions to execute              |
+| Composition    | LibrarySubView    | ComponentReference  | `composes`    | `composed-of`     | 1:N         | Library sub-view composes default component refs    |
+| Composition    | ActionComponent   | ActionComponent     | `composes`    | `composed-of`     | 1:N         | Action components can contain child actions (menus) |
+| Composition    | LibraryComponent  | ValidationRule      | `composes`    | `composed-of`     | 1:N         | Library component composes validation rules         |
+| Composition    | LibraryComponent  | TableColumn         | `composes`    | `composed-of`     | 1:N         | Table library component composes column definitions |
+| Composition    | LibraryComponent  | ChartSeries         | `composes`    | `composed-of`     | 1:N         | Chart library component composes series definitions |
+| Composition    | TableColumn       | ChartSeries         | `composes`    | `composed-of`     | 1:N         | Table column composes embedded chart series         |
+| Aggregation    | UXApplication     | UXLibrary           | `aggregates`  | `aggregated-by`   | N:N         | Application references shared libraries             |
+| Aggregation    | UXSpec            | StatePattern        | `aggregates`  | `aggregated-by`   | N:N         | Spec uses patterns from library via usesPatterns    |
+| Aggregation    | View              | LayoutConfig        | `aggregates`  | `aggregated-by`   | 1:1         | View aggregates layout configuration                |
+| Aggregation    | SubView           | LayoutConfig        | `aggregates`  | `aggregated-by`   | 1:1         | Sub-view aggregates layout configuration            |
+| Aggregation    | ComponentInstance | DataConfig          | `aggregates`  | `aggregated-by`   | 1:1         | Component instance aggregates data binding config   |
+| Aggregation    | StateAction       | ApiConfig           | `aggregates`  | `aggregated-by`   | 1:1         | State action aggregates API configuration           |
+| Aggregation    | StateAction       | ErrorConfig         | `aggregates`  | `aggregated-by`   | 1:1         | State action aggregates error handling config       |
+| Aggregation    | StateAction       | DataConfig          | `aggregates`  | `aggregated-by`   | 1:1         | State action aggregates data handling config        |
+| Aggregation    | UXSpec            | PerformanceTargets  | `aggregates`  | `aggregated-by`   | 1:1         | Spec aggregates performance targets                 |
+| Aggregation    | UXApplication     | ErrorConfig         | `aggregates`  | `aggregated-by`   | 1:1         | Application aggregates default error handling       |
+| Aggregation    | ActionComponent   | ActionPattern       | `aggregates`  | `aggregated-by`   | N:1         | Action component references an action pattern       |
+| Aggregation    | ComponentInstance | Condition           | `aggregates`  | `aggregated-by`   | 1:1         | Component aggregates conditional display logic      |
+| Aggregation    | SubView           | Condition           | `aggregates`  | `aggregated-by`   | 1:1         | Sub-view aggregates conditional display logic       |
+| Aggregation    | ActionComponent   | Condition           | `aggregates`  | `aggregated-by`   | 1:1         | Action aggregates enable condition                  |
+| Aggregation    | StateTransition   | Condition           | `aggregates`  | `aggregated-by`   | 1:1         | Transition aggregates guard condition               |
+| Specialization | LibraryComponent  | LibraryComponent    | `specializes` | `generalized-by`  | N:1         | Component variants specialize base component        |
+| Specialization | UXLibrary         | UXLibrary           | `specializes` | `generalized-by`  | N:1         | Library extends another library                     |
+| Specialization | StatePattern      | StatePattern        | `specializes` | `generalized-by`  | N:1         | Pattern extends base pattern                        |
+| Specialization | View              | View                | `specializes` | `generalized-by`  | N:1         | View type hierarchy (form, list, detail, etc.)      |
+| Specialization | ActionComponent   | ActionComponent     | `specializes` | `generalized-by`  | N:1         | Action type hierarchy (button, menu, link, etc.)    |
 
 ### Behavioral Relationships
 
 Relationships that define interactions, flows, and dependencies between entities within this layer.
 
-| Relationship | Source Element | Target Element | Predicate | Inverse Predicate | Cardinality | Description |
-| ------------ | -------------- | -------------- | --------- | ----------------- | ----------- | ----------- |
-| (TBD)        | (TBD)          | (TBD)          | (TBD)     | (TBD)             | (TBD)       | (TBD)       |
+| Relationship | Source Element     | Target Element      | Predicate      | Inverse Predicate | Cardinality | Description                                       |
+| ------------ | ------------------ | ------------------- | -------------- | ----------------- | ----------- | ------------------------------------------------- |
+| Triggering   | StateTransition    | ExperienceState     | `triggers`     | `triggered-by`    | N:1         | Transition triggers target state                  |
+| Triggering   | ActionComponent    | StateAction         | `triggers`     | `triggered-by`    | 1:N         | Action component triggers state actions           |
+| Triggering   | ActionComponent    | StateTransition     | `triggers`     | `triggered-by`    | 1:N         | Action component triggers state transitions       |
+| Triggering   | StateAction        | StateTransition     | `triggers`     | `triggered-by`    | 1:N         | State action completion triggers transition       |
+| Flow         | ExperienceState    | ExperienceState     | `flows-to`     | `flows-from`      | N:N         | State flows to next state in sequence             |
+| Flow         | View               | View                | `flows-to`     | `flows-from`      | N:N         | View navigation flow between views                |
+| Flow         | StateAction        | StateAction         | `flows-to`     | `flows-from`      | N:N         | Sequential action execution flow                  |
+| Reference    | ComponentInstance  | LibraryComponent    | `references`   | `referenced-by`   | N:1         | Component instance references library component   |
+| Reference    | SubView            | LibrarySubView      | `references`   | `referenced-by`   | N:1         | Sub-view instance references library sub-view     |
+| Reference    | ComponentReference | LibraryComponent    | `references`   | `referenced-by`   | 1:1         | Component reference points to library component   |
+| Reference    | StateAction        | ActionPattern       | `references`   | `referenced-by`   | N:1         | State action uses action pattern template         |
+| Uses         | UXSpec             | StatePattern        | `uses`         | `used-by`         | N:N         | UX spec uses state patterns from library          |
+| Uses         | ActionComponent    | ActionPattern       | `uses`         | `used-by`         | N:1         | Action component uses action pattern              |
+| Uses         | StateAction        | ActionPattern       | `uses`         | `used-by`         | N:1         | State action uses action pattern                  |
+| Uses         | View               | LayoutConfig        | `uses`         | `used-by`         | N:1         | View uses layout configuration                    |
+| Uses         | SubView            | LayoutConfig        | `uses`         | `used-by`         | N:1         | Sub-view uses layout configuration                |
+| Renders      | View               | ComponentInstance   | `renders`      | `rendered-by`     | 1:N         | View renders component instances                  |
+| Renders      | SubView            | ComponentInstance   | `renders`      | `rendered-by`     | 1:N         | Sub-view renders component instances              |
+| Renders      | ComponentInstance  | LibraryComponent    | `renders`      | `rendered-by`     | N:1         | Component instance renders from library component |
+| Binds-To     | ComponentInstance  | DataConfig          | `binds-to`     | `bound-by`        | 1:1         | Component instance binds to data configuration    |
+| Binds-To     | View               | DataConfig          | `binds-to`     | `bound-by`        | 1:N         | View binds to data sources                        |
+| Binds-To     | SubView            | DataConfig          | `binds-to`     | `bound-by`        | 1:N         | Sub-view binds to data sources                    |
+| Access       | StateAction        | ApiConfig           | `accesses`     | `accessed-by`     | N:1         | State action accesses API configuration           |
+| Access       | DataConfig         | ApiConfig           | `accesses`     | `accessed-by`     | N:1         | Data config accesses API for data source          |
+| Navigates-To | ActionComponent    | View                | `navigates-to` | `navigated-from`  | N:1         | Action component navigates to view                |
+| Navigates-To | StateTransition    | View                | `navigates-to` | `navigated-from`  | N:1         | State transition navigates to view                |
+| Depends-On   | ComponentInstance  | ComponentInstance   | `depends-on`   | `dependency-of`   | N:N         | Component depends on other components             |
+| Depends-On   | SubView            | SubView             | `depends-on`   | `dependency-of`   | N:N         | Sub-view depends on other sub-views               |
+| Depends-On   | StateAction        | StateAction         | `depends-on`   | `dependency-of`   | N:N         | Action depends on prior action completion         |
+| Monitors     | PerformanceTargets | View                | `monitors`     | `monitored-by`    | 1:N         | Performance targets monitor view metrics          |
+| Monitors     | PerformanceTargets | ComponentInstance   | `monitors`     | `monitored-by`    | 1:N         | Performance targets monitor component metrics     |
+| Validates    | ValidationRule     | ComponentInstance   | `validates`    | `validated-by`    | N:N         | Validation rules validate component input         |
+| Instantiates | StateAction        | StateActionTemplate | `instantiates` | `instantiated-by` | N:1         | State action instantiates action template         |
+| Instantiates | StateTransition    | TransitionTemplate  | `instantiates` | `instantiated-by` | N:1         | State transition instantiates transition template |
+| Configures   | TableColumn        | ComponentInstance   | `configures`   | `configured-by`   | N:N         | Table column configures cell component rendering  |
+| Configures   | ChartSeries        | DataConfig          | `configures`   | `configured-by`   | N:1         | Chart series configures data binding              |
 
 ---
 

@@ -90,10 +90,10 @@ graph TB
 
 ### Outgoing Relationships (ApplicationCollaboration → Other Entities)
 
-| Relationship Type | Target Entity          | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ---------------------- | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| aggregation       | ApplicationComponent   | `aggregates`  | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| assignment        | ApplicationInteraction | `assigned-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity          | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ---------------------- | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| aggregates        | ApplicationComponent   | `aggregates`  | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| assigned to       | ApplicationInteraction | `assigned-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationCollaboration)
 
@@ -104,8 +104,8 @@ _No incoming intra-layer relationships documented._
 - **Total Relationships**: 2
 - **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/2
-- **With XML Examples**: 2/2
+- **Documented**: 2/2
+- **With XML Examples**: 0/2
 - **In Catalog**: 2/2
 
 ---
@@ -116,27 +116,27 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationComponent → Other Entities)
 
-| Relationship Type | Target Entity        | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | ApplicationFunction  | `assigned-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| composition       | ApplicationInterface | `composes`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| realization       | ApplicationService   | `realizes`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity        | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| assigned to       | ApplicationFunction  | `assigned-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| composes          | ApplicationInterface | `composes`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| realizes          | ApplicationService   | `realizes`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationComponent)
 
-| Relationship Type | Source Entity            | Predicate    | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------------ | ------------ | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| aggregation       | ApplicationCollaboration | `aggregates` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| triggering        | ApplicationEvent         | `triggers`   | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| serving           | ApplicationInterface     | `serves`     | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity            | Predicate    | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------------ | ------------ | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| aggregates        | ApplicationCollaboration | `aggregates` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| triggers          | ApplicationEvent         | `triggers`   | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| serves            | ApplicationInterface     | `serves`     | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 6
 - **Outgoing**: 3
 - **Incoming**: 3
-- **Documented**: 0/6
-- **With XML Examples**: 6/6
+- **Documented**: 6/6
+- **With XML Examples**: 0/6
 - **In Catalog**: 6/6
 
 ---
@@ -147,25 +147,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationEvent → Other Entities)
 
-| Relationship Type | Target Entity        | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| triggering        | ApplicationComponent | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| triggering        | ApplicationFunction  | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| triggering        | ApplicationProcess   | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity        | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| triggers          | ApplicationComponent | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| triggers          | ApplicationFunction  | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| triggers          | ApplicationProcess   | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationEvent)
 
-| Relationship Type | Source Entity      | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------ | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| triggering        | ApplicationProcess | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity      | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------ | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| triggers          | ApplicationProcess | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 4
 - **Outgoing**: 3
 - **Incoming**: 1
-- **Documented**: 0/4
-- **With XML Examples**: 4/4
+- **Documented**: 4/4
+- **With XML Examples**: 0/4
 - **In Catalog**: 4/4
 
 ---
@@ -176,25 +176,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationFunction → Other Entities)
 
-| Relationship Type | Target Entity      | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------ | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| realization       | ApplicationService | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| access            | DataObject         | `accesses` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity      | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------ | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| realizes          | ApplicationService | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| accesses          | DataObject         | `accesses` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationFunction)
 
-| Relationship Type | Source Entity        | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | ApplicationComponent | `assigned-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| triggering        | ApplicationEvent     | `triggers`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity        | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| assigned to       | ApplicationComponent | `assigned-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| triggers          | ApplicationEvent     | `triggers`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 4
 - **Outgoing**: 2
 - **Incoming**: 2
-- **Documented**: 0/4
-- **With XML Examples**: 4/4
+- **Documented**: 4/4
+- **With XML Examples**: 0/4
 - **In Catalog**: 4/4
 
 ---
@@ -205,23 +205,23 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationInteraction → Other Entities)
 
-| Relationship Type | Target Entity | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------- | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| access            | DataObject    | `accesses` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------- | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| accesses          | DataObject    | `accesses` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationInteraction)
 
-| Relationship Type | Source Entity            | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------------ | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | ApplicationCollaboration | `assigned-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity            | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------------ | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| assigned to       | ApplicationCollaboration | `assigned-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 2
 - **Outgoing**: 1
 - **Incoming**: 1
-- **Documented**: 0/2
-- **With XML Examples**: 2/2
+- **Documented**: 2/2
+- **With XML Examples**: 0/2
 - **In Catalog**: 2/2
 
 ---
@@ -232,24 +232,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationInterface → Other Entities)
 
-| Relationship Type | Target Entity        | Predicate | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | --------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| serving           | ApplicationComponent | `serves`  | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity        | Predicate | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | --------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| serves            | ApplicationComponent | `serves`  | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationInterface)
 
-| Relationship Type | Source Entity        | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| composition       | ApplicationComponent | `composes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| realization       | ApplicationService   | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity        | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| composes          | ApplicationComponent | `composes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| realizes          | ApplicationService   | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 3
 - **Outgoing**: 1
 - **Incoming**: 2
-- **Documented**: 0/3
-- **With XML Examples**: 3/3
+- **Documented**: 3/3
+- **With XML Examples**: 0/3
 - **In Catalog**: 3/3
 
 ---
@@ -260,29 +260,29 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (ApplicationProcess → Other Entities)
 
-| Relationship Type | Target Entity      | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------ | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| triggering        | ApplicationEvent   | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| composition       | ApplicationProcess | `composes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| flow              | ApplicationProcess | `flows-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| realization       | ApplicationService | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| access            | DataObject         | `accesses` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity      | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------ | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| triggers          | ApplicationEvent   | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| composes          | ApplicationProcess | `composes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| flows to          | ApplicationProcess | `flows-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| realizes          | ApplicationService | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| accesses          | DataObject         | `accesses` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationProcess)
 
-| Relationship Type | Source Entity      | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------------ | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| triggering        | ApplicationEvent   | `triggers` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| composition       | ApplicationProcess | `composes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| flow              | ApplicationProcess | `flows-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity      | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------------ | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| triggers          | ApplicationEvent   | `triggers` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| composes          | ApplicationProcess | `composes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| flows to          | ApplicationProcess | `flows-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 8
 - **Outgoing**: 5
 - **Incoming**: 3
-- **Documented**: 0/8
-- **With XML Examples**: 8/8
+- **Documented**: 8/8
+- **With XML Examples**: 0/8
 - **In Catalog**: 8/8
 
 ---
@@ -295,27 +295,27 @@ _No incoming intra-layer relationships documented._
 
 | Relationship Type | Target Entity        | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
 | ----------------- | -------------------- | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
-| realization       | ApplicationInterface | `realizes` | XML        | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗                                                            |
-| flow              | ApplicationService   | `flows-to` | XML        | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗                                                            |
+| realizes          | ApplicationInterface | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| flows to          | ApplicationService   | `flows-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 | used by           | BusinessProcess      | `used-by`  | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
-| access            | DataObject           | `accesses` | XML        | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗                                                            |
+| accesses          | DataObject           | `accesses` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → ApplicationService)
 
-| Relationship Type | Source Entity        | Predicate  | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | -------------------- | ---------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| realization       | ApplicationComponent | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| realization       | ApplicationFunction  | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| realization       | ApplicationProcess   | `realizes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| flow              | ApplicationService   | `flows-to` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity        | Predicate  | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | -------------------- | ---------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| realizes          | ApplicationComponent | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| realizes          | ApplicationFunction  | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| realizes          | ApplicationProcess   | `realizes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| flows to          | ApplicationService   | `flows-to` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 8
 - **Outgoing**: 4
 - **Incoming**: 4
-- **Documented**: 1/8
-- **With XML Examples**: 7/8
+- **Documented**: 8/8
+- **With XML Examples**: 0/8
 - **In Catalog**: 8/8
 
 ---
@@ -326,27 +326,27 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (DataObject → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ------------- | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| specialization    | DataObject    | `specializes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ------------- | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| specializes       | DataObject    | `specializes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → DataObject)
 
-| Relationship Type | Source Entity          | Predicate     | Status | Source                                                         | In Catalog | Documented |
-| ----------------- | ---------------------- | ------------- | ------ | -------------------------------------------------------------- | ---------- | ---------- |
-| access            | ApplicationFunction    | `accesses`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| access            | ApplicationInteraction | `accesses`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| access            | ApplicationProcess     | `accesses`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| access            | ApplicationService     | `accesses`    | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
-| specialization    | DataObject             | `specializes` | XML    | [XML](../../spec/layers/04-application-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity          | Predicate     | Status     | Source                                                         | In Catalog | Documented                                                   |
+| ----------------- | ---------------------- | ------------- | ---------- | -------------------------------------------------------------- | ---------- | ------------------------------------------------------------ |
+| accesses          | ApplicationFunction    | `accesses`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| accesses          | ApplicationInteraction | `accesses`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| accesses          | ApplicationProcess     | `accesses`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| accesses          | ApplicationService     | `accesses`    | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
+| specializes       | DataObject             | `specializes` | Documented | [Doc](../../spec/layers/04-application-layer.md#relationships) | ✓          | [✓](../../spec/layers/04-application-layer.md#relationships) |
 
 ### Relationship Summary
 
 - **Total Relationships**: 6
 - **Outgoing**: 1
 - **Incoming**: 5
-- **Documented**: 0/6
-- **With XML Examples**: 6/6
+- **Documented**: 6/6
+- **With XML Examples**: 0/6
 - **In Catalog**: 6/6
 
 ---

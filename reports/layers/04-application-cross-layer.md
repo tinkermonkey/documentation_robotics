@@ -27,6 +27,7 @@ graph TB
     target02BusinessMetric["BusinessMetric"]
   end
   subgraph target03Layer["03: Security Layer"]
+    target03Classification["Classification"]
     target03Pii["Pii"]
   end
   subgraph target07Layer["07: Data Model Layer"]
@@ -59,6 +60,7 @@ graph TB
   thisElement -->|fulfills-requirements| target01Requirement
   thisElement -->|governed-by-principles| target01Principle
   thisElement -->|supports-goals| target01Goal
+  thisElement -->|classification| target03Classification
   thisElement -->|pii| target03Pii
 
   %% Incoming relationships
@@ -84,6 +86,7 @@ graph TB
   class target01GovernedByPrinciple targetLayerStyle
   class target01SupportsGoal targetLayerStyle
   class target02BusinessMetric targetLayerStyle
+  class target03Classification targetLayerStyle
   class target03Pii targetLayerStyle
   class target07Retention targetLayerStyle
   class target11SlaTargetAvailability targetLayerStyle
@@ -145,17 +148,18 @@ properties:
 
 Links to security models, resources, and controls.
 
-| Predicate | Source Element              | Target Element | Field Path | Description                  | Documented                                 |
-| --------- | --------------------------- | -------------- | ---------- | ---------------------------- | ------------------------------------------ |
-| `pii`     | Data Properties, DataObject | Pii            | `data.pii` | Links to Pii in target layer | [✓](../../spec/schemas/link-registry.json) |
+| Predicate        | Source Element              | Target Element | Field Path                | Description                             | Documented                                 |
+| ---------------- | --------------------------- | -------------- | ------------------------- | --------------------------------------- | ------------------------------------------ |
+| `classification` | Artifact                    | Classification | `security.classification` | Links to Classification in target layer | [✓](../../spec/schemas/link-registry.json) |
+| `pii`            | Data Properties, DataObject | Pii            | `data.pii`                | Links to Pii in target layer            | [✓](../../spec/schemas/link-registry.json) |
 
 **Example**:
 
 ```yaml
 properties:
-  data.pii:
+  security.classification:
     type: string
-    description: Links to Pii in target layer
+    description: Links to Classification in target layer
     example: "target-id-1"
 ```
 

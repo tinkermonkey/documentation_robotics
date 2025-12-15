@@ -31,9 +31,33 @@ graph TB
     TechnologyProcess["TechnologyProcess"]
     TechnologyService["TechnologyService"]
 
+    Node -->|composes| TechnologyInterface
+    Node -->|aggregates| Device
+    Node -->|assigned-to| TechnologyFunction
     Node -->|realizes| TechnologyService
     Node -->|associated-with| CommunicationNetwork
+    Device -->|composes| Node
+    Device -->|associated-with| CommunicationNetwork
+    SystemSoftware -->|composes| TechnologyInterface
+    SystemSoftware -->|realizes| TechnologyService
+    SystemSoftware -->|accesses| Artifact
     SystemSoftware -->|assigned-to| Node
+    TechnologyCollaboration -->|aggregates| Node
+    TechnologyCollaboration -->|assigned-to| TechnologyInteraction
+    TechnologyInterface -->|serves| TechnologyService
+    Path -->|realizes| CommunicationNetwork
+    Path -->|associated-with| Node
+    TechnologyFunction -->|realizes| TechnologyService
+    TechnologyFunction -->|accesses| Artifact
+    TechnologyProcess -->|realizes| TechnologyService
+    TechnologyProcess -->|triggers| TechnologyEvent
+    TechnologyProcess -->|flows-to| TechnologyProcess
+    TechnologyProcess -->|accesses| Artifact
+    TechnologyInteraction -->|accesses| Artifact
+    TechnologyEvent -->|triggers| TechnologyProcess
+    TechnologyEvent -->|triggers| TechnologyFunction
+    TechnologyService -->|flows-to| TechnologyService
+    Artifact -->|specializes| Artifact
     Artifact -->|assigned-to| Node
   end
 
@@ -45,48 +69,33 @@ graph TB
 
 ### Entity Coverage (Target: 2+ relationships per entity)
 
-- **Entities Meeting Target**: 1/13
-- **Entity Coverage**: 7.7%
-
-**Entities Below Target**:
-
-- Device: 0 relationship(s) (needs 2 more)
-- TechnologyCollaboration: 0 relationship(s) (needs 2 more)
-- TechnologyInterface: 0 relationship(s) (needs 2 more)
-- Path: 0 relationship(s) (needs 2 more)
-- TechnologyFunction: 0 relationship(s) (needs 2 more)
-- TechnologyProcess: 0 relationship(s) (needs 2 more)
-- TechnologyInteraction: 0 relationship(s) (needs 2 more)
-- TechnologyEvent: 0 relationship(s) (needs 2 more)
-- SystemSoftware: 1 relationship(s) (needs 1 more)
-- CommunicationNetwork: 1 relationship(s) (needs 1 more)
-- TechnologyService: 1 relationship(s) (needs 1 more)
-- Artifact: 1 relationship(s) (needs 1 more)
+- **Entities Meeting Target**: 13/13
+- **Entity Coverage**: 100.0%
 
 ### Coverage Matrix
 
-| Entity                  | Outgoing | Incoming | Total | Meets Target | Status   |
-| ----------------------- | -------- | -------- | ----- | ------------ | -------- |
-| Artifact                | 1        | 0        | 1     | ✗            | Needs 1  |
-| CommunicationNetwork    | 0        | 1        | 1     | ✗            | Needs 1  |
-| Device                  | 0        | 0        | 0     | ✗            | Needs 2  |
-| Node                    | 2        | 2        | 4     | ✓            | Complete |
-| Path                    | 0        | 0        | 0     | ✗            | Needs 2  |
-| SystemSoftware          | 1        | 0        | 1     | ✗            | Needs 1  |
-| TechnologyCollaboration | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyEvent         | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyFunction      | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyInteraction   | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyInterface     | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyProcess       | 0        | 0        | 0     | ✗            | Needs 2  |
-| TechnologyService       | 0        | 1        | 1     | ✗            | Needs 1  |
-| **TOTAL**               | **-**    | **-**    | **8** | **1/13**     | **7.7%** |
+| Entity                  | Outgoing | Incoming | Total  | Meets Target | Status     |
+| ----------------------- | -------- | -------- | ------ | ------------ | ---------- |
+| Artifact                | 2        | 5        | 7      | ✓            | Complete   |
+| CommunicationNetwork    | 0        | 3        | 3      | ✓            | Complete   |
+| Device                  | 2        | 1        | 3      | ✓            | Complete   |
+| Node                    | 5        | 5        | 10     | ✓            | Complete   |
+| Path                    | 2        | 0        | 2      | ✓            | Complete   |
+| SystemSoftware          | 4        | 0        | 4      | ✓            | Complete   |
+| TechnologyCollaboration | 2        | 0        | 2      | ✓            | Complete   |
+| TechnologyEvent         | 2        | 1        | 3      | ✓            | Complete   |
+| TechnologyFunction      | 2        | 2        | 4      | ✓            | Complete   |
+| TechnologyInteraction   | 1        | 1        | 2      | ✓            | Complete   |
+| TechnologyInterface     | 1        | 2        | 3      | ✓            | Complete   |
+| TechnologyProcess       | 4        | 2        | 6      | ✓            | Complete   |
+| TechnologyService       | 1        | 6        | 7      | ✓            | Complete   |
+| **TOTAL**               | **-**    | **-**    | **56** | **13/13**    | **100.0%** |
 
 ### Relationship Statistics
 
-- **Total Unique Relationships**: 4
-- **Total Connections (Entity Perspective)**: 8
-- **Average Connections per Entity**: 0.6
+- **Total Unique Relationships**: 28
+- **Total Connections (Entity Perspective)**: 56
+- **Average Connections per Entity**: 4.3
 - **Entity Coverage Target**: 2+ relationships
 
 ## Entity: Artifact
@@ -95,22 +104,29 @@ graph TB
 
 ### Outgoing Relationships (Artifact → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | ------------- | ------------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | Node          | `assigned-to` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| specialization    | Artifact      | `specializes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| assignment        | Node          | `assigned-to` | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
 
 ### Incoming Relationships (Other Entities → Artifact)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity         | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | --------------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| specialization    | Artifact              | `specializes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| access            | SystemSoftware        | `accesses`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| access            | TechnologyFunction    | `accesses`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| access            | TechnologyInteraction | `accesses`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| access            | TechnologyProcess     | `accesses`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 1
-- **Outgoing**: 1
-- **Incoming**: 0
-- **Documented**: 0/1
-- **With XML Examples**: 1/1
-- **In Catalog**: 1/1
+- **Total Relationships**: 7
+- **Outgoing**: 2
+- **Incoming**: 5
+- **Documented**: 6/7
+- **With XML Examples**: 7/7
+- **In Catalog**: 7/7
 
 ---
 
@@ -124,18 +140,20 @@ _No outgoing intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → CommunicationNetwork)
 
-| Relationship Type | Source Entity | Predicate         | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | ------------- | ----------------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| association       | Node          | `associated-with` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity | Predicate         | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ----------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| association       | Device        | `associated-with` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| association       | Node          | `associated-with` | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| realization       | Path          | `realizes`        | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 1
+- **Total Relationships**: 3
 - **Outgoing**: 0
-- **Incoming**: 1
-- **Documented**: 0/1
-- **With XML Examples**: 1/1
-- **In Catalog**: 1/1
+- **Incoming**: 3
+- **Documented**: 2/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -145,20 +163,25 @@ _No outgoing intra-layer relationships documented._
 
 ### Outgoing Relationships (Device → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity        | Predicate         | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------------- | ----------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| association       | CommunicationNetwork | `associated-with` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| composition       | Node                 | `composes`        | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Device)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | Node          | `aggregates` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 2
+- **Incoming**: 1
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -168,26 +191,32 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Node → Other Entities)
 
-| Relationship Type | Target Entity        | Predicate         | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | -------------------- | ----------------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| association       | CommunicationNetwork | `associated-with` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
-| realization       | TechnologyService    | `realizes`        | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity        | Predicate         | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------------- | ----------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| association       | CommunicationNetwork | `associated-with` | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| aggregation       | Device               | `aggregates`      | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| assignment        | TechnologyFunction   | `assigned-to`     | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| composition       | TechnologyInterface  | `composes`        | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyService    | `realizes`        | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
 
 ### Incoming Relationships (Other Entities → Node)
 
-| Relationship Type | Source Entity  | Predicate     | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | -------------- | ------------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | Artifact       | `assigned-to` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
-| assignment        | SystemSoftware | `assigned-to` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity           | Predicate         | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------------- | ----------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| assignment        | Artifact                | `assigned-to`     | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| composition       | Device                  | `composes`        | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| association       | Path                    | `associated-with` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| assignment        | SystemSoftware          | `assigned-to`     | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| aggregation       | TechnologyCollaboration | `aggregates`      | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 4
-- **Outgoing**: 2
-- **Incoming**: 2
-- **Documented**: 0/4
-- **With XML Examples**: 4/4
-- **In Catalog**: 4/4
+- **Total Relationships**: 10
+- **Outgoing**: 5
+- **Incoming**: 5
+- **Documented**: 6/10
+- **With XML Examples**: 10/10
+- **In Catalog**: 10/10
 
 ---
 
@@ -197,7 +226,10 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Path → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity        | Predicate         | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------------- | ----------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | CommunicationNetwork | `realizes`        | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| association       | Node                 | `associated-with` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Path)
 
@@ -205,12 +237,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 2
+- **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 2/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -220,9 +252,12 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (SystemSoftware → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | ------------- | ------------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| assignment        | Node          | `assigned-to` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Target Entity       | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| access            | Artifact            | `accesses`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| assignment        | Node                | `assigned-to` | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| composition       | TechnologyInterface | `composes`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyService   | `realizes`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → SystemSoftware)
 
@@ -230,12 +265,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 1
-- **Outgoing**: 1
+- **Total Relationships**: 4
+- **Outgoing**: 4
 - **Incoming**: 0
-- **Documented**: 0/1
-- **With XML Examples**: 1/1
-- **In Catalog**: 1/1
+- **Documented**: 3/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -245,7 +280,10 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyCollaboration → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity         | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | --------------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| aggregation       | Node                  | `aggregates`  | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| assignment        | TechnologyInteraction | `assigned-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyCollaboration)
 
@@ -253,12 +291,12 @@ _No incoming intra-layer relationships documented._
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
+- **Total Relationships**: 2
+- **Outgoing**: 2
 - **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Documented**: 2/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -268,20 +306,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyEvent → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity      | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------ | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| triggering        | TechnologyFunction | `triggers` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| triggering        | TechnologyProcess  | `triggers` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyEvent)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity     | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| triggering        | TechnologyProcess | `triggers` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 2
+- **Incoming**: 1
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -291,20 +334,26 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyFunction → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity     | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| access            | Artifact          | `accesses` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyService | `realizes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyFunction)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity   | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | --------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| assignment        | Node            | `assigned-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| triggering        | TechnologyEvent | `triggers`    | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 4
+- **Outgoing**: 2
+- **Incoming**: 2
+- **Documented**: 4/4
+- **With XML Examples**: 4/4
+- **In Catalog**: 4/4
 
 ---
 
@@ -314,20 +363,24 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyInteraction → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| access            | Artifact      | `accesses` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyInteraction)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity           | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| assignment        | TechnologyCollaboration | `assigned-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 2
+- **Outgoing**: 1
+- **Incoming**: 1
+- **Documented**: 2/2
+- **With XML Examples**: 2/2
+- **In Catalog**: 2/2
 
 ---
 
@@ -337,20 +390,25 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyInterface → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity     | Predicate | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | --------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| serving           | TechnologyService | `serves`  | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyInterface)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity  | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| composition       | Node           | `composes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| composition       | SystemSoftware | `composes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 3
+- **Outgoing**: 1
+- **Incoming**: 2
+- **Documented**: 3/3
+- **With XML Examples**: 3/3
+- **In Catalog**: 3/3
 
 ---
 
@@ -360,20 +418,28 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyProcess → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity     | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| access            | Artifact          | `accesses` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| triggering        | TechnologyEvent   | `triggers` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| flow              | TechnologyProcess | `flows-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyService | `realizes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyProcess)
 
-_No incoming intra-layer relationships documented._
+| Relationship Type | Source Entity     | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| triggering        | TechnologyEvent   | `triggers` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| flow              | TechnologyProcess | `flows-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 0
-- **Outgoing**: 0
-- **Incoming**: 0
-- **Documented**: 0/0
-- **With XML Examples**: 0/0
-- **In Catalog**: 0/0
+- **Total Relationships**: 6
+- **Outgoing**: 4
+- **Incoming**: 2
+- **Documented**: 6/6
+- **With XML Examples**: 6/6
+- **In Catalog**: 6/6
 
 ---
 
@@ -383,21 +449,28 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (TechnologyService → Other Entities)
 
-_No outgoing intra-layer relationships documented._
+| Relationship Type | Target Entity     | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ----------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| flow              | TechnologyService | `flows-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → TechnologyService)
 
-| Relationship Type | Source Entity | Predicate  | Status | Source                                                        | In Catalog | Documented |
-| ----------------- | ------------- | ---------- | ------ | ------------------------------------------------------------- | ---------- | ---------- |
-| realization       | Node          | `realizes` | XML    | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗          |
+| Relationship Type | Source Entity       | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
+| realization       | Node                | `realizes` | XML              | [XML](../../spec/layers/05-technology-layer.md#example-model) | ✓          | ✗                                                           |
+| realization       | SystemSoftware      | `realizes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyFunction  | `realizes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| serving           | TechnologyInterface | `serves`   | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| realization       | TechnologyProcess   | `realizes` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
+| flow              | TechnologyService   | `flows-to` | Documented + XML | [Doc](../../spec/layers/05-technology-layer.md#relationships) | ✓          | [✓](../../spec/layers/05-technology-layer.md#relationships) |
 
 ### Relationship Summary
 
-- **Total Relationships**: 1
-- **Outgoing**: 0
-- **Incoming**: 1
-- **Documented**: 0/1
-- **With XML Examples**: 1/1
-- **In Catalog**: 1/1
+- **Total Relationships**: 7
+- **Outgoing**: 1
+- **Incoming**: 6
+- **Documented**: 6/7
+- **With XML Examples**: 7/7
+- **In Catalog**: 7/7
 
 ---

@@ -112,6 +112,112 @@
     }
   },
   "definitions": {
+    "RouteType": {
+      "type": "string",
+      "enum": [
+        "experience",
+        "redirect",
+        "external"
+      ]
+    },
+    "TruncationType": {
+      "type": "string",
+      "enum": [
+        "none",
+        "middle",
+        "start",
+        "end"
+      ]
+    },
+    "BreadcrumbMode": {
+      "type": "string",
+      "enum": [
+        "static",
+        "dynamic",
+        "hybrid"
+      ]
+    },
+    "NavigationTrigger": {
+      "type": "string",
+      "enum": [
+        "user-action",
+        "submit",
+        "success",
+        "failure",
+        "cancel",
+        "automatic",
+        "deeplink",
+        "back",
+        "timeout"
+      ]
+    },
+    "GuardType": {
+      "type": "string",
+      "enum": [
+        "authentication",
+        "authorization",
+        "validation",
+        "data-loaded",
+        "custom"
+      ]
+    },
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "DELETE",
+        "PATCH",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    "GuardActionType": {
+      "type": "string",
+      "enum": [
+        "redirect",
+        "show-error",
+        "navigate-back",
+        "abort"
+      ]
+    },
+    "WaitType": {
+      "type": "string",
+      "enum": [
+        "user-action",
+        "approval",
+        "external-event",
+        "timeout"
+      ]
+    },
+    "ContextScope": {
+      "type": "string",
+      "enum": [
+        "flow",
+        "session",
+        "user"
+      ]
+    },
+    "StorageType": {
+      "type": "string",
+      "enum": [
+        "memory",
+        "session-storage",
+        "local-storage",
+        "server-session",
+        "database"
+      ]
+    },
+    "NotificationType": {
+      "type": "string",
+      "enum": [
+        "email",
+        "sms",
+        "push",
+        "webhook"
+      ]
+    },
     "NavigationGraph": {
       "type": "object",
       "description": "Complete navigation structure for application",
@@ -667,112 +773,6 @@
           "minLength": 1
         }
       }
-    },
-    "RouteType": {
-      "type": "string",
-      "enum": [
-        "experience",
-        "redirect",
-        "external"
-      ]
-    },
-    "TruncationType": {
-      "type": "string",
-      "enum": [
-        "none",
-        "middle",
-        "start",
-        "end"
-      ]
-    },
-    "BreadcrumbMode": {
-      "type": "string",
-      "enum": [
-        "static",
-        "dynamic",
-        "hybrid"
-      ]
-    },
-    "NavigationTrigger": {
-      "type": "string",
-      "enum": [
-        "user-action",
-        "submit",
-        "success",
-        "failure",
-        "cancel",
-        "automatic",
-        "deeplink",
-        "back",
-        "timeout"
-      ]
-    },
-    "GuardType": {
-      "type": "string",
-      "enum": [
-        "authentication",
-        "authorization",
-        "validation",
-        "data-loaded",
-        "custom"
-      ]
-    },
-    "HttpMethod": {
-      "type": "string",
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "DELETE",
-        "PATCH",
-        "HEAD",
-        "OPTIONS"
-      ]
-    },
-    "GuardActionType": {
-      "type": "string",
-      "enum": [
-        "redirect",
-        "show-error",
-        "navigate-back",
-        "abort"
-      ]
-    },
-    "WaitType": {
-      "type": "string",
-      "enum": [
-        "user-action",
-        "approval",
-        "external-event",
-        "timeout"
-      ]
-    },
-    "ContextScope": {
-      "type": "string",
-      "enum": [
-        "flow",
-        "session",
-        "user"
-      ]
-    },
-    "StorageType": {
-      "type": "string",
-      "enum": [
-        "memory",
-        "session-storage",
-        "local-storage",
-        "server-session",
-        "database"
-      ]
-    },
-    "NotificationType": {
-      "type": "string",
-      "enum": [
-        "email",
-        "sms",
-        "push",
-        "webhook"
-      ]
     }
   }
 }
