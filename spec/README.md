@@ -346,7 +346,6 @@ dr validate --all
 2. Choose a conformance level
 3. Implement layers according to [schemas/](schemas/)
 4. Validate against [test-fixtures/](test-fixtures/)
-5. Follow [conformance/certification-process.md](conformance/certification-process.md)
 
 ## Version Information
 

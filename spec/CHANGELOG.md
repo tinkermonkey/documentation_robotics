@@ -100,6 +100,15 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - Was: "Testing Layer Layer Schema"
   - Now: "Testing Layer Schema"
 
+### Known Limitations
+
+- **Wave 2 Planned Enhancements**:
+  - Structural relationship examples in Business and Application layers marked as TBD (8 placeholders total)
+  - Cross-layer upward reference examples marked as TBD (44 placeholders referencing Motivation layer entities)
+  - These are non-blocking documentation placeholders - core relationship infrastructure and taxonomy are complete
+  - Wave 2 will provide concrete examples for all relationship patterns
+  - All schemas validate successfully; TBD markers do not affect model validation
+
 ### Removed
 
 - **Conformance Documentation** (moved to separate repository):
