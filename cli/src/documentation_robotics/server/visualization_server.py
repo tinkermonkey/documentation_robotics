@@ -20,6 +20,8 @@ import aiohttp
 import yaml
 from aiohttp import web
 from rich.console import Console
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.observers import Observer
 
 from ..core.annotations import Annotation, AnnotationRegistry, AnnotationStore
 from ..core.model import Model
@@ -30,6 +32,7 @@ from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
+    _get_timestamp,
     create_annotation_added_message,
     create_annotation_reply_added_message,
     create_element_update_message,
@@ -38,6 +41,35 @@ from .websocket_protocol import (
 )
 
 console = Console()
+
+
+class AnnotationFileHandler(FileSystemEventHandler):
+    """Handler for annotation file changes."""
+
+    def __init__(self, callback):
+        """
+        Initialize annotation file handler.
+
+        Args:
+            callback: Callback function taking (event_type, file_path)
+        """
+        super().__init__()
+        self.callback = callback
+
+    def on_created(self, event: FileSystemEvent):
+        """Handle file created event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("created", Path(event.src_path))
+
+    def on_modified(self, event: FileSystemEvent):
+        """Handle file modified event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("modified", Path(event.src_path))
+
+    def on_deleted(self, event: FileSystemEvent):
+        """Handle file deleted event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("deleted", Path(event.src_path))
 
 
 class VisualizationServer:
@@ -102,6 +134,7 @@ class VisualizationServer:
         self.app: Optional[web.Application] = None
         self.runner: Optional[web.AppRunner] = None
         self.file_monitor: Optional[FileMonitor] = None
+        self._annotation_observer: Optional[Observer] = None
 
         # WebSocket connections
         self.websockets: Set[web.WebSocketResponse] = set()
@@ -299,41 +332,18 @@ class VisualizationServer:
         # Start annotation file monitoring
         if self.model_path:
             annotations_dir = self.model_path / "annotations"
-            if annotations_dir.exists():
-                # Set up file monitoring for annotations directory
-                from watchdog.events import FileSystemEvent, FileSystemEventHandler
-                from watchdog.observers import Observer
+            # Create annotations directory if it doesn't exist
+            annotations_dir.mkdir(parents=True, exist_ok=True)
 
-                class AnnotationFileHandler(FileSystemEventHandler):
-                    """Handler for annotation file changes."""
-
-                    def __init__(self, callback):
-                        self.callback = callback
-
-                    def on_created(self, event: FileSystemEvent):
-                        if not event.is_directory and event.src_path.endswith(".json"):
-                            self.callback("created", Path(event.src_path))
-
-                    def on_modified(self, event: FileSystemEvent):
-                        if not event.is_directory and event.src_path.endswith(".json"):
-                            self.callback("modified", Path(event.src_path))
-
-                    def on_deleted(self, event: FileSystemEvent):
-                        if not event.is_directory and event.src_path.endswith(".json"):
-                            self.callback("deleted", Path(event.src_path))
-
-                self._annotation_observer = Observer()
-                self._annotation_handler = AnnotationFileHandler(
-                    self._handle_annotation_file_change
-                )
-                self._annotation_observer.schedule(
-                    self._annotation_handler, str(annotations_dir), recursive=True
-                )
-                self._annotation_observer.start()
-            else:
-                self._annotation_observer = None
-        else:
-            self._annotation_observer = None
+            # Set up file monitoring for annotations directory
+            self._annotation_observer = Observer()
+            self._annotation_handler = AnnotationFileHandler(
+                self._handle_annotation_file_change
+            )
+            self._annotation_observer.schedule(
+                self._annotation_handler, str(annotations_dir), recursive=True
+            )
+            self._annotation_observer.start()
 
         # Setup signal handlers
         self._setup_signal_handlers()
@@ -710,7 +720,7 @@ class VisualizationServer:
             annotation = Annotation(
                 id=annotation_id,
                 entity_uri=entity_uri,
-                timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                timestamp=_get_timestamp(),
                 user=user,
                 message=annotation_message,
                 parent_id=None,
@@ -790,7 +800,7 @@ class VisualizationServer:
             reply = Annotation(
                 id=reply_id,
                 entity_uri=parent.entity_uri,
-                timestamp=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                timestamp=_get_timestamp(),
                 user=user,
                 message=reply_message,
                 parent_id=parent_id,
@@ -1008,7 +1018,7 @@ class VisualizationServer:
             self.file_monitor.stop()
 
         # Stop annotation file monitoring
-        if hasattr(self, "_annotation_observer") and self._annotation_observer:
+        if self._annotation_observer:
             try:
                 self._annotation_observer.stop()
                 self._annotation_observer.join(timeout=2.0)

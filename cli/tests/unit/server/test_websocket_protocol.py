@@ -9,6 +9,8 @@ from datetime import datetime
 import pytest
 from documentation_robotics.server.websocket_protocol import (
     MESSAGE_TYPES,
+    create_annotation_added_message,
+    create_annotation_reply_added_message,
     create_element_update_message,
     create_error_message,
     create_initial_state_message,
@@ -27,6 +29,8 @@ class TestMessageTypes:
         assert "element_removed" in MESSAGE_TYPES
         assert "layer_updated" in MESSAGE_TYPES
         assert "error" in MESSAGE_TYPES
+        assert "annotation_added" in MESSAGE_TYPES
+        assert "annotation_reply_added" in MESSAGE_TYPES
 
     def test_message_types_have_descriptions(self):
         """Test all message types have descriptions."""
@@ -368,3 +372,195 @@ class TestEdgeCases:
 
         assert len(message["data"]["model"]["layers"]) == 10
         assert len(message["data"]["model"]["layers"][0]["elements"]) == 100
+
+
+class MockAnnotation:
+    """Mock annotation object for testing."""
+
+    def __init__(self, id, entity_uri, timestamp, user, message, parent_id=None):
+        self.id = id
+        self.entity_uri = entity_uri
+        self.timestamp = timestamp
+        self.user = user
+        self.message = message
+        self.parent_id = parent_id
+
+
+class TestCreateAnnotationMessages:
+    """Test annotation message creation."""
+
+    def test_create_annotation_added_message_structure(self):
+        """Test annotation_added message has correct structure."""
+        annotation = MockAnnotation(
+            id="ann-123",
+            entity_uri="business.service.customer",
+            timestamp="2024-01-15T10:30:00Z",
+            user="john",
+            message="This needs review",
+            parent_id=None,
+        )
+
+        message = create_annotation_added_message(annotation)
+
+        assert message["type"] == "annotation_added"
+        assert "timestamp" in message
+        assert message["timestamp"].endswith("Z")
+        assert "data" in message
+        assert message["data"]["id"] == "ann-123"
+        assert message["data"]["entity_uri"] == "business.service.customer"
+        assert message["data"]["timestamp"] == "2024-01-15T10:30:00Z"
+        assert message["data"]["user"] == "john"
+        assert message["data"]["message"] == "This needs review"
+        assert message["data"]["parent_id"] is None
+
+    def test_create_annotation_added_with_all_fields(self):
+        """Test annotation_added message includes all required fields."""
+        annotation = MockAnnotation(
+            id="ann-456",
+            entity_uri="api.endpoint.create-order",
+            timestamp="2024-01-15T11:00:00Z",
+            user="alice",
+            message="Consider rate limiting",
+            parent_id=None,
+        )
+
+        message = create_annotation_added_message(annotation)
+
+        # Verify all fields are present
+        data = message["data"]
+        assert "id" in data
+        assert "entity_uri" in data
+        assert "timestamp" in data
+        assert "user" in data
+        assert "message" in data
+        assert "parent_id" in data
+
+    def test_create_annotation_reply_added_message_structure(self):
+        """Test annotation_reply_added message has correct structure."""
+        reply = MockAnnotation(
+            id="ann-789",
+            entity_uri="business.service.customer",
+            timestamp="2024-01-15T12:00:00Z",
+            user="jane",
+            message="I agree with this",
+            parent_id="ann-123",
+        )
+
+        message = create_annotation_reply_added_message(reply)
+
+        assert message["type"] == "annotation_reply_added"
+        assert "timestamp" in message
+        assert message["timestamp"].endswith("Z")
+        assert "data" in message
+        assert message["data"]["id"] == "ann-789"
+        assert message["data"]["parent_id"] == "ann-123"
+        assert message["data"]["user"] == "jane"
+        assert message["data"]["message"] == "I agree with this"
+
+    def test_create_annotation_reply_added_with_all_fields(self):
+        """Test annotation_reply_added message includes all required fields."""
+        reply = MockAnnotation(
+            id="ann-abc",
+            entity_uri="datamodel.entity.customer",
+            timestamp="2024-01-15T13:00:00Z",
+            user="bob",
+            message="Good point",
+            parent_id="ann-xyz",
+        )
+
+        message = create_annotation_reply_added_message(reply)
+
+        # Verify all fields are present
+        data = message["data"]
+        assert "id" in data
+        assert "entity_uri" in data
+        assert "timestamp" in data
+        assert "user" in data
+        assert "message" in data
+        assert "parent_id" in data
+        assert data["parent_id"] == "ann-xyz"
+
+    def test_annotation_messages_have_consistent_structure(self):
+        """Test both annotation message types have consistent structure."""
+        annotation = MockAnnotation(
+            "ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None
+        )
+        reply = MockAnnotation(
+            "ann-2", "uri-1", "2024-01-15T11:00:00Z", "user2", "msg2", "ann-1"
+        )
+
+        msg1 = create_annotation_added_message(annotation)
+        msg2 = create_annotation_reply_added_message(reply)
+
+        # Both should have same top-level structure
+        assert set(msg1.keys()) == set(msg2.keys())
+        assert set(msg1["data"].keys()) == set(msg2["data"].keys())
+
+    def test_annotation_messages_included_in_consistency_check(self):
+        """Test annotation messages follow same patterns as other messages."""
+        annotation = MockAnnotation(
+            "ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None
+        )
+
+        messages = [
+            create_annotation_added_message(annotation),
+            create_annotation_reply_added_message(annotation),
+        ]
+
+        for message in messages:
+            # All messages should have type, timestamp, and data
+            assert "type" in message
+            assert isinstance(message["type"], str)
+            assert "timestamp" in message
+            assert isinstance(message["timestamp"], str)
+            assert message["timestamp"].endswith("Z")
+            assert "data" in message
+            assert isinstance(message["data"], dict)
+
+    def test_annotation_message_with_unicode(self):
+        """Test annotation message with unicode characters."""
+        annotation = MockAnnotation(
+            "ann-unicode",
+            "uri-1",
+            "2024-01-15T10:00:00Z",
+            "user1",
+            "Comment with emoji 🚀 and unicode ✓",
+            None,
+        )
+
+        message = create_annotation_added_message(annotation)
+
+        assert "🚀" in message["data"]["message"]
+        assert "✓" in message["data"]["message"]
+
+    def test_annotation_message_with_long_text(self):
+        """Test annotation message with long text content."""
+        long_message = "This is a very long annotation message. " * 50
+        annotation = MockAnnotation(
+            "ann-long", "uri-1", "2024-01-15T10:00:00Z", "user1", long_message, None
+        )
+
+        message = create_annotation_added_message(annotation)
+
+        assert message["data"]["message"] == long_message
+        assert len(message["data"]["message"]) > 1000
+
+    def test_annotation_message_timestamp_format(self):
+        """Test annotation message timestamp is current."""
+        annotation = MockAnnotation(
+            "ann-time", "uri-1", "2024-01-15T10:00:00Z", "user1", "test", None
+        )
+
+        message = create_annotation_added_message(annotation)
+
+        # Message timestamp (when message was created) should be current
+        msg_timestamp = message["timestamp"]
+        dt = datetime.fromisoformat(msg_timestamp.replace("Z", "+00:00"))
+        now = datetime.now(dt.tzinfo)
+
+        # Message creation timestamp should be within last second
+        diff = (now - dt).total_seconds()
+        assert diff < 1.0
+
+        # Annotation timestamp is preserved in data
+        assert message["data"]["timestamp"] == "2024-01-15T10:00:00Z"
