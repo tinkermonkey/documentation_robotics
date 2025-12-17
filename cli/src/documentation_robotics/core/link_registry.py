@@ -26,6 +26,8 @@ class LinkType:
     description: str
     examples: List[str]
     validation_rules: Dict[str, Any]
+    predicate: Optional[str] = None  # NEW in v0.6.0
+    inverse_predicate: Optional[str] = None  # NEW in v0.6.0
 
     @property
     def is_array(self) -> bool:
@@ -99,6 +101,8 @@ class LinkRegistry:
                 description=link_data["description"],
                 examples=link_data.get("examples", []),
                 validation_rules=link_data.get("validationRules", {}),
+                predicate=link_data.get("predicate"),  # NEW in v0.6.0
+                inverse_predicate=link_data.get("inversePredicate"),  # NEW in v0.6.0
             )
             self.link_types[link_type.id] = link_type
 
@@ -222,6 +226,8 @@ class LinkRegistry:
                     "description": link.description,
                     "examples": link.examples,
                     "validationRules": link.validation_rules,
+                    "predicate": link.predicate,  # NEW in v0.6.0
+                    "inversePredicate": link.inverse_predicate,  # NEW in v0.6.0
                 }
                 for link in self.link_types.values()
             ],
@@ -296,6 +302,57 @@ class LinkRegistry:
             "target_layers": sorted(self.get_target_layers()),
             "version": self.metadata.get("version", "unknown"),
         }
+
+    def get_predicate_for_link_type(self, link_type_name: str) -> Optional[str]:
+        """Get predicate for a cross-layer link type.
+
+        Args:
+            link_type_name: Link type ID (e.g., "apm-criticality", "security-resource")
+
+        Returns:
+            Predicate string or None if not found or link type has no predicate
+        """
+        link_type = self.link_types.get(link_type_name)
+        return link_type.predicate if link_type else None
+
+    def get_inverse_predicate_for_link_type(self, link_type_name: str) -> Optional[str]:
+        """Get inverse predicate for a cross-layer link type.
+
+        Args:
+            link_type_name: Link type ID (e.g., "apm-criticality", "security-resource")
+
+        Returns:
+            Inverse predicate string or None if not found or link type has no inverse predicate
+        """
+        link_type = self.link_types.get(link_type_name)
+        return link_type.inverse_predicate if link_type else None
+
+    def get_link_types_with_predicate(self, predicate: str) -> List[str]:
+        """Find link types using a specific predicate.
+
+        Args:
+            predicate: Predicate to search for (e.g., "realizes", "serves")
+
+        Returns:
+            List of link type IDs that use this predicate
+        """
+        return [
+            link.id
+            for link in self.link_types.values()
+            if link.predicate == predicate
+        ]
+
+    def get_link_types_with_predicates(self) -> List[LinkType]:
+        """Get all link types that have predicate metadata.
+
+        Returns:
+            List of LinkType objects that have predicates defined
+        """
+        return [
+            link
+            for link in self.link_types.values()
+            if link.predicate is not None
+        ]
 
     def __repr__(self) -> str:
         """String representation of the registry."""

@@ -482,6 +482,112 @@ class Model:
         for layer_name in layer_names:
             self.get_layer(layer_name)  # Triggers lazy load
 
+    def add_relationship(self, source_id: str, relationship: Dict[str, Any]) -> None:
+        """Add a relationship from source element.
+
+        Args:
+            source_id: ID of the source element
+            relationship: Relationship dictionary with targetId, predicate, type
+
+        Raises:
+            ValueError: If element doesn't exist
+        """
+        element = self.get_element(source_id)
+        if not element:
+            raise ValueError(f"Element {source_id} not found")
+
+        # Ensure relationships field exists
+        if "relationships" not in element.data:
+            element.data["relationships"] = []
+
+        # Check for duplicates
+        existing = element.data["relationships"]
+        target_id = relationship.get("targetId")
+        predicate = relationship.get("predicate")
+
+        # Don't add duplicate relationships
+        for rel in existing:
+            if rel.get("targetId") == target_id and rel.get("predicate") == predicate:
+                return  # Duplicate, skip
+
+        # Add the relationship
+        element.data["relationships"].append(relationship)
+        element.save()
+
+        # Invalidate caches
+        if self._cache:
+            self._cache.invalidate_element(source_id)
+            self._cache.invalidate_queries()
+
+    def remove_relationship(self, source_id: str, predicate: str, target_id: str) -> bool:
+        """Remove a relationship from source element.
+
+        Args:
+            source_id: ID of the source element
+            predicate: Predicate of the relationship to remove
+            target_id: ID of the target element
+
+        Returns:
+            True if relationship was found and removed, False otherwise
+        """
+        element = self.get_element(source_id)
+        if not element or "relationships" not in element.data:
+            return False
+
+        # Find and remove the relationship
+        original_count = len(element.data["relationships"])
+        element.data["relationships"] = [
+            r
+            for r in element.data["relationships"]
+            if not (r.get("predicate") == predicate and r.get("targetId") == target_id)
+        ]
+
+        removed = len(element.data["relationships"]) < original_count
+        if removed:
+            element.save()
+
+            # Invalidate caches
+            if self._cache:
+                self._cache.invalidate_element(source_id)
+                self._cache.invalidate_queries()
+
+        return removed
+
+    def get_relationships(self, element_id: str) -> List[Dict[str, Any]]:
+        """Get all outgoing relationships for an element.
+
+        Args:
+            element_id: ID of the element
+
+        Returns:
+            List of relationship dictionaries
+        """
+        element = self.get_element(element_id)
+        if not element:
+            return []
+        return element.data.get("relationships", [])
+
+    def find_incoming_relationships(self, target_id: str) -> List[Dict[str, Any]]:
+        """Find all incoming relationships to an element.
+
+        Args:
+            target_id: ID of the target element
+
+        Returns:
+            List of relationship dictionaries with sourceId added
+        """
+        incoming = []
+        for layer in self.layers.values():
+            for element in layer.elements.values():
+                relationships = element.data.get("relationships", [])
+                for rel in relationships:
+                    if rel.get("targetId") == target_id:
+                        # Add source ID to the relationship for display
+                        incoming_rel = rel.copy()
+                        incoming_rel["sourceId"] = element.id
+                        incoming.append(incoming_rel)
+        return incoming
+
     def save(self) -> None:
         """Save all layers and manifest."""
         for layer in self.layers.values():

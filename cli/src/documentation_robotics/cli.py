@@ -23,6 +23,7 @@ from .commands import (
     list_cmd,
     migrate,
     project,
+    relationship,
     remove,
     search,
     trace,
@@ -105,6 +106,8 @@ cli.add_command(upgrade.update_project)  # Renamed from upgrade to update_projec
 cli.add_command(upgrade.version_info)
 # Link management
 cli.add_command(links.links_group)
+# Relationship management
+cli.add_command(relationship.relationship)
 # Migration management
 cli.add_command(migrate.migrate)
 # Visualization

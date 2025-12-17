@@ -8,6 +8,8 @@ across schema, semantic, and cross-layer consistency dimensions.
 from .base import BaseValidator, ValidationError, ValidationResult, ValidationWarning
 from .consistency import BidirectionalConsistencyValidator
 from .goal_metrics import GoalToMetricTraceabilityValidator
+from .link_validator import LinkValidator
+from .predicate_validator import PredicateValidator
 from .security import SecurityIntegrationValidator
 from .semantic import SemanticValidator
 from .traceability import UpwardTraceabilityValidator
@@ -24,4 +26,6 @@ __all__ = [
     "SecurityIntegrationValidator",
     "BidirectionalConsistencyValidator",
     "GoalToMetricTraceabilityValidator",
+    "LinkValidator",
+    "PredicateValidator",
 ]

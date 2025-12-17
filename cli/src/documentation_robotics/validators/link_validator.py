@@ -1,7 +1,8 @@
-"""Link Validator - Validates cross-layer references.
+"""Link Validator - Validates cross-layer references and intra-layer relationships.
 
 This module provides the LinkValidator class which validates link instances
 for existence, type compatibility, cardinality, format, and other rules.
+Also validates intra-layer relationships using predicate validation.
 """
 
 import re
@@ -11,6 +12,11 @@ from typing import Any, Dict, List, Optional
 
 from ..core.link_analyzer import LinkAnalyzer, LinkInstance
 from ..core.link_registry import LinkRegistry
+from ..core.relationship_registry import RelationshipRegistry
+from .predicate_validator import PredicateValidator
+
+# Constants
+PREDICATE_VALIDATION = "predicate_validation"
 
 
 class ValidationSeverity(Enum):
@@ -45,15 +51,22 @@ class ValidationIssue:
 
 
 class LinkValidator:
-    """Validates cross-layer links in the model.
+    """Validates cross-layer links and intra-layer relationships in the model.
 
     This class performs various validation checks on discovered links,
     including existence checks, type compatibility, format validation,
     and cardinality checks.
+
+    For intra-layer relationships, validates predicates against the relationship
+    catalog, including inverse consistency and cardinality constraints.
     """
 
     def __init__(
-        self, link_registry: LinkRegistry, link_analyzer: LinkAnalyzer, strict_mode: bool = False
+        self,
+        link_registry: LinkRegistry,
+        link_analyzer: LinkAnalyzer,
+        strict_mode: bool = False,
+        relationship_registry: Optional[RelationshipRegistry] = None,
     ):
         """Initialize the link validator.
 
@@ -61,11 +74,19 @@ class LinkValidator:
             link_registry: LinkRegistry with link definitions
             link_analyzer: LinkAnalyzer with discovered links
             strict_mode: If True, all issues are treated as errors
+            relationship_registry: Optional RelationshipRegistry for predicate validation
         """
         self.registry = link_registry
         self.analyzer = link_analyzer
         self.strict_mode = strict_mode
         self.issues: List[ValidationIssue] = []
+
+        # Initialize predicate validator if relationship registry provided
+        self.predicate_validator: Optional[PredicateValidator] = None
+        if relationship_registry:
+            self.predicate_validator = PredicateValidator(
+                relationship_registry, strict_mode=strict_mode
+            )
 
     def validate_all(self) -> List[ValidationIssue]:
         """Validate all discovered links.
@@ -361,6 +382,144 @@ class LinkValidator:
         for issue in issues:
             print(str(issue))
             print()  # Blank line between issues
+
+    def validate_intra_layer_relationships(self, model: Any) -> List[ValidationIssue]:
+        """Validate intra-layer relationships using predicate validation.
+
+        This method validates relationships within the same layer, checking:
+        - Predicate existence and validity
+        - Layer-specific constraints
+        - Inverse consistency
+        - Cardinality constraints
+
+        Args:
+            model: Model instance with get_element() and layers
+
+        Returns:
+            List of ValidationIssue objects
+        """
+        if not self.predicate_validator:
+            # No predicate validator configured
+            return []
+
+        relationship_issues = []
+
+        # Iterate through all layers and elements
+        for layer_name, layer in model.layers.items():
+            for element in layer.elements.values():
+                # Check if element has relationships
+                if not hasattr(element, "data") or not isinstance(element.data, dict):
+                    continue
+
+                relationships = element.data.get("relationships", [])
+                if not isinstance(relationships, list):
+                    continue
+
+                # Validate each relationship
+                for relationship in relationships:
+                    target_id = relationship.get("targetId")
+                    predicate = relationship.get("predicate")
+
+                    if not target_id or not predicate:
+                        # Missing required fields
+                        continue
+
+                    # Get target element to check if same layer
+                    target_element = model.get_element(target_id)
+                    if not target_element:
+                        # Target doesn't exist (handled by reference validator)
+                        continue
+
+                    # Use layer name from iteration context (more robust than parsing IDs)
+                    source_layer = layer_name
+
+                    # Find target layer by checking which layer contains target element
+                    target_layer = None
+                    for tgt_layer_name, tgt_layer in model.layers.items():
+                        if target_id in tgt_layer.elements:
+                            target_layer = tgt_layer_name
+                            break
+
+                    # Only validate intra-layer relationships
+                    if source_layer != target_layer:
+                        continue
+
+                    # Validate the relationship
+                    result = self.predicate_validator.validate_relationship(
+                        source_id=element.id,
+                        target_id=target_id,
+                        predicate=predicate,
+                        source_layer=source_layer,
+                        model=model,
+                    )
+
+                    if not result.is_valid() or result.warnings:
+                        # Create a pseudo LinkInstance for error reporting
+                        pseudo_link = self._create_pseudo_link_instance(
+                            element.id, target_id, f"relationships[{predicate}]"
+                        )
+
+                        if not result.is_valid():
+                            severity = ValidationSeverity.ERROR
+                            message = "; ".join(e.message for e in result.errors)
+                        else:
+                            severity = (
+                                ValidationSeverity.ERROR
+                                if self.strict_mode
+                                else ValidationSeverity.WARNING
+                            )
+                            message = "; ".join(w.message for w in result.warnings)
+
+                        issue = ValidationIssue(
+                            severity=severity,
+                            link_instance=pseudo_link,
+                            issue_type=PREDICATE_VALIDATION,
+                            message=message,
+                            suggestion=f"Check relationship between {element.id} and {target_id} with predicate '{predicate}'",
+                        )
+                        relationship_issues.append(issue)
+
+        return relationship_issues
+
+    def _create_pseudo_link_instance(
+        self, source_id: str, target_id: str, field_path: str
+    ) -> LinkInstance:
+        """Create a pseudo LinkInstance for relationship validation errors.
+
+        Args:
+            source_id: Source element ID
+            target_id: Target element ID
+            field_path: Field path for error reporting
+
+        Returns:
+            LinkInstance object
+        """
+        # Import here to avoid circular dependency
+        from ..core.link_analyzer import LinkInstance
+        from ..core.link_registry import LinkType
+
+        # Create a minimal LinkType for error reporting
+        pseudo_link_type = LinkType(
+            id="intra-layer-relationship",
+            name="Intra-Layer Relationship",
+            category="semantic",
+            source_layers=[],
+            target_layer="",
+            target_element_types=[],
+            field_paths=[field_path],
+            cardinality="single",
+            format="string",
+            description="Intra-layer semantic relationship",
+            examples=[],
+            validation_rules={},
+        )
+
+        return LinkInstance(
+            source_id=source_id,
+            field_path=field_path,
+            target_ids=[target_id],
+            link_type=pseudo_link_type,
+        )
 
     def __repr__(self) -> str:
         """String representation of the validator."""

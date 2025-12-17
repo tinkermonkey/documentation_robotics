@@ -44,7 +44,7 @@ def test_check_schema_version_up_to_date(temp_project):
     """Test schema version checking when up to date."""
     # Create manifest with current spec version
     manifest_path = temp_project / ".dr" / "schemas" / ".manifest.json"
-    manifest_path.write_text(json.dumps({"spec_version": "0.5.0", "files": {}}))
+    manifest_path.write_text(json.dumps({"spec_version": "0.6.0", "files": {}}))
 
     checker = VersionChecker(root_path=temp_project)
     status = checker._check_schema_version()
@@ -52,8 +52,8 @@ def test_check_schema_version_up_to_date(temp_project):
     assert status.component == "schema"
     assert status.display_name == "Schema version"
     assert status.installed is True
-    assert status.current_version == "0.5.0"
-    assert status.expected_version == "0.5.0"
+    assert status.current_version == "0.6.0"
+    assert status.expected_version == "0.6.0"
     assert status.needs_update is False
     assert status.update_command is None
 
@@ -70,7 +70,7 @@ def test_check_schema_version_outdated(temp_project):
     assert status.component == "schema"
     assert status.installed is True
     assert status.current_version == "0.4.0"
-    assert status.expected_version == "0.5.0"
+    assert status.expected_version == "0.6.0"
     assert status.needs_update is True
     assert "dr update" in status.update_command
 
@@ -108,7 +108,7 @@ def test_check_model_version_up_to_date(temp_project):
     """Test model version checking when up to date."""
     # Create manifest with current spec version
     manifest_path = temp_project / "documentation-robotics" / "model" / "manifest.yaml"
-    manifest_path.write_text(yaml.dump({"spec_version": "0.5.0", "project": {"name": "test"}}))
+    manifest_path.write_text(yaml.dump({"spec_version": "0.6.0", "project": {"name": "test"}}))
 
     checker = VersionChecker(root_path=temp_project)
     status = checker._check_model_version()
@@ -116,8 +116,8 @@ def test_check_model_version_up_to_date(temp_project):
     assert status.component == "model"
     assert status.display_name == "Model version"
     assert status.installed is True
-    assert status.current_version == "0.5.0"
-    assert status.expected_version == "0.5.0"
+    assert status.current_version == "0.6.0"
+    assert status.expected_version == "0.6.0"
     assert status.needs_update is False
     assert status.update_command is None
 
@@ -134,7 +134,7 @@ def test_check_model_version_outdated(temp_project):
     assert status.component == "model"
     assert status.installed is True
     assert status.current_version == "0.4.0"
-    assert status.expected_version == "0.5.0"
+    assert status.expected_version == "0.6.0"
     assert status.needs_update is True
     assert "dr migrate" in status.update_command
 
@@ -252,10 +252,10 @@ def test_check_all_versions_all_up_to_date(temp_project):
     """Test checking all versions when everything is up to date."""
     # Create all version files with current versions
     schema_manifest = temp_project / ".dr" / "schemas" / ".manifest.json"
-    schema_manifest.write_text(json.dumps({"spec_version": "0.5.0", "files": {}}))
+    schema_manifest.write_text(json.dumps({"spec_version": "0.6.0", "files": {}}))
 
     model_manifest = temp_project / "documentation-robotics" / "model" / "manifest.yaml"
-    model_manifest.write_text(yaml.dump({"spec_version": "0.5.0"}))
+    model_manifest.write_text(yaml.dump({"spec_version": "0.6.0"}))
 
     claude_version = temp_project / ".claude" / ".dr-version"
     claude_version.write_text(yaml.dump({"version": "0.7.3"}))
@@ -299,10 +299,10 @@ def test_check_all_versions_integrations_not_installed(temp_project):
     """Test checking all versions when integrations are not installed."""
     # Create only schema and model, no integrations
     schema_manifest = temp_project / ".dr" / "schemas" / ".manifest.json"
-    schema_manifest.write_text(json.dumps({"spec_version": "0.5.0", "files": {}}))
+    schema_manifest.write_text(json.dumps({"spec_version": "0.6.0", "files": {}}))
 
     model_manifest = temp_project / "documentation-robotics" / "model" / "manifest.yaml"
-    model_manifest.write_text(yaml.dump({"spec_version": "0.5.0"}))
+    model_manifest.write_text(yaml.dump({"spec_version": "0.6.0"}))
 
     checker = VersionChecker(root_path=temp_project)
     result = checker.check_all_versions()
