@@ -339,18 +339,12 @@ def _apply_migrations(
 
         # Sync schemas to match new spec version
         try:
-            from .init import ModelInitializer
+            from ..schemas import copy_schemas_to_project
 
             console.print("\n[bold]Syncing schemas...[/bold]")
-            initializer = ModelInitializer(
-                root_path=model_path.parent.parent,  # Go up from model/ to project root
-                project_name=manifest.project.get("name", ""),
-                template="basic",
-                minimal=False,
-                with_examples=False,
-            )
-            initializer._create_schemas()
-            console.print("[green]✓ Schemas synced[/green]")
+            schemas_dir = model_path.parent / ".dr" / "schemas"
+            copied_count = copy_schemas_to_project(schemas_dir)
+            console.print(f"[green]✓ Schemas synced ({copied_count} files)[/green]")
         except Exception as e:
             console.print(f"[yellow]⚠ Could not sync schemas: {e}[/yellow]")
 
