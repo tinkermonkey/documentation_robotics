@@ -33,6 +33,11 @@ LAYER_SCHEMAS = [
     "12-testing-layer.schema.json",
 ]
 
+# Bundled metadata files (stored in bundled/ directory alongside schemas)
+BUNDLED_METADATA = [
+    ".manifest.json",
+]
+
 # Additional files to copy (stored in parent schemas/ directory, not bundled/)
 ADDITIONAL_FILES = [
     "link-registry.json",
@@ -107,7 +112,7 @@ def copy_schemas_to_project(project_schemas_dir: Path) -> int:
     project_schemas_dir.mkdir(parents=True, exist_ok=True)
 
     # Clean obsolete files - CLI owns this directory
-    expected_files = set(LAYER_SCHEMAS + ADDITIONAL_FILES)
+    expected_files = set(LAYER_SCHEMAS + BUNDLED_METADATA + ADDITIONAL_FILES)
     for existing_file in project_schemas_dir.glob("*"):
         # Only clean .json files (leave other files alone just in case)
         if existing_file.is_file() and existing_file.name not in expected_files:
@@ -132,6 +137,22 @@ def copy_schemas_to_project(project_schemas_dir: Path) -> int:
             logger.info(f"Copied schema: {schema_filename}")
         except Exception as e:
             logger.error(f"Failed to copy schema {schema_filename}: {e}")
+
+    # Copy bundled metadata files - always overwrite
+    for metadata_filename in BUNDLED_METADATA:
+        source_path = bundled_dir / metadata_filename
+        dest_path = project_schemas_dir / metadata_filename
+
+        if not source_path.exists():
+            logger.warning(f"Bundled metadata missing: {metadata_filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied metadata: {metadata_filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy metadata {metadata_filename}: {e}")
 
     # Copy additional files (from parent schemas directory) - always overwrite
     schemas_parent_dir = bundled_dir.parent
