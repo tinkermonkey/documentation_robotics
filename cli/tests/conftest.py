@@ -14,14 +14,27 @@ def configure_rich_for_tests():
     import os
 
     # Disable rich's terminal detection which can create subprocess transports
+    # Set these BEFORE any rich imports to prevent file descriptor creation
     os.environ["TERM"] = "dumb"
     os.environ["NO_COLOR"] = "1"
+    # Disable rich's auto-detection features
+    os.environ["COLUMNS"] = "80"
+    os.environ["LINES"] = "24"
 
     yield
 
-    # Cleanup
+    # Cleanup - close any rich console instances that may have been created
+    import sys
+    import gc
+
+    # Force garbage collection to clean up Console instances
+    gc.collect()
+
+    # Clean up environment variables
     os.environ.pop("TERM", None)
     os.environ.pop("NO_COLOR", None)
+    os.environ.pop("COLUMNS", None)
+    os.environ.pop("LINES", None)
 
 
 @pytest.fixture
@@ -101,3 +114,28 @@ def initialized_model(temp_dir):
                     attr.close()
                 except Exception:
                     pass
+
+
+@pytest.fixture(autouse=True, scope="function")
+def cleanup_threads_and_processes():
+    """
+    Cleanup threads and processes after each test to prevent resource warnings.
+
+    This fixture runs after every test to ensure proper cleanup of:
+    - Thread timers (from debouncing)
+    - File observers (from watchdog)
+    - Any other background threads/processes
+    """
+    import gc
+    import threading
+
+    yield
+
+    # Force cleanup of any lingering timers
+    for thread in threading.enumerate():
+        if isinstance(thread, threading.Timer):
+            if thread.is_alive():
+                thread.cancel()
+
+    # Force garbage collection to clean up any remaining resources
+    gc.collect()

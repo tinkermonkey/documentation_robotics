@@ -70,6 +70,54 @@
     }
   },
   "definitions": {
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "frontend",
+        "backend",
+        "mobile",
+        "desktop",
+        "service"
+      ]
+    },
+    "InterfaceProtocol": {
+      "type": "string",
+      "enum": [
+        "REST",
+        "GraphQL",
+        "SOAP",
+        "gRPC",
+        "WebSocket",
+        "Message Queue"
+      ]
+    },
+    "InteractionPattern": {
+      "type": "string",
+      "enum": [
+        "request-response",
+        "publish-subscribe",
+        "async-messaging",
+        "streaming"
+      ]
+    },
+    "ApplicationEventType": {
+      "type": "string",
+      "enum": [
+        "domain-event",
+        "integration-event",
+        "system-event",
+        "audit-event"
+      ]
+    },
+    "ServiceType": {
+      "type": "string",
+      "enum": [
+        "synchronous",
+        "asynchronous",
+        "batch",
+        "streaming"
+      ]
+    },
     "ApplicationComponent": {
       "type": "object",
       "description": "Modular, deployable, and replaceable part of a system",
@@ -523,54 +571,6 @@
           }
         }
       }
-    },
-    "ComponentType": {
-      "type": "string",
-      "enum": [
-        "frontend",
-        "backend",
-        "mobile",
-        "desktop",
-        "service"
-      ]
-    },
-    "InterfaceProtocol": {
-      "type": "string",
-      "enum": [
-        "REST",
-        "GraphQL",
-        "SOAP",
-        "gRPC",
-        "WebSocket",
-        "Message Queue"
-      ]
-    },
-    "InteractionPattern": {
-      "type": "string",
-      "enum": [
-        "request-response",
-        "publish-subscribe",
-        "async-messaging",
-        "streaming"
-      ]
-    },
-    "ApplicationEventType": {
-      "type": "string",
-      "enum": [
-        "domain-event",
-        "integration-event",
-        "system-event",
-        "audit-event"
-      ]
-    },
-    "ServiceType": {
-      "type": "string",
-      "enum": [
-        "synchronous",
-        "asynchronous",
-        "batch",
-        "streaming"
-      ]
     }
   }
 }

@@ -180,51 +180,65 @@ class DrBotOrchestrator:
             cwd=str(self.model_path),
         )
 
-        # Send user message via stdin
-        if proc.stdin:
-            proc.stdin.write(user_message.encode("utf-8"))
-            await proc.stdin.drain()
-            proc.stdin.close()
+        try:
+            # Send user message via stdin
+            if proc.stdin:
+                proc.stdin.write(user_message.encode("utf-8"))
+                await proc.stdin.drain()
+                proc.stdin.close()
+                await proc.stdin.wait_closed()
 
-        # Stream JSON events
-        accumulated_text = []
-        if proc.stdout:
-            async for line in proc.stdout:
-                try:
-                    event = json.loads(line.decode("utf-8").strip())
+            # Stream JSON events
+            accumulated_text = []
+            if proc.stdout:
+                async for line in proc.stdout:
+                    try:
+                        event = json.loads(line.decode("utf-8").strip())
 
-                    # Handle different event types
-                    if event.get("type") == "assistant":
-                        # Extract text from assistant message
-                        message = event.get("message", {})
-                        content = message.get("content", [])
-                        for block in content:
-                            if block.get("type") == "text":
-                                text = block.get("text", "")
-                                accumulated_text.append(text)
-                                yield {
-                                    "type": "text_delta",
-                                    "text": text,
-                                }
-                            elif block.get("type") == "tool_use":
-                                # Claude is using a tool (e.g., running a dr command)
-                                yield {
-                                    "type": "tool_use",
-                                    "name": block.get("name"),
-                                    "input": block.get("input", {}),
-                                }
-                except json.JSONDecodeError:
-                    # Skip non-JSON lines
-                    pass
+                        # Handle different event types
+                        if event.get("type") == "assistant":
+                            # Extract text from assistant message
+                            message = event.get("message", {})
+                            content = message.get("content", [])
+                            for block in content:
+                                if block.get("type") == "text":
+                                    text = block.get("text", "")
+                                    accumulated_text.append(text)
+                                    yield {
+                                        "type": "text_delta",
+                                        "text": text,
+                                    }
+                                elif block.get("type") == "tool_use":
+                                    # Claude is using a tool (e.g., running a dr command)
+                                    yield {
+                                        "type": "tool_use",
+                                        "name": block.get("name"),
+                                        "input": block.get("input", {}),
+                                    }
+                    except json.JSONDecodeError:
+                        # Skip non-JSON lines
+                        pass
 
-        # Wait for completion
-        await proc.wait()
+            # Wait for completion
+            await proc.wait()
 
-        # Yield completion
-        yield {
-            "type": "complete",
-            "text": "".join(accumulated_text),
-        }
+            # Yield completion
+            yield {
+                "type": "complete",
+                "text": "".join(accumulated_text),
+            }
+        finally:
+            # Ensure process is terminated and resources are cleaned up
+            if proc.returncode is None:
+                # Close stdin/stdout/stderr pipes before killing to prevent resource warnings
+                if proc.stdin:
+                    proc.stdin.close()
+                if proc.stdout:
+                    proc.stdout.close()
+                if proc.stderr:
+                    proc.stderr.close()
+                proc.kill()
+                await proc.wait()
 
     async def handle_message(
         self,
@@ -713,6 +727,7 @@ class DrBotOrchestrator:
         Returns:
             JSON string with command results or error message
         """
+        proc = None
         try:
             # Execute command with timeout
             proc = await asyncio.create_subprocess_exec(
@@ -725,8 +740,15 @@ class DrBotOrchestrator:
             try:
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             except asyncio.TimeoutError:
+                # Close pipes before killing to prevent resource warnings
+                if proc.stdin:
+                    proc.stdin.close()
+                if proc.stdout:
+                    proc.stdout.close()
+                if proc.stderr:
+                    proc.stderr.close()
                 proc.kill()
-                await proc.communicate()
+                await proc.wait()  # Wait for process to be killed
                 return json.dumps(
                     {
                         "error": f"Command timed out after {self.timeout} seconds",
@@ -762,6 +784,18 @@ class DrBotOrchestrator:
             return json.dumps(
                 {"error": f"Unexpected error: {str(e)}", "command": " ".join(cmd_parts)}
             )
+        finally:
+            # Ensure process is cleaned up
+            if proc is not None and proc.returncode is None:
+                # Close stdin/stdout/stderr pipes before killing to prevent resource warnings
+                if proc.stdin:
+                    proc.stdin.close()
+                if proc.stdout:
+                    proc.stdout.close()
+                if proc.stderr:
+                    proc.stderr.close()
+                proc.kill()
+                await proc.wait()
 
     def _load_dr_architect_prompt(self) -> str:
         """

@@ -19,20 +19,57 @@ import aiohttp
 import yaml
 from aiohttp import web
 from rich.console import Console
+from watchdog.events import FileSystemEvent, FileSystemEventHandler
+from watchdog.observers import Observer
 
+from ..core.annotations import Annotation, AnnotationRegistry, AnnotationStore
 from ..core.model import Model
+from .annotation_serializer import AnnotationSerializer
 from .chat_handler import ChatHandler
 from .chat_session import ChatSession
 from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
+    get_timestamp,
+    create_annotation_added_message,
+    create_annotation_reply_added_message,
     create_element_update_message,
     create_error_message,
     create_initial_state_message,
 )
 
 console = Console()
+
+
+class AnnotationFileHandler(FileSystemEventHandler):
+    """Handler for annotation file changes."""
+
+    def __init__(self, callback):
+        """
+        Initialize annotation file handler.
+
+        Args:
+            callback: Callback function with signature (event_type: str, file_path: Path) -> None
+                      Called when annotation files are created, modified, or deleted.
+        """
+        super().__init__()
+        self.callback = callback
+
+    def on_created(self, event: FileSystemEvent):
+        """Handle file created event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("created", Path(event.src_path))
+
+    def on_modified(self, event: FileSystemEvent):
+        """Handle file modified event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("modified", Path(event.src_path))
+
+    def on_deleted(self, event: FileSystemEvent):
+        """Handle file deleted event."""
+        if not event.is_directory and event.src_path.endswith(".json"):
+            self.callback("deleted", Path(event.src_path))
 
 
 class VisualizationServer:
@@ -97,6 +134,8 @@ class VisualizationServer:
         self.app: Optional[web.Application] = None
         self.runner: Optional[web.AppRunner] = None
         self.file_monitor: Optional[FileMonitor] = None
+        self._annotation_observer: Optional[Observer] = None
+        self._annotation_handler: Optional[AnnotationFileHandler] = None
 
         # WebSocket connections
         self.websockets: Set[web.WebSocketResponse] = set()
@@ -108,12 +147,21 @@ class VisualizationServer:
         self.specification: Optional[Dict[str, Any]] = None
         self.model_serializer: Optional[ModelSerializer] = None
 
+        # Annotation components
+        self.annotation_registry: Optional[AnnotationRegistry] = None
+        self.annotation_serializer: Optional[AnnotationSerializer] = None
+
         # Chat handler
         self.chat_handler: Optional[ChatHandler] = None
 
         # Initialize model serializer if model is provided (test mode)
         if self.model is not None:
             self.model_serializer = ModelSerializer(self.model)
+
+        # Initialize annotation components if model_path is available
+        if self.model_path:
+            self.annotation_registry = AnnotationRegistry(self.model_path)
+            self.annotation_serializer = AnnotationSerializer(self.model_path)
 
         # Performance: Cache serialized initial state
         self._cached_initial_state: Optional[Dict[str, Any]] = None
@@ -247,6 +295,15 @@ class VisualizationServer:
 
         self.model_serializer = ModelSerializer(self.model)
 
+        # Initialize annotation components if not already done
+        if not self.annotation_registry and self.model_path:
+            self.annotation_registry = AnnotationRegistry(self.model_path)
+            self.annotation_serializer = AnnotationSerializer(self.model_path)
+
+        # Load annotations on startup
+        if self.annotation_registry:
+            self.annotation_registry.load_all()
+
         # Initialize chat handler
         self.chat_handler = ChatHandler(
             model_path=self.model_path,
@@ -272,6 +329,22 @@ class VisualizationServer:
                 self.model.model_path, self._handle_file_change, debounce_seconds=0.2
             )
             self.file_monitor.start()
+
+        # Start annotation file monitoring
+        if self.model_path:
+            annotations_dir = self.model_path / "annotations"
+            # Create annotations directory if it doesn't exist
+            annotations_dir.mkdir(parents=True, exist_ok=True)
+
+            # Set up file monitoring for annotations directory
+            self._annotation_observer = Observer()
+            self._annotation_handler = AnnotationFileHandler(
+                self._handle_annotation_file_change
+            )
+            self._annotation_observer.schedule(
+                self._annotation_handler, str(annotations_dir), recursive=True
+            )
+            self._annotation_observer.start()
 
         # Setup signal handlers
         self._setup_signal_handlers()
@@ -529,6 +602,12 @@ class VisualizationServer:
                 model_data = self.model_serializer.serialize_model()
                 changesets = load_changesets(self.model_path) if self.model_path else []
 
+                # Add annotations to model data
+                if self.annotation_serializer:
+                    model_data["annotations"] = self.annotation_serializer.serialize_all()
+                else:
+                    model_data["annotations"] = []
+
                 self._cached_initial_state = create_initial_state_message(
                     specification=self.specification,
                     model=model_data,
@@ -563,6 +642,13 @@ class VisualizationServer:
             if message_type == "test":
                 await ws.send_json({"type": "response", "message": "Test message received"})
 
+            # Handle annotation messages
+            elif message_type == "annotation_add":
+                await self._handle_annotation_add(ws, data)
+
+            elif message_type == "annotation_reply":
+                await self._handle_annotation_reply(ws, data)
+
             # Check for JSON-RPC chat messages
             elif data.get("jsonrpc") == "2.0":
                 # Get or create session for this WebSocket
@@ -595,6 +681,201 @@ class VisualizationServer:
             await ws.send_json(message)
         except (OSError, RuntimeError) as e:
             console.print(f"[red]Failed to send error message: {e}[/red]")
+
+    async def _handle_annotation_add(
+        self, ws: web.WebSocketResponse, message: Dict[str, Any]
+    ) -> None:
+        """
+        Handle annotation add from web UI.
+
+        Message format:
+        {
+          'type': 'annotation_add',
+          'data': {
+            'entity_uri': 'motivation.goal.deliver-value',
+            'message': 'Annotation text',
+            'user': 'username'
+          }
+        }
+
+        Args:
+            ws: WebSocket connection
+            message: Message data containing type and data fields
+        """
+        try:
+            data = message.get("data", {})
+
+            # Validate required fields
+            entity_uri = data.get("entity_uri")
+            annotation_message = data.get("message")
+            user = data.get("user")
+
+            if not all([entity_uri, annotation_message, user]):
+                await self._send_error(ws, "Missing required fields: entity_uri, message, user")
+                return
+
+            # Generate annotation ID
+            annotation_id = f"ann-{secrets.token_urlsafe(6)[:8]}"
+
+            # Create annotation
+            annotation = Annotation(
+                id=annotation_id,
+                entity_uri=entity_uri,
+                timestamp=get_timestamp(),
+                user=user,
+                message=annotation_message,
+                parent_id=None,
+            )
+
+            # Save to user's store
+            if not self.model_path:
+                await self._send_error(ws, "Server not configured with model path")
+                return
+
+            store = AnnotationStore(user, self.model_path)
+            store.add_annotation(annotation)
+
+            # Reload registry to include new annotation
+            if self.annotation_registry:
+                self.annotation_registry.load_all()
+
+            # Invalidate cache
+            self._cached_initial_state = None
+
+            # Broadcast to all clients
+            broadcast_message = create_annotation_added_message(annotation)
+            await self.broadcast_update(broadcast_message)
+
+            console.print(f"[dim]Annotation added: {annotation_id} by {user}[/dim]")
+
+        except (ValueError, KeyError, OSError) as e:
+            console.print(f"[red]Error handling annotation add: {e}[/red]")
+            await self._send_error(ws, f"Failed to add annotation: {e}")
+
+    async def _handle_annotation_reply(
+        self, ws: web.WebSocketResponse, message: Dict[str, Any]
+    ) -> None:
+        """
+        Handle annotation reply from web UI.
+
+        Message format:
+        {
+          'type': 'annotation_reply',
+          'data': {
+            'parent_id': 'ann-abc123',
+            'message': 'Reply text',
+            'user': 'username'
+          }
+        }
+
+        Args:
+            ws: WebSocket connection
+            message: Message data containing type and data fields
+        """
+        try:
+            data = message.get("data", {})
+
+            # Validate required fields
+            parent_id = data.get("parent_id")
+            reply_message = data.get("message")
+            user = data.get("user")
+
+            if not all([parent_id, reply_message, user]):
+                await self._send_error(ws, "Missing required fields: parent_id, message, user")
+                return
+
+            # Get parent to retrieve entity_uri
+            if not self.annotation_registry:
+                await self._send_error(ws, "Annotation system not initialized")
+                return
+
+            parent = self.annotation_registry.get_annotation(parent_id)
+            if not parent:
+                await self._send_error(ws, f"Parent annotation not found: {parent_id}")
+                return
+
+            # Generate reply ID
+            reply_id = f"ann-{secrets.token_urlsafe(6)[:8]}"
+
+            # Create reply
+            reply = Annotation(
+                id=reply_id,
+                entity_uri=parent.entity_uri,
+                timestamp=get_timestamp(),
+                user=user,
+                message=reply_message,
+                parent_id=parent_id,
+            )
+
+            # Save to user's store
+            if not self.model_path:
+                await self._send_error(ws, "Server not configured with model path")
+                return
+
+            store = AnnotationStore(user, self.model_path)
+            store.add_annotation(reply)
+
+            # Reload registry to include new reply
+            self.annotation_registry.load_all()
+
+            # Invalidate cache
+            self._cached_initial_state = None
+
+            # Broadcast to all clients
+            broadcast_message = create_annotation_reply_added_message(reply)
+            await self.broadcast_update(broadcast_message)
+
+            console.print(f"[dim]Reply added: {reply_id} by {user} to {parent_id}[/dim]")
+
+        except (ValueError, KeyError, OSError) as e:
+            console.print(f"[red]Error handling annotation reply: {e}[/red]")
+            await self._send_error(ws, f"Failed to add reply: {e}")
+
+    def _handle_annotation_file_change(self, event_type: str, file_path: Path) -> None:
+        """
+        Handle annotation file system change event.
+
+        Called from watchdog observer thread, so must safely schedule async work.
+
+        Args:
+            event_type: Type of change (created, modified, deleted)
+            file_path: Changed file path
+        """
+        if self._loop and self._loop.is_running():
+            # Schedule task creation in the event loop thread (thread-safe)
+            self._loop.call_soon_threadsafe(
+                lambda: asyncio.create_task(self._broadcast_annotation_change(event_type, file_path))
+            )
+        else:
+            console.print(
+                "[yellow]Warning: Event loop not running, cannot broadcast annotation change[/yellow]"
+            )
+
+    async def _broadcast_annotation_change(self, event_type: str, file_path: Path) -> None:
+        """
+        Broadcast annotation file change to all connected clients.
+
+        Args:
+            event_type: Type of change (created, modified, deleted)
+            file_path: Changed file path
+        """
+        try:
+            # Invalidate cached initial state
+            self._cached_initial_state = None
+
+            # Reload annotations from affected user's directory
+            if self.annotation_registry:
+                self.annotation_registry.load_all()
+
+            # For now, we don't broadcast individual annotation changes from file system
+            # changes because those are already broadcast when created via WebSocket.
+            # File system changes are primarily for external edits or cross-process sync.
+            console.print(
+                f"[dim]Annotation file {event_type}: {file_path.relative_to(self.model_path)}[/dim]"
+            )
+
+        except (OSError, ValueError, RuntimeError) as e:
+            console.print(f"[red]Error broadcasting annotation change: {e}[/red]")
 
     def _handle_file_change(self, event_type: str, layer: str, file_path: Path) -> None:
         """
@@ -736,6 +1017,14 @@ class VisualizationServer:
         # Stop file monitoring
         if self.file_monitor:
             self.file_monitor.stop()
+
+        # Stop annotation file monitoring
+        if self._annotation_observer:
+            try:
+                self._annotation_observer.stop()
+                self._annotation_observer.join(timeout=2.0)
+            except (RuntimeError, AttributeError) as e:
+                console.print(f"[yellow]Annotation observer cleanup warning: {e}[/yellow]")
 
         # Close all WebSocket connections
         for ws in self.websockets:

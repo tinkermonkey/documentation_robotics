@@ -5,12 +5,34 @@ Tests file system monitoring, event detection, debouncing, and filtering logic.
 """
 
 import asyncio
+import gc
 import time
 from unittest.mock import Mock
 
 import pytest
 from documentation_robotics.server.file_monitor import FileMonitor, ModelFileEventHandler
 from watchdog.events import FileSystemEvent
+
+
+@pytest.fixture
+def file_monitor_cleanup():
+    """Fixture to track and cleanup FileMonitor instances."""
+    monitors = []
+
+    def create_monitor(*args, **kwargs):
+        monitor = FileMonitor(*args, **kwargs)
+        monitors.append(monitor)
+        return monitor
+
+    yield create_monitor
+
+    # Cleanup all monitors
+    for monitor in monitors:
+        if monitor.is_running():
+            monitor.stop()
+
+    # Force garbage collection to clean up any remaining resources
+    gc.collect()
 
 
 class TestModelFileEventHandler:
@@ -275,22 +297,19 @@ class TestFileMonitor:
         assert monitor.observer is None
         assert monitor.event_handler is None
 
-    def test_monitor_start(self, tmp_path):
+    def test_monitor_start(self, tmp_path, file_monitor_cleanup):
         """Test monitor starts successfully."""
         model_path = tmp_path / "model"
         model_path.mkdir()
 
         callback = Mock()
-        monitor = FileMonitor(model_path, callback)
+        monitor = file_monitor_cleanup(model_path, callback)
 
         monitor.start()
 
         assert monitor.observer is not None
         assert monitor.event_handler is not None
         assert monitor.is_running() is True
-
-        # Cleanup
-        monitor.stop()
 
     def test_monitor_stop(self, tmp_path):
         """Test monitor stops successfully."""
@@ -309,21 +328,18 @@ class TestFileMonitor:
         assert monitor.event_handler is None
         assert monitor.is_running() is False
 
-    def test_monitor_already_started_raises_error(self, tmp_path):
+    def test_monitor_already_started_raises_error(self, tmp_path, file_monitor_cleanup):
         """Test starting an already running monitor raises error."""
         model_path = tmp_path / "model"
         model_path.mkdir()
 
         callback = Mock()
-        monitor = FileMonitor(model_path, callback)
+        monitor = file_monitor_cleanup(model_path, callback)
 
         monitor.start()
 
         with pytest.raises(RuntimeError, match="already started"):
             monitor.start()
-
-        # Cleanup
-        monitor.stop()
 
     def test_monitor_is_running_false_when_stopped(self, tmp_path):
         """Test is_running returns False when monitor is not started."""
@@ -464,7 +480,7 @@ class TestIntegrationScenarios:
     """Test realistic integration scenarios."""
 
     @pytest.mark.asyncio
-    async def test_file_creation_flow(self, tmp_path):
+    async def test_file_creation_flow(self, tmp_path, file_monitor_cleanup):
         """Test complete file creation detection flow."""
         model_path = tmp_path / "model"
         model_path.mkdir()
@@ -478,29 +494,25 @@ class TestIntegrationScenarios:
             captured_args.append((event_type, layer, file_path))
             callback_called.set()
 
-        monitor = FileMonitor(model_path, callback, debounce_seconds=0.1)
+        monitor = file_monitor_cleanup(model_path, callback, debounce_seconds=0.1)
         monitor.start()
 
-        try:
-            # Create file
-            new_file = layer_dir / "new-service.yaml"
-            new_file.write_text("id: business.service.new\n")
+        # Create file
+        new_file = layer_dir / "new-service.yaml"
+        new_file.write_text("id: business.service.new\n")
 
-            # Wait for detection
-            await asyncio.wait_for(callback_called.wait(), timeout=1.0)
+        # Wait for detection
+        await asyncio.wait_for(callback_called.wait(), timeout=1.0)
 
-            # Verify callback was called correctly
-            assert len(captured_args) > 0
-            event_type, layer, file_path = captured_args[0]
-            assert event_type == "created"
-            assert layer == "business"
-            assert file_path.name == "new-service.yaml"
-
-        finally:
-            monitor.stop()
+        # Verify callback was called correctly
+        assert len(captured_args) > 0
+        event_type, layer, file_path = captured_args[0]
+        assert event_type == "created"
+        assert layer == "business"
+        assert file_path.name == "new-service.yaml"
 
     @pytest.mark.asyncio
-    async def test_file_modification_flow(self, tmp_path):
+    async def test_file_modification_flow(self, tmp_path, file_monitor_cleanup):
         """Test complete file modification detection flow."""
         model_path = tmp_path / "model"
         model_path.mkdir()
@@ -519,22 +531,18 @@ class TestIntegrationScenarios:
             if event_type == "modified":
                 callback_called.set()
 
-        monitor = FileMonitor(model_path, callback, debounce_seconds=0.1)
+        monitor = file_monitor_cleanup(model_path, callback, debounce_seconds=0.1)
         monitor.start()
 
-        try:
-            # Wait for monitor to initialize
-            await asyncio.sleep(0.1)
+        # Wait for monitor to initialize
+        await asyncio.sleep(0.1)
 
-            # Modify file
-            test_file.write_text("id: business.service.existing\nname: Updated\n")
+        # Modify file
+        test_file.write_text("id: business.service.existing\nname: Updated\n")
 
-            # Wait for detection
-            await asyncio.wait_for(callback_called.wait(), timeout=1.0)
+        # Wait for detection
+        await asyncio.wait_for(callback_called.wait(), timeout=1.0)
 
-            # Verify modification was detected
-            modified_events = [args for args in captured_args if args[0] == "modified"]
-            assert len(modified_events) > 0
-
-        finally:
-            monitor.stop()
+        # Verify modification was detected
+        modified_events = [args for args in captured_args if args[0] == "modified"]
+        assert len(modified_events) > 0

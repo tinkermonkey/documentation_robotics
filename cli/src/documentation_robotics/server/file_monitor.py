@@ -234,19 +234,33 @@ class FileMonitor:
 
     def stop(self) -> None:
         """Stop monitoring file system."""
-        if self.observer is not None:
-            self.observer.stop()
-            self.observer.join(timeout=1.0)
-            self.observer = None
-
-        # Cancel any pending debounce timers
+        # Cancel any pending debounce timers first
         if self.event_handler is not None:
             with self.event_handler._lock:
                 if self.event_handler._debounce_timer is not None:
                     if self.event_handler._debounce_timer.is_alive():
                         self.event_handler._debounce_timer.cancel()
+                    # Wait for timer to finish
+                    self.event_handler._debounce_timer.join(timeout=0.5)
                     self.event_handler._debounce_timer = None
-            self.event_handler = None
+
+        # Stop and cleanup observer
+        if self.observer is not None:
+            try:
+                self.observer.stop()
+                # Wait for observer to finish with a reasonable timeout
+                self.observer.join(timeout=2.0)
+
+                # Force cleanup if observer is still alive
+                if self.observer.is_alive():
+                    console.print("[yellow]Warning: Observer did not stop cleanly[/yellow]")
+            except (RuntimeError, AttributeError) as e:
+                # Handle potential cleanup errors gracefully
+                console.print(f"[yellow]Observer cleanup warning: {e}[/yellow]")
+            finally:
+                self.observer = None
+
+        self.event_handler = None
 
     def is_running(self) -> bool:
         """Check if monitor is running."""

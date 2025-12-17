@@ -180,15 +180,30 @@ class TestDrBotOrchestrator:
         orchestrator = DrBotOrchestrator(mock_model_path, timeout=0.1)
 
         # Mock subprocess that hangs
-        # Use MagicMock for the process to avoid making kill() async
-        mock_proc = MagicMock()
+        mock_proc = AsyncMock()
+        mock_proc.returncode = None  # Process still running
+        # Mock pipe attributes for cleanup
+        mock_proc.stdin = MagicMock()
+        mock_proc.stdout = MagicMock()
+        mock_proc.stderr = MagicMock()
 
         async def slow_communicate():
             """Simulate a slow subprocess."""
             await asyncio.sleep(10)  # Much longer than timeout
             return (b"", b"")
 
+        async def mock_wait():
+            """Mock wait that sets returncode."""
+            mock_proc.returncode = -9  # Killed
+            return -9
+
+        def mock_kill():
+            """Mock kill method (not async)."""
+            pass
+
         mock_proc.communicate = slow_communicate
+        mock_proc.wait = mock_wait
+        mock_proc.kill = MagicMock(side_effect=mock_kill)  # Make kill() sync
 
         with patch("asyncio.create_subprocess_exec", return_value=mock_proc):
             result = await orchestrator._execute_cli(["dr", "list", "business"])
@@ -197,7 +212,11 @@ class TestDrBotOrchestrator:
             result_data = json.loads(result)
             assert "error" in result_data
             assert "timed out" in result_data["error"].lower()
-            mock_proc.kill.assert_called_once()
+            mock_proc.kill.assert_called()
+            # Verify pipes were closed before killing
+            mock_proc.stdin.close.assert_called()
+            mock_proc.stdout.close.assert_called()
+            mock_proc.stderr.close.assert_called()
 
     @pytest.mark.asyncio
     async def test_execute_cli_not_found(self, mock_model_path):

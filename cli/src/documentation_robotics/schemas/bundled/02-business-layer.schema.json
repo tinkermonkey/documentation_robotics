@@ -98,6 +98,23 @@
     }
   },
   "definitions": {
+    "EventType": {
+      "type": "string",
+      "enum": [
+        "time-driven",
+        "state-change",
+        "external"
+      ]
+    },
+    "RepresentationFormat": {
+      "type": "string",
+      "enum": [
+        "document",
+        "report",
+        "form",
+        "message"
+      ]
+    },
     "BusinessActor": {
       "type": "object",
       "description": "An organizational entity capable of performing behavior",
@@ -624,23 +641,6 @@
           }
         }
       }
-    },
-    "EventType": {
-      "type": "string",
-      "enum": [
-        "time-driven",
-        "state-change",
-        "external"
-      ]
-    },
-    "RepresentationFormat": {
-      "type": "string",
-      "enum": [
-        "document",
-        "report",
-        "form",
-        "message"
-      ]
     }
   }
 }
