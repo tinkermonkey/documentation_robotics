@@ -11,6 +11,7 @@ from rich.console import Console
 from . import __version__
 from .commands import (
     add,
+    annotate,
     changeset,
     chat,
     claude,
@@ -114,6 +115,8 @@ cli.add_command(migrate.migrate)
 cli.add_command(visualize.visualize)
 # Chat (DrBot test harness)
 cli.add_command(chat.chat)
+# Annotation management
+cli.add_command(annotate.annotate)
 
 
 def main() -> None:

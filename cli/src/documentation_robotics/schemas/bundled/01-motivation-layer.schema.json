@@ -77,6 +77,99 @@
     }
   },
   "definitions": {
+    "StakeholderType": {
+      "type": "string",
+      "enum": [
+        "internal",
+        "external",
+        "customer",
+        "partner",
+        "regulator"
+      ]
+    },
+    "DriverCategory": {
+      "type": "string",
+      "enum": [
+        "market",
+        "regulatory",
+        "technology",
+        "competitive",
+        "operational",
+        "strategic"
+      ]
+    },
+    "AssessmentType": {
+      "type": "string",
+      "enum": [
+        "strength",
+        "weakness",
+        "opportunity",
+        "threat",
+        "risk",
+        "gap"
+      ]
+    },
+    "Priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "OutcomeStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "in-progress",
+        "achieved",
+        "not-achieved"
+      ]
+    },
+    "PrincipleCategory": {
+      "type": "string",
+      "enum": [
+        "business",
+        "data",
+        "application",
+        "technology",
+        "security",
+        "integration"
+      ]
+    },
+    "RequirementType": {
+      "type": "string",
+      "enum": [
+        "functional",
+        "non-functional",
+        "business",
+        "technical",
+        "compliance",
+        "user"
+      ]
+    },
+    "ConstraintType": {
+      "type": "string",
+      "enum": [
+        "budget",
+        "time",
+        "technology",
+        "regulatory",
+        "organizational",
+        "resource"
+      ]
+    },
+    "ValueType": {
+      "type": "string",
+      "enum": [
+        "financial",
+        "customer",
+        "operational",
+        "strategic",
+        "social"
+      ]
+    },
     "Stakeholder": {
       "type": "object",
       "description": "Individual, team, or organization with interest in the outcome",
@@ -492,99 +585,6 @@
           }
         }
       }
-    },
-    "StakeholderType": {
-      "type": "string",
-      "enum": [
-        "internal",
-        "external",
-        "customer",
-        "partner",
-        "regulator"
-      ]
-    },
-    "DriverCategory": {
-      "type": "string",
-      "enum": [
-        "market",
-        "regulatory",
-        "technology",
-        "competitive",
-        "operational",
-        "strategic"
-      ]
-    },
-    "AssessmentType": {
-      "type": "string",
-      "enum": [
-        "strength",
-        "weakness",
-        "opportunity",
-        "threat",
-        "risk",
-        "gap"
-      ]
-    },
-    "Priority": {
-      "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
-    },
-    "OutcomeStatus": {
-      "type": "string",
-      "enum": [
-        "planned",
-        "in-progress",
-        "achieved",
-        "not-achieved"
-      ]
-    },
-    "PrincipleCategory": {
-      "type": "string",
-      "enum": [
-        "business",
-        "data",
-        "application",
-        "technology",
-        "security",
-        "integration"
-      ]
-    },
-    "RequirementType": {
-      "type": "string",
-      "enum": [
-        "functional",
-        "non-functional",
-        "business",
-        "technical",
-        "compliance",
-        "user"
-      ]
-    },
-    "ConstraintType": {
-      "type": "string",
-      "enum": [
-        "budget",
-        "time",
-        "technology",
-        "regulatory",
-        "organizational",
-        "resource"
-      ]
-    },
-    "ValueType": {
-      "type": "string",
-      "enum": [
-        "financial",
-        "customer",
-        "operational",
-        "strategic",
-        "social"
-      ]
     }
   }
 }

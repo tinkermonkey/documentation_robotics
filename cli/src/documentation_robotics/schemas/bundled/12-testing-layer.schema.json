@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/12-testing-layer.schema.json",
-  "title": "Testing Layer Schema",
+  "title": "Testing Layer Layer Schema",
   "description": "Models test coverage requirements, input space partitioning, and coverage criteria to ensure comprehensive testing with traceability to requirements.",
   "type": "object",
   "properties": {
@@ -126,6 +126,133 @@
     }
   },
   "definitions": {
+    "TargetType": {
+      "type": "string",
+      "enum": [
+        "workflow",
+        "workflow-step",
+        "form",
+        "api-operation",
+        "data-transform",
+        "navigation-path",
+        "integration",
+        "composite"
+      ]
+    },
+    "Priority": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    "FieldRelevance": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "contextual"
+      ]
+    },
+    "PresenceRule": {
+      "type": "string",
+      "enum": [
+        "required",
+        "optional",
+        "conditional"
+      ]
+    },
+    "PartitionCategory": {
+      "type": "string",
+      "enum": [
+        "typical",
+        "boundary",
+        "invalid",
+        "None",
+        "special"
+      ]
+    },
+    "DependencyEffect": {
+      "type": "string",
+      "enum": [
+        "requires",
+        "excludes",
+        "enables",
+        "modifies"
+      ]
+    },
+    "ContextType": {
+      "type": "string",
+      "enum": [
+        "ui-entry",
+        "api-entry",
+        "event-triggered",
+        "scheduled",
+        "integration"
+      ]
+    },
+    "OutcomeType": {
+      "type": "string",
+      "enum": [
+        "success",
+        "validation-error",
+        "authorization-denied",
+        "not-found",
+        "conflict",
+        "precondition-failed",
+        "idempotent-noop",
+        "partial-success",
+        "error"
+      ]
+    },
+    "CoverageCriteria": {
+      "type": "string",
+      "enum": [
+        "exhaustive",
+        "pairwise",
+        "each-choice",
+        "boundary",
+        "risk-based",
+        "happy-path",
+        "error-path"
+      ]
+    },
+    "SketchStatus": {
+      "type": "string",
+      "enum": [
+        "planned",
+        "implemented",
+        "automated",
+        "manual",
+        "blocked",
+        "deprecated"
+      ]
+    },
+    "ImplementationFormat": {
+      "type": "string",
+      "enum": [
+        "gherkin",
+        "postman",
+        "jest",
+        "pytest",
+        "playwright",
+        "cypress",
+        "robot",
+        "manual",
+        "other"
+      ]
+    },
+    "GapSeverity": {
+      "type": "string",
+      "enum": [
+        "critical",
+        "high",
+        "medium",
+        "low"
+      ]
+    },
     "TestCoverageModel": {
       "type": "object",
       "description": "Complete test coverage model for application",
@@ -809,133 +936,6 @@
           "minLength": 1
         }
       }
-    },
-    "TargetType": {
-      "type": "string",
-      "enum": [
-        "workflow",
-        "workflow-step",
-        "form",
-        "api-operation",
-        "data-transform",
-        "navigation-path",
-        "integration",
-        "composite"
-      ]
-    },
-    "Priority": {
-      "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
-    },
-    "FieldRelevance": {
-      "type": "string",
-      "enum": [
-        "primary",
-        "secondary",
-        "contextual"
-      ]
-    },
-    "PresenceRule": {
-      "type": "string",
-      "enum": [
-        "required",
-        "optional",
-        "conditional"
-      ]
-    },
-    "PartitionCategory": {
-      "type": "string",
-      "enum": [
-        "typical",
-        "boundary",
-        "invalid",
-        null,
-        "special"
-      ]
-    },
-    "DependencyEffect": {
-      "type": "string",
-      "enum": [
-        "requires",
-        "excludes",
-        "enables",
-        "modifies"
-      ]
-    },
-    "ContextType": {
-      "type": "string",
-      "enum": [
-        "ui-entry",
-        "api-entry",
-        "event-triggered",
-        "scheduled",
-        "integration"
-      ]
-    },
-    "OutcomeType": {
-      "type": "string",
-      "enum": [
-        "success",
-        "validation-error",
-        "authorization-denied",
-        "not-found",
-        "conflict",
-        "precondition-failed",
-        "idempotent-noop",
-        "partial-success",
-        "error"
-      ]
-    },
-    "CoverageCriteria": {
-      "type": "string",
-      "enum": [
-        "exhaustive",
-        "pairwise",
-        "each-choice",
-        "boundary",
-        "risk-based",
-        "happy-path",
-        "error-path"
-      ]
-    },
-    "SketchStatus": {
-      "type": "string",
-      "enum": [
-        "planned",
-        "implemented",
-        "automated",
-        "manual",
-        "blocked",
-        "deprecated"
-      ]
-    },
-    "ImplementationFormat": {
-      "type": "string",
-      "enum": [
-        "gherkin",
-        "postman",
-        "jest",
-        "pytest",
-        "playwright",
-        "cypress",
-        "robot",
-        "manual",
-        "other"
-      ]
-    },
-    "GapSeverity": {
-      "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
     }
   }
 }

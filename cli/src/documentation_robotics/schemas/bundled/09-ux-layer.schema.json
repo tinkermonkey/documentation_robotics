@@ -189,6 +189,314 @@
     }
   },
   "definitions": {
+    "ComponentType": {
+      "type": "string",
+      "enum": [
+        "form-field",
+        "table",
+        "chart",
+        "card",
+        "list",
+        "text",
+        "image",
+        "video",
+        "audio",
+        "map",
+        "calendar",
+        "timeline",
+        "tree",
+        "custom"
+      ]
+    },
+    "LayoutStyle": {
+      "type": "string",
+      "enum": [
+        "grid",
+        "flex",
+        "stack",
+        "flow",
+        "custom"
+      ]
+    },
+    "ActionType": {
+      "type": "string",
+      "enum": [
+        "fetchData",
+        "saveData",
+        "deleteData",
+        "validateForm",
+        "clearForm",
+        "showNotification",
+        "navigateTo",
+        "callAPI",
+        "updateState",
+        "computeValue"
+      ]
+    },
+    "ChannelType": {
+      "type": "string",
+      "enum": [
+        "visual",
+        "voice",
+        "chat",
+        "sms",
+        "multimodal"
+      ]
+    },
+    "DataSource": {
+      "type": "string",
+      "enum": [
+        "api-response",
+        "form-data",
+        "route-params",
+        "query-params",
+        "local-storage",
+        "constant",
+        "computed"
+      ]
+    },
+    "TriggerType": {
+      "type": "string",
+      "enum": [
+        "success",
+        "failure",
+        "submit",
+        "cancel",
+        "click",
+        "timeout",
+        "dataReady",
+        "custom"
+      ]
+    },
+    "ViewType": {
+      "type": "string",
+      "enum": [
+        "form",
+        "list",
+        "detail",
+        "dashboard",
+        "wizard",
+        "split",
+        "conversational",
+        "custom"
+      ]
+    },
+    "ActionComponentType": {
+      "type": "string",
+      "enum": [
+        "button",
+        "menu-item",
+        "link",
+        "voice-command",
+        "chat-button",
+        "sms-keyword",
+        "custom"
+      ]
+    },
+    "ButtonStyle": {
+      "type": "string",
+      "enum": [
+        "primary",
+        "secondary",
+        "danger",
+        "success",
+        "warning",
+        "ghost",
+        "icon"
+      ]
+    },
+    "ValidationType": {
+      "type": "string",
+      "enum": [
+        "required",
+        "minLength",
+        "maxLength",
+        "pattern",
+        "email",
+        "url",
+        "min",
+        "max",
+        "custom"
+      ]
+    },
+    "LayoutType": {
+      "type": "string",
+      "enum": [
+        "grid",
+        "flex",
+        "stack",
+        "flow",
+        "fixed",
+        "absolute",
+        "custom"
+      ]
+    },
+    "JustifyContent": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "center",
+        "space-between",
+        "space-around",
+        "space-evenly"
+      ]
+    },
+    "AlignItems": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "center",
+        "stretch",
+        "baseline"
+      ]
+    },
+    "JustifyItems": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "center",
+        "stretch"
+      ]
+    },
+    "AlignContent": {
+      "type": "string",
+      "enum": [
+        "start",
+        "end",
+        "center",
+        "stretch",
+        "space-between",
+        "space-around"
+      ]
+    },
+    "NotificationType": {
+      "type": "string",
+      "enum": [
+        "toast",
+        "alert",
+        "inline",
+        "banner",
+        "none"
+      ]
+    },
+    "HttpMethod": {
+      "type": "string",
+      "enum": [
+        "GET",
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+        "HEAD",
+        "OPTIONS"
+      ]
+    },
+    "CacheStrategy": {
+      "type": "string",
+      "enum": [
+        "no-cache",
+        "cache-first",
+        "network-first",
+        "stale-while-revalidate"
+      ]
+    },
+    "AnimationType": {
+      "type": "string",
+      "enum": [
+        "fade",
+        "slide",
+        "scale",
+        "none"
+      ]
+    },
+    "ColumnDisplayType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "number",
+        "currency",
+        "date",
+        "datetime",
+        "boolean",
+        "badge",
+        "link",
+        "image",
+        "avatar",
+        "actions",
+        "custom"
+      ]
+    },
+    "TextAlign": {
+      "type": "string",
+      "enum": [
+        "left",
+        "center",
+        "right"
+      ]
+    },
+    "SortDirection": {
+      "type": "string",
+      "enum": [
+        "asc",
+        "desc"
+      ]
+    },
+    "FilterType": {
+      "type": "string",
+      "enum": [
+        "text",
+        "select",
+        "multiselect",
+        "date",
+        "daterange",
+        "number",
+        "boolean"
+      ]
+    },
+    "StickyPosition": {
+      "type": "string",
+      "enum": [
+        "left",
+        "right",
+        "none"
+      ]
+    },
+    "SeriesType": {
+      "type": "string",
+      "enum": [
+        "line",
+        "area",
+        "bar",
+        "column",
+        "pie",
+        "donut",
+        "scatter",
+        "bubble",
+        "radar",
+        "heatmap"
+      ]
+    },
+    "LineStyle": {
+      "type": "string",
+      "enum": [
+        "solid",
+        "dashed",
+        "dotted"
+      ]
+    },
+    "LabelPosition": {
+      "type": "string",
+      "enum": [
+        "inside",
+        "outside",
+        "center",
+        "top",
+        "bottom"
+      ]
+    },
     "UXLibrary": {
       "type": "object",
       "description": "Collection of reusable UI components and sub-views that can be shared across applications",
@@ -1139,314 +1447,6 @@
           "minLength": 1
         }
       }
-    },
-    "ComponentType": {
-      "type": "string",
-      "enum": [
-        "form-field",
-        "table",
-        "chart",
-        "card",
-        "list",
-        "text",
-        "image",
-        "video",
-        "audio",
-        "map",
-        "calendar",
-        "timeline",
-        "tree",
-        "custom"
-      ]
-    },
-    "LayoutStyle": {
-      "type": "string",
-      "enum": [
-        "grid",
-        "flex",
-        "stack",
-        "flow",
-        "custom"
-      ]
-    },
-    "ActionType": {
-      "type": "string",
-      "enum": [
-        "fetchData",
-        "saveData",
-        "deleteData",
-        "validateForm",
-        "clearForm",
-        "showNotification",
-        "navigateTo",
-        "callAPI",
-        "updateState",
-        "computeValue"
-      ]
-    },
-    "ChannelType": {
-      "type": "string",
-      "enum": [
-        "visual",
-        "voice",
-        "chat",
-        "sms",
-        "multimodal"
-      ]
-    },
-    "DataSource": {
-      "type": "string",
-      "enum": [
-        "api-response",
-        "form-data",
-        "route-params",
-        "query-params",
-        "local-storage",
-        "constant",
-        "computed"
-      ]
-    },
-    "TriggerType": {
-      "type": "string",
-      "enum": [
-        "success",
-        "failure",
-        "submit",
-        "cancel",
-        "click",
-        "timeout",
-        "dataReady",
-        "custom"
-      ]
-    },
-    "ViewType": {
-      "type": "string",
-      "enum": [
-        "form",
-        "list",
-        "detail",
-        "dashboard",
-        "wizard",
-        "split",
-        "conversational",
-        "custom"
-      ]
-    },
-    "ActionComponentType": {
-      "type": "string",
-      "enum": [
-        "button",
-        "menu-item",
-        "link",
-        "voice-command",
-        "chat-button",
-        "sms-keyword",
-        "custom"
-      ]
-    },
-    "ButtonStyle": {
-      "type": "string",
-      "enum": [
-        "primary",
-        "secondary",
-        "danger",
-        "success",
-        "warning",
-        "ghost",
-        "icon"
-      ]
-    },
-    "ValidationType": {
-      "type": "string",
-      "enum": [
-        "required",
-        "minLength",
-        "maxLength",
-        "pattern",
-        "email",
-        "url",
-        "min",
-        "max",
-        "custom"
-      ]
-    },
-    "LayoutType": {
-      "type": "string",
-      "enum": [
-        "grid",
-        "flex",
-        "stack",
-        "flow",
-        "fixed",
-        "absolute",
-        "custom"
-      ]
-    },
-    "JustifyContent": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "space-between",
-        "space-around",
-        "space-evenly"
-      ]
-    },
-    "AlignItems": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch",
-        "baseline"
-      ]
-    },
-    "JustifyItems": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch"
-      ]
-    },
-    "AlignContent": {
-      "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch",
-        "space-between",
-        "space-around"
-      ]
-    },
-    "NotificationType": {
-      "type": "string",
-      "enum": [
-        "toast",
-        "alert",
-        "inline",
-        "banner",
-        "none"
-      ]
-    },
-    "HttpMethod": {
-      "type": "string",
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "HEAD",
-        "OPTIONS"
-      ]
-    },
-    "CacheStrategy": {
-      "type": "string",
-      "enum": [
-        "no-cache",
-        "cache-first",
-        "network-first",
-        "stale-while-revalidate"
-      ]
-    },
-    "AnimationType": {
-      "type": "string",
-      "enum": [
-        "fade",
-        "slide",
-        "scale",
-        "none"
-      ]
-    },
-    "ColumnDisplayType": {
-      "type": "string",
-      "enum": [
-        "text",
-        "number",
-        "currency",
-        "date",
-        "datetime",
-        "boolean",
-        "badge",
-        "link",
-        "image",
-        "avatar",
-        "actions",
-        "custom"
-      ]
-    },
-    "TextAlign": {
-      "type": "string",
-      "enum": [
-        "left",
-        "center",
-        "right"
-      ]
-    },
-    "SortDirection": {
-      "type": "string",
-      "enum": [
-        "asc",
-        "desc"
-      ]
-    },
-    "FilterType": {
-      "type": "string",
-      "enum": [
-        "text",
-        "select",
-        "multiselect",
-        "date",
-        "daterange",
-        "number",
-        "boolean"
-      ]
-    },
-    "StickyPosition": {
-      "type": "string",
-      "enum": [
-        "left",
-        "right",
-        "none"
-      ]
-    },
-    "SeriesType": {
-      "type": "string",
-      "enum": [
-        "line",
-        "area",
-        "bar",
-        "column",
-        "pie",
-        "donut",
-        "scatter",
-        "bubble",
-        "radar",
-        "heatmap"
-      ]
-    },
-    "LineStyle": {
-      "type": "string",
-      "enum": [
-        "solid",
-        "dashed",
-        "dotted"
-      ]
-    },
-    "LabelPosition": {
-      "type": "string",
-      "enum": [
-        "inside",
-        "outside",
-        "center",
-        "top",
-        "bottom"
-      ]
     }
   }
 }

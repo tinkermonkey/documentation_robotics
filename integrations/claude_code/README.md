@@ -25,14 +25,8 @@ After running `dr claude install`, you have access to:
 
 ### Specialized Agents (Launch with Task tool)
 
-- `dr-helper` - Ask questions about DR concepts and CLI usage
-- `dr-ideator` - Brainstorm architecture ideas using changesets
-- `dr-validator` - Validate model and get fix suggestions
-- `dr-extractor` - Extract models from existing codebases
-- `dr-documenter` - Generate documentation in multiple formats
-- `dr-schema-migrator` - **NEW** Migrate models from v0.1.x to v0.2.0
-- `dr-link-validator` - **NEW** Validate cross-layer links
-- `dr-security-reviewer` - **NEW** Security and compliance analysis
+- `dr-architect` - Comprehensive DR architect handling all workflows (validation, extraction, documentation, etc.)
+- `dr-release-preflight` - **DEV** Pre-release validation for version bumps (schemas, tests, changelogs, CI/CD)
 
 ### Slash Commands (Type in chat)
 
@@ -48,10 +42,12 @@ After running `dr claude install`, you have access to:
 
 Skills automatically suggest when relevant:
 
-- **Schema validation** - When editing models or mentioning errors
+**For Users:**
 - **Link validation** - When working across multiple layers
-- **Migration assistance** - When model uses old spec version
 - **Changeset review** - Before applying changeset changes
+
+**For Developers:**
+- **Spec-CLI consistency** - When modifying specs, schemas, or CLI implementation
 
 ### Reference Sheets
 
