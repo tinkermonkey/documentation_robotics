@@ -170,7 +170,15 @@ def mock_model():
             return element_c
         return None
 
+    def get_relationships(element_id):
+        """Get relationships for an element (mocked)."""
+        element = get_element(element_id)
+        if element:
+            return element.data.get("relationships", [])
+        return []
+
     model.get_element = get_element
+    model.get_relationships = get_relationships
     return model
 
 

@@ -310,17 +310,8 @@ class PredicateValidator:
         Returns:
             List of relationship dictionaries
         """
-        element = model.get_element(element_id)
-        if not element:
-            return []
-
-        # Check if element has relationships field
-        if hasattr(element, "data") and isinstance(element.data, dict):
-            relationships = element.data.get("relationships", [])
-            if isinstance(relationships, list):
-                return relationships
-
-        return []
+        # Use the model's get_relationships() method as defined in ModelProtocol
+        return model.get_relationships(element_id)
 
     def get_relationship_info(self, predicate: str) -> Optional[Dict[str, Any]]:
         """Get information about a relationship predicate.
