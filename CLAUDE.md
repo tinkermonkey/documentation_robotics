@@ -2,51 +2,101 @@
 
 ## Project Overview
 
-**Documentation Robotics** is a comprehensive toolkit for managing federated architecture data models. The project consists of:
+**Documentation Robotics** is a toolkit for managing federated architecture data models across 12 interconnected layers.
 
-1. **CLI Tool (`dr`)** - A Python command-line interface for managing 12-layer architecture models
-2. **Metadata Model Specifications** - Comprehensive documentation defining the 12-layer federated architecture model
+**Components:**
+1. **CLI Tool (`dr`)** - Python command-line interface for managing architecture models
+2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Version:** CLI v0.7.3, Metadata Model Spec v0.5.0
+**Current Versions:** CLI v0.7.3, Spec v0.6.0
 
 ## Repository Structure
 
 ```
 documentation_robotics/
-├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.5.0)
-│   ├── CHANGELOG.md             # Specification changelog
-│   ├── GOVERNANCE.md            # Governance model
-│   ├── CONTRIBUTING.md          # Contribution guidelines
-│   ├── core/                    # Core specification documents
+├── spec/                        # SPECIFICATION (v0.6.0)
+│   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 layer specifications
 │   ├── schemas/                 # JSON Schema definitions
-│   ├── conformance/             # Conformance requirements
-│   ├── guides/                  # Implementation guides
-│   ├── examples/                # Example models
-│   └── test-fixtures/           # Test data for validators
+│   └── [CHANGELOG, guides, examples, test-fixtures]
 │
-└── cli/                         # CLI IMPLEMENTATION
+└── cli/                         # CLI IMPLEMENTATION (v0.7.3)
     ├── src/documentation_robotics/
-    │   ├── cli.py              # Main CLI entry point
+    │   ├── cli.py              # Main entry point
     │   ├── commands/           # Command implementations
-    │   ├── core/               # Core domain logic
+    │   ├── core/               # Domain logic (model, layer, element)
+    │   ├── validators/         # Validation pipeline
     │   ├── export/             # Export format handlers
-    │   ├── validators/         # Validation logic
-    │   ├── schemas/            # JSON schemas
-    │   ├── server/             # Web server and chatbot
-    │   ├── viewer/             # Visualization components
-    │   ├── claude_integration/ # Claude Code integration
-    │   ├── copilot_integration/ # GitHub Copilot integration
-    │   └── utils/              # Utility functions
-    ├── tests/                  # Test suite
-    ├── docs/                   # CLI design documentation
-    └── pyproject.toml          # Python package config
+    │   ├── schemas/            # CLI's copy of JSON schemas
+    │   └── [server, viewer, claude_integration, copilot_integration, utils]
+    ├── tests/                  # Unit and integration tests
+    └── pyproject.toml          # Package configuration
 ```
+
+## Quick Reference
+
+### Virtual Environment Setup
+```bash
+# Venv is at repo root, CLI code is in cli/ subdirectory
+cd cli && pip install -e ".[dev]"
+source ../.venv/bin/activate  # From cli/ directory
+```
+
+### Common Commands
+```bash
+dr --help                    # CLI help
+pytest                       # Run all tests
+pytest tests/unit/           # Unit tests only
+pytest --cov                 # With coverage
+```
+
+### Key Dependencies
+- Python 3.10+, click, pydantic, jsonschema, networkx, rich
+
+### Approved Commands
+You have pre-approved access to: `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
+
+## Critical Rules
+
+### 1. Spec vs. CLI Separation
+- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/pyproject.toml`)
+- **Schema synchronization**: Schema changes require updating BOTH:
+  - `spec/schemas/{layer}.schema.json`
+  - `cli/src/documentation_robotics/schemas/bundled/{layer}.schema.json`
+- **Layer spec changes**: Must update both `spec/layers/{layer}.md` AND corresponding CLI validators/code
+
+### 2. When to Ask First
+- **ASK before proceeding:**
+  - Modifying layer specifications or schemas
+  - Breaking changes to CLI commands or public APIs
+  - Version bumps (use `/dr-release-prep` command for releases)
+  - Changes affecting backwards compatibility
+- **PROCEED without asking:**
+  - Bug fixes in CLI implementation
+  - Internal refactoring (no API changes)
+  - Adding tests or improving documentation
+  - Code quality improvements (typing, linting)
+
+### 3. Version Compatibility
+- CLI version can be ahead of spec version
+- CLI must remain compatible with current spec version
+- Breaking spec changes require spec version bump
+- Check `spec/CHANGELOG.md` and `cli/CHANGELOG.md` for version history
+
+### 4. Element Naming Convention
+- **Format**: `{layer}-{type}-{kebab-case-name}`
+- **Example**: `api-endpoint-create-customer`
+- Must be unique across entire model
+- Use `id_generator.py` utilities for consistency
+
+### 5. Cross-Layer References
+- **Direction**: Higher layers → lower layers only
+- Always validate references exist before creating
+- Use `reference_registry.py` for lookups and validation
 
 ## The 12-Layer Architecture Model
 
-The core concept is a federated architecture model spanning 12 interconnected layers:
+Federated architecture model spanning 12 interconnected layers:
 
 1. **Motivation** - Goals, requirements, stakeholders (ArchiMate)
 2. **Business** - Business processes and services (ArchiMate)
@@ -61,102 +111,85 @@ The core concept is a federated architecture model spanning 12 interconnected la
 11. **APM** - Observability and monitoring (OpenTelemetry)
 12. **Testing** - Test strategies, test cases, test data
 
-**Key Principle:** Elements in higher layers can reference elements in lower layers, creating a dependency graph.
+**Key Principle:** Elements in higher layers reference elements in lower layers, creating a dependency graph.
 
 ## Architecture Patterns
 
-### Core Domain Model
+### Core Domain (`core/`)
+- **Element** - Individual architecture items
+- **Layer** - Container for elements within a layer
+- **Model** - Complete architecture model across all layers
+- **Manifest** - Model metadata (version, name, etc.)
 
-- **Element** (`core/element.py`) - Individual architecture items (services, components, entities)
-- **Layer** (`core/layer.py`) - Container for elements within a specific layer
-- **Model** (`core/model.py`) - Complete architecture model across all layers
-- **Manifest** (`core/manifest.py`) - Metadata about the model (version, name, etc.)
+### Reference & Dependency System (`core/`)
+- **Reference Registry** - Tracks cross-layer references
+- **Relationship Registry** - Tracks intra-layer relationships
+- **Dependency Tracker** - Builds and analyzes dependency graphs
+- **Projection Engine** - Projects dependencies across layers
 
-### Reference System
+### Validation Pipeline (`validators/`)
+1. **Schema Validation** - JSON schema compliance
+2. **Naming Validation** - Naming convention enforcement
+3. **Reference Validation** - Cross-layer reference integrity
+4. **Semantic Validation** - Business rule validation
 
-- **Reference Registry** (`core/reference_registry.py`) - Tracks all cross-layer references
-- **Dependency Tracker** (`core/dependency_tracker.py`) - Builds and analyzes dependency graphs
-- **Projection Engine** (`core/projection_engine.py`) - Projects dependencies across layers
-
-### Validation Pipeline
-
-1. **Schema Validation** (`validators/schema.py`) - JSON schema validation
-2. **Naming Validation** (`validators/naming.py`) - Naming conventions
-3. **Reference Validation** (`validators/references.py`) - Cross-layer reference integrity
-4. **Semantic Validation** (`validators/semantic.py`) - Business rule validation
-
-### Export System
-
-- **Export Manager** (`export/export_manager.py`) - Orchestrates export operations
-- Format-specific exporters:
-  - **ArchiMate** - Layers 1, 2, 4, 5
-  - **OpenAPI** - Layer 6 (API)
-  - **JSON Schema** - Layer 7 (Data Model)
-  - **PlantUML** - Visual diagrams
-  - **Markdown** - Documentation
-  - **GraphML** - Graph visualization
+### Export System (`export/`)
+- **ArchiMate** - Layers 1, 2, 4, 5
+- **OpenAPI** - Layer 6 (API)
+- **JSON Schema** - Layer 7 (Data Model)
+- **PlantUML** - Visual diagrams
+- **Markdown** - Documentation
+- **GraphML** - Graph visualization
 
 ## Standards and Conventions
 
 ### Industry Standards
-
-- **ArchiMate 3.2** - Enterprise architecture modeling (motivation, business, application, technology)
-- **OpenAPI 3.0** - API specifications (API layer)
-- **JSON Schema Draft 7** - Data model schemas (data model layer)
-- **OpenTelemetry** - Application monitoring (APM layer)
-- **PlantUML** - Diagram generation
-- **GraphML** - Graph visualization
+- **ArchiMate 3.2** - Layers 1, 2, 4, 5
+- **OpenAPI 3.0** - Layer 6
+- **JSON Schema Draft 7** - Layer 7
+- **OpenTelemetry** - Layer 11
+- **PlantUML, GraphML** - Visualizations
 
 ### Coding Conventions
+- Follow PEP 8
+- Type hints throughout
+- Docstrings for public functions/classes
+- Commands in `commands/`, core logic in `core/`, validators in `validators/`
+- Tests: `tests/unit/` and `tests/integration/`
 
-1. **Python Style**
-   - Follow PEP 8
-   - Use type hints throughout
-   - Docstrings for all public functions/classes
-
-2. **Naming Conventions**
-   - Element IDs: `{layer}-{type}-{kebab-case-name}`
-   - Example: `api-endpoint-create-customer`
-
-3. **File Organization**
-   - Commands in `commands/` directory
-   - Core logic in `core/` directory
-   - Validators in `validators/` directory
-   - Exports in `export/` directory
-
-4. **Testing**
-   - Unit tests in `tests/unit/`
-   - Integration tests in `tests/integration/`
-   - Use pytest fixtures from `conftest.py`
+### Data Storage
+- Filesystem-based (no database)
+- Models in `.dr/` directory
+- Manifest: `.dr/manifest.json`
+- Layers: `.dr/layers/{layer-name}.json`
 
 ## Development Workflow
 
-### Setup
+### Adding a New Command
+1. Create command file in `commands/`
+2. Implement command class (inherit from base)
+3. Register in `cli.py`
+4. Add integration tests in `tests/integration/`
+5. Run `pytest` to verify
 
-```bash
-# Navigate to CLI directory
-cd cli
+### Adding/Modifying a Layer
+1. **ASK FIRST** - Layer changes affect spec
+2. Update `spec/layers/{layer}.md`
+3. Update `spec/schemas/{layer}.schema.json`
+4. Copy schema to `cli/src/documentation_robotics/schemas/bundled/`
+5. Update validators if needed
+6. Add export support if applicable
+7. Update tests
 
-# Create virtual environment (at repo root)
-cd .. && python3 -m venv .venv && source .venv/bin/activate
-
-# Install in development mode
-cd cli && pip install -e ".[dev]"
-
-# Run tests
-pytest
-
-# Run CLI
-dr --help
-```
+### Adding an Export Format
+1. Create exporter in `export/`
+2. Inherit from base exporter pattern
+3. Register in `export_manager.py`
+4. Add tests in `tests/unit/test_*_exporter.py`
 
 ### Testing
-
 ```bash
-# Run all tests
-pytest
-
-# Run with coverage
+# Run all tests with coverage
 pytest --cov=documentation_robotics --cov-report=html
 
 # Run specific test file
@@ -166,143 +199,60 @@ pytest tests/unit/test_reference_registry.py
 pytest tests/integration/
 ```
 
-### Common Development Tasks
-
-1. **Adding a New Command**
-   - Create command file in `commands/`
-   - Implement command class inheriting from base
-   - Register in `cli.py`
-   - Add tests in `tests/integration/`
-
-2. **Adding a New Layer**
-   - Update layer definitions in `core/layer.py`
-   - Add schema in `schemas/`
-   - Update validators if needed
-   - Add export support if applicable
-
-3. **Adding a New Export Format**
-   - Create exporter in `export/`
-   - Inherit from base exporter pattern
-   - Register in `export_manager.py`
-   - Add tests in `tests/unit/test_*_exporter.py`
+**Testing Strategy:**
+- **Unit tests**: Test components in isolation, mock dependencies, focus on edge cases
+- **Integration tests**: Test complete workflows using temporary directories
+- **Fixtures**: Common test data in `conftest.py`
 
 ## Key Files to Understand
 
 1. **cli.py** - CLI entry point, command routing
 2. **core/model.py** - Central model management
 3. **core/reference_registry.py** - Reference tracking system
-4. **validators/semantic.py** - Business rule validation
-5. **export/export_manager.py** - Export orchestration
-
-## Important Context
-
-The CLI recently completed the alpha build-out, which includes:
-
-- Export capabilities for 6+ formats
-- Full cross-layer dependency tracking
-- Projection engine for impact analysis
-- Comprehensive validation pipeline
-
-### Design Philosophy
-
-1. **Separation of Concerns** - Clear boundaries between commands, core logic, and validators
-2. **Extensibility** - Easy to add new layers, validators, and export formats
-3. **Standards Compliance** - Leverage industry standards where possible
-4. **Testability** - Comprehensive test coverage with unit and integration tests
-5. **User Experience** - Clear error messages, helpful output, intuitive commands
-
-### Data Storage
-
-- Models stored as JSON files in `.dr/` directory
-- Manifest in `.dr/manifest.json`
-- Layer data in `.dr/layers/{layer-name}.json`
-- No database - filesystem-based for simplicity and version control
+4. **core/relationship_registry.py** - Intra-layer relationship tracking
+5. **validators/semantic.py** - Business rule validation
+6. **export/export_manager.py** - Export orchestration
 
 ## Common Pitfalls
 
-1. **Cross-Layer References**
-   - Always validate references exist before creating
-   - Use reference registry for lookups
-   - Remember: higher layers → lower layers only
+1. **Schema Synchronization**
+   - Forgetting to update BOTH spec and CLI schemas
+   - Always update both or validation will fail
 
-2. **Element IDs**
-   - Must be unique across the entire model
-   - Follow naming convention strictly
-   - Use `id_generator.py` for consistency
+2. **Cross-Layer References**
+   - Violating the "higher → lower" rule
+   - Not validating references exist before creating
+   - Forgetting to use reference registry
 
-3. **Export Formats**
-   - Each layer maps to specific export formats
-   - Not all layers export to all formats
-   - Check format compatibility before exporting
+3. **Element IDs**
+   - Not following `{layer}-{type}-{kebab-case}` convention
+   - Creating duplicate IDs across layers
+   - Manually constructing IDs instead of using utilities
 
-4. **Virtual Environment**
-   - Virtual environment is at repo root (`.venv/`)
-   - CLI code is in `cli/` subdirectory
-   - Install from `cli/` directory: `cd cli && pip install -e .`
+4. **Export Format Compatibility**
+   - Attempting to export layers to unsupported formats
+   - Not checking format compatibility before exporting
 
-## Testing Strategy
+5. **Virtual Environment Path**
+   - Venv is at repo root (`.venv/`), not in `cli/`
+   - Must install from `cli/` directory: `cd cli && pip install -e .`
 
-### Unit Tests
+6. **Version Bumps**
+   - Manually editing version numbers
+   - Use `/dr-release-prep` command for proper release preparation
 
-- Test individual components in isolation
-- Mock external dependencies
-- Focus on edge cases and error handling
+## Design Philosophy
 
-### Integration Tests
-
-- Test complete command workflows
-- Use temporary directories for test models
-- Verify end-to-end functionality
-
-### Test Fixtures
-
-- Common test data in `conftest.py`
-- Reusable model builders
-- Sample elements for each layer
-
-## Future Considerations
-
-The repository structure supports future additions:
-
-- Web UI in `web/` directory
-- REST API server in `api/` directory
-- Plugin system in `plugins/` directory
-
-## Quick Reference
-
-### Approved Commands
-
-When working with this project, you have pre-approved access to:
-
-- `python3` commands
-- `source .venv/bin/activate`
-- `dr validate`
-- `dr search`
-- `pip install` commands
-- Reading files in `/private/tmp/test-dr-project/**`
-
-### Key Dependencies
-
-- Python 3.10+
-- click (CLI framework)
-- pydantic (data validation)
-- jsonschema (schema validation)
-- networkx (graph operations)
-- jsonpath-ng (JSON querying)
-- aiohttp (web server)
-- rich (terminal formatting)
+1. **Separation of Concerns** - Clear boundaries between commands, core logic, validators
+2. **Extensibility** - Easy to add layers, validators, export formats
+3. **Standards Compliance** - Leverage industry standards (ArchiMate, OpenAPI, etc.)
+4. **Testability** - Comprehensive unit and integration test coverage
+5. **User Experience** - Clear errors, helpful output, intuitive commands
 
 ## Documentation
 
 - Main README: `/README.md`
-- Specification: `/spec/`
+- Specification: `/spec/` (especially `spec/layers/` and `spec/CHANGELOG.md`)
 - CLI README: `/cli/README.md`
 - CLI design docs: `/cli/docs/`
-
-## Contact and Support
-
-This is a local development project. For issues or questions, refer to:
-
-- CLI documentation in `cli/README.md`
-- Design documents in `cli/docs/`
-- Specification documents in `spec/`
+- Release command: `/dr-release-prep` for version management
