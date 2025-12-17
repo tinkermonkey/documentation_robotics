@@ -463,7 +463,7 @@ These SLAs flow down to:
 ## ArchiMate Export
 
 ```bash
-dr export archimate --layers business --output business.archimate
+dr export archimate --layer business --output business.archimate
 ```
 
 **Supported ArchiMate Elements:**

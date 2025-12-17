@@ -407,7 +407,7 @@ Stakeholder: "CEO"
 When exporting to ArchiMate format:
 
 ```bash
-dr export archimate --layers motivation --output motivation.archimate
+dr export archimate --layer motivation --output motivation.archimate
 ```
 
 **Supported ArchiMate Elements:**
@@ -483,6 +483,6 @@ dr relationship add <source-id> specializes <target-id>
 
 ```bash
 dr search --layer motivation --type goal
-dr search --layer motivation --query "priority=critical"
+dr search --layer motivation --property priority=critical
 dr relationship list <element-id> --direction outgoing
 ```

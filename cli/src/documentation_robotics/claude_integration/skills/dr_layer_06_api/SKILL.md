@@ -780,7 +780,7 @@ dr relationship add api/<operation> supports motivation/<goal>
 
 ```bash
 dr export openapi --output api-spec.yaml
-dr export openapi --layers api --format json --output api-spec.json
+dr export openapi --layer api --format json --output api-spec.json
 ```
 
 **Validation Commands:**
