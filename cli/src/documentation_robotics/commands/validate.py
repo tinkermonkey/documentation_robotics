@@ -104,7 +104,7 @@ def validate(
                     # Need to create a minimal analyzer for validator
                     analyzer = LinkAnalyzer(registry)
                     validator = LinkValidator(
-                        registry, analyzer, strict_mode=strict, relationship_registry=relationship_registry
+                        registry, analyzer, strict_mode=strict_links, relationship_registry=relationship_registry
                     )
 
                 # Validate intra-layer relationships
