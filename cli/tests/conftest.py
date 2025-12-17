@@ -14,14 +14,27 @@ def configure_rich_for_tests():
     import os
 
     # Disable rich's terminal detection which can create subprocess transports
+    # Set these BEFORE any rich imports to prevent file descriptor creation
     os.environ["TERM"] = "dumb"
     os.environ["NO_COLOR"] = "1"
+    # Disable rich's auto-detection features
+    os.environ["COLUMNS"] = "80"
+    os.environ["LINES"] = "24"
 
     yield
 
-    # Cleanup
+    # Cleanup - close any rich console instances that may have been created
+    import sys
+    import gc
+
+    # Force garbage collection to clean up Console instances
+    gc.collect()
+
+    # Clean up environment variables
     os.environ.pop("TERM", None)
     os.environ.pop("NO_COLOR", None)
+    os.environ.pop("COLUMNS", None)
+    os.environ.pop("LINES", None)
 
 
 @pytest.fixture
