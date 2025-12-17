@@ -463,3 +463,304 @@ class TestShutdown:
 
         # Verify file monitor was stopped
         server.file_monitor.stop.assert_called_once()
+
+
+class TestAnnotationWebSocketFlow:
+    """Test annotation operations via WebSocket."""
+
+    @pytest.mark.asyncio
+    async def test_annotation_add_success(self, tmp_path):
+        """Test adding annotation via WebSocket."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_serializer = AnnotationSerializer(model_path)
+
+        ws = AsyncMock(spec=web.WebSocketResponse)
+        ws.send_json = AsyncMock()
+        server.websockets.add(ws)
+
+        message = {
+            "type": "annotation_add",
+            "data": {
+                "entity_uri": "motivation.goal.test",
+                "message": "Test annotation",
+                "user": "testuser",
+            },
+        }
+
+        await server._handle_annotation_add(ws, message)
+
+        # Verify annotation was created
+        annotations_file = model_path / "annotations" / "testuser" / "annotations.json"
+        assert annotations_file.exists()
+
+        import json
+        data = json.loads(annotations_file.read_text())
+        assert len(data["annotations"]) == 1
+        assert data["annotations"][0]["entity_uri"] == "motivation.goal.test"
+        assert data["annotations"][0]["message"] == "Test annotation"
+        assert data["annotations"][0]["user"] == "testuser"
+
+        # Verify broadcast was called
+        ws.send_json.assert_called_once()
+        broadcast_msg = ws.send_json.call_args[0][0]
+        assert broadcast_msg["type"] == "annotation_added"
+        assert broadcast_msg["data"]["entity_uri"] == "motivation.goal.test"
+
+    @pytest.mark.asyncio
+    async def test_annotation_add_missing_fields(self, tmp_path):
+        """Test adding annotation with missing required fields."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        ws = AsyncMock(spec=web.WebSocketResponse)
+        ws.send_json = AsyncMock()
+
+        # Missing 'user' field
+        message = {
+            "type": "annotation_add",
+            "data": {
+                "entity_uri": "motivation.goal.test",
+                "message": "Test annotation",
+            },
+        }
+
+        with patch(
+            "documentation_robotics.server.visualization_server.create_error_message",
+            return_value={"type": "error", "message": "Missing required fields"},
+        ):
+            await server._handle_annotation_add(ws, message)
+
+        # Should send error
+        ws.send_json.assert_called_once()
+        error_msg = ws.send_json.call_args[0][0]
+        assert error_msg["type"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_annotation_reply_success(self, tmp_path):
+        """Test adding reply via WebSocket."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        # Create parent annotation first
+        annotations_dir = model_path / "annotations" / "user1"
+        annotations_dir.mkdir(parents=True)
+
+        import json
+        parent_data = {
+            "annotations": [
+                {
+                    "id": "ann-parent",
+                    "entity_uri": "motivation.goal.test",
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "user": "user1",
+                    "message": "Parent annotation",
+                }
+            ]
+        }
+        (annotations_dir / "annotations.json").write_text(json.dumps(parent_data, indent=2))
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_registry.load_all()
+        server.annotation_serializer = AnnotationSerializer(model_path)
+
+        ws = AsyncMock(spec=web.WebSocketResponse)
+        ws.send_json = AsyncMock()
+        server.websockets.add(ws)
+
+        message = {
+            "type": "annotation_reply",
+            "data": {
+                "parent_id": "ann-parent",
+                "message": "Reply to annotation",
+                "user": "user2",
+            },
+        }
+
+        await server._handle_annotation_reply(ws, message)
+
+        # Verify reply was created in user2's file
+        reply_file = model_path / "annotations" / "user2" / "annotations.json"
+        assert reply_file.exists()
+
+        data = json.loads(reply_file.read_text())
+        assert len(data["annotations"]) == 1
+        assert data["annotations"][0]["parent_id"] == "ann-parent"
+        assert data["annotations"][0]["message"] == "Reply to annotation"
+        assert data["annotations"][0]["user"] == "user2"
+        assert data["annotations"][0]["entity_uri"] == "motivation.goal.test"
+
+        # Verify broadcast was called
+        ws.send_json.assert_called_once()
+        broadcast_msg = ws.send_json.call_args[0][0]
+        assert broadcast_msg["type"] == "annotation_reply_added"
+
+    @pytest.mark.asyncio
+    async def test_annotation_reply_parent_not_found(self, tmp_path):
+        """Test adding reply with nonexistent parent."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+
+        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_registry.load_all()
+
+        ws = AsyncMock(spec=web.WebSocketResponse)
+        ws.send_json = AsyncMock()
+
+        message = {
+            "type": "annotation_reply",
+            "data": {
+                "parent_id": "ann-nonexistent",
+                "message": "Reply to annotation",
+                "user": "testuser",
+            },
+        }
+
+        with patch(
+            "documentation_robotics.server.visualization_server.create_error_message",
+            return_value={"type": "error", "message": "Parent annotation not found"},
+        ):
+            await server._handle_annotation_reply(ws, message)
+
+        # Should send error
+        ws.send_json.assert_called_once()
+        error_msg = ws.send_json.call_args[0][0]
+        assert error_msg["type"] == "error"
+
+    @pytest.mark.asyncio
+    async def test_initial_state_includes_annotations(self, tmp_path):
+        """Test initial state message includes annotations."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        # Create test annotations
+        import json
+        annotations_dir = model_path / "annotations" / "testuser"
+        annotations_dir.mkdir(parents=True)
+        annotations_data = {
+            "annotations": [
+                {
+                    "id": "ann-test001",
+                    "entity_uri": "motivation.goal.test",
+                    "timestamp": "2024-01-01T00:00:00Z",
+                    "user": "testuser",
+                    "message": "Test annotation",
+                }
+            ]
+        }
+        (annotations_dir / "annotations.json").write_text(json.dumps(annotations_data, indent=2))
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Mock model serializer
+        server.specification = {"version": "0.5.0"}
+        server.model_serializer = Mock()
+        server.model_serializer.serialize_model.return_value = {
+            "manifest": {},
+            "layers": [],
+        }
+
+        # Initialize annotation components
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_serializer = AnnotationSerializer(model_path)
+
+        ws = AsyncMock(spec=web.WebSocketResponse)
+        ws.send_json = AsyncMock()
+
+        with patch(
+            "documentation_robotics.server.visualization_server.load_changesets",
+            return_value=[],
+        ):
+            await server._send_initial_state(ws)
+
+        # Verify annotations were included
+        ws.send_json.assert_called_once()
+        call_args = ws.send_json.call_args[0][0]
+        assert "data" in call_args
+        assert "model" in call_args["data"]
+        assert "annotations" in call_args["data"]["model"]
+        assert len(call_args["data"]["model"]["annotations"]) == 1
+        assert call_args["data"]["model"]["annotations"][0]["id"] == "ann-test001"
+
+    @pytest.mark.asyncio
+    async def test_broadcast_annotation_to_multiple_clients(self, tmp_path):
+        """Test annotation broadcast reaches all connected clients."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_serializer = AnnotationSerializer(model_path)
+
+        # Add multiple WebSocket clients
+        ws1 = AsyncMock(spec=web.WebSocketResponse)
+        ws1.send_json = AsyncMock()
+        ws2 = AsyncMock(spec=web.WebSocketResponse)
+        ws2.send_json = AsyncMock()
+        ws3 = AsyncMock(spec=web.WebSocketResponse)
+        ws3.send_json = AsyncMock()
+
+        server.websockets.add(ws1)
+        server.websockets.add(ws2)
+        server.websockets.add(ws3)
+
+        message = {
+            "type": "annotation_add",
+            "data": {
+                "entity_uri": "motivation.goal.test",
+                "message": "Broadcast test",
+                "user": "testuser",
+            },
+        }
+
+        await server._handle_annotation_add(ws1, message)
+
+        # All clients should receive the broadcast
+        ws1.send_json.assert_called_once()
+        ws2.send_json.assert_called_once()
+        ws3.send_json.assert_called_once()
+
+        # All should receive same annotation_added message
+        for ws in [ws1, ws2, ws3]:
+            broadcast_msg = ws.send_json.call_args[0][0]
+            assert broadcast_msg["type"] == "annotation_added"
+            assert broadcast_msg["data"]["message"] == "Broadcast test"
