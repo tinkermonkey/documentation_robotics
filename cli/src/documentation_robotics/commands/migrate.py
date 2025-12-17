@@ -344,7 +344,7 @@ def _apply_migrations(
             console.print("\n[bold]Syncing schemas...[/bold]")
             initializer = ModelInitializer(
                 root_path=model_path.parent.parent,  # Go up from model/ to project root
-                project_name=manifest.project_name,
+                project_name=manifest.project.get("name", ""),
                 template="basic",
                 minimal=False,
                 with_examples=False,
