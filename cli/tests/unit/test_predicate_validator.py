@@ -1,15 +1,10 @@
 """Unit tests for PredicateValidator."""
 
-import json
-from copy import deepcopy
-from pathlib import Path
-from unittest.mock import Mock, MagicMock
+from unittest.mock import Mock
 
 import pytest
-
 from documentation_robotics.core.relationship_registry import RelationshipRegistry, RelationshipType
 from documentation_robotics.validators.predicate_validator import PredicateValidator
-from documentation_robotics.validators.base import ValidationResult
 
 
 @pytest.fixture
@@ -144,17 +139,13 @@ def mock_model():
     element_a = Mock()
     element_a.id = "07-data-model.entity.user"
     element_a.data = {
-        "relationships": [
-            {"targetId": "07-data-model.entity.profile", "predicate": "composes"}
-        ]
+        "relationships": [{"targetId": "07-data-model.entity.profile", "predicate": "composes"}]
     }
 
     element_b = Mock()
     element_b.id = "07-data-model.entity.profile"
     element_b.data = {
-        "relationships": [
-            {"targetId": "07-data-model.entity.user", "predicate": "composed-of"}
-        ]
+        "relationships": [{"targetId": "07-data-model.entity.user", "predicate": "composed-of"}]
     }
 
     element_c = Mock()

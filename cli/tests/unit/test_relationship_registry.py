@@ -5,7 +5,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 from documentation_robotics.core.relationship_registry import (
     RelationshipRegistry,
     RelationshipType,

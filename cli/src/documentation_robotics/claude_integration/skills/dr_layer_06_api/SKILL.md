@@ -1,7 +1,18 @@
 ---
 name: LAYER_06_API
 description: Expert knowledge for API Layer modeling in Documentation Robotics
-triggers: ["OpenAPI", "REST API", "endpoint", "operation", "swagger", "API specification", "HTTP method", "request", "response"]
+triggers:
+  [
+    "OpenAPI",
+    "REST API",
+    "endpoint",
+    "operation",
+    "swagger",
+    "API specification",
+    "HTTP method",
+    "request",
+    "response",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +27,7 @@ version: 0.6.0
 ## Layer Overview
 
 The API Layer captures **API contracts**:
+
 - **OPERATIONS** - HTTP methods on paths (GET, POST, PUT, DELETE, PATCH)
 - **SCHEMAS** - Request/response data structures
 - **SECURITY** - Authentication and authorization schemes
@@ -32,46 +44,46 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Core OpenAPI Entities (13 entities)
 
-| Entity Type | Description |
-|-------------|-------------|
-| **OpenAPIDocument** | Root of an OpenAPI specification file (version 3.0.3) |
-| **Info** | Metadata about the API (title, description, version, contact, license) |
-| **Server** | Server where the API is available (with URL and variables) |
-| **Paths** | Available API endpoints and operations |
-| **PathItem** | Operations available on a path |
-| **Operation** | Single API operation (HTTP method on a path) - **CENTRAL ENTITY** |
-| **Parameter** | Parameter for an operation (locations: query, header, path, cookie) |
-| **RequestBody** | Request payload for an operation |
-| **Responses** | Possible responses from an operation |
-| **Response** | Single response definition with status code |
-| **MediaType** | Media type and schema for request/response body |
-| **Components** | Reusable component definitions (schemas, responses, parameters, examples, security schemes) |
-| **Schema** | Data type definition (JSON Schema subset) |
+| Entity Type         | Description                                                                                 |
+| ------------------- | ------------------------------------------------------------------------------------------- |
+| **OpenAPIDocument** | Root of an OpenAPI specification file (version 3.0.3)                                       |
+| **Info**            | Metadata about the API (title, description, version, contact, license)                      |
+| **Server**          | Server where the API is available (with URL and variables)                                  |
+| **Paths**           | Available API endpoints and operations                                                      |
+| **PathItem**        | Operations available on a path                                                              |
+| **Operation**       | Single API operation (HTTP method on a path) - **CENTRAL ENTITY**                           |
+| **Parameter**       | Parameter for an operation (locations: query, header, path, cookie)                         |
+| **RequestBody**     | Request payload for an operation                                                            |
+| **Responses**       | Possible responses from an operation                                                        |
+| **Response**        | Single response definition with status code                                                 |
+| **MediaType**       | Media type and schema for request/response body                                             |
+| **Components**      | Reusable component definitions (schemas, responses, parameters, examples, security schemes) |
+| **Schema**          | Data type definition (JSON Schema subset)                                                   |
 
 ### Metadata Entities (11 entities)
 
-| Entity Type | Description |
-|-------------|-------------|
-| **Tag** | Metadata label for grouping operations |
-| **ExternalDocumentation** | Reference to external documentation |
-| **Contact** | Contact information for API owner |
-| **License** | Legal license for API |
-| **ServerVariable** | Variable placeholder in server URL templates |
-| **Header** | HTTP header parameters for requests/responses |
-| **Link** | Relationship between API responses and subsequent operations (HATEOAS) |
-| **Callback** | Webhook or callback URL pattern |
-| **Example** | Sample values for documentation and testing |
-| **Encoding** | Serialization details for multipart content |
-| **SecurityScheme** | Security mechanism (types: apiKey, http, oauth2, openIdConnect) |
+| Entity Type               | Description                                                            |
+| ------------------------- | ---------------------------------------------------------------------- |
+| **Tag**                   | Metadata label for grouping operations                                 |
+| **ExternalDocumentation** | Reference to external documentation                                    |
+| **Contact**               | Contact information for API owner                                      |
+| **License**               | Legal license for API                                                  |
+| **ServerVariable**        | Variable placeholder in server URL templates                           |
+| **Header**                | HTTP header parameters for requests/responses                          |
+| **Link**                  | Relationship between API responses and subsequent operations (HATEOAS) |
+| **Callback**              | Webhook or callback URL pattern                                        |
+| **Example**               | Sample values for documentation and testing                            |
+| **Encoding**              | Serialization details for multipart content                            |
+| **SecurityScheme**        | Security mechanism (types: apiKey, http, oauth2, openIdConnect)        |
 
 ### Supporting Entities (3 entities)
 
-| Entity Type | Description |
-|-------------|-------------|
-| **OAuthFlows** | Configuration for OAuth 2.0 flows |
-| **Condition** | Logical expression for policy evaluation |
-| **RetentionPolicy** | Data retention policies |
-| **ValidationRule** | Data validation constraints |
+| Entity Type         | Description                              |
+| ------------------- | ---------------------------------------- |
+| **OAuthFlows**      | Configuration for OAuth 2.0 flows        |
+| **Condition**       | Logical expression for policy evaluation |
+| **RetentionPolicy** | Data retention policies                  |
+| **ValidationRule**  | Data validation constraints              |
 
 ---
 
@@ -79,83 +91,83 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Composition Relationships (Part cannot exist without whole)
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
-| OpenAPIDocument | composes | Info | Document has metadata |
-| OpenAPIDocument | composes | Paths | Document defines endpoints |
-| OpenAPIDocument | composes | Components | Document has reusable components |
-| Paths | composes | PathItem | Paths contain path items |
-| PathItem | composes | Operation | Path has HTTP methods |
-| PathItem | composes | Parameter | Path-level parameters |
-| Operation | composes | Parameter | Operation-specific parameters |
-| Operation | composes | RequestBody | Request payload definition |
-| Operation | composes | Responses | Response definitions |
-| Responses | composes | Response | Individual status responses |
-| RequestBody | composes | MediaType | Request content types |
-| Response | composes | MediaType | Response content types |
-| Response | composes | Header | Response headers |
-| Response | composes | Link | HATEOAS links |
-| MediaType | composes | Schema | Data structure |
-| MediaType | composes | Example | Sample data |
-| MediaType | composes | Encoding | Serialization details |
-| Components | composes | Schema | Reusable schemas |
-| Components | composes | Response | Reusable responses |
-| Components | composes | Parameter | Reusable parameters |
-| Components | composes | Example | Reusable examples |
-| Components | composes | RequestBody | Reusable request bodies |
-| Components | composes | Header | Reusable headers |
-| Components | composes | SecurityScheme | Security definitions |
-| Components | composes | Link | Reusable links |
-| Components | composes | Callback | Reusable callbacks |
-| Info | composes | Contact | API owner contact |
-| Info | composes | License | API license |
-| SecurityScheme | composes | OAuthFlows | OAuth2 configuration |
+| Source          | Predicate | Target         | Example                          |
+| --------------- | --------- | -------------- | -------------------------------- |
+| OpenAPIDocument | composes  | Info           | Document has metadata            |
+| OpenAPIDocument | composes  | Paths          | Document defines endpoints       |
+| OpenAPIDocument | composes  | Components     | Document has reusable components |
+| Paths           | composes  | PathItem       | Paths contain path items         |
+| PathItem        | composes  | Operation      | Path has HTTP methods            |
+| PathItem        | composes  | Parameter      | Path-level parameters            |
+| Operation       | composes  | Parameter      | Operation-specific parameters    |
+| Operation       | composes  | RequestBody    | Request payload definition       |
+| Operation       | composes  | Responses      | Response definitions             |
+| Responses       | composes  | Response       | Individual status responses      |
+| RequestBody     | composes  | MediaType      | Request content types            |
+| Response        | composes  | MediaType      | Response content types           |
+| Response        | composes  | Header         | Response headers                 |
+| Response        | composes  | Link           | HATEOAS links                    |
+| MediaType       | composes  | Schema         | Data structure                   |
+| MediaType       | composes  | Example        | Sample data                      |
+| MediaType       | composes  | Encoding       | Serialization details            |
+| Components      | composes  | Schema         | Reusable schemas                 |
+| Components      | composes  | Response       | Reusable responses               |
+| Components      | composes  | Parameter      | Reusable parameters              |
+| Components      | composes  | Example        | Reusable examples                |
+| Components      | composes  | RequestBody    | Reusable request bodies          |
+| Components      | composes  | Header         | Reusable headers                 |
+| Components      | composes  | SecurityScheme | Security definitions             |
+| Components      | composes  | Link           | Reusable links                   |
+| Components      | composes  | Callback       | Reusable callbacks               |
+| Info            | composes  | Contact        | API owner contact                |
+| Info            | composes  | License        | API license                      |
+| SecurityScheme  | composes  | OAuthFlows     | OAuth2 configuration             |
 
 ### Aggregation Relationships (Part can exist independently)
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
-| OpenAPIDocument | aggregates | Server | API deployment servers |
-| OpenAPIDocument | aggregates | Tag | Operation tags |
-| OpenAPIDocument | aggregates | SecurityRequirement | Global security |
-| Server | aggregates | ServerVariable | URL template variables |
-| PathItem | aggregates | Parameter | Shared parameters |
-| Operation | aggregates | Callback | Webhooks |
-| Operation | aggregates | SecurityRequirement | Operation-level security |
+| Source          | Predicate  | Target              | Example                  |
+| --------------- | ---------- | ------------------- | ------------------------ |
+| OpenAPIDocument | aggregates | Server              | API deployment servers   |
+| OpenAPIDocument | aggregates | Tag                 | Operation tags           |
+| OpenAPIDocument | aggregates | SecurityRequirement | Global security          |
+| Server          | aggregates | ServerVariable      | URL template variables   |
+| PathItem        | aggregates | Parameter           | Shared parameters        |
+| Operation       | aggregates | Callback            | Webhooks                 |
+| Operation       | aggregates | SecurityRequirement | Operation-level security |
 
 ### Reference Relationships
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
-| Schema | references | Schema | Schema $ref to another schema |
-| Parameter | references | Schema | Parameter uses schema |
-| Header | references | Schema | Header uses schema |
-| Link | references | Operation | Link points to operation (operationId) |
-| Callback | references | PathItem | Callback references path definition |
-| Operation | references | Tag | Operation tagged for grouping |
-| Tag | references | ExternalDocumentation | Tag links to external docs |
-| OpenAPIDocument | references | ExternalDocumentation | Document links to external docs |
-| Encoding | references | Header | Encoding uses headers |
+| Source          | Predicate  | Target                | Example                                |
+| --------------- | ---------- | --------------------- | -------------------------------------- |
+| Schema          | references | Schema                | Schema $ref to another schema          |
+| Parameter       | references | Schema                | Parameter uses schema                  |
+| Header          | references | Schema                | Header uses schema                     |
+| Link            | references | Operation             | Link points to operation (operationId) |
+| Callback        | references | PathItem              | Callback references path definition    |
+| Operation       | references | Tag                   | Operation tagged for grouping          |
+| Tag             | references | ExternalDocumentation | Tag links to external docs             |
+| OpenAPIDocument | references | ExternalDocumentation | Document links to external docs        |
+| Encoding        | references | Header                | Encoding uses headers                  |
 
 ### Specialization Relationships
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
+| Source | Predicate   | Target | Example                                  |
+| ------ | ----------- | ------ | ---------------------------------------- |
 | Schema | specializes | Schema | Schema inheritance (allOf, oneOf, anyOf) |
 
 ### Behavioral Relationships
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
-| Operation | triggers | Callback | Operation invokes webhook |
-| SecurityScheme | serves | Operation | Security scheme protects operation |
+| Source         | Predicate | Target    | Example                            |
+| -------------- | --------- | --------- | ---------------------------------- |
+| Operation      | triggers  | Callback  | Operation invokes webhook          |
+| SecurityScheme | serves    | Operation | Security scheme protects operation |
 
 ### Association Relationships
 
-| Source | Predicate | Target | Example |
-|--------|-----------|--------|---------|
+| Source  | Predicate       | Target          | Example              |
+| ------- | --------------- | --------------- | -------------------- |
 | Contact | associated-with | OpenAPIDocument | Contact info for API |
-| License | associated-with | OpenAPIDocument | Legal license |
+| License | associated-with | OpenAPIDocument | Legal license        |
 
 ---
 
@@ -163,26 +175,26 @@ This layer uses **OpenAPI 3.0.3** (de facto industry standard) with custom exten
 
 ### Outgoing References (API → Other Layers)
 
-OpenAPI specification includes **custom extensions** (x-* properties) for cross-layer traceability:
+OpenAPI specification includes **custom extensions** (x-\* properties) for cross-layer traceability:
 
-| Target Layer | Extension Property | Example |
-|--------------|-------------------|---------|
-| **Layer 1 (Motivation)** | `x-supports-goals` | Operation supports business goals |
-| **Layer 1 (Motivation)** | `x-fulfills-requirements` | Operation fulfills functional requirements |
-| **Layer 1 (Motivation)** | `x-governed-by-principles` | Operation follows architectural principles |
-| **Layer 1 (Motivation)** | `x-constrained-by` | Operation subject to constraints (GDPR, HIPAA, SOX) |
-| **Layer 2 (Business)** | `x-business-service-ref` | Operation realizes business service |
-| **Layer 2 (Business)** | `x-business-interface-ref` | Operation exposed via business interface |
-| **Layer 4 (Application)** | `x-archimate-ref` | OpenAPI document realizes ApplicationService |
-| **Layer 7 (Data Model)** | `schema.$ref` | Schema references JSON Schema definition |
-| **Layer 3 (Security)** | `x-security-resource` | Operation protected by SecureResource |
-| **Layer 3 (Security)** | `x-required-permissions` | Operation requires specific permissions |
-| **Layer 3 (Security)** | `x-rate-limit` | Rate limiting configuration |
-| **Layer 11 (APM)** | `x-apm-business-metrics` | Operation tracked by business metrics |
-| **Layer 11 (APM)** | `x-apm-sla-target-latency` | Expected response time (e.g., "100ms") |
-| **Layer 11 (APM)** | `x-apm-sla-target-availability` | Expected availability (e.g., "99.9%") |
-| **Layer 11 (APM)** | `x-apm-trace` | Distributed tracing enabled |
-| **Layer 11 (APM)** | `x-apm-criticality` | Business criticality (critical, high, medium, low) |
+| Target Layer              | Extension Property              | Example                                             |
+| ------------------------- | ------------------------------- | --------------------------------------------------- |
+| **Layer 1 (Motivation)**  | `x-supports-goals`              | Operation supports business goals                   |
+| **Layer 1 (Motivation)**  | `x-fulfills-requirements`       | Operation fulfills functional requirements          |
+| **Layer 1 (Motivation)**  | `x-governed-by-principles`      | Operation follows architectural principles          |
+| **Layer 1 (Motivation)**  | `x-constrained-by`              | Operation subject to constraints (GDPR, HIPAA, SOX) |
+| **Layer 2 (Business)**    | `x-business-service-ref`        | Operation realizes business service                 |
+| **Layer 2 (Business)**    | `x-business-interface-ref`      | Operation exposed via business interface            |
+| **Layer 4 (Application)** | `x-archimate-ref`               | OpenAPI document realizes ApplicationService        |
+| **Layer 7 (Data Model)**  | `schema.$ref`                   | Schema references JSON Schema definition            |
+| **Layer 3 (Security)**    | `x-security-resource`           | Operation protected by SecureResource               |
+| **Layer 3 (Security)**    | `x-required-permissions`        | Operation requires specific permissions             |
+| **Layer 3 (Security)**    | `x-rate-limit`                  | Rate limiting configuration                         |
+| **Layer 11 (APM)**        | `x-apm-business-metrics`        | Operation tracked by business metrics               |
+| **Layer 11 (APM)**        | `x-apm-sla-target-latency`      | Expected response time (e.g., "100ms")              |
+| **Layer 11 (APM)**        | `x-apm-sla-target-availability` | Expected availability (e.g., "99.9%")               |
+| **Layer 11 (APM)**        | `x-apm-trace`                   | Distributed tracing enabled                         |
+| **Layer 11 (APM)**        | `x-apm-criticality`             | Business criticality (critical, high, medium, low)  |
 
 ### Incoming References (Lower Layers → API)
 
@@ -233,6 +245,7 @@ async def create_user(user: UserCreateRequest) -> UserResponse:  # RequestBody +
 ```
 
 **Maps to:**
+
 - OpenAPIDocument: "User Management API"
 - PathItem: "/api/users"
 - Operation: "POST /api/users"
@@ -243,8 +256,8 @@ async def create_user(user: UserCreateRequest) -> UserResponse:  # RequestBody +
 ### Pattern 2: Express.js TypeScript
 
 ```typescript
-import express from 'express';
-import { body, param, query, validationResult } from 'express-validator';
+import express from "express";
+import { body, param, query, validationResult } from "express-validator";
 
 const router = express.Router();
 
@@ -276,16 +289,13 @@ const router = express.Router();
  *     x-apm-sla-target-latency: 100ms
  *     x-apm-criticality: high
  */
-router.get(
-  '/api/orders/:orderId',
-  param('orderId').isUUID(),
-  async (req, res) => {
-    // Implementation
-  }
-);
+router.get("/api/orders/:orderId", param("orderId").isUUID(), async (req, res) => {
+  // Implementation
+});
 ```
 
 **Maps to:**
+
 - PathItem: "/api/orders/{orderId}"
 - Operation: "GET /api/orders/{orderId}"
 - Parameter: "orderId" (in: path, type: string, format: uuid)
@@ -330,6 +340,7 @@ public class ProductController {
 ```
 
 **Maps to:**
+
 - PathItem: "/api/products"
 - Operation: "GET /api/products"
 - Parameters: "page" (query), "size" (query)
@@ -376,21 +387,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/PaymentRequest'
+              $ref: "#/components/schemas/PaymentRequest"
             examples:
               credit-card:
-                $ref: '#/components/examples/CreditCardPayment'
+                $ref: "#/components/examples/CreditCardPayment"
       responses:
-        '201':
+        "201":
           description: Payment processed successfully
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaymentResponse'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
+                $ref: "#/components/schemas/PaymentResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
       x-business-service-ref: business/service/payment-processing
       x-apm-sla-target-latency: 500ms
       x-apm-sla-target-availability: 99.99%
@@ -420,7 +431,7 @@ components:
           enum: [USD, EUR, GBP]
           example: USD
         payment_method:
-          $ref: '#/components/schemas/PaymentMethod'
+          $ref: "#/components/schemas/PaymentMethod"
 
     PaymentResponse:
       type: object
@@ -452,7 +463,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: "#/components/schemas/Error"
 
   examples:
     CreditCardPayment:
@@ -683,7 +694,7 @@ x-apm-criticality: "low"
 5. **Document Examples** - Include request/response examples for testing and documentation
 6. **Security at Operation Level** - Different operations can have different security requirements
 7. **Link to Business Services** - Use x-business-service-ref for traceability
-8. **Define SLA Targets** - Use x-apm-sla-target-* for monitoring
+8. **Define SLA Targets** - Use x-apm-sla-target-\* for monitoring
 9. **Version APIs Properly** - Use semantic versioning (major.minor.patch)
 10. **Generate from Code** - Use FastAPI, NestJS decorators, or Springdoc to auto-generate OpenAPI specs
 
@@ -692,22 +703,26 @@ x-apm-criticality: "low"
 ## OpenAPI Tooling Ecosystem
 
 ### Generation Tools
+
 - **FastAPI** (Python) - Auto-generates OpenAPI from Python decorators
 - **NestJS** (TypeScript) - Swagger module for OpenAPI generation
 - **Springdoc** (Java) - OpenAPI 3 for Spring Boot applications
 - **Express + swagger-jsdoc** (Node.js) - Generate from JSDoc comments
 
 ### Validation Tools
+
 - **Spectral** - OpenAPI linter and validator
 - **openapi-validator** - IBM's OpenAPI validator
 - **swagger-cli** - Validate and bundle OpenAPI specs
 
 ### Documentation Tools
+
 - **Swagger UI** - Interactive API documentation
 - **Redoc** - Clean, customizable API documentation
 - **Postman** - Import OpenAPI for API testing
 
 ### Code Generation Tools
+
 - **OpenAPI Generator** - Generate client SDKs and server stubs
 - **swagger-codegen** - Legacy code generation tool
 - **oapi-codegen** (Go) - Generate Go server/client from OpenAPI
@@ -716,22 +731,23 @@ x-apm-criticality: "low"
 
 ## Validation Tips
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Missing Operations | Paths defined but no operations | Add HTTP methods (GET, POST, etc.) |
-| Unlinked Schemas | Schemas not referenced by operations | Link schemas to request/response bodies |
-| Missing Security | Operations lack security requirements | Add securitySchemes and apply to operations |
+| Issue                | Cause                                  | Fix                                            |
+| -------------------- | -------------------------------------- | ---------------------------------------------- |
+| Missing Operations   | Paths defined but no operations        | Add HTTP methods (GET, POST, etc.)             |
+| Unlinked Schemas     | Schemas not referenced by operations   | Link schemas to request/response bodies        |
+| Missing Security     | Operations lack security requirements  | Add securitySchemes and apply to operations    |
 | No Cross-Layer Links | API not linked to business/application | Add x-business-service-ref and x-archimate-ref |
-| Missing SLA Targets | Operations lack performance targets | Add x-apm-sla-target-* extensions |
-| Untagged Operations | Operations not organized by tags | Add tags for grouping |
-| No Examples | Schemas lack examples | Add example values for documentation |
-| Invalid OpenAPI | Spec doesn't validate | Use Spectral or openapi-validator |
+| Missing SLA Targets  | Operations lack performance targets    | Add x-apm-sla-target-\* extensions             |
+| Untagged Operations  | Operations not organized by tags       | Add tags for grouping                          |
+| No Examples          | Schemas lack examples                  | Add example values for documentation           |
+| Invalid OpenAPI      | Spec doesn't validate                  | Use Spectral or openapi-validator              |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add api document <name> --properties version=3.0.3,title=<title>
 dr add api operation <name> --properties path=<path>,method=<method>
@@ -742,6 +758,7 @@ dr add api tag <name> --properties name=<display-name>
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <operation> uses-schema <schema>
 dr relationship add <operation> has-parameter <parameter>
@@ -750,6 +767,7 @@ dr relationship add <schema> references <schema>
 ```
 
 **Cross-Layer Commands:**
+
 ```bash
 dr relationship add api/<operation> realizes business/<service>
 dr relationship add api/<document> realizes application/<service>
@@ -759,12 +777,14 @@ dr relationship add api/<operation> supports motivation/<goal>
 ```
 
 **Export Commands:**
+
 ```bash
 dr export openapi --output api-spec.yaml
 dr export openapi --layers api --format json --output api-spec.json
 ```
 
 **Validation Commands:**
+
 ```bash
 dr validate --layer api
 spectral lint api-spec.yaml
@@ -803,7 +823,7 @@ x-apm-business-metrics: [apm/metric/id1]
 x-apm-sla-target-latency: "100ms"
 x-apm-sla-target-availability: "99.9%"
 x-apm-trace: true
-x-apm-criticality: "high"  # critical, high, medium, low
+x-apm-criticality: "high" # critical, high, medium, low
 ```
 
 These extensions enable full traceability from API operations to business goals, requirements, security controls, and monitoring metrics.
@@ -813,6 +833,7 @@ These extensions enable full traceability from API operations to business goals,
 ## Summary
 
 The API Layer is the **contract layer** - it defines HOW external consumers interact with your system. Every operation should:
+
 1. Be linked to a business service (traceability)
 2. Have clear request/response schemas
 3. Define security requirements

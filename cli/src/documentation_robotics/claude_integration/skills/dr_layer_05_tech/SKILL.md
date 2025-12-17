@@ -1,7 +1,20 @@
 ---
 name: LAYER_05_TECH
 description: Expert knowledge for Technology Layer modeling in Documentation Robotics
-triggers: ["infrastructure", "node", "kubernetes", "docker", "server", "database", "technology service", "network", "cloud", "terraform", "archimate technology"]
+triggers:
+  [
+    "infrastructure",
+    "node",
+    "kubernetes",
+    "docker",
+    "server",
+    "database",
+    "technology service",
+    "network",
+    "cloud",
+    "terraform",
+    "archimate technology",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +29,7 @@ version: 0.6.0
 ## Layer Overview
 
 The Technology Layer captures **infrastructure and platform**:
+
 - **COMPUTE** - Nodes, devices, system software
 - **NETWORK** - Communication networks, paths, interfaces
 - **STORAGE** - Artifacts (databases, files, configurations)
@@ -28,21 +42,21 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ## Entity Types
 
-| Entity Type | Description | Key Attributes |
-|-------------|-------------|----------------|
-| **Node** | Computational or physical resource that hosts artifacts | Types: server, container, vm, kubernetes-cluster, serverless-function, database-cluster |
-| **Device** | Physical IT resource with processing capability | Types: server, workstation, mobile, iot-device, network-device, storage-appliance |
-| **SystemSoftware** | Software that provides platform for applications | Types: operating-system, database, middleware, container-runtime, web-server, message-broker |
-| **TechnologyCollaboration** | Aggregate of nodes working together | Examples: HA Cluster, CDN Network, Service Mesh |
-| **TechnologyInterface** | Point of access where technology services are available | Protocols: HTTP, HTTPS, TCP, UDP, WebSocket, AMQP, MQTT, SQL, gRPC |
-| **Path** | Link between nodes through which they exchange | Types: network, vpn, direct-connect, internet, peering |
-| **CommunicationNetwork** | Set of structures that connects nodes | Types: lan, wan, vpn, internet, cdn, service-mesh, zero-trust-network |
-| **TechnologyFunction** | Collection of technology behavior | Examples: Load Balancing, Data Replication, Auto-scaling, Monitoring |
-| **TechnologyProcess** | Sequence of technology behaviors (CI/CD, provisioning) | Automation: ansible, terraform, kubernetes, cloudformation, pulumi |
-| **TechnologyInteraction** | Unit of collective technology behavior | Examples: Database Replication, Cache Synchronization, Failover |
-| **TechnologyEvent** | Technology state change | Types: startup, shutdown, failure, scaling, maintenance, alert |
-| **TechnologyService** | Externally visible unit of technology functionality | Types: infrastructure, platform, storage, compute, network, database, messaging |
-| **Artifact** | Physical piece of data used or produced | Types: database, file, configuration, binary, log, backup, docker-image, helm-chart |
+| Entity Type                 | Description                                             | Key Attributes                                                                               |
+| --------------------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| **Node**                    | Computational or physical resource that hosts artifacts | Types: server, container, vm, kubernetes-cluster, serverless-function, database-cluster      |
+| **Device**                  | Physical IT resource with processing capability         | Types: server, workstation, mobile, iot-device, network-device, storage-appliance            |
+| **SystemSoftware**          | Software that provides platform for applications        | Types: operating-system, database, middleware, container-runtime, web-server, message-broker |
+| **TechnologyCollaboration** | Aggregate of nodes working together                     | Examples: HA Cluster, CDN Network, Service Mesh                                              |
+| **TechnologyInterface**     | Point of access where technology services are available | Protocols: HTTP, HTTPS, TCP, UDP, WebSocket, AMQP, MQTT, SQL, gRPC                           |
+| **Path**                    | Link between nodes through which they exchange          | Types: network, vpn, direct-connect, internet, peering                                       |
+| **CommunicationNetwork**    | Set of structures that connects nodes                   | Types: lan, wan, vpn, internet, cdn, service-mesh, zero-trust-network                        |
+| **TechnologyFunction**      | Collection of technology behavior                       | Examples: Load Balancing, Data Replication, Auto-scaling, Monitoring                         |
+| **TechnologyProcess**       | Sequence of technology behaviors (CI/CD, provisioning)  | Automation: ansible, terraform, kubernetes, cloudformation, pulumi                           |
+| **TechnologyInteraction**   | Unit of collective technology behavior                  | Examples: Database Replication, Cache Synchronization, Failover                              |
+| **TechnologyEvent**         | Technology state change                                 | Types: startup, shutdown, failure, scaling, maintenance, alert                               |
+| **TechnologyService**       | Externally visible unit of technology functionality     | Types: infrastructure, platform, storage, compute, network, database, messaging              |
+| **Artifact**                | Physical piece of data used or produced                 | Types: database, file, configuration, binary, log, backup, docker-image, helm-chart          |
 
 ---
 
@@ -50,37 +64,37 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ### Structural Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| Device | composes | Node | "Physical Server" composes "Virtual Machine" |
-| Node | composes | TechnologyInterface | "API Server" composes "HTTPS Endpoint" |
-| SystemSoftware | composes | TechnologyInterface | "PostgreSQL" composes "SQL Interface" |
-| Node | aggregates | Device | Cluster aggregates multiple physical servers |
-| TechnologyCollaboration | aggregates | Node | "K8s Cluster" aggregates "Worker Nodes" |
-| Artifact | specializes | Artifact | "CustomerDatabase" specializes "Database" |
-| Path | realizes | CommunicationNetwork | "VPN Tunnel" realizes "Secure Network" |
-| TechnologyFunction | realizes | TechnologyService | "Load Balancing" realizes "Load Balancer Service" |
-| TechnologyProcess | realizes | TechnologyService | "CI/CD Pipeline" realizes "Deployment Service" |
-| SystemSoftware | realizes | TechnologyService | "PostgreSQL" realizes "Database Service" |
-| Node | assigned-to | TechnologyFunction | "Edge Server" assigned to "CDN Caching" |
-| TechnologyCollaboration | assigned-to | TechnologyInteraction | Cluster performs replication |
-| Path | associated-with | Node | Network path connects nodes |
-| Device | associated-with | CommunicationNetwork | Device connected to network |
-| TechnologyInterface | serves | TechnologyService | Interface provides service access |
+| Source Type             | Predicate       | Target Type           | Example                                           |
+| ----------------------- | --------------- | --------------------- | ------------------------------------------------- |
+| Device                  | composes        | Node                  | "Physical Server" composes "Virtual Machine"      |
+| Node                    | composes        | TechnologyInterface   | "API Server" composes "HTTPS Endpoint"            |
+| SystemSoftware          | composes        | TechnologyInterface   | "PostgreSQL" composes "SQL Interface"             |
+| Node                    | aggregates      | Device                | Cluster aggregates multiple physical servers      |
+| TechnologyCollaboration | aggregates      | Node                  | "K8s Cluster" aggregates "Worker Nodes"           |
+| Artifact                | specializes     | Artifact              | "CustomerDatabase" specializes "Database"         |
+| Path                    | realizes        | CommunicationNetwork  | "VPN Tunnel" realizes "Secure Network"            |
+| TechnologyFunction      | realizes        | TechnologyService     | "Load Balancing" realizes "Load Balancer Service" |
+| TechnologyProcess       | realizes        | TechnologyService     | "CI/CD Pipeline" realizes "Deployment Service"    |
+| SystemSoftware          | realizes        | TechnologyService     | "PostgreSQL" realizes "Database Service"          |
+| Node                    | assigned-to     | TechnologyFunction    | "Edge Server" assigned to "CDN Caching"           |
+| TechnologyCollaboration | assigned-to     | TechnologyInteraction | Cluster performs replication                      |
+| Path                    | associated-with | Node                  | Network path connects nodes                       |
+| Device                  | associated-with | CommunicationNetwork  | Device connected to network                       |
+| TechnologyInterface     | serves          | TechnologyService     | Interface provides service access                 |
 
 ### Behavioral Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| TechnologyEvent | triggers | TechnologyProcess | "Node Failure" triggers "Failover Process" |
-| TechnologyEvent | triggers | TechnologyFunction | "CPU Threshold" triggers "Auto-scaling Function" |
-| TechnologyProcess | triggers | TechnologyEvent | "Deployment Complete" triggers "Health Check Event" |
-| TechnologyProcess | flows-to | TechnologyProcess | "Build" flows to "Deploy" |
-| TechnologyService | flows-to | TechnologyService | Service dependency chain |
-| SystemSoftware | accesses | Artifact | "Database" accesses "Data Files" |
-| TechnologyFunction | accesses | Artifact | "Backup Function" accesses "Backup Files" |
-| TechnologyProcess | accesses | Artifact | "Deployment" accesses "Docker Images" |
-| TechnologyInteraction | accesses | Artifact | "Replication" accesses "Database Replica" |
+| Source Type           | Predicate | Target Type        | Example                                             |
+| --------------------- | --------- | ------------------ | --------------------------------------------------- |
+| TechnologyEvent       | triggers  | TechnologyProcess  | "Node Failure" triggers "Failover Process"          |
+| TechnologyEvent       | triggers  | TechnologyFunction | "CPU Threshold" triggers "Auto-scaling Function"    |
+| TechnologyProcess     | triggers  | TechnologyEvent    | "Deployment Complete" triggers "Health Check Event" |
+| TechnologyProcess     | flows-to  | TechnologyProcess  | "Build" flows to "Deploy"                           |
+| TechnologyService     | flows-to  | TechnologyService  | Service dependency chain                            |
+| SystemSoftware        | accesses  | Artifact           | "Database" accesses "Data Files"                    |
+| TechnologyFunction    | accesses  | Artifact           | "Backup Function" accesses "Backup Files"           |
+| TechnologyProcess     | accesses  | Artifact           | "Deployment" accesses "Docker Images"               |
+| TechnologyInteraction | accesses  | Artifact           | "Replication" accesses "Database Replica"           |
 
 ---
 
@@ -88,33 +102,34 @@ This layer uses **ArchiMate 3.2 Technology Layer** standard with optional proper
 
 ### Outgoing References (Technology → Other Layers)
 
-| Target Layer | Reference Type | Example |
-|--------------|----------------|---------|
-| **Layer 1 (Motivation)** | TechnologyService supports **Goal** | Infrastructure supports business goals |
-| **Layer 1 (Motivation)** | TechnologyService governed by **Principle** | Cloud-native principle |
-| **Layer 1 (Motivation)** | Node governed by **Principle** | Infrastructure principles |
-| **Layer 1 (Motivation)** | Node constrained by **Constraint** | Budget, region, compliance constraints |
-| **Layer 1 (Motivation)** | Node fulfills **Requirement** | Performance, availability requirements |
-| **Layer 1 (Motivation)** | SystemSoftware governed by **Principle** | Open-source principle |
-| **Layer 1 (Motivation)** | SystemSoftware constrained by **Constraint** | Licensing, version constraints |
-| **Layer 1 (Motivation)** | SystemSoftware fulfills **Requirement** | Technical requirements |
-| **Layer 1 (Motivation)** | CommunicationNetwork governed by **Principle** | Zero-trust principle |
-| **Layer 1 (Motivation)** | CommunicationNetwork constrained by **Constraint** | Network segmentation |
-| **Layer 1 (Motivation)** | Artifact constrained by **Constraint** | Data residency, retention |
-| **Layer 4 (Application)** | Node hosts **ApplicationComponent** | K8s pod hosts service |
-| **Layer 4 (Application)** | TechnologyService serves **ApplicationService** | Database serves application |
-| **Layer 4 (Application)** | Artifact stores **DataObject** | Database stores application data |
-| **Layer 3 (Security)** | Artifact has **encryption** property | Data-at-rest encryption |
-| **Layer 3 (Security)** | Artifact has **classification** property | Data classification level |
-| **Layer 3 (Security)** | Artifact has **pii** property | Contains PII |
-| **Layer 3 (Security)** | CommunicationNetwork has **security-policy** | Network security rules |
-| **Layer 11 (APM)** | TechnologyService has **sla-target** | Availability, latency targets |
-| **Layer 11 (APM)** | TechnologyService has **health-check** | Health monitoring endpoint |
-| **Layer 11 (APM)** | Node has **monitoring-agent** | APM agent installation |
+| Target Layer              | Reference Type                                     | Example                                |
+| ------------------------- | -------------------------------------------------- | -------------------------------------- |
+| **Layer 1 (Motivation)**  | TechnologyService supports **Goal**                | Infrastructure supports business goals |
+| **Layer 1 (Motivation)**  | TechnologyService governed by **Principle**        | Cloud-native principle                 |
+| **Layer 1 (Motivation)**  | Node governed by **Principle**                     | Infrastructure principles              |
+| **Layer 1 (Motivation)**  | Node constrained by **Constraint**                 | Budget, region, compliance constraints |
+| **Layer 1 (Motivation)**  | Node fulfills **Requirement**                      | Performance, availability requirements |
+| **Layer 1 (Motivation)**  | SystemSoftware governed by **Principle**           | Open-source principle                  |
+| **Layer 1 (Motivation)**  | SystemSoftware constrained by **Constraint**       | Licensing, version constraints         |
+| **Layer 1 (Motivation)**  | SystemSoftware fulfills **Requirement**            | Technical requirements                 |
+| **Layer 1 (Motivation)**  | CommunicationNetwork governed by **Principle**     | Zero-trust principle                   |
+| **Layer 1 (Motivation)**  | CommunicationNetwork constrained by **Constraint** | Network segmentation                   |
+| **Layer 1 (Motivation)**  | Artifact constrained by **Constraint**             | Data residency, retention              |
+| **Layer 4 (Application)** | Node hosts **ApplicationComponent**                | K8s pod hosts service                  |
+| **Layer 4 (Application)** | TechnologyService serves **ApplicationService**    | Database serves application            |
+| **Layer 4 (Application)** | Artifact stores **DataObject**                     | Database stores application data       |
+| **Layer 3 (Security)**    | Artifact has **encryption** property               | Data-at-rest encryption                |
+| **Layer 3 (Security)**    | Artifact has **classification** property           | Data classification level              |
+| **Layer 3 (Security)**    | Artifact has **pii** property                      | Contains PII                           |
+| **Layer 3 (Security)**    | CommunicationNetwork has **security-policy**       | Network security rules                 |
+| **Layer 11 (APM)**        | TechnologyService has **sla-target**               | Availability, latency targets          |
+| **Layer 11 (APM)**        | TechnologyService has **health-check**             | Health monitoring endpoint             |
+| **Layer 11 (APM)**        | Node has **monitoring-agent**                      | APM agent installation                 |
 
 ### Incoming References (Lower Layers → Technology)
 
 Lower layers reference Technology layer to show:
+
 - Applications depend on infrastructure
 - APIs run on technology platforms
 - Data stored in technology artifacts
@@ -143,13 +158,14 @@ spec:
         app: user-service
     spec:
       containers:
-      - name: user-service
-        image: myregistry/user-service:1.0.0
-        ports:
-        - containerPort: 8080
+        - name: user-service
+          image: myregistry/user-service:1.0.0
+          ports:
+            - containerPort: 8080
 ```
 
 **Maps to:**
+
 - Node: "K8s Cluster Production" (type: kubernetes-cluster)
 - Node: "User Service Pod" (type: container)
 - Artifact: "myregistry/user-service:1.0.0" (type: docker-image)
@@ -179,6 +195,7 @@ resource "aws_db_instance" "postgres" {
 ```
 
 **Maps to:**
+
 - Node: "Web Server EC2" (type: server, provider: aws, instance-type: t3.medium, region: us-east-1, az: us-east-1a)
 - Node: "PostgreSQL RDS" (type: database-cluster, provider: aws)
 - SystemSoftware: "PostgreSQL 14.7" (type: database, version: 14.7)
@@ -188,7 +205,7 @@ resource "aws_db_instance" "postgres" {
 
 ```yaml
 # docker-compose.yml
-version: '3.8'
+version: "3.8"
 services:
   api:
     image: myapp/api:latest
@@ -216,6 +233,7 @@ volumes:
 ```
 
 **Maps to:**
+
 - TechnologyCollaboration: "Docker Compose Stack"
 - Node: "API Container" (type: container)
 - SystemSoftware: "PostgreSQL 14" (type: database)
@@ -240,6 +258,7 @@ DATABASE_CONFIG = {
 ```
 
 **Maps to:**
+
 - Node: "Production Database" (type: database-cluster, host: prod-db.example.com)
 - SystemSoftware: "PostgreSQL" (type: database, port: 5432)
 - Artifact: "customer_db" (type: database)
@@ -274,6 +293,7 @@ jobs:
 ```
 
 **Maps to:**
+
 - TechnologyProcess: "CI/CD Pipeline" (pattern: ci-cd, automation: github-actions)
 - Sub-processes: "Build", "Deploy"
 - TechnologyFunction: "Docker Build", "Kubernetes Deploy"
@@ -304,6 +324,7 @@ server {
 ```
 
 **Maps to:**
+
 - Node: "NGINX Load Balancer" (type: server)
 - SystemSoftware: "NGINX" (type: web-server, subtype: load-balancer)
 - TechnologyFunction: "Load Balancing" (strategy: least-conn)
@@ -578,6 +599,7 @@ technology-node:
 ```
 
 **IaC Tools Supported:**
+
 - **Terraform** - Declarative infrastructure
 - **Ansible** - Configuration management
 - **Kubernetes** - Container orchestration manifests
@@ -589,21 +611,22 @@ technology-node:
 
 ## Validation Tips
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Orphaned Node | Node not hosting applications or realizing services | Link to application layer or remove |
-| Unhosted Application | ApplicationComponent not deployed to any node | Add deployment link to technology node |
-| Missing Networks | Nodes exist but no network connectivity | Model CommunicationNetwork and Paths |
-| Untracked Artifacts | Databases, images, configs not modeled | Add Artifact entities |
-| No IaC Reference | Infrastructure lacks automation reference | Add iac-tool and iac-file properties |
-| Missing SLA Targets | Services lack availability/latency targets | Add SLA properties for monitoring |
-| No Security Properties | Artifacts lack encryption/classification | Add security properties |
+| Issue                  | Cause                                               | Fix                                    |
+| ---------------------- | --------------------------------------------------- | -------------------------------------- |
+| Orphaned Node          | Node not hosting applications or realizing services | Link to application layer or remove    |
+| Unhosted Application   | ApplicationComponent not deployed to any node       | Add deployment link to technology node |
+| Missing Networks       | Nodes exist but no network connectivity             | Model CommunicationNetwork and Paths   |
+| Untracked Artifacts    | Databases, images, configs not modeled              | Add Artifact entities                  |
+| No IaC Reference       | Infrastructure lacks automation reference           | Add iac-tool and iac-file properties   |
+| Missing SLA Targets    | Services lack availability/latency targets          | Add SLA properties for monitoring      |
+| No Security Properties | Artifacts lack encryption/classification            | Add security properties                |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add technology node <name> --properties type=<type>,provider=<provider>
 dr add technology system-software <name> --properties type=<type>,version=<version>
@@ -615,6 +638,7 @@ dr add technology process <name> --properties automation=<tool>
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <node> hosts <application-component>
 dr relationship add <system-software> realizes <service>
@@ -624,6 +648,7 @@ dr relationship add <network> connects <node>
 ```
 
 **Cross-Layer Commands:**
+
 ```bash
 dr relationship add technology/<node> hosts application/<component>
 dr relationship add technology/<service> supports motivation/<goal>

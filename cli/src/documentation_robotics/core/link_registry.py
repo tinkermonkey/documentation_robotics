@@ -336,11 +336,7 @@ class LinkRegistry:
         Returns:
             List of link type IDs that use this predicate
         """
-        return [
-            link.id
-            for link in self.link_types.values()
-            if link.predicate == predicate
-        ]
+        return [link.id for link in self.link_types.values() if link.predicate == predicate]
 
     def get_link_types_with_predicates(self) -> List[LinkType]:
         """Get all link types that have predicate metadata.
@@ -348,11 +344,7 @@ class LinkRegistry:
         Returns:
             List of LinkType objects that have predicates defined
         """
-        return [
-            link
-            for link in self.link_types.values()
-            if link.predicate is not None
-        ]
+        return [link for link in self.link_types.values() if link.predicate is not None]
 
     def __repr__(self) -> str:
         """String representation of the registry."""

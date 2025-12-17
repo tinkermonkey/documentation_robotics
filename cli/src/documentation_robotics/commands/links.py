@@ -13,7 +13,6 @@ import click
 from ..core.link_analyzer import LinkAnalyzer
 from ..core.link_doc_generator import LinkDocGenerator
 from ..core.link_registry import LinkRegistry
-from ..core.manifest import ManifestManager
 from ..validators.link_validator import LinkValidator
 
 
@@ -38,7 +37,9 @@ def links_group():
     is_flag=True,
     help="Show predicate information for each link type",
 )
-def types_command(layer: Optional[str], category: Optional[str], output_format: str, show_predicates: bool):
+def types_command(
+    layer: Optional[str], category: Optional[str], output_format: str, show_predicates: bool
+):
     """List all available link types with optional predicate information."""
     try:
         registry = LinkRegistry()
@@ -69,7 +70,7 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
                     "targetLayer": lt.target_layer,
                     "fieldPaths": lt.field_paths,
                     "format": lt.format,
-                    "predicates": getattr(lt, 'predicates', None) if show_predicates else None,
+                    "predicates": getattr(lt, "predicates", None) if show_predicates else None,
                 }
                 for lt in link_types
             ]
@@ -83,10 +84,10 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
                 click.echo(f"\n{'ID':<30} {'Name':<25} {'Category':<15} {'Predicates':<30}")
                 click.echo("=" * 105)
                 for lt in sorted(link_types, key=lambda x: (x.category, x.name)):
-                    predicates = getattr(lt, 'predicates', [])
-                    pred_str = ', '.join(predicates[:3]) if predicates else 'N/A'
+                    predicates = getattr(lt, "predicates", [])
+                    pred_str = ", ".join(predicates[:3]) if predicates else "N/A"
                     if len(predicates) > 3:
-                        pred_str += '...'
+                        pred_str += "..."
                     click.echo(f"{lt.id:<30} {lt.name:<25} {lt.category:<15} {pred_str:<30}")
             else:
                 click.echo(f"\n{'ID':<30} {'Name':<25} {'Category':<15} {'Format':<10}")
@@ -114,9 +115,13 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
     default="table",
     help="Output format",
 )
-@click.option("--verbose", is_flag=True, help="Show predicate information and relationship metadata")
+@click.option(
+    "--verbose", is_flag=True, help="Show predicate information and relationship metadata"
+)
 @click.pass_context
-def list_command(ctx, layer: Optional[str], link_type: Optional[str], output_format: str, verbose: bool):
+def list_command(
+    ctx, layer: Optional[str], link_type: Optional[str], output_format: str, verbose: bool
+):
     """List all link instances in the current model with predicate information."""
     from ..core.model import Model
 
@@ -141,14 +146,16 @@ def list_command(ctx, layer: Optional[str], link_type: Optional[str], output_for
                 if link_type and rel.get("type") != link_type:
                     continue
 
-                all_links.append({
-                    "source": element_id,
-                    "sourceLayer": element_layer,
-                    "predicate": rel.get("predicate", "unknown"),
-                    "target": target_id,
-                    "targetLayer": target_layer,
-                    "type": "cross-layer" if element_layer != target_layer else "intra-layer"
-                })
+                all_links.append(
+                    {
+                        "source": element_id,
+                        "sourceLayer": element_layer,
+                        "predicate": rel.get("predicate", "unknown"),
+                        "target": target_id,
+                        "targetLayer": target_layer,
+                        "type": "cross-layer" if element_layer != target_layer else "intra-layer",
+                    }
+                )
 
         if not all_links:
             click.echo("No links found in the model.")
@@ -160,6 +167,7 @@ def list_command(ctx, layer: Optional[str], link_type: Optional[str], output_for
         elif output_format == "tree":
             # Group by source element
             from collections import defaultdict
+
             by_source = defaultdict(list)
             for link in all_links:
                 by_source[link["source"]].append(link)
@@ -174,19 +182,23 @@ def list_command(ctx, layer: Optional[str], link_type: Optional[str], output_for
                 # Verbose table with predicate and type information
                 click.echo(f"\n{'Source':<30} {'Predicate':<20} {'Target':<30} {'Type':<15}")
                 click.echo("=" * 95)
-                for link in sorted(all_links, key=lambda x: (x['sourceLayer'], x['source'])):
-                    click.echo(f"{link['source']:<30} {link['predicate']:<20} {link['target']:<30} {link['type']:<15}")
+                for link in sorted(all_links, key=lambda x: (x["sourceLayer"], x["source"])):
+                    click.echo(
+                        f"{link['source']:<30} {link['predicate']:<20} {link['target']:<30} {link['type']:<15}"
+                    )
             else:
                 # Simple format without predicate
                 click.echo(f"\n{'Source':<30} {'Target':<30} {'Type':<15}")
                 click.echo("=" * 75)
-                for link in sorted(all_links, key=lambda x: (x['sourceLayer'], x['source'])):
+                for link in sorted(all_links, key=lambda x: (x["sourceLayer"], x["source"])):
                     click.echo(f"{link['source']:<30} {link['target']:<30} {link['type']:<15}")
 
             click.echo(f"\nTotal: {len(all_links)} links")
 
     except FileNotFoundError:
-        click.echo("Error: No model found in current directory. Initialize with 'dr init' first.", err=True)
+        click.echo(
+            "Error: No model found in current directory. Initialize with 'dr init' first.", err=True
+        )
         raise click.Abort()
     except Exception as e:
         click.echo(f"Error: {e}", err=True)

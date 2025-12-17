@@ -86,18 +86,13 @@ class RelationshipRegistry:
         """Get the default path to the relationship catalog file."""
         # 1. Check bundled schemas directory (installed mode)
         bundled_path = (
-            Path(__file__).parent.parent
-            / "schemas"
-            / "bundled"
-            / "relationship-catalog.json"
+            Path(__file__).parent.parent / "schemas" / "bundled" / "relationship-catalog.json"
         )
         if bundled_path.exists():
             return bundled_path
 
         # 2. Check package schemas directory (legacy)
-        pkg_path = (
-            Path(__file__).parent.parent / "schemas" / "relationship-catalog.json"
-        )
+        pkg_path = Path(__file__).parent.parent / "schemas" / "relationship-catalog.json"
         if pkg_path.exists():
             return pkg_path
 
@@ -202,11 +197,7 @@ class RelationshipRegistry:
         Returns:
             List of RelationshipType objects
         """
-        return [
-            rel
-            for rel in self.relationship_types.values()
-            if rel.category == category
-        ]
+        return [rel for rel in self.relationship_types.values() if rel.category == category]
 
     def list_all_predicates(self) -> List[str]:
         """List all available predicates.

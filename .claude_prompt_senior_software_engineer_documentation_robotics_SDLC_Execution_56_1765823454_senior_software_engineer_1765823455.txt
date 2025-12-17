@@ -43,52 +43,52 @@ def relationship():
 def add_relationship(ctx, source_id: str, predicate: str, target_id: str, skip_validation: bool):
     """
     Add a relationship between two elements with an explicit predicate.
-    
+
     Example:
         dr relationship add api-op-create-user accesses data-entity-user
     """
     model: Model = ctx.obj['model']
-    
+
     # Validate source and target exist
     source = model.get_element(source_id)
     if not source:
         click.echo(f"Error: Source element '{source_id}' not found", err=True)
         return
-    
+
     target = model.get_element(target_id)
     if not target:
         click.echo(f"Error: Target element '{target_id}' not found", err=True)
         return
-    
+
     # Validate predicate (unless skipped)
     if not skip_validation:
         rel_registry = RelationshipRegistry(get_schema_path('relationship-catalog.json'))
         validator = PredicateValidator(rel_registry)
-        
+
         result = validator.validate_predicate_for_types(
             source["type"],
             target["type"],
             predicate,
             source["layer"]
         )
-        
+
         if not result.valid:
             click.echo(f"Error: {result.error}", err=True)
             click.echo(f"Available predicates for layer {source['layer']}: {', '.join(rel_registry.get_predicates_for_layer(source['layer']))}")
             return
-    
+
     # Add relationship to model
     relationship = {
         "targetId": target_id,
         "predicate": predicate,
         "type": "intra-layer" if source["layer"] == target["layer"] else "cross-layer"
     }
-    
+
     model.add_relationship(source_id, relationship)
     model.save()
-    
+
     click.echo(f"✓ Added relationship: {source_id} --[{predicate}]--> {target_id}")
-    
+
     # Suggest inverse relationship
     inverse = rel_registry.get_inverse_predicate(predicate)
     if inverse:
@@ -102,20 +102,20 @@ def add_relationship(ctx, source_id: str, predicate: str, target_id: str, skip_v
 def list_relationships(ctx, element_id: str, direction: str, format: str):
     """
     List all relationships for an element.
-    
+
     Example:
         dr relationship list api-op-create-user --direction outgoing
     """
     model: Model = ctx.obj['model']
-    
+
     element = model.get_element(element_id)
     if not element:
         click.echo(f"Error: Element '{element_id}' not found", err=True)
         return
-    
+
     # Get outgoing relationships
     outgoing = model.get_relationships(element_id) if direction in ['outgoing', 'both'] else []
-    
+
     # Get incoming relationships (search all elements)
     incoming = []
     if direction in ['incoming', 'both']:
@@ -127,21 +127,21 @@ def list_relationships(ctx, element_id: str, direction: str, format: str):
                         "predicate": rel.get("predicate", "unknown"),
                         "type": rel.get("type", "cross-layer")
                     })
-    
+
     if format == 'json':
         import json
         click.echo(json.dumps({"outgoing": outgoing, "incoming": incoming}, indent=2))
     else:
         # Table format
         click.echo(f"\nRelationships for {element_id}:\n")
-        
+
         if outgoing:
             click.echo("Outgoing:")
             click.echo(f"  {'Target ID':<30} {'Predicate':<20} {'Type':<15}")
             click.echo(f"  {'-'*30} {'-'*20} {'-'*15}")
             for rel in outgoing:
                 click.echo(f"  {rel['targetId']:<30} {rel.get('predicate', 'unknown'):<20} {rel.get('type', 'cross-layer'):<15}")
-        
+
         if incoming:
             click.echo("\nIncoming:")
             click.echo(f"  {'Source ID':<30} {'Predicate':<20} {'Type':<15}")
@@ -158,21 +158,21 @@ def list_relationships(ctx, element_id: str, direction: str, format: str):
 def remove_relationship(ctx, source_id: str, predicate: str, target_id: str, remove_inverse: bool):
     """
     Remove a relationship between two elements.
-    
+
     Example:
         dr relationship remove api-op-create-user accesses data-entity-user
     """
     model: Model = ctx.obj['model']
-    
+
     # Remove relationship
     removed = model.remove_relationship(source_id, predicate, target_id)
     if not removed:
         click.echo(f"Error: Relationship not found: {source_id} --[{predicate}]--> {target_id}", err=True)
         return
-    
+
     model.save()
     click.echo(f"✓ Removed relationship: {source_id} --[{predicate}]--> {target_id}")
-    
+
     # Remove inverse if requested
     if remove_inverse:
         rel_registry = RelationshipRegistry(get_schema_path('relationship-catalog.json'))
@@ -191,7 +191,7 @@ def remove_relationship(ctx, source_id: str, predicate: str, target_id: str, rem
 def validate_relationships(ctx, fix_inverse: bool):
     """
     Validate all relationships in the model.
-    
+
     Example:
         dr relationship validate --fix-inverse
     """
@@ -207,32 +207,32 @@ Add methods to support relationship management:
 ```python
 class Model:
     # Existing code...
-    
+
     def add_relationship(self, source_id: str, relationship: dict) -> None:
         """Add a relationship from source element."""
         element = self.get_element(source_id)
         if not element:
             raise ValueError(f"Element {source_id} not found")
-        
+
         if "relationships" not in element:
             element["relationships"] = []
-        
+
         element["relationships"].append(relationship)
-    
+
     def remove_relationship(self, source_id: str, predicate: str, target_id: str) -> bool:
         """Remove a relationship. Returns True if found and removed."""
         element = self.get_element(source_id)
         if not element or "relationships" not in element:
             return False
-        
+
         original_count = len(element["relationships"])
         element["relationships"] = [
             r for r in element["relationships"]
             if not (r.get("predicate") == predicate and r["targetId"] == target_id)
         ]
-        
+
         return len(element["relationships"]) < original_count
-    
+
     def get_relationships(self, element_id: str) -> list:
         """Get all relationships for an element."""
         element = self.get_element(element_id)
@@ -252,7 +252,7 @@ Extend existing `dr links` command:
 def list_links(ctx, verbose: bool):
     """List all links in the model."""
     model = ctx.obj['model']
-    
+
     all_links = []
     for element in model.get_all_elements():
         for rel in model.get_relationships(element["id"]):
@@ -265,7 +265,7 @@ def list_links(ctx, verbose: bool):
                 "targetLayer": target["layer"] if target else "unknown",
                 "type": "cross-layer" if element["layer"] != (target["layer"] if target else None) else "intra-layer"
             })
-    
+
     if verbose:
         # Table with predicate info
         click.echo(f"{'Source':<30} {'Predicate':<20} {'Target':<30} {'Type':<15}")
@@ -507,31 +507,31 @@ The CLI must validate predicates against the taxonomy:
 ```python
 class PredicateValidator:
     """Validates predicate usage against relationship-catalog.json."""
-    
+
     def __init__(self, catalog_path: Path):
         self.catalog = self._load_catalog(catalog_path)
         self.predicate_map = self._build_predicate_map()
-    
+
     def validate_predicate_for_types(
-        self, 
-        source_type: str, 
-        target_type: str, 
+        self,
+        source_type: str,
+        target_type: str,
         predicate: str
     ) -> ValidationResult:
         """Check if predicate is valid for the given element type pair."""
         rel_type = self.predicate_map.get(predicate)
         if not rel_type:
             return ValidationResult(valid=False, error=f"Unknown predicate: {predicate}")
-        
+
         # Check applicable layers
         source_layer = self._layer_for_type(source_type)
         if source_layer not in rel_type.applicable_layers:
             return ValidationResult(
-                valid=False, 
+                valid=False,
                 error=f"Predicate '{predicate}' not valid for layer {source_layer}"
             )
         return ValidationResult(valid=True)
-    
+
     def get_inverse(self, predicate: str) -> Optional[str]:
         """Return the inverse predicate for bidirectional validation."""
         rel_type = self.predicate_map.get(predicate)
@@ -790,5 +790,3 @@ _Generated by Orchestrator Bot 🤖_
 _Processed by the software_architect agent_
 
 IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
-
-

@@ -1,7 +1,16 @@
 ---
 name: LAYER_04_APP
 description: Expert knowledge for Application Layer modeling in Documentation Robotics
-triggers: ["application service", "application component", "data object", "application function", "application process", "microservice", "archimate application"]
+triggers:
+  [
+    "application service",
+    "application component",
+    "data object",
+    "application function",
+    "application process",
+    "microservice",
+    "archimate application",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +25,7 @@ version: 0.6.0
 ## Layer Overview
 
 The Application Layer captures **application architecture**:
+
 - **WHAT** - Application services exposed to business
 - **HOW** - Application components and functions
 - **INTEGRATION** - Application interfaces and interactions
@@ -28,17 +38,17 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 ## Entity Types
 
-| Entity Type | Description | Key Attributes |
-|-------------|-------------|----------------|
-| **ApplicationComponent** | Modular, deployable, replaceable part of a system | Types: frontend, backend, mobile, desktop, service, library, batch, worker |
-| **ApplicationCollaboration** | Aggregate of application components working together | Example: Microservices ecosystem, service mesh |
-| **ApplicationInterface** | Point of access where application service is available | Protocols: REST, GraphQL, SOAP, gRPC, WebSocket, Message Queue, Event Bus |
-| **ApplicationFunction** | Automated behavior performed by application component | Examples: Authentication, Data Validation, Caching, Logging |
-| **ApplicationInteraction** | Unit of collective application behavior | Patterns: request-response, publish-subscribe, async-messaging, streaming, batch |
-| **ApplicationProcess** | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda) |
-| **ApplicationEvent** | Application state change notification | Types: domain-event, integration-event, system-event, audit-event |
-| **ApplicationService** | Service that exposes application functionality | Types: synchronous, asynchronous, batch, streaming, webhook |
-| **DataObject** | Data structured for automated processing | Includes schema reference, PII marking, retention policies |
+| Entity Type                  | Description                                            | Key Attributes                                                                   |
+| ---------------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| **ApplicationComponent**     | Modular, deployable, replaceable part of a system      | Types: frontend, backend, mobile, desktop, service, library, batch, worker       |
+| **ApplicationCollaboration** | Aggregate of application components working together   | Example: Microservices ecosystem, service mesh                                   |
+| **ApplicationInterface**     | Point of access where application service is available | Protocols: REST, GraphQL, SOAP, gRPC, WebSocket, Message Queue, Event Bus        |
+| **ApplicationFunction**      | Automated behavior performed by application component  | Examples: Authentication, Data Validation, Caching, Logging                      |
+| **ApplicationInteraction**   | Unit of collective application behavior                | Patterns: request-response, publish-subscribe, async-messaging, streaming, batch |
+| **ApplicationProcess**       | Sequence of application behaviors (orchestration/saga) | Can reference orchestration definitions (Temporal, Conductor, Camunda)           |
+| **ApplicationEvent**         | Application state change notification                  | Types: domain-event, integration-event, system-event, audit-event                |
+| **ApplicationService**       | Service that exposes application functionality         | Types: synchronous, asynchronous, batch, streaming, webhook                      |
+| **DataObject**               | Data structured for automated processing               | Includes schema reference, PII marking, retention policies                       |
 
 ---
 
@@ -46,34 +56,34 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 ### Structural Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| ApplicationCollaboration | aggregates | ApplicationComponent | "Payment Ecosystem" aggregates "PaymentService", "FraudDetection", "NotificationService" |
-| ApplicationComponent | composes | ApplicationInterface | Component exposes interface for external access |
-| ApplicationProcess | composes | ApplicationProcess | Workflow composed of sub-processes (saga pattern) |
-| ApplicationComponent | assigned-to | ApplicationFunction | Component performs specific function |
-| ApplicationCollaboration | assigned-to | ApplicationInteraction | Collaboration executes interaction pattern |
-| ApplicationComponent | realizes | ApplicationService | "UserManagementAPI" realizes "User Management Service" |
-| ApplicationFunction | realizes | ApplicationService | "Authentication Function" realizes "Auth Service" |
-| ApplicationProcess | realizes | ApplicationService | "Order Processing Workflow" realizes "Order Service" |
-| ApplicationService | realizes | ApplicationInterface | Service exposes interface |
-| DataObject | specializes | DataObject | "CustomerOrder" specializes "Order" |
+| Source Type              | Predicate   | Target Type            | Example                                                                                  |
+| ------------------------ | ----------- | ---------------------- | ---------------------------------------------------------------------------------------- |
+| ApplicationCollaboration | aggregates  | ApplicationComponent   | "Payment Ecosystem" aggregates "PaymentService", "FraudDetection", "NotificationService" |
+| ApplicationComponent     | composes    | ApplicationInterface   | Component exposes interface for external access                                          |
+| ApplicationProcess       | composes    | ApplicationProcess     | Workflow composed of sub-processes (saga pattern)                                        |
+| ApplicationComponent     | assigned-to | ApplicationFunction    | Component performs specific function                                                     |
+| ApplicationCollaboration | assigned-to | ApplicationInteraction | Collaboration executes interaction pattern                                               |
+| ApplicationComponent     | realizes    | ApplicationService     | "UserManagementAPI" realizes "User Management Service"                                   |
+| ApplicationFunction      | realizes    | ApplicationService     | "Authentication Function" realizes "Auth Service"                                        |
+| ApplicationProcess       | realizes    | ApplicationService     | "Order Processing Workflow" realizes "Order Service"                                     |
+| ApplicationService       | realizes    | ApplicationInterface   | Service exposes interface                                                                |
+| DataObject               | specializes | DataObject             | "CustomerOrder" specializes "Order"                                                      |
 
 ### Behavioral Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| ApplicationEvent | triggers | ApplicationComponent | "OrderCreated" triggers "InventoryService" |
-| ApplicationEvent | triggers | ApplicationFunction | "UserLoggedIn" triggers "AuditLogging" function |
-| ApplicationEvent | triggers | ApplicationProcess | "PaymentFailed" triggers "RefundProcess" |
-| ApplicationProcess | triggers | ApplicationEvent | Workflow completion triggers event |
-| ApplicationService | flows-to | ApplicationService | Synchronous service-to-service call |
-| ApplicationProcess | flows-to | ApplicationProcess | Sequential process orchestration |
-| ApplicationService | accesses | DataObject | Service reads/writes data |
-| ApplicationFunction | accesses | DataObject | Function operates on data |
-| ApplicationProcess | accesses | DataObject | Workflow manipulates data |
-| ApplicationInteraction | accesses | DataObject | Interaction pattern involves data exchange |
-| ApplicationInterface | serves | ApplicationComponent | Interface provides access to component |
+| Source Type            | Predicate | Target Type          | Example                                         |
+| ---------------------- | --------- | -------------------- | ----------------------------------------------- |
+| ApplicationEvent       | triggers  | ApplicationComponent | "OrderCreated" triggers "InventoryService"      |
+| ApplicationEvent       | triggers  | ApplicationFunction  | "UserLoggedIn" triggers "AuditLogging" function |
+| ApplicationEvent       | triggers  | ApplicationProcess   | "PaymentFailed" triggers "RefundProcess"        |
+| ApplicationProcess     | triggers  | ApplicationEvent     | Workflow completion triggers event              |
+| ApplicationService     | flows-to  | ApplicationService   | Synchronous service-to-service call             |
+| ApplicationProcess     | flows-to  | ApplicationProcess   | Sequential process orchestration                |
+| ApplicationService     | accesses  | DataObject           | Service reads/writes data                       |
+| ApplicationFunction    | accesses  | DataObject           | Function operates on data                       |
+| ApplicationProcess     | accesses  | DataObject           | Workflow manipulates data                       |
+| ApplicationInteraction | accesses  | DataObject           | Interaction pattern involves data exchange      |
+| ApplicationInterface   | serves    | ApplicationComponent | Interface provides access to component          |
 
 ---
 
@@ -81,27 +91,28 @@ This layer uses **ArchiMate 3.2 Application Layer** standard with optional prope
 
 ### Outgoing References (Application → Other Layers)
 
-| Target Layer | Reference Type | Example |
-|--------------|----------------|---------|
-| **Layer 1 (Motivation)** | ApplicationService supports **Goal** | Service achieves business goals |
-| **Layer 1 (Motivation)** | ApplicationService delivers **Value** | Service delivers business value |
-| **Layer 1 (Motivation)** | ApplicationService governed by **Principle** | Service follows architectural principles |
-| **Layer 1 (Motivation)** | ApplicationFunction fulfills **Requirement** | Function implements functional requirement |
-| **Layer 2 (Business)** | ApplicationService realizes **BusinessService** | Tech realizes business capability |
-| **Layer 2 (Business)** | ApplicationProcess supports **BusinessProcess** | Automates business workflow |
-| **Layer 2 (Business)** | DataObject represents **BusinessObject** | Technical data represents business concept |
-| **Layer 5 (Technology)** | ApplicationComponent deployed-on **Node** | Service deployed to Kubernetes cluster |
-| **Layer 5 (Technology)** | ApplicationService uses **TechnologyService** | Application uses database service |
-| **Layer 5 (Technology)** | DataObject stored-in **Artifact** | Data persisted in database |
-| **Layer 6 (API)** | ApplicationService defined-by **OpenAPI Specification** | Service has OpenAPI contract |
-| **Layer 7 (Data Model)** | DataObject defined-by **JSON Schema** | Data structure defined as schema |
-| **Layer 11 (APM)** | ApplicationService tracked-by **BusinessMetric** | Service performance monitored |
-| **Layer 11 (APM)** | ApplicationService has-sla **SLA Target** | Latency, availability targets |
-| **Layer 11 (APM)** | ApplicationService traced-by **APM** | Distributed tracing enabled |
+| Target Layer             | Reference Type                                          | Example                                    |
+| ------------------------ | ------------------------------------------------------- | ------------------------------------------ |
+| **Layer 1 (Motivation)** | ApplicationService supports **Goal**                    | Service achieves business goals            |
+| **Layer 1 (Motivation)** | ApplicationService delivers **Value**                   | Service delivers business value            |
+| **Layer 1 (Motivation)** | ApplicationService governed by **Principle**            | Service follows architectural principles   |
+| **Layer 1 (Motivation)** | ApplicationFunction fulfills **Requirement**            | Function implements functional requirement |
+| **Layer 2 (Business)**   | ApplicationService realizes **BusinessService**         | Tech realizes business capability          |
+| **Layer 2 (Business)**   | ApplicationProcess supports **BusinessProcess**         | Automates business workflow                |
+| **Layer 2 (Business)**   | DataObject represents **BusinessObject**                | Technical data represents business concept |
+| **Layer 5 (Technology)** | ApplicationComponent deployed-on **Node**               | Service deployed to Kubernetes cluster     |
+| **Layer 5 (Technology)** | ApplicationService uses **TechnologyService**           | Application uses database service          |
+| **Layer 5 (Technology)** | DataObject stored-in **Artifact**                       | Data persisted in database                 |
+| **Layer 6 (API)**        | ApplicationService defined-by **OpenAPI Specification** | Service has OpenAPI contract               |
+| **Layer 7 (Data Model)** | DataObject defined-by **JSON Schema**                   | Data structure defined as schema           |
+| **Layer 11 (APM)**       | ApplicationService tracked-by **BusinessMetric**        | Service performance monitored              |
+| **Layer 11 (APM)**       | ApplicationService has-sla **SLA Target**               | Latency, availability targets              |
+| **Layer 11 (APM)**       | ApplicationService traced-by **APM**                    | Distributed tracing enabled                |
 
 ### Incoming References (Lower Layers → Application)
 
 Lower layers reference Application layer to show:
+
 - **Technology supports Application** - Infrastructure hosts application components
 - **APIs implement Application Services** - OpenAPI specs define service contracts
 - **Data schemas define DataObjects** - JSON schemas provide data structure
@@ -128,6 +139,7 @@ async def health_check():
 ```
 
 **Maps to:**
+
 - ApplicationComponent: "UserManagementService" (type: backend, subtype: microservice)
 - ApplicationService: "User Management Service" (type: synchronous)
 - ApplicationInterface: "REST API" (protocol: REST)
@@ -148,6 +160,7 @@ export class AuthenticationService {
 ```
 
 **Maps to:**
+
 - ApplicationFunction: "Token Validation"
 - ApplicationComponent: "AuthenticationService"
 
@@ -176,6 +189,7 @@ class OrderCreatedEvent:
 ```
 
 **Maps to:**
+
 - ApplicationEvent: "OrderCreated" (type: domain-event, topic: orders.created)
 - Properties: schema-ref, event-version
 - Triggers other ApplicationComponents
@@ -208,6 +222,7 @@ class OrderFulfillmentWorkflow:
 ```
 
 **Maps to:**
+
 - ApplicationProcess: "OrderFulfillmentSaga" (pattern: saga)
 - Properties: orchestration-engine=temporal, compensation-enabled=true
 - Composes sub-processes (reserve, pay, ship)
@@ -231,6 +246,7 @@ export interface UserDTO {
 ```
 
 **Maps to:**
+
 - DataObject: "User"
 - Properties: schema-ref=user.schema.json, pii=true, retention-period=7y
 
@@ -248,6 +264,7 @@ service UserService {
 ```
 
 **Maps to:**
+
 - ApplicationInterface: "UserServiceGRPC" (protocol: gRPC)
 - ApplicationService: "User Service"
 - ApplicationComponent: "UserService"
@@ -278,6 +295,7 @@ class OrderEventConsumer:
 ```
 
 **Maps to:**
+
 - ApplicationComponent: "OrderEventConsumer" (type: worker)
 - ApplicationInterface: "OrderQueue" (protocol: AMQP)
 - ApplicationEvent: "OrderCreated" (triggers this component)
@@ -573,10 +591,11 @@ async def get_user(user_id: str) -> UserDTO:  # DataObject
 ### NestJS / Express (TypeScript/Node.js)
 
 ```typescript
-@Controller('orders')  // ApplicationComponent
+@Controller("orders") // ApplicationComponent
 export class OrdersController {
-  @Get(':id')  // ApplicationInterface (REST)
-  async getOrder(@Param('id') id: string): Promise<OrderDTO> {  // DataObject
+  @Get(":id") // ApplicationInterface (REST)
+  async getOrder(@Param("id") id: string): Promise<OrderDTO> {
+    // DataObject
     // ApplicationFunction: "GetOrder"
   }
 }
@@ -600,21 +619,22 @@ public class ProductController {
 
 ## Validation Tips
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Orphaned Component | Component not assigned to function or service | Assign to ApplicationFunction or realize ApplicationService |
-| Unrealized Service | Service not realized by component/function | Add realization link |
-| Missing Interface | Service has no interface | Add ApplicationInterface |
-| No Cross-Layer Links | Application not linked to business/technology | Add realization and deployment links |
-| Undocumented Events | Events exist in code but not modeled | Add ApplicationEvent entities |
-| Missing Data Objects | Services access data not modeled | Add DataObject entities |
-| No Orchestration | Complex workflows not modeled as processes | Add ApplicationProcess for sagas |
+| Issue                | Cause                                         | Fix                                                         |
+| -------------------- | --------------------------------------------- | ----------------------------------------------------------- |
+| Orphaned Component   | Component not assigned to function or service | Assign to ApplicationFunction or realize ApplicationService |
+| Unrealized Service   | Service not realized by component/function    | Add realization link                                        |
+| Missing Interface    | Service has no interface                      | Add ApplicationInterface                                    |
+| No Cross-Layer Links | Application not linked to business/technology | Add realization and deployment links                        |
+| Undocumented Events  | Events exist in code but not modeled          | Add ApplicationEvent entities                               |
+| Missing Data Objects | Services access data not modeled              | Add DataObject entities                                     |
+| No Orchestration     | Complex workflows not modeled as processes    | Add ApplicationProcess for sagas                            |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add application component <name> --properties type=<type>
 dr add application service <name> --properties type=<type>,protocol=<protocol>
@@ -626,6 +646,7 @@ dr add application process <name> --properties pattern=<pattern>
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <component> realizes <service>
 dr relationship add <service> realizes <interface>
@@ -637,6 +658,7 @@ dr relationship add <process-a> flows-to <process-b>
 ```
 
 **Cross-Layer Commands:**
+
 ```bash
 dr relationship add application/<service> realizes business/<service>
 dr relationship add application/<component> deployed-on technology/<node>

@@ -1,7 +1,17 @@
 ---
 name: LAYER_02_BUSINESS
 description: Expert knowledge for Business Layer modeling in Documentation Robotics
-triggers: ["business process", "business service", "business actor", "business role", "business object", "BPMN", "business layer", "archimate business"]
+triggers:
+  [
+    "business process",
+    "business service",
+    "business actor",
+    "business role",
+    "business object",
+    "BPMN",
+    "business layer",
+    "archimate business",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +26,7 @@ version: 0.6.0
 ## Layer Overview
 
 The Business Layer captures the **operational structure** of the organization:
+
 - **WHO** - Business actors, roles, and collaborations
 - **WHAT** - Business services and products
 - **HOW** - Business processes, functions, and interactions
@@ -27,21 +38,21 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 
 ## Entity Types
 
-| Entity Type | Description | Key Attributes |
-|-------------|-------------|----------------|
-| **BusinessActor** | Organizational entity capable of performing behavior | Examples: Customer, Employee, Partner, Supplier |
-| **BusinessRole** | Responsibility for performing specific behavior | Examples: Sales Representative, Account Manager, System Administrator |
-| **BusinessCollaboration** | Aggregate of business roles working together | Examples: Sales Team, Customer Service Department, Project Team |
-| **BusinessInterface** | Point of access where business service is available | Examples: Customer Portal, Phone Support, Email Support |
-| **BusinessProcess** | Sequence of business behaviors achieving a result | Can include BPMN references, security controls, KPI targets |
-| **BusinessFunction** | Collection of business behavior based on criteria | Examples: Marketing, Sales, Customer Service, Finance |
-| **BusinessInteraction** | Unit of collective behavior by collaboration | Examples: Sales Meeting, Contract Negotiation, Customer Onboarding |
-| **BusinessEvent** | Something that happens and influences behavior | Types: time-driven, state-change, external |
-| **BusinessService** | Service that fulfills a business need | Includes SLA properties, motivation links, APM monitoring |
-| **BusinessObject** | Concept used within business domain | Examples: Order, Invoice, Customer, Product, Contract |
-| **Contract** | Formal specification of agreement | Examples: SLA, Terms of Service, Purchase Agreement |
-| **Representation** | Perceptible form of business object | Formats: document, report, form, message, dashboard |
-| **Product** | Coherent collection of services with a value | Aggregates services and contracts, delivers value to customers |
+| Entity Type               | Description                                          | Key Attributes                                                        |
+| ------------------------- | ---------------------------------------------------- | --------------------------------------------------------------------- |
+| **BusinessActor**         | Organizational entity capable of performing behavior | Examples: Customer, Employee, Partner, Supplier                       |
+| **BusinessRole**          | Responsibility for performing specific behavior      | Examples: Sales Representative, Account Manager, System Administrator |
+| **BusinessCollaboration** | Aggregate of business roles working together         | Examples: Sales Team, Customer Service Department, Project Team       |
+| **BusinessInterface**     | Point of access where business service is available  | Examples: Customer Portal, Phone Support, Email Support               |
+| **BusinessProcess**       | Sequence of business behaviors achieving a result    | Can include BPMN references, security controls, KPI targets           |
+| **BusinessFunction**      | Collection of business behavior based on criteria    | Examples: Marketing, Sales, Customer Service, Finance                 |
+| **BusinessInteraction**   | Unit of collective behavior by collaboration         | Examples: Sales Meeting, Contract Negotiation, Customer Onboarding    |
+| **BusinessEvent**         | Something that happens and influences behavior       | Types: time-driven, state-change, external                            |
+| **BusinessService**       | Service that fulfills a business need                | Includes SLA properties, motivation links, APM monitoring             |
+| **BusinessObject**        | Concept used within business domain                  | Examples: Order, Invoice, Customer, Product, Contract                 |
+| **Contract**              | Formal specification of agreement                    | Examples: SLA, Terms of Service, Purchase Agreement                   |
+| **Representation**        | Perceptible form of business object                  | Formats: document, report, form, message, dashboard                   |
+| **Product**               | Coherent collection of services with a value         | Aggregates services and contracts, delivers value to customers        |
 
 ---
 
@@ -49,49 +60,49 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 
 ### Structural Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| Product | composes | BusinessService | "E-commerce Platform" composes "Payment Service" |
-| BusinessCollaboration | composes | BusinessRole | "Sales Team" composes "Sales Representative" role |
-| BusinessProcess | composes | BusinessProcess | "Order Fulfillment" composes "Pick", "Pack", "Ship" sub-processes |
-| BusinessFunction | composes | BusinessProcess | "Sales Function" composes "Lead Generation Process" |
-| Product | aggregates | BusinessService | Product bundles multiple services |
-| Product | aggregates | Contract | Product includes SLA contracts |
-| BusinessCollaboration | aggregates | BusinessRole | Collaboration includes multiple roles |
-| BusinessActor | assigned-to | BusinessRole | "John Smith" assigned to "Sales Rep" |
-| BusinessActor | assigned-to | BusinessProcess | Actor directly performs process |
-| BusinessRole | assigned-to | BusinessProcess | Role responsible for process execution |
-| BusinessRole | assigned-to | BusinessFunction | Role performs function |
-| BusinessCollaboration | assigned-to | BusinessInteraction | Collaboration performs interaction |
-| BusinessProcess | realizes | BusinessService | "Order Processing" realizes "Order Management Service" |
-| BusinessFunction | realizes | BusinessService | "Customer Support Function" realizes "Support Service" |
-| BusinessInteraction | realizes | BusinessService | "Contract Negotiation" realizes "Contracting Service" |
-| Representation | realizes | BusinessObject | "Invoice PDF" realizes "Invoice" concept |
-| BusinessObject | specializes | BusinessObject | "RetailCustomer" specializes "Customer" |
-| BusinessRole | specializes | BusinessRole | "Senior Sales Rep" specializes "Sales Rep" |
-| Contract | specializes | Contract | "Premium SLA" specializes "Standard SLA" |
+| Source Type           | Predicate   | Target Type         | Example                                                           |
+| --------------------- | ----------- | ------------------- | ----------------------------------------------------------------- |
+| Product               | composes    | BusinessService     | "E-commerce Platform" composes "Payment Service"                  |
+| BusinessCollaboration | composes    | BusinessRole        | "Sales Team" composes "Sales Representative" role                 |
+| BusinessProcess       | composes    | BusinessProcess     | "Order Fulfillment" composes "Pick", "Pack", "Ship" sub-processes |
+| BusinessFunction      | composes    | BusinessProcess     | "Sales Function" composes "Lead Generation Process"               |
+| Product               | aggregates  | BusinessService     | Product bundles multiple services                                 |
+| Product               | aggregates  | Contract            | Product includes SLA contracts                                    |
+| BusinessCollaboration | aggregates  | BusinessRole        | Collaboration includes multiple roles                             |
+| BusinessActor         | assigned-to | BusinessRole        | "John Smith" assigned to "Sales Rep"                              |
+| BusinessActor         | assigned-to | BusinessProcess     | Actor directly performs process                                   |
+| BusinessRole          | assigned-to | BusinessProcess     | Role responsible for process execution                            |
+| BusinessRole          | assigned-to | BusinessFunction    | Role performs function                                            |
+| BusinessCollaboration | assigned-to | BusinessInteraction | Collaboration performs interaction                                |
+| BusinessProcess       | realizes    | BusinessService     | "Order Processing" realizes "Order Management Service"            |
+| BusinessFunction      | realizes    | BusinessService     | "Customer Support Function" realizes "Support Service"            |
+| BusinessInteraction   | realizes    | BusinessService     | "Contract Negotiation" realizes "Contracting Service"             |
+| Representation        | realizes    | BusinessObject      | "Invoice PDF" realizes "Invoice" concept                          |
+| BusinessObject        | specializes | BusinessObject      | "RetailCustomer" specializes "Customer"                           |
+| BusinessRole          | specializes | BusinessRole        | "Senior Sales Rep" specializes "Sales Rep"                        |
+| Contract              | specializes | Contract            | "Premium SLA" specializes "Standard SLA"                          |
 
 ### Behavioral Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| BusinessEvent | triggers | BusinessProcess | "Order Received" triggers "Order Fulfillment Process" |
-| BusinessEvent | triggers | BusinessFunction | "Monthly Close" triggers "Financial Reporting Function" |
-| BusinessEvent | triggers | BusinessInteraction | "Customer Complaint" triggers "Issue Resolution Interaction" |
-| BusinessProcess | triggers | BusinessEvent | "Payment Complete" triggers "Order Confirmed Event" |
-| BusinessInteraction | triggers | BusinessProcess | "Sales Meeting" triggers "Proposal Generation Process" |
-| BusinessProcess | flows-to | BusinessProcess | "Credit Check" flows to "Order Approval" |
-| BusinessInteraction | flows-to | BusinessProcess | "Negotiation" flows to "Contract Signing" |
-| BusinessService | serves | BusinessActor | "Customer Portal" serves "Customer" |
-| BusinessService | serves | BusinessRole | "Reporting Service" serves "Manager" role |
-| BusinessService | serves | BusinessProcess | "Authentication Service" serves "Login Process" |
-| BusinessInterface | serves | BusinessActor | "Mobile App" serves "Customer" |
-| BusinessInterface | serves | BusinessRole | "Admin Console" serves "Administrator" role |
-| BusinessProcess | accesses | BusinessObject | "Order Process" accesses "Order" object |
-| BusinessFunction | accesses | BusinessObject | "Billing Function" accesses "Invoice" object |
-| BusinessInteraction | accesses | BusinessObject | "Contract Review" accesses "Contract" object |
-| Contract | associated-with | BusinessService | SLA contract associated with service delivery |
-| BusinessObject | associated-with | BusinessProcess | "Customer" associated with "Onboarding Process" |
+| Source Type         | Predicate       | Target Type         | Example                                                      |
+| ------------------- | --------------- | ------------------- | ------------------------------------------------------------ |
+| BusinessEvent       | triggers        | BusinessProcess     | "Order Received" triggers "Order Fulfillment Process"        |
+| BusinessEvent       | triggers        | BusinessFunction    | "Monthly Close" triggers "Financial Reporting Function"      |
+| BusinessEvent       | triggers        | BusinessInteraction | "Customer Complaint" triggers "Issue Resolution Interaction" |
+| BusinessProcess     | triggers        | BusinessEvent       | "Payment Complete" triggers "Order Confirmed Event"          |
+| BusinessInteraction | triggers        | BusinessProcess     | "Sales Meeting" triggers "Proposal Generation Process"       |
+| BusinessProcess     | flows-to        | BusinessProcess     | "Credit Check" flows to "Order Approval"                     |
+| BusinessInteraction | flows-to        | BusinessProcess     | "Negotiation" flows to "Contract Signing"                    |
+| BusinessService     | serves          | BusinessActor       | "Customer Portal" serves "Customer"                          |
+| BusinessService     | serves          | BusinessRole        | "Reporting Service" serves "Manager" role                    |
+| BusinessService     | serves          | BusinessProcess     | "Authentication Service" serves "Login Process"              |
+| BusinessInterface   | serves          | BusinessActor       | "Mobile App" serves "Customer"                               |
+| BusinessInterface   | serves          | BusinessRole        | "Admin Console" serves "Administrator" role                  |
+| BusinessProcess     | accesses        | BusinessObject      | "Order Process" accesses "Order" object                      |
+| BusinessFunction    | accesses        | BusinessObject      | "Billing Function" accesses "Invoice" object                 |
+| BusinessInteraction | accesses        | BusinessObject      | "Contract Review" accesses "Contract" object                 |
+| Contract            | associated-with | BusinessService     | SLA contract associated with service delivery                |
+| BusinessObject      | associated-with | BusinessProcess     | "Customer" associated with "Onboarding Process"              |
 
 ---
 
@@ -99,28 +110,29 @@ This layer uses **ArchiMate 3.2 Business Layer** standard without custom extensi
 
 ### Outgoing References (Business → Lower Layers)
 
-| Target Layer | Reference Type | Example |
-|--------------|----------------|---------|
-| **Layer 1 (Motivation)** | BusinessService delivers **Value** | "Payment Service" delivers "Revenue Generation" value |
-| **Layer 1 (Motivation)** | BusinessService supports **Goal** | Service achieves business goals |
-| **Layer 1 (Motivation)** | BusinessService governed by **Principle** | Follows business principles |
-| **Layer 1 (Motivation)** | BusinessActor **is** Stakeholder | Actor maps to stakeholder in motivation layer |
-| **Layer 1 (Motivation)** | BusinessProcess achieves **Goal** | Process realizes business goals |
-| **Layer 1 (Motivation)** | Contract drives **Constraint** | SLA contract defines constraints |
-| **Layer 4 (Application)** | BusinessService realized by **ApplicationService** | "Order Service" realized by "OrderManagementAPI" |
-| **Layer 4 (Application)** | BusinessProcess automated by **ApplicationProcess** | Process workflow automated by application |
-| **Layer 4 (Application)** | BusinessObject represented in **DataObject** | "Customer" business concept maps to customer data object |
-| **Layer 4 (Application)** | BusinessEvent triggers **ApplicationEvent** | Business event generates application event |
-| **Layer 3 (Security)** | BusinessProcess protected by **SecurityControl** | Process has authentication/authorization |
-| **Layer 3 (Security)** | BusinessCollaboration maps to **SecurityActor** | Team maps to security roles |
-| **Layer 6 (API)** | BusinessInterface maps to **API Operation** | Portal interface maps to REST endpoints |
-| **Layer 7 (Data Model)** | BusinessObject → **JSON Schema** | Business object defined as schema |
-| **Layer 11 (APM)** | BusinessProcess tracked by **BusinessMetric** | Process performance measured |
-| **Layer 11 (APM)** | BusinessService defines **KPI Target** | SLA targets for monitoring |
+| Target Layer              | Reference Type                                      | Example                                                  |
+| ------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| **Layer 1 (Motivation)**  | BusinessService delivers **Value**                  | "Payment Service" delivers "Revenue Generation" value    |
+| **Layer 1 (Motivation)**  | BusinessService supports **Goal**                   | Service achieves business goals                          |
+| **Layer 1 (Motivation)**  | BusinessService governed by **Principle**           | Follows business principles                              |
+| **Layer 1 (Motivation)**  | BusinessActor **is** Stakeholder                    | Actor maps to stakeholder in motivation layer            |
+| **Layer 1 (Motivation)**  | BusinessProcess achieves **Goal**                   | Process realizes business goals                          |
+| **Layer 1 (Motivation)**  | Contract drives **Constraint**                      | SLA contract defines constraints                         |
+| **Layer 4 (Application)** | BusinessService realized by **ApplicationService**  | "Order Service" realized by "OrderManagementAPI"         |
+| **Layer 4 (Application)** | BusinessProcess automated by **ApplicationProcess** | Process workflow automated by application                |
+| **Layer 4 (Application)** | BusinessObject represented in **DataObject**        | "Customer" business concept maps to customer data object |
+| **Layer 4 (Application)** | BusinessEvent triggers **ApplicationEvent**         | Business event generates application event               |
+| **Layer 3 (Security)**    | BusinessProcess protected by **SecurityControl**    | Process has authentication/authorization                 |
+| **Layer 3 (Security)**    | BusinessCollaboration maps to **SecurityActor**     | Team maps to security roles                              |
+| **Layer 6 (API)**         | BusinessInterface maps to **API Operation**         | Portal interface maps to REST endpoints                  |
+| **Layer 7 (Data Model)**  | BusinessObject → **JSON Schema**                    | Business object defined as schema                        |
+| **Layer 11 (APM)**        | BusinessProcess tracked by **BusinessMetric**       | Process performance measured                             |
+| **Layer 11 (APM)**        | BusinessService defines **KPI Target**              | SLA targets for monitoring                               |
 
 ### Incoming References (Lower Layers → Business)
 
 Lower layers (Application, Technology, API, etc.) reference Business layer elements to show:
+
 - **Realization**: Application services realize business services
 - **Support**: Technology supports business operations
 - **Traceability**: APIs map to business interfaces
@@ -140,6 +152,7 @@ async def create_order(order_data: OrderRequest):
 ```
 
 **Maps to:**
+
 - BusinessService: "Order Management Service"
 - BusinessProcess: "Create Order Process"
 - BusinessObject: "Order"
@@ -160,6 +173,7 @@ class Customer:
 ```
 
 **Maps to:**
+
 - BusinessObject: "Customer"
 - Potential BusinessProcess: "Customer Management"
 
@@ -168,13 +182,14 @@ class Customer:
 ```typescript
 // Domain events
 export enum BusinessEvents {
-  ORDER_CREATED = 'order.created',
-  ORDER_FULFILLED = 'order.fulfilled',
-  PAYMENT_RECEIVED = 'payment.received'
+  ORDER_CREATED = "order.created",
+  ORDER_FULFILLED = "order.fulfilled",
+  PAYMENT_RECEIVED = "payment.received",
 }
 ```
 
 **Maps to:**
+
 - BusinessEvent entities (order.created, order.fulfilled, payment.received)
 
 ### Pattern 4: BPMN Process References
@@ -192,6 +207,7 @@ class OrderFulfillmentProcess:
 ```
 
 **Maps to:**
+
 - BusinessProcess: "Order Fulfillment"
 - Properties: `bpmn-file`, `kpi-target`
 
@@ -212,6 +228,7 @@ def create_opportunity(data):
 ```
 
 **Maps to:**
+
 - BusinessRole entities (SalesRepresentative, AccountManager, etc.)
 
 ### Pattern 6: SLA Configuration
@@ -228,6 +245,7 @@ services:
 ```
 
 **Maps to:**
+
 - BusinessService with SLA properties
 - Contract entity for formal SLA
 
@@ -410,6 +428,7 @@ dr add business process "Loan Approval Process" \
 ```
 
 **BPMN Properties:**
+
 - `bpmn-file`: Path to BPMN XML file
 - `bpmn-version`: BPMN specification version (2.0)
 - `bpmn-task-mapping`: Map BPMN tasks to business roles
@@ -434,6 +453,7 @@ business-service:
 ```
 
 These SLAs flow down to:
+
 - **Application Layer** - Application services inherit targets
 - **APM Layer** - Monitoring dashboards track against targets
 - **Motivation Layer** - SLAs trace to business goals
@@ -447,6 +467,7 @@ dr export archimate --layers business --output business.archimate
 ```
 
 **Supported ArchiMate Elements:**
+
 - All 13 business entity types map directly to ArchiMate 3.2 Business Layer
 - Relationships: composition, aggregation, assignment, realization, specialization, triggering, flow, serving, access, association
 
@@ -468,20 +489,21 @@ dr export archimate --layers business --output business.archimate
 
 ## Validation Tips
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Orphaned Process | No event triggers it, no service realizes it | Add triggering event or link to service |
-| Unrealized Service | No process/function realizes the service | Add process that implements the service |
-| Missing Business Objects | Processes don't access any objects | Identify key domain concepts and add them |
-| No Cross-Layer Links | Business not linked to application/data | Add realization links to lower layers |
-| Unassigned Roles | Roles not assigned to processes | Assign roles to show responsibility |
-| Missing SLA Properties | Services lack performance targets | Add SLA properties for monitoring |
+| Issue                    | Cause                                        | Fix                                       |
+| ------------------------ | -------------------------------------------- | ----------------------------------------- |
+| Orphaned Process         | No event triggers it, no service realizes it | Add triggering event or link to service   |
+| Unrealized Service       | No process/function realizes the service     | Add process that implements the service   |
+| Missing Business Objects | Processes don't access any objects           | Identify key domain concepts and add them |
+| No Cross-Layer Links     | Business not linked to application/data      | Add realization links to lower layers     |
+| Unassigned Roles         | Roles not assigned to processes              | Assign roles to show responsibility       |
+| Missing SLA Properties   | Services lack performance targets            | Add SLA properties for monitoring         |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add business actor <name>
 dr add business role <name>
@@ -494,6 +516,7 @@ dr add business collaboration <name>
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <source> realizes <target>
 dr relationship add <source> composes <target>
@@ -505,6 +528,7 @@ dr relationship add <source> serves <target>
 ```
 
 **Cross-Layer Commands:**
+
 ```bash
 dr relationship add <business-service> supports <motivation-goal>
 dr relationship add <business-service> realized-by <application-service>

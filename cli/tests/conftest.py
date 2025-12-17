@@ -93,10 +93,10 @@ def initialized_model(temp_dir):
 
     # Ensure cleanup - close any open file handles
     # This helps prevent ResourceWarning about unclosed resources
-    if hasattr(model, '__dict__'):
+    if hasattr(model, "__dict__"):
         for attr_name in list(model.__dict__.keys()):
             attr = getattr(model, attr_name, None)
-            if hasattr(attr, 'close'):
+            if hasattr(attr, "close"):
                 try:
                     attr.close()
                 except Exception:

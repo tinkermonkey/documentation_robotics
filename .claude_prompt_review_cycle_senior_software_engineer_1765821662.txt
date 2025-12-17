@@ -42,14 +42,14 @@ class ValidationResult:
 
 class PredicateValidator:
     """Validates predicate usage against relationship-catalog.json."""
-    
+
     def __init__(self, relationship_registry: RelationshipRegistry):
         self.registry = relationship_registry
-    
+
     def validate_predicate_for_types(
-        self, 
-        source_type: str, 
-        target_type: str, 
+        self,
+        source_type: str,
+        target_type: str,
         predicate: str,
         source_layer: str
     ) -> ValidationResult:
@@ -57,23 +57,23 @@ class PredicateValidator:
         rel_type = self.registry.get_predicate(predicate)
         if not rel_type:
             return ValidationResult(
-                valid=False, 
+                valid=False,
                 error=f"Unknown predicate: '{predicate}'"
             )
-        
+
         # Check applicable layers
         if rel_type.applicable_layers and source_layer not in rel_type.applicable_layers:
             return ValidationResult(
-                valid=False, 
+                valid=False,
                 error=f"Predicate '{predicate}' (category: {rel_type.category}) not valid for layer {source_layer}. Applicable layers: {', '.join(rel_type.applicable_layers)}"
             )
-        
+
         return ValidationResult(valid=True)
-    
+
     def validate_inverse_consistency(
-        self, 
-        source_id: str, 
-        target_id: str, 
+        self,
+        source_id: str,
+        target_id: str,
         predicate: str,
         model  # Model instance with get_element() and get_relationships()
     ) -> ValidationResult:
@@ -81,22 +81,22 @@ class PredicateValidator:
         expected_inverse = self.registry.get_inverse_predicate(predicate)
         if not expected_inverse:
             return ValidationResult(valid=True)  # No inverse defined
-        
+
         # Check if target has inverse relationship back to source
         target_rels = model.get_relationships(target_id)
         has_inverse = any(
             rel["targetId"] == source_id and rel["predicate"] == expected_inverse
             for rel in target_rels
         )
-        
+
         if not has_inverse:
             return ValidationResult(
                 valid=False,
                 error=f"Missing inverse relationship: {target_id} should have '{expected_inverse}' relationship to {source_id}"
             )
-        
+
         return ValidationResult(valid=True)
-    
+
     def validate_cardinality(
         self,
         source_id: str,
@@ -107,7 +107,7 @@ class PredicateValidator:
         rel_type = self.registry.get_predicate(predicate)
         if not rel_type:
             return ValidationResult(valid=True)  # Unknown predicate handled elsewhere
-        
+
         if rel_type.cardinality in ["one-to-one", "one-to-many"]:
             # Check if source already has a relationship with this predicate
             existing_rels = [
@@ -119,7 +119,7 @@ class PredicateValidator:
                     valid=False,
                     error=f"Cardinality violation: predicate '{predicate}' has {rel_type.cardinality} constraint but element {source_id} has {len(existing_rels)} relationships"
                 )
-        
+
         return ValidationResult(valid=True)
 ```
 
@@ -130,16 +130,16 @@ Extend existing `LinkValidator` to support intra-layer relationships:
 ```python
 class LinkValidator:
     # Existing code...
-    
+
     def __init__(self, link_registry: LinkRegistry, relationship_registry: RelationshipRegistry):
         self.link_registry = link_registry
         self.relationship_registry = relationship_registry
         self.predicate_validator = PredicateValidator(relationship_registry)
-    
+
     def validate_relationship(
-        self, 
-        source_element: dict, 
-        target_element: dict, 
+        self,
+        source_element: dict,
+        target_element: dict,
         relationship: dict,
         model
     ) -> ValidationResult:
@@ -147,7 +147,7 @@ class LinkValidator:
         source_layer = source_element["layer"]
         target_layer = target_element["layer"]
         predicate = relationship.get("predicate")
-        
+
         # Determine if cross-layer or intra-layer
         if source_layer != target_layer:
             # Cross-layer: use existing link type validation
@@ -159,7 +159,7 @@ class LinkValidator:
                     valid=False,
                     error=f"Intra-layer relationship requires explicit predicate"
                 )
-            
+
             # Validate predicate usage
             result = self.predicate_validator.validate_predicate_for_types(
                 source_element["type"],
@@ -169,7 +169,7 @@ class LinkValidator:
             )
             if not result.valid:
                 return result
-            
+
             # Validate inverse consistency
             result = self.predicate_validator.validate_inverse_consistency(
                 source_element["id"],
@@ -179,16 +179,16 @@ class LinkValidator:
             )
             if not result.valid:
                 return result
-            
+
             # Validate cardinality
             result = self.predicate_validator.validate_cardinality(
                 source_element["id"],
                 predicate,
                 model
             )
-            
+
             return result
-    
+
     def _validate_cross_layer_link(self, source_element, target_element, relationship):
         # Existing cross-layer validation logic
         pass
@@ -205,14 +205,14 @@ Add `--validate-relationships` flag:
 def validate(ctx, validate_relationships: bool):
     """Validate the current model."""
     model = ctx.obj['model']
-    
+
     # Existing validation...
-    
+
     if validate_relationships:
         # Load relationship registry
         rel_registry = RelationshipRegistry(get_schema_path('relationship-catalog.json'))
         link_validator = LinkValidator(link_registry, rel_registry)
-        
+
         # Validate all relationships
         errors = []
         for element in model.get_all_elements():
@@ -221,7 +221,7 @@ def validate(ctx, validate_relationships: bool):
                 result = link_validator.validate_relationship(element, target, relationship, model)
                 if not result.valid:
                     errors.append(result.error)
-        
+
         if errors:
             click.echo(f"Relationship validation failed with {len(errors)} errors:")
             for error in errors:
@@ -297,15 +297,15 @@ from documentation_robotics.validators.base import ValidationResult
 
 class ModelProtocol(Protocol):
     """Protocol for model objects used in validation."""
-    
+
     def get_element(self, element_id: str) -> dict:
         """Get element by ID."""
         ...
-    
+
     def get_relationships(self, element_id: str) -> list:
         """Get relationships for an element."""
         ...
-    
+
     def get_all_elements(self) -> list:
         """Get all elements in the model."""
         ...
@@ -313,35 +313,35 @@ class ModelProtocol(Protocol):
 
 class PredicateValidator:
     """Validates predicate usage against relationship-catalog.json."""
-    
+
     def __init__(self, relationship_registry: RelationshipRegistry):
         """Initialize with relationship registry.
-        
+
         Args:
             relationship_registry: Registry containing relationship type definitions
         """
         self.registry = relationship_registry
-    
+
     def validate_predicate_for_types(
-        self, 
-        source_type: str, 
-        target_type: str, 
+        self,
+        source_type: str,
+        target_type: str,
         predicate: str,
         source_layer: str
     ) -> ValidationResult:
         """Check if predicate is valid for the given element type pair.
-        
+
         Args:
             source_type: Type of source element
             target_type: Type of target element
             predicate: Relationship predicate to validate
             source_layer: Layer of source element
-            
+
         Returns:
             ValidationResult with errors if predicate is invalid
         """
         result = ValidationResult()
-        
+
         rel_type = self.registry.get_predicate(predicate)
         if not rel_type:
             result.add_error(
@@ -349,7 +349,7 @@ class PredicateValidator:
                 f"Available predicates: {', '.join(self.registry.get_all_predicates())}"
             )
             return result
-        
+
         # Check applicable layers
         if rel_type.applicable_layers and source_layer not in rel_type.applicable_layers:
             result.add_error(
@@ -357,47 +357,47 @@ class PredicateValidator:
                 f"not valid for layer '{source_layer}'. "
                 f"Applicable layers: {', '.join(rel_type.applicable_layers)}"
             )
-        
+
         return result
-    
+
     def validate_inverse_consistency(
-        self, 
-        source_id: str, 
-        target_id: str, 
+        self,
+        source_id: str,
+        target_id: str,
         predicate: str,
         model: ModelProtocol,
         strict: bool = False
     ) -> ValidationResult:
         """Validate that inverse predicate exists for bidirectional relationship.
-        
+
         Args:
             source_id: ID of source element
             target_id: ID of target element
             predicate: Predicate of the relationship
             model: Model instance with get_element() and get_relationships()
             strict: If True, treat missing inverse as error; if False, as warning
-            
+
         Returns:
             ValidationResult with errors/warnings for missing inverses
         """
         result = ValidationResult()
-        
+
         expected_inverse = self.registry.get_inverse_predicate(predicate)
         if not expected_inverse:
             return result  # No inverse defined, validation passes
-        
+
         # Check if target has inverse relationship back to source
         try:
             target_rels = model.get_relationships(target_id)
         except (KeyError, AttributeError):
             # Target element doesn't exist or has no relationships
             target_rels = []
-        
+
         has_inverse = any(
             rel.get("targetId") == source_id and rel.get("predicate") == expected_inverse
             for rel in target_rels
         )
-        
+
         if not has_inverse:
             message = (
                 f"Missing inverse relationship: '{target_id}' should have "
@@ -408,9 +408,9 @@ class PredicateValidator:
                 result.add_error(message)
             else:
                 result.add_warning(message)
-        
+
         return result
-    
+
     def validate_cardinality(
         self,
         source_id: str,
@@ -418,21 +418,21 @@ class PredicateValidator:
         model: ModelProtocol
     ) -> ValidationResult:
         """Validate cardinality constraints for predicate usage.
-        
+
         Args:
             source_id: ID of source element
             predicate: Predicate to check cardinality for
             model: Model instance with get_relationships()
-            
+
         Returns:
             ValidationResult with errors for cardinality violations
         """
         result = ValidationResult()
-        
+
         rel_type = self.registry.get_predicate(predicate)
         if not rel_type:
             return result  # Unknown predicate handled elsewhere
-        
+
         # Only enforce one-to-one cardinality (one source can only have one target)
         if rel_type.cardinality == "one-to-one":
             try:
@@ -449,46 +449,46 @@ class PredicateValidator:
             except (KeyError, AttributeError):
                 # Element doesn't exist or has no relationships
                 pass
-        
+
         return result
-    
+
     def validate_all_predicates(
         self,
         model: ModelProtocol,
         strict: bool = False
     ) -> ValidationResult:
         """Validate all predicates in the model.
-        
+
         Args:
             model: Model instance to validate
             strict: If True, treat warnings as errors
-            
+
         Returns:
             Aggregated ValidationResult for all predicates
         """
         result = ValidationResult()
         all_errors = []
         all_warnings = []
-        
+
         # Get all elements and their relationships
         for element in model.get_all_elements():
             element_id = element.get("id")
             element_layer = element.get("metadata", {}).get("layer")
             element_type = element.get("type")
-            
+
             relationships = model.get_relationships(element_id)
-            
+
             for rel in relationships:
                 predicate = rel.get("predicate")
                 target_id = rel.get("targetId")
-                
+
                 if not predicate:
                     continue  # Skip relationships without predicates
-                
+
                 try:
                     target_element = model.get_element(target_id)
                     target_type = target_element.get("type")
-                    
+
                     # Validate predicate for types
                     pred_result = self.validate_predicate_for_types(
                         element_type,
@@ -499,7 +499,7 @@ class PredicateValidator:
                     all_errors.extend(pred_result.errors)
                     if pred_result.warnings:
                         all_warnings.extend(pred_result.warnings)
-                    
+
                     # Validate inverse consistency
                     inv_result = self.validate_inverse_consistency(
                         element_id,
@@ -511,7 +511,7 @@ class PredicateValidator:
                     all_errors.extend(inv_result.errors)
                     if inv_result.warnings:
                         all_warnings.extend(inv_result.warnings)
-                    
+
                     # Validate cardinality
                     card_result = self.validate_cardinality(
                         element_id,
@@ -521,11 +521,11 @@ class PredicateValidator:
                     all_errors.extend(card_result.errors)
                     if card_result.warnings:
                         all_warnings.extend(card_result.warnings)
-                    
+
                 except (KeyError, AttributeError):
                     # Target element doesn't exist - handled by reference validation
                     continue
-        
+
         result.errors = all_errors
         result.warnings = all_warnings
         return result
@@ -544,12 +544,12 @@ PREDICATE_VALIDATION = "predicate_validation"
 Updated `__init__` method to accept relationship registry:
 ```python
 def __init__(
-    self, 
-    link_registry: LinkRegistry, 
+    self,
+    link_registry: LinkRegistry,
     relationship_registry: Optional['RelationshipRegistry'] = None
 ):
     """Initialize link validator.
-    
+
     Args:
         link_registry: Registry of valid link types
         relationship_registry: Optional registry for predicate validation
@@ -557,7 +557,7 @@ def __init__(
     self.link_registry = link_registry
     self.relationship_registry = relationship_registry
     self.predicate_validator = None
-    
+
     if relationship_registry:
         from documentation_robotics.validators.predicate_validator import PredicateValidator
         self.predicate_validator = PredicateValidator(relationship_registry)
@@ -571,53 +571,53 @@ def validate_intra_layer_relationships(
     strict: bool = False
 ) -> List[ValidationIssue]:
     """Validate intra-layer relationships using predicate validation.
-    
+
     Args:
         model: Model instance to validate
         strict: If True, treat warnings as errors
-        
+
     Returns:
         List of validation issues
     """
     if not self.predicate_validator:
         return []  # No relationship registry available
-    
+
     issues = []
-    
+
     # Get all elements
     all_elements = model.get_all_elements()
-    
+
     for element in all_elements:
         element_id = element.get("id")
-        
+
         # Extract layer from element metadata (robust approach)
         element_layer = element.get("metadata", {}).get("layer")
         if not element_layer:
             continue
-        
+
         element_type = element.get("type")
-        
+
         # Get relationships for this element
         relationships = model.get_relationships(element_id)
-        
+
         for rel in relationships:
             target_id = rel.get("targetId")
             predicate = rel.get("predicate")
-            
+
             if not predicate:
                 continue  # Skip relationships without predicates
-            
+
             try:
                 target_element = model.get_element(target_id)
                 # Extract target layer from metadata
                 target_layer = target_element.get("metadata", {}).get("layer")
-                
+
                 # Only validate intra-layer relationships
                 if element_layer != target_layer:
                     continue
-                
+
                 target_type = target_element.get("type")
-                
+
                 # Validate predicate usage
                 pred_result = self.predicate_validator.validate_predicate_for_types(
                     element_type,
@@ -625,7 +625,7 @@ def validate_intra_layer_relationships(
                     predicate,
                     element_layer
                 )
-                
+
                 for error in pred_result.errors:
                     issues.append(ValidationIssue(
                         severity=ValidationSeverity.ERROR,
@@ -639,7 +639,7 @@ def validate_intra_layer_relationships(
                             field_path=f"relationships[predicate={predicate}]"
                         )
                     ))
-                
+
                 # Validate inverse consistency
                 inv_result = self.predicate_validator.validate_inverse_consistency(
                     element_id,
@@ -648,7 +648,7 @@ def validate_intra_layer_relationships(
                     model,
                     strict=strict
                 )
-                
+
                 for error in inv_result.errors:
                     issues.append(ValidationIssue(
                         severity=ValidationSeverity.ERROR,
@@ -662,7 +662,7 @@ def validate_intra_layer_relationships(
                             field_path=f"relationships[predicate={predicate}]"
                         )
                     ))
-                
+
                 for warning in inv_result.warnings:
                     issues.append(ValidationIssue(
                         severity=ValidationSeverity.WARNING,
@@ -676,14 +676,14 @@ def validate_intra_layer_relationships(
                             field_path=f"relationships[predicate={predicate}]"
                         )
                     ))
-                
+
                 # Validate cardinality
                 card_result = self.predicate_validator.validate_cardinality(
                     element_id,
                     predicate,
                     model
                 )
-                
+
                 for error in card_result.errors:
                     issues.append(ValidationIssue(
                         severity=ValidationSeverity.ERROR,
@@ -697,11 +697,11 @@ def validate_intra_layer_relationships(
                             field_path=f"relationships[predicate={predicate}]"
                         )
                     ))
-                
+
             except (KeyError, AttributeError):
                 # Target element doesn't exist - handled by reference validation
                 continue
-    
+
     return issues
 ```
 
@@ -732,7 +732,7 @@ if validate_relationships:
         # Load relationship registry
         schema_path = get_schema_path()
         rel_catalog_path = schema_path / "relationship-catalog.json"
-        
+
         if not rel_catalog_path.exists():
             click.echo(
                 f"Warning: relationship-catalog.json not found at {rel_catalog_path}",
@@ -741,19 +741,19 @@ if validate_relationships:
         else:
             from documentation_robotics.core.relationship_registry import RelationshipRegistry
             rel_registry = RelationshipRegistry(str(rel_catalog_path))
-            
+
             # Create link validator with relationship registry
             link_validator = LinkValidator(
                 link_registry=link_registry,
                 relationship_registry=rel_registry
             )
-            
+
             # Validate intra-layer relationships
             relationship_issues = link_validator.validate_intra_layer_relationships(
                 model=model,
                 strict=strict
             )
-            
+
     except Exception as e:
         if verbose:
             import traceback
@@ -804,7 +804,7 @@ from copy import deepcopy
 def test_validate_cardinality_many_to_many(mock_model):
     """Test cardinality validation allows many-to-many relationships."""
     validator = PredicateValidator(mock_model.relationship_registry)
-    
+
     # Use deepcopy to avoid modifying shared fixture
     element = deepcopy(mock_model.elements[0])
     element.data["relationships"].extend([
@@ -817,13 +817,13 @@ def test_validate_cardinality_many_to_many(mock_model):
             "predicate": "depends-on"
         }
     ])
-    
+
     result = validator.validate_cardinality(
         element.id,
         "depends-on",
         mock_model
     )
-    
+
     assert result.is_valid()
 ```
 
@@ -903,16 +903,16 @@ Cardinality violation: predicate 'replaces' has one-to-one constraint but elemen
 
 ## Acceptance Criteria Status
 
-✅ `PredicateValidator` class implemented with all required methods  
-✅ `LinkValidator` extended for intra-layer relationship validation  
-✅ `dr validate --validate-relationships` flag added and functional  
-✅ Predicate usage validation rejects invalid predicates  
-✅ Inverse consistency checking with warning/error modes  
-✅ Cardinality validation enforces one-to-one constraints  
-✅ Intra-layer relationships validated  
-✅ Comprehensive unit tests (19 tests, 91% coverage)  
-✅ Integration tests validate end-to-end workflows  
-✅ All code review feedback addressed  
+✅ `PredicateValidator` class implemented with all required methods
+✅ `LinkValidator` extended for intra-layer relationship validation
+✅ `dr validate --validate-relationships` flag added and functional
+✅ Predicate usage validation rejects invalid predicates
+✅ Inverse consistency checking with warning/error modes
+✅ Cardinality validation enforces one-to-one constraints
+✅ Intra-layer relationships validated
+✅ Comprehensive unit tests (19 tests, 91% coverage)
+✅ Integration tests validate end-to-end workflows
+✅ All code review feedback addressed
 
 The implementation is complete, tested, and ready for final review.
 

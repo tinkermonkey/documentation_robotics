@@ -1,7 +1,20 @@
 ---
 name: LAYER_03_SECURITY
 description: Expert knowledge for Security Layer modeling in Documentation Robotics
-triggers: ["security", "authentication", "authorization", "role", "permission", "RBAC", "ABAC", "policy", "threat", "actor objective", "STS-ml"]
+triggers:
+  [
+    "security",
+    "authentication",
+    "authorization",
+    "role",
+    "permission",
+    "RBAC",
+    "ABAC",
+    "policy",
+    "threat",
+    "actor objective",
+    "STS-ml",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +29,7 @@ version: 0.6.0
 ## Layer Overview
 
 The Security Layer provides **comprehensive security modeling** spanning:
+
 - **Authentication & Authorization** - RBAC, ABAC, field-level access control
 - **Goal-Oriented Security** - Actor objectives, social dependencies (STS-ml inspired)
 - **Information Flow Rights** - Fine-grained rights: produce, read, modify, distribute
@@ -32,44 +46,44 @@ This layer uses a **custom YAML specification** designed to cover authentication
 
 ### Authentication & Authorization (14 entities)
 
-| Entity Type | Description |
-|-------------|-------------|
-| **SecurityModel** | Root container for complete security model |
-| **AuthenticationConfig** | Authentication providers (OAuth2, OIDC, SAML, JWT, session, API key, certificate) |
-| **PasswordPolicy** | Password requirements and policies |
-| **Role** | User role definition with inheritance and hierarchy |
-| **Permission** | Permission definition with scopes (global, resource, attribute, owner) and format "resource.action" |
-| **SecureResource** | Protected resource (types: api, screen, data, file, service) |
-| **ResourceOperation** | Operation on a resource with role-based access, conditions, rate limits, audit |
-| **AccessCondition** | Conditional access rule with operators and data sources |
-| **FieldAccessControl** | Field-level access control with read/write permissions and masking |
-| **SecurityPolicy** | Declarative security policy with rules and actions |
-| **PolicyRule** | Individual policy rule with conditions and effects (allow, deny, audit, warn) |
-| **PolicyAction** | Action to take when policy rule matches |
-| **DataClassification** | Data classification and protection policies (levels: public, internal, confidential, restricted) |
-| **RateLimit** | Throttling constraints for API/service access |
+| Entity Type              | Description                                                                                         |
+| ------------------------ | --------------------------------------------------------------------------------------------------- |
+| **SecurityModel**        | Root container for complete security model                                                          |
+| **AuthenticationConfig** | Authentication providers (OAuth2, OIDC, SAML, JWT, session, API key, certificate)                   |
+| **PasswordPolicy**       | Password requirements and policies                                                                  |
+| **Role**                 | User role definition with inheritance and hierarchy                                                 |
+| **Permission**           | Permission definition with scopes (global, resource, attribute, owner) and format "resource.action" |
+| **SecureResource**       | Protected resource (types: api, screen, data, file, service)                                        |
+| **ResourceOperation**    | Operation on a resource with role-based access, conditions, rate limits, audit                      |
+| **AccessCondition**      | Conditional access rule with operators and data sources                                             |
+| **FieldAccessControl**   | Field-level access control with read/write permissions and masking                                  |
+| **SecurityPolicy**       | Declarative security policy with rules and actions                                                  |
+| **PolicyRule**           | Individual policy rule with conditions and effects (allow, deny, audit, warn)                       |
+| **PolicyAction**         | Action to take when policy rule matches                                                             |
+| **DataClassification**   | Data classification and protection policies (levels: public, internal, confidential, restricted)    |
+| **RateLimit**            | Throttling constraints for API/service access                                                       |
 
 ### STS-ml Inspired Security (17 entities)
 
-| Entity Type | Description |
-|-------------|-------------|
-| **Actor** | Security actor (types: role, agent, organization, system) with objectives and dependencies |
-| **ActorObjective** | Security-related goal of an actor (links to motivation layer goals) |
-| **ActorDependency** | Dependency between actors on resources |
-| **InformationEntity** | Information asset with fine-grained rights (produce, read, modify, distribute) |
-| **InformationRight** | Fine-grained information access rights per actor |
-| **Delegation** | Explicit delegation of permissions or goals (types: execution, permission, approval) |
-| **SecurityConstraints** | Container for security patterns (separation/binding of duty, need-to-know) |
-| **SeparationOfDuty** | Pattern requiring different actors to perform related tasks |
-| **BindingOfDuty** | Pattern requiring same actor to complete related tasks |
-| **NeedToKnow** | Information access based on objective/purpose requirements |
-| **SocialDependency** | Dependencies and trust between actors with verification levels |
-| **AccountabilityRequirement** | Accountability and non-repudiation requirements |
-| **Evidence** | Evidence required for accountability (digital-signature, timestamp, IP, biometric, etc.) |
-| **Threat** | Security threat with likelihood, impact, and countermeasures |
-| **Countermeasure** | Security countermeasure for a threat |
-| **AuditConfig** | Security audit logging configuration |
-| **RetentionPolicy** | Data retention and deletion policies |
+| Entity Type                   | Description                                                                                |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| **Actor**                     | Security actor (types: role, agent, organization, system) with objectives and dependencies |
+| **ActorObjective**            | Security-related goal of an actor (links to motivation layer goals)                        |
+| **ActorDependency**           | Dependency between actors on resources                                                     |
+| **InformationEntity**         | Information asset with fine-grained rights (produce, read, modify, distribute)             |
+| **InformationRight**          | Fine-grained information access rights per actor                                           |
+| **Delegation**                | Explicit delegation of permissions or goals (types: execution, permission, approval)       |
+| **SecurityConstraints**       | Container for security patterns (separation/binding of duty, need-to-know)                 |
+| **SeparationOfDuty**          | Pattern requiring different actors to perform related tasks                                |
+| **BindingOfDuty**             | Pattern requiring same actor to complete related tasks                                     |
+| **NeedToKnow**                | Information access based on objective/purpose requirements                                 |
+| **SocialDependency**          | Dependencies and trust between actors with verification levels                             |
+| **AccountabilityRequirement** | Accountability and non-repudiation requirements                                            |
+| **Evidence**                  | Evidence required for accountability (digital-signature, timestamp, IP, biometric, etc.)   |
+| **Threat**                    | Security threat with likelihood, impact, and countermeasures                               |
+| **Countermeasure**            | Security countermeasure for a threat                                                       |
+| **AuditConfig**               | Security audit logging configuration                                                       |
+| **RetentionPolicy**           | Data retention and deletion policies                                                       |
 
 ---
 
@@ -109,17 +123,17 @@ SecurityModel
 
 ### Key Relationship Patterns
 
-| Source | Relationship | Target | Example |
-|--------|--------------|--------|---------|
-| Actor | has-objective | ActorObjective | "Support Agent" has objective "Resolve Customer Issues" |
-| Actor | depends-on | InformationEntity | Actor depends on information to achieve objectives |
-| Actor | delegates-to | Actor | "Manager" delegates "Approval Permission" to "Team Lead" |
-| Role | inherits-from | Role | "Admin" inherits from "User" |
-| Permission | applies-to | SecureResource | "users.read" applies to "UserData" resource |
-| PolicyRule | evaluates | AccessCondition | Rule evaluates ABAC conditions |
-| Threat | mitigated-by | Countermeasure | "SQL Injection" mitigated by "Input Validation" |
-| ActorObjective | references | Goal (Layer 1) | Security objective links to business goal |
-| SocialDependency | defines | Actor → Actor trust | "Vendor" depends on "Company" for payment |
+| Source           | Relationship  | Target              | Example                                                  |
+| ---------------- | ------------- | ------------------- | -------------------------------------------------------- |
+| Actor            | has-objective | ActorObjective      | "Support Agent" has objective "Resolve Customer Issues"  |
+| Actor            | depends-on    | InformationEntity   | Actor depends on information to achieve objectives       |
+| Actor            | delegates-to  | Actor               | "Manager" delegates "Approval Permission" to "Team Lead" |
+| Role             | inherits-from | Role                | "Admin" inherits from "User"                             |
+| Permission       | applies-to    | SecureResource      | "users.read" applies to "UserData" resource              |
+| PolicyRule       | evaluates     | AccessCondition     | Rule evaluates ABAC conditions                           |
+| Threat           | mitigated-by  | Countermeasure      | "SQL Injection" mitigated by "Input Validation"          |
+| ActorObjective   | references    | Goal (Layer 1)      | Security objective links to business goal                |
+| SocialDependency | defines       | Actor → Actor trust | "Vendor" depends on "Company" for payment                |
 
 ---
 
@@ -127,27 +141,28 @@ SecurityModel
 
 ### Outgoing References (Security → Other Layers)
 
-| Target Layer | Reference Type | Example |
-|--------------|----------------|---------|
-| **Layer 1 (Motivation)** | Actor references **Stakeholder** | Security actor maps to business stakeholder |
-| **Layer 1 (Motivation)** | ActorObjective references **Goal** | "Protect Customer Data" objective links to "Privacy Goal" |
-| **Layer 1 (Motivation)** | Threat references **Assessment** | Threat is a risk assessment |
-| **Layer 1 (Motivation)** | Countermeasure implements **Requirement** | Security control fulfills security requirement |
-| **Layer 1 (Motivation)** | SocialDependency references **Constraint** | Trust commitments are constraints |
-| **Layer 2 (Business)** | Actor references **BusinessActor** | Security actor maps to business role |
-| **Layer 2 (Business)** | SecurityConstraints apply to **BusinessProcess** | Separation of duty applies to business tasks |
-| **Layer 4 (Application)** | SecureResource references **ApplicationService** | Protects application components |
-| **Layer 4 (Application)** | SecureResource references **DataObject** | Protects application data |
-| **Layer 6 (API)** | SecureResource references **API Operations** | API endpoint security |
-| **Layer 6 (API)** | SecurityScheme maps to **API SecurityScheme** | OAuth2 config maps to OpenAPI security |
-| **Layer 5 (Technology)** | Artifact **encryption** property | Data-at-rest encryption |
-| **Layer 5 (Technology)** | Artifact **classification** property | Data classification levels |
-| **Layer 11 (APM)** | AuditConfig **retention** | Audit log retention policies |
-| **Layer 11 (APM)** | AuditConfig **monitoring** | Security event monitoring |
+| Target Layer              | Reference Type                                   | Example                                                   |
+| ------------------------- | ------------------------------------------------ | --------------------------------------------------------- |
+| **Layer 1 (Motivation)**  | Actor references **Stakeholder**                 | Security actor maps to business stakeholder               |
+| **Layer 1 (Motivation)**  | ActorObjective references **Goal**               | "Protect Customer Data" objective links to "Privacy Goal" |
+| **Layer 1 (Motivation)**  | Threat references **Assessment**                 | Threat is a risk assessment                               |
+| **Layer 1 (Motivation)**  | Countermeasure implements **Requirement**        | Security control fulfills security requirement            |
+| **Layer 1 (Motivation)**  | SocialDependency references **Constraint**       | Trust commitments are constraints                         |
+| **Layer 2 (Business)**    | Actor references **BusinessActor**               | Security actor maps to business role                      |
+| **Layer 2 (Business)**    | SecurityConstraints apply to **BusinessProcess** | Separation of duty applies to business tasks              |
+| **Layer 4 (Application)** | SecureResource references **ApplicationService** | Protects application components                           |
+| **Layer 4 (Application)** | SecureResource references **DataObject**         | Protects application data                                 |
+| **Layer 6 (API)**         | SecureResource references **API Operations**     | API endpoint security                                     |
+| **Layer 6 (API)**         | SecurityScheme maps to **API SecurityScheme**    | OAuth2 config maps to OpenAPI security                    |
+| **Layer 5 (Technology)**  | Artifact **encryption** property                 | Data-at-rest encryption                                   |
+| **Layer 5 (Technology)**  | Artifact **classification** property             | Data classification levels                                |
+| **Layer 11 (APM)**        | AuditConfig **retention**                        | Audit log retention policies                              |
+| **Layer 11 (APM)**        | AuditConfig **monitoring**                       | Security event monitoring                                 |
 
 ### Incoming References (Lower Layers → Security)
 
 Lower layers reference Security layer to:
+
 - Apply authentication/authorization to services and APIs
 - Enforce data classification on artifacts and data objects
 - Implement security policies and access controls
@@ -183,6 +198,7 @@ async def list_users():
 ```
 
 **Maps to:**
+
 - Role: "Admin", "User", "Guest"
 - SecureResource: "/admin/users" (type: api)
 - ResourceOperation: "list_users" (allowed-roles: [admin])
@@ -206,6 +222,7 @@ async updateUser(userId: string, data: UpdateUserDto) {
 ```
 
 **Maps to:**
+
 - Permission entities: "users.read", "users.write", "users.delete", "orders.read", "orders.write"
 - SecureResource: "users", "orders"
 - ResourceOperation: "updateUser" (required-permissions: ["users.write"])
@@ -226,6 +243,7 @@ class AccessPolicy:
 ```
 
 **Maps to:**
+
 - AccessCondition with field comparisons
 - PolicyRule with conditions and effects
 - SecurityPolicy containing multiple rules
@@ -249,6 +267,7 @@ authentication:
 ```
 
 **Maps to:**
+
 - AuthenticationConfig with providers array
 - Properties: type, authorization-url, token-url, scopes
 
@@ -268,6 +287,7 @@ class UserSerializer:
 ```
 
 **Maps to:**
+
 - FieldAccessControl on "email" and "ssn" fields
 - Masking strategies: "email" (partial), "redact" (full)
 - Role-based field access
@@ -284,6 +304,7 @@ def get_user_by_email(email: str):
 ```
 
 **Maps to:**
+
 - Threat: "SQL Injection" (likelihood: high, impact: critical)
 - Countermeasure: "Parameterized Queries"
 - Threat mitigated-by Countermeasure
@@ -540,32 +561,38 @@ Threat: "Unauthorized API Access"
 The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling Language) concepts:
 
 ### 1. Goal-Oriented Security
+
 - **Actor Objectives** link to Motivation Layer goals
 - Security is justified by business goals
 - Traceability: Why do we need this security control?
 
 ### 2. Information Flow Rights
+
 - **Produce** - Create new information
 - **Read** - Access information
 - **Modify** - Update existing information
 - **Distribute** - Share information with others
 
 ### 3. Delegation
+
 - Explicit delegation chains (execution, permission, approval)
 - Retention of oversight/control
 - Delegation constraints (time-bound, scope-limited)
 
 ### 4. Security Patterns
+
 - **Separation of Duty** - Prevent fraud by requiring multiple actors
 - **Binding of Duty** - Ensure accountability by requiring same actor
 - **Need to Know** - Limit access based on objectives
 
 ### 5. Social Dependencies
+
 - Trust relationships between actors
 - Verification levels (low, medium, high)
 - Depender → Dependee relationships
 
 ### 6. Accountability
+
 - Non-repudiation requirements
 - Evidence collection (digital signatures, timestamps, audit logs)
 - Proof of action
@@ -589,21 +616,22 @@ The Security Layer integrates **STS-ml 2.0** (Socio-Technical Security Modeling 
 
 ## Validation Tips
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Orphaned Actor | Actor has no objectives or dependencies | Add actor objectives or remove actor |
-| Unmapped Threat | Threat has no countermeasures | Add countermeasures or accept risk |
-| Unused Permission | Permission not assigned to roles or operations | Assign to roles or remove |
-| Missing Field-Level Security | Sensitive data lacks FieldAccessControl | Add field-level access rules |
-| Unlinked Objective | ActorObjective doesn't link to motivation goal | Add cross-layer link |
-| No Evidence | AccountabilityRequirement lacks evidence | Define required evidence types |
-| Incomplete Delegation | Delegation chain missing delegatee | Complete delegation or remove |
+| Issue                        | Cause                                          | Fix                                  |
+| ---------------------------- | ---------------------------------------------- | ------------------------------------ |
+| Orphaned Actor               | Actor has no objectives or dependencies        | Add actor objectives or remove actor |
+| Unmapped Threat              | Threat has no countermeasures                  | Add countermeasures or accept risk   |
+| Unused Permission            | Permission not assigned to roles or operations | Assign to roles or remove            |
+| Missing Field-Level Security | Sensitive data lacks FieldAccessControl        | Add field-level access rules         |
+| Unlinked Objective           | ActorObjective doesn't link to motivation goal | Add cross-layer link                 |
+| No Evidence                  | AccountabilityRequirement lacks evidence       | Define required evidence types       |
+| Incomplete Delegation        | Delegation chain missing delegatee             | Complete delegation or remove        |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add security model <name>
 dr add security authentication-config <name> --properties provider=<type>
@@ -619,6 +647,7 @@ dr add security delegation <name> --properties delegator=<actor>,delegatee=<acto
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <actor> has-objective <objective>
 dr relationship add <threat> mitigated-by <countermeasure>
@@ -627,6 +656,7 @@ dr relationship add <actor-objective> supports <motivation-goal>
 ```
 
 **Cross-Layer Commands:**
+
 ```bash
 dr relationship add security/<actor> references motivation/<stakeholder>
 dr relationship add security/<secure-resource> protects application/<service>

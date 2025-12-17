@@ -29,7 +29,9 @@ console = Console()
     is_flag=True,
     help="Validate intra-layer relationships and predicates",
 )
-@click.option("--verbose", is_flag=True, help="Show detailed error information including stack traces")
+@click.option(
+    "--verbose", is_flag=True, help="Show detailed error information including stack traces"
+)
 @click.option("--output", type=click.Choice(["text", "json"]), default="text")
 def validate(
     layer: str,
@@ -87,7 +89,10 @@ def validate(
 
                 # Validate discovered links
                 validator = LinkValidator(
-                    registry, analyzer, strict_mode=strict_links, relationship_registry=relationship_registry
+                    registry,
+                    analyzer,
+                    strict_mode=strict_links,
+                    relationship_registry=relationship_registry,
                 )
                 link_issues = validator.validate_all()
 
@@ -104,14 +109,19 @@ def validate(
                     # Need to create a minimal analyzer for validator
                     analyzer = LinkAnalyzer(registry)
                     validator = LinkValidator(
-                        registry, analyzer, strict_mode=strict_links, relationship_registry=relationship_registry
+                        registry,
+                        analyzer,
+                        strict_mode=strict_links,
+                        relationship_registry=relationship_registry,
                     )
 
                 # Validate intra-layer relationships
                 relationship_issues = validator.validate_intra_layer_relationships(model)
 
                 if relationship_issues:
-                    console.print(f"Found {len(relationship_issues)} relationship validation issue(s)\n")
+                    console.print(
+                        f"Found {len(relationship_issues)} relationship validation issue(s)\n"
+                    )
                 else:
                     console.print("[green]✓ All relationships are valid[/green]\n")
 
@@ -121,6 +131,7 @@ def validate(
             console.print(f"[red]✗ Validation error: {e}[/red]\n")
             if verbose:
                 import traceback
+
                 console.print(f"[red]{traceback.format_exc()}[/red]\n")
 
     # Display results
@@ -219,7 +230,9 @@ def _display_text_results(result, model, link_issues=None):
         if link_errors:
             console.print("\n[bold red]Link Errors:[/bold red]")
             for issue in link_errors:
-                console.print(f"  ✗ {issue.link_instance.source_id} -> {issue.link_instance.field_path}")
+                console.print(
+                    f"  ✗ {issue.link_instance.source_id} -> {issue.link_instance.field_path}"
+                )
                 console.print(f"     {issue.message}")
                 if issue.suggestion:
                     console.print(f"     Suggestion: {issue.suggestion}")
@@ -227,7 +240,9 @@ def _display_text_results(result, model, link_issues=None):
         if link_warnings:
             console.print("\n[bold yellow]Link Warnings:[/bold yellow]")
             for issue in link_warnings:
-                console.print(f"  ⚠  {issue.link_instance.source_id} -> {issue.link_instance.field_path}")
+                console.print(
+                    f"  ⚠  {issue.link_instance.source_id} -> {issue.link_instance.field_path}"
+                )
                 console.print(f"     {issue.message}")
                 if issue.suggestion:
                     console.print(f"     Suggestion: {issue.suggestion}")

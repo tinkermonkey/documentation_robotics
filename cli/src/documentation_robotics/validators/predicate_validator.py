@@ -6,7 +6,7 @@ inverse consistency, and cardinality constraints for intra-layer relationships.
 
 from typing import Any, Dict, List, Optional, Protocol
 
-from ..core.relationship_registry import RelationshipRegistry, RelationshipType
+from ..core.relationship_registry import RelationshipRegistry
 from ..utils.layer_mapping import normalize_layer_identifier
 from .base import ValidationResult
 
@@ -73,12 +73,12 @@ class PredicateValidator:
         result = ValidationResult()
         rel_type = self.registry.get_predicate(predicate)
         if not rel_type:
-            all_predicates = ', '.join(list(self.registry.list_all_predicates()))
+            all_predicates = ", ".join(list(self.registry.list_all_predicates()))
             result.add_error(
                 "relationships",
                 message=f"Unknown predicate: '{predicate}'. Available predicates: {all_predicates}",
                 element_id=predicate,
-                location="predicate"
+                location="predicate",
             )
         return result
 
@@ -102,7 +102,7 @@ class PredicateValidator:
                 source_layer,
                 message=f"Unknown predicate: '{predicate}'",
                 element_id=source_element_id,
-                location="predicate"
+                location="predicate",
             )
             return result
 
@@ -115,10 +115,10 @@ class PredicateValidator:
             result.add_error(
                 source_layer,
                 message=f"Predicate '{predicate}' (category: {rel_type.category}) "
-                        f"not valid for layer {source_layer}. "
-                        f"Applicable layers: {applicable_layers_str}",
+                f"not valid for layer {source_layer}. "
+                f"Applicable layers: {applicable_layers_str}",
                 element_id=source_element_id,
-                location="predicate"
+                location="predicate",
             )
 
         return result
@@ -177,21 +177,15 @@ class PredicateValidator:
             )
 
             # Extract layer from source_id (format: layer-type-name)
-            source_layer = source_id.split('-')[0] if '-' in source_id else "unknown"
+            source_layer = source_id.split("-")[0] if "-" in source_id else "unknown"
 
             if self.strict_mode:
                 result.add_error(
-                    source_layer,
-                    message=error_msg,
-                    element_id=source_id,
-                    location="relationships"
+                    source_layer, message=error_msg, element_id=source_id, location="relationships"
                 )
             else:
                 result.add_warning(
-                    source_layer,
-                    message=error_msg,
-                    element_id=source_id,
-                    location="relationships"
+                    source_layer, message=error_msg, element_id=source_id, location="relationships"
                 )
 
         return result
@@ -233,20 +227,18 @@ class PredicateValidator:
 
         # Count existing relationships with this predicate from source
         source_relationships = self._get_relationships_from_model(model, source_id)
-        existing_rels = [
-            rel for rel in source_relationships if rel.get("predicate") == predicate
-        ]
+        existing_rels = [rel for rel in source_relationships if rel.get("predicate") == predicate]
 
         if len(existing_rels) > 1:
             # Extract layer from source_id (format: layer-type-name)
-            source_layer = source_id.split('-')[0] if '-' in source_id else "unknown"
+            source_layer = source_id.split("-")[0] if "-" in source_id else "unknown"
             result.add_error(
                 source_layer,
                 message=f"Cardinality violation: predicate '{predicate}' has "
-                        f"{cardinality} constraint but element '{source_id}' "
-                        f"has {len(existing_rels)} relationships with this predicate",
+                f"{cardinality} constraint but element '{source_id}' "
+                f"has {len(existing_rels)} relationships with this predicate",
                 element_id=source_id,
-                location="relationships"
+                location="relationships",
             )
 
         return result

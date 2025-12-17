@@ -8,18 +8,18 @@ and relationship catalog (e.g., '06', '07').
 
 # Centralized mapping from layer names to numeric identifiers
 LAYER_NAME_TO_NUMBER = {
-    'motivation': '01',
-    'business': '02',
-    'security': '03',
-    'application': '04',
-    'technology': '05',
-    'api': '06',
-    'data_model': '07',
-    'data_store': '08',
-    'ux': '09',
-    'navigation': '10',
-    'apm': '11',
-    'testing': '12',
+    "motivation": "01",
+    "business": "02",
+    "security": "03",
+    "application": "04",
+    "technology": "05",
+    "api": "06",
+    "data_model": "07",
+    "data_store": "08",
+    "ux": "09",
+    "navigation": "10",
+    "apm": "11",
+    "testing": "12",
 }
 
 
@@ -46,8 +46,8 @@ def normalize_layer_identifier(layer: str) -> str:
 
     # If it starts with a digit, extract the numeric prefix
     if layer[0].isdigit():
-        if '-' in layer:
-            return layer.split('-')[0]
+        if "-" in layer:
+            return layer.split("-")[0]
         return layer[:2] if len(layer) >= 2 and layer[1].isdigit() else layer[0]
 
     # Look up by name

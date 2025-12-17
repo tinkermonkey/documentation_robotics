@@ -1,7 +1,19 @@
 ---
 name: LAYER_01_MOTIV
 description: Expert knowledge for Motivation Layer modeling in Documentation Robotics
-triggers: ["stakeholder", "driver", "assessment", "goal", "outcome", "principle", "requirement", "constraint", "motivation", "archimate motivation"]
+triggers:
+  [
+    "stakeholder",
+    "driver",
+    "assessment",
+    "goal",
+    "outcome",
+    "principle",
+    "requirement",
+    "constraint",
+    "motivation",
+    "archimate motivation",
+  ]
 version: 0.6.0
 ---
 
@@ -16,6 +28,7 @@ version: 0.6.0
 ## Layer Overview
 
 The Motivation Layer is the **highest layer** in the 12-layer architecture and provides governance to all other layers. It describes:
+
 - **WHY** - The reasons and drivers behind architectural decisions
 - **WHO** - Stakeholders with interests in the outcome
 - **WHAT** - Goals, requirements, principles, and constraints
@@ -27,18 +40,18 @@ This layer uses **ArchiMate 3.2 Motivation Layer** standard without custom exten
 
 ## Entity Types
 
-| Entity Type | Description | Key Attributes |
-|-------------|-------------|----------------|
-| **Stakeholder** | Individual, team, or organization with interest in the outcome | Types: internal, external, customer, partner, regulator |
-| **Driver** | External or internal condition that motivates an organization | Categories: market, regulatory, technology, competitive, operational, strategic |
-| **Assessment** | Outcome of analysis of the state of affairs (SWOT) | Types: strength, weakness, opportunity, threat, risk, gap |
-| **Goal** | High-level statement of intent, direction, or desired end state | Priority: critical, high, medium, low. Can be SMART (measurable, target-date, KPI) |
-| **Outcome** | End result that has been achieved | Status: planned, in-progress, achieved, not-achieved |
-| **Principle** | Normative property of all systems in a given context | Categories: business, data, application, technology, security, integration |
-| **Requirement** | Statement of need that must be realized | Types: functional, non-functional, business, technical, compliance, user |
-| **Constraint** | Restriction on the way in which a system is realized | Types: budget, time, technology, regulatory, organizational, resource |
-| **Meaning** | Knowledge or expertise present in a representation | Used to describe semantics and interpretations |
-| **Value** | Relative worth, utility, or importance of something | Types: financial, customer, operational, strategic, social |
+| Entity Type     | Description                                                     | Key Attributes                                                                     |
+| --------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Stakeholder** | Individual, team, or organization with interest in the outcome  | Types: internal, external, customer, partner, regulator                            |
+| **Driver**      | External or internal condition that motivates an organization   | Categories: market, regulatory, technology, competitive, operational, strategic    |
+| **Assessment**  | Outcome of analysis of the state of affairs (SWOT)              | Types: strength, weakness, opportunity, threat, risk, gap                          |
+| **Goal**        | High-level statement of intent, direction, or desired end state | Priority: critical, high, medium, low. Can be SMART (measurable, target-date, KPI) |
+| **Outcome**     | End result that has been achieved                               | Status: planned, in-progress, achieved, not-achieved                               |
+| **Principle**   | Normative property of all systems in a given context            | Categories: business, data, application, technology, security, integration         |
+| **Requirement** | Statement of need that must be realized                         | Types: functional, non-functional, business, technical, compliance, user           |
+| **Constraint**  | Restriction on the way in which a system is realized            | Types: budget, time, technology, regulatory, organizational, resource              |
+| **Meaning**     | Knowledge or expertise present in a representation              | Used to describe semantics and interpretations                                     |
+| **Value**       | Relative worth, utility, or importance of something             | Types: financial, customer, operational, strategic, social                         |
 
 ---
 
@@ -46,43 +59,43 @@ This layer uses **ArchiMate 3.2 Motivation Layer** standard without custom exten
 
 ### Structural Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| Goal | aggregates | Goal | Strategic Goal aggregates Operational Goals |
-| Requirement | aggregates | Requirement | Business Requirement aggregates Functional Requirements |
-| Principle | aggregates | Principle | Enterprise Principles aggregate Domain Principles |
-| Constraint | aggregates | Constraint | Budget Constraint aggregates Project Budget Constraints |
-| Outcome | realizes | Goal | "Launched Mobile App" realizes "Launch Mobile App by Q4" |
-| Goal | realizes | Value | "Improve Customer Satisfaction" realizes "Customer Value" |
-| Requirement | realizes | Goal | Functional Requirements realize Business Goals |
-| Requirement | realizes | Principle | Technical Requirements realize Security Principles |
-| Constraint | realizes | Principle | Technology Constraints realize Technology Principles |
-| Goal | specializes | Goal | "Reduce API Latency" specializes "Improve Performance" |
+| Source Type | Predicate   | Target Type | Example                                                      |
+| ----------- | ----------- | ----------- | ------------------------------------------------------------ |
+| Goal        | aggregates  | Goal        | Strategic Goal aggregates Operational Goals                  |
+| Requirement | aggregates  | Requirement | Business Requirement aggregates Functional Requirements      |
+| Principle   | aggregates  | Principle   | Enterprise Principles aggregate Domain Principles            |
+| Constraint  | aggregates  | Constraint  | Budget Constraint aggregates Project Budget Constraints      |
+| Outcome     | realizes    | Goal        | "Launched Mobile App" realizes "Launch Mobile App by Q4"     |
+| Goal        | realizes    | Value       | "Improve Customer Satisfaction" realizes "Customer Value"    |
+| Requirement | realizes    | Goal        | Functional Requirements realize Business Goals               |
+| Requirement | realizes    | Principle   | Technical Requirements realize Security Principles           |
+| Constraint  | realizes    | Principle   | Technology Constraints realize Technology Principles         |
+| Goal        | specializes | Goal        | "Reduce API Latency" specializes "Improve Performance"       |
 | Requirement | specializes | Requirement | "95% Uptime SLA" specializes "High Availability Requirement" |
-| Principle | specializes | Principle | "Encrypt All PII" specializes "Data Security Principle" |
-| Value | specializes | Value | "Customer Retention Value" specializes "Customer Value" |
+| Principle   | specializes | Principle   | "Encrypt All PII" specializes "Data Security Principle"      |
+| Value       | specializes | Value       | "Customer Retention Value" specializes "Customer Value"      |
 
 ### Behavioral Relationships
 
-| Source Type | Predicate | Target Type | Example |
-|-------------|-----------|-------------|---------|
-| Driver | influences | Goal | "Digital Transformation" influences "Modernize Architecture" |
-| Driver | influences | Requirement | "GDPR Compliance" influences "Data Protection Requirements" |
-| Driver | influences | Principle | "Cloud-First Strategy" influences "Cloud-Native Principles" |
-| Assessment | influences | Goal | "Legacy System Weakness" influences "Modernization Goal" |
-| Goal | influences | Requirement | Business Goals influence Functional Requirements |
-| Principle | influences | Requirement | Security Principles influence Technical Requirements |
-| Principle | influences | Constraint | "API-First Principle" influences "RESTful API Constraint" |
-| Constraint | influences | Requirement | Budget Constraints influence Implementation Requirements |
-| Value | influences | Goal | "Customer Value" influences "Improve UX Goal" |
-| Stakeholder | influences | Goal | "CEO" influences Strategic Goals |
-| Stakeholder | influences | Requirement | "End Users" influence Functional Requirements |
-| Stakeholder | influences | Value | "Shareholders" influence Financial Value |
-| Stakeholder | associated-with | Driver | "Product Manager" associated with "Market Competition Driver" |
-| Goal | associated-with | Outcome | "Improve Performance" associated with "Achieved 50ms Latency" |
-| Requirement | associated-with | Outcome | "High Availability Requirement" associated with "99.99% Uptime Outcome" |
-| Driver | associated-with | Assessment | "Market Driver" associated with "Competitive Threat Assessment" |
-| Value | associated-with | Meaning | "Customer Value" associated with "Definition of Customer Success" |
+| Source Type | Predicate       | Target Type | Example                                                                 |
+| ----------- | --------------- | ----------- | ----------------------------------------------------------------------- |
+| Driver      | influences      | Goal        | "Digital Transformation" influences "Modernize Architecture"            |
+| Driver      | influences      | Requirement | "GDPR Compliance" influences "Data Protection Requirements"             |
+| Driver      | influences      | Principle   | "Cloud-First Strategy" influences "Cloud-Native Principles"             |
+| Assessment  | influences      | Goal        | "Legacy System Weakness" influences "Modernization Goal"                |
+| Goal        | influences      | Requirement | Business Goals influence Functional Requirements                        |
+| Principle   | influences      | Requirement | Security Principles influence Technical Requirements                    |
+| Principle   | influences      | Constraint  | "API-First Principle" influences "RESTful API Constraint"               |
+| Constraint  | influences      | Requirement | Budget Constraints influence Implementation Requirements                |
+| Value       | influences      | Goal        | "Customer Value" influences "Improve UX Goal"                           |
+| Stakeholder | influences      | Goal        | "CEO" influences Strategic Goals                                        |
+| Stakeholder | influences      | Requirement | "End Users" influence Functional Requirements                           |
+| Stakeholder | influences      | Value       | "Shareholders" influence Financial Value                                |
+| Stakeholder | associated-with | Driver      | "Product Manager" associated with "Market Competition Driver"           |
+| Goal        | associated-with | Outcome     | "Improve Performance" associated with "Achieved 50ms Latency"           |
+| Requirement | associated-with | Outcome     | "High Availability Requirement" associated with "99.99% Uptime Outcome" |
+| Driver      | associated-with | Assessment  | "Market Driver" associated with "Competitive Threat Assessment"         |
+| Value       | associated-with | Meaning     | "Customer Value" associated with "Definition of Customer Success"       |
 
 ---
 
@@ -92,14 +105,14 @@ This layer uses **ArchiMate 3.2 Motivation Layer** standard without custom exten
 
 ### Incoming References (Lower Layers → Motivation)
 
-| Layer | References Motivation For |
-|-------|--------------------------|
-| **Layer 2 (Business)** | BusinessService delivers Value, supports Goals, governed by Principles; BusinessActor is Stakeholder; Contract drives Constraints |
-| **Layer 3 (Security)** | Actor references Stakeholder; ActorObjective references Goal; Threat references Assessment; Countermeasure implements Requirement |
-| **Layer 4 (Application)** | ApplicationService supports Goals, delivers Value, governed by Principles; ApplicationFunction fulfills Requirements |
-| **Layer 5 (Technology)** | TechnologyService supports Goals, governed by Principles; Node fulfills Requirements, constrained by Constraints |
-| **Layer 6 (API)** | Operation supports Goals (x-supports-goals), fulfills Requirements, governed by Principles, constrained by Constraints |
-| **Layer 7-12** | All layers can reference Principles, Constraints, Requirements, Goals for governance and traceability |
+| Layer                     | References Motivation For                                                                                                         |
+| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
+| **Layer 2 (Business)**    | BusinessService delivers Value, supports Goals, governed by Principles; BusinessActor is Stakeholder; Contract drives Constraints |
+| **Layer 3 (Security)**    | Actor references Stakeholder; ActorObjective references Goal; Threat references Assessment; Countermeasure implements Requirement |
+| **Layer 4 (Application)** | ApplicationService supports Goals, delivers Value, governed by Principles; ApplicationFunction fulfills Requirements              |
+| **Layer 5 (Technology)**  | TechnologyService supports Goals, governed by Principles; Node fulfills Requirements, constrained by Constraints                  |
+| **Layer 6 (API)**         | Operation supports Goals (x-supports-goals), fulfills Requirements, governed by Principles, constrained by Constraints            |
+| **Layer 7-12**            | All layers can reference Principles, Constraints, Requirements, Goals for governance and traceability                             |
 
 **Design Pattern:** Lower layers "look up" to the Motivation layer to justify WHY they exist and WHAT value they deliver.
 
@@ -121,6 +134,7 @@ def configure_oauth(provider: str):
 ```
 
 **Maps to:**
+
 - Requirement entity (REQ-001)
 - Goal entity (improve security)
 - Principle entity (security by design)
@@ -136,6 +150,7 @@ def test_api_response_time():
 ```
 
 **Maps to:**
+
 - Goal (sub-second response)
 - Constraint (< 200ms)
 - Requirement (performance requirement)
@@ -154,6 +169,7 @@ TARGET_UPTIME_SLA = 0.9999
 ```
 
 **Maps to:**
+
 - Constraint entities (budget, region)
 - Goal (availability target)
 - Principle (data residency)
@@ -162,16 +178,19 @@ TARGET_UPTIME_SLA = 0.9999
 
 ```markdown
 ## Goals
+
 - Achieve 99.9% system availability
 - Reduce customer onboarding time to < 5 minutes
 - Support 10,000 concurrent users
 
 ## Principles
+
 - API-first architecture
 - Microservices over monoliths
 - Security by design
 
 ## Constraints
+
 - Budget: $500K for 2024
 - Timeline: Launch by Q3 2024
 - Technology: Must run on AWS
@@ -350,6 +369,7 @@ Stakeholder: "CEO"
 **Question:** "Why are we building this feature?"
 
 **Approach:**
+
 1. Add **Stakeholder** who requested it
 2. Add **Driver** (market, customer, regulatory)
 3. Add **Goal** the feature achieves
@@ -361,6 +381,7 @@ Stakeholder: "CEO"
 **Question:** "How do we track GDPR compliance?"
 
 **Approach:**
+
 1. Add **Driver** ("GDPR Regulation")
 2. Add **Constraint** ("Data Residency: EU only")
 3. Add **Requirement** ("Right to Deletion", "Data Portability")
@@ -372,6 +393,7 @@ Stakeholder: "CEO"
 **Question:** "Document why we chose microservices?"
 
 **Approach:**
+
 1. Add **Assessment** (strength/weakness of monolith)
 2. Add **Principle** ("Microservices Architecture")
 3. Add **Goal** ("Improve Deployment Frequency")
@@ -389,6 +411,7 @@ dr export archimate --layers motivation --output motivation.archimate
 ```
 
 **Supported ArchiMate Elements:**
+
 - `Stakeholder` → ArchiMate Stakeholder
 - `Driver` → ArchiMate Driver
 - `Assessment` → ArchiMate Assessment
@@ -401,6 +424,7 @@ dr export archimate --layers motivation --output motivation.archimate
 - `Value` → ArchiMate Value
 
 **Supported Relationships:**
+
 - `aggregates`, `realizes`, `specializes`, `influences`, `associated-with`
 
 ---
@@ -423,19 +447,20 @@ dr export archimate --layers motivation --output motivation.archimate
 
 Common validation issues:
 
-| Issue | Cause | Fix |
-|-------|-------|-----|
-| Orphaned Goal | No stakeholder influences it | Add stakeholder or driver that influences goal |
-| Unrealized Requirement | No goal justifies it | Link requirement to goal or principle |
-| Unused Principle | No requirements reference it | Either apply principle or remove it |
-| Missing Value | Goals don't realize any value | Add value elements and link goals |
-| No Traceability | Lower layers don't reference motivation | Add references from business/application layers |
+| Issue                  | Cause                                   | Fix                                             |
+| ---------------------- | --------------------------------------- | ----------------------------------------------- |
+| Orphaned Goal          | No stakeholder influences it            | Add stakeholder or driver that influences goal  |
+| Unrealized Requirement | No goal justifies it                    | Link requirement to goal or principle           |
+| Unused Principle       | No requirements reference it            | Either apply principle or remove it             |
+| Missing Value          | Goals don't realize any value           | Add value elements and link goals               |
+| No Traceability        | Lower layers don't reference motivation | Add references from business/application layers |
 
 ---
 
 ## Quick Reference
 
 **Add Commands:**
+
 ```bash
 dr add motivation stakeholder <name> --properties type=<type>
 dr add motivation driver <name> --properties category=<category>
@@ -446,6 +471,7 @@ dr add motivation constraint <name> --properties type=<type>
 ```
 
 **Relationship Commands:**
+
 ```bash
 dr relationship add <source-id> influences <target-id>
 dr relationship add <source-id> aggregates <target-id>
@@ -454,6 +480,7 @@ dr relationship add <source-id> specializes <target-id>
 ```
 
 **Query Commands:**
+
 ```bash
 dr search --layer motivation --type goal
 dr search --layer motivation --query "priority=critical"

@@ -11,7 +11,6 @@ from typing import Optional
 
 import click
 from rich.console import Console
-from rich.markup import escape
 from rich.table import Table
 
 from ..core.model import Model
@@ -58,7 +57,12 @@ def relationship():
     help="Show detailed error information including stack traces",
 )
 def add_relationship(
-    source_id: str, predicate: str, target_id: str, skip_validation: bool, suggest_inverse: bool, verbose: bool
+    source_id: str,
+    predicate: str,
+    target_id: str,
+    skip_validation: bool,
+    suggest_inverse: bool,
+    verbose: bool,
 ):
     """Add a relationship between two elements with an explicit predicate.
 
@@ -155,7 +159,7 @@ def add_relationship(
 
         console.print(
             f"[green]✓[/] Added relationship: {source_id} --\\[{predicate}]--> {target_id}",
-            style="bold"
+            style="bold",
         )
 
         # Suggest inverse relationship if enabled
@@ -166,8 +170,8 @@ def add_relationship(
                 rel_type_obj = registry.get_predicate(predicate)
                 if rel_type_obj and rel_type_obj.is_bidirectional:
                     console.print(
-                        f"\n[yellow]💡 Suggestion:[/] This is a bidirectional relationship. "
-                        f"Consider adding the inverse:"
+                        "\n[yellow]💡 Suggestion:[/] This is a bidirectional relationship. "
+                        "Consider adding the inverse:"
                     )
                     console.print(f"   dr relationship add {target_id} {inverse} {source_id}")
 
@@ -176,6 +180,7 @@ def add_relationship(
         console.print("\n[dim]Make sure you're in a DR project directory[/dim]")
         if verbose:
             import traceback
+
             console.print("\n[dim]Stack trace:[/dim]")
             console.print(traceback.format_exc())
         raise click.Abort()
@@ -183,6 +188,7 @@ def add_relationship(
         console.print(f"[red]✗[/] Error: {e}", style="bold")
         if verbose:
             import traceback
+
             console.print("\n[dim]Stack trace:[/dim]")
             console.print(traceback.format_exc())
         raise click.Abort()
@@ -207,7 +213,9 @@ def add_relationship(
     "--predicate",
     help="Filter by specific predicate",
 )
-def list_relationships(element_id: str, direction: str, output_format: str, predicate: Optional[str]):
+def list_relationships(
+    element_id: str, direction: str, output_format: str, predicate: Optional[str]
+):
     """List all relationships for an element.
 
     Displays both outgoing relationships (from this element) and incoming relationships
@@ -316,9 +324,7 @@ def list_relationships(element_id: str, direction: str, output_format: str, pred
     is_flag=True,
     help="Also remove inverse relationship if it exists",
 )
-def remove_relationship(
-    source_id: str, predicate: str, target_id: str, remove_inverse: bool
-):
+def remove_relationship(source_id: str, predicate: str, target_id: str, remove_inverse: bool):
     """Remove a relationship between two elements.
 
     Deletes the specified relationship. Optionally also removes the inverse relationship
@@ -347,13 +353,13 @@ def remove_relationship(
             console.print(
                 f"[red]✗[/] Error: Relationship not found: "
                 f"{source_id} --\\[{predicate}]--> {target_id}",
-                style="bold"
+                style="bold",
             )
             raise click.Abort()
 
         console.print(
             f"[green]✓[/] Removed relationship: {source_id} --\\[{predicate}]--> {target_id}",
-            style="bold"
+            style="bold",
         )
 
         # Remove inverse if requested (before saving to ensure transactional behavior)
@@ -366,7 +372,7 @@ def remove_relationship(
                 if inverse_removed:
                     console.print(
                         f"[green]✓[/] Removed inverse: {target_id} --\\[{inverse}]--> {source_id}",
-                        style="bold"
+                        style="bold",
                     )
                 else:
                     console.print(
@@ -469,7 +475,8 @@ def validate_relationships(fix_inverse: bool, strict: bool):
                                 # Check if inverse already exists
                                 target_rels = model.get_relationships(target_id)
                                 has_inverse = any(
-                                    r.get("targetId") == element.id and r.get("predicate") == inverse
+                                    r.get("targetId") == element.id
+                                    and r.get("predicate") == inverse
                                     for r in target_rels
                                 )
                                 if not has_inverse:
@@ -491,7 +498,7 @@ def validate_relationships(fix_inverse: bool, strict: bool):
             model.save()
 
         # Summary
-        console.print(f"\n[bold]Validation Summary:[/]")
+        console.print("\n[bold]Validation Summary:[/]")
         console.print(f"  Total relationships: {total_relationships}")
         console.print(f"  Errors: [red]{total_errors}[/]")
         console.print(f"  Warnings: [yellow]{total_warnings}[/]")

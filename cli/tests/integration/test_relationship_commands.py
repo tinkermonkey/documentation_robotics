@@ -12,7 +12,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from documentation_robotics.cli import cli
 from documentation_robotics.core.model import Model
 
@@ -107,7 +106,13 @@ class TestRelationshipAdd:
 
         result = runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -128,7 +133,13 @@ class TestRelationshipAdd:
 
         result = runner.invoke(
             cli,
-            ["relationship", "add", "data_model.schema.user", "aggregates", "data_model.schema.profile"],
+            [
+                "relationship",
+                "add",
+                "data_model.schema.user",
+                "aggregates",
+                "data_model.schema.profile",
+            ],
         )
 
         assert result.exit_code == 0, f"Command failed: {result.output}"
@@ -186,7 +197,13 @@ class TestRelationshipAdd:
 
         result = runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.nonexistent", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.nonexistent",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         assert result.exit_code != 0
@@ -216,7 +233,13 @@ class TestRelationshipAdd:
 
         result = runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         # Should succeed and suggest inverse predicate
@@ -235,7 +258,13 @@ class TestRelationshipList:
         # Add some relationships
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
         runner.invoke(
             cli,
@@ -263,7 +292,13 @@ class TestRelationshipList:
         # Add relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(
@@ -281,7 +316,13 @@ class TestRelationshipList:
         # Add relationship (target perspective)
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(
@@ -299,7 +340,13 @@ class TestRelationshipList:
         # Add relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(
@@ -319,7 +366,13 @@ class TestRelationshipList:
         # Add multiple relationships with different predicates
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(
@@ -341,7 +394,13 @@ class TestRelationshipRemove:
         # Add relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         # Remove relationship
@@ -389,7 +448,13 @@ class TestRelationshipRemove:
         # Add forward relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         # Add inverse relationship manually
@@ -437,7 +502,13 @@ class TestRelationshipValidate:
         # Add valid relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(cli, ["relationship", "validate"])
@@ -452,7 +523,13 @@ class TestRelationshipValidate:
         # Add only forward relationship (no inverse)
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(cli, ["relationship", "validate", "--fix-inverse"])
@@ -467,7 +544,13 @@ class TestRelationshipValidate:
         # Add relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         result = runner.invoke(cli, ["relationship", "validate", "--strict"])
@@ -486,7 +569,13 @@ class TestRelationshipWorkflow:
         # 1. Add relationship
         result = runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
         assert result.exit_code == 0
 
@@ -515,7 +604,10 @@ class TestRelationshipWorkflow:
         # 5. Verify removed
         result = runner.invoke(cli, ["relationship", "list", "api.operation.create-user"])
         assert result.exit_code == 0
-        assert "No relationships" in result.output or result.output.count("data_model.schema.user") == 0
+        assert (
+            "No relationships" in result.output
+            or result.output.count("data_model.schema.user") == 0
+        )
 
     def test_bidirectional_relationship_workflow(self, test_model_with_elements):
         """Test workflow with bidirectional relationships."""
@@ -524,7 +616,13 @@ class TestRelationshipWorkflow:
         # Add forward relationship
         runner.invoke(
             cli,
-            ["relationship", "add", "api.operation.create-user", "accesses", "data_model.schema.user"],
+            [
+                "relationship",
+                "add",
+                "api.operation.create-user",
+                "accesses",
+                "data_model.schema.user",
+            ],
         )
 
         # Add inverse relationship
