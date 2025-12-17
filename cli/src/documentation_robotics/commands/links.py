@@ -13,7 +13,6 @@ import click
 from ..core.link_analyzer import LinkAnalyzer
 from ..core.link_doc_generator import LinkDocGenerator
 from ..core.link_registry import LinkRegistry
-from ..core.manifest import ManifestManager
 from ..validators.link_validator import LinkValidator
 
 
@@ -33,8 +32,15 @@ def links_group():
     default="table",
     help="Output format",
 )
-def types_command(layer: Optional[str], category: Optional[str], output_format: str):
-    """List all available link types."""
+@click.option(
+    "--show-predicates",
+    is_flag=True,
+    help="Show predicate information for each link type",
+)
+def types_command(
+    layer: Optional[str], category: Optional[str], output_format: str, show_predicates: bool
+):
+    """List all available link types with optional predicate information."""
     try:
         registry = LinkRegistry()
 
@@ -64,6 +70,7 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
                     "targetLayer": lt.target_layer,
                     "fieldPaths": lt.field_paths,
                     "format": lt.format,
+                    "predicates": getattr(lt, "predicates", None) if show_predicates else None,
                 }
                 for lt in link_types
             ]
@@ -73,10 +80,20 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
             click.echo(registry.export_to_markdown_table(category))
 
         else:  # table
-            click.echo(f"\n{'ID':<30} {'Name':<25} {'Category':<15} {'Format':<10}")
-            click.echo("=" * 85)
-            for lt in sorted(link_types, key=lambda x: (x.category, x.name)):
-                click.echo(f"{lt.id:<30} {lt.name:<25} {lt.category:<15} {lt.format:<10}")
+            if show_predicates:
+                click.echo(f"\n{'ID':<30} {'Name':<25} {'Category':<15} {'Predicates':<30}")
+                click.echo("=" * 105)
+                for lt in sorted(link_types, key=lambda x: (x.category, x.name)):
+                    predicates = getattr(lt, "predicates", [])
+                    pred_str = ", ".join(predicates[:3]) if predicates else "N/A"
+                    if len(predicates) > 3:
+                        pred_str += "..."
+                    click.echo(f"{lt.id:<30} {lt.name:<25} {lt.category:<15} {pred_str:<30}")
+            else:
+                click.echo(f"\n{'ID':<30} {'Name':<25} {'Category':<15} {'Format':<10}")
+                click.echo("=" * 85)
+                for lt in sorted(link_types, key=lambda x: (x.category, x.name)):
+                    click.echo(f"{lt.id:<30} {lt.name:<25} {lt.category:<15} {lt.format:<10}")
             click.echo(f"\nTotal: {len(link_types)} link types")
 
     except FileNotFoundError as e:
@@ -98,34 +115,91 @@ def types_command(layer: Optional[str], category: Optional[str], output_format: 
     default="table",
     help="Output format",
 )
-def list_command(layer: Optional[str], link_type: Optional[str], output_format: str):
-    """List all link instances in the current model."""
+@click.option(
+    "--verbose", is_flag=True, help="Show predicate information and relationship metadata"
+)
+@click.pass_context
+def list_command(
+    ctx, layer: Optional[str], link_type: Optional[str], output_format: str, verbose: bool
+):
+    """List all link instances in the current model with predicate information."""
+    from ..core.model import Model
+
     try:
-        # Load manifest to get model data
-        manifest_mgr = ManifestManager()
-        _manifest = manifest_mgr.load()
+        # Load the model
+        model = Model(Path.cwd())
 
-        # Initialize registry and analyzer
-        registry = LinkRegistry()
-        _analyzer = LinkAnalyzer(registry)
+        # Collect all links (relationships) from the model
+        all_links = []
+        for element in model.get_all_elements():
+            element_id = element.get("id")
+            element_layer = element.get("layer")
 
-        # This would need to load the actual model data
-        # For now, placeholder
-        click.echo("Note: This command requires a loaded model.", err=True)
-        click.echo("Model loading integration is pending.", err=True)
+            for rel in model.get_relationships(element_id):
+                target_id = rel.get("targetId")
+                target = model.get_element(target_id)
+                target_layer = target.get("layer") if target else "unknown"
 
-        # TODO: Integrate with Model class to load actual data
-        # model_data = load_model_from_manifest(manifest)
-        # analyzer.analyze_model(model_data)
+                # Apply filters
+                if layer and element_layer != layer:
+                    continue
+                if link_type and rel.get("type") != link_type:
+                    continue
 
-        # Filter and display links
-        # if layer:
-        #     links = [l for l in analyzer.links if l.source_layer == layer]
-        # elif link_type:
-        #     links = analyzer.get_links_by_type(link_type)
-        # else:
-        #     links = analyzer.links
+                all_links.append(
+                    {
+                        "source": element_id,
+                        "sourceLayer": element_layer,
+                        "predicate": rel.get("predicate", "unknown"),
+                        "target": target_id,
+                        "targetLayer": target_layer,
+                        "type": "cross-layer" if element_layer != target_layer else "intra-layer",
+                    }
+                )
 
+        if not all_links:
+            click.echo("No links found in the model.")
+            return
+
+        # Output based on format
+        if output_format == "json":
+            click.echo(json.dumps(all_links, indent=2))
+        elif output_format == "tree":
+            # Group by source element
+            from collections import defaultdict
+
+            by_source = defaultdict(list)
+            for link in all_links:
+                by_source[link["source"]].append(link)
+
+            for source_id, links in sorted(by_source.items()):
+                click.echo(f"\n{source_id}")
+                for link in links:
+                    predicate_display = f" \\[{link['predicate']}] " if verbose else " "
+                    click.echo(f"  ├─{predicate_display}→ {link['target']} ({link['targetLayer']})")
+        else:  # table
+            if verbose:
+                # Verbose table with predicate and type information
+                click.echo(f"\n{'Source':<30} {'Predicate':<20} {'Target':<30} {'Type':<15}")
+                click.echo("=" * 95)
+                for link in sorted(all_links, key=lambda x: (x["sourceLayer"], x["source"])):
+                    click.echo(
+                        f"{link['source']:<30} {link['predicate']:<20} {link['target']:<30} {link['type']:<15}"
+                    )
+            else:
+                # Simple format without predicate
+                click.echo(f"\n{'Source':<30} {'Target':<30} {'Type':<15}")
+                click.echo("=" * 75)
+                for link in sorted(all_links, key=lambda x: (x["sourceLayer"], x["source"])):
+                    click.echo(f"{link['source']:<30} {link['target']:<30} {link['type']:<15}")
+
+            click.echo(f"\nTotal: {len(all_links)} links")
+
+    except FileNotFoundError:
+        click.echo(
+            "Error: No model found in current directory. Initialize with 'dr init' first.", err=True
+        )
+        raise click.Abort()
     except Exception as e:
         click.echo(f"Error: {e}", err=True)
         raise click.Abort()

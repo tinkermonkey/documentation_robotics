@@ -23,7 +23,7 @@ CLI_VERSION = "0.7.3"
 # Specification Version - Which spec version this CLI implements
 # Must match an existing spec release tag (spec-vX.Y.Z)
 # Update this when adopting a new spec version
-SPEC_VERSION = "0.5.0"
+SPEC_VERSION = "0.6.0"
 
 # Viewer Version - Version of bundled visualization server
 # Increment when viewer functionality changes

@@ -2,9 +2,26 @@
 
 import shutil
 import tempfile
+import warnings
 from pathlib import Path
 
 import pytest
+
+
+@pytest.fixture(scope="session", autouse=True)
+def configure_rich_for_tests():
+    """Configure rich library for test environment to prevent resource warnings."""
+    import os
+
+    # Disable rich's terminal detection which can create subprocess transports
+    os.environ["TERM"] = "dumb"
+    os.environ["NO_COLOR"] = "1"
+
+    yield
+
+    # Cleanup
+    os.environ.pop("TERM", None)
+    os.environ.pop("NO_COLOR", None)
 
 
 @pytest.fixture
@@ -57,13 +74,30 @@ def initialized_model(temp_dir):
     from documentation_robotics.commands.init import ModelInitializer
     from documentation_robotics.core.model import Model
 
-    initializer = ModelInitializer(
-        root_path=temp_dir,
-        project_name="test-project",
-        template="basic",
-        minimal=False,
-        with_examples=False,
-    )
-    initializer.create()
+    # Suppress ResourceWarning during initialization
+    # rich.Console can create subprocess transports for terminal detection
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=ResourceWarning)
 
-    return Model(temp_dir)
+        initializer = ModelInitializer(
+            root_path=temp_dir,
+            project_name="test-project",
+            template="basic",
+            minimal=False,
+            with_examples=False,
+        )
+        initializer.create()
+
+    model = Model(temp_dir)
+    yield model
+
+    # Ensure cleanup - close any open file handles
+    # This helps prevent ResourceWarning about unclosed resources
+    if hasattr(model, "__dict__"):
+        for attr_name in list(model.__dict__.keys()):
+            attr = getattr(model, attr_name, None)
+            if hasattr(attr, "close"):
+                try:
+                    attr.close()
+                except Exception:
+                    pass

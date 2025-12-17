@@ -277,3 +277,263 @@ class TestLinkRegistry:
         assert "LinkRegistry" in repr_str
         assert "link_types=2" in repr_str
         assert "categories=2" in repr_str
+
+
+class TestLinkRegistryPredicates:
+    """Tests for LinkRegistry predicate methods (v0.6.0)."""
+
+    @pytest.fixture
+    def sample_registry_with_predicates(self):
+        """Create sample registry data with v0.6.0 predicate fields."""
+        return {
+            "version": "2.0.0",
+            "metadata": {"version": "2.0.0", "description": "Test registry with predicates"},
+            "categories": {
+                "archimate": {
+                    "name": "ArchiMate References",
+                    "description": "References to ArchiMate elements",
+                }
+            },
+            "linkTypes": [
+                {
+                    "id": "archimate-serves",
+                    "name": "Serves",
+                    "category": "archimate",
+                    "sourceLayers": ["04-application"],
+                    "targetLayer": "02-business",
+                    "targetElementTypes": ["BusinessService"],
+                    "fieldPaths": ["x-archimate-serves"],
+                    "cardinality": "array",
+                    "format": "uuid",
+                    "description": "Application component serves business service",
+                    "examples": [],
+                    "validationRules": {},
+                    "predicate": "serves",
+                    "inversePredicate": "served-by",
+                },
+                {
+                    "id": "archimate-realizes",
+                    "name": "Realizes",
+                    "category": "archimate",
+                    "sourceLayers": ["04-application"],
+                    "targetLayer": "02-business",
+                    "targetElementTypes": ["BusinessService"],
+                    "fieldPaths": ["x-archimate-realizes"],
+                    "cardinality": "single",
+                    "format": "uuid",
+                    "description": "Application service realizes business service",
+                    "examples": [],
+                    "validationRules": {},
+                    "predicate": "realizes",
+                    "inversePredicate": "realized-by",
+                },
+                {
+                    "id": "legacy-link",
+                    "name": "Legacy Link",
+                    "category": "archimate",
+                    "sourceLayers": ["06-api"],
+                    "targetLayer": "04-application",
+                    "targetElementTypes": ["ApplicationService"],
+                    "fieldPaths": ["x-legacy-ref"],
+                    "cardinality": "single",
+                    "format": "uuid",
+                    "description": "Legacy link without predicates",
+                    "examples": [],
+                    "validationRules": {},
+                },
+            ],
+        }
+
+    @pytest.fixture
+    def registry_with_predicates(self, tmp_path, sample_registry_with_predicates):
+        """Create a temporary registry file with predicates."""
+        registry_path = tmp_path / "link-registry-with-predicates.json"
+        with open(registry_path, "w") as f:
+            json.dump(sample_registry_with_predicates, f)
+        return registry_path
+
+    def test_get_predicate_for_link_type(self, registry_with_predicates):
+        """Test getting predicate for a link type."""
+        registry = LinkRegistry(registry_with_predicates)
+
+        predicate = registry.get_predicate_for_link_type("archimate-serves")
+        assert predicate == "serves"
+
+        predicate = registry.get_predicate_for_link_type("archimate-realizes")
+        assert predicate == "realizes"
+
+        # Link type without predicate
+        predicate = registry.get_predicate_for_link_type("legacy-link")
+        assert predicate is None
+
+        # Non-existent link type
+        predicate = registry.get_predicate_for_link_type("nonexistent")
+        assert predicate is None
+
+    def test_get_inverse_predicate_for_link_type(self, registry_with_predicates):
+        """Test getting inverse predicate for a link type."""
+        registry = LinkRegistry(registry_with_predicates)
+
+        inverse = registry.get_inverse_predicate_for_link_type("archimate-serves")
+        assert inverse == "served-by"
+
+        inverse = registry.get_inverse_predicate_for_link_type("archimate-realizes")
+        assert inverse == "realized-by"
+
+        # Link type without inverse predicate
+        inverse = registry.get_inverse_predicate_for_link_type("legacy-link")
+        assert inverse is None
+
+        # Non-existent link type
+        inverse = registry.get_inverse_predicate_for_link_type("nonexistent")
+        assert inverse is None
+
+    def test_get_link_types_with_predicate(self, registry_with_predicates):
+        """Test finding link types by predicate."""
+        registry = LinkRegistry(registry_with_predicates)
+
+        serves_links = registry.get_link_types_with_predicate("serves")
+        assert len(serves_links) == 1
+        assert "archimate-serves" in serves_links
+
+        realizes_links = registry.get_link_types_with_predicate("realizes")
+        assert len(realizes_links) == 1
+        assert "archimate-realizes" in realizes_links
+
+        # Non-existent predicate
+        nonexistent = registry.get_link_types_with_predicate("nonexistent")
+        assert len(nonexistent) == 0
+
+    def test_get_link_types_with_predicates(self, registry_with_predicates):
+        """Test getting all link types that have predicates."""
+        registry = LinkRegistry(registry_with_predicates)
+
+        links_with_predicates = registry.get_link_types_with_predicates()
+        assert len(links_with_predicates) == 2
+
+        link_ids = [link.id for link in links_with_predicates]
+        assert "archimate-serves" in link_ids
+        assert "archimate-realizes" in link_ids
+        assert "legacy-link" not in link_ids  # No predicate
+
+    @pytest.fixture
+    def sample_v0_5_registry(self):
+        """Create sample v0.5.0 registry data without predicates."""
+        return {
+            "metadata": {"version": "1.0.0", "description": "v0.5.0 registry"},
+            "categories": {
+                "motivation": {
+                    "name": "Motivation Layer References",
+                    "description": "References to goals",
+                }
+            },
+            "linkTypes": [
+                {
+                    "id": "motivation-supports-goals",
+                    "name": "Supports Goals",
+                    "category": "motivation",
+                    "sourceLayers": ["02-business"],
+                    "targetLayer": "01-motivation",
+                    "targetElementTypes": ["Goal"],
+                    "fieldPaths": ["motivation.supports-goals"],
+                    "cardinality": "array",
+                    "format": "uuid",
+                    "description": "References to goals",
+                    "examples": [],
+                    "validationRules": {},
+                }
+            ],
+        }
+
+    @pytest.fixture
+    def v0_5_registry_file(self, tmp_path, sample_v0_5_registry):
+        """Create a temporary v0.5.0 registry file without predicates."""
+        registry_path = tmp_path / "link-registry-v0.5.json"
+        with open(registry_path, "w") as f:
+            json.dump(sample_v0_5_registry, f)
+        return registry_path
+
+    def test_backward_compatibility_v0_5_0(self, v0_5_registry_file):
+        """Test that v0.5.0 link registries without predicates still work."""
+        registry = LinkRegistry(v0_5_registry_file)
+
+        # Should load successfully
+        assert len(registry.link_types) == 1
+
+        # Predicate fields should be None for v0.5.0 links
+        link = registry.get_link_type("motivation-supports-goals")
+        assert link.predicate is None
+        assert link.inverse_predicate is None
+
+        # New methods should handle None gracefully
+        predicate = registry.get_predicate_for_link_type("motivation-supports-goals")
+        assert predicate is None
+
+        inverse = registry.get_inverse_predicate_for_link_type("motivation-supports-goals")
+        assert inverse is None
+
+        # Should return empty list when no predicates exist
+        links_with_predicates = registry.get_link_types_with_predicates()
+        assert len(links_with_predicates) == 0
+
+    def test_export_to_dict_preserves_predicates(self, registry_with_predicates):
+        """Test that export_to_dict preserves predicate fields."""
+        registry = LinkRegistry(registry_with_predicates)
+
+        # Export to dict
+        exported = registry.export_to_dict()
+
+        # Verify predicate fields are present in exported data
+        serves_link = next(
+            (link for link in exported["linkTypes"] if link["id"] == "archimate-serves"),
+            None,
+        )
+        assert serves_link is not None
+        assert serves_link["predicate"] == "serves"
+        assert serves_link["inversePredicate"] == "served-by"
+
+        realizes_link = next(
+            (link for link in exported["linkTypes"] if link["id"] == "archimate-realizes"),
+            None,
+        )
+        assert realizes_link is not None
+        assert realizes_link["predicate"] == "realizes"
+        assert realizes_link["inversePredicate"] == "realized-by"
+
+        # Legacy link should have None predicates
+        legacy_link = next(
+            (link for link in exported["linkTypes"] if link["id"] == "legacy-link"),
+            None,
+        )
+        assert legacy_link is not None
+        assert legacy_link["predicate"] is None
+        assert legacy_link["inversePredicate"] is None
+
+        # Test roundtrip: export and re-import
+        import tempfile
+        from pathlib import Path
+
+        with tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False) as f:
+            import json
+
+            json.dump(exported, f)
+            temp_path = Path(f.name)
+
+        try:
+            # Re-load from exported data
+            registry2 = LinkRegistry(temp_path)
+
+            # Verify predicates survived roundtrip
+            serves_link2 = registry2.get_link_type("archimate-serves")
+            assert serves_link2.predicate == "serves"
+            assert serves_link2.inverse_predicate == "served-by"
+
+            realizes_link2 = registry2.get_link_type("archimate-realizes")
+            assert realizes_link2.predicate == "realizes"
+            assert realizes_link2.inverse_predicate == "realized-by"
+
+            legacy_link2 = registry2.get_link_type("legacy-link")
+            assert legacy_link2.predicate is None
+            assert legacy_link2.inverse_predicate is None
+        finally:
+            temp_path.unlink()

@@ -12,6 +12,7 @@ from rich.table import Table
 from ..core.link_analyzer import LinkAnalyzer
 from ..core.link_registry import LinkRegistry
 from ..core.model import Model
+from ..core.relationship_registry import RelationshipRegistry
 from ..validators.link_validator import LinkValidator, ValidationSeverity
 
 console = Console()
@@ -23,16 +24,38 @@ console = Console()
 @click.option("--strict", is_flag=True, help="Strict validation mode")
 @click.option("--validate-links", is_flag=True, help="Validate cross-layer links")
 @click.option("--strict-links", is_flag=True, help="Treat link warnings as errors")
+@click.option(
+    "--validate-relationships",
+    is_flag=True,
+    help="Validate intra-layer relationships and predicates",
+)
+@click.option(
+    "--verbose", is_flag=True, help="Show detailed error information including stack traces"
+)
 @click.option("--output", type=click.Choice(["text", "json"]), default="text")
 def validate(
-    layer: str, element: str, strict: bool, validate_links: bool, strict_links: bool, output: str
+    layer: str,
+    element: str,
+    strict: bool,
+    validate_links: bool,
+    strict_links: bool,
+    validate_relationships: bool,
+    verbose: bool,
+    output: str,
 ):
     """Validate the model.
 
-    This command validates the model structure, schemas, and optionally cross-layer links.
+    This command validates the model structure, schemas, and optionally cross-layer links
+    and intra-layer relationships.
 
     Link validation is opt-in via --validate-links. By default, link issues are warnings.
     Use --strict-links to treat link warnings as errors.
+
+    Relationship validation is opt-in via --validate-relationships. This checks:
+    - Predicate existence and validity
+    - Layer-specific predicate constraints
+    - Inverse consistency for bidirectional relationships
+    - Cardinality constraints
     """
 
     # Load model
@@ -49,35 +72,75 @@ def validate(
 
     # Perform link validation if requested
     link_issues = []
-    if validate_links:
-        console.print("[bold]Validating cross-layer links...[/bold]\n")
+    relationship_issues = []
+
+    if validate_links or validate_relationships:
         try:
             registry = LinkRegistry()
-            analyzer = LinkAnalyzer(registry)
+            relationship_registry = RelationshipRegistry() if validate_relationships else None
 
-            # Analyze the model to discover links
-            model_data = model.to_dict()
-            analyzer.analyze_model(model_data)
+            if validate_links:
+                console.print("[bold]Validating cross-layer links...[/bold]\n")
+                analyzer = LinkAnalyzer(registry)
 
-            # Validate discovered links
-            validator = LinkValidator(registry, analyzer, strict_mode=strict_links)
-            link_issues = validator.validate_all()
+                # Analyze the model to discover links
+                model_data = model.to_dict()
+                analyzer.analyze_model(model_data)
 
-            if link_issues:
-                console.print(f"Found {len(link_issues)} link validation issue(s)\n")
-            else:
-                console.print("[green]✓ All links are valid[/green]\n")
+                # Validate discovered links
+                validator = LinkValidator(
+                    registry,
+                    analyzer,
+                    strict_mode=strict_links,
+                    relationship_registry=relationship_registry,
+                )
+                link_issues = validator.validate_all()
+
+                if link_issues:
+                    console.print(f"Found {len(link_issues)} link validation issue(s)\n")
+                else:
+                    console.print("[green]✓ All links are valid[/green]\n")
+
+            if validate_relationships:
+                console.print("[bold]Validating intra-layer relationships...[/bold]\n")
+
+                # Create validator with relationship registry
+                if not validate_links:
+                    # Need to create a minimal analyzer for validator
+                    analyzer = LinkAnalyzer(registry)
+                    validator = LinkValidator(
+                        registry,
+                        analyzer,
+                        strict_mode=strict_links,
+                        relationship_registry=relationship_registry,
+                    )
+
+                # Validate intra-layer relationships
+                relationship_issues = validator.validate_intra_layer_relationships(model)
+
+                if relationship_issues:
+                    console.print(
+                        f"Found {len(relationship_issues)} relationship validation issue(s)\n"
+                    )
+                else:
+                    console.print("[green]✓ All relationships are valid[/green]\n")
+
         except FileNotFoundError as e:
-            console.print(f"[yellow]⚠ Link validation skipped: {e}[/yellow]\n")
+            console.print(f"[yellow]⚠ Validation skipped: {e}[/yellow]\n")
         except Exception as e:
-            console.print(f"[red]✗ Link validation error: {e}[/red]\n")
+            console.print(f"[red]✗ Validation error: {e}[/red]\n")
+            if verbose:
+                import traceback
+
+                console.print(f"[red]{traceback.format_exc()}[/red]\n")
 
     # Display results
+    all_link_issues = link_issues + relationship_issues
     if output == "text":
-        _display_text_results(result, model, link_issues if validate_links else None)
+        _display_text_results(result, model, all_link_issues if all_link_issues else None)
     elif output == "json":
         result_dict = result.to_dict()
-        if validate_links and link_issues:
+        if all_link_issues:
             result_dict["link_issues"] = [
                 {
                     "severity": issue.severity.value,
@@ -87,17 +150,17 @@ def validate(
                     "field_path": issue.link_instance.field_path,
                     "suggestion": issue.suggestion,
                 }
-                for issue in link_issues
+                for issue in all_link_issues
             ]
         console.print(json.dumps(result_dict, indent=2))
 
     # Update manifest
-    has_link_errors = (
-        any(issue.severity == ValidationSeverity.ERROR for issue in link_issues)
-        if link_issues
+    has_errors = (
+        any(issue.severity == ValidationSeverity.ERROR for issue in all_link_issues)
+        if all_link_issues
         else False
     )
-    if result.is_valid() and not has_link_errors:
+    if result.is_valid() and not has_errors:
         model.manifest.update_validation_status("passed")
         model.manifest.save()
     else:
@@ -105,7 +168,7 @@ def validate(
         model.manifest.save()
 
     # Exit with appropriate code
-    if not result.is_valid() or has_link_errors:
+    if not result.is_valid() or has_errors:
         raise click.exceptions.Exit(1)
 
 
@@ -167,7 +230,9 @@ def _display_text_results(result, model, link_issues=None):
         if link_errors:
             console.print("\n[bold red]Link Errors:[/bold red]")
             for issue in link_errors:
-                console.print(f"  ✗ {issue.link_instance.source_id} -> {issue.field_path}")
+                console.print(
+                    f"  ✗ {issue.link_instance.source_id} -> {issue.link_instance.field_path}"
+                )
                 console.print(f"     {issue.message}")
                 if issue.suggestion:
                     console.print(f"     Suggestion: {issue.suggestion}")
@@ -175,7 +240,9 @@ def _display_text_results(result, model, link_issues=None):
         if link_warnings:
             console.print("\n[bold yellow]Link Warnings:[/bold yellow]")
             for issue in link_warnings:
-                console.print(f"  ⚠  {issue.link_instance.source_id} -> {issue.field_path}")
+                console.print(
+                    f"  ⚠  {issue.link_instance.source_id} -> {issue.link_instance.field_path}"
+                )
                 console.print(f"     {issue.message}")
                 if issue.suggestion:
                     console.print(f"     Suggestion: {issue.suggestion}")

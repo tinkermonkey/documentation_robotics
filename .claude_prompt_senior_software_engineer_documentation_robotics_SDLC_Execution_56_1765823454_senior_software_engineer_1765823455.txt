@@ -1,0 +1,792 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 3: Implement `dr relationship` command group for add/list/remove/validate
+
+**Description**:
+Create a new CLI command group `dr relationship` with subcommands for adding relationships with explicit predicates, listing relationships with predicate information, removing relationships, and validating relationship consistency.
+
+## Requirements
+- FR-3.1: Implement `dr relationship add` command to create relationships with predicate specification
+- FR-3.2: Implement `dr relationship list` command to display relationships for an element with predicate information
+- FR-3.3: Implement `dr relationship remove` command to delete relationships
+- FR-3.4: Enhance `dr links` command to display predicate types and relationship metadata
+- FR-3.5: Add `dr relationship validate` command to check relationship consistency
+- US-2.1: Add relationships with predicates
+- US-2.2: List element relationships with predicates
+- US-2.3: Remove relationships
+- US-2.4: Enhanced link display with predicates
+
+## Design Guidance
+**Relationship Command Group** (new file: `commands/relationship.py`):
+
+```python
+import click
+from typing import Optional
+from core.model import Model
+from core.relationship_registry import RelationshipRegistry
+from validators.predicate_validator import PredicateValidator
+
+@click.group()
+def relationship():
+    """Manage relationships between elements."""
+    pass
+
+@relationship.command('add')
+@click.argument('source_id')
+@click.argument('predicate')
+@click.argument('target_id')
+@click.option('--skip-validation', is_flag=True, help='Skip predicate validation')
+@click.pass_context
+def add_relationship(ctx, source_id: str, predicate: str, target_id: str, skip_validation: bool):
+    """
+    Add a relationship between two elements with an explicit predicate.
+
+    Example:
+        dr relationship add api-op-create-user accesses data-entity-user
+    """
+    model: Model = ctx.obj['model']
+
+    # Validate source and target exist
+    source = model.get_element(source_id)
+    if not source:
+        click.echo(f"Error: Source element '{source_id}' not found", err=True)
+        return
+
+    target = model.get_element(target_id)
+    if not target:
+        click.echo(f"Error: Target element '{target_id}' not found", err=True)
+        return
+
+    # Validate predicate (unless skipped)
+    if not skip_validation:
+        rel_registry = RelationshipRegistry(get_schema_path('relationship-catalog.json'))
+        validator = PredicateValidator(rel_registry)
+
+        result = validator.validate_predicate_for_types(
+            source["type"],
+            target["type"],
+            predicate,
+            source["layer"]
+        )
+
+        if not result.valid:
+            click.echo(f"Error: {result.error}", err=True)
+            click.echo(f"Available predicates for layer {source['layer']}: {', '.join(rel_registry.get_predicates_for_layer(source['layer']))}")
+            return
+
+    # Add relationship to model
+    relationship = {
+        "targetId": target_id,
+        "predicate": predicate,
+        "type": "intra-layer" if source["layer"] == target["layer"] else "cross-layer"
+    }
+
+    model.add_relationship(source_id, relationship)
+    model.save()
+
+    click.echo(f"✓ Added relationship: {source_id} --[{predicate}]--> {target_id}")
+
+    # Suggest inverse relationship
+    inverse = rel_registry.get_inverse_predicate(predicate)
+    if inverse:
+        click.echo(f"  Suggestion: Add inverse relationship with 'dr relationship add {target_id} {inverse} {source_id}'")
+
+@relationship.command('list')
+@click.argument('element_id')
+@click.option('--direction', type=click.Choice(['outgoing', 'incoming', 'both']), default='both', help='Relationship direction')
+@click.option('--format', type=click.Choice(['table', 'json']), default='table', help='Output format')
+@click.pass_context
+def list_relationships(ctx, element_id: str, direction: str, format: str):
+    """
+    List all relationships for an element.
+
+    Example:
+        dr relationship list api-op-create-user --direction outgoing
+    """
+    model: Model = ctx.obj['model']
+
+    element = model.get_element(element_id)
+    if not element:
+        click.echo(f"Error: Element '{element_id}' not found", err=True)
+        return
+
+    # Get outgoing relationships
+    outgoing = model.get_relationships(element_id) if direction in ['outgoing', 'both'] else []
+
+    # Get incoming relationships (search all elements)
+    incoming = []
+    if direction in ['incoming', 'both']:
+        for el in model.get_all_elements():
+            for rel in model.get_relationships(el["id"]):
+                if rel["targetId"] == element_id:
+                    incoming.append({
+                        "sourceId": el["id"],
+                        "predicate": rel.get("predicate", "unknown"),
+                        "type": rel.get("type", "cross-layer")
+                    })
+
+    if format == 'json':
+        import json
+        click.echo(json.dumps({"outgoing": outgoing, "incoming": incoming}, indent=2))
+    else:
+        # Table format
+        click.echo(f"\nRelationships for {element_id}:\n")
+
+        if outgoing:
+            click.echo("Outgoing:")
+            click.echo(f"  {'Target ID':<30} {'Predicate':<20} {'Type':<15}")
+            click.echo(f"  {'-'*30} {'-'*20} {'-'*15}")
+            for rel in outgoing:
+                click.echo(f"  {rel['targetId']:<30} {rel.get('predicate', 'unknown'):<20} {rel.get('type', 'cross-layer'):<15}")
+
+        if incoming:
+            click.echo("\nIncoming:")
+            click.echo(f"  {'Source ID':<30} {'Predicate':<20} {'Type':<15}")
+            click.echo(f"  {'-'*30} {'-'*20} {'-'*15}")
+            for rel in incoming:
+                click.echo(f"  {rel['sourceId']:<30} {rel['predicate']:<20} {rel['type']:<15}")
+
+@relationship.command('remove')
+@click.argument('source_id')
+@click.argument('predicate')
+@click.argument('target_id')
+@click.option('--remove-inverse', is_flag=True, help='Also remove inverse relationship')
+@click.pass_context
+def remove_relationship(ctx, source_id: str, predicate: str, target_id: str, remove_inverse: bool):
+    """
+    Remove a relationship between two elements.
+
+    Example:
+        dr relationship remove api-op-create-user accesses data-entity-user
+    """
+    model: Model = ctx.obj['model']
+
+    # Remove relationship
+    removed = model.remove_relationship(source_id, predicate, target_id)
+    if not removed:
+        click.echo(f"Error: Relationship not found: {source_id} --[{predicate}]--> {target_id}", err=True)
+        return
+
+    model.save()
+    click.echo(f"✓ Removed relationship: {source_id} --[{predicate}]--> {target_id}")
+
+    # Remove inverse if requested
+    if remove_inverse:
+        rel_registry = RelationshipRegistry(get_schema_path('relationship-catalog.json'))
+        inverse = rel_registry.get_inverse_predicate(predicate)
+        if inverse:
+            removed = model.remove_relationship(target_id, inverse, source_id)
+            if removed:
+                model.save()
+                click.echo(f"✓ Removed inverse: {target_id} --[{inverse}]--> {source_id}")
+            else:
+                click.echo(f"  Note: Inverse relationship not found: {target_id} --[{inverse}]--> {source_id}")
+
+@relationship.command('validate')
+@click.option('--fix-inverse', is_flag=True, help='Automatically add missing inverse relationships')
+@click.pass_context
+def validate_relationships(ctx, fix_inverse: bool):
+    """
+    Validate all relationships in the model.
+
+    Example:
+        dr relationship validate --fix-inverse
+    """
+    # Reuse validation logic from Phase 2
+    from commands.validate import validate
+    ctx.invoke(validate, validate_relationships=True)
+```
+
+**Model Class Extension** (`core/model.py`):
+
+Add methods to support relationship management:
+
+```python
+class Model:
+    # Existing code...
+
+    def add_relationship(self, source_id: str, relationship: dict) -> None:
+        """Add a relationship from source element."""
+        element = self.get_element(source_id)
+        if not element:
+            raise ValueError(f"Element {source_id} not found")
+
+        if "relationships" not in element:
+            element["relationships"] = []
+
+        element["relationships"].append(relationship)
+
+    def remove_relationship(self, source_id: str, predicate: str, target_id: str) -> bool:
+        """Remove a relationship. Returns True if found and removed."""
+        element = self.get_element(source_id)
+        if not element or "relationships" not in element:
+            return False
+
+        original_count = len(element["relationships"])
+        element["relationships"] = [
+            r for r in element["relationships"]
+            if not (r.get("predicate") == predicate and r["targetId"] == target_id)
+        ]
+
+        return len(element["relationships"]) < original_count
+
+    def get_relationships(self, element_id: str) -> list:
+        """Get all relationships for an element."""
+        element = self.get_element(element_id)
+        if not element:
+            return []
+        return element.get("relationships", [])
+```
+
+**Links Command Enhancement** (`commands/links.py`):
+
+Extend existing `dr links` command:
+
+```python
+@links.command('list')
+@click.option('--verbose', is_flag=True, help='Show predicate information')
+@click.pass_context
+def list_links(ctx, verbose: bool):
+    """List all links in the model."""
+    model = ctx.obj['model']
+
+    all_links = []
+    for element in model.get_all_elements():
+        for rel in model.get_relationships(element["id"]):
+            target = model.get_element(rel["targetId"])
+            all_links.append({
+                "source": element["id"],
+                "sourceLayer": element["layer"],
+                "predicate": rel.get("predicate", "unknown"),
+                "target": rel["targetId"],
+                "targetLayer": target["layer"] if target else "unknown",
+                "type": "cross-layer" if element["layer"] != (target["layer"] if target else None) else "intra-layer"
+            })
+
+    if verbose:
+        # Table with predicate info
+        click.echo(f"{'Source':<30} {'Predicate':<20} {'Target':<30} {'Type':<15}")
+        click.echo(f"{'-'*30} {'-'*20} {'-'*30} {'-'*15}")
+        for link in all_links:
+            click.echo(f"{link['source']:<30} {link['predicate']:<20} {link['target']:<30} {link['type']:<15}")
+    else:
+        # Simple format
+        for link in all_links:
+            click.echo(f"{link['source']} --[{link['predicate']}]--> {link['target']}")
+```
+
+**CLI Registration** (`cli.py`):
+
+```python
+from commands.relationship import relationship
+
+cli.add_command(relationship)
+```
+
+## Acceptance Criteria
+- [ ] `dr relationship add <source> <predicate> <target>` command implemented and creates relationships with validation
+- [ ] `dr relationship list <element-id>` command displays outgoing and incoming relationships with predicate info
+- [ ] `dr relationship list` supports `--direction` flag (outgoing/incoming/both)
+- [ ] `dr relationship list` supports `--format` flag (table/json)
+- [ ] `dr relationship remove <source> <predicate> <target>` command deletes relationships
+- [ ] `dr relationship remove` supports `--remove-inverse` flag
+- [ ] `dr relationship validate` command runs full relationship validation
+- [ ] `dr links list --verbose` displays predicate information for all links
+- [ ] `Model.add_relationship()` method implemented
+- [ ] `Model.remove_relationship()` method implemented
+- [ ] `Model.get_relationships()` method implemented
+- [ ] Unknown predicates rejected with helpful error message listing valid predicates for layer
+- [ ] Adding relationship suggests inverse predicate creation
+- [ ] Integration test: Full workflow of add → list → validate → remove
+- [ ] Code is reviewed and approved
+
+## Dependencies
+Phase 1 (requires `RelationshipRegistry`), Phase 2 (uses validation logic)
+
+## Parent Issue
+Part of #52
+
+## Discussion
+This work is detailed in discussion [53](https://github.com/tinkermonkey/documentation_robotics/discussions/53)
+
+---
+
+
+## Previous Work and Feedback
+
+The following is the complete history of agent outputs and feedback for this issue.
+This includes outputs from ALL previous stages (design, testing, QA, etc.) and any
+user feedback. If this issue was returned from testing or QA, pay special attention
+to their feedback and address all issues they identified.
+
+## Output from Software Architect
+
+**@tinkermonkey** (human feedback):
+# Architecture Design
+
+---
+
+The agents are still running. Let me gather more information directly while they complete.Now I have a comprehensive understanding of the codebase and spec changes. Let me look at the existing CLI schemas directory structure and check how they're currently bundled.Now I have enough information to write the architecture document. Let me check one more thing - the existing skills structure and see if there's a relationship-related command already.Now I have all the information I need. Let me produce the comprehensive architecture analysis.
+
+## Executive Summary
+
+This architecture document defines the implementation strategy for adapting CLI v0.7.3 to fully support spec v0.6.0's relationship taxonomy system. The key challenge is **knowledge distillation**: making 60+ relationship predicates and 12 layer-specific modeling patterns available to AI agents without consuming their context windows.
+
+The solution employs a **Skill-Based Agent Architecture** with three tiers:
+1. **Slim Core Agent** (~600 lines) - Orchestration and workflow routing
+2. **On-Demand Layer Skills** (12 × ~300 lines) - Layer-specific expertise loaded when needed
+3. **Queryable Reference Files** - Direct tool access to relationship-catalog.json and link-registry.json
+
+## System Architecture
+
+### Current State Analysis
+
+| Component | Current State | v0.6.0 Impact |
+|-----------|---------------|---------------|
+| `dr-architect.md` | 1,367 lines, references v0.5.0 | Must update to v0.6.0, restructure for skills |
+| `link-registry.json` | 2,322 lines (38 link types) | Already at v2.0.0, includes predicate fields |
+| `relationship-catalog.json` | 855 lines (34 relationships) | New file, must be queryable |
+| `LinkRegistry` class | Loads link types only | Must expose predicate metadata |
+| `LinkValidator` | Cross-layer validation only | Must add intra-layer relationship validation |
+| Skills directory | 2 skills (CHANGESET_REVIEWER, LINK_VALIDATION) | Add 12 layer skills + RELATIONSHIPS skill |
+
+### Target Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        USER / CLAUDE CODE                            │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     DR-ARCHITECT (SLIM CORE)                         │
+│  ┌──────────────┐  ┌──────────────┐  ┌─────────────────────────┐   │
+│  │ Intent Router │  │ Skill Loader │  │ Queryable Ref Access   │   │
+│  └──────────────┘  └──────────────┘  └─────────────────────────┘   │
+│                                                                      │
+│  Core Knowledge: CLI commands, changeset workflow, skill triggers    │
+│  Size Target: ~600 lines                                             │
+└──────────────────────────────┬──────────────────────────────────────┘
+                               │
+           ┌───────────────────┼───────────────────┐
+           ▼                   ▼                   ▼
+┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
+│  LAYER SKILLS    │ │ RELATIONSHIP     │ │ QUERYABLE REFS       │
+│  (On-Demand)     │ │ SKILL            │ │ (Direct Tool Access) │
+├──────────────────┤ ├──────────────────┤ ├──────────────────────┤
+│ LAYER_01_MOTIV   │ │ - 6 categories   │ │ relationship-catalog │
+│ LAYER_02_BUSINESS│ │ - 31+ predicates │ │   .json (855 lines)  │
+│ LAYER_03_SECURITY│ │ - Selection tree │ │                      │
+│ LAYER_04_APP     │ │ - Bidirectional  │ │ link-registry.json   │
+│ LAYER_05_TECH    │ │   guidance       │ │   (2,322 lines)      │
+│ LAYER_06_API     │ │                  │ │                      │
+│ LAYER_07_DATA    │ │ Size: ~350 lines │ │ Accessed via:        │
+│ LAYER_08_STORE   │ │                  │ │ - jq queries         │
+│ LAYER_09_UX      │ │ Triggers:        │ │ - dr links types     │
+│ LAYER_10_NAV     │ │ "link", "relate" │ │ - Read tool          │
+│ LAYER_11_APM     │ │ "connect"        │ │                      │
+│ LAYER_12_TESTING │ │                  │ │                      │
+├──────────────────┤ └──────────────────┘ └──────────────────────┘
+│ ~300 lines each  │
+│ Total: ~3,600    │
+└──────────────────┘
+```
+
+### Component Specification
+
+#### 1. Slim Core Agent (`dr-architect.md`)
+
+**Target Size:** ~600 lines (down from 1,367)
+
+**Contents:**
+- Core CLI command reference (quick reference table)
+- Changeset workflow (essential patterns only)
+- Intent routing logic with skill activation triggers
+- Queryable reference awareness (when to query vs load skill)
+- v0.6.0 relationship taxonomy overview (categories only)
+
+**Removed Content (delegated to skills):**
+- Layer-specific entity types and examples
+- Detailed cross-layer reference patterns per layer
+- Framework detection patterns
+- Intra-layer relationship examples
+
+#### 2. Layer Skills Structure
+
+Each layer skill follows a standardized template (~300 lines):
+
+```markdown
+---
+name: LAYER_{NN}_{NAME}
+description: Expert knowledge for {Layer Name} modeling
+triggers: ["entity keywords", "framework patterns", "use case phrases"]
+---
+
+## Layer Overview
+- Purpose and role in 12-layer model
+- Key entity types (table format)
+
+## Intra-Layer Relationships
+| Source Type | Predicate | Target Type | Example |
+|-------------|-----------|-------------|---------|
+
+## Cross-Layer References
+### Outgoing (this layer → others)
+### Incoming (others → this layer)
+
+## Codebase Detection Patterns
+### Framework: {framework1}
+- Pattern: `code pattern`
+- Maps to: Entity type
+
+## Modeling Workflow
+1. Identify elements from code
+2. Create with dr add
+3. Establish relationships
+4. Validate with dr validate
+```
+
+#### 3. Relationship Skill (`RELATIONSHIPS/SKILL.md`)
+
+**Target Size:** ~350 lines
+
+**Contents:**
+- 6 predicate categories with descriptions
+- Predicate selection decision tree
+- Bidirectional relationship guidance
+- Common modeling scenarios with predicate choices
+- When to query catalog vs use skill knowledge
+
+**Triggers:** "link", "relationship", "connect", "depends on", "relates to", "predicate"
+
+#### 4. Queryable Reference Integration
+
+The agent should query JSON files directly for:
+- Single predicate lookups: `jq '.relationshipTypes[] | select(.predicate == "composes")'`
+- Inverse predicate lookup: Query relationship-catalog.json for `inversePredicate`
+- Valid predicates for element type pair: Filter by `applicableLayers`
+- Link type by field path: Query link-registry.json
+
+## Scalability Design
+
+### Context Window Management
+
+| Agent State | Estimated Tokens |
+|-------------|------------------|
+| Slim Core alone | ~3,000 tokens |
+| Core + 1 Layer Skill | ~4,500 tokens |
+| Core + 2 Layer Skills | ~6,000 tokens |
+| Core + Relationship Skill | ~4,750 tokens |
+| Core + Layer + Relationship | ~6,250 tokens |
+| Full v0.5.0 dr-architect | ~7,500 tokens |
+
+**Optimization:** Skills are loaded on-demand and can be unloaded when switching contexts.
+
+### Query vs Load Decision Matrix
+
+| Information Need | Query JSON | Load Skill |
+|------------------|------------|------------|
+| Single predicate definition | ✓ | |
+| Inverse of predicate | ✓ | |
+| All predicates for layer | | ✓ |
+| How to model {concept} | | ✓ |
+| Valid link types for field | ✓ | |
+| Framework detection patterns | | ✓ |
+| Relationship category overview | ✓ | |
+| When to use which predicate | | ✓ |
+
+## Established Patterns
+
+### Pattern 1: Predicate Validation
+
+The CLI must validate predicates against the taxonomy:
+
+```python
+class PredicateValidator:
+    """Validates predicate usage against relationship-catalog.json."""
+
+    def __init__(self, catalog_path: Path):
+        self.catalog = self._load_catalog(catalog_path)
+        self.predicate_map = self._build_predicate_map()
+
+    def validate_predicate_for_types(
+        self,
+        source_type: str,
+        target_type: str,
+        predicate: str
+    ) -> ValidationResult:
+        """Check if predicate is valid for the given element type pair."""
+        rel_type = self.predicate_map.get(predicate)
+        if not rel_type:
+            return ValidationResult(valid=False, error=f"Unknown predicate: {predicate}")
+
+        # Check applicable layers
+        source_layer = self._layer_for_type(source_type)
+        if source_layer not in rel_type.applicable_layers:
+            return ValidationResult(
+                valid=False,
+                error=f"Predicate '{predicate}' not valid for layer {source_layer}"
+            )
+        return ValidationResult(valid=True)
+
+    def get_inverse(self, predicate: str) -> Optional[str]:
+        """Return the inverse predicate for bidirectional validation."""
+        rel_type = self.predicate_map.get(predicate)
+        return rel_type.inverse_predicate if rel_type else None
+```
+
+### Pattern 2: Relationship Command Group
+
+New CLI commands for relationship management:
+
+```
+dr relationship add <source-id> <predicate> <target-id>
+dr relationship list <element-id> [--direction outgoing|incoming|both]
+dr relationship remove <source-id> <predicate> <target-id>
+dr relationship validate [--fix-inverse]
+```
+
+### Pattern 3: Skill Invocation Protocol
+
+Claude Code skill files should follow this invocation pattern:
+
+```yaml
+# In dr-architect.md
+## Skill Activation
+
+When user intent matches a skill trigger:
+1. Announce skill activation: "Loading {SKILL_NAME} expertise..."
+2. Read skill file: /skills/{SKILL_NAME}/SKILL.md
+3. Apply skill knowledge to current task
+4. Optionally unload after task complete
+
+### Skill Triggers
+
+| Skill | Activation Triggers |
+|-------|---------------------|
+| LAYER_06_API | "API", "endpoint", "OpenAPI", "REST", "operation" |
+| LAYER_03_SECURITY | "auth", "permission", "role", "threat", "security" |
+| RELATIONSHIPS | "link", "relationship", "predicate", "connect" |
+```
+
+## Component Reuse
+
+### Existing Components to Extend
+
+1. **`LinkRegistry` class** (`core/link_registry.py`)
+   - Extend to load `relationship-catalog.json`
+   - Add methods: `get_predicate()`, `get_inverse_predicate()`, `get_predicates_for_layer()`
+
+2. **`LinkValidator` class** (`validators/link_validator.py`)
+   - Add predicate validation
+   - Add inverse consistency checking
+   - Add intra-layer relationship validation
+
+3. **`links` command group** (`commands/links.py`)
+   - Add `dr links predicates` subcommand
+   - Extend `dr links types` to show predicate info
+
+### New Components Required
+
+1. **`RelationshipRegistry` class** - Wrapper for relationship-catalog.json queries
+2. **`RelationshipValidator` class** - Predicate and cardinality validation
+3. **`relationship` command group** - New command group for relationship management
+4. **12 Layer Skills** - SKILL.md files for each layer
+5. **`RELATIONSHIPS` Skill** - Relationship taxonomy expertise
+
+### Schema Bundling Updates
+
+Add to `cli/src/documentation_robotics/schemas/`:
+- `common/predicates.schema.json` (493 lines)
+- `common/relationships.schema.json` (791 lines)
+- `relationship-catalog.json` (855 lines)
+- Update `link-registry.json` (already at v2.0.0 with predicate fields)
+
+## Implementation Plan
+
+### Phase 1: Schema and Registry Infrastructure
+- Bundle v0.6.0 common schemas into CLI package
+- Extend `LinkRegistry` to expose predicate metadata
+- Create `RelationshipRegistry` class for relationship-catalog.json
+- Update schema manifest to reference v0.6.0
+
+### Phase 2: Validation Enhancements
+- Implement `PredicateValidator` for predicate usage validation
+- Add inverse predicate consistency checking to `LinkValidator`
+- Add `--validate-relationships` flag to `dr validate`
+- Implement intra-layer relationship validation
+
+### Phase 3: Relationship Commands
+- Implement `dr relationship add` command
+- Implement `dr relationship list` command
+- Implement `dr relationship remove` command
+- Enhance `dr links` with predicate display
+
+### Phase 4: Layer Skills Development
+- Create standardized layer skill template
+- Implement 12 layer-specific skills with:
+  - Entity types and intra-layer relationships
+  - Cross-layer reference patterns
+  - Framework detection patterns (FastAPI, Express, Spring, etc.)
+  - Modeling workflows
+
+### Phase 5: Relationship Skill Development
+- Create `RELATIONSHIPS/SKILL.md` with:
+  - 6 predicate category overview
+  - Predicate selection decision tree
+  - Bidirectional modeling guidance
+  - Common scenarios and examples
+
+### Phase 6: Agent Restructuring
+- Refactor `dr-architect.md` to slim core (~600 lines)
+- Implement skill activation triggers
+- Add queryable reference access patterns
+- Update version references to v0.6.0
+
+### Phase 7: Copilot Integration Updates
+- Update Copilot `dr-architect.md` (mirrors Claude structure)
+- Update `tier1-essentials.md` with relationship overview
+- Update `tier2-developer-guide.md` with predicate guidance
+- Update `tier3-complete-reference.md` with full taxonomy
+
+### Phase 8: Issue Resolution
+- Investigate and fix issue #44 (requires GitHub access for details)
+- Investigate and fix issue #28 (requires GitHub access for details)
+- Validate fixes work with v0.6.0 relationship validation
+
+### Phase 9: Version Bump and Testing
+- Bump CLI version to v0.8.0
+- Update manifest schema to default to spec v0.6.0
+- Run full test suite with relationship validation
+- Verify backward compatibility with v0.5.0 models
+
+## Architecture Decision Records
+
+### ADR-1: Skill-Based Agent Architecture
+
+**Context:** Current dr-architect.md is 1,367 lines and references v0.5.0. Adding v0.6.0 relationship taxonomy knowledge would push it beyond effective context limits.
+
+**Decision:** Restructure to slim core (~600 lines) + on-demand skills (~300 lines each).
+
+**Consequences:**
+- (+) Reduces base context consumption by ~55%
+- (+) Layer expertise loaded only when needed
+- (+) Skills can be independently updated
+- (-) Skill loading adds interaction latency
+- (-) Agent must correctly identify when to load skills
+
+### ADR-2: Queryable JSON vs Skill Knowledge
+
+**Context:** Relationship-catalog.json (855 lines) and link-registry.json (2,322 lines) are large reference files.
+
+**Decision:** Use direct JSON queries for single-value lookups; use RELATIONSHIPS skill for conceptual guidance.
+
+**Consequences:**
+- (+) Single lookups don't consume context
+- (+) Skill provides decision-making guidance
+- (-) Requires agent to distinguish lookup vs guidance needs
+
+### ADR-3: Intra-Layer Relationship Validation
+
+**Context:** v0.5.0 CLI only validates cross-layer references. v0.6.0 spec formalizes intra-layer relationships.
+
+**Decision:** Extend `LinkValidator` to validate intra-layer relationships using `relationship-catalog.json`.
+
+**Consequences:**
+- (+) Complete relationship validation coverage
+- (+) Leverages existing validation infrastructure
+- (-) Increases validation time for large models
+
+### ADR-4: Relationship Command Group
+
+**Context:** No CLI commands exist for managing relationships with explicit predicates.
+
+**Decision:** Create new `dr relationship` command group with add/list/remove/validate subcommands.
+
+**Consequences:**
+- (+) First-class relationship management
+- (+) Aligns with v0.6.0 relationship taxonomy
+- (-) Overlaps partially with `dr links` (cross-layer focus)
+
+### ADR-5: Backward Compatibility
+
+**Context:** Existing v0.5.0 models must continue to work with CLI v0.8.0.
+
+**Decision:** All v0.6.0 features are additive. Existing validation remains unchanged unless `--validate-relationships` is specified.
+
+**Consequences:**
+- (+) No migration required for existing users
+- (+) Gradual adoption of relationship validation
+- (-) Two validation modes to maintain
+
+## Risk Assessment
+
+| Risk | Likelihood | Impact | Mitigation |
+|------|------------|--------|------------|
+| Skill activation latency | Medium | Low | Pre-cache common skills, fast file reads |
+| Incorrect skill loading | Medium | Medium | Clear trigger definitions, fallback to core |
+| Context overflow with multiple skills | Low | High | Skill unloading, max 2 skills loaded |
+| Relationship validation too strict | Medium | Medium | Separate flag, warning vs error modes |
+| Issue #44/#28 unresolved | High | Medium | Need GitHub access to investigate |
+
+## Open Questions
+
+1. **Issue #44 and #28:** Unable to fetch issue details without GitHub access. These must be investigated to understand specific requirements and whether v0.6.0 relationship modeling addresses root causes.
+
+2. **Skill File Location:** Should skills live in:
+   - `claude_integration/skills/LAYER_*/SKILL.md` (current pattern)
+   - `claude_integration/layers/LAYER_*.md` (dedicated directory)
+   - External package/repo (separately versioned)
+
+3. **Copilot Skill Mechanism:** Does GitHub Copilot support similar skill loading? May need alternative knowledge injection strategy.
+
+4. **Relationship Cardinality Enforcement:** Should cardinality violations be errors or warnings by default?
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+**@tinkermonkey** (human feedback):
+Since we're creating a bunch of skills folders, please prepend the folder names with "dr_" and keep the folder names lower case. so "dr_layer_01_motiv", etc.
+
+**@tinkermonkey** (human feedback):
+# Architecture Design
+
+---
+
+Got it! I'll update the architecture document's skill folder naming convention. The folders will be:
+
+**Layer Skills:**
+- `dr_layer_01_motiv`
+- `dr_layer_02_business`
+- `dr_layer_03_security`
+- `dr_layer_04_app`
+- `dr_layer_05_tech`
+- `dr_layer_06_api`
+- `dr_layer_07_data`
+- `dr_layer_08_store`
+- `dr_layer_09_ux`
+- `dr_layer_10_nav`
+- `dr_layer_11_apm`
+- `dr_layer_12_testing`
+
+**Other Skills:**
+- `dr_relationships`
+- `dr_changeset_reviewer` (existing, should rename)
+- `dr_link_validation` (existing, should rename)
+
+This naming convention:
+1. **Prefixes with `dr_`** - Clear namespace identifying Documentation Robotics skills
+2. **Lowercase throughout** - Follows Python/filesystem conventions
+3. **Underscores for separation** - Consistent with existing skill folder patterns
+
+Each folder will contain a `SKILL.md` file following the established pattern. Should I proceed with updating the full architecture document to reflect this naming, or would you like me to start implementing the skill structure directly?
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
