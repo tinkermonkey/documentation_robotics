@@ -318,7 +318,7 @@ class UpgradeManager:
         # Add upgrade record
         manifest.data["upgrade_history"].append(
             {
-                "from_version": manifest.data.get("version", "unknown"),
+                "from_version": manifest.data.get("cli_version", "unknown"),
                 "to_version": CLI_VERSION,
                 "upgraded_at": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             }

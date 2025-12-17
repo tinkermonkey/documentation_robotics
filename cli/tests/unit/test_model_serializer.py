@@ -200,7 +200,7 @@ class TestModelSerialization:
         result = serializer._serialize_manifest()
 
         assert result["project"]["name"] == "test-project"
-        assert "version" in result["project"]
+        assert "description" in result["project"]
 
     def test_serialize_statistics(self, initialized_model):
         """Test statistics serialization."""

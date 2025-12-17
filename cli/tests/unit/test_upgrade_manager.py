@@ -108,7 +108,7 @@ class TestUpgradeManager:
 
         history = data["upgrade_history"]
         assert len(history) > 0
-        assert history[-1]["from_version"] == "0.1.0"  # Original manifest version
+        assert history[-1]["from_version"] == old_version  # Original CLI version before upgrade
         assert history[-1]["to_version"] == __version__
         assert "upgraded_at" in history[-1]
 
