@@ -83,7 +83,9 @@
       "Bash(\"IMPLEMENTATION_SUMMARY.md\")",
       "Bash(gh api repos/tinkermonkey/documentation_robotics/pulls/58/files --jq '.[] | select(.filename == \"\"\"\"cli/src/documentation_robotics/claude_integration/skills/dr_layer_01_motiv/SKILL.md\"\"\"\") | .patch')",
       "Bash(gh api repos/tinkermonkey/documentation_robotics/pulls/58/files --jq '.[] | select(.filename == \"\"\"\"IMPLEMENTATION_SUMMARY.md\"\"\"\") | .patch')",
-      "Bash(gh pr checks:*)"
+      "Bash(gh pr checks:*)",
+      "Bash(md5sum:*)",
+      "Bash(git -C /home/austinsand/workspace/orchestrator/documentation_robotics log --oneline --all -- integrations/claude_code cli/src/documentation_robotics/claude_integration)"
     ]
   },
   "enableAllProjectMcpServers": true,
