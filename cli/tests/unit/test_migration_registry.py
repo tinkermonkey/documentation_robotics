@@ -446,3 +446,63 @@ class TestMigrationRegistry:
             second_uuid = yaml.safe_load(f)[0]["id"]
 
         assert first_uuid == second_uuid  # Deterministic
+
+    # v0.5.0 → v0.6.0 Migration Tests
+
+    def test_migration_0_5_to_0_6_backward_compatible(self, registry, temp_model_dir):
+        """Test v0.5.0 → v0.6.0 migration is backward compatible."""
+        layer_dir = temp_model_dir / "01_motivation"
+        layer_dir.mkdir()
+
+        yaml_file = layer_dir / "goals.yaml"
+        original_content = """- id: goal-1
+  type: goal
+  name: Example Goal
+  description: Test goal
+"""
+        yaml_file.write_text(original_content)
+
+        result = registry.apply_migrations(
+            temp_model_dir, "0.5.0", "0.6.0", dry_run=False, validate=False
+        )
+
+        # Should succeed with migration applied (backward compatible)
+        assert result["total_changes"] == 1
+        assert len(result["applied"]) == 1
+        assert result["applied"][0]["from"] == "0.5.0"
+        assert result["applied"][0]["to"] == "0.6.0"
+        assert "0.6.0" in result["applied"][0]["description"]
+
+        # Content should be unchanged (backward compatible)
+        assert yaml_file.read_text() == original_content
+
+    def test_get_latest_version_returns_0_6_0(self, registry):
+        """Test that latest version is now 0.6.0."""
+        latest = registry.get_latest_version()
+        assert latest == "0.6.0"
+
+    def test_migration_path_0_5_to_0_6(self, registry):
+        """Test migration path from 0.5.0 to 0.6.0."""
+        path = registry.get_migration_path("0.5.0", "0.6.0")
+
+        assert len(path) == 1
+        assert path[0].from_version == "0.5.0"
+        assert path[0].to_version == "0.6.0"
+        assert "Enhanced Relationship Taxonomy" in path[0].description
+
+    def test_requires_migration_0_5_to_0_6(self, registry):
+        """Test that v0.5.0 models require migration."""
+        requires = registry.requires_migration("0.5.0")
+        assert requires is True
+
+    def test_migration_summary_0_5_to_0_6(self, registry):
+        """Test migration summary for 0.5.0 to 0.6.0."""
+        summary = registry.get_migration_summary("0.5.0", "0.6.0")
+
+        assert summary["current_version"] == "0.5.0"
+        assert summary["target_version"] == "0.6.0"
+        assert summary["migrations_needed"] == 1
+        assert len(summary["migrations"]) == 1
+        assert summary["migrations"][0]["from"] == "0.5.0"
+        assert summary["migrations"][0]["to"] == "0.6.0"
+        assert "Enhanced Relationship Taxonomy" in summary["migrations"][0]["description"]
