@@ -3,6 +3,7 @@
 import json
 
 import pytest
+
 from documentation_robotics.core.annotations import (
     Annotation,
     AnnotationRegistry,

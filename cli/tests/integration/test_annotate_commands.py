@@ -13,6 +13,7 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
+
 from documentation_robotics.cli import cli
 from documentation_robotics.core.annotations import AnnotationRegistry
 
