@@ -31,12 +31,12 @@ from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
-    get_timestamp,
     create_annotation_added_message,
     create_annotation_reply_added_message,
     create_element_update_message,
     create_error_message,
     create_initial_state_message,
+    get_timestamp,
 )
 
 console = Console()
