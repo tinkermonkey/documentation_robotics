@@ -43,12 +43,14 @@ done
 ```
 
 **Report:**
+
 - ✅ Schemas in sync
 - ❌ Schema exists in spec but not CLI
 - ❌ Schema exists in CLI but not spec
 - ❌ Schema content differs between spec and CLI
 
 **Auto-fix suggestion:**
+
 ```bash
 # Copy spec schemas to CLI
 cp spec/schemas/*.schema.json cli/src/documentation_robotics/schemas/bundled/
@@ -59,12 +61,15 @@ cp spec/schemas/*.schema.json cli/src/documentation_robotics/schemas/bundled/
 **Check:** Layer names in `spec/layers/` match enum in `cli/src/documentation_robotics/core/layer.py`
 
 **Steps:**
+
 1. Extract layer names from spec:
+
    ```bash
    ls spec/layers/*.md | sed 's/.*\/\([0-9]*\)-\(.*\)-layer.md/\2/' | sort
    ```
 
 2. Extract layer enum from CLI:
+
    ```bash
    grep -A 50 "class LayerType" cli/src/documentation_robotics/core/layer.py
    ```
@@ -72,6 +77,7 @@ cp spec/schemas/*.schema.json cli/src/documentation_robotics/schemas/bundled/
 3. Compare lists and report mismatches
 
 **Report:**
+
 - ✅ All spec layers have CLI enum entries
 - ✅ All CLI enum entries have spec documents
 - ❌ Layer defined in spec but missing from CLI enum
@@ -83,12 +89,14 @@ cp spec/schemas/*.schema.json cli/src/documentation_robotics/schemas/bundled/
 **Check:** Element types documented in spec match what CLI validators expect
 
 **For each layer:**
+
 1. Extract element types from `spec/layers/{layer}-layer.md`
 2. Extract element types from corresponding JSON schema
 3. Check if CLI validators reference these types
 4. Verify export formatters handle these types
 
 **Report:**
+
 - ✅ Element types consistent across spec, schema, and CLI
 - ❌ Element type in spec but not in schema
 - ❌ Element type in schema but not validated by CLI
@@ -104,10 +112,12 @@ cat cli/src/documentation_robotics/schemas/link-registry.json
 ```
 
 **Compare with:**
+
 - Link type tables in `spec/layers/*.md`
 - Cross-layer reference documentation in `spec/core/`
 
 **Report:**
+
 - ✅ Link types match between spec and link-registry.json
 - ❌ Link type in spec but not in registry
 - ❌ Link type in registry but not documented in spec
@@ -118,11 +128,13 @@ cat cli/src/documentation_robotics/schemas/link-registry.json
 **Check:** Export formats documented in spec match CLI exporters
 
 **Steps:**
+
 1. Read export format mappings from spec documentation
 2. Check which exporters exist in `cli/src/documentation_robotics/export/`
 3. Verify each exporter's layer support matches spec
 
 **Report:**
+
 - ✅ Export formats match spec documentation
 - ❌ Exporter exists but not documented in spec
 - ❌ Export format documented but no exporter exists
@@ -133,11 +145,13 @@ cat cli/src/documentation_robotics/schemas/link-registry.json
 **Check:** Validation rules documented in spec are implemented in CLI
 
 **For each layer spec:**
+
 1. Extract validation rules from "Validation" section
 2. Check corresponding validator in `cli/src/documentation_robotics/validators/`
 3. Verify rules are implemented
 
 **Report:**
+
 - ✅ All documented validation rules implemented
 - ❌ Validation rule documented but not implemented
 - ⚠️ Validator has rules not documented in spec
@@ -157,11 +171,13 @@ echo "CLI: $cli_version"
 ```
 
 **Check compatibility matrix:**
+
 - CLI version should be >= spec version (can be ahead)
 - If spec version changed, check CLI CHANGELOG for compatibility notes
 - Verify `cli/pyproject.toml` lists supported spec versions
 
 **Report:**
+
 - ✅ CLI supports current spec version
 - ⚠️ CLI version significantly ahead of spec (may need spec update)
 - ❌ CLI version behind spec (requires update)
@@ -178,6 +194,7 @@ git status --short spec/ cli/
 ```
 
 **Categorize changes:**
+
 - Schema changes
 - Layer spec changes
 - CLI implementation changes
@@ -197,10 +214,11 @@ Run all applicable checks based on what changed:
 
 Generate comprehensive report:
 
-```markdown
+````markdown
 # Spec-CLI Consistency Report
 
 ## Summary
+
 - ✅ 12 checks passed
 - ❌ 3 issues found
 - ⚠️ 2 warnings
@@ -208,19 +226,24 @@ Generate comprehensive report:
 ## Critical Issues
 
 ### ❌ Schema Mismatch: 06-api-layer.schema.json
+
 **Location:** spec/schemas/06-api-layer.schema.json vs cli/schemas/bundled/
 **Issue:** Schema in spec has new `operationSecurity` field not present in CLI
 **Impact:** CLI validation will reject valid spec-compliant models
 **Fix:** Copy updated schema to CLI:
+
 ```bash
 cp spec/schemas/06-api-layer.schema.json cli/src/documentation_robotics/schemas/bundled/
 ```
+````
 
 ### ❌ Missing Layer Definition: 13-deployment
+
 **Location:** spec/layers/13-deployment-layer.md exists but no CLI enum entry
 **Issue:** New layer documented in spec but not implemented in CLI
 **Impact:** Users cannot create deployment layer elements
 **Fix:** Add to `cli/src/documentation_robotics/core/layer.py`:
+
 ```python
 DEPLOYMENT = "deployment"
 ```
@@ -228,6 +251,7 @@ DEPLOYMENT = "deployment"
 ## Warnings
 
 ### ⚠️ Undocumented Validation Rule
+
 **Location:** cli/validators/semantic.py:142
 **Issue:** CLI validates that API endpoints must have at least one security scheme, but this rule is not documented in spec/layers/06-api-layer.md
 **Impact:** Users may be surprised by validation failures
@@ -251,7 +275,8 @@ cd cli && pytest tests/unit/test_schema_validation.py
 2. Update tests for new layer/element types
 3. Update CHANGELOG if spec version needs bump
 4. Re-run consistency check after fixes
-```
+
+````
 
 ### Phase 4: Suggest Fixes (10% of time)
 
@@ -317,20 +342,23 @@ Add to `spec/schemas/06-api-layer.schema.json`:
     "method": { "enum": ["POST", "PUT"] }
   }
 }
-```
+````
 
 Then sync to CLI:
+
 ```bash
 cp spec/schemas/06-api-layer.schema.json cli/src/documentation_robotics/schemas/bundled/
 ```
 
 ### ⚠️ Webhook Elements May Not Export
+
 The OpenAPI exporter (`cli/export/openapi_exporter.py`) doesn't have logic to handle webhook elements. They may be ignored during export.
 
 **Suggestion (Medium Confidence 75%):**
 Consider adding webhook support to OpenAPI exporter using the `x-webhooks` extension from OpenAPI 3.1.
 
 Would you like me to:
+
 1. Add the webhook type to the schema and sync it?
 2. Show you how to extend the OpenAPI exporter?
 3. Create a GitHub issue to track webhook export support?
@@ -349,11 +377,13 @@ Would you like me to:
 ## Integration with Other Tools
 
 **Works well with:**
+
 - **Schema Sync Agent**: Automatically syncs schemas between spec and CLI
 - **Release Pre-flight Agent**: Runs consistency checks before version bumps
 - **dr-architect**: Uses consistency data to guide architectural decisions
 
 **Pre-commit Hook:**
+
 ```bash
 #!/bin/bash
 # .git/hooks/pre-commit
@@ -409,6 +439,7 @@ Fallback:
 - **Slow checks** (5-15s): Element type deep validation, validation rule analysis
 
 **Optimization:**
+
 - If no spec/ changes detected, skip spec-specific checks
 - If no CLI changes detected, skip CLI-specific checks
 - Cache parsed schemas and specs between runs

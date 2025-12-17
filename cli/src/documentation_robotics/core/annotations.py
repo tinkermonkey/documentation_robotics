@@ -1,11 +1,10 @@
 """Core annotation domain model and storage."""
 
-from dataclasses import dataclass, asdict
-from datetime import datetime
-from pathlib import Path
-from typing import Optional, List, Dict
 import json
 import secrets
+from dataclasses import asdict, dataclass
+from pathlib import Path
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -32,12 +31,12 @@ class Annotation:
         """Convert annotation to dictionary for JSON serialization."""
         result = asdict(self)
         # Remove parent_id if it's None for cleaner JSON
-        if result['parent_id'] is None:
-            del result['parent_id']
+        if result["parent_id"] is None:
+            del result["parent_id"]
         return result
 
     @classmethod
-    def from_dict(cls, data: Dict) -> 'Annotation':
+    def from_dict(cls, data: Dict) -> "Annotation":
         """Create annotation from dictionary."""
         return cls(**data)
 
@@ -77,7 +76,7 @@ class AnnotationStore:
 
         try:
             data = json.loads(self.annotations_file.read_text())
-            annotations_data = data.get('annotations', [])
+            annotations_data = data.get("annotations", [])
             return [Annotation.from_dict(ann_data) for ann_data in annotations_data]
         except (json.JSONDecodeError, KeyError, TypeError) as e:
             raise ValueError(f"Failed to load annotations from {self.annotations_file}: {e}")
@@ -95,12 +94,10 @@ class AnnotationStore:
         self.user_dir.mkdir(parents=True, exist_ok=True)
 
         # Prepare data
-        data = {
-            'annotations': [ann.to_dict() for ann in annotations]
-        }
+        data = {"annotations": [ann.to_dict() for ann in annotations]}
 
         # Atomic write: write to temp file, then rename
-        temp_file = self.annotations_file.with_suffix('.tmp')
+        temp_file = self.annotations_file.with_suffix(".tmp")
         temp_file.write_text(json.dumps(data, indent=2))
         temp_file.rename(self.annotations_file)
 
@@ -179,8 +176,7 @@ class AnnotationRegistry:
         Returns:
             List of annotations matching the entity URI
         """
-        return [ann for ann in self._annotations.values()
-                if ann.entity_uri == entity_uri]
+        return [ann for ann in self._annotations.values() if ann.entity_uri == entity_uri]
 
     def get_annotation(self, annotation_id: str) -> Optional[Annotation]:
         """Get single annotation by ID.
@@ -233,12 +229,9 @@ class AnnotationRegistry:
             ]
 
             # Sort replies by timestamp
-            replies.sort(key=lambda r: r['annotation'].timestamp)
+            replies.sort(key=lambda r: r["annotation"].timestamp)
 
-            return {
-                'annotation': ann,
-                'replies': replies
-            }
+            return {"annotation": ann, "replies": replies}
 
         return build_tree(root_id)
 
@@ -248,8 +241,7 @@ class AnnotationRegistry:
         Returns:
             List of root annotations
         """
-        return [ann for ann in self._annotations.values()
-                if ann.parent_id is None]
+        return [ann for ann in self._annotations.values() if ann.parent_id is None]
 
     def get_replies(self, annotation_id: str) -> List[Annotation]:
         """Get direct replies to an annotation.
@@ -260,5 +252,4 @@ class AnnotationRegistry:
         Returns:
             List of annotations that are direct replies
         """
-        return [ann for ann in self._annotations.values()
-                if ann.parent_id == annotation_id]
+        return [ann for ann in self._annotations.values() if ann.parent_id == annotation_id]

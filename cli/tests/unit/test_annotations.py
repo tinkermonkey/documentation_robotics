@@ -1,14 +1,13 @@
 """Unit tests for core.annotations module."""
 
 import json
+
 import pytest
-from datetime import datetime
-from pathlib import Path
 from documentation_robotics.core.annotations import (
     Annotation,
-    generate_annotation_id,
+    AnnotationRegistry,
     AnnotationStore,
-    AnnotationRegistry
+    generate_annotation_id,
 )
 
 
@@ -22,7 +21,7 @@ class TestAnnotation:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="This is a test annotation"
+            message="This is a test annotation",
         )
 
         assert ann.id == "ann-12345678"
@@ -40,7 +39,7 @@ class TestAnnotation:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="This is a reply",
-            parent_id="ann-12345678"
+            parent_id="ann-12345678",
         )
 
         assert ann.parent_id == "ann-12345678"
@@ -52,7 +51,7 @@ class TestAnnotation:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
 
         result = ann.to_dict()
@@ -71,7 +70,7 @@ class TestAnnotation:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="Reply",
-            parent_id="ann-12345678"
+            parent_id="ann-12345678",
         )
 
         result = ann.to_dict()
@@ -84,7 +83,7 @@ class TestAnnotation:
             "entity_uri": "motivation.goal.deliver-value",
             "timestamp": "2025-01-15T10:30:00Z",
             "user": "alice",
-            "message": "Test"
+            "message": "Test",
         }
 
         ann = Annotation.from_dict(data)
@@ -100,7 +99,7 @@ class TestAnnotation:
             "timestamp": "2025-01-15T10:35:00Z",
             "user": "bob",
             "message": "Reply",
-            "parent_id": "ann-12345678"
+            "parent_id": "ann-12345678",
         }
 
         ann = Annotation.from_dict(data)
@@ -148,7 +147,7 @@ class TestAnnotationStore:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
 
         store.save([ann])
@@ -164,7 +163,7 @@ class TestAnnotationStore:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="First annotation"
+            message="First annotation",
         )
 
         ann2 = Annotation(
@@ -173,7 +172,7 @@ class TestAnnotationStore:
             timestamp="2025-01-15T11:00:00Z",
             user="alice",
             message="Second annotation",
-            parent_id="ann-12345678"
+            parent_id="ann-12345678",
         )
 
         store.save([ann1, ann2])
@@ -196,13 +195,13 @@ class TestAnnotationStore:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
 
         store.save([ann])
 
         # Temp file should not exist after successful write
-        temp_file = store.annotations_file.with_suffix('.tmp')
+        temp_file = store.annotations_file.with_suffix(".tmp")
         assert not temp_file.exists()
         assert store.annotations_file.exists()
 
@@ -215,7 +214,7 @@ class TestAnnotationStore:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
 
         store.save([ann])
@@ -235,7 +234,7 @@ class TestAnnotationStore:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="First"
+            message="First",
         )
 
         store.add_annotation(ann1)
@@ -245,7 +244,7 @@ class TestAnnotationStore:
             entity_uri="business.service.checkout",
             timestamp="2025-01-15T11:00:00Z",
             user="alice",
-            message="Second"
+            message="Second",
         )
 
         store.add_annotation(ann2)
@@ -289,7 +288,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
         store.add_annotation(ann)
 
@@ -310,7 +309,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Alice's annotation"
+            message="Alice's annotation",
         )
         store_alice.add_annotation(ann1)
 
@@ -321,7 +320,7 @@ class TestAnnotationRegistry:
             entity_uri="business.service.checkout",
             timestamp="2025-01-15T11:00:00Z",
             user="bob",
-            message="Bob's annotation"
+            message="Bob's annotation",
         )
         store_bob.add_annotation(ann2)
 
@@ -343,7 +342,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="First"
+            message="First",
         )
 
         ann2 = Annotation(
@@ -351,7 +350,7 @@ class TestAnnotationRegistry:
             entity_uri="business.service.checkout",
             timestamp="2025-01-15T11:00:00Z",
             user="alice",
-            message="Second"
+            message="Second",
         )
 
         ann3 = Annotation(
@@ -359,7 +358,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T12:00:00Z",
             user="alice",
-            message="Third"
+            message="Third",
         )
 
         store.save([ann1, ann2, ann3])
@@ -381,7 +380,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Test"
+            message="Test",
         )
         store.add_annotation(ann)
 
@@ -405,7 +404,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Root annotation"
+            message="Root annotation",
         )
 
         reply = Annotation(
@@ -414,7 +413,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="Reply to root",
-            parent_id="ann-root"
+            parent_id="ann-root",
         )
 
         store.save([root, reply])
@@ -437,7 +436,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Root"
+            message="Root",
         )
 
         reply1 = Annotation(
@@ -446,7 +445,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="First reply",
-            parent_id="ann-root"
+            parent_id="ann-root",
         )
 
         reply2 = Annotation(
@@ -455,7 +454,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:40:00Z",
             user="charlie",
             message="Reply to reply",
-            parent_id="ann-reply1"
+            parent_id="ann-reply1",
         )
 
         store.save([root, reply1, reply2])
@@ -480,7 +479,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Root"
+            message="Root",
         )
 
         reply1 = Annotation(
@@ -489,7 +488,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="First reply",
-            parent_id="ann-root"
+            parent_id="ann-root",
         )
 
         reply2 = Annotation(
@@ -498,7 +497,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:36:00Z",
             user="charlie",
             message="Second reply",
-            parent_id="ann-root"
+            parent_id="ann-root",
         )
 
         store.save([root, reply1, reply2])
@@ -530,7 +529,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Root 1"
+            message="Root 1",
         )
 
         root2 = Annotation(
@@ -538,7 +537,7 @@ class TestAnnotationRegistry:
             entity_uri="business.service.checkout",
             timestamp="2025-01-15T11:00:00Z",
             user="alice",
-            message="Root 2"
+            message="Root 2",
         )
 
         reply = Annotation(
@@ -547,7 +546,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="Reply",
-            parent_id="ann-root1"
+            parent_id="ann-root1",
         )
 
         store.save([root1, root2, reply])
@@ -569,7 +568,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Root"
+            message="Root",
         )
 
         reply1 = Annotation(
@@ -578,7 +577,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:35:00Z",
             user="bob",
             message="First reply",
-            parent_id="ann-root"
+            parent_id="ann-root",
         )
 
         reply2 = Annotation(
@@ -587,7 +586,7 @@ class TestAnnotationRegistry:
             timestamp="2025-01-15T10:40:00Z",
             user="charlie",
             message="Reply to reply",
-            parent_id="ann-reply1"
+            parent_id="ann-reply1",
         )
 
         store.save([root, reply1, reply2])
@@ -614,7 +613,7 @@ class TestAnnotationRegistry:
             entity_uri="motivation.goal.deliver-value",
             timestamp="2025-01-15T10:30:00Z",
             user="alice",
-            message="Valid"
+            message="Valid",
         )
         store_alice.add_annotation(ann)
 

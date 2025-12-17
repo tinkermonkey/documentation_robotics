@@ -179,9 +179,7 @@ def list_annotations(entity_uri: str, show_all: bool, project_dir: str):
 
     # Require either --all or --entity-uri
     if not show_all and not entity_uri:
-        console.print(
-            "[red]✗ Error: Must specify either --all or --entity-uri[/red]"
-        )
+        console.print("[red]✗ Error: Must specify either --all or --entity-uri[/red]")
         raise click.Abort()
 
     # Load all annotations

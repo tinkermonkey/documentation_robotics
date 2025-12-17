@@ -1,16 +1,15 @@
 """Unit tests for utils.user_identity module."""
 
 import json
-import pytest
-from pathlib import Path
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch
+
 from documentation_robotics.utils.user_identity import (
+    STATE_FILE,
+    ensure_username,
     get_username,
-    validate_username,
     prompt_for_username,
     save_username,
-    ensure_username,
-    STATE_FILE
+    validate_username,
 )
 
 
@@ -73,7 +72,7 @@ class TestValidateUsername:
 class TestPromptForUsername:
     """Tests for prompt_for_username function."""
 
-    @patch('documentation_robotics.utils.user_identity.click.prompt')
+    @patch("documentation_robotics.utils.user_identity.click.prompt")
     def test_prompt_valid_username(self, mock_prompt):
         """Test prompting returns valid username."""
         mock_prompt.return_value = "alice"
@@ -82,8 +81,8 @@ class TestPromptForUsername:
         assert username == "alice"
         mock_prompt.assert_called_once()
 
-    @patch('documentation_robotics.utils.user_identity.click.prompt')
-    @patch('documentation_robotics.utils.user_identity.click.echo')
+    @patch("documentation_robotics.utils.user_identity.click.prompt")
+    @patch("documentation_robotics.utils.user_identity.click.echo")
     def test_prompt_retries_on_invalid(self, mock_echo, mock_prompt):
         """Test prompting retries on invalid username."""
         # First return invalid, then valid
@@ -94,8 +93,8 @@ class TestPromptForUsername:
         assert mock_prompt.call_count == 2
         mock_echo.assert_called_once()
 
-    @patch('documentation_robotics.utils.user_identity.click.prompt')
-    @patch('documentation_robotics.utils.user_identity.click.echo')
+    @patch("documentation_robotics.utils.user_identity.click.prompt")
+    @patch("documentation_robotics.utils.user_identity.click.echo")
     def test_prompt_multiple_retries(self, mock_echo, mock_prompt):
         """Test prompting retries multiple times until valid."""
         mock_prompt.side_effect = ["", "user name", "user@123", "alice"]
@@ -131,10 +130,7 @@ class TestSaveUsername:
         """Test saving username preserves other fields in state file."""
         state_file = tmp_path / STATE_FILE
         state_file.parent.mkdir(parents=True, exist_ok=True)
-        state_file.write_text(json.dumps({
-            "other_field": "value",
-            "another_field": 123
-        }))
+        state_file.write_text(json.dumps({"other_field": "value", "another_field": 123}))
 
         save_username(tmp_path, "alice")
 
@@ -159,7 +155,7 @@ class TestSaveUsername:
         save_username(tmp_path, "alice")
 
         state_file = tmp_path / STATE_FILE
-        temp_file = state_file.with_suffix('.tmp')
+        temp_file = state_file.with_suffix(".tmp")
 
         # Temp file should not exist after successful write
         assert not temp_file.exists()
@@ -198,7 +194,7 @@ class TestEnsureUsername:
         username = ensure_username(tmp_path)
         assert username == "alice"
 
-    @patch('documentation_robotics.utils.user_identity.prompt_for_username')
+    @patch("documentation_robotics.utils.user_identity.prompt_for_username")
     def test_ensure_username_prompts_if_not_set(self, mock_prompt, tmp_path):
         """Test ensure_username prompts if username not set."""
         mock_prompt.return_value = "alice"
@@ -213,7 +209,7 @@ class TestEnsureUsername:
         state = json.loads(state_file.read_text())
         assert state["annotation_user"] == "alice"
 
-    @patch('documentation_robotics.utils.user_identity.prompt_for_username')
+    @patch("documentation_robotics.utils.user_identity.prompt_for_username")
     def test_ensure_username_does_not_prompt_if_exists(self, mock_prompt, tmp_path):
         """Test ensure_username doesn't prompt if username exists."""
         state_file = tmp_path / STATE_FILE

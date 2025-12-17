@@ -5,6 +5,7 @@
 **Documentation Robotics** is a toolkit for managing federated architecture data models across 12 interconnected layers.
 
 **Components:**
+
 1. **CLI Tool (`dr`)** - Python command-line interface for managing architecture models
 2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
@@ -36,6 +37,7 @@ documentation_robotics/
 ## Quick Reference
 
 ### Virtual Environment Setup
+
 ```bash
 # Venv is at repo root, CLI code is in cli/ subdirectory
 cd cli && pip install -e ".[dev]"
@@ -43,6 +45,7 @@ source ../.venv/bin/activate  # From cli/ directory
 ```
 
 ### Common Commands
+
 ```bash
 dr --help                    # CLI help
 pytest                       # Run all tests
@@ -51,14 +54,17 @@ pytest --cov                 # With coverage
 ```
 
 ### Key Dependencies
+
 - Python 3.10+, click, pydantic, jsonschema, networkx, rich
 
 ### Approved Commands
+
 You have pre-approved access to: `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
 
 ## Critical Rules
 
 ### 1. Spec vs. CLI Separation
+
 - **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/pyproject.toml`)
 - **Schema synchronization**: Schema changes require updating BOTH:
   - `spec/schemas/{layer}.schema.json`
@@ -66,6 +72,7 @@ You have pre-approved access to: `python3`, `source .venv/bin/activate`, `dr val
 - **Layer spec changes**: Must update both `spec/layers/{layer}.md` AND corresponding CLI validators/code
 
 ### 2. When to Ask First
+
 - **ASK before proceeding:**
   - Modifying layer specifications or schemas
   - Breaking changes to CLI commands or public APIs
@@ -78,18 +85,21 @@ You have pre-approved access to: `python3`, `source .venv/bin/activate`, `dr val
   - Code quality improvements (typing, linting)
 
 ### 3. Version Compatibility
+
 - CLI version can be ahead of spec version
 - CLI must remain compatible with current spec version
 - Breaking spec changes require spec version bump
 - Check `spec/CHANGELOG.md` and `cli/CHANGELOG.md` for version history
 
 ### 4. Element Naming Convention
+
 - **Format**: `{layer}-{type}-{kebab-case-name}`
 - **Example**: `api-endpoint-create-customer`
 - Must be unique across entire model
 - Use `id_generator.py` utilities for consistency
 
 ### 5. Cross-Layer References
+
 - **Direction**: Higher layers → lower layers only
 - Always validate references exist before creating
 - Use `reference_registry.py` for lookups and validation
@@ -116,24 +126,28 @@ Federated architecture model spanning 12 interconnected layers:
 ## Architecture Patterns
 
 ### Core Domain (`core/`)
+
 - **Element** - Individual architecture items
 - **Layer** - Container for elements within a layer
 - **Model** - Complete architecture model across all layers
 - **Manifest** - Model metadata (version, name, etc.)
 
 ### Reference & Dependency System (`core/`)
+
 - **Reference Registry** - Tracks cross-layer references
 - **Relationship Registry** - Tracks intra-layer relationships
 - **Dependency Tracker** - Builds and analyzes dependency graphs
 - **Projection Engine** - Projects dependencies across layers
 
 ### Validation Pipeline (`validators/`)
+
 1. **Schema Validation** - JSON schema compliance
 2. **Naming Validation** - Naming convention enforcement
 3. **Reference Validation** - Cross-layer reference integrity
 4. **Semantic Validation** - Business rule validation
 
 ### Export System (`export/`)
+
 - **ArchiMate** - Layers 1, 2, 4, 5
 - **OpenAPI** - Layer 6 (API)
 - **JSON Schema** - Layer 7 (Data Model)
@@ -144,6 +158,7 @@ Federated architecture model spanning 12 interconnected layers:
 ## Standards and Conventions
 
 ### Industry Standards
+
 - **ArchiMate 3.2** - Layers 1, 2, 4, 5
 - **OpenAPI 3.0** - Layer 6
 - **JSON Schema Draft 7** - Layer 7
@@ -151,6 +166,7 @@ Federated architecture model spanning 12 interconnected layers:
 - **PlantUML, GraphML** - Visualizations
 
 ### Coding Conventions
+
 - Follow PEP 8
 - Type hints throughout
 - Docstrings for public functions/classes
@@ -158,6 +174,7 @@ Federated architecture model spanning 12 interconnected layers:
 - Tests: `tests/unit/` and `tests/integration/`
 
 ### Data Storage
+
 - Filesystem-based (no database)
 - Models in `.dr/` directory
 - Manifest: `.dr/manifest.json`
@@ -166,6 +183,7 @@ Federated architecture model spanning 12 interconnected layers:
 ## Development Workflow
 
 ### Adding a New Command
+
 1. Create command file in `commands/`
 2. Implement command class (inherit from base)
 3. Register in `cli.py`
@@ -173,6 +191,7 @@ Federated architecture model spanning 12 interconnected layers:
 5. Run `pytest` to verify
 
 ### Adding/Modifying a Layer
+
 1. **ASK FIRST** - Layer changes affect spec
 2. Update `spec/layers/{layer}.md`
 3. Update `spec/schemas/{layer}.schema.json`
@@ -182,12 +201,14 @@ Federated architecture model spanning 12 interconnected layers:
 7. Update tests
 
 ### Adding an Export Format
+
 1. Create exporter in `export/`
 2. Inherit from base exporter pattern
 3. Register in `export_manager.py`
 4. Add tests in `tests/unit/test_*_exporter.py`
 
 ### Testing
+
 ```bash
 # Run all tests with coverage
 pytest --cov=documentation_robotics --cov-report=html
@@ -200,6 +221,7 @@ pytest tests/integration/
 ```
 
 **Testing Strategy:**
+
 - **Unit tests**: Test components in isolation, mock dependencies, focus on edge cases
 - **Integration tests**: Test complete workflows using temporary directories
 - **Fixtures**: Common test data in `conftest.py`

@@ -5,12 +5,12 @@ annotations. The username is stored in .dr/state.json and prompted
 once on first use.
 """
 
-from pathlib import Path
 import json
 import re
+from pathlib import Path
 from typing import Optional
-import click
 
+import click
 
 STATE_FILE = ".dr/state.json"
 
@@ -49,7 +49,7 @@ def validate_username(username: str) -> bool:
     """
     if not username:
         return False
-    return bool(re.match(r'^[a-zA-Z0-9_-]+$', username))
+    return bool(re.match(r"^[a-zA-Z0-9_-]+$", username))
 
 
 def prompt_for_username() -> str:
@@ -64,7 +64,10 @@ def prompt_for_username() -> str:
         username = click.prompt("Enter your username for annotations", type=str)
         if validate_username(username):
             return username
-        click.echo("Invalid username. Use only alphanumeric characters, hyphens, and underscores.", err=True)
+        click.echo(
+            "Invalid username. Use only alphanumeric characters, hyphens, and underscores.",
+            err=True,
+        )
 
 
 def save_username(base_path: Path, username: str) -> None:
@@ -92,7 +95,7 @@ def save_username(base_path: Path, username: str) -> None:
     state["annotation_user"] = username
 
     # Atomic write
-    temp_file = state_file.with_suffix('.tmp')
+    temp_file = state_file.with_suffix(".tmp")
     temp_file.write_text(json.dumps(state, indent=2))
     temp_file.rename(state_file)
 

@@ -6,7 +6,7 @@ their attributes using fragment notation:
   - Attribute: layer.type.name#properties.path.to.attribute
 """
 
-from typing import Optional, Tuple, Any
+from typing import Any, Optional, Tuple
 
 
 class EntityUriParser:
@@ -30,8 +30,8 @@ class EntityUriParser:
             >>> EntityUriParser.parse("motivation.goal.deliver-value#properties.priority")
             ("motivation.goal.deliver-value", "properties.priority")
         """
-        if '#' in uri:
-            element_id, fragment = uri.split('#', 1)
+        if "#" in uri:
+            element_id, fragment = uri.split("#", 1)
             return element_id, fragment
         return uri, None
 
@@ -78,7 +78,7 @@ class EntityUriParser:
         Returns:
             Value at the path if it exists, None otherwise
         """
-        parts = path.split('.')
+        parts = path.split(".")
         current = data
 
         for part in parts:

@@ -43,10 +43,12 @@ After running `dr claude install`, you have access to:
 Skills automatically suggest when relevant:
 
 **For Users:**
+
 - **Link validation** - When working across multiple layers
 - **Changeset review** - Before applying changeset changes
 
 **For Developers:**
+
 - **Spec-CLI consistency** - When modifying specs, schemas, or CLI implementation
 
 ### Reference Sheets

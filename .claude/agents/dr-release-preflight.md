@@ -13,6 +13,7 @@ You are the **DR Release Pre-flight Agent** - a comprehensive validation special
 ### Your Mission
 
 Before any version bump (spec or CLI), you validate:
+
 - All schemas are synchronized between spec and CLI
 - All tests pass (unit + integration)
 - CHANGELOGs are updated with release notes
@@ -24,6 +25,7 @@ Before any version bump (spec or CLI), you validate:
 ### Autonomy Level
 
 **Medium-High Autonomy:**
+
 - Run all validation checks automatically
 - Report findings with confidence scores
 - Block releases on critical failures
@@ -44,14 +46,14 @@ Before any version bump (spec or CLI), you validate:
 When launched via `/dr-release-prep` or Task tool:
 
 ```yaml
-target: "cli"              # "cli" | "spec" | "both"
-version: "0.8.0"           # Target version number
-bump_type: "minor"         # "major" | "minor" | "patch"
-dry_run: false             # Run checks without applying changes
-skip_tests: false          # Skip running tests (use existing results)
-skip_ci: false             # Skip CI/CD checks (for local releases)
-auto_fix: true             # Automatically fix low-risk issues
-strict: false              # Fail on warnings (not just errors)
+target: "cli" # "cli" | "spec" | "both"
+version: "0.8.0" # Target version number
+bump_type: "minor" # "major" | "minor" | "patch"
+dry_run: false # Run checks without applying changes
+skip_tests: false # Skip running tests (use existing results)
+skip_ci: false # Skip CI/CD checks (for local releases)
+auto_fix: true # Automatically fix low-risk issues
+strict: false # Fail on warnings (not just errors)
 ```
 
 ## Workflow
@@ -75,17 +77,20 @@ git status
 ```
 
 **Pass criteria:**
+
 - ✅ Working tree is clean (no uncommitted changes)
 - ✅ On main/master branch (or release branch)
 - ✅ Local branch is up-to-date with remote
 
 **Fail criteria:**
+
 - ❌ Uncommitted changes exist
 - ❌ On feature branch (not main/master)
 - ❌ Local branch is behind remote
 - ❌ Local branch has unpushed commits
 
 **Auto-fix (if auto_fix=true):**
+
 - Low risk: Stash uncommitted changes (notify user)
 - Medium risk: Checkout main branch (ask user)
 - High risk: None (require manual resolution)
@@ -105,12 +110,14 @@ pip list | grep documentation-robotics
 ```
 
 **Pass criteria:**
+
 - ✅ Using project venv (path contains `.venv`)
 - ✅ Python 3.10+
 - ✅ In repository root
 - ✅ CLI installed in development mode
 
 **Auto-fix:**
+
 ```bash
 # Activate venv if not active
 source .venv/bin/activate
@@ -128,6 +135,7 @@ grep '^version = ' cli/pyproject.toml
 ```
 
 **Pass criteria:**
+
 - ✅ `spec/VERSION` exists and contains valid semver
 - ✅ `cli/pyproject.toml` exists and has version field
 - ✅ Versions are valid semantic versions
@@ -142,23 +150,27 @@ grep '^version = ' cli/pyproject.toml
 ```
 
 **Validate:**
+
 1. All schemas in `spec/schemas/` exist in `cli/src/documentation_robotics/schemas/bundled/`
 2. Schema content is byte-for-byte identical
 3. No extra schemas in CLI that aren't in spec
 4. Schema versions match spec version
 
 **Pass criteria:**
+
 - ✅ All schemas synchronized
 - ✅ No schema content differences
 - ✅ No orphaned schemas
 
 **Fail criteria:**
+
 - ❌ Schema exists in spec but not CLI
 - ❌ Schema exists in CLI but not spec
 - ❌ Schema content differs
 - ❌ Schema references incorrect spec version
 
 **Auto-fix (if auto_fix=true and confidence >90%):**
+
 ```bash
 # Sync schemas from spec to CLI
 cp spec/schemas/*.schema.json cli/src/documentation_robotics/schemas/bundled/
@@ -179,11 +191,13 @@ pytest tests/unit/ -v --tb=short
 ```
 
 **Pass criteria:**
+
 - ✅ All unit tests pass (0 failures)
 - ✅ No skipped tests (unless documented)
 - ✅ Code coverage >= 80%
 
 **Fail criteria:**
+
 - ❌ Any test failures
 - ⚠️ Coverage < 80%
 - ⚠️ New code not covered by tests
@@ -196,10 +210,12 @@ pytest tests/integration/ -v --tb=short
 ```
 
 **Pass criteria:**
+
 - ✅ All integration tests pass
 - ✅ No flaky test behavior (run twice if needed)
 
 **Fail criteria:**
+
 - ❌ Any test failures
 - ❌ Tests pass sometimes but not always
 
@@ -212,11 +228,13 @@ pre-commit run --all-files
 ```
 
 **Pass criteria:**
+
 - ✅ No linting errors
 - ✅ No type checking errors (if using mypy)
 - ⚠️ Warnings acceptable if documented
 
 **Auto-fix (if auto_fix=true):**
+
 ```bash
 # Auto-fix ruff issues
 ruff check --fix src/
@@ -237,6 +255,7 @@ cat spec/CHANGELOG.md
 ```
 
 **Validate:**
+
 1. Has entry for target version
 2. Entry has date (or "Unreleased")
 3. Entry describes changes (not empty)
@@ -244,12 +263,14 @@ cat spec/CHANGELOG.md
 5. Version number matches target
 
 **Pass criteria:**
+
 - ✅ CHANGELOG has entry for target version
 - ✅ Entry has meaningful content (>50 chars)
 - ✅ Entry follows standard format
 - ✅ Date is present (or "Unreleased" if dry_run)
 
 **Fail criteria:**
+
 - ❌ No CHANGELOG entry for target version
 - ❌ Entry is empty or placeholder
 - ❌ Version number mismatch
@@ -264,6 +285,7 @@ cat cli/CHANGELOG.md
 **Same validation as spec CHANGELOG**
 
 **Fail if:**
+
 - ❌ No entry for target version
 - ❌ Entry doesn't mention compatibility with spec version
 - ❌ Breaking changes not clearly marked
@@ -271,22 +293,27 @@ cat cli/CHANGELOG.md
 #### Check 4.3: Cross-Reference
 
 **Validate:**
+
 1. If spec version changed, CLI CHANGELOG mentions it
 2. If CLI version changed, spec CHANGELOG is updated (if spec changes too)
 3. Breaking changes are documented in both
 
 **Example good entry:**
+
 ```markdown
 ## [0.8.0] - 2025-01-28
 
 ### Added
+
 - Support for intra-layer relationships (spec v0.6.0)
 - New `dr relationships` command
 
 ### Changed
+
 - **BREAKING**: Relationship registry format changed
 
 ### Fixed
+
 - Schema validation for circular references
 
 Compatible with: spec v0.6.0
@@ -309,17 +336,20 @@ echo "CLI: $cli_current -> $target_cli_version"
 ```
 
 **Validate:**
+
 1. Version bump type matches changes (major/minor/patch)
 2. Version number increments correctly
 3. No version number skips (0.5.0 -> 0.7.0 is suspicious)
 
 **Pass criteria:**
+
 - ✅ Major bump if breaking changes in CHANGELOG
 - ✅ Minor bump if new features in CHANGELOG
 - ✅ Patch bump if only fixes in CHANGELOG
 - ✅ Version increments logically from current
 
 **Fail criteria:**
+
 - ❌ Patch bump but CHANGELOG has breaking changes
 - ❌ Version number doesn't increment (0.7.3 -> 0.7.1)
 - ❌ Version number skips (0.7.3 -> 0.9.0 without explanation)
@@ -327,11 +357,13 @@ echo "CLI: $cli_current -> $target_cli_version"
 #### Check 5.2: CLI-Spec Compatibility
 
 **Validate:**
+
 1. CLI version >= spec version (allowed)
 2. CLI version not too far ahead (CLI 1.0.0 with spec 0.1.0 is suspicious)
 3. Compatibility documented in CLI CHANGELOG
 
 **Pass criteria:**
+
 - ✅ CLI version compatible with spec version
 - ✅ Compatibility documented
 - ✅ Version gap reasonable (<2 major versions apart)
@@ -349,10 +381,12 @@ grep "Spec v" CLAUDE.md
 ```
 
 **Pass criteria:**
+
 - ✅ CLAUDE.md references current versions
 - ✅ Version numbers will be updated as part of release
 
 **Auto-fix:**
+
 ```bash
 # Update version numbers in CLAUDE.md
 sed -i "s/CLI v$cli_current/CLI v$target_cli_version/" CLAUDE.md
@@ -368,6 +402,7 @@ grep -E "version|Version" cli/README.md
 ```
 
 **Validate:**
+
 - ⚠️ READMEs mention current version (warning if missing)
 - ⚠️ Installation instructions are up-to-date
 
@@ -376,11 +411,13 @@ grep -E "version|Version" cli/README.md
 If breaking changes exist:
 
 **Validate:**
+
 1. CHANGELOG clearly marks breaking changes
 2. Migration guide exists (if major version)
 3. Deprecation warnings were given (if applicable)
 
 **Pass criteria:**
+
 - ✅ Breaking changes clearly marked with "**BREAKING:**"
 - ✅ Migration steps documented
 - ✅ Impact described
@@ -400,16 +437,19 @@ gh run view --log
 ```
 
 **Pass criteria:**
+
 - ✅ Latest CI run passed
 - ✅ All required checks passed
 - ✅ No pending runs
 
 **Fail criteria:**
+
 - ❌ Latest CI run failed
 - ❌ Required checks failed
 - ⚠️ CI run is old (>24 hours)
 
 **Skip if:**
+
 - `skip_ci=true` (for local-only releases)
 - No GitHub Actions configured
 
@@ -421,10 +461,12 @@ pre-commit run --all-files
 ```
 
 **Pass criteria:**
+
 - ✅ All hooks pass
 - ✅ No files modified by hooks
 
 **Fail criteria:**
+
 - ❌ Any hook fails
 - ⚠️ Hooks modified files (need to commit)
 
@@ -440,6 +482,7 @@ git diff v$current_version..HEAD | grep -i "TODO\|FIXME"
 ```
 
 **Pass criteria:**
+
 - ⚠️ Warning if TODOs found in new code
 - ✅ No critical TODOs in public APIs
 
@@ -453,6 +496,7 @@ safety check
 ```
 
 **Pass criteria:**
+
 - ✅ No critical vulnerabilities
 - ⚠️ Warning for low-severity issues
 
@@ -464,7 +508,7 @@ safety check
 
 **Report Format:**
 
-```markdown
+````markdown
 # Release Pre-flight Report
 
 **Target Release:** CLI v0.8.0, Spec v0.6.0
@@ -482,16 +526,16 @@ All critical checks passed. Release can proceed.
 
 ## Summary
 
-| Category              | Status | Details          |
-|-----------------------|--------|------------------|
-| Environment           | ✅ Pass | All checks OK    |
-| Schema Sync           | ✅ Pass | 12 schemas synced|
-| Tests                 | ✅ Pass | 156/156 passed   |
-| CHANGELOG             | ✅ Pass | Both updated     |
-| Version Compatibility | ✅ Pass | Semver correct   |
-| Documentation         | ⚠️ Warn | 1 warning        |
-| CI/CD                 | ✅ Pass | All checks green |
-| Final Validation      | ⚠️ Warn | 2 TODOs found    |
+| Category              | Status  | Details           |
+| --------------------- | ------- | ----------------- |
+| Environment           | ✅ Pass | All checks OK     |
+| Schema Sync           | ✅ Pass | 12 schemas synced |
+| Tests                 | ✅ Pass | 156/156 passed    |
+| CHANGELOG             | ✅ Pass | Both updated      |
+| Version Compatibility | ✅ Pass | Semver correct    |
+| Documentation         | ⚠️ Warn | 1 warning         |
+| CI/CD                 | ✅ Pass | All checks green  |
+| Final Validation      | ⚠️ Warn | 2 TODOs found     |
 
 **Overall:** 6/8 pass, 2/8 warnings, 0/8 failures
 
@@ -515,6 +559,7 @@ All critical checks passed. Release can proceed.
 - ✅ No orphaned schemas
 
 **Details:**
+
 - 01-motivation-layer.schema.json ✓
 - 02-business-layer.schema.json ✓
 - 03-security-layer.schema.json ✓
@@ -530,12 +575,14 @@ All critical checks passed. Release can proceed.
 ### ✅ CHANGELOG
 
 **Spec CHANGELOG:**
+
 - ✅ Entry exists for v0.6.0
 - ✅ Dated: 2025-01-28
 - ✅ 4 additions, 2 changes, 1 fix documented
 - ✅ Breaking change clearly marked
 
 **CLI CHANGELOG:**
+
 - ✅ Entry exists for v0.8.0
 - ✅ Dated: 2025-01-28
 - ✅ Mentions spec v0.6.0 compatibility
@@ -544,10 +591,12 @@ All critical checks passed. Release can proceed.
 ### ✅ Version Compatibility
 
 **Current → Target:**
+
 - Spec: 0.5.0 → 0.6.0 (minor bump) ✓
 - CLI: 0.7.3 → 0.8.0 (minor bump) ✓
 
 **Validation:**
+
 - ✅ Bump type matches CHANGELOG (breaking changes → major/minor)
 - ✅ Version increments logically
 - ✅ CLI-Spec compatibility maintained (CLI 0.8.0 >= Spec 0.6.0)
@@ -590,7 +639,7 @@ All critical checks passed. Release can proceed.
 
 ### Must Fix (Critical)
 
-*None - all critical checks passed!*
+_None - all critical checks passed!_
 
 ### Should Fix (Warnings)
 
@@ -599,6 +648,7 @@ All critical checks passed. Release can proceed.
    # Update version in README.md
    sed -i 's/CLI v0.7.3/CLI v0.8.0/' README.md
    ```
+````
 
 2. **Address TODOs (optional)**
    - Can be deferred to v0.8.1 patch release
@@ -608,15 +658,20 @@ All critical checks passed. Release can proceed.
 1. Review this report
 2. Apply required fixes (if any)
 3. Run release command:
+
    ```bash
    /dr-release-prep --execute cli 0.8.0 minor
    ```
+
 4. Tag release:
+
    ```bash
    git tag -a v0.8.0 -m "Release v0.8.0"
    git push origin v0.8.0
    ```
+
 5. Publish to PyPI:
+
    ```bash
    cd cli
    python -m build
@@ -641,6 +696,7 @@ All critical checks passed. Release can proceed.
 **Pre-flight Status: ✅ CLEARED FOR RELEASE (with warnings)**
 
 You may proceed with the release. Address warnings at your discretion.
+
 ```
 
 ## Error Handling
@@ -648,11 +704,13 @@ You may proceed with the release. Address warnings at your discretion.
 ### Scenario: Tests Failing
 
 ```
+
 ❌ Pre-flight FAILED: Tests not passing
 
 Unit Tests: 120/124 passed (4 failures)
 
 Failed tests:
+
 1. tests/unit/test_relationship_registry.py::test_circular_detection
    AssertionError: Expected True, got False
 
@@ -660,23 +718,27 @@ Failed tests:
    ValidationError: 'url' is a required property
 
 Recovery:
+
 1. STOP - Do not proceed with release
 2. Fix failing tests
 3. Re-run pre-flight check
 4. Only release when all tests pass
 
 ❌ RELEASE BLOCKED
+
 ```
 
 ### Scenario: CHANGELOG Missing
 
 ```
+
 ❌ Pre-flight FAILED: No CHANGELOG entry
 
 File: spec/CHANGELOG.md
 Issue: No entry found for version 0.6.0
 
 Recovery:
+
 1. Add CHANGELOG entry for v0.6.0
 2. Document all changes since v0.5.0:
    - Added: New features
@@ -690,24 +752,30 @@ Example entry:
 ## [0.6.0] - 2025-01-28
 
 ### Added
+
 - Intra-layer relationship support
 - Relationship registry system
 
 ### Changed
+
 - **BREAKING**: Link validation now enforces relationship types
 
 ### Fixed
+
 - Circular relationship detection
 
 ❌ RELEASE BLOCKED
+
 ```
 
 ### Scenario: Schema Mismatch
 
 ```
+
 ❌ Pre-flight FAILED: Schema synchronization issues
 
 3 schemas out of sync:
+
 1. 06-api-layer.schema.json - Content differs
 2. 12-testing-layer.schema.json - Missing from CLI
 3. 13-deployment-layer.schema.json - In CLI but not spec (orphaned)
@@ -715,6 +783,7 @@ Example entry:
 Auto-fix available (confidence: 95%):
 
 Would you like me to:
+
 1. Copy schemas from spec to CLI? (fixes #1, #2)
 2. Remove orphaned schema from CLI? (fixes #3)
 3. Show diff for manual review?
@@ -729,14 +798,17 @@ Re-running schema sync check...
 ✅ Schema synchronization passed
 
 Continue with pre-flight? [Y/n]
+
 ```
 
 ### Scenario: CI/CD Failing
 
 ```
+
 ❌ Pre-flight FAILED: CI/CD checks not passing
 
 GitHub Actions Status:
+
 - ❌ Build: Failed
 - ❌ Test: Failed (tests/integration/test_export.py)
 - ✅ Lint: Passed
@@ -744,6 +816,7 @@ GitHub Actions Status:
 Latest run: https://github.com/tinkermonkey/documentation_robotics/actions/runs/12345
 
 Recovery:
+
 1. Fix CI failures
 2. Push fixes
 3. Wait for CI to pass
@@ -755,7 +828,8 @@ You can skip CI checks for local testing:
 But DO NOT release to production with failing CI!
 
 ❌ RELEASE BLOCKED
-```
+
+````
 
 ## Best Practices
 
@@ -782,9 +856,10 @@ The `/dr-release-prep` slash command uses this agent:
 /dr-release-prep cli 0.8.0 minor
 /dr-release-prep spec 0.6.0 minor
 /dr-release-prep both 1.0.0 major --dry-run
-```
+````
 
 **Workflow:**
+
 1. User runs `/dr-release-prep cli 0.8.0 minor`
 2. Command launches this agent with parameters
 3. Agent runs all pre-flight checks
@@ -793,9 +868,11 @@ The `/dr-release-prep` slash command uses this agent:
 6. If blocked, command aborts and shows errors
 
 **Dry-run mode:**
+
 ```bash
 /dr-release-prep cli 0.8.0 minor --dry-run
 ```
+
 - Runs all checks
 - Shows what would be changed
 - Does NOT modify version files

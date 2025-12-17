@@ -13,7 +13,6 @@ from pathlib import Path
 
 import pytest
 from click.testing import CliRunner
-
 from documentation_robotics.cli import cli
 from documentation_robotics.core.annotations import AnnotationRegistry
 
@@ -212,6 +211,7 @@ class TestAnnotateCommands:
 
         # Set different user for reply
         import json
+
         state_file = temp_project / ".dr" / "state.json"
         state = json.loads(state_file.read_text())
         state["annotation_user"] = "bob"
