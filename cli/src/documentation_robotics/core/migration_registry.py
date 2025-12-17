@@ -78,6 +78,16 @@ class MigrationRegistry:
             )
         )
 
+        # Migration from v0.5.0 to v0.6.0: Enhanced Relationship Taxonomy
+        self.migrations.append(
+            Migration(
+                from_version="0.5.0",
+                to_version="0.6.0",
+                description="Enhanced Relationship Taxonomy (Spec v0.6.0)",
+                apply_fn=self._migrate_0_5_to_0_6,
+            )
+        )
+
         # Future migrations would be added here
         # self.migrations.append(Migration(
         #     from_version="1.0.0",
@@ -93,7 +103,7 @@ class MigrationRegistry:
             Latest version string
         """
         if not self.migrations:
-            return "0.5.0"
+            return "0.6.0"
 
         versions = [Version(m.to_version) for m in self.migrations]
         return str(max(versions))
@@ -410,6 +420,41 @@ class MigrationRegistry:
                 "description": (
                     "Spec version updated to 0.5.0 "
                     "(UX Layer Three-Tier Architecture now available)"
+                ),
+            }
+        except Exception as e:
+            return {"error": str(e), "files_modified": 0, "migrations_applied": 0}
+
+    def _migrate_0_5_to_0_6(self, model_path: Path) -> dict:
+        """Migrate from v0.5.0 to v0.6.0.
+
+        This migration supports the Enhanced Relationship Taxonomy introduced
+        in spec v0.6.0. The new features are fully additive and backward
+        compatible - existing models remain valid.
+
+        **New Relationship Taxonomy (Spec v0.6.0):**
+        - Comprehensive formalization of 6 relationship categories with 60+ predicates
+        - Categories: Structural, Behavioral, Dependency, Traceability, Governance, Domain-Specific
+        - ArchiMate 3.2 alignment with software-specific extensions
+        - Bidirectional navigation support (inverse predicates)
+        - Enhanced cross-layer reference registry with 60+ patterns
+
+        No mandatory data transformations are required. Migration only updates
+        the spec version as the relationship taxonomy is opt-in.
+
+        Args:
+            model_path: Path to model directory
+
+        Returns:
+            Dictionary with migration statistics
+        """
+        try:
+            return {
+                "migrations_applied": 1,
+                "files_modified": 0,
+                "description": (
+                    "Spec version updated to 0.6.0 "
+                    "(Enhanced Relationship Taxonomy now available)"
                 ),
             }
         except Exception as e:

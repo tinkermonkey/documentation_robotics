@@ -31,12 +31,12 @@ from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
-    get_timestamp,
     create_annotation_added_message,
     create_annotation_reply_added_message,
     create_element_update_message,
     create_error_message,
     create_initial_state_message,
+    get_timestamp,
 )
 
 console = Console()
@@ -338,9 +338,7 @@ class VisualizationServer:
 
             # Set up file monitoring for annotations directory
             self._annotation_observer = Observer()
-            self._annotation_handler = AnnotationFileHandler(
-                self._handle_annotation_file_change
-            )
+            self._annotation_handler = AnnotationFileHandler(self._handle_annotation_file_change)
             self._annotation_observer.schedule(
                 self._annotation_handler, str(annotations_dir), recursive=True
             )
@@ -844,7 +842,9 @@ class VisualizationServer:
         if self._loop and self._loop.is_running():
             # Schedule task creation in the event loop thread (thread-safe)
             self._loop.call_soon_threadsafe(
-                lambda: asyncio.create_task(self._broadcast_annotation_change(event_type, file_path))
+                lambda: asyncio.create_task(
+                    self._broadcast_annotation_change(event_type, file_path)
+                )
             )
         else:
             console.print(
