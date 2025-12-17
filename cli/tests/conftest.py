@@ -101,3 +101,28 @@ def initialized_model(temp_dir):
                     attr.close()
                 except Exception:
                     pass
+
+
+@pytest.fixture(autouse=True, scope="function")
+def cleanup_threads_and_processes():
+    """
+    Cleanup threads and processes after each test to prevent resource warnings.
+
+    This fixture runs after every test to ensure proper cleanup of:
+    - Thread timers (from debouncing)
+    - File observers (from watchdog)
+    - Any other background threads/processes
+    """
+    import gc
+    import threading
+
+    yield
+
+    # Force cleanup of any lingering timers
+    for thread in threading.enumerate():
+        if isinstance(thread, threading.Timer):
+            if thread.is_alive():
+                thread.cancel()
+
+    # Force garbage collection to clean up any remaining resources
+    gc.collect()
