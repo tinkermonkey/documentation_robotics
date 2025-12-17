@@ -133,7 +133,6 @@ class ModelInitializer:
             path=self.root_path / "documentation-robotics" / "model" / "manifest.yaml",
             project_name=self.project_name,
             project_description=f"Architecture model for {self.project_name}",
-            project_version="1.0.0",
         )
 
     def _create_documentation(self) -> None:

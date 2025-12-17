@@ -26,11 +26,15 @@ class Manifest:
         """
         self.path = path
         self.data = data
-        self.version = data.get("version", "0.1.0")
         self.project = data.get("project", {})
         self.layers = data.get("layers", {})
         self.statistics = data.get("statistics", {})
         self.conventions = data.get("conventions", {})
+
+    @property
+    def version(self) -> str:
+        """Get the manifest version (mapped to cli_version for backwards compatibility)."""
+        return self.data.get("cli_version", "0.1.0")
 
     @property
     def specification_version(self) -> str:
@@ -60,7 +64,6 @@ class Manifest:
         path: Path,
         project_name: str,
         project_description: str = "",
-        project_version: str = "1.0.0",
     ) -> "Manifest":
         """
         Create a new manifest.
@@ -69,7 +72,6 @@ class Manifest:
             path: Path to save manifest
             project_name: Project name
             project_description: Project description
-            project_version: Project version
 
         Returns:
             New Manifest instance
@@ -79,7 +81,6 @@ class Manifest:
         now = datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")
 
         data = {
-            "version": "0.1.0",
             "schema": "documentation-robotics-v1",
             "cli_version": __version__,
             "spec_version": __spec_version__,
@@ -88,7 +89,6 @@ class Manifest:
             "project": {
                 "name": project_name,
                 "description": project_description,
-                "version": project_version,
             },
             "documentation": ".dr/README.md",
             "layers": cls._default_layers(),
