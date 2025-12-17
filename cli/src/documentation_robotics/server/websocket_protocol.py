@@ -3,7 +3,10 @@ WebSocket protocol message definitions for client/server communication.
 """
 
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..core.annotations import Annotation
 
 # Message type constants
 MESSAGE_TYPES = {
@@ -47,7 +50,7 @@ def create_initial_state_message(
     """
     return {
         "type": "initial_state",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "specification": specification,
             "model": model,
@@ -76,7 +79,7 @@ def create_element_update_message(
     """
     message = {
         "type": f"element_{change_type}",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "layer": layer,
             "element_id": element_id,
@@ -102,7 +105,7 @@ def create_layer_update_message(layer: str, layer_data: Dict[str, Any]) -> Dict[
     """
     return {
         "type": "layer_updated",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "layer": layer,
             "layer_data": layer_data,
@@ -123,7 +126,7 @@ def create_error_message(error: str, details: Optional[str] = None) -> Dict[str,
     """
     message = {
         "type": "error",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "error": error,
         },
@@ -135,7 +138,7 @@ def create_error_message(error: str, details: Optional[str] = None) -> Dict[str,
     return message
 
 
-def create_annotation_added_message(annotation: Any) -> Dict[str, Any]:
+def create_annotation_added_message(annotation: "Annotation") -> Dict[str, Any]:
     """
     Create annotation_added WebSocket message.
 
@@ -147,7 +150,7 @@ def create_annotation_added_message(annotation: Any) -> Dict[str, Any]:
     """
     return {
         "type": "annotation_added",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "id": annotation.id,
             "entity_uri": annotation.entity_uri,
@@ -159,7 +162,7 @@ def create_annotation_added_message(annotation: Any) -> Dict[str, Any]:
     }
 
 
-def create_annotation_reply_added_message(reply: Any) -> Dict[str, Any]:
+def create_annotation_reply_added_message(reply: "Annotation") -> Dict[str, Any]:
     """
     Create annotation_reply_added WebSocket message.
 
@@ -172,7 +175,7 @@ def create_annotation_reply_added_message(reply: Any) -> Dict[str, Any]:
     # Replies are annotations with parent_id, so use same structure
     return {
         "type": "annotation_reply_added",
-        "timestamp": _get_timestamp(),
+        "timestamp": get_timestamp(),
         "data": {
             "id": reply.id,
             "entity_uri": reply.entity_uri,
@@ -184,6 +187,6 @@ def create_annotation_reply_added_message(reply: Any) -> Dict[str, Any]:
     }
 
 
-def _get_timestamp() -> str:
+def get_timestamp() -> str:
     """Get current timestamp in ISO format."""
     return datetime.now(timezone.utc).isoformat().replace("+00:00", "Z")

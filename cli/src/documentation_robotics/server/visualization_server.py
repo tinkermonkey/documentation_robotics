@@ -11,7 +11,6 @@ import mimetypes
 import secrets
 import signal
 import time
-from datetime import datetime, timezone
 from importlib import resources
 from pathlib import Path
 from typing import Any, Dict, Optional, Set
@@ -32,7 +31,7 @@ from .file_monitor import FileMonitor
 from .model_serializer import ModelSerializer, load_changesets
 from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
-    _get_timestamp,
+    get_timestamp,
     create_annotation_added_message,
     create_annotation_reply_added_message,
     create_element_update_message,
@@ -51,7 +50,8 @@ class AnnotationFileHandler(FileSystemEventHandler):
         Initialize annotation file handler.
 
         Args:
-            callback: Callback function taking (event_type, file_path)
+            callback: Callback function with signature (event_type: str, file_path: Path) -> None
+                      Called when annotation files are created, modified, or deleted.
         """
         super().__init__()
         self.callback = callback
@@ -135,6 +135,7 @@ class VisualizationServer:
         self.runner: Optional[web.AppRunner] = None
         self.file_monitor: Optional[FileMonitor] = None
         self._annotation_observer: Optional[Observer] = None
+        self._annotation_handler: Optional[AnnotationFileHandler] = None
 
         # WebSocket connections
         self.websockets: Set[web.WebSocketResponse] = set()
@@ -720,7 +721,7 @@ class VisualizationServer:
             annotation = Annotation(
                 id=annotation_id,
                 entity_uri=entity_uri,
-                timestamp=_get_timestamp(),
+                timestamp=get_timestamp(),
                 user=user,
                 message=annotation_message,
                 parent_id=None,
@@ -800,7 +801,7 @@ class VisualizationServer:
             reply = Annotation(
                 id=reply_id,
                 entity_uri=parent.entity_uri,
-                timestamp=_get_timestamp(),
+                timestamp=get_timestamp(),
                 user=user,
                 message=reply_message,
                 parent_id=parent_id,
