@@ -186,18 +186,50 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     console.print("[yellow]Press Ctrl+C to stop the server[/]")
     console.print()
 
-    # Open browser if requested
-    if not no_browser:
-        try:
-            console.print("[dim]Opening browser with authentication...[/dim]")
-            webbrowser.open(magic_link)
-        except Exception as e:
-            console.print(f"[yellow]⚠ Could not open browser automatically: {e}[/yellow]")
-            console.print("[dim]Please open the link above manually[/dim]")
-
     # Start server (blocks until Ctrl+C)
+    # We start the server first, then open the browser after it's ready
     try:
-        asyncio.run(server.start())
+        # Create async task to handle server startup and browser launch
+        async def start_server_and_browser():
+            import aiohttp
+
+            # Start server in background
+            server_task = asyncio.create_task(server.start())
+
+            # Wait for server to be ready by polling health endpoint
+            max_retries = 20
+            retry_delay = 0.25
+            server_ready = False
+
+            for attempt in range(max_retries):
+                await asyncio.sleep(retry_delay)
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(f"http://{host}:{port}/health", timeout=aiohttp.ClientTimeout(total=1)) as resp:
+                            if resp.status == 200:
+                                server_ready = True
+                                console.print("[dim]Server is ready[/dim]")
+                                break
+                except (aiohttp.ClientError, asyncio.TimeoutError):
+                    # Server not ready yet, continue waiting
+                    pass
+
+            if not server_ready:
+                console.print("[yellow]⚠ Warning: Could not confirm server is ready[/yellow]")
+
+            # Open browser if requested, now that server is ready
+            if not no_browser:
+                try:
+                    console.print("[dim]Opening browser with authentication...[/dim]")
+                    webbrowser.open(magic_link)
+                except Exception as e:
+                    console.print(f"[yellow]⚠ Could not open browser automatically: {e}[/yellow]")
+                    console.print("[dim]Please open the link above manually[/dim]")
+
+            # Wait for server to complete
+            await server_task
+
+        asyncio.run(start_server_and_browser())
     except KeyboardInterrupt:
         console.print("\n[dim]Received shutdown signal[/dim]")
     except OSError as e:

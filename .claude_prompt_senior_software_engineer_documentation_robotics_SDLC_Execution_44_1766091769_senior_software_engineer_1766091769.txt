@@ -1,0 +1,21 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Visualize command has CORS issues
+
+**Description**:
+When attempting to use the UX served by the `dr visualize` command, there are two failures:
+
+1. If a client connection is established, it gets a CORs error:
+Loading module from “http://localhost:8082/assets/main-B5dNpacb.js” was blocked because of a disallowed MIME type (“application/json”).
+[localhost:8082](http://localhost:8082/?token=tnL_6z-Fx21TRpEP43wN4uMhpiQ50JXLoP2OS-TNtiY)
+Loading module from “http://localhost:8082/assets/reactflow-BKsJB92x.js” was blocked because of a disallowed MIME type (“application/json”).
+[localhost:8082](http://localhost:8082/?token=tnL_6z-Fx21TRpEP43wN4uMhpiQ50JXLoP2OS-TNtiY)
+Loading module from “http://localhost:8082/assets/vendor-Bg4TVKJz.js” was blocked because of a disallowed MIME type (“application/json”).
+
+2. The ux first gets a "site not available" error, so we should change the timing of when the client is launched until after the server is available
+
+
+

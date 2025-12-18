@@ -256,7 +256,9 @@ class VisualizationServer:
         """
         # Allow health checks without authentication
         if request.path == "/health":
-            return await handler(request)
+            response = await handler(request)
+            self._add_cors_headers(response)
+            return response
 
         # Validate token
         if not self._validate_token(request):
@@ -264,13 +266,29 @@ class VisualizationServer:
             has_token = "token" in request.query or "Authorization" in request.headers
 
             if has_token:
-                return web.json_response({"error": "Invalid authentication token"}, status=403)
+                response = web.json_response({"error": "Invalid authentication token"}, status=403)
             else:
-                return web.json_response(
+                response = web.json_response(
                     {"error": "Authentication required. Please provide a valid token."}, status=401
                 )
+            self._add_cors_headers(response)
+            return response
 
-        return await handler(request)
+        response = await handler(request)
+        self._add_cors_headers(response)
+        return response
+
+    def _add_cors_headers(self, response: web.Response) -> None:
+        """
+        Add CORS headers to response.
+
+        Args:
+            response: HTTP response to add headers to
+        """
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type, Authorization"
+        response.headers["Access-Control-Max-Age"] = "3600"
 
     async def start(self) -> None:
         """
@@ -483,8 +501,13 @@ class VisualizationServer:
         """
         path = request.match_info.get("path", "")
 
+        # Skip handling for API endpoints and WebSocket - they have their own routes
+        if path.startswith("api/") or path == "ws" or path == "health":
+            raise web.HTTPNotFound(text=f"Path not found: {path}")
+
         # For SPA routing, serve index.html for non-asset requests
-        if not path or ("." not in path and path not in ["health", "ws"]):
+        # Assets typically have file extensions (e.g., .js, .css, .png)
+        if not path or ("." not in path):
             return await self._handle_index(request)
 
         try:
@@ -524,8 +547,42 @@ class VisualizationServer:
                 with open(viewer_path, "rb") as f:
                     content = f.read()
 
-            # Determine content type
-            content_type, _ = mimetypes.guess_type(file_path)
+            # Determine content type with explicit mappings for common web assets
+            # This prevents MIME type misdetection that can cause CORS/module loading errors
+            content_type = None
+            file_lower = file_path.lower()
+
+            # Explicit mappings for JavaScript modules and web assets
+            if file_lower.endswith('.js') or file_lower.endswith('.mjs'):
+                content_type = 'text/javascript'
+            elif file_lower.endswith('.css'):
+                content_type = 'text/css'
+            elif file_lower.endswith('.html'):
+                content_type = 'text/html'
+            elif file_lower.endswith('.json'):
+                content_type = 'application/json'
+            elif file_lower.endswith('.svg'):
+                content_type = 'image/svg+xml'
+            elif file_lower.endswith('.png'):
+                content_type = 'image/png'
+            elif file_lower.endswith('.jpg') or file_lower.endswith('.jpeg'):
+                content_type = 'image/jpeg'
+            elif file_lower.endswith('.gif'):
+                content_type = 'image/gif'
+            elif file_lower.endswith('.ico'):
+                content_type = 'image/x-icon'
+            elif file_lower.endswith('.woff'):
+                content_type = 'font/woff'
+            elif file_lower.endswith('.woff2'):
+                content_type = 'font/woff2'
+            elif file_lower.endswith('.ttf'):
+                content_type = 'font/ttf'
+            elif file_lower.endswith('.eot'):
+                content_type = 'application/vnd.ms-fontobject'
+            else:
+                # Fallback to mimetypes module for other file types
+                content_type, _ = mimetypes.guess_type(file_path)
+
             if not content_type:
                 content_type = "application/octet-stream"
 
