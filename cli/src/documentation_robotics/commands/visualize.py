@@ -7,6 +7,7 @@ import os
 import webbrowser
 from pathlib import Path
 
+import aiohttp
 import click
 from rich.console import Console
 from rich.panel import Panel
@@ -57,7 +58,7 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     # Priority:
     #   1. DR_SPEC_PATH environment variable (explicit override)
     #   2. Workspace spec/ directory (development mode)
-    #   3. Bundled schemas package directory (production, to be implemented in Phase 5)
+    #   3. Bundled schemas package directory (production, pending implementation)
     spec_path_env = os.getenv("DR_SPEC_PATH")
     if spec_path_env:
         spec_path = Path(spec_path_env)
@@ -191,8 +192,6 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
     try:
         # Create async task to handle server startup and browser launch
         async def start_server_and_browser():
-            import aiohttp
-
             # Start server in background
             server_task = asyncio.create_task(server.start())
 
@@ -208,14 +207,14 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
                         async with session.get(f"http://{host}:{port}/health", timeout=aiohttp.ClientTimeout(total=1)) as resp:
                             if resp.status == 200:
                                 server_ready = True
-                                console.print("[dim]Server is ready[/dim]")
+                                console.print(f"[dim]Server is ready (attempt {attempt + 1}/{max_retries})[/dim]")
                                 break
                 except (aiohttp.ClientError, asyncio.TimeoutError):
                     # Server not ready yet, continue waiting
                     pass
 
             if not server_ready:
-                console.print("[yellow]⚠ Warning: Could not confirm server is ready[/yellow]")
+                console.print(f"[yellow]⚠ Warning: Could not confirm server is ready after {max_retries} attempts[/yellow]")
 
             # Open browser if requested, now that server is ready
             if not no_browser:

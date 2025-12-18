@@ -260,6 +260,12 @@ class VisualizationServer:
             self._add_cors_headers(response)
             return response
 
+        # Handle CORS preflight requests without requiring authentication
+        if request.method == "OPTIONS":
+            response = web.Response(status=200)
+            self._add_cors_headers(response)
+            return response
+
         # Validate token
         if not self._validate_token(request):
             # Check if token was provided but invalid
