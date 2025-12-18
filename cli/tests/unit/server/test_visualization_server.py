@@ -811,7 +811,7 @@ class TestCORSHeaders:
         # Create mock request with valid token
         request = Mock(spec=web.Request)
         request.path = "/api/test"
-        request.query = {"token": server.auth_token}
+        request.query = {"token": server.token}
         request.headers = {}
 
         # Create mock handler that returns a response
