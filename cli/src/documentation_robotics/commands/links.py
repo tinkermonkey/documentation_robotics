@@ -489,8 +489,6 @@ def check_staleness_command(threshold: str, layer: Optional[str], output_format:
 
         # Output based on format
         if output_format == "json":
-            import json
-
             output = {
                 "threshold": threshold,
                 "total_with_sources": len(all_elements_with_sources),

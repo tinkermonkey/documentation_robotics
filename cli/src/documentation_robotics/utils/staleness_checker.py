@@ -1,5 +1,6 @@
 """Utilities for checking staleness of source references."""
 
+import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
@@ -34,8 +35,6 @@ def parse_threshold(threshold_str: str) -> timedelta:
     Raises:
         ValueError: If format is invalid
     """
-    import re
-
     match = re.match(r"^(\d+)(days?|weeks?|months?|years?)$", threshold_str.lower())
     if not match:
         raise ValueError(
@@ -149,7 +148,8 @@ def check_staleness(
         commit_date = get_commit_date(element_data)
         if not commit_date:
             # If no stored timestamp, we would need to query git
-            # For now, skip this element
+            # For now, skip this element with missing timestamp
+            # TODO: Consider tracking elements with unknown staleness separately
             continue
 
         # Check if stale

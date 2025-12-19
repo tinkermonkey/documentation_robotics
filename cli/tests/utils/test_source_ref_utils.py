@@ -1,6 +1,13 @@
 """Unit tests for source reference utilities."""
 
+import sys
+from pathlib import Path
+
 import pytest
+
+# Import MockElement from parent conftest
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from conftest import MockElement
 
 from documentation_robotics.utils.source_ref_utils import (
     filter_elements_by_source,
@@ -234,13 +241,6 @@ class TestGetRepositoryInfo:
         """Test returning None when no source reference."""
         repo_info = get_repository_info({"name": "test"})
         assert repo_info is None
-
-
-class MockElement:
-    """Mock Element class for testing."""
-
-    def __init__(self, data):
-        self.data = data
 
 
 class TestFilterElementsBySource:

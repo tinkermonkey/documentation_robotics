@@ -1,6 +1,6 @@
 """Utilities for working with source references in elements."""
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 
 def get_source_reference(element_data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -91,15 +91,15 @@ def get_repository_info(element_data: Dict[str, Any]) -> Optional[Dict[str, Any]
 
 
 def filter_elements_by_source(
-    elements: List[Any],
+    elements: List[Union[Any, Dict[str, Any]]],
     has_source_ref: Optional[bool] = None,
     provenance: Optional[str] = None,
-) -> List[Any]:
+) -> List[Union[Any, Dict[str, Any]]]:
     """
     Filter elements by source reference criteria.
 
     Args:
-        elements: List of Element objects
+        elements: List of Element objects or dicts with data
         has_source_ref: If True, keep only elements with source refs.
                        If False, keep only elements without source refs.
                        If None, no filtering.
@@ -107,7 +107,7 @@ def filter_elements_by_source(
                    Only used if has_source_ref is not False
 
     Returns:
-        Filtered list of elements
+        Filtered list of elements (same type as input)
     """
     results = []
 

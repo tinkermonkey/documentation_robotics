@@ -1,8 +1,14 @@
 """Unit tests for staleness checking utilities."""
 
+import sys
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import pytest
+
+# Import MockElement from parent conftest
+sys.path.insert(0, str(Path(__file__).parent.parent))
+from conftest import MockElement
 
 from documentation_robotics.utils.staleness_checker import (
     StaleSourceRef,
@@ -153,14 +159,6 @@ class TestGetCommitDate:
         }
         date = get_commit_date(element_data)
         assert date is None
-
-
-class MockElement:
-    """Mock Element class for testing."""
-
-    def __init__(self, element_id, data):
-        self.id = element_id
-        self.data = data
 
 
 class TestCheckStaleness:
