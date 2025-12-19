@@ -69,7 +69,7 @@ Route:
     description: string (optional)
     type: RouteType [enum]
 
-  # Source code linking (FR-2: Phase 4)
+  # Source code linking
   source:
     reference: SourceReference (optional) # Link to route definition in source code
 
@@ -382,7 +382,7 @@ NavigationGuard:
     description: string (optional)
     order: integer (execution order, optional)
 
-  # Source code linking (FR-2: Phase 4)
+  # Source code linking
   source:
     reference: SourceReference (optional) # Link to guard implementation in source code
 
