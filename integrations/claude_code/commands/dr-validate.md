@@ -1,11 +1,11 @@
 ---
-description: Comprehensive validation of DR model including schema, references, semantic rules, and cross-layer links
+description: Comprehensive validation of DR model including schema, references, semantic rules, and cross-layer relationships
 argument-hint: "[--strict] [--validate-links] [--strict-links]"
 ---
 
 # Validate Architecture Model
 
-Comprehensive validation of the Documentation Robotics model including schema, naming, references, semantic rules, and cross-layer link validation.
+Comprehensive validation of the Documentation Robotics model including schema, naming, references, semantic rules, and cross-layer relationship validation.
 
 ## What This Command Does
 
@@ -14,7 +14,8 @@ Comprehensive validation of the Documentation Robotics model including schema, n
    - Naming conventions (kebab-case, valid IDs)
    - Reference integrity (broken references)
    - Semantic rules (business logic, best practices)
-   - **Cross-layer link validation** (existence, type, cardinality, format)
+   - **Cross-layer relationship validation** (existence, type, cardinality, format)
+   - **Intra-layer relationship validation** (validated against relationship catalog)
 2. Reports errors, warnings, and informational messages
 3. Analyzes issues and suggests fixes with confidence scores
 4. Provides actionable recommendations for fixes
@@ -28,8 +29,8 @@ Comprehensive validation of the Documentation Robotics model including schema, n
 **Options:**
 
 - `--strict`: Enable strict validation with comprehensive semantic rules
-- `--validate-links`: Include comprehensive cross-layer link validation (recommended)
-- `--strict-links`: Treat link warnings as errors (use with --validate-links)
+- `--validate-links`: Include comprehensive cross-layer and intra-layer relationship validation (recommended)
+- `--strict-links`: Treat relationship warnings as errors (use with --validate-links)
 
 ## Instructions for Claude Code
 
@@ -37,7 +38,7 @@ When the user runs this command, perform intelligent validation with helpful sug
 
 ### Step 1: Run Initial Validation
 
-**RECOMMENDED: Always include link validation**
+**RECOMMENDED: Always include relationship validation**
 
 ```bash
 dr validate --strict --validate-links
@@ -61,14 +62,15 @@ dr validate --strict --validate-links --strict-links
 dr validate --strict --validate-links --strict-links
 ```
 
-### Link Validation
+### Relationship Validation
 
-Cross-layer link validation checks:
+Cross-layer and intra-layer relationship validation checks:
 
 1. **Existence**: Target elements exist
 2. **Type**: Correct element types referenced
 3. **Cardinality**: Single values vs arrays correct
 4. **Format**: Valid element ID format (UUID, paths, durations)
+5. **Catalog Compliance**: Intra-layer relationships exist in relationship catalog
 
 ### Step 2: Parse and Categorize Results
 

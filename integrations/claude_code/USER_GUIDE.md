@@ -47,7 +47,7 @@ Quick shortcuts you type directly in chat:
 
 Skills automatically suggest themselves when relevant (no need to ask!):
 
-- **Link Validation** - Catches broken references when working across layers
+- **Relationship Validation** - Catches broken references when working across layers
 - **Changeset Reviewer** - Reviews changes before you apply them to main model
 
 **💡 Tip:** Skills work alongside the dr-architect agent to catch issues proactively. Most validation happens automatically through the agent.
@@ -140,12 +140,12 @@ dr-architect: I'll run comprehensive validation.
               May I apply these 2 fixes?
 ```
 
-### Working with Cross-Layer Links
+### Working with Cross-Layer Relationships
 
 ```
 You: /dr-links show what business goals drive the auth API
 
-Claude: Querying cross-layer links...
+Claude: Querying cross-layer relationships...
 
         Business Goal → API Endpoint links:
 
@@ -501,7 +501,7 @@ dr --version
 Layers used: Motivation, Business, Application, API, Data, Implementation
 Key features:
 - 15 microservices modeled
-- Cross-layer links from business→api→data
+- Cross-layer relationships from business→api→data
 - Changesets for experimental services
 - Generated architecture documentation for stakeholders
 ```
@@ -524,7 +524,7 @@ Layers used: All 12 layers
 Key features:
 - Extracted current state from Java monolith
 - Used changesets to explore microservices migration
-- Link validation ensured no broken dependencies
+- Relationship validation ensured no broken dependencies
 - Generated before/after documentation
 ```
 

@@ -1,5 +1,8 @@
 """
 GraphML exporter for graph visualization.
+
+Exports model dependency graph to GraphML format for visualization in tools like yEd, Gephi, Cytoscape.
+As of v0.7.0, edge attributes can include relationship metadata from the relationship catalog.
 """
 
 from pathlib import Path

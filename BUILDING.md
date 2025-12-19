@@ -136,7 +136,8 @@ The build script fetches schemas from GitHub releases to ensure version consiste
 1. Reads spec version from `cli/src/documentation_robotics/spec_version.py`
 2. Downloads `schemas-{version}.tar.gz` from the corresponding GitHub release
 3. Extracts and copies schema files to `cli/src/documentation_robotics/schemas/bundled/`
-4. Copies `link-registry.json` to `cli/src/documentation_robotics/schemas/`
+4. Copies `link-registry.json` to `cli/src/documentation_robotics/schemas/` (DEPRECATED as of v0.7.0)
+5. Copies `relationship-catalog.json`, `relationship-type.schema.json`, and common schema files to `cli/src/documentation_robotics/schemas/bundled/`
 
 ### GitHub Release Requirement
 

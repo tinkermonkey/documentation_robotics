@@ -1,10 +1,10 @@
-# Cross-Layer Link Validation Skill
+# Cross-Layer Relationship Validation Skill
 
-When the user works with elements across multiple layers or mentions relationships/links:
+When the user works with elements across multiple layers or mentions relationships:
 
 1. Run `dr links validate` to check cross-layer references
-2. Identify broken links, missing targets, or circular dependencies
-3. Suggest link additions based on naming patterns
+2. Identify broken relationships, missing targets, or circular dependencies
+3. Suggest relationship additions based on naming patterns
 4. Verify bidirectional consistency
 
 ## When to Activate
@@ -12,40 +12,40 @@ When the user works with elements across multiple layers or mentions relationshi
 This skill should activate when:
 
 - User adds or modifies elements with references to other layers
-- User mentions "links", "references", "relationships", or "traceability"
+- User mentions "relationships", "references", "traceability", or cross-layer connections
 - User works across multiple layers simultaneously
-- User asks questions like "what links to this" or "what depends on X"
+- User asks questions like "what relationships exist for this" or "what depends on X"
 - After importing or extracting models from code
 
 ## Tools Available
 
 - Bash (for `dr links *` commands: validate, find, trace, etc.)
-- Read (to examine element references and understand relationships)
+- Read (to examine element references and layer schemas)
 - Grep (to find related elements by ID or name)
-- Write (to update link registry if needed)
+- Write (to update model files if needed)
 
 ## Workflow
 
-1. **Validate existing links:**
+1. **Validate existing relationships:**
 
    ```bash
    dr links validate
    ```
 
-2. **Analyze link issues:**
-   - **Broken links:** Source element references non-existent target
-   - **Orphaned elements:** Elements with no incoming or outgoing links
+2. **Analyze relationship issues:**
+   - **Broken relationships:** Source element references non-existent target
+   - **Orphaned elements:** Elements with no incoming or outgoing relationships
    - **Circular dependencies:** A→B→C→A cycles
-   - **Missing registry entries:** References exist but not in link registry
+   - **Invalid relationship types:** Relationship not defined in layer schema or catalog
 
-3. **Discover potential links:**
+3. **Discover potential relationships:**
    - Look for naming patterns (e.g., `user-service` → `user-api` → `user-data`)
    - Check layer adjacency (business should link to application, application to api, etc.)
    - Find implicit relationships in descriptions or properties
 
 4. **Suggest fixes:**
-   - High confidence: Broken link targets that exist elsewhere
-   - Medium confidence: Pattern-based link suggestions
+   - High confidence: Broken relationship targets that exist elsewhere
+   - Medium confidence: Pattern-based relationship suggestions
    - Low confidence: Semantic relationship suggestions
 
 5. **Visualize relationships:**
@@ -56,22 +56,22 @@ This skill should activate when:
 
 ## Example Interaction
 
-**User:** "I added a new API endpoint for user authentication, can you check if all the links are correct?"
+**User:** "I added a new API endpoint for user authentication, can you check if all the relationships are correct?"
 
-**Assistant:** [Skill activates] Let me validate the cross-layer links...
+**Assistant:** [Skill activates] Let me validate the cross-layer relationships...
 
 ```bash
 dr links validate
 ```
 
-I found some link issues:
+I found some relationship issues:
 
 1. ✅ **api/auth-login-endpoint** correctly links to:
    - application/authentication-service
    - data/user-credentials
 
-2. ❌ **api/auth-login-endpoint** references **implementation/jwt-handler** but this link is not registered
-   - **Fix:** Add link to registry
+2. ❌ **api/auth-login-endpoint** references **implementation/jwt-handler** but this relationship is not defined in the API layer schema
+   - **Fix:** This appears to be a valid implementation reference
    - **Confidence:** 95%
 
 3. ⚠️ **api/auth-login-endpoint** might also link to:
@@ -81,13 +81,13 @@ I found some link issues:
 
 Would you like me to:
 
-1. Add the missing link to jwt-handler?
+1. Verify the jwt-handler reference is appropriate?
 2. Show you the full traceability chain for the auth endpoint?
-3. Add the suggested links to motivation and technology layers?
+3. Add the suggested relationships to motivation and technology layers?
 
-## Link Discovery Patterns
+## Relationship Discovery Patterns
 
-The skill uses these patterns to suggest links:
+The skill uses these patterns to suggest relationships:
 
 **Layer Adjacency:**
 
@@ -112,9 +112,9 @@ The skill uses these patterns to suggest links:
 
 ## Best Practices
 
-- Always validate links after bulk operations
-- Explain why a link is broken (target missing vs not registered)
+- Always validate relationships after bulk operations
+- Explain why a relationship is broken (target missing vs not defined in schema)
 - Show traceability chains when helpful (`dr links trace`)
-- Don't auto-add low-confidence semantic links without asking
+- Don't auto-add low-confidence semantic relationships without asking
 - Verify bidirectional consistency (if A→B exists, should B→A?)
-- Group link issues by layer for easier understanding
+- Group relationship issues by layer for easier understanding

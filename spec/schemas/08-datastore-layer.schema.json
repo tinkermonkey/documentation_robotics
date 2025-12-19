@@ -3,6 +3,406 @@
   "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
   "title": "Datastore Layer Layer Schema",
   "description": "Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.",
+  "layerMetadata": {
+    "layerId": "08-datastore-layer",
+    "layerName": "Datastore Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "Database",
+          "DatabaseSchema",
+          "Table"
+        ],
+        "targetTypes": [
+          "Column",
+          "Constraint",
+          "DatabaseSchema",
+          "Index",
+          "Table"
+        ],
+        "examples": [
+          {
+            "source": "Database",
+            "target": "DatabaseSchema",
+            "description": "Database instance contains one or more schemas",
+            "layer": "08-datastore"
+          },
+          {
+            "source": "DatabaseSchema",
+            "target": "Table",
+            "description": "Schema contains tables as physical storage units",
+            "layer": "08-datastore"
+          },
+          {
+            "source": "Table",
+            "target": "Column",
+            "description": "Table is composed of columns defining its structure",
+            "layer": "08-datastore"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "Constraint",
+          "Index"
+        ],
+        "targetTypes": [
+          "Column"
+        ],
+        "examples": [
+          {
+            "source": "Index",
+            "target": "Column",
+            "description": "Index aggregates one or more columns (composite indexes)",
+            "layer": "08-datastore"
+          },
+          {
+            "source": "Constraint",
+            "target": "Column",
+            "description": "Constraint aggregates columns (composite keys, multi-column checks)",
+            "layer": "08-datastore"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": [
+          "PremiumAccount",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Account",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "sourceTypes": [
+          "Trigger"
+        ],
+        "targetTypes": [
+          "Function"
+        ],
+        "examples": [
+          {
+            "source": "Trigger",
+            "target": "Function",
+            "description": "Database trigger executes specified function on event",
+            "layer": "08-datastore"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "sourceTypes": [
+          "BusinessService",
+          "ContextVariation",
+          "InputSpacePartition"
+        ],
+        "targetTypes": [
+          "BusinessActor",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "BusinessService",
+            "target": "BusinessActor",
+            "description": "Business service serves business actor"
+          },
+          {
+            "source": "InputSpacePartition",
+            "target": "TestCoverageTarget",
+            "description": "Partition serves target by defining testable input space",
+            "layer": "12-testing"
+          },
+          {
+            "source": "ContextVariation",
+            "target": "TestCoverageTarget",
+            "description": "Context serves target by defining execution environments",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "sourceTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "BusinessObject",
+          "InputPartitionSelection",
+          "InputSelection"
+        ],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessObject",
+            "description": "Business process accesses business object data"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "DataObject",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "Schema",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "Schema",
+            "description": "Data object references JSON schema"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "sourceTypes": [
+          "ApplicationService",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "DataObject",
+          "OutcomeCategory"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "DataObject",
+            "description": "Application service depends on data object"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "maps-to",
+        "sourceTypes": [
+          "DataObject"
+        ],
+        "targetTypes": [
+          "DatabaseTable"
+        ],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "DatabaseTable",
+            "description": "User data object maps to users table"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "references-table",
+        "sourceTypes": [
+          "OrderTable"
+        ],
+        "targetTypes": [
+          "CustomerTable"
+        ],
+        "examples": [
+          {
+            "source": "OrderTable",
+            "target": "CustomerTable",
+            "description": "Order table references customer table via foreign key"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "derivedfrom",
+        "sourceTypes": [
+          "TotalPrice"
+        ],
+        "targetTypes": [
+          "Quantity, UnitPrice"
+        ],
+        "examples": [
+          {
+            "source": "TotalPrice",
+            "target": "Quantity, UnitPrice",
+            "description": "Total price derives from quantity times unit price"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": []
+  },
   "type": "object",
   "properties": {
     "databases": {

@@ -1,0 +1,752 @@
+{
+  "layerMetadata": {
+    "layerId": "06-api",
+    "layerName": "06 Api",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "Components",
+          "OpenAPIDocument",
+          "Operation"
+        ],
+        "targetTypes": [
+          "Paths",
+          "Responses",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "OpenAPIDocument",
+            "target": "Paths",
+            "description": "API document composes paths object defining all endpoints"
+          },
+          {
+            "source": "Operation",
+            "target": "Responses",
+            "description": "API operation composes its responses object"
+          },
+          {
+            "source": "Components",
+            "target": "Schema",
+            "description": "Components object composes reusable schema definitions"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "OpenAPIDocument",
+          "Operation"
+        ],
+        "targetTypes": [
+          "SecurityRequirement",
+          "Server",
+          "Tag"
+        ],
+        "examples": [
+          {
+            "source": "OpenAPIDocument",
+            "target": "Server",
+            "description": "API document aggregates server definitions"
+          },
+          {
+            "source": "OpenAPIDocument",
+            "target": "Tag",
+            "description": "API document aggregates tag definitions for operation grouping"
+          },
+          {
+            "source": "Operation",
+            "target": "SecurityRequirement",
+            "description": "Operation aggregates its security requirements"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": [
+          "Schema"
+        ],
+        "targetTypes": [
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "association",
+        "sourceTypes": [
+          "Contact",
+          "License"
+        ],
+        "targetTypes": [
+          "OpenAPIDocument"
+        ],
+        "examples": [
+          {
+            "source": "Contact",
+            "target": "OpenAPIDocument",
+            "description": "Contact is associated with API document for support"
+          },
+          {
+            "source": "License",
+            "target": "OpenAPIDocument",
+            "description": "License is associated with API document for legal terms"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "sourceTypes": [
+          "Operation"
+        ],
+        "targetTypes": [
+          "Callback"
+        ],
+        "examples": [
+          {
+            "source": "Operation",
+            "target": "Callback",
+            "description": "API operation triggers callback webhooks on events"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "sourceTypes": [
+          "SecurityScheme"
+        ],
+        "targetTypes": [
+          "Operation"
+        ],
+        "examples": [
+          {
+            "source": "SecurityScheme",
+            "target": "Operation",
+            "description": "Security scheme serves operations requiring authentication"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": [
+          "Link",
+          "Operation",
+          "Parameter",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Operation",
+          "Schema",
+          "Tag"
+        ],
+        "examples": [
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema references another schema via $ref"
+          },
+          {
+            "source": "Parameter",
+            "target": "Schema",
+            "description": "Parameter references a schema for its data type"
+          },
+          {
+            "source": "Link",
+            "target": "Operation",
+            "description": "Link references target operation via operationId for HATEOAS"
+          },
+          {
+            "source": "Operation",
+            "target": "Tag",
+            "description": "Operation references tags for categorization"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "apm-criticality",
+        "predicate": "apm-criticality",
+        "inversePredicate": null,
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "Criticality"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-apm-criticality",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "enum [low, medium, high, critical] (optional)",
+        "examples": []
+      },
+      {
+        "id": "apm-sla-target-availability",
+        "predicate": "sla-target-availability",
+        "inversePredicate": null,
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "SlaTargetAvailability"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.sla-target-availability",
+        "cardinality": "single",
+        "format": "percentage",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"99.95%\", \"99.99%\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.95%",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.99%",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-sla-target-latency",
+        "predicate": "sla-target-latency",
+        "inversePredicate": null,
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "SlaTargetLatency"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.sla-target-latency",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"200ms\", \"500ms\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-latency",
+            "value": "10ms",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-trace",
+        "predicate": "apm-trace",
+        "inversePredicate": null,
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "Trace"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-apm-trace",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "boolean (optional)",
+        "examples": []
+      },
+      {
+        "id": "archimate-ref",
+        "predicate": "archimate-ref",
+        "inversePredicate": null,
+        "targetLayer": "04-application",
+        "targetTypes": [
+          "Element"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-archimate-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (Element.id reference to ApplicationService)",
+        "examples": []
+      },
+      {
+        "id": "business-apm-business-metrics",
+        "predicate": "business-metrics",
+        "inversePredicate": null,
+        "targetLayer": "02-business",
+        "targetTypes": [
+          "BusinessMetric"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessProcess",
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "apm.business-metrics",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "comma-separated business metric IDs this service tracks",
+        "examples": [
+          {
+            "elementType": "BusinessProcess",
+            "elementId": "order-process",
+            "elementName": "Order Fulfillment Process",
+            "fieldPath": "apm.business-metrics",
+            "value": "metric-order-fulfillment-time,metric-order-success-rate",
+            "layer": "02-business"
+          }
+        ]
+      },
+      {
+        "id": "business-interface-ref",
+        "predicate": "business-interface-ref",
+        "inversePredicate": null,
+        "targetLayer": "02-business",
+        "targetTypes": [
+          "BusinessInterface"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-business-interface-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (BusinessInterface.id, optional)",
+        "examples": []
+      },
+      {
+        "id": "business-service-ref",
+        "predicate": "business-service-ref",
+        "inversePredicate": null,
+        "targetLayer": "02-business",
+        "targetTypes": [
+          "BusinessService"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-business-service-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (BusinessService.id, optional)",
+        "examples": []
+      },
+      {
+        "id": "database-column",
+        "predicate": "database-column",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Column"
+        ],
+        "sourceTypes": [
+          "Schema"
+        ],
+        "fieldPath": "x-database-column",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string",
+        "examples": []
+      },
+      {
+        "id": "database-table",
+        "predicate": "database-table",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Table"
+        ],
+        "sourceTypes": [
+          "Schema",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-database-table",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string",
+        "examples": []
+      },
+      {
+        "id": "motivation-constrained-by",
+        "predicate": "constrained-by",
+        "inversePredicate": "constrains",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "ConstrainedBy"
+        ],
+        "sourceTypes": [
+          "Artifact",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.constrained-by",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-aws-infrastructure,constraint-budget-500k",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-no-proprietary-databases",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "SystemSoftware",
+            "elementId": "postgres",
+            "elementName": "postgres",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-no-proprietary-licenses",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-fulfills-requirements",
+        "predicate": "fulfills-requirements",
+        "inversePredicate": "fulfilled-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "FulfillsRequirement"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware"
+        ],
+        "fieldPath": "motivation.fulfills-requirements",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "comma-separated Requirement IDs this function fulfills",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-horizontal-scaling,req-99-95-availability",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-compliance,req-replication",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "SystemSoftware",
+            "elementId": "postgres",
+            "elementName": "postgres",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-transactions,req-encryption-at-rest",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "ApplicationService",
+          "BusinessService",
+          "CommunicationNetwork",
+          "Node",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-cloud-native,principle-auto-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-deployment-automation,goal-horizontal-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-encrypted",
+        "predicate": "encrypted",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Encrypted"
+        ],
+        "sourceTypes": [
+          "Schema"
+        ],
+        "fieldPath": "x-encrypted",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "boolean",
+        "examples": []
+      },
+      {
+        "id": "security-pii",
+        "predicate": "pii",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Pii"
+        ],
+        "sourceTypes": [
+          "Artifact",
+          "Schema"
+        ],
+        "fieldPath": "security.pii",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "contains personally identifiable information",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.pii",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-required-permissions",
+        "predicate": "required-permissions",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Permission"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-required-permissions",
+        "cardinality": "array",
+        "format": "duration",
+        "strength": "critical",
+        "required": false,
+        "description": "string[] (Permission.name[], optional)",
+        "examples": []
+      },
+      {
+        "id": "security-resource",
+        "predicate": "security-resource",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "SecureResource"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-security-resource",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "critical",
+        "required": false,
+        "description": "string (SecureResource.resource, optional)",
+        "examples": []
+      }
+    ],
+    "incoming": []
+  }
+}

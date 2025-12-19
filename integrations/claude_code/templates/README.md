@@ -296,7 +296,6 @@ This directory contains templates and examples for customizing your DR + Claude 
 - [Design Document](../../../docs/04_claude_code_integration_design.md) - Overall architecture
 - [Developer Guide](../../../docs/claude-code-improvements-for-developers.md) - Improvement roadmap
 - [User Guide](../USER_GUIDE.md) - Complete user guide
-- [Reference Sheets](../reference_sheets/) - Quick reference
 - [Existing Commands](../commands/) - Built-in command examples
 - [Existing Agents](../agents/) - Built-in agent examples
 - [Skills](../skills/) - Auto-activating capabilities

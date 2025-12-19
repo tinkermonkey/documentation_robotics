@@ -5,6 +5,57 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2025-12-19
+
+### Added
+
+- **Relationship Validation**: New comprehensive relationship validation system
+  - `validators/relationship_validator.py`: Validates intra-layer and cross-layer relationships against layer schemas
+  - Validates relationship types against relationship catalog (relationship-catalog.json)
+  - Checks relationship transitivity, symmetry, and bidirectionality metadata
+  - Validates source/target entity types for relationships
+  - Methods: `validate_intra_layer_relationship()`, `validate_cross_layer_relationship()`
+
+- **Bundled Relationship Catalog**: Relationship metadata now bundled with CLI
+  - `schemas/bundled/relationship-catalog.json` (34 relationship types)
+  - `schemas/bundled/relationship-type.schema.json` (validation schema)
+  - `schemas/bundled/common/predicates.schema.json` (predicate library)
+  - `schemas/bundled/common/relationships.schema.json` (property schemas)
+  - `schemas/bundled/common/layer-extensions.schema.json` (layer extension definitions)
+
+- **Schema Module Functions**:
+  - `get_relationship_catalog_path()`: Get path to bundled relationship catalog
+  - `load_relationship_catalog()`: Load and parse relationship catalog
+  - Enhanced `copy_schemas_to_project()` to include relationship catalog and common schemas
+
+### Changed
+
+- **Layer Schemas**: All 12 bundled layer schemas updated with relationship metadata
+  - `layerMetadata` section added (layer ID, name, catalog version)
+  - `intraLayerRelationships.allowed[]` arrays (5-19 relationship types per layer)
+  - `crossLayerRelationships.outgoing[]` and `incoming[]` arrays (0-29 relationships per layer)
+
+- **Reference Registry**: Enhanced to load from layer schemas (v0.7.0+)
+  - `ReferenceRegistry.load_reference_definitions()` now prefers layer schema `crossLayerRelationships`
+  - Falls back to link-registry.json for backwards compatibility
+  - Logs deprecation warning when using link-registry.json
+
+- **Semantic Validator**: Enhanced with relationship validation support
+  - Now accepts optional `schema_dir` parameter
+  - Integrates RelationshipValidator when schema directory provided
+  - Placeholder for full relationship validation implementation
+
+- **Export Modules**: Updated documentation
+  - PlantUML exporter: Can use relationship catalog for styling
+  - GraphML exporter: Can include relationship metadata in edge attributes
+
+### Deprecated
+
+- **link-registry.json**: Deprecated in favor of layer schema `crossLayerRelationships`
+  - Will be removed in v0.9.0
+  - Reference registry now loads from layer schemas by default
+  - Deprecation warning logged when link-registry.json is used
+
 ## [0.7.3] - 2024-12-10
 
 ### Fixed

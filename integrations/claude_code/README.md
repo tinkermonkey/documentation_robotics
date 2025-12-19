@@ -32,7 +32,7 @@ After running `dr claude install`, you have access to:
 
 - `/dr-model <request>` - Add/update/query model elements
 - `/dr-changeset <request>` - Manage isolated model changes
-- `/dr-links <request>` - Work with cross-layer references
+- `/dr-links <request>` - Work with cross-layer relationships
 - `/dr-validate` - Validate model quality
 - `/dr-project <source>→<target>` - Project elements across layers
 - `/dr-ingest <path>` - Extract model from code
@@ -44,28 +44,17 @@ Skills automatically suggest when relevant:
 
 **For Users:**
 
-- **Link validation** - When working across multiple layers
 - **Changeset review** - Before applying changeset changes
 
 **For Developers:**
 
 - **Spec-CLI consistency** - When modifying specs, schemas, or CLI implementation
 
-### Reference Sheets
+### Auto-Activating Skills ✨
 
-Press `Ctrl+K` and type `@dr` to see available reference sheets:
-
-- DR Specification Summary
-- CLI Command Reference
-- Layer Definitions
-- Cross-Layer Projections
+Skills automatically suggest when relevant.
 
 ## Structure
-
-- **reference_sheets/** - Documentation for agents (three tiers)
-  - `tier1-essentials.md` - 300-500 tokens, always loaded
-  - `tier2-developer-guide.md` - 800-1200 tokens, on-demand
-  - `tier3-complete-reference.md` - 2000-3000 tokens, query only
 
 - **commands/** - Slash commands for common workflows
   - `dr-init.md` - Initialize model
@@ -92,9 +81,9 @@ dr claude install
 
 This copies files to the project's `.claude/` directory:
 
-- Reference sheets → `.claude/knowledge/`
 - Commands → `.claude/commands/`
 - Agents → `.claude/agents/`
+- Skills → `.claude/skills/`
 
 ## Development
 
@@ -112,7 +101,7 @@ Test integration files by:
 1. Installing to a test project: `dr claude install`
 2. Using Claude Code to interact with the project
 3. Verifying commands work as expected
-4. Checking token usage of reference sheets
+4. Testing that skills auto-activate appropriately
 
 ## See Also
 

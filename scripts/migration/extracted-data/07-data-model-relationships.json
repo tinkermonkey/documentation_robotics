@@ -1,0 +1,478 @@
+{
+  "layerMetadata": {
+    "layerId": "07-data-model",
+    "layerName": "07 Data Model",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "JSONSchema",
+          "SchemaDefinition"
+        ],
+        "targetTypes": [
+          "SchemaDefinition",
+          "SchemaProperty"
+        ],
+        "examples": [
+          {
+            "source": "JSONSchema",
+            "target": "SchemaDefinition",
+            "description": "Schema document composes reusable definitions"
+          },
+          {
+            "source": "SchemaDefinition",
+            "target": "SchemaProperty",
+            "description": "Schema definition composes its properties"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "JSONSchema"
+        ],
+        "targetTypes": [
+          "DataGovernance",
+          "DataQualityMetrics"
+        ],
+        "examples": [
+          {
+            "source": "JSONSchema",
+            "target": "DataGovernance",
+            "description": "Schema aggregates governance metadata"
+          },
+          {
+            "source": "JSONSchema",
+            "target": "DataQualityMetrics",
+            "description": "Schema aggregates quality metrics configuration"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "archimate-ref",
+        "predicate": "archimate-ref",
+        "inversePredicate": null,
+        "targetLayer": "04-application",
+        "targetTypes": [
+          "Element"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-archimate-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (Element.id reference to ApplicationService)",
+        "examples": []
+      },
+      {
+        "id": "business-object-ref",
+        "predicate": "business-object-ref",
+        "inversePredicate": null,
+        "targetLayer": "02-business",
+        "targetTypes": [
+          "BusinessObject"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-business-object-ref Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-business-object-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (BusinessObject.id reference, optional)",
+        "examples": []
+      },
+      {
+        "id": "data-apm-data-quality-metrics",
+        "predicate": "apm-data-quality-metrics",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "DataQualityMetric"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-apm-data-quality-metrics",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DataQualityMetrics (optional)",
+        "examples": []
+      },
+      {
+        "id": "data-governance",
+        "predicate": "data-governance",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Governance"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-data-governance Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-data-governance",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "DataGovernance (optional)",
+        "examples": []
+      },
+      {
+        "id": "database",
+        "predicate": "database",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Database"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-database",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DatabaseMapping (optional)",
+        "examples": []
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "ApplicationService",
+          "BusinessService",
+          "CommunicationNetwork",
+          "Node",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-cloud-native,principle-auto-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-deployment-automation,goal-horizontal-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": [
+      {
+        "id": "data-apm-data-quality-metrics",
+        "predicate": "apm-data-quality-metrics",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "DataQualityMetric"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-apm-data-quality-metrics",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DataQualityMetrics (optional)",
+        "examples": [],
+        "sourceLayer": "07-data-model"
+      },
+      {
+        "id": "data-governance",
+        "predicate": "data-governance",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Governance"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-data-governance Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-data-governance",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "DataGovernance (optional)",
+        "examples": [],
+        "sourceLayer": "07-data-model"
+      },
+      {
+        "id": "data-governance-owner",
+        "predicate": "governance-owner",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "GovernanceOwner"
+        ],
+        "sourceTypes": [
+          "BusinessObject"
+        ],
+        "fieldPath": "data.governance-owner",
+        "cardinality": "single",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "BusinessObject ownership by BusinessActor",
+        "examples": [
+          {
+            "elementType": "BusinessObject",
+            "elementId": "order-object",
+            "elementName": "Order",
+            "fieldPath": "data.governance-owner",
+            "value": "sales-rep",
+            "layer": "02-business"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "data-retention",
+        "predicate": "retention",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Retention"
+        ],
+        "sourceTypes": [
+          "Data Properties",
+          "DataObject"
+        ],
+        "fieldPath": "data.retention",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to Retention in target layer",
+        "examples": [
+          {
+            "elementType": "DataObject",
+            "elementId": "product-data",
+            "elementName": "product-data",
+            "fieldPath": "data.retention",
+            "value": "7years",
+            "layer": "04-application"
+          }
+        ],
+        "sourceLayer": "04-application"
+      },
+      {
+        "id": "database",
+        "predicate": "database",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Database"
+        ],
+        "sourceTypes": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-database",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DatabaseMapping (optional)",
+        "examples": [],
+        "sourceLayer": "07-data-model"
+      },
+      {
+        "id": "database-column",
+        "predicate": "database-column",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Column"
+        ],
+        "sourceTypes": [
+          "Schema"
+        ],
+        "fieldPath": "x-database-column",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string",
+        "examples": [],
+        "sourceLayer": "06-api"
+      },
+      {
+        "id": "database-table",
+        "predicate": "database-table",
+        "inversePredicate": null,
+        "targetLayer": "07-data-model",
+        "targetTypes": [
+          "Table"
+        ],
+        "sourceTypes": [
+          "Schema",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-database-table",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string",
+        "examples": [],
+        "sourceLayer": "06-api"
+      }
+    ]
+  }
+}

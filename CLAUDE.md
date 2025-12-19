@@ -238,8 +238,13 @@ pytest tests/integration/
 ## Common Pitfalls
 
 1. **Schema Synchronization**
-   - Forgetting to update BOTH spec and CLI schemas
-   - Always update both or validation will fail
+   - Schema changes require updating BOTH spec and CLI schemas
+   - As of v0.7.0, layer schemas include relationship metadata:
+     - `layerMetadata` - layer identifier and catalog version
+     - `intraLayerRelationships` - relationships within the layer
+     - `crossLayerRelationships` - outgoing/incoming relationships to/from other layers
+   - Relationship catalog (`relationship-catalog.json`) now bundled with CLI
+   - Always update both spec and CLI or validation will fail
 
 2. **Cross-Layer References**
    - Violating the "higher → lower" rule

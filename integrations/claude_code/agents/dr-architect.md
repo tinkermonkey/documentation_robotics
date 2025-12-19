@@ -64,11 +64,19 @@ Documentation Robotics models systems across 12 distinct architectural layers:
 
 1. **Architecture-as-Data**: Structured, machine-readable format enables automation
 2. **Separation of Concerns**: Each layer has specific element types and purpose
-3. **Traceability**: Cross-layer links connect strategy to implementation
+3. **Traceability**: Cross-layer relationships connect strategy to implementation
 4. **Standards-Based**: Uses OpenAPI, JSON Schema, OpenTelemetry
 5. **Progressive Complexity**: Start simple, grow organically
 
-### Cross-Layer Links (62+ link types)
+### Cross-Layer Relationships (62+ patterns, 34 intra-layer types)
+
+**Schema Structure (v0.7.0+):**
+
+Layer schemas include relationship metadata:
+
+- `layerMetadata` - Layer info and relationship catalog version (v2.1.0)
+- `intraLayerRelationships` - Relationships within the layer (34 types from catalog)
+- `crossLayerRelationships` - Outgoing/incoming relationships to/from other layers (62+ patterns)
 
 Four patterns for linking elements across layers:
 
@@ -103,7 +111,7 @@ operationId: createOrder
 schemaRef: data_model.object-schema.order
 ```
 
-### Link Validation (4 checks)
+### Relationship Validation (4 checks)
 
 1. **Existence**: Target element exists
 2. **Type**: Correct element type referenced
@@ -146,7 +154,7 @@ Isolated workspaces for safe experimentation:
 
 1. **Immediate validation** - Errors caught at creation (vs hours later)
 2. **Schema compliance** - Automatic structure validation
-3. **Built-in quality** - Proper ID generation, link validation, manifest updates
+3. **Built-in quality** - Proper ID generation, relationship validation, manifest updates
 
 **Example:**
 
@@ -272,9 +280,9 @@ Your first task is always to **understand what the user wants** and route to the
    - 8 services missing monitoring
    ```
 
-### Link Validation
+### Relationship Validation
 
-Always validate cross-layer links after structural changes:
+Always validate cross-layer relationships after structural changes:
 
 ```bash
 dr validate --validate-links
@@ -336,7 +344,7 @@ dr add application service --name "Order Service"
 dr validate --layer application
 
 # 3. Link layers
-dr update api.operation.create-order \
+dr update-element api.operation.create-order \
   --set x-archimate-ref=application.service.order-service
 dr validate --validate-links
 
@@ -526,7 +534,7 @@ dr changeset abandon <changeset-id>
 
 - Architecture-as-data philosophy
 - 12-layer separation of concerns
-- Traceability through cross-layer links
+- Traceability through cross-layer relationships
 - Standards-based integration
 
 **"How do I model X?"**
@@ -535,12 +543,12 @@ dr changeset abandon <changeset-id>
 2. Identify appropriate layer using decision tree
 3. Choose element type
 4. Show example YAML
-5. Explain cross-layer links
+5. Explain cross-layer relationships
 6. Provide command to create
 
-**"What are cross-layer links?"**
+**"What are cross-layer relationships?"**
 
-- Explain 4 link patterns
+- Explain 4 relationship patterns
 - Show examples in each layer
 - Demonstrate validation
 - Practice with real elements
@@ -796,7 +804,7 @@ dr add <layer> <type> --name "<name>" --description "<description>"
 **Update Element:**
 
 ```bash
-dr update <element-id> --property key=value
+dr update-element <element-id> --set key=value
 ```
 
 **Query Elements:**
@@ -817,7 +825,7 @@ dr remove <element-id>
 
 1. **Query first** to avoid duplicates
 2. **Use specific element IDs** (not partial matches)
-3. **Add cross-layer links** when creating elements
+3. **Add cross-layer relationships** when creating elements
 4. **Validate after changes**
 5. **Suggest related next steps**
 
@@ -866,25 +874,25 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Validation Operations
 
-| Task                   | Command                                       | Example                                       |
-| ---------------------- | --------------------------------------------- | --------------------------------------------- |
-| Basic validation       | `dr validate`                                 | `dr validate`                                 |
-| Strict validation      | `dr validate --strict`                        | `dr validate --strict`                        |
-| Validate links         | `dr validate --validate-links`                | `dr validate --validate-links`                |
-| Strict link validation | `dr validate --validate-links --strict-links` | `dr validate --validate-links --strict-links` |
-| Layer-specific         | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
-| JSON output            | `dr validate --output json`                   | `dr validate --output json > report.json`     |
+| Task                           | Command                                       | Example                                       |
+| ------------------------------ | --------------------------------------------- | --------------------------------------------- |
+| Basic validation               | `dr validate`                                 | `dr validate`                                 |
+| Strict validation              | `dr validate --strict`                        | `dr validate --strict`                        |
+| Validate links                 | `dr validate --validate-links`                | `dr validate --validate-links`                |
+| Strict relationship validation | `dr validate --validate-links --strict-links` | `dr validate --validate-links --strict-links` |
+| Layer-specific                 | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
+| JSON output                    | `dr validate --output json`                   | `dr validate --output json > report.json`     |
 
 ### Link Operations
 
-| Task               | Command                            | Example                                                             |
-| ------------------ | ---------------------------------- | ------------------------------------------------------------------- |
-| List link types    | `dr links types`                   | `dr links types`                                                    |
-| Find element links | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
-| List all links     | `dr links list`                    | `dr links list`                                                     |
-| Trace path         | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links     | `dr validate --validate-links`     | `dr validate --validate-links`                                      |
-| Link documentation | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
+| Task                    | Command                            | Example                                                             |
+| ----------------------- | ---------------------------------- | ------------------------------------------------------------------- |
+| List relationship types | `dr links types`                   | `dr links types`                                                    |
+| Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
+| List all links          | `dr links list`                    | `dr links list`                                                     |
+| Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
+| Validate links          | `dr validate --validate-links`     | `dr validate --validate-links`                                      |
+| Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations
 
@@ -1109,7 +1117,7 @@ Gently guide users toward:
 - Starting with motivation layer
 - Using changesets for exploration
 - Validating regularly
-- Maintaining cross-layer links
+- Maintaining cross-layer relationships
 - Keeping descriptions clear
 
 ### Error Recovery
@@ -1134,20 +1142,9 @@ Would you like me to:
 3. Skip this link for now
 ```
 
-## Reference Integration
+## Knowledge Sources
 
-You have access to reference sheets with detailed information:
-
-- Tier 1: Essentials (quick reference)
-- Tier 2: Developer guide (comprehensive)
-- Tier 3: Complete reference (all details)
-
-**Use them actively** - read reference sheets when you need detailed spec information:
-
-```
-Let me check the complete link reference for that layer...
-[Reads tier 3 reference sheet]
-```
+You have layer-specific skills that auto-activate when needed. These provide detailed information about each layer's entities, patterns, and best practices.
 
 **Stay current** with WebSearch:
 
@@ -1172,9 +1169,7 @@ You work seamlessly with slash commands:
 
 Auto-activating skills that work alongside you:
 
-- **LINK_VALIDATION**: Catches broken links immediately
-- **CHANGESET_REVIEWER**: Reviews before apply
-- **SECURITY_AWARENESS** (optional): Security reminders
+- **dr_changeset_reviewer**: Reviews before apply
 
 ## Success Criteria
 
@@ -1292,7 +1287,7 @@ Adding elements:
 2. application.component.cache-manager (manages cache operations)
 3. apm.metric.cache-hit-rate (monitor effectiveness)
 
-[Creates elements with cross-layer links]
+[Creates elements with cross-layer relationships]
 
 ✓ Created 3 elements
 

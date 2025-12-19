@@ -5,6 +5,44 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2025-12-19
+
+### Added
+
+- **Layer Schema Relationship Sections**:
+  - All 12 layer schemas now include `layerMetadata` section with layer ID, name, and relationship catalog version
+  - `intraLayerRelationships.allowed[]` arrays define valid relationships within each layer (5-19 relationship types per layer)
+  - `crossLayerRelationships.outgoing[]` arrays define relationships to other layers (0-19 relationships per layer)
+  - `crossLayerRelationships.incoming[]` arrays define relationships from other layers (0-29 relationships per layer)
+  - Total: 143 intra-layer relationships and 103 cross-layer relationships migrated from catalog and link registry
+
+- **Common Schema Extensions**:
+  - `common/layer-extensions.schema.json` - Definitions for layerMetadata, intraLayerRelationships, and crossLayerRelationships sections
+  - Relationship catalog and common schemas now bundled with specification
+
+- **Migration Tools**:
+  - `scripts/extract-relationship-data.py` - Extracts relationship data from catalog, link registry, and markdown
+  - `scripts/update-layer-schemas.py` - Programmatically updates layer schemas with relationship metadata
+
+### Deprecated
+
+- **link-registry.json** (deprecated in v0.7.0, will be removed in v0.8.0):
+  - Cross-layer relationships now defined in layer schemas using `crossLayerRelationships` section
+  - See layer schema `crossLayerRelationships` sections for migration
+  - Deprecation notice added to file with migration guidance
+
+- **link-registry.schema.json** (deprecated in v0.7.0, will be removed in v0.8.0):
+  - Schema for validating link registry structure
+  - Deprecated in favor of layer schema relationship sections
+
+### Changed
+
+- **Terminology Update**:
+  - "Cross-layer links" → "cross-layer relationships" throughout specification
+  - Consistent use of "relationship" terminology for semantic connections between elements
+- **Layer Schemas**: All 12 layer schemas updated with comprehensive relationship metadata
+- **Documentation**: Updated layer specification markdown files to reference schema-defined relationships
+
 ## [0.6.0] - 2025-12-14
 
 ### Added

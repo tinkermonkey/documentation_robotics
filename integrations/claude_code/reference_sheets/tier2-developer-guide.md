@@ -716,18 +716,19 @@ else:
         print(f"  - {error.message}")
 ```
 
-### Working with Cross-Layer Links
+### Working with Cross-Layer Relationships
 
-**Cross-layer links** connect elements across the 12 architectural layers, enabling traceability from strategic goals to implementation details. The link management system (spec v0.2.0+, CLI v0.4.0+) provides comprehensive tools for creating, validating, and documenting these connections.
+**Cross-layer relationships** connect elements across the 12 architectural layers, enabling traceability from strategic goals to implementation details. The relationship management system (spec v0.7.0+, CLI v0.8.0+) provides comprehensive tools for creating, validating, and documenting these connections.
 
 **Key Concepts:**
 
-- **Link Registry**: Catalog of 62+ standardized cross-layer reference patterns
-- **Link Types**: 4 pattern categories (x-extensions, dot-notation, nested objects, direct fields)
-- **Link Validation**: Automated checking of references, types, cardinality, and formats
-- **Link Migration**: Tools to upgrade from v0.1.x to standardized v0.2.0 patterns
+- **Layer Schema Relationships**: Each layer schema includes `intraLayerRelationships` and `crossLayerRelationships` sections
+- **Relationship Catalog**: 34 intra-layer relationship types (v2.1.0) with semantic metadata
+- **Cross-Layer Patterns**: 62+ standardized reference patterns across 4 categories
+- **Relationship Validation**: Automated checking of references, types, cardinality, and formats
+- **Catalog-Based**: All relationships validated against relationship-catalog.json
 
-#### Understanding Link Patterns
+#### Understanding Cross-Layer Relationship Patterns
 
 **Pattern A: X-Extensions (OpenAPI/JSON Schema)**
 
@@ -816,18 +817,18 @@ data_model.object-schema.order-item:
       $ref: "#/definitions/OrderItem" # Native JSON Schema $ref
 ```
 
-#### Querying Link Types
+#### Querying Relationship Types
 
-Before creating cross-layer references, query available link types:
+Before creating cross-layer references, query available relationship types:
 
 ```bash
-# List all link types
+# List all relationship types
 dr links types
 
 # Filter by category
-dr links types --category motivation  # Links to/from motivation layer
-dr links types --category security    # Security-related links
-dr links types --category api         # API layer links
+dr links types --category motivation  # Relationships to/from motivation layer
+dr links types --category security    # Security-related relationships
+dr links types --category api         # API layer relationships
 
 # Filter by source/target layers
 dr links types --layer application
@@ -843,7 +844,7 @@ dr links types --format json
 ```bash
 User: How do I link my API operation to the application service it implements?
 
-You: Query the relevant link type:
+You: Query the relevant relationship type:
 $ dr links types --layer api
 
 Result shows:
@@ -856,18 +857,18 @@ Result shows:
      x-archimate-ref: application.service.order-api
 ```
 
-#### Discovering Links in Your Model
+#### Discovering Relationships in Your Model
 
-Find links for specific elements or search across the model:
+Find relationships for specific elements or search across the model:
 
 ```bash
-# Find all links for an element (shows both incoming and outgoing)
+# Find all relationships for an element (shows both incoming and outgoing)
 dr links find business.service.order-management
 
-# List all links in model
+# List all relationships in model
 dr links list
 
-# Filter by link type
+# Filter by relationship type
 dr links list --type motivation.supports-goals
 
 # Filter by layer
@@ -879,25 +880,25 @@ dr links list --layer application
 ```bash
 $ dr links find business.service.order-management
 
-Links for business.service.order-management:
+Relationships for business.service.order-management:
 
-Outgoing Links (4):
+Outgoing Relationships (4):
 → motivation.goal.improve-revenue (via motivation.supports-goals)
 → motivation.principle.api-first (via motivation.governed-by-principles)
 → business.actor.operations-team (via owner)
 → apm.metric.order-processing-time (via apm.business-metrics)
 
-Incoming Links (3):
+Incoming Relationships (3):
 ← application.service.order-api (via realizes)
 ← application.service.order-worker (via realizes)
 ← navigation.flow.order-fulfillment (via realizesProcess)
 
-Total: 7 links
+Total: 7 relationships
 ```
 
-#### Validating Cross-Layer Links
+#### Validating Cross-Layer Relationships
 
-Link validation checks for:
+Relationship validation checks for:
 
 1. **Existence**: Target elements exist in the model
 2. **Type Compatibility**: Targets are the correct element type
@@ -905,7 +906,7 @@ Link validation checks for:
 4. **Format**: UUID, path, duration formats are valid
 
 ```bash
-# Basic link validation
+# Basic relationship validation
 dr validate --validate-links
 
 # Strict mode (warnings become errors)
@@ -943,14 +944,14 @@ Fix: Use proper element ID: application.service.order-api
 
 **Best practices:**
 
-- Validate links during development
+- Validate relationships during development
 - Use `--strict-links` in CI/CD pipelines
 - Validate before applying changesets
 - Address warnings to maintain model quality
 
 #### Tracing Paths Between Elements
 
-Find how elements are connected through links:
+Find how elements are connected through relationships:
 
 ```bash
 # Find path between elements
@@ -979,9 +980,9 @@ api.operation.create-order
   → motivation.goal.improve-revenue (via motivation.supports-goals)
 ```
 
-#### Generating Link Documentation
+#### Generating Relationship Documentation
 
-Create comprehensive link documentation for reviews and onboarding:
+Create comprehensive relationship documentation for reviews and onboarding:
 
 ```bash
 # Generate documentation (Markdown, HTML, Mermaid)
@@ -993,7 +994,7 @@ dr links docs --formats markdown --output-dir ./docs/
 
 #### Migrating from v0.1.x to v0.2.0
 
-If you have an existing model using non-standard link patterns, migrate to v0.2.0 standards:
+If you have an existing model using non-standard relationship patterns, migrate to v0.2.0 standards:
 
 ```bash
 # Check what needs migration

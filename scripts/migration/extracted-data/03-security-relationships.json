@@ -1,0 +1,448 @@
+{
+  "layerMetadata": {
+    "layerId": "03-security",
+    "layerName": "03 Security",
+    "intraLayerRelationshipSupport": false,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": []
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "ApplicationService",
+          "BusinessService",
+          "CommunicationNetwork",
+          "Node",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-cloud-native,principle-auto-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-deployment-automation,goal-horizontal-scaling",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": [
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "security-data-pii",
+        "predicate": "pii",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Pii"
+        ],
+        "sourceTypes": [
+          "Data Properties",
+          "DataObject"
+        ],
+        "fieldPath": "data.pii",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to Pii in target layer",
+        "examples": [
+          {
+            "elementType": "DataObject",
+            "elementId": "product-data",
+            "elementName": "product-data",
+            "fieldPath": "data.pii",
+            "value": "false",
+            "layer": "04-application"
+          }
+        ],
+        "sourceLayer": "04-application"
+      },
+      {
+        "id": "security-encrypted",
+        "predicate": "encrypted",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Encrypted"
+        ],
+        "sourceTypes": [
+          "Schema"
+        ],
+        "fieldPath": "x-encrypted",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "boolean",
+        "examples": [],
+        "sourceLayer": "06-api"
+      },
+      {
+        "id": "security-encryption-required",
+        "predicate": "encryption-required",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "EncryptionRequired"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.encryption-required",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to EncryptionRequired in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.encryption-required",
+            "value": "true",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.encryption-required",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "05-technology"
+      },
+      {
+        "id": "security-encryption-type",
+        "predicate": "encryption-type",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "EncryptionType"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.encryption-type",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to EncryptionType in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.encryption-type",
+            "value": "both",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.encryption-type",
+            "value": "both",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "05-technology"
+      },
+      {
+        "id": "security-pii",
+        "predicate": "pii",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Pii"
+        ],
+        "sourceTypes": [
+          "Artifact",
+          "Schema"
+        ],
+        "fieldPath": "security.pii",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "contains personally identifiable information",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.pii",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "05-technology"
+      },
+      {
+        "id": "security-process-security-controls",
+        "predicate": "security-controls",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "SecurityControl"
+        ],
+        "sourceTypes": [
+          "BusinessProcess"
+        ],
+        "fieldPath": "process.security-controls",
+        "cardinality": "array",
+        "format": "string",
+        "strength": "high",
+        "required": false,
+        "description": "security control references",
+        "examples": [
+          {
+            "elementType": "BusinessProcess",
+            "elementId": "order-process",
+            "elementName": "Order Fulfillment Process",
+            "fieldPath": "process.security-controls",
+            "value": "control-order-approval,control-payment-verification",
+            "layer": "02-business"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "security-process-separation-of-duty",
+        "predicate": "separation-of-duty",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "SeparationOfDuty"
+        ],
+        "sourceTypes": [
+          "BusinessProcess"
+        ],
+        "fieldPath": "process.separation-of-duty",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to SeparationOfDuty in target layer",
+        "examples": [
+          {
+            "elementType": "BusinessProcess",
+            "elementId": "order-process",
+            "elementName": "Order Fulfillment Process",
+            "fieldPath": "process.separation-of-duty",
+            "value": "true",
+            "layer": "02-business"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "security-required-permissions",
+        "predicate": "required-permissions",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Permission"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-required-permissions",
+        "cardinality": "array",
+        "format": "duration",
+        "strength": "critical",
+        "required": false,
+        "description": "string[] (Permission.name[], optional)",
+        "examples": [],
+        "sourceLayer": "06-api"
+      },
+      {
+        "id": "security-resource",
+        "predicate": "security-resource",
+        "inversePredicate": null,
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "SecureResource"
+        ],
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "fieldPath": "x-security-resource",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "critical",
+        "required": false,
+        "description": "string (SecureResource.resource, optional)",
+        "examples": [],
+        "sourceLayer": "06-api"
+      }
+    ]
+  }
+}

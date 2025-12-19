@@ -2,6 +2,10 @@
 
 This module provides the RelationshipRegistry class which loads, manages, and queries
 the catalog of all semantic relationship types with their predicates and metadata.
+
+Note: As of v0.7.0, cross-layer relationships are now defined in layer schemas.
+This registry focuses on the relationship catalog for metadata and semantics.
+For cross-layer relationship validation, use validators.relationship_validator.RelationshipValidator.
 """
 
 import json

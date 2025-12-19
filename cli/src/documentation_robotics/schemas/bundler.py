@@ -38,6 +38,19 @@ BUNDLED_METADATA = [
     ".manifest.json",
 ]
 
+# Relationship catalog files (stored in bundled/ directory)
+RELATIONSHIP_CATALOG_FILES = [
+    "relationship-catalog.json",
+    "relationship-type.schema.json",
+]
+
+# Common schema files (stored in bundled/common/ subdirectory)
+COMMON_SCHEMA_FILES = [
+    "common/predicates.schema.json",
+    "common/relationships.schema.json",
+    "common/layer-extensions.schema.json",
+]
+
 # Additional files to copy (stored in parent schemas/ directory, not bundled/)
 ADDITIONAL_FILES = [
     "link-registry.json",
@@ -81,6 +94,44 @@ def get_bundled_schema_path(schema_filename: str) -> Path:
     return schema_path
 
 
+def get_relationship_catalog_path() -> Path:
+    """
+    Get the path to the bundled relationship catalog file.
+
+    Returns:
+        Path to relationship-catalog.json
+
+    Raises:
+        FileNotFoundError: If the catalog file doesn't exist
+    """
+    catalog_path = get_bundled_schemas_dir() / "relationship-catalog.json"
+
+    if not catalog_path.exists():
+        raise FileNotFoundError(
+            f"Relationship catalog not found at: {catalog_path}\n"
+            "This may indicate a corrupted installation."
+        )
+
+    return catalog_path
+
+
+def load_relationship_catalog() -> Dict:
+    """
+    Load the bundled relationship catalog.
+
+    Returns:
+        Parsed relationship catalog data
+
+    Raises:
+        FileNotFoundError: If the catalog file doesn't exist
+        json.JSONDecodeError: If the catalog file is invalid JSON
+    """
+    catalog_path = get_relationship_catalog_path()
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
 def copy_schemas_to_project(project_schemas_dir: Path) -> int:
     """
     Copy bundled schemas to a project's .dr/schemas directory.
@@ -112,7 +163,13 @@ def copy_schemas_to_project(project_schemas_dir: Path) -> int:
     project_schemas_dir.mkdir(parents=True, exist_ok=True)
 
     # Clean obsolete files - CLI owns this directory
-    expected_files = set(LAYER_SCHEMAS + BUNDLED_METADATA + ADDITIONAL_FILES)
+    expected_files = set(
+        LAYER_SCHEMAS
+        + BUNDLED_METADATA
+        + ADDITIONAL_FILES
+        + RELATIONSHIP_CATALOG_FILES
+        + COMMON_SCHEMA_FILES
+    )
     for existing_file in project_schemas_dir.glob("*"):
         # Only clean .json files (leave other files alone just in case)
         if existing_file.is_file() and existing_file.name not in expected_files:
@@ -170,6 +227,42 @@ def copy_schemas_to_project(project_schemas_dir: Path) -> int:
             logger.info(f"Copied additional file: {filename}")
         except Exception as e:
             logger.error(f"Failed to copy additional file {filename}: {e}")
+
+    # Copy relationship catalog files - always overwrite
+    for filename in RELATIONSHIP_CATALOG_FILES:
+        source_path = bundled_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        if not source_path.exists():
+            logger.warning(f"Relationship catalog file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied relationship catalog: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy relationship catalog {filename}: {e}")
+
+    # Copy common schema files - always overwrite
+    # Create common subdirectory if needed
+    common_dest_dir = project_schemas_dir / "common"
+    common_dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for filename in COMMON_SCHEMA_FILES:
+        source_path = bundled_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        if not source_path.exists():
+            logger.warning(f"Common schema file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied common schema: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy common schema {filename}: {e}")
 
     return copied_count
 

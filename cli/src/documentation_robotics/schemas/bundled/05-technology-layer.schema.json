@@ -3,6 +3,869 @@
   "$id": "https://example.com/schemas/05-technology-layer.schema.json",
   "title": "Technology Layer Layer Schema",
   "description": "Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.",
+  "layerMetadata": {
+    "layerId": "05-technology-layer",
+    "layerName": "Technology Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "BusinessCollaboration",
+          "TestCoverageModel",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "BusinessRole",
+          "OutcomeCategory",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "BusinessCollaboration",
+            "target": "BusinessRole",
+            "description": "Business collaboration composes business roles that participate in it"
+          },
+          {
+            "source": "TestCoverageModel",
+            "target": "TestCoverageTarget",
+            "description": "Coverage model composes targets defining what needs testing",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "OutcomeCategory",
+            "description": "Coverage target composes expected outcome categories",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "Goal",
+          "InputPartitionSelection"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "Goal",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Goal",
+            "description": "High-level goal aggregates sub-goals",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "InputPartitionSelection",
+            "target": "PartitionValue",
+            "description": "Partition selection aggregates multiple partition values to cover",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "ContextVariation",
+            "description": "Requirement aggregates selected contexts for testing",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": [
+          "PremiumAccount",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Account",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "realization",
+        "sourceTypes": [
+          "ApplicationService",
+          "Goal",
+          "Outcome"
+        ],
+        "targetTypes": [
+          "BusinessService",
+          "Goal",
+          "Value"
+        ],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Value",
+            "description": "Goal realizes value for stakeholders",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Outcome",
+            "target": "Goal",
+            "description": "Outcome realizes achievement of goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "ApplicationService",
+            "target": "BusinessService",
+            "description": "Application service realizes business service capability"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "assignment",
+        "sourceTypes": [
+          "BusinessActor"
+        ],
+        "targetTypes": [
+          "BusinessRole"
+        ],
+        "examples": [
+          {
+            "source": "BusinessActor",
+            "target": "BusinessRole",
+            "description": "Business actor assigned to business role"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "association",
+        "sourceTypes": [
+          "Requirement",
+          "Stakeholder"
+        ],
+        "targetTypes": [
+          "Constraint",
+          "Driver",
+          "Goal"
+        ],
+        "examples": [
+          {
+            "source": "Stakeholder",
+            "target": "Driver",
+            "description": "Stakeholder has concern represented by driver",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Stakeholder",
+            "target": "Goal",
+            "description": "Stakeholder has interest in goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Requirement",
+            "target": "Constraint",
+            "description": "Requirement is limited by constraint",
+            "layer": "01-motivation"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "sourceTypes": [
+          "BusinessEvent",
+          "CoverageGap",
+          "PartitionDependency"
+        ],
+        "targetTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "BusinessEvent",
+            "target": "BusinessProcess",
+            "description": "Business event triggers business process execution"
+          },
+          {
+            "source": "PartitionDependency",
+            "target": "PartitionValue",
+            "description": "Dependency condition triggers inclusion/exclusion of partition values",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageGap",
+            "target": "CoverageRequirement",
+            "description": "Identified gap triggers need for additional coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "flow",
+        "sourceTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessProcess",
+            "description": "One business process flows to the next in sequence"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "CoverageRequirement",
+            "description": "Target flows to requirements that specify its coverage",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCaseSketch",
+            "description": "Requirement flows to sketches that implement it",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "sourceTypes": [
+          "BusinessService",
+          "ContextVariation",
+          "InputSpacePartition"
+        ],
+        "targetTypes": [
+          "BusinessActor",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "BusinessService",
+            "target": "BusinessActor",
+            "description": "Business service serves business actor"
+          },
+          {
+            "source": "InputSpacePartition",
+            "target": "TestCoverageTarget",
+            "description": "Partition serves target by defining testable input space",
+            "layer": "12-testing"
+          },
+          {
+            "source": "ContextVariation",
+            "target": "TestCoverageTarget",
+            "description": "Context serves target by defining execution environments",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "sourceTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "BusinessObject",
+          "InputPartitionSelection",
+          "InputSelection"
+        ],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessObject",
+            "description": "Business process accesses business object data"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "uses",
+        "sourceTypes": [
+          "ApplicationComponent"
+        ],
+        "targetTypes": [
+          "TechnologyService"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationComponent",
+            "target": "TechnologyService",
+            "description": "Application component uses technology service"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "sourceTypes": [
+          "ApplicationService",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "DataObject",
+          "OutcomeCategory"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "DataObject",
+            "description": "Application service depends on data object"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "supports-goals",
+        "sourceTypes": [
+          "BusinessService",
+          "Operation"
+        ],
+        "targetTypes": [
+          "Goal"
+        ],
+        "examples": [
+          {
+            "source": "BusinessService",
+            "sourceLayer": "02-business",
+            "target": "Goal",
+            "targetLayer": "01-motivation",
+            "value": "goal-revenue-growth",
+            "description": "Payment service supports revenue growth goal"
+          },
+          {
+            "source": "Operation",
+            "sourceLayer": "06-api",
+            "target": "Goal",
+            "targetLayer": "01-motivation",
+            "value": "goal-customer-satisfaction",
+            "description": "GET /products operation supports customer satisfaction goal"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "fulfills-requirements",
+        "sourceTypes": [
+          "ApplicationService",
+          "Operation"
+        ],
+        "targetTypes": [
+          "Requirement"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "Requirement",
+            "description": "OAuth service fulfills authentication requirement"
+          },
+          {
+            "source": "Operation",
+            "sourceLayer": "06-api",
+            "target": "Requirement",
+            "targetLayer": "01-motivation",
+            "value": "req-product-creation-capability",
+            "description": "POST /products operation fulfills product creation requirement"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "governed-by-principles",
+        "sourceTypes": [
+          "APIOperation"
+        ],
+        "targetTypes": [
+          "Principle"
+        ],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Principle",
+            "description": "REST API governed by RESTful design principles"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "constrainedby",
+        "sourceTypes": [
+          "APIOperation"
+        ],
+        "targetTypes": [
+          "Constraint"
+        ],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Constraint",
+            "description": "API operation constrained by rate limit"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "apm-health-check-endpoint",
+        "predicate": "health-check-endpoint",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "HealthCheckEndpoint"
+        ],
+        "sourceTypes": [
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.health-check-endpoint",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "health check endpoint",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "apm.health-check-endpoint",
+            "value": "/healthz",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-health-monitored",
+        "predicate": "health-monitored",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "HealthMonitored"
+        ],
+        "sourceTypes": [
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.health-monitored",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "whether health is actively monitored",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "apm.health-monitored",
+            "value": "true",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.health-monitored",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-sla-target-availability",
+        "predicate": "sla-target-availability",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "SlaTargetAvailability"
+        ],
+        "sourceTypes": [
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.sla-target-availability",
+        "cardinality": "single",
+        "format": "percentage",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"99.95%\", \"99.99%\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.95%",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.99%",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-sla-target-latency",
+        "predicate": "sla-target-latency",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": [
+          "SlaTargetLatency"
+        ],
+        "sourceTypes": [
+          "TechnologyService"
+        ],
+        "fieldPath": "apm.sla-target-latency",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"200ms\", \"500ms\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-latency",
+            "value": "10ms",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-constrained-by",
+        "predicate": "constrained-by",
+        "inversePredicate": "constrains",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "ConstrainedBy"
+        ],
+        "sourceTypes": [
+          "Artifact",
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.constrained-by",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-aws-infrastructure,constraint-budget-500k",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-no-proprietary-databases",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-fulfills-requirements",
+        "predicate": "fulfills-requirements",
+        "inversePredicate": "fulfilled-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "FulfillsRequirement"
+        ],
+        "sourceTypes": [
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware"
+        ],
+        "fieldPath": "motivation.fulfills-requirements",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "comma-separated Requirement IDs this function fulfills",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-horizontal-scaling,req-99-95-availability",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-compliance,req-replication",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "CommunicationNetwork",
+          "Node",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-encryption-required",
+        "predicate": "encryption-required",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "EncryptionRequired"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.encryption-required",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to EncryptionRequired in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.encryption-required",
+            "value": "true",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.encryption-required",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-encryption-type",
+        "predicate": "encryption-type",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "EncryptionType"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.encryption-type",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to EncryptionType in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.encryption-type",
+            "value": "both",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.encryption-type",
+            "value": "both",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-pii",
+        "predicate": "pii",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Pii"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.pii",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "contains personally identifiable information",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.pii",
+            "value": "true",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": []
+  },
   "type": "object",
   "properties": {
     "nodes": {

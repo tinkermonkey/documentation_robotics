@@ -55,9 +55,13 @@ dr migrate                    # Upgrade to latest spec
 
 # Cross-layer operations
 dr project {element-id} --to {target-layer}
+
+# Relationship queries
+dr links types --layer {layer}  # Query relationship patterns
+dr links find {element-id}      # Find element's relationships
 ```
 
-## Key Cross-Layer Patterns
+## Key Cross-Layer Relationship Patterns
 
 **Traceability (bottom-up):**
 
@@ -154,7 +158,15 @@ apm-configuration, attribute, data-quality-metric, data-quality-metrics, instrum
 **testing** (17 types - ISP Coverage Model):
 context-variation, coverage-exclusion, coverage-gap, coverage-requirement, coverage-summary, environment-factor, input-partition-selection, input-selection, input-space-partition, outcome-category, partition-dependency, partition-value, target-coverage-summary, target-input-field, test-case-sketch, test-coverage-model, test-coverage-target
 
-## Cross-Layer Link Types (62 total)
+## Cross-Layer Relationships
+
+**Schema Structure (v0.7.0+):**
+
+Layer schemas now include relationship metadata:
+
+- `layerMetadata` - Layer info and relationship catalog version
+- `intraLayerRelationships` - Relationships within the layer (34 types in catalog v2.1.0)
+- `crossLayerRelationships` - Outgoing/incoming relationships to/from other layers (62+ patterns)
 
 **4 Reference Pattern Types:**
 
@@ -163,7 +175,7 @@ context-variation, coverage-exclusion, coverage-gap, coverage-requirement, cover
 3. **Nested Objects** - `motivationAlignment: {supportsGoals, deliversValue}`
 4. **Direct Fields** - `operationId`, `$ref`, `schemaRef` (Standard fields)
 
-**Common Link Types:**
+**Common Cross-Layer Relationships:**
 
 - `motivation.supports-goals` - Link to strategic goals (Array of UUIDs)
 - `motivation.fulfills-requirements` - Link to requirements (Array)
@@ -173,17 +185,29 @@ context-variation, coverage-exclusion, coverage-gap, coverage-requirement, cover
 - `security.requiredPermissions` - Required permissions (Array of strings)
 - `apm.business-metrics` - Observability metrics (Array of strings)
 
-**Query Available Links:**
+**Common Intra-Layer Relationships (from catalog):**
+
+- `composition` - Whole-part (part can't exist without whole)
+- `aggregation` - Collection (parts can exist independently)
+- `realization` - Implements or realizes another element
+- `assignment` - Allocates responsibility
+- `serving` - Provides services to another element
+- `access` - Read/write access to data
+- `influence` - Affects another element
+- `triggering` - Temporal/causal trigger
+- `flow` - Information or control flow
+
+**Query Available Relationships:**
 
 ```bash
-dr links types --layer api     # Show API → App patterns
-dr links registry                              # Complete catalog
+dr links types --layer api     # Show cross-layer relationship patterns
+dr links find {element-id}     # Find all relationships for element
 ```
 
-## Link Validation
+## Relationship Validation
 
 ```bash
-# Validate all cross-layer links
+# Validate all relationships (intra-layer and cross-layer)
 dr validate --validate-links
 
 # Strict mode (warnings → errors)
@@ -200,6 +224,7 @@ dr migrate
 - Type mismatches (wrong target type)
 - Cardinality errors (single vs array)
 - Format errors (invalid UUID, path, etc.)
+- Invalid relationship types (not in catalog)
 
 ## Need Help?
 
@@ -215,7 +240,7 @@ Ask questions and get expert guidance on DR concepts, modeling decisions, and wo
 - Guide you through modeling decisions
 - Help with CLI commands and workflows
 - Assist with upgrades and maintenance
-- Explain cross-layer links and validation
+- Explain cross-layer relationships and validation
 - Share best practices and patterns
 
 **DR Ideation Agent (v0.4.0+):**

@@ -1,0 +1,469 @@
+{
+  "layerId": "12",
+  "intraLayerRelationships": {
+    "count": 11,
+    "relationships": [
+      {
+        "relationshipTypeId": "composition",
+        "predicate": "composes",
+        "inversePredicate": "composed-of",
+        "category": "structural",
+        "description": "Whole-part relationship where the part cannot exist without the whole",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCoverageModel",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "InputPartitionSelection",
+          "OutcomeCategory",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCoverageModel",
+            "target": "TestCoverageTarget",
+            "description": "Coverage model composes targets defining what needs testing",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "OutcomeCategory",
+            "description": "Coverage target composes expected outcome categories",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Coverage requirement composes partition value selections",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "predicate": "aggregates",
+        "inversePredicate": "aggregated-by",
+        "category": "structural",
+        "description": "Whole-part relationship where the part can exist independently",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "InputPartitionSelection"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "InputPartitionSelection",
+            "target": "PartitionValue",
+            "description": "Partition selection aggregates multiple partition values to cover",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "ContextVariation",
+            "description": "Requirement aggregates selected contexts for testing",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "predicate": "specializes",
+        "inversePredicate": "generalized-by",
+        "category": "structural",
+        "description": "Type-subtype relationship (inheritance)",
+        "sourceTypes": [
+          "PremiumAccount",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Account",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "predicate": "triggers",
+        "inversePredicate": "triggered-by",
+        "category": "behavioral",
+        "description": "Event or behavior triggers another behavior",
+        "sourceTypes": [
+          "CoverageGap",
+          "PartitionDependency"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "PartitionDependency",
+            "target": "PartitionValue",
+            "description": "Dependency condition triggers inclusion/exclusion of partition values",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageGap",
+            "target": "CoverageRequirement",
+            "description": "Identified gap triggers need for additional coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "flow",
+        "predicate": "flows-to",
+        "inversePredicate": "flows-from",
+        "category": "behavioral",
+        "description": "Sequential or data flow between behaviors",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "examples": [
+          {
+            "source": "TestCoverageTarget",
+            "target": "CoverageRequirement",
+            "description": "Target flows to requirements that specify its coverage",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCaseSketch",
+            "description": "Requirement flows to sketches that implement it",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "predicate": "serves",
+        "inversePredicate": "served-by",
+        "category": "behavioral",
+        "description": "Service available to consumer",
+        "sourceTypes": [
+          "ContextVariation",
+          "InputSpacePartition"
+        ],
+        "targetTypes": [
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "InputSpacePartition",
+            "target": "TestCoverageTarget",
+            "description": "Partition serves target by defining testable input space",
+            "layer": "12-testing"
+          },
+          {
+            "source": "ContextVariation",
+            "target": "TestCoverageTarget",
+            "description": "Context serves target by defining execution environments",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "predicate": "accesses",
+        "inversePredicate": "accessed-by",
+        "category": "behavioral",
+        "description": "Behavior accesses passive element (data/artifact)",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "InputPartitionSelection",
+          "InputSelection"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "predicate": "references",
+        "inversePredicate": "referenced-by",
+        "category": "dependency",
+        "description": "Pointer reference without functional dependency",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "InputSelection",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "PartitionValue",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          },
+          {
+            "source": "InputSelection",
+            "target": "PartitionValue",
+            "description": "Input selection references selected partition value",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "predicate": "depends-on",
+        "inversePredicate": "dependency-of",
+        "category": "dependency",
+        "description": "Element requires another to function",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "InputSpacePartition",
+          "OutcomeCategory"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputSpacePartition",
+            "description": "Requirement depends on partitions for coverage criteria",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "measures-outcome",
+        "predicate": "measures-outcome",
+        "inversePredicate": "measured-by",
+        "category": "traceability",
+        "description": "Metric validates outcome achievement",
+        "sourceTypes": [
+          "Metric"
+        ],
+        "targetTypes": [
+          "Outcome"
+        ],
+        "examples": [
+          {
+            "source": "Metric",
+            "target": "Outcome",
+            "description": "Response time metric measures performance outcome"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "validates",
+        "predicate": "validates",
+        "inversePredicate": "validated-by",
+        "category": "testing",
+        "description": "Test element validates that a requirement or target is satisfied",
+        "sourceTypes": [
+          "TargetCoverageSummary",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test sketch validates requirement is satisfied",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TargetCoverageSummary",
+            "target": "TestCoverageTarget",
+            "description": "Summary validates coverage completeness of target",
+            "layer": "12-testing"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "outgoing": {
+      "count": 3,
+      "relationships": [
+        {
+          "id": "motivation-governed-by-principles",
+          "predicate": "governed-by-principles",
+          "inversePredicate": "governs",
+          "targetLayer": "01-motivation",
+          "targetTypes": [
+            "GovernedByPrinciple"
+          ],
+          "sourceTypes": [
+            "BusinessService"
+          ],
+          "fieldPath": "motivation.governed-by-principles",
+          "cardinality": "array",
+          "format": "reference",
+          "strength": "high",
+          "required": false,
+          "description": "BusinessService governed by Principles",
+          "examples": [
+            {
+              "elementType": "BusinessService",
+              "elementId": "order-service",
+              "elementName": "Order Processing Service",
+              "fieldPath": "motivation.governed-by-principles",
+              "value": "principle-customer-first,principle-automation",
+              "layer": "02-business"
+            },
+            {
+              "elementType": "ApplicationService",
+              "elementId": "product-service",
+              "elementName": "product-service",
+              "fieldPath": "motivation.governed-by-principles",
+              "value": "principle-api-first,principle-cloud-native",
+              "layer": "04-application"
+            }
+          ]
+        },
+        {
+          "id": "motivation-supports-goals",
+          "predicate": "supports-goals",
+          "inversePredicate": "supported-by",
+          "targetLayer": "01-motivation",
+          "targetTypes": [
+            "SupportsGoal"
+          ],
+          "sourceTypes": [
+            "BusinessService"
+          ],
+          "fieldPath": "motivation.supports-goals",
+          "cardinality": "array",
+          "format": "reference",
+          "strength": "high",
+          "required": false,
+          "description": "BusinessService supports Goals",
+          "examples": [
+            {
+              "elementType": "BusinessService",
+              "elementId": "order-service",
+              "elementName": "Order Processing Service",
+              "fieldPath": "motivation.supports-goals",
+              "value": "goal-customer-satisfaction,goal-revenue-growth",
+              "layer": "02-business"
+            },
+            {
+              "elementType": "ApplicationService",
+              "elementId": "product-service",
+              "elementName": "product-service",
+              "fieldPath": "motivation.supports-goals",
+              "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+              "layer": "04-application"
+            }
+          ]
+        },
+        {
+          "id": "security-classification",
+          "predicate": "classification",
+          "inversePredicate": "referenced-by",
+          "targetLayer": "03-security",
+          "targetTypes": [
+            "Classification"
+          ],
+          "sourceTypes": [
+            "Artifact"
+          ],
+          "fieldPath": "security.classification",
+          "cardinality": "single",
+          "format": "string",
+          "strength": "low",
+          "required": false,
+          "description": "Links to Classification in target layer",
+          "examples": [
+            {
+              "elementType": "Artifact",
+              "elementId": "product-db",
+              "elementName": "product-db",
+              "fieldPath": "security.classification",
+              "value": "internal",
+              "layer": "05-technology"
+            },
+            {
+              "elementType": "Artifact",
+              "elementId": "customer-db",
+              "elementName": "customer-db",
+              "fieldPath": "security.classification",
+              "value": "restricted",
+              "layer": "05-technology"
+            }
+          ]
+        }
+      ]
+    },
+    "incoming": {
+      "count": 0,
+      "relationships": []
+    }
+  },
+  "markdownDocumentation": {
+    "intra_layer_sections": [
+      "**Purpose**: Define structural and behavioral relationships between entities within this layer, enabling comprehensive test coverage modeling with clear containment hierarchies and semantic connections between coverage targets, partitions, requirements, and test case sketches.\n",
+      "- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment\n- **Source Validation**: Must reference existing entity in this layer\n- **Target Validation**: Must reference existing entity in this layer\n- **Cardinality**: Enforced based on relationship type\n"
+    ],
+    "cross_layer_sections": [
+      "**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.\n",
+      "- **Target Existence**: Referenced entities must exist in target layer\n- **Target Type**: Must match allowed target element types\n- **Cardinality**:\n  - Array fields: Multiple references allowed\n  - Single fields: One reference only\n- **Format Validation**:\n  - UUID fields: Valid UUID v4 format\n  - ID fields: Valid identifier format\n  - Enum fields: Must match allowed values\n"
+    ],
+    "has_content": true
+  }
+}

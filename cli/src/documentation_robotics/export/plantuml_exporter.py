@@ -1,5 +1,8 @@
 """
 PlantUML diagram exporter.
+
+Exports model to PlantUML diagram specifications.
+As of v0.7.0, can use relationship catalog for relationship styling and metadata.
 """
 
 from pathlib import Path

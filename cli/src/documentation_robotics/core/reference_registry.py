@@ -1,5 +1,9 @@
 """
 Reference registry - tracks and validates cross-layer references.
+
+As of v0.7.0, cross-layer relationships are defined in layer schemas.
+This registry now supports loading from both layer schemas (preferred) and
+link-registry.json (deprecated).
 """
 
 from collections import defaultdict
@@ -68,19 +72,93 @@ class ReferenceRegistry:
 
     def load_reference_definitions(self, schema_dir: Path) -> None:
         """
-        Load reference definitions from link registry.
+        Load reference definitions from layer schemas and link registry.
+
+        Prefers layer schema crossLayerRelationships (v0.7.0+), falls back to
+        link-registry.json for backwards compatibility.
 
         Args:
             schema_dir: Directory containing layer schemas
         """
-        # Load from link-registry.json if it exists
-        link_registry_path = schema_dir / "link-registry.json"
-        if link_registry_path.exists():
-            import json
+        # Try to load from layer schemas first (v0.7.0+)
+        loaded_from_schemas = self._load_from_layer_schemas(schema_dir)
 
-            with open(link_registry_path, "r") as f:
-                registry = json.load(f)
-                self._extract_link_definitions(registry)
+        # Fall back to link-registry.json if no schemas loaded (backwards compatibility)
+        if not loaded_from_schemas:
+            link_registry_path = schema_dir / "link-registry.json"
+            if link_registry_path.exists():
+                import json
+
+                with open(link_registry_path, "r") as f:
+                    registry = json.load(f)
+
+                    # Check for deprecation notice
+                    if "deprecated" in registry:
+                        import logging
+
+                        logger = logging.getLogger(__name__)
+                        logger.warning(
+                            f"Using deprecated link-registry.json. "
+                            f"Deprecated since {registry['deprecated'].get('since')}. "
+                            f"Will be removed in {registry['deprecated'].get('removeIn')}. "
+                            f"Migration: {registry['deprecated'].get('migration')}"
+                        )
+
+                    self._extract_link_definitions(registry)
+
+    def _load_from_layer_schemas(self, schema_dir: Path) -> bool:
+        """Load cross-layer relationships from layer schemas.
+
+        Args:
+            schema_dir: Directory containing layer schemas
+
+        Returns:
+            True if any schemas were loaded, False otherwise
+        """
+        import glob
+        import json
+
+        layer_schema_files = glob.glob(str(schema_dir / "*-layer.schema.json"))
+        loaded_count = 0
+
+        for schema_file in layer_schema_files:
+            try:
+                with open(schema_file, "r") as f:
+                    schema = json.load(f)
+
+                # Extract layer ID from schema
+                layer_metadata = schema.get("layerMetadata", {})
+                layer_id = layer_metadata.get("layerId", "")
+
+                if not layer_id:
+                    continue
+
+                # Extract outgoing cross-layer relationships
+                cross_layer = schema.get("crossLayerRelationships", {})
+                outgoing = cross_layer.get("outgoing", [])
+
+                for relationship in outgoing:
+                    self.reference_definitions.append(
+                        ReferenceDefinition(
+                            layer=layer_id,
+                            element_type=None,  # Will use sourceTypes if needed
+                            property_path=relationship.get("fieldPath", ""),
+                            target_layer=relationship.get("targetLayer", ""),
+                            target_type=None,  # Will use targetTypes if needed
+                            reference_type=relationship.get("predicate", ""),
+                            required=relationship.get("required", False),
+                            cardinality=relationship.get("cardinality", "array"),
+                        )
+                    )
+                    loaded_count += 1
+
+            except Exception as e:
+                import logging
+
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Failed to load cross-layer relationships from {schema_file}: {e}")
+
+        return loaded_count > 0
 
     def _extract_link_definitions(self, registry: dict) -> None:
         """Extract reference definitions from link registry."""

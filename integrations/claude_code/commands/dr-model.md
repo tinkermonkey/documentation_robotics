@@ -189,8 +189,8 @@ You should:
      --property type=compliance \
      --property applies_to=application.service.payment-processing
 3. Update service to reference policy:
-   dr update application.service.payment-processing \
-     --property securedBy=security.policy.pci-dss-compliance
+   dr update-element application.service.payment-processing \
+     --set securedBy=security.policy.pci-dss-compliance
 4. Validate:
    dr validate --layer security
 ```
@@ -296,8 +296,8 @@ You should:
 1. Find service:
    dr search "payment" --layer business --type service
 2. Update:
-   dr update business.service.payment-processing \
-     --property criticality=critical
+   dr update-element business.service.payment-processing \
+     --set criticality=critical
 3. Check implications:
    "✓ Updated business.service.payment-processing to critical
 

@@ -1,6 +1,12 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "version": "2.0.0",
+  "deprecated": {
+    "since": "0.7.0",
+    "reason": "Cross-layer relationships are now defined in layer schemas using the crossLayerRelationships section",
+    "removeIn": "0.8.0",
+    "migration": "See layer schema crossLayerRelationships sections for outgoing and incoming relationships. Use get_relationship_catalog_path() from CLI to access the relationship catalog."
+  },
   "metadata": {
     "generatedBy": "scripts/generators/link_registry_generator.py",
     "generatedAt": "2025-12-13T18:26:46.235943Z",

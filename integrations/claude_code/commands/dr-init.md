@@ -111,7 +111,7 @@ ls -la .claude/.dr-version 2>/dev/null
 
 If not installed, ask the user:
 
-> "Would you like to install Claude Code integration files (reference sheets, slash commands, agents)?"
+> "Would you like to install Claude Code integration files (slash commands, agents, skills)?"
 
 If yes:
 
@@ -147,11 +147,10 @@ Next steps:
 4. Extract from existing code:
    /dr-ingest ./src --layers business,application,api
 
-5. View reference documentation:
-   - Quick reference: .claude/knowledge/dr-tier1-essentials.md
-   - Developer guide: .claude/knowledge/dr-tier2-developer-guide.md
-
-For more information, run: dr --help
+5. Learn more:
+   - Run: dr --help
+   - Use natural language commands with /dr-model, /dr-validate, etc.
+   - Ask the dr-advisor agent for guidance on modeling decisions
 ```
 
 ## Example Interactions

@@ -2,9 +2,11 @@
 Semantic validator - validates semantic correctness of model.
 """
 
-from typing import Any, List
+from pathlib import Path
+from typing import Any, List, Optional
 
 from .base import BaseValidator, ValidationResult
+from .relationship_validator import RelationshipValidator
 
 
 class SemanticRule:
@@ -337,14 +339,17 @@ class SemanticValidator(BaseValidator):
     Checks that relationships between layers make sense semantically.
     """
 
-    def __init__(self, model: Any):
+    def __init__(self, model: Any, schema_dir: Optional[Path] = None):
         """
         Initialize semantic validator.
 
         Args:
             model: The architecture model
+            schema_dir: Optional directory containing layer schemas
         """
         self.model = model
+        self.schema_dir = schema_dir
+        self.relationship_validator = RelationshipValidator(schema_dir) if schema_dir else None
         self.rules: List[SemanticRule] = [
             # Original 4 rules
             BusinessServiceRealizationRule(),
@@ -376,5 +381,26 @@ class SemanticValidator(BaseValidator):
                 for rule in self.rules:
                     rule_result = rule.validate(self.model, element)
                     result.merge(rule_result)
+
+        # Validate relationships if schema_dir is provided
+        if self.relationship_validator and self.schema_dir:
+            relationship_result = self._validate_relationships()
+            result.merge(relationship_result)
+
+        return result
+
+    def _validate_relationships(self) -> ValidationResult:
+        """Validate intra-layer and cross-layer relationships.
+
+        Returns:
+            ValidationResult with relationship validation errors
+        """
+        result = ValidationResult()
+
+        # This is a placeholder for now - full implementation would:
+        # 1. Iterate through all elements
+        # 2. Extract relationship properties
+        # 3. Validate against layer schema using relationship_validator
+        # 4. Add errors/warnings to result
 
         return result

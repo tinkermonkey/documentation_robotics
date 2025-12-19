@@ -1,0 +1,411 @@
+{
+  "layerMetadata": {
+    "layerId": "01-motivation",
+    "layerName": "01 Motivation",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "Goal",
+          "Requirement"
+        ],
+        "targetTypes": [
+          "Goal",
+          "Requirement"
+        ],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Goal",
+            "description": "High-level goal aggregates sub-goals"
+          },
+          {
+            "source": "Requirement",
+            "target": "Requirement",
+            "description": "High-level requirement aggregates detailed requirements"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "realization",
+        "sourceTypes": [
+          "Goal",
+          "Outcome"
+        ],
+        "targetTypes": [
+          "Goal",
+          "Value"
+        ],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Value",
+            "description": "Goal realizes value for stakeholders"
+          },
+          {
+            "source": "Outcome",
+            "target": "Goal",
+            "description": "Outcome realizes achievement of goal"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "association",
+        "sourceTypes": [
+          "Meaning",
+          "Outcome",
+          "Requirement",
+          "Stakeholder",
+          "Value"
+        ],
+        "targetTypes": [
+          "Constraint",
+          "Driver",
+          "Goal",
+          "Outcome",
+          "Stakeholder",
+          "Value"
+        ],
+        "examples": [
+          {
+            "source": "Stakeholder",
+            "target": "Driver",
+            "description": "Stakeholder has concern represented by driver"
+          },
+          {
+            "source": "Stakeholder",
+            "target": "Goal",
+            "description": "Stakeholder has interest in goal"
+          },
+          {
+            "source": "Requirement",
+            "target": "Constraint",
+            "description": "Requirement is limited by constraint"
+          },
+          {
+            "source": "Value",
+            "target": "Stakeholder",
+            "description": "Value is desired by stakeholder"
+          },
+          {
+            "source": "Outcome",
+            "target": "Value",
+            "description": "Outcome demonstrates value achievement"
+          },
+          {
+            "source": "Meaning",
+            "target": "Value",
+            "description": "Meaning interprets significance of value"
+          },
+          {
+            "source": "Meaning",
+            "target": "Outcome",
+            "description": "Meaning provides context for outcome"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "influence",
+        "sourceTypes": [
+          "Assessment",
+          "Constraint",
+          "Driver",
+          "Goal",
+          "Principle"
+        ],
+        "targetTypes": [
+          "Assessment",
+          "Goal",
+          "Principle",
+          "Requirement"
+        ],
+        "examples": [
+          {
+            "source": "Driver",
+            "target": "Assessment",
+            "description": "Driver creates need for assessment"
+          },
+          {
+            "source": "Driver",
+            "target": "Goal",
+            "description": "Driver motivates goal definition"
+          },
+          {
+            "source": "Assessment",
+            "target": "Goal",
+            "description": "Assessment informs goal setting"
+          },
+          {
+            "source": "Goal",
+            "target": "Principle",
+            "description": "Goal drives principle establishment"
+          },
+          {
+            "source": "Principle",
+            "target": "Requirement",
+            "description": "Principle guides requirement definition"
+          },
+          {
+            "source": "Constraint",
+            "target": "Requirement",
+            "description": "Constraint restricts requirement scope"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [],
+    "incoming": [
+      {
+        "id": "motivation-constrained-by",
+        "predicate": "constrained-by",
+        "inversePredicate": "constrains",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "ConstrainedBy"
+        ],
+        "sourceTypes": [
+          "Artifact",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.constrained-by",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-aws-infrastructure,constraint-budget-500k",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-no-proprietary-databases",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "SystemSoftware",
+            "elementId": "postgres",
+            "elementName": "postgres",
+            "fieldPath": "motivation.constrained-by",
+            "value": "constraint-no-proprietary-licenses",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "05-technology"
+      },
+      {
+        "id": "motivation-delivers-value",
+        "predicate": "delivers-value",
+        "inversePredicate": "delivered-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "DeliversValue"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.delivers-value",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "BusinessService delivers Value",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.delivers-value",
+            "value": "value-customer-convenience,value-operational-efficiency",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.delivers-value",
+            "value": "value-customer-convenience",
+            "layer": "04-application"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "motivation-fulfills-requirements",
+        "predicate": "fulfills-requirements",
+        "inversePredicate": "fulfilled-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "FulfillsRequirement"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "CommunicationNetwork",
+          "Node",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware"
+        ],
+        "fieldPath": "motivation.fulfills-requirements",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "comma-separated Requirement IDs this function fulfills",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-horizontal-scaling,req-99-95-availability",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-compliance,req-replication",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "SystemSoftware",
+            "elementId": "postgres",
+            "elementName": "postgres",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-transactions,req-encryption-at-rest",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "04-application"
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "ApplicationFunction",
+          "ApplicationService",
+          "BusinessService",
+          "CommunicationNetwork",
+          "Node",
+          "OpenAPIDocument",
+          "Operation",
+          "SecurityScheme",
+          "SystemSoftware",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-cloud-native,principle-auto-scaling",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "02-business"
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "ApplicationService",
+          "BusinessService",
+          "Operation",
+          "SecurityScheme",
+          "TechnologyService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-deployment-automation,goal-horizontal-scaling",
+            "layer": "05-technology"
+          }
+        ],
+        "sourceLayer": "02-business"
+      }
+    ]
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "totalLayers": 12,
+  "layers": {
+    "01": {
+      "intraLayerRelationships": 5,
+      "outgoingCrossLayerRelationships": 0,
+      "incomingCrossLayerRelationships": 29,
+      "hasMarkdownDocumentation": true
+    },
+    "02": {
+      "intraLayerRelationships": 16,
+      "outgoingCrossLayerRelationships": 12,
+      "incomingCrossLayerRelationships": 6,
+      "hasMarkdownDocumentation": true
+    },
+    "03": {
+      "intraLayerRelationships": 14,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 21,
+      "hasMarkdownDocumentation": true
+    },
+    "04": {
+      "intraLayerRelationships": 19,
+      "outgoingCrossLayerRelationships": 11,
+      "incomingCrossLayerRelationships": 6,
+      "hasMarkdownDocumentation": true
+    },
+    "05": {
+      "intraLayerRelationships": 16,
+      "outgoingCrossLayerRelationships": 12,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    },
+    "06": {
+      "intraLayerRelationships": 15,
+      "outgoingCrossLayerRelationships": 19,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    },
+    "07": {
+      "intraLayerRelationships": 10,
+      "outgoingCrossLayerRelationships": 8,
+      "incomingCrossLayerRelationships": 7,
+      "hasMarkdownDocumentation": true
+    },
+    "08": {
+      "intraLayerRelationships": 11,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    },
+    "09": {
+      "intraLayerRelationships": 8,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    },
+    "10": {
+      "intraLayerRelationships": 4,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    },
+    "11": {
+      "intraLayerRelationships": 14,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 11,
+      "hasMarkdownDocumentation": true
+    },
+    "12": {
+      "intraLayerRelationships": 11,
+      "outgoingCrossLayerRelationships": 3,
+      "incomingCrossLayerRelationships": 0,
+      "hasMarkdownDocumentation": true
+    }
+  }
+}
