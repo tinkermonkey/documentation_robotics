@@ -432,6 +432,102 @@ def stats_command():
         raise click.Abort()
 
 
+@links_group.command(name="check-staleness")
+@click.option(
+    "--threshold",
+    default="90days",
+    help="Age threshold for staleness (e.g., 90days, 6months, 1year)",
+)
+@click.option("--layer", help="Check only elements in a specific layer")
+@click.option(
+    "--format",
+    "output_format",
+    type=click.Choice(["text", "json"]),
+    default="text",
+    help="Output format",
+)
+def check_staleness_command(threshold: str, layer: Optional[str], output_format: str):
+    """Check for stale source links based on commit age.
+
+    Compares commit SHA timestamps against threshold to identify
+    source references that may need refreshing.
+
+    Examples:
+        dr links check-staleness
+        dr links check-staleness --threshold 6months
+        dr links check-staleness --layer application --threshold 1year
+    """
+    from ..core.model import Model
+    from ..utils.staleness_checker import check_staleness, format_stale_report
+
+    try:
+        # Load the model
+        model = Model(Path.cwd())
+
+        # Collect all elements with source references
+        from ..utils.source_ref_utils import has_source_reference
+
+        all_elements_with_sources = []
+        for layer_name, layer_obj in model.layers.items():
+            # Apply layer filter if specified
+            if layer and layer_name != layer:
+                continue
+
+            for element in layer_obj.elements.values():
+                element_data = element.data if hasattr(element, "data") else element
+                if has_source_reference(element_data):
+                    all_elements_with_sources.append(element)
+
+        if not all_elements_with_sources:
+            click.echo("No elements with source references found.")
+            if layer:
+                click.echo(f"(searched in layer '{layer}')")
+            return
+
+        # Check for staleness
+        stale_refs = check_staleness(all_elements_with_sources, threshold=threshold)
+
+        # Output based on format
+        if output_format == "json":
+            import json
+
+            output = {
+                "threshold": threshold,
+                "total_with_sources": len(all_elements_with_sources),
+                "stale_count": len(stale_refs),
+                "stale_refs": [
+                    {
+                        "element_id": ref.element_id,
+                        "element_name": ref.element_name,
+                        "source_file": ref.source_file,
+                        "source_symbol": ref.source_symbol,
+                        "commit_sha": ref.commit_sha,
+                        "commit_date": ref.commit_date.isoformat() if ref.commit_date else None,
+                        "days_old": ref.days_old,
+                        "repository_url": ref.repository_url,
+                    }
+                    for ref in stale_refs
+                ],
+            }
+            click.echo(json.dumps(output, indent=2))
+        else:  # text
+            report = format_stale_report(stale_refs, len(all_elements_with_sources))
+            click.echo(report)
+
+    except FileNotFoundError:
+        click.echo(
+            "Error: No model found in current directory. Initialize with 'dr init' first.",
+            err=True,
+        )
+        raise click.Abort()
+    except ValueError as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
+    except Exception as e:
+        click.echo(f"Error: {e}", err=True)
+        raise click.Abort()
+
+
 @links_group.command(name="docs")
 @click.option(
     "--output-dir",
