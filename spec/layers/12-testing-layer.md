@@ -74,6 +74,17 @@ TestCoverageTarget:
     targetType: TargetType [enum]
     priority: Priority [enum] (optional)
 
+  # Source code integration
+  source:
+    reference: SourceReference (optional) # Links target to source code artifact
+      provenance: "extracted" | "manual" | "inferred" | "generated"
+      locations:
+        - file: string (relative path to source file)
+          symbol: string (function/class/method name being tested, optional)
+      repository:
+        url: string (Git remote URL, optional)
+        commit: string (Git commit SHA, optional)
+
   references:
     - targetRef: string (URI to the target artifact)
     - businessProcessRef: string (optional, Business Layer process ID)
@@ -112,6 +123,14 @@ TestCoverageTarget:
       description: "End-to-end order creation process"
       targetType: workflow
       priority: critical
+      source:
+        reference:
+          provenance: "extracted"
+          locations:
+            - file: "src/services/order.ts"
+              symbol: "createOrder"
+          repository:
+            commit: "abc123def456"
       businessProcessRef: "business-process-create-order"
       applicableContexts:
         - "customer-ui-context"
@@ -540,6 +559,17 @@ TestCaseSketch:
     description: string (optional)
     status: SketchStatus [enum]
 
+  # Source code integration
+  source:
+    reference: SourceReference (optional) # Links test case to implementation
+      provenance: "extracted" | "manual" | "inferred" | "generated"
+      locations:
+        - file: string (relative path to test file, e.g., "tests/test_orders.py")
+          symbol: string (test function/method name, e.g., "TestOrderService.test_create_order_happy_path")
+      repository:
+        url: string (Git remote URL, optional)
+        commit: string (Git commit SHA, optional)
+
   references:
     - coverageReqRef: string (CoverageRequirement ID)
     - implementationRef: string (optional, URI to concrete test)
@@ -572,6 +602,14 @@ TestCaseSketch:
     - id: "tcs-order-single-item-customer"
       name: "Customer creates single-item order"
       status: automated
+      source:
+        reference:
+          provenance: "extracted"
+          locations:
+            - file: "tests/test_orders.py"
+              symbol: "TestOrderService.test_create_order_happy_path"
+          repository:
+            commit: "abc123def456"
       coverageReqRef: "cr-order-creation-full"
       inputSelections:
         - partitionRef: "line-items-count"

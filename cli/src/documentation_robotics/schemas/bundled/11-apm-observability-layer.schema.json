@@ -1468,6 +1468,15 @@
         },
         "enabled": {
           "type": "boolean"
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference for code-defined metrics",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1558,6 +1567,15 @@
         "deploymentEnvironment": {
           "type": "string",
           "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference for trace configuration",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
