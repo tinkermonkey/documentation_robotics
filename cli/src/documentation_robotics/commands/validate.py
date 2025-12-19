@@ -146,7 +146,7 @@ def validate(
                 console.print("[bold]Validating source code references...[/bold]\n")
 
                 # Create validator with source link validation enabled
-                if not validate_links:
+                if not validate_links and not validate_relationships:
                     analyzer = LinkAnalyzer(registry)
                     validator = LinkValidator(
                         registry,

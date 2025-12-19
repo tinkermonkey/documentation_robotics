@@ -7,13 +7,14 @@ Tests cover:
 - Support for different field path structures
 """
 
+import os
 import tempfile
 from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
 
-from documentation_robotics.core.link_analyzer import LinkAnalyzer, LinkInstance, LinkType
+from documentation_robotics.core.link_analyzer import LinkAnalyzer, LinkInstance
 from documentation_robotics.core.link_registry import LinkRegistry
 from documentation_robotics.validators.link_validator import LinkValidator, ValidationIssue, ValidationSeverity
 
@@ -156,8 +157,6 @@ class TestFileExistenceValidation:
             test_file.write_text("# test file")
 
             # Change to temp directory for validation
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -182,8 +181,6 @@ class TestFileExistenceValidation:
     def test_missing_file_error(self):
         """Test validation fails when file doesn't exist."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -214,8 +211,6 @@ class TestFileExistenceValidation:
             # Create one file
             test_file = Path(tmpdir) / "existing.py"
             test_file.write_text("# exists")
-
-            import os
 
             old_cwd = os.getcwd()
             try:
@@ -252,8 +247,6 @@ class TestFileExistenceValidation:
             test_file = nested_dir / "payment.py"
             test_file.write_text("# payment service")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -285,8 +278,6 @@ class TestSymbolValidation:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("def my_function():\n    pass")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -313,8 +304,6 @@ class TestSymbolValidation:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("class MyClass:\n    def method(self):\n        pass")
-
-            import os
 
             old_cwd = os.getcwd()
             try:
@@ -343,8 +332,6 @@ class TestSymbolValidation:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("class MyClass:\n    def my_method(self):\n        pass")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -371,8 +358,6 @@ class TestSymbolValidation:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("def existing_function():\n    pass")
-
-            import os
 
             old_cwd = os.getcwd()
             try:
@@ -403,8 +388,6 @@ class TestSymbolValidation:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("class MyClass:\n    def existing_method(self):\n        pass")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -434,8 +417,6 @@ class TestSymbolValidation:
             test_file = Path(tmpdir) / "test.ts"
             test_file.write_text("export class MyClass {}")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -463,8 +444,6 @@ class TestSymbolValidation:
         with tempfile.TemporaryDirectory() as tmpdir:
             test_file = Path(tmpdir) / "test.py"
             test_file.write_text("def existing_function():\n    pass")
-
-            import os
 
             old_cwd = os.getcwd()
             try:
@@ -564,8 +543,6 @@ class TestFullModelValidation:
             (Path(tmpdir) / "src" / "api.py").write_text("def create():\n    pass")
             (Path(tmpdir) / "src" / "ux.tsx").write_text("export class Form {}")
 
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -610,8 +587,6 @@ class TestFullModelValidation:
     def test_validate_source_references_with_errors(self):
         """Test source reference validation returns errors for missing files."""
         with tempfile.TemporaryDirectory() as tmpdir:
-            import os
-
             old_cwd = os.getcwd()
             try:
                 os.chdir(tmpdir)
@@ -640,3 +615,57 @@ class TestFullModelValidation:
                 assert issues[0].issue_type == "source-file-not-found"
             finally:
                 os.chdir(old_cwd)
+
+    def test_validate_relationships_and_source_links_together(self):
+        """Test that source link validation works alongside relationship validation.
+
+        This tests the edge case where both --validate-relationships and
+        --validate-source-links are used without --validate-links.
+        The validator should be created once and reused.
+        """
+        old_cwd = os.getcwd()
+        try:
+            with tempfile.TemporaryDirectory() as tmpdir:
+                os.chdir(tmpdir)
+
+                # Create test file
+                test_file = Path(tmpdir) / "service.py"
+                test_file.write_text("class MyService:\n    pass")
+
+                # Create mock elements with both relationships and source references
+                element_data = {
+                    "x-relationships": [
+                        {
+                            "target": "api-endpoint-get-user",
+                            "predicate": "api:calls",
+                        }
+                    ],
+                    "x-source-reference": {
+                        "provenance": "extracted",
+                        "locations": [{"file": "service.py", "symbol": "MyService"}],
+                    },
+                }
+                api_element = MockElement("application-service-my-service", element_data)
+                app_layer = MockLayer("application", {"application-service-my-service": api_element})
+
+                model = MockModel({"application": app_layer})
+
+                registry = LinkRegistry()
+                analyzer = LinkAnalyzer(registry)
+                validator = LinkValidator(registry, analyzer)
+
+                # Validate both intra-layer relationships and source references
+                relationship_issues = validator.validate_intra_layer_relationships(model)
+                source_issues = validator.validate_source_references(model, deep_validation=True)
+
+                # Should not have errors for valid references and existing symbols
+                source_errors = [issue for issue in source_issues if issue.severity == ValidationSeverity.ERROR]
+                assert len(source_errors) == 0
+
+                # Symbol should be found (not a warning)
+                source_warnings = [issue for issue in source_issues if issue.severity == ValidationSeverity.WARNING]
+                symbol_warnings = [w for w in source_warnings if w.issue_type == "source-symbol-not-found"]
+                assert len(symbol_warnings) == 0
+
+        finally:
+            os.chdir(old_cwd)
