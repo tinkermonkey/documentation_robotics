@@ -5,9 +5,11 @@ for existence, type compatibility, cardinality, format, and other rules.
 Also validates intra-layer relationships using predicate validation.
 """
 
+import ast
 import re
 from dataclasses import dataclass
 from enum import Enum
+from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from ..core.link_analyzer import LinkAnalyzer, LinkInstance
@@ -36,6 +38,7 @@ class ValidationIssue:
     issue_type: str
     message: str
     suggestion: Optional[str] = None
+    element_id: Optional[str] = None  # For source link validation errors
 
     def __str__(self) -> str:
         """String representation of the issue."""
@@ -524,3 +527,330 @@ class LinkValidator:
     def __repr__(self) -> str:
         """String representation of the validator."""
         return f"LinkValidator(issues={len(self.issues)}, " f"strict_mode={self.strict_mode})"
+
+    def validate_source_references(
+        self, model: Any, deep_validation: bool = False
+    ) -> List[ValidationIssue]:
+        """Validate source code references in all model elements.
+
+        This method checks:
+        - File existence relative to repository root
+        - Symbol existence (with deep_validation flag)
+
+        Args:
+            model: Model instance with layers and elements
+            deep_validation: If True, check symbol existence in files
+
+        Returns:
+            List of ValidationIssue objects
+        """
+        issues = []
+
+        # Iterate through all layers and elements
+        for layer_name, layer in model.layers.items():
+            for element in layer.elements.values():
+                # Check if element has source references
+                if not hasattr(element, "data") or not isinstance(element.data, dict):
+                    continue
+
+                # Source references can be at different field paths depending on layer
+                source_refs = self._extract_source_references(element.data)
+
+                for field_path, source_ref in source_refs:
+                    issues.extend(
+                        self._validate_source_reference(
+                            element.id, source_ref, field_path, deep_validation
+                        )
+                    )
+
+        return issues
+
+    def _extract_source_references(self, data: Dict[str, Any]) -> List[tuple]:
+        """Extract all source references from element data.
+
+        Returns list of (field_path, source_ref) tuples.
+
+        Args:
+            data: Element data dictionary
+
+        Returns:
+            List of (field_path, source_ref) tuples
+        """
+        refs = []
+
+        # Check for OpenAPI extension x-source-reference (used in API, APM, Data Model, Datastore, Testing)
+        if "x-source-reference" in data and isinstance(data["x-source-reference"], dict):
+            refs.append(("x-source-reference", data["x-source-reference"]))
+
+        # Check for nested source.reference (used in Application, UX, Navigation)
+        if isinstance(data.get("source"), dict) and isinstance(
+            data["source"].get("reference"), dict
+        ):
+            refs.append(("source.reference", data["source"]["reference"]))
+
+        # Check for properties.source.reference (used in Application)
+        if isinstance(data.get("properties"), dict) and isinstance(
+            data["properties"].get("source"), dict
+        ):
+            if isinstance(data["properties"]["source"].get("reference"), dict):
+                refs.append(("properties.source.reference", data["properties"]["source"]["reference"]))
+
+        return refs
+
+    def _validate_source_reference(
+        self, element_id: str, source_ref: Dict[str, Any], field_path: str, deep_validation: bool
+    ) -> List[ValidationIssue]:
+        """Validate a single source reference.
+
+        Args:
+            element_id: ID of the element containing the reference
+            source_ref: Source reference object
+            field_path: Field path for error reporting
+            deep_validation: If True, validate symbol existence
+
+        Returns:
+            List of ValidationIssue objects
+        """
+        issues = []
+
+        # Create a pseudo LinkInstance for error reporting
+        pseudo_link = self._create_pseudo_link_for_source_ref(element_id, field_path)
+
+        # Validate required fields
+        if "locations" not in source_ref:
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.ERROR,
+                    link_instance=pseudo_link,
+                    issue_type="missing-locations",
+                    message="Source reference missing required 'locations' field",
+                    suggestion="Add at least one location with file path",
+                )
+            )
+            return issues
+
+        locations = source_ref.get("locations", [])
+        if not isinstance(locations, list) or len(locations) == 0:
+            issues.append(
+                ValidationIssue(
+                    severity=ValidationSeverity.ERROR,
+                    link_instance=pseudo_link,
+                    issue_type="empty-locations",
+                    message="Source reference locations array is empty",
+                    suggestion="Add at least one location with file path",
+                )
+            )
+            return issues
+
+        # Get repository context
+        repo = source_ref.get("repository", {})
+        repo_url = repo.get("url")
+
+        # Determine repository root
+        repo_root = self._get_repo_root(repo_url)
+
+        # Validate each location
+        for i, location in enumerate(locations):
+            if not isinstance(location, dict):
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        link_instance=pseudo_link,
+                        issue_type="invalid-location-format",
+                        message=f"Location at index {i} is not an object",
+                        suggestion="Each location must be an object with 'file' property",
+                    )
+                )
+                continue
+
+            file_path = location.get("file")
+            if not file_path:
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        link_instance=pseudo_link,
+                        issue_type="missing-file",
+                        message=f"Location at index {i} missing required 'file' property",
+                        suggestion="Specify file path relative to repository root",
+                    )
+                )
+                continue
+
+            # Check file exists
+            full_path = repo_root / file_path
+            if not full_path.exists():
+                issues.append(
+                    ValidationIssue(
+                        severity=ValidationSeverity.ERROR,
+                        link_instance=pseudo_link,
+                        issue_type="source-file-not-found",
+                        message=f"Source file not found: {file_path}",
+                        suggestion="Verify file path is correct relative to repository root, or update source reference",
+                    )
+                )
+                continue
+
+            # Validate symbol if deep validation enabled
+            if deep_validation and location.get("symbol"):
+                symbol = location["symbol"]
+                if not self._symbol_exists_in_file(full_path, symbol):
+                    issues.append(
+                        ValidationIssue(
+                            severity=ValidationSeverity.WARNING,
+                            link_instance=pseudo_link,
+                            issue_type="source-symbol-not-found",
+                            message=f"Symbol '{symbol}' not found in {file_path}",
+                            suggestion="Verify symbol name and location match the source code",
+                        )
+                    )
+
+        return issues
+
+    def _get_repo_root(self, repo_url: Optional[str]) -> Path:
+        """Get the repository root path.
+
+        For now, always returns current working directory.
+        In the future, could support cloning remote repositories.
+
+        Args:
+            repo_url: Optional repository URL (not used in current implementation)
+
+        Returns:
+            Path to repository root
+        """
+        # For local validation, use current working directory
+        return Path.cwd()
+
+    def _symbol_exists_in_file(self, file_path: Path, symbol: str) -> bool:
+        """Check if a symbol exists in a source file.
+
+        Currently supports Python files. Other languages return True
+        (permissive approach to avoid false negatives).
+
+        Args:
+            file_path: Path to source file
+            symbol: Symbol name (e.g., "ClassName.method_name")
+
+        Returns:
+            True if symbol found or language not supported, False if not found
+        """
+        try:
+            # Only deep validate Python files for now
+            if file_path.suffix != ".py":
+                return True
+
+            # Read file content
+            with open(file_path, "r", encoding="utf-8") as f:
+                content = f.read()
+
+            # Parse Python file
+            try:
+                tree = ast.parse(content)
+            except SyntaxError:
+                # If file doesn't parse, assume symbol exists (permissive)
+                return True
+
+            # Extract symbol parts (e.g., "ClassName.method_name" -> ["ClassName", "method_name"])
+            symbol_parts = symbol.split(".")
+
+            # Find the symbol in the AST
+            return self._find_symbol_in_ast(tree, symbol_parts)
+
+        except Exception:
+            # If any error occurs, assume symbol exists (permissive approach)
+            return True
+
+    def _find_symbol_in_ast(self, tree: ast.AST, symbol_parts: List[str]) -> bool:
+        """Find a symbol in a Python AST.
+
+        Args:
+            tree: AST tree to search
+            symbol_parts: Symbol parts to find (e.g., ["ClassName", "method_name"])
+
+        Returns:
+            True if symbol found, False otherwise
+        """
+        if not symbol_parts:
+            return False
+
+        first_part = symbol_parts[0]
+
+        # Find top-level class or function with first part of symbol
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef)):
+                if node.name == first_part:
+                    # If only one part, we found it
+                    if len(symbol_parts) == 1:
+                        return True
+
+                    # If more parts, look for method/attribute in class
+                    if isinstance(node, ast.ClassDef) and len(symbol_parts) > 1:
+                        if self._find_method_in_class(node, symbol_parts[1:]):
+                            return True
+
+        return False
+
+    def _find_method_in_class(self, class_node: ast.ClassDef, symbol_parts: List[str]) -> bool:
+        """Find a method in a class node.
+
+        Args:
+            class_node: AST ClassDef node
+            symbol_parts: Remaining symbol parts to find
+
+        Returns:
+            True if method found, False otherwise
+        """
+        if not symbol_parts:
+            return False
+
+        first_part = symbol_parts[0]
+
+        # Look for method in class
+        for item in class_node.body:
+            if isinstance(item, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                if item.name == first_part:
+                    # If only one part, we found it
+                    if len(symbol_parts) == 1:
+                        return True
+
+                    # If more parts, this is a nested method (not supported)
+                    return False
+
+        return False
+
+    def _create_pseudo_link_for_source_ref(self, source_id: str, field_path: str) -> LinkInstance:
+        """Create a pseudo LinkInstance for source reference validation errors.
+
+        Args:
+            source_id: Source element ID
+            field_path: Field path for error reporting
+
+        Returns:
+            LinkInstance object
+        """
+        from ..core.link_registry import LinkType
+
+        # Create a minimal LinkType for error reporting
+        pseudo_link_type = LinkType(
+            id="source-reference-validation",
+            name="Source Reference",
+            category="source",
+            source_layers=[],
+            target_layer="",
+            target_element_types=[],
+            field_paths=[field_path],
+            cardinality="single",
+            format="object",
+            description="Source code reference validation",
+            examples=[],
+            validation_rules={},
+        )
+
+        return LinkInstance(
+            link_type=pseudo_link_type,
+            source_id=source_id,
+            source_layer="",
+            source_element_type="",
+            target_ids=[],
+            field_path=field_path,
+        )

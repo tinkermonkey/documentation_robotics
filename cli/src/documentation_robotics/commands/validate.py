@@ -30,6 +30,16 @@ console = Console()
     help="Validate intra-layer relationships and predicates",
 )
 @click.option(
+    "--validate-source-links",
+    is_flag=True,
+    help="Validate source reference file existence",
+)
+@click.option(
+    "--source-links-deep",
+    is_flag=True,
+    help="Deep validation: check symbol existence (requires language parsing)",
+)
+@click.option(
     "--verbose", is_flag=True, help="Show detailed error information including stack traces"
 )
 @click.option("--output", type=click.Choice(["text", "json"]), default="text")
@@ -40,13 +50,15 @@ def validate(
     validate_links: bool,
     strict_links: bool,
     validate_relationships: bool,
+    validate_source_links: bool,
+    source_links_deep: bool,
     verbose: bool,
     output: str,
 ):
     """Validate the model.
 
-    This command validates the model structure, schemas, and optionally cross-layer links
-    and intra-layer relationships.
+    This command validates the model structure, schemas, and optionally cross-layer links,
+    intra-layer relationships, and source code references.
 
     Link validation is opt-in via --validate-links. By default, link issues are warnings.
     Use --strict-links to treat link warnings as errors.
@@ -56,6 +68,10 @@ def validate(
     - Layer-specific predicate constraints
     - Inverse consistency for bidirectional relationships
     - Cardinality constraints
+
+    Source link validation is opt-in via --validate-source-links. This checks:
+    - File existence relative to repository root
+    - Symbol existence (with --source-links-deep flag)
     """
 
     # Load model
@@ -73,8 +89,9 @@ def validate(
     # Perform link validation if requested
     link_issues = []
     relationship_issues = []
+    source_link_issues = []
 
-    if validate_links or validate_relationships:
+    if validate_links or validate_relationships or validate_source_links:
         try:
             registry = LinkRegistry()
             relationship_registry = RelationshipRegistry() if validate_relationships else None
@@ -125,6 +142,29 @@ def validate(
                 else:
                     console.print("[green]✓ All relationships are valid[/green]\n")
 
+            if validate_source_links:
+                console.print("[bold]Validating source code references...[/bold]\n")
+
+                # Create validator with source link validation enabled
+                if not validate_links:
+                    analyzer = LinkAnalyzer(registry)
+                    validator = LinkValidator(
+                        registry,
+                        analyzer,
+                        strict_mode=strict_links,
+                        relationship_registry=relationship_registry,
+                    )
+
+                # Validate source references
+                source_link_issues = validator.validate_source_references(
+                    model, deep_validation=source_links_deep
+                )
+
+                if source_link_issues:
+                    console.print(f"Found {len(source_link_issues)} source link validation issue(s)\n")
+                else:
+                    console.print("[green]✓ All source references are valid[/green]\n")
+
         except FileNotFoundError as e:
             console.print(f"[yellow]⚠ Validation skipped: {e}[/yellow]\n")
         except Exception as e:
@@ -135,9 +175,14 @@ def validate(
                 console.print(f"[red]{traceback.format_exc()}[/red]\n")
 
     # Display results
-    all_link_issues = link_issues + relationship_issues
+    all_link_issues = link_issues + relationship_issues + source_link_issues
     if output == "text":
-        _display_text_results(result, model, all_link_issues if all_link_issues else None)
+        _display_text_results(
+            result,
+            model,
+            all_link_issues if all_link_issues else None,
+            source_link_issues=source_link_issues if source_link_issues else None,
+        )
     elif output == "json":
         result_dict = result.to_dict()
         if all_link_issues:
@@ -172,13 +217,14 @@ def validate(
         raise click.exceptions.Exit(1)
 
 
-def _display_text_results(result, model, link_issues=None):
+def _display_text_results(result, model, link_issues=None, source_link_issues=None):
     """Display validation results in text format.
 
     Args:
         result: ValidationResult from model.validate()
         model: Model object
         link_issues: Optional list of ValidationIssue from LinkValidator
+        source_link_issues: Optional list of source link ValidationIssue objects
     """
 
     # Summary table
@@ -243,6 +289,31 @@ def _display_text_results(result, model, link_issues=None):
                 console.print(
                     f"  ⚠  {issue.link_instance.source_id} -> {issue.link_instance.field_path}"
                 )
+                console.print(f"     {issue.message}")
+                if issue.suggestion:
+                    console.print(f"     Suggestion: {issue.suggestion}")
+
+    # Show source link validation issues
+    if source_link_issues:
+        source_errors = [
+            issue for issue in source_link_issues if issue.severity == ValidationSeverity.ERROR
+        ]
+        source_warnings = [
+            issue for issue in source_link_issues if issue.severity == ValidationSeverity.WARNING
+        ]
+
+        if source_errors:
+            console.print("\n[bold red]Source Link Errors:[/bold red]")
+            for issue in source_errors:
+                console.print(f"  ✗ {issue.link_instance.source_id}")
+                console.print(f"     {issue.message}")
+                if issue.suggestion:
+                    console.print(f"     Suggestion: {issue.suggestion}")
+
+        if source_warnings:
+            console.print("\n[bold yellow]Source Link Warnings:[/bold yellow]")
+            for issue in source_warnings:
+                console.print(f"  ⚠  {issue.link_instance.source_id}")
                 console.print(f"     {issue.message}")
                 if issue.suggestion:
                     console.print(f"     Suggestion: {issue.suggestion}")
