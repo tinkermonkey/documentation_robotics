@@ -5,10 +5,7 @@ Tests AnnotationSerializer class for converting annotation objects
 to JSON-serializable dictionaries for WebSocket transmission.
 """
 
-from pathlib import Path
-from unittest.mock import Mock, patch
-
-from documentation_robotics.core.annotations import Annotation, AnnotationRegistry
+from documentation_robotics.core.annotations import AnnotationRegistry
 from documentation_robotics.server.annotation_serializer import AnnotationSerializer
 
 

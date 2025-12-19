@@ -505,6 +505,7 @@ class TestAnnotationWebSocketFlow:
         assert annotations_file.exists()
 
         import json
+
         data = json.loads(annotations_file.read_text())
         assert len(data["annotations"]) == 1
         assert data["annotations"][0]["entity_uri"] == "motivation.goal.test"
@@ -563,6 +564,7 @@ class TestAnnotationWebSocketFlow:
         annotations_dir.mkdir(parents=True)
 
         import json
+
         parent_data = {
             "annotations": [
                 {
@@ -666,6 +668,7 @@ class TestAnnotationWebSocketFlow:
 
         # Create test annotations
         import json
+
         annotations_dir = model_path / "annotations" / "testuser"
         annotations_dir.mkdir(parents=True)
         annotations_data = {
@@ -764,3 +767,146 @@ class TestAnnotationWebSocketFlow:
             broadcast_msg = ws.send_json.call_args[0][0]
             assert broadcast_msg["type"] == "annotation_added"
             assert broadcast_msg["data"]["message"] == "Broadcast test"
+
+
+class TestCORSHeaders:
+    """Test CORS header functionality."""
+
+    @pytest.mark.asyncio
+    async def test_cors_headers_on_health_endpoint(self, tmp_path):
+        """Test CORS headers are added to health endpoint response."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+        server.specification = {"version": "0.5.0"}
+        server.file_monitor = Mock()
+        server.file_monitor.is_running.return_value = True
+
+        # Create mock request to health endpoint
+        request = Mock(spec=web.Request)
+        request.path = "/health"
+
+        # Simulate auth middleware calling health handler
+        async def mock_handler(req):
+            return await server._handle_health(req)
+
+        response = await server.auth_middleware(request, mock_handler)
+
+        # Verify CORS headers are present
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
+        assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
+        assert response.headers["Access-Control-Max-Age"] == "3600"
+
+    @pytest.mark.asyncio
+    async def test_cors_headers_on_authenticated_endpoint(self, tmp_path):
+        """Test CORS headers are added to authenticated endpoints."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create mock request with valid token
+        request = Mock(spec=web.Request)
+        request.path = "/api/test"
+        request.query = {"token": server.token}
+        request.headers = {}
+
+        # Create mock handler that returns a response
+        async def mock_handler(req):
+            return web.Response(text="OK")
+
+        response = await server.auth_middleware(request, mock_handler)
+
+        # Verify CORS headers are present
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
+        assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
+        assert response.headers["Access-Control-Max-Age"] == "3600"
+
+    @pytest.mark.asyncio
+    async def test_cors_headers_on_unauthorized_response(self, tmp_path):
+        """Test CORS headers are added even to 401 responses."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create mock request without token
+        request = Mock(spec=web.Request)
+        request.path = "/api/test"
+        request.query = {}
+        request.headers = {}
+
+        async def mock_handler(req):
+            return web.Response(text="OK")
+
+        response = await server.auth_middleware(request, mock_handler)
+
+        # Verify CORS headers are present even on 401
+        assert response.status == 401
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
+
+    @pytest.mark.asyncio
+    async def test_options_preflight_request(self, tmp_path):
+        """Test OPTIONS preflight requests are handled without authentication."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create OPTIONS request without token
+        request = Mock(spec=web.Request)
+        request.method = "OPTIONS"
+        request.path = "/api/test"
+        request.query = {}
+        request.headers = {}
+
+        async def mock_handler(req):
+            # This should not be called for OPTIONS requests
+            raise AssertionError("Handler should not be called for OPTIONS")
+
+        response = await server.auth_middleware(request, mock_handler)
+
+        # Verify OPTIONS returns 200 without calling handler
+        assert response.status == 200
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
+        assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
+
+    def test_add_cors_headers_method(self, tmp_path):
+        """Test _add_cors_headers method adds all required headers."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create a response
+        response = web.Response(text="test")
+
+        # Add CORS headers
+        server._add_cors_headers(response)
+
+        # Verify all headers are present
+        assert "Access-Control-Allow-Origin" in response.headers
+        assert "Access-Control-Allow-Methods" in response.headers
+        assert "Access-Control-Allow-Headers" in response.headers
+        assert "Access-Control-Max-Age" in response.headers
+
+        # Verify values
+        assert response.headers["Access-Control-Allow-Origin"] == "*"
+        assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
+        assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
+        assert response.headers["Access-Control-Max-Age"] == "3600"

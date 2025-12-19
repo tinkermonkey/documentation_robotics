@@ -85,7 +85,8 @@
       "Bash(gh api repos/tinkermonkey/documentation_robotics/pulls/58/files --jq '.[] | select(.filename == \"\"\"\"IMPLEMENTATION_SUMMARY.md\"\"\"\") | .patch')",
       "Bash(gh pr checks:*)",
       "Bash(md5sum:*)",
-      "Bash(git -C /home/austinsand/workspace/orchestrator/documentation_robotics log --oneline --all -- integrations/claude_code cli/src/documentation_robotics/claude_integration)"
+      "Bash(git -C /home/austinsand/workspace/orchestrator/documentation_robotics log --oneline --all -- integrations/claude_code cli/src/documentation_robotics/claude_integration)",
+      "Bash(gh api:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

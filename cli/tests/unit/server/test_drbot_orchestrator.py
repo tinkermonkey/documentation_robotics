@@ -182,8 +182,11 @@ class TestDrBotOrchestrator:
         # Mock subprocess that hangs
         mock_proc = AsyncMock()
         mock_proc.returncode = None  # Process still running
-        # Mock pipe attributes for cleanup
-        mock_proc.stdin = MagicMock()
+        # Mock stdin (StreamWriter with close())
+        mock_stdin = MagicMock()
+        mock_stdin.is_closing.return_value = False
+        mock_proc.stdin = mock_stdin
+        # stdout/stderr are StreamReaders (no close() method)
         mock_proc.stdout = MagicMock()
         mock_proc.stderr = MagicMock()
 
@@ -213,10 +216,8 @@ class TestDrBotOrchestrator:
             assert "error" in result_data
             assert "timed out" in result_data["error"].lower()
             mock_proc.kill.assert_called()
-            # Verify pipes were closed before killing
-            mock_proc.stdin.close.assert_called()
-            mock_proc.stdout.close.assert_called()
-            mock_proc.stderr.close.assert_called()
+            # Verify stdin was closed before killing
+            mock_stdin.close.assert_called()
 
     @pytest.mark.asyncio
     async def test_execute_cli_not_found(self, mock_model_path):
@@ -364,10 +365,10 @@ class TestDrBotOrchestrator:
 
         # Call the real SDK code path
         messages = []
+        generator = None
         try:
-            async for message in orchestrator.handle_message(
-                "How many layers are in this model?", context
-            ):
+            generator = orchestrator.handle_message("How many layers are in this model?", context)
+            async for message in generator:
                 messages.append(message)
                 if len(messages) >= 1:
                     break
@@ -389,6 +390,10 @@ class TestDrBotOrchestrator:
 
             # Unknown error - let it fail
             raise
+        finally:
+            # Properly close the async generator to prevent ResourceWarning
+            if generator is not None:
+                await generator.aclose()
 
 
 class TestDrBotSystemPrompt:

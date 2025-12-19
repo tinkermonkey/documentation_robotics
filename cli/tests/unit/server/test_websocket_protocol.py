@@ -482,12 +482,8 @@ class TestCreateAnnotationMessages:
 
     def test_annotation_messages_have_consistent_structure(self):
         """Test both annotation message types have consistent structure."""
-        annotation = MockAnnotation(
-            "ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None
-        )
-        reply = MockAnnotation(
-            "ann-2", "uri-1", "2024-01-15T11:00:00Z", "user2", "msg2", "ann-1"
-        )
+        annotation = MockAnnotation("ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None)
+        reply = MockAnnotation("ann-2", "uri-1", "2024-01-15T11:00:00Z", "user2", "msg2", "ann-1")
 
         msg1 = create_annotation_added_message(annotation)
         msg2 = create_annotation_reply_added_message(reply)
@@ -498,9 +494,7 @@ class TestCreateAnnotationMessages:
 
     def test_annotation_messages_included_in_consistency_check(self):
         """Test annotation messages follow same patterns as other messages."""
-        annotation = MockAnnotation(
-            "ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None
-        )
+        annotation = MockAnnotation("ann-1", "uri-1", "2024-01-15T10:00:00Z", "user1", "msg1", None)
 
         messages = [
             create_annotation_added_message(annotation),
