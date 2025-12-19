@@ -116,7 +116,7 @@ def initialized_model(temp_dir):
 
 
 @pytest.fixture(autouse=True, scope="function")
-def cleanup_threads_and_processes():
+async def cleanup_threads_and_processes():
     """
     Cleanup threads and processes after each test to prevent resource warnings.
 
@@ -124,9 +124,11 @@ def cleanup_threads_and_processes():
     - Thread timers (from debouncing)
     - File observers (from watchdog)
     - Any other background threads/processes
+    - Async generators that may have spawned subprocesses
     """
     import gc
     import threading
+    import asyncio
 
     yield
 
@@ -137,4 +139,11 @@ def cleanup_threads_and_processes():
                 thread.cancel()
 
     # Force garbage collection to clean up any remaining resources
+    # This includes async generators that might be holding subprocess references
     gc.collect()
+
+    # CRITICAL: Give event loop time to process pending transport cleanup callbacks
+    # After async tests close generators/subprocesses, asyncio schedules callbacks
+    # to close transports. Without this sleep, pytest may close the event loop before
+    # these callbacks run, causing ResourceWarning about unclosed transports.
+    await asyncio.sleep(0.2)
