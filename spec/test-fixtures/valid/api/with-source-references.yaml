@@ -18,7 +18,7 @@ operations:
           symbol: "OrderHandler.create"
       repository:
         url: "https://github.com/example/ecommerce-api.git"
-        commit: "abc123def4567890abcdef1234567890abcdef12"
+        commit: "abcdef1234567890abcdef1234567890abcdef12"
 
   - id: "api-op-002"
     name: "Update Customer Operation"
@@ -65,3 +65,4 @@ path-items:
       provenance: "inferred"
       locations:
         - file: "src/routes/customers.py"
+          symbol: "customers_blueprint"

@@ -13,7 +13,7 @@ tables:
         - file: "migrations/015_add_order_indexes.sql"
       repository:
         url: "https://github.com/example/database-migrations.git"
-        commit: "abc123def4567890abcdef1234567890abcdef12"
+        commit: "abcdef1234567890abcdef1234567890abcdef12"
 
   - id: "ds-table-002"
     name: "customers"
@@ -54,7 +54,7 @@ columns:
         - file: "migrations/008_add_customer_email_validation.sql"
       repository:
         url: "https://github.com/example/database-migrations.git"
-        commit: "def456789abcdef0123456789abcdef012345678"
+        commit: "0123456789abcdef0123456789abcdef01234567"
 
   - id: "ds-col-003"
     name: "product_sku"

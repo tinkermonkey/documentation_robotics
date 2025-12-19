@@ -18,7 +18,7 @@ json-schemas:
         - file: "src/schemas/order_schema.json"
       repository:
         url: "https://github.com/example/data-models.git"
-        commit: "def456789abcdef0123456789abcdef012345678"
+        commit: "0123456789abcdef0123456789abcdef01234567"
 
   - id: "dm-schema-002"
     name: "Customer Schema"
