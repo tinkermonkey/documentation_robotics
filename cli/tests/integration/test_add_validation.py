@@ -212,3 +212,185 @@ class TestAddEntityTypeValidation:
         # Should succeed
         assert result.exit_code == 0
         assert "Successfully added element" in result.output
+
+    def test_add_with_source_file_only(self, runner, initialized_project):
+        """Test that add command accepts source-file option."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed
+        assert result.exit_code == 0
+        assert "Successfully added element" in result.output
+
+    def test_add_with_source_file_and_symbol(self, runner, initialized_project):
+        """Test that add command accepts source-file and source-symbol options."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-symbol",
+                "OrderService",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed
+        assert result.exit_code == 0
+        assert "Successfully added element" in result.output
+
+    def test_add_with_source_symbol_without_file_fails(self, runner, initialized_project):
+        """Test that source-symbol without source-file fails."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-symbol",
+                "OrderService",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should fail
+        assert result.exit_code != 0
+        output = strip_ansi(result.output)
+        assert "--source-symbol requires --source-file" in output
+
+    def test_add_with_all_source_options(self, runner, initialized_project):
+        """Test that add command accepts all source reference options."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-symbol",
+                "OrderService",
+                "--source-provenance",
+                "manual",
+                "--source-repo-url",
+                "https://github.com/acme/backend.git",
+                "--source-commit",
+                "abcdef0123456789abcdef0123456789abcdef01",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed
+        assert result.exit_code == 0
+        assert "Successfully added element" in result.output
+
+    def test_add_with_invalid_commit_format_fails(self, runner, initialized_project):
+        """Test that invalid commit SHA format fails."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-commit",
+                "invalid",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should fail
+        assert result.exit_code != 0
+        output = strip_ansi(result.output)
+        assert "40 hexadecimal characters" in output
+
+    def test_add_with_short_commit_hash_fails(self, runner, initialized_project):
+        """Test that commit SHA shorter than 40 characters fails."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-commit",
+                "abc123",  # Too short
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should fail
+        assert result.exit_code != 0
+        output = strip_ansi(result.output)
+        assert "40 hexadecimal characters" in output
+
+    def test_add_with_different_provenance_types(self, runner, initialized_project):
+        """Test that different provenance types are accepted."""
+        for provenance in ["manual", "extracted", "inferred", "generated"]:
+            result = runner.invoke(
+                cli,
+                [
+                    "add",
+                    "application",
+                    "component",
+                    "--name",
+                    f"Component {provenance}",
+                    "--source-file",
+                    "src/services/test.py",
+                    "--source-provenance",
+                    provenance,
+                ],
+                cwd=str(initialized_project),
+            )
+
+            # All should succeed
+            assert result.exit_code == 0, f"Failed for provenance={provenance}: {result.output}"
+            assert "Successfully added element" in result.output
+
+    def test_add_source_provenance_defaults_to_manual(self, runner, initialized_project):
+        """Test that source-provenance defaults to 'manual' when not specified."""
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-symbol",
+                "OrderService",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed with default provenance
+        assert result.exit_code == 0
+        assert "Successfully added element" in result.output

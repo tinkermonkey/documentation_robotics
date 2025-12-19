@@ -2,6 +2,7 @@
 Add an element to the model.
 """
 
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -26,6 +27,16 @@ console = Console()
 @click.option("--description", help="Element description")
 @click.option("--property", "-p", multiple=True, help="Additional properties (key=value)")
 @click.option("--project-to", help="Comma-separated list of layers to project to")
+@click.option("--source-file", help="Source code file path (relative to repo root)")
+@click.option("--source-symbol", help="Symbol name (class, function, module)")
+@click.option(
+    "--source-provenance",
+    type=click.Choice(["manual", "extracted", "inferred", "generated"]),
+    default="manual",
+    help="How this reference was created",
+)
+@click.option("--source-repo-url", help="Git repository URL")
+@click.option("--source-commit", help="Git commit SHA (40 characters)")
 @click.option("--dry-run", is_flag=True, help="Show what would be created")
 def add(
     layer: str,
@@ -36,6 +47,11 @@ def add(
     description: Optional[str],
     property: tuple,
     project_to: Optional[str],
+    source_file: Optional[str],
+    source_symbol: Optional[str],
+    source_provenance: str,
+    source_repo_url: Optional[str],
+    source_commit: Optional[str],
     dry_run: bool,
 ):
     """Add an element to a layer."""
@@ -95,6 +111,38 @@ def add(
 
         key, value = prop.split("=", 1)
         element_data[key] = value
+
+    # Validate source reference options
+    if source_symbol and not source_file:
+        console.print(
+            "✗ Error: --source-symbol requires --source-file",
+            style="red bold",
+        )
+        raise click.Abort()
+
+    if source_commit:
+        if not re.match(r"^[0-9a-f]{40}$", source_commit):
+            console.print(
+                "✗ Error: --source-commit must be 40 hexadecimal characters",
+                style="red bold",
+            )
+            raise click.Abort()
+
+    # Build source reference if any source options provided
+    if source_file:
+        source_ref = {"provenance": source_provenance, "locations": [{"file": source_file}]}
+        if source_symbol:
+            source_ref["locations"][0]["symbol"] = source_symbol
+        if source_repo_url or source_commit:
+            source_ref["repository"] = {}
+            if source_repo_url:
+                source_ref["repository"]["url"] = source_repo_url
+            if source_commit:
+                source_ref["repository"]["commit"] = source_commit
+
+        # Add to element properties
+        element_data.setdefault("properties", {})
+        element_data["properties"]["source"] = {"reference": source_ref}
 
     # Generate or use custom ID
     element_id = custom_id or generate_element_id(layer, element_type, name)
