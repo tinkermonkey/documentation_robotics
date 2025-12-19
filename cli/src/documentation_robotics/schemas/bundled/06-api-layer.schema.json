@@ -1303,6 +1303,9 @@
         "parameters": {
           "type": "string",
           "minLength": 1
+        },
+        "x-source-reference": {
+          "$ref": "common/source-references.schema.json#/definitions/SourceReference"
         }
       }
     },
@@ -1380,6 +1383,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "x-source-reference": {
+          "$ref": "common/source-references.schema.json#/definitions/SourceReference"
         }
       }
     },

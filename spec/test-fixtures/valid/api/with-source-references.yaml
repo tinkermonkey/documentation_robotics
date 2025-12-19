@@ -1,0 +1,67 @@
+# Valid API layer fixture - Operations and PathItems with source references
+# Tests: Source reference validation via x-source-reference extension
+# Demonstrates multi-location support for interface + implementation patterns
+
+operations:
+  - id: "api-op-001"
+    name: "Create Order Operation"
+    operationId: "createOrder"
+    summary: "Create a new order"
+    description: "Creates a new order in the system"
+    tags: "orders"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/routes/orders.py"
+          symbol: "create_order_route"
+        - file: "src/handlers/order_handler.py"
+          symbol: "OrderHandler.create"
+      repository:
+        url: "https://github.com/example/ecommerce-api.git"
+        commit: "abc123def4567890abcdef1234567890abcdef12"
+
+  - id: "api-op-002"
+    name: "Update Customer Operation"
+    operationId: "updateCustomer"
+    summary: "Update customer details"
+    description: "Updates an existing customer's information"
+    tags: "customers"
+    x-source-reference:
+      provenance: "manual"
+      locations:
+        - file: "src/api/customer_controller.ts"
+          symbol: "CustomerController.update"
+
+  - id: "api-op-003"
+    name: "Get Product Inventory"
+    operationId: "getProductInventory"
+    summary: "Retrieve product inventory"
+    description: "Returns current inventory levels for a product"
+    tags: "inventory"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/interfaces/inventory_service.py"
+          symbol: "IInventoryService.get_inventory"
+        - file: "src/services/inventory_service_impl.py"
+          symbol: "InventoryServiceImpl.get_inventory"
+
+path-items:
+  - id: "api-path-001"
+    name: "/orders Path"
+    servers: "server-prod"
+    parameters: "param-auth"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "src/routes/orders.py"
+          symbol: "orders_blueprint"
+
+  - id: "api-path-002"
+    name: "/customers/{id} Path"
+    servers: "server-prod"
+    parameters: "param-id"
+    x-source-reference:
+      provenance: "inferred"
+      locations:
+        - file: "src/routes/customers.py"

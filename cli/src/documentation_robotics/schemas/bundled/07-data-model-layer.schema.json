@@ -885,6 +885,9 @@
           "items": {
             "type": "string"
           }
+        },
+        "x-source-reference": {
+          "$ref": "common/source-references.schema.json#/definitions/SourceReference"
         }
       }
     },
