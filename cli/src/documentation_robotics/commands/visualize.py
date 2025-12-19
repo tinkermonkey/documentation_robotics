@@ -204,17 +204,23 @@ def visualize(port: int, host: str, no_browser: bool) -> None:
                 await asyncio.sleep(retry_delay)
                 try:
                     async with aiohttp.ClientSession() as session:
-                        async with session.get(f"http://{host}:{port}/health", timeout=aiohttp.ClientTimeout(total=1)) as resp:
+                        async with session.get(
+                            f"http://{host}:{port}/health", timeout=aiohttp.ClientTimeout(total=1)
+                        ) as resp:
                             if resp.status == 200:
                                 server_ready = True
-                                console.print(f"[dim]Server is ready (attempt {attempt + 1}/{max_retries})[/dim]")
+                                console.print(
+                                    f"[dim]Server is ready (attempt {attempt + 1}/{max_retries})[/dim]"
+                                )
                                 break
                 except (aiohttp.ClientError, asyncio.TimeoutError):
                     # Server not ready yet, continue waiting
                     pass
 
             if not server_ready:
-                console.print(f"[yellow]⚠ Warning: Could not confirm server is ready after {max_retries} attempts[/yellow]")
+                console.print(
+                    f"[yellow]⚠ Warning: Could not confirm server is ready after {max_retries} attempts[/yellow]"
+                )
 
             # Open browser if requested, now that server is ready
             if not no_browser:

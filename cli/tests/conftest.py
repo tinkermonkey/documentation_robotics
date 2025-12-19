@@ -24,7 +24,6 @@ def configure_rich_for_tests():
     yield
 
     # Cleanup - close any rich console instances that may have been created
-    import sys
     import gc
 
     # Force garbage collection to clean up Console instances

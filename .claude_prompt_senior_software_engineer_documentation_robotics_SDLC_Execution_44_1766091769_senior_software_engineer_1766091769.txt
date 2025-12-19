@@ -16,6 +16,3 @@ Loading module from “http://localhost:8082/assets/reactflow-BKsJB92x.js” was
 Loading module from “http://localhost:8082/assets/vendor-Bg4TVKJz.js” was blocked because of a disallowed MIME type (“application/json”).
 
 2. The ux first gets a "site not available" error, so we should change the timing of when the client is launched until after the server is available
-
-
-

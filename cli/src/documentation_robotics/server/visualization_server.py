@@ -559,32 +559,32 @@ class VisualizationServer:
             file_lower = file_path.lower()
 
             # Explicit mappings for JavaScript modules and web assets
-            if file_lower.endswith('.js') or file_lower.endswith('.mjs'):
-                content_type = 'text/javascript'
-            elif file_lower.endswith('.css'):
-                content_type = 'text/css'
-            elif file_lower.endswith('.html'):
-                content_type = 'text/html'
-            elif file_lower.endswith('.json'):
-                content_type = 'application/json'
-            elif file_lower.endswith('.svg'):
-                content_type = 'image/svg+xml'
-            elif file_lower.endswith('.png'):
-                content_type = 'image/png'
-            elif file_lower.endswith('.jpg') or file_lower.endswith('.jpeg'):
-                content_type = 'image/jpeg'
-            elif file_lower.endswith('.gif'):
-                content_type = 'image/gif'
-            elif file_lower.endswith('.ico'):
-                content_type = 'image/x-icon'
-            elif file_lower.endswith('.woff'):
-                content_type = 'font/woff'
-            elif file_lower.endswith('.woff2'):
-                content_type = 'font/woff2'
-            elif file_lower.endswith('.ttf'):
-                content_type = 'font/ttf'
-            elif file_lower.endswith('.eot'):
-                content_type = 'application/vnd.ms-fontobject'
+            if file_lower.endswith(".js") or file_lower.endswith(".mjs"):
+                content_type = "text/javascript"
+            elif file_lower.endswith(".css"):
+                content_type = "text/css"
+            elif file_lower.endswith(".html"):
+                content_type = "text/html"
+            elif file_lower.endswith(".json"):
+                content_type = "application/json"
+            elif file_lower.endswith(".svg"):
+                content_type = "image/svg+xml"
+            elif file_lower.endswith(".png"):
+                content_type = "image/png"
+            elif file_lower.endswith(".jpg") or file_lower.endswith(".jpeg"):
+                content_type = "image/jpeg"
+            elif file_lower.endswith(".gif"):
+                content_type = "image/gif"
+            elif file_lower.endswith(".ico"):
+                content_type = "image/x-icon"
+            elif file_lower.endswith(".woff"):
+                content_type = "font/woff"
+            elif file_lower.endswith(".woff2"):
+                content_type = "font/woff2"
+            elif file_lower.endswith(".ttf"):
+                content_type = "font/ttf"
+            elif file_lower.endswith(".eot"):
+                content_type = "application/vnd.ms-fontobject"
             else:
                 # Fallback to mimetypes module for other file types
                 content_type, _ = mimetypes.guess_type(file_path)

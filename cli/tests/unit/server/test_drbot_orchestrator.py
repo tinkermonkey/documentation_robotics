@@ -367,9 +367,7 @@ class TestDrBotOrchestrator:
         messages = []
         generator = None
         try:
-            generator = orchestrator.handle_message(
-                "How many layers are in this model?", context
-            )
+            generator = orchestrator.handle_message("How many layers are in this model?", context)
             async for message in generator:
                 messages.append(message)
                 if len(messages) >= 1:

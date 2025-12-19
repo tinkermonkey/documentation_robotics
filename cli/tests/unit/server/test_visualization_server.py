@@ -505,6 +505,7 @@ class TestAnnotationWebSocketFlow:
         assert annotations_file.exists()
 
         import json
+
         data = json.loads(annotations_file.read_text())
         assert len(data["annotations"]) == 1
         assert data["annotations"][0]["entity_uri"] == "motivation.goal.test"
@@ -563,6 +564,7 @@ class TestAnnotationWebSocketFlow:
         annotations_dir.mkdir(parents=True)
 
         import json
+
         parent_data = {
             "annotations": [
                 {
@@ -666,6 +668,7 @@ class TestAnnotationWebSocketFlow:
 
         # Create test annotations
         import json
+
         annotations_dir = model_path / "annotations" / "testuser"
         annotations_dir.mkdir(parents=True)
         annotations_data = {
