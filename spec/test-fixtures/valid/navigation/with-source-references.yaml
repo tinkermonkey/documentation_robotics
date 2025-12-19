@@ -1,0 +1,128 @@
+# Valid navigation layer fixture - Routes and NavigationGuards with source references
+# Tests: Source reference validation for navigation routes and guards
+# Note: Backward compatibility verified - existing fixtures without source references continue to validate
+
+routes:
+  - id: "10-route-order-list"
+    name: "OrderListRoute"
+    type: "experience"
+    title: "Order List"
+    description: "Route to order listing page"
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/routes.ts"
+            symbol: "orderListRoute"
+        repository:
+          url: "https://github.com/acme/web-frontend.git"
+          commit: "abc123def4567890abcdef1234567890abcdef12"
+
+  - id: "10-route-order-detail"
+    name: "OrderDetailRoute"
+    type: "experience"
+    title: "Order Detail"
+    description: "Route to order detail page with dynamic ID parameter"
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/routes.ts"
+            symbol: "orderDetailRoute"
+          - file: "src/router/routes.ts"
+            symbol: "orderDetailRoute.path"
+        repository:
+          url: "https://github.com/acme/web-frontend.git"
+          commit: "abc123def4567890abcdef1234567890abcdef12"
+
+  - id: "10-route-checkout"
+    name: "CheckoutRoute"
+    type: "experience"
+    title: "Checkout"
+    description: "Multi-step checkout flow route"
+    source:
+      reference:
+        provenance: "manual"
+        locations:
+          - file: "src/router/checkout-routes.ts"
+            symbol: "checkoutRoute"
+
+  - id: "10-route-admin-dashboard"
+    name: "AdminDashboardRoute"
+    type: "experience"
+    title: "Admin Dashboard"
+    description: "Administrative dashboard route with role-based access"
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/admin-routes.ts"
+            symbol: "adminDashboardRoute"
+
+  - id: "10-route-redirect-home"
+    name: "HomeRedirect"
+    type: "redirect"
+    title: "Home Redirect"
+    description: "Redirects root path to order list"
+    source:
+      reference:
+        provenance: "inferred"
+        locations:
+          - file: "src/router/index.ts"
+
+navigation-guards:
+  - id: "10-guard-authentication"
+    name: "AuthenticationGuard"
+    type: "authentication"
+    description: "Ensures user is authenticated before accessing protected routes"
+    order: 1
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/guards/AuthGuard.ts"
+            symbol: "authenticationGuard"
+        repository:
+          url: "https://github.com/acme/web-frontend.git"
+          commit: "abc123def4567890abcdef1234567890abcdef12"
+
+  - id: "10-guard-admin-authorization"
+    name: "AdminAuthorizationGuard"
+    type: "authorization"
+    description: "Checks if user has admin role for administrative routes"
+    order: 2
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/guards/AdminGuard.ts"
+            symbol: "adminGuard"
+          - file: "src/router/guards/AdminGuard.ts"
+            symbol: "adminGuard.checkRole"
+        repository:
+          url: "https://github.com/acme/web-frontend.git"
+          commit: "abc123def4567890abcdef1234567890abcdef12"
+
+  - id: "10-guard-data-loaded"
+    name: "DataLoadedGuard"
+    type: "data-loaded"
+    description: "Ensures required data is loaded before rendering route"
+    order: 3
+    source:
+      reference:
+        provenance: "manual"
+        locations:
+          - file: "src/router/guards/DataGuard.ts"
+            symbol: "dataLoadedGuard"
+
+  - id: "10-guard-checkout-validation"
+    name: "CheckoutValidationGuard"
+    type: "validation"
+    description: "Validates checkout flow state and prevents direct access to steps"
+    order: 1
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/guards/CheckoutGuard.ts"
+            symbol: "checkoutValidationGuard"

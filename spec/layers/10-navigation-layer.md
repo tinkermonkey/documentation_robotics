@@ -69,6 +69,10 @@ Route:
     description: string (optional)
     type: RouteType [enum]
 
+  # Source code linking (FR-2: Phase 4)
+  source:
+    reference: SourceReference (optional) # Link to route definition in source code
+
   references:
     - experience: string (UX spec reference)
     - archimateRef: Element.id (ApplicationComponent)
@@ -377,6 +381,10 @@ NavigationGuard:
     type: GuardType [enum]
     description: string (optional)
     order: integer (execution order, optional)
+
+  # Source code linking (FR-2: Phase 4)
+  source:
+    reference: SourceReference (optional) # Link to guard implementation in source code
 
   # Motivation Layer Integration
   motivation:

@@ -1,0 +1,96 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 4: Add sourceReference to UX (09) and Navigation (10) layers
+
+**Description**:
+Integrate SourceReference fields into UX components and navigation routes.
+
+## Requirements
+- FR-2: Add sourceReference to entity definitions in layers 09, 10
+
+## Design Guidance
+**Layer 09 - UX Layer:**
+Target entities from `09-ux-layer.schema.json`:
+- `LibraryComponent` - Reusable UI component definitions
+- `UXSpec` - Complete UX specifications
+- `View` - Routable groupings of components
+
+Integration pattern (following existing structure):
+```json
+{
+  "LibraryComponent": {
+    "properties": {
+      "source": {
+        "type": "object",
+        "properties": {
+          "reference": {
+            "$ref": "#/definitions/SourceReference"
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+Example:
+```yaml
+library-components:
+  - id: "order-form-component"
+    name: "OrderForm"
+    type: "form-field"
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/components/OrderForm.tsx"
+            symbol: "OrderForm"
+        repository:
+          url: "https://github.com/acme/web-frontend.git"
+          commit: "abc123..."
+```
+
+**Layer 10 - Navigation Layer:**
+Target entities from `10-navigation-layer.schema.json`:
+- `Route` - Single route/destination
+- `NavigationGuard` - Guard conditions for route access
+
+Example:
+```yaml
+routes:
+  - id: "order-detail-route"
+    name: "OrderDetail"
+    type: "experience"
+    source:
+      reference:
+        provenance: "extracted"
+        locations:
+          - file: "src/router/routes.ts"
+            symbol: "orderDetailRoute"
+```
+
+## Acceptance Criteria
+- [ ] UX Layer LibraryComponent entity includes source reference field
+- [ ] UX Layer UXSpec entity includes source reference field
+- [ ] UX Layer View entity includes source reference field
+- [ ] Navigation Layer Route entity includes source reference field
+- [ ] Navigation Layer NavigationGuard entity includes source reference field
+- [ ] Example model files demonstrate UX and navigation source linking
+- [ ] Code is reviewed and approved
+
+## Dependencies
+Phase 1
+
+## Parent Issue
+Part of #21
+
+## Discussion
+This work is detailed in discussion [22](https://github.com/tinkermonkey/documentation_robotics/discussions/22)
+
+---
+
+
+
