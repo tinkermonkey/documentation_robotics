@@ -211,7 +211,8 @@ class TestSearchSourceFiltering:
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
-        assert "Extracted Service" in output
+        # Verify the element was found by checking the ID (element name gets converted to ID format)
+        assert "application.service.extracted-service" in output
 
     def test_search_inferred_provenance(self, runner, tmp_path):
         """Test filtering by inferred provenance."""
