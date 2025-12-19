@@ -18,6 +18,7 @@ class ExportFormat(Enum):
     MARKDOWN = "markdown"
     GRAPHML = "graphml"
     NAVIGATION = "navigation"
+    SOURCE_MAP = "source-map"
 
 
 @dataclass
@@ -139,6 +140,13 @@ class ExportManager:
         except ImportError:
             pass
 
+        try:
+            from .source_map_exporter import SourceMapExporter
+
+            self.exporters[ExportFormat.SOURCE_MAP] = SourceMapExporter
+        except ImportError:
+            pass
+
     def export(self, format: ExportFormat, output_path: Optional[Path] = None, **kwargs) -> Path:
         """
         Export model to specified format.
@@ -191,6 +199,7 @@ class ExportManager:
             ExportFormat.MARKDOWN: base_path / "docs",
             ExportFormat.GRAPHML: base_path / "graphs" / "model.graphml",
             ExportFormat.NAVIGATION: base_path / "navigation",
+            ExportFormat.SOURCE_MAP: base_path / "source-maps",
         }
 
         return format_paths.get(format, base_path)
