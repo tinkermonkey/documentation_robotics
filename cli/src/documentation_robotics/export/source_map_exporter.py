@@ -6,9 +6,9 @@ enabling IDE plugins to provide "jump to architecture" features.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
 
 from .export_manager import BaseExporter
 
@@ -50,7 +50,7 @@ class SourceMapExporter(BaseExporter):
         """
         source_map = {
             "version": self.model.manifest.version,
-            "generated": datetime.utcnow().isoformat() + "Z",
+            "generated": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             "sourceMap": [],
         }
 

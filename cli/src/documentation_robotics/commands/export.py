@@ -4,7 +4,6 @@ Export model to various formats.
 
 import json
 import sys
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
@@ -13,7 +12,8 @@ from rich.console import Console
 from rich.table import Table
 
 from ..core.model import Model
-from ..export.export_manager import ExportFormat, ExportManager
+from ..export.export_manager import ExportFormat, ExportManager, ExportOptions
+from ..export.source_map_exporter import SourceMapExporter
 
 console = Console()
 
@@ -129,98 +129,25 @@ def source_map(output_format: str, output: Optional[str], layer: Optional[str]):
 
     # Generate source map
     try:
-        source_map_data = _generate_source_map(model, layer_filter=layer)
+        # Create exporter with options
+        output_path = Path(output) if output else Path.cwd() / ".dr"
+        options = ExportOptions(
+            format=ExportFormat.SOURCE_MAP,
+            output_path=output_path.parent,
+            layer_filter=layer,
+        )
+        exporter = SourceMapExporter(model, options)
 
         if output:
-            # Write to file
-            output_path = Path(output)
-            output_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(output_path, "w") as f:
-                json.dump(source_map_data, f, indent=2)
+            # Write to specified file
+            result = exporter.export()
             console.print("[green bold]✓ Source map exported successfully[/green bold]")
-            console.print(f"   Output: {output_path}")
+            console.print(f"   Output: {result}")
         else:
             # Output to stdout
+            source_map_data = exporter._generate_source_map()
             json.dump(source_map_data, sys.stdout, indent=2)
 
     except Exception as e:
         console.print(f"✗ Error generating source map: {e}", style="red bold")
         raise click.Abort()
-
-
-def _generate_source_map(model: Model, layer_filter: Optional[str] = None) -> dict:
-    """Generate source map from model.
-
-    Args:
-        model: The architecture model
-        layer_filter: Optional layer name to filter by
-
-    Returns:
-        Source map dictionary with version, timestamp, and mappings
-    """
-    source_map = {
-        "version": model.manifest.version,
-        "generated": datetime.utcnow().isoformat() + "Z",
-        "sourceMap": [],
-    }
-
-    # Iterate through all layers
-    for layer_name, layer in model.layers.items():
-        # Skip if filtering by layer
-        if layer_filter and layer_name != layer_filter:
-            continue
-
-        # Process all elements in the layer
-        for element_id, element in layer.elements.items():
-            # Extract source references
-            source_entries = _extract_source_references(element, layer_name)
-            source_map["sourceMap"].extend(source_entries)
-
-    return source_map
-
-
-def _extract_source_references(element, layer_name: str) -> list:
-    """Extract source references from an element.
-
-    Args:
-        element: The architecture element
-        layer_name: Name of the layer containing the element
-
-    Returns:
-        List of source map entries for this element
-    """
-    entries = []
-
-    # Check for source reference in properties
-    source_ref = element.data.get("properties", {}).get("source", {}).get("reference")
-
-    # Fall back to x-source-reference (OpenAPI-style)
-    if not source_ref:
-        source_ref = element.data.get("x-source-reference")
-
-    if not source_ref:
-        return entries
-
-    # Process each location in the source reference
-    locations = source_ref.get("locations", [])
-    for location in locations:
-        entry = {
-            "file": location.get("file"),
-            "symbol": location.get("symbol"),
-            "entity": {
-                "id": element.id,
-                "layer": layer_name,
-                "type": element.type,
-                "name": element.data.get("name"),
-            },
-            "provenance": source_ref.get("provenance"),
-        }
-
-        # Add commit hash if available
-        repository = source_ref.get("repository", {})
-        if repository.get("commit"):
-            entry["commit"] = repository["commit"]
-
-        entries.append(entry)
-
-    return entries

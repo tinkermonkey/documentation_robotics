@@ -124,11 +124,14 @@ def test_source_map_generation_empty_model(mock_model, tmp_path):
     assert source_map["sourceMap"] == []
 
 
-def test_extract_source_references_with_x_source_reference(element_with_source_reference):
+def test_extract_source_references_with_x_source_reference(element_with_source_reference, mock_model, tmp_path):
     """Test extracting source references from x-source-reference field."""
-    from documentation_robotics.commands.export import _extract_source_references
-
-    entries = _extract_source_references(element_with_source_reference, "06-api")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    entries = exporter._extract_source_references(element_with_source_reference, "06-api")
 
     assert len(entries) == 1
     assert entries[0]["file"] == "src/routes/orders.py"
@@ -143,11 +146,16 @@ def test_extract_source_references_with_x_source_reference(element_with_source_r
 
 def test_extract_source_references_with_properties_source_reference(
     element_with_properties_source_reference,
+    mock_model,
+    tmp_path,
 ):
     """Test extracting source references from properties.source.reference field."""
-    from documentation_robotics.commands.export import _extract_source_references
-
-    entries = _extract_source_references(element_with_properties_source_reference, "04-application")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    entries = exporter._extract_source_references(element_with_properties_source_reference, "04-application")
 
     assert len(entries) == 1
     assert entries[0]["file"] == "src/services/order_service.py"
@@ -160,19 +168,20 @@ def test_extract_source_references_with_properties_source_reference(
     assert entries[0]["commit"] == "def456ghi789"
 
 
-def test_extract_source_references_without_source_reference(element_without_source_reference):
+def test_extract_source_references_without_source_reference(element_without_source_reference, mock_model, tmp_path):
     """Test extracting source references from element without source reference."""
-    from documentation_robotics.commands.export import _extract_source_references
-
-    entries = _extract_source_references(element_without_source_reference, "06-api")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    entries = exporter._extract_source_references(element_without_source_reference, "06-api")
 
     assert len(entries) == 0
 
 
-def test_extract_source_references_multiple_locations():
+def test_extract_source_references_multiple_locations(mock_model, tmp_path):
     """Test extracting source references with multiple locations."""
-    from documentation_robotics.commands.export import _extract_source_references
-
     element = Element(
         id="api-endpoint-multi",
         element_type="Operation",
@@ -199,7 +208,12 @@ def test_extract_source_references_multiple_locations():
         },
     )
 
-    entries = _extract_source_references(element, "06-api")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    entries = exporter._extract_source_references(element, "06-api")
 
     assert len(entries) == 2
     assert entries[0]["file"] == "src/routes/api.py"
@@ -210,10 +224,8 @@ def test_extract_source_references_multiple_locations():
     assert entries[1]["commit"] == "xyz789abc"
 
 
-def test_extract_source_references_without_commit():
+def test_extract_source_references_without_commit(mock_model, tmp_path):
     """Test extracting source references without commit hash."""
-    from documentation_robotics.commands.export import _extract_source_references
-
     element = Element(
         id="api-endpoint-no-commit",
         element_type="Operation",
@@ -233,46 +245,55 @@ def test_extract_source_references_without_commit():
         },
     )
 
-    entries = _extract_source_references(element, "06-api")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    entries = exporter._extract_source_references(element, "06-api")
 
     assert len(entries) == 1
     assert "commit" not in entries[0]
 
 
-def test_generate_source_map_with_layer_filter(mock_model):
+def test_generate_source_map_with_layer_filter(mock_model, tmp_path):
     """Test generating source map with layer filter."""
-    from documentation_robotics.commands.export import _generate_source_map
-
     # Add test data with source references to the model
     # This will depend on the model structure, but we can test the basic generation
-
-    source_map = _generate_source_map(mock_model, layer_filter="01-motivation")
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
+        layer_filter="01-motivation",
+    )
+    exporter = SourceMapExporter(mock_model, options)
+    source_map = exporter._generate_source_map()
 
     assert "version" in source_map
     assert "generated" in source_map
     assert isinstance(source_map["sourceMap"], list)
 
 
-def test_source_map_generated_timestamp():
+def test_source_map_generated_timestamp(mock_model, tmp_path):
     """Test that generated timestamp is in correct ISO format."""
-    from documentation_robotics.commands.export import _extract_source_references
-
     # The timestamp should be in ISO 8601 format with Z suffix
-    element = Element(
-        id="test-element",
-        element_type="Test",
-        layer="01-motivation",
-        data={
-            "id": "test-element",
-            "name": "Test",
-        },
+    options = ExportOptions(
+        format=ExportFormat.SOURCE_MAP,
+        output_path=tmp_path,
     )
+    exporter = SourceMapExporter(mock_model, options)
+    source_map = exporter._generate_source_map()
 
-    entries = _extract_source_references(element, "01-motivation")
-
-    # Just verify the function works and returns empty list for no source
-    assert isinstance(entries, list)
-    assert len(entries) == 0
+    # Verify the timestamp format
+    assert "generated" in source_map
+    timestamp = source_map["generated"]
+    # Should end with Z for UTC
+    assert timestamp.endswith("Z")
+    # Should be parseable as ISO format
+    try:
+        from datetime import datetime as dt
+        dt.fromisoformat(timestamp.replace("Z", "+00:00"))
+    except ValueError:
+        pytest.fail(f"Invalid ISO timestamp format: {timestamp}")
 
 
 def test_source_map_output_to_file(mock_model, tmp_path):
