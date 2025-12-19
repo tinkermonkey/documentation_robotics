@@ -121,12 +121,14 @@ def add(
         raise click.Abort()
 
     if source_commit:
-        if not re.match(r"^[0-9a-f]{40}$", source_commit):
+        if not re.match(r"^[0-9a-fA-F]{40}$", source_commit):
             console.print(
                 "✗ Error: --source-commit must be 40 hexadecimal characters",
                 style="red bold",
             )
             raise click.Abort()
+        # Normalize commit to lowercase for storage
+        source_commit = source_commit.lower()
 
     # Build source reference if any source options provided
     if source_file:
@@ -172,8 +174,8 @@ def add(
         # Handle projection if requested
         if project_to:
             console.print(f"\n[yellow]Note: Projection to {project_to} requested[/yellow]")
-            console.print("       Projection is not available in Phase 1")
-            console.print("       This feature will be added in Phase 2")
+            console.print("       Projection is not yet available in this version")
+            console.print("       See 'dr add --help' for current supported options")
 
     except ValueError as e:
         console.print(f"✗ Error: {e}", style="red bold")

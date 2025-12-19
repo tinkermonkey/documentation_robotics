@@ -394,3 +394,97 @@ class TestAddEntityTypeValidation:
         # Should succeed with default provenance
         assert result.exit_code == 0
         assert "Successfully added element" in result.output
+
+    def test_add_source_reference_data_stored_correctly(self, runner, initialized_project):
+        """Test that source reference data is stored correctly in element properties."""
+        import yaml
+        from pathlib import Path
+
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Order Service",
+                "--source-file",
+                "src/services/order_service.py",
+                "--source-symbol",
+                "OrderService",
+                "--source-provenance",
+                "manual",
+                "--source-repo-url",
+                "https://github.com/acme/backend.git",
+                "--source-commit",
+                "abcdef0123456789abcdef0123456789abcdef01",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed
+        assert result.exit_code == 0
+
+        # Read the stored element from the model (elements stored in model/04_application/components.yaml)
+        model_file = Path(initialized_project) / "documentation-robotics" / "model" / "04_application" / "components.yaml"
+        assert model_file.exists(), f"Components file not found at {model_file}"
+
+        with open(model_file, "r") as f:
+            layer_data = yaml.safe_load(f) or {}
+
+        # Find the Order Service element (stored by name as key)
+        assert "Order Service" in layer_data, "Order Service element not found in stored data"
+        order_service = layer_data["Order Service"]
+
+        # Verify the source reference structure
+        assert "properties" in order_service
+        assert "source" in order_service["properties"]
+        assert "reference" in order_service["properties"]["source"]
+
+        source_ref = order_service["properties"]["source"]["reference"]
+
+        # Verify all fields
+        assert source_ref["provenance"] == "manual"
+        assert len(source_ref["locations"]) == 1
+        assert source_ref["locations"][0]["file"] == "src/services/order_service.py"
+        assert source_ref["locations"][0]["symbol"] == "OrderService"
+        assert source_ref["repository"]["url"] == "https://github.com/acme/backend.git"
+        assert source_ref["repository"]["commit"] == "abcdef0123456789abcdef0123456789abcdef01"
+
+    def test_add_with_uppercase_commit_sha(self, runner, initialized_project):
+        """Test that uppercase commit SHA is accepted and normalized."""
+        import yaml
+        from pathlib import Path
+
+        result = runner.invoke(
+            cli,
+            [
+                "add",
+                "application",
+                "component",
+                "--name",
+                "Payment Service",
+                "--source-file",
+                "src/services/payment_service.py",
+                "--source-commit",
+                "ABCDEF0123456789ABCDEF0123456789ABCDEF01",
+            ],
+            cwd=str(initialized_project),
+        )
+
+        # Should succeed (uppercase should be accepted)
+        assert result.exit_code == 0
+        assert "Successfully added element" in result.output
+
+        # Read the stored element to verify commit was normalized to lowercase
+        model_file = Path(initialized_project) / "documentation-robotics" / "model" / "04_application" / "components.yaml"
+        with open(model_file, "r") as f:
+            layer_data = yaml.safe_load(f) or {}
+
+        assert "Payment Service" in layer_data, "Payment Service element not found in stored data"
+        payment_service = layer_data["Payment Service"]
+
+        source_ref = payment_service["properties"]["source"]["reference"]
+
+        # Verify commit was normalized to lowercase
+        assert source_ref["repository"]["commit"] == "abcdef0123456789abcdef0123456789abcdef01"
