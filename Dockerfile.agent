@@ -33,9 +33,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # WORKDIR should match where the orchestrator will mount the project
 WORKDIR /workspace/documentation_robotics
 
-# Copy ONLY the dependency manifests needed for installation
-# DO NOT copy source code - it comes from the runtime mount
-COPY cli/pyproject.toml ./cli/
+# NOTE: We do NOT copy pyproject.toml to avoid creating directories that conflict
+# with the runtime mount. All dependencies are installed explicitly below.
+# The source code (including pyproject.toml) comes from the runtime mount.
 
 # Pre-install Python dependencies
 # These match the dependencies from cli/pyproject.toml
