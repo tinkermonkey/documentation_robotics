@@ -17,7 +17,12 @@ USER root
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
 # This project uses Python which is already in the base image
-# No additional runtimes needed
+# Install libxml2 and libxslt development headers for lxml
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libxml2-dev \
+    libxslt1-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
 # ============================================================================
 # Stage 3: Pre-install Dependencies (RECOMMENDED)
@@ -28,12 +33,13 @@ USER root
 # WORKDIR should match where the orchestrator will mount the project
 WORKDIR /workspace/documentation_robotics
 
-# Copy ONLY the dependency manifests needed for installation
-# DO NOT copy source code - it comes from the runtime mount
-COPY cli/pyproject.toml ./cli/
+# NOTE: We do NOT copy pyproject.toml to avoid creating directories that conflict
+# with the runtime mount. All dependencies are installed explicitly below.
+# The source code (including pyproject.toml) comes from the runtime mount.
 
 # Pre-install Python dependencies
-# The CLI is in a subdirectory, so we need to install from there
+# These match the dependencies from cli/pyproject.toml
+# Core CLI dependencies
 RUN pip install --no-cache-dir \
     'click>=8.1.0' \
     'pyyaml>=6.0' \
@@ -41,13 +47,41 @@ RUN pip install --no-cache-dir \
     'pydantic>=2.0.0' \
     'rich>=13.0.0' \
     'python-dateutil>=2.8.0' \
+    'packaging>=23.0'
+
+# Template and graph dependencies
+RUN pip install --no-cache-dir \
     'jinja2>=3.1.0' \
     'networkx>=3.0' \
     'jsonpath-ng>=1.5.0' \
     'lxml>=4.9.0' \
-    'markdown>=3.4.0' \
+    'markdown>=3.4.0'
+
+# Interactive prompts and text processing
+RUN pip install --no-cache-dir \
+    'questionary>=2.0.0' \
+    'inflect>=7.0.0'
+
+# Web server for visualization (aiohttp + watchdog)
+RUN pip install --no-cache-dir \
+    'aiohttp>=3.9.0' \
+    'watchdog>=3.0.0'
+
+# AI chat integration
+RUN pip install --no-cache-dir \
+    'anthropic>=0.75.0'
+
+# Test stack (dev dependencies)
+RUN pip install --no-cache-dir \
     'pytest>=7.0.0' \
-    'pytest-cov>=4.0.0'
+    'pytest-cov>=4.0.0' \
+    'pytest-asyncio>=0.21.0' \
+    'pre-commit>=3.0.0' \
+    'black>=23.0.0' \
+    'mypy>=1.0.0' \
+    'ruff>=0.1.0' \
+    'types-PyYAML' \
+    'types-python-dateutil'
 
 # ============================================================================
 # Stage 4: Ownership and Permissions
@@ -70,10 +104,19 @@ RUN claude --version && \
     git --version && \
     gh --version
 
-# Verify project-specific tools
+# Verify project-specific tools - core dependencies
 RUN python3 --version && \
     pip --version && \
-    python3 -c "import click; import pydantic; import jsonschema; import networkx; print('All Python dependencies available')"
+    python3 -c "import click; import pydantic; import jsonschema; import networkx; print('Core dependencies available')"
+
+# Verify visualization server dependencies
+RUN python3 -c "import aiohttp; import watchdog; print('Visualization server dependencies available')"
+
+# Verify test stack dependencies
+RUN python3 -c "import pytest; import pytest_cov; import pytest_asyncio; print('Test stack dependencies available')"
+
+# Verify AI integration
+RUN python3 -c "import anthropic; print('Anthropic SDK available')"
 
 # ============================================================================
 # Default command

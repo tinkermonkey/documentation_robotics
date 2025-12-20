@@ -902,6 +902,15 @@
         "category": {
           "type": "string",
           "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1060,6 +1069,15 @@
         "description": {
           "type": "string",
           "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1278,6 +1296,15 @@
           "description": "Contains relationship",
           "items": {
             "type": "string"
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
           }
         }
       }

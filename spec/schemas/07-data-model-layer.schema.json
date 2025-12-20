@@ -885,6 +885,10 @@
           "items": {
             "type": "string"
           }
+        },
+        "x-source-reference": {
+          "$ref": "common/source-references.schema.json#/definitions/SourceReference",
+          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
         }
       }
     },

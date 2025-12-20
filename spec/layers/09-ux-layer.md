@@ -123,6 +123,10 @@ LibraryComponent:
     description: string (optional)
     category: string (optional) # Component category for organization
 
+  # Source code linking (FR-2: Phase 4)
+  source:
+    reference: SourceReference (optional) # Link to component implementation in source code
+
   # Default configuration (can be overridden when instantiated)
   defaults:
     required: boolean (optional)
@@ -645,6 +649,10 @@ UXSpec:
     title: string (optional)
     description: string (optional)
 
+  # Source code linking (FR-2: Phase 4)
+  source:
+    reference: SourceReference (optional) # Link to UX specification in source code
+
   # Pattern usage - reference patterns from library or application
   usesPatterns:
     - patternRef: StatePattern.id
@@ -872,6 +880,10 @@ View:
     description: string (optional)
     routable: boolean (optional)
     layout: LayoutConfig (optional)
+
+  # Source code linking (FR-2: Phase 4)
+  source:
+    reference: SourceReference (optional) # Link to view implementation in source code
 
   contains:
     - subViews: SubView[] (0..*) # Sub-view instances

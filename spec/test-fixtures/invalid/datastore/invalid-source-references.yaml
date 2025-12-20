@@ -1,0 +1,118 @@
+# Invalid Datastore layer fixture - Tests various malformed source references
+# Should fail validation due to:
+# - Invalid provenance values
+# - Missing required locations array
+# - Empty locations array
+# - Invalid commit SHA format
+
+tables:
+  # Invalid provenance value
+  - id: "ds-table-invalid-001"
+    name: "invalid_provenance_table"
+    schema: "public"
+    x-source-reference:
+      provenance: "automated"  # Should be: extracted, manual, inferred, or generated
+      locations:
+        - file: "migrations/001_test.sql"
+
+  # Missing locations array
+  - id: "ds-table-invalid-002"
+    name: "missing_locations_table"
+    schema: "public"
+    x-source-reference:
+      provenance: "extracted"
+      # locations is required but missing
+
+  # Empty locations array
+  - id: "ds-table-invalid-003"
+    name: "empty_locations_table"
+    schema: "public"
+    x-source-reference:
+      provenance: "extracted"
+      locations: []  # Array must not be empty
+
+columns:
+  # Invalid commit SHA - mixed case
+  - id: "ds-col-invalid-001"
+    name: "invalid_commit_column"
+    dataType: "VARCHAR(100)"
+    nullable: false
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "migrations/002_test.sql"
+      repository:
+        url: "https://github.com/example/repo.git"
+        commit: "AbCdEf1234567890AbCdEf1234567890AbCdEf12"  # Must be lowercase hex
+
+  # Invalid provenance - empty string
+  - id: "ds-col-invalid-002"
+    name: "empty_provenance_column"
+    dataType: "INTEGER"
+    nullable: true
+    x-source-reference:
+      provenance: ""  # Cannot be empty
+      locations:
+        - file: "migrations/003_test.sql"
+
+  # Missing file field in location
+  - id: "ds-col-invalid-003"
+    name: "missing_file_column"
+    dataType: "TEXT"
+    nullable: false
+    x-source-reference:
+      provenance: "manual"
+      locations:
+        - symbol: "test_column"  # Missing required 'file' field
+
+functions:
+  # Invalid commit SHA - contains spaces
+  - id: "ds-func-invalid-001"
+    name: "invalid_commit_spaces_function"
+    language: "PLPGSQL"
+    returnType: "VOID"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "functions/test.sql"
+          symbol: "test_func"
+      repository:
+        url: "https://github.com/example/repo.git"
+        commit: "abcd ef12 3456 7890 abcd ef12 3456 7890 abcd ef12"  # Contains spaces
+
+  # Invalid commit SHA - special characters
+  - id: "ds-func-invalid-002"
+    name: "invalid_commit_special_function"
+    language: "SQL"
+    returnType: "BOOLEAN"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "functions/test2.sql"
+      repository:
+        url: "https://github.com/example/repo.git"
+        commit: "abcdef1234567890abcdef1234567890abcdef!@"  # Contains special chars
+
+  # Invalid: locations array with all items missing file field
+  - id: "ds-func-invalid-003"
+    name: "all_locations_invalid_function"
+    language: "PLPGSQL"
+    returnType: "INTEGER"
+    x-source-reference:
+      provenance: "inferred"
+      locations:
+        - symbol: "func1"  # Missing required 'file' field
+        - symbol: "func2"  # Missing required 'file' field
+
+  # Invalid: repository URL without commit
+  - id: "ds-func-invalid-004"
+    name: "url_without_commit_function"
+    language: "SQL"
+    returnType: "TEXT"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "functions/test3.sql"
+      repository:
+        url: "https://github.com/example/repo.git"
+        # commit is required when repository.url is provided

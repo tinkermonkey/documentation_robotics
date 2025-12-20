@@ -818,6 +818,17 @@ MetricInstrument:
     buckets: number[] (optional) # histogram bucket boundaries
     valueRecorder: string (optional) # for value observations
 
+  # Source code integration
+  source:
+    reference: SourceReference (optional) # Links metric to code definition
+      provenance: "extracted" | "manual" | "inferred" | "generated"
+      locations:
+        - file: string (relative path to source file)
+          symbol: string (function/class name defining the metric, optional)
+      repository:
+        url: string (Git remote URL, optional)
+        commit: string (Git commit SHA, optional)
+
   # Cross-layer integration
   references:
     operationId: string (OpenAPI operationId, optional)
@@ -865,6 +876,14 @@ MetricInstrument:
       configuration:
         attributes: ["http.method", "http.route", "http.status_code"]
         buckets: [5, 10, 25, 50, 100, 250, 500, 1000, 2500, 5000]
+      source:
+        reference:
+          provenance: "extracted"
+          locations:
+            - file: "src/middleware/metrics.ts"
+              symbol: "createRequestDurationMetric"
+          repository:
+            commit: "abc123def456"
       motivationMapping:
         fulfillsRequirements: ["req-api-latency-under-200ms"]
       validationCriteria:
@@ -1099,6 +1118,17 @@ TraceConfiguration:
     serviceVersion: string (optional)
     deploymentEnvironment: string (optional)
 
+  # Source code integration
+  source:
+    reference: SourceReference (optional) # Links trace config to code definition
+      provenance: "extracted" | "manual" | "inferred" | "generated"
+      locations:
+        - file: string (relative path to source file)
+          symbol: string (function/module name defining trace config, optional)
+      repository:
+        url: string (Git remote URL, optional)
+        commit: string (Git commit SHA, optional)
+
   sampler:
     type: SamplerType [enum]
     config: object (sampler-specific configuration)
@@ -1135,6 +1165,14 @@ TraceConfiguration:
     - serviceName: "product-service"
       serviceVersion: "2.1.0"
       deploymentEnvironment: "production"
+      source:
+        reference:
+          provenance: "extracted"
+          locations:
+            - file: "src/config/tracing.ts"
+              symbol: "initializeTracing"
+          repository:
+            commit: "abc123def456"
       sampler:
         type: parentbased_traceidratio
         config:

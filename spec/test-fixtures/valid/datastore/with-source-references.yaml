@@ -1,0 +1,102 @@
+# Valid Datastore layer fixture - Tables, Columns, and Functions with source references
+# Tests: Source reference validation via x-source-reference extension
+# Demonstrates multi-location support for database objects defined across migrations
+
+tables:
+  - id: "ds-table-001"
+    name: "orders"
+    schema: "public"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "migrations/001_create_orders_table.sql"
+        - file: "migrations/015_add_order_indexes.sql"
+      repository:
+        url: "https://github.com/example/database-migrations.git"
+        commit: "abcdef1234567890abcdef1234567890abcdef12"
+
+  - id: "ds-table-002"
+    name: "customers"
+    schema: "public"
+    x-source-reference:
+      provenance: "manual"
+      locations:
+        - file: "migrations/002_create_customers_table.sql"
+
+  - id: "ds-table-003"
+    name: "products"
+    schema: "inventory"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "migrations/010_create_inventory_schema.sql"
+        - file: "migrations/011_create_products_table.sql"
+        - file: "migrations/025_modify_products_add_sku.sql"
+
+columns:
+  - id: "ds-col-001"
+    name: "order_id"
+    dataType: "BIGSERIAL"
+    nullable: false
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "migrations/001_create_orders_table.sql"
+
+  - id: "ds-col-002"
+    name: "customer_email"
+    dataType: "VARCHAR(255)"
+    nullable: false
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "migrations/002_create_customers_table.sql"
+        - file: "migrations/008_add_customer_email_validation.sql"
+      repository:
+        url: "https://github.com/example/database-migrations.git"
+        commit: "0123456789abcdef0123456789abcdef01234567"
+
+  - id: "ds-col-003"
+    name: "product_sku"
+    dataType: "VARCHAR(50)"
+    nullable: false
+    x-source-reference:
+      provenance: "manual"
+      locations:
+        - file: "migrations/025_modify_products_add_sku.sql"
+
+functions:
+  - id: "ds-func-001"
+    name: "calculate_order_total"
+    language: "PLPGSQL"
+    returnType: "DECIMAL(10,2)"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "functions/order_calculations.sql"
+          symbol: "calculate_order_total"
+      repository:
+        url: "https://github.com/example/database-functions.git"
+        commit: "1234567890abcdef1234567890abcdef12345678"
+
+  - id: "ds-func-002"
+    name: "validate_customer_data"
+    language: "PLPGSQL"
+    returnType: "BOOLEAN"
+    x-source-reference:
+      provenance: "extracted"
+      locations:
+        - file: "functions/validation/customer_validator.sql"
+          symbol: "validate_customer_data"
+        - file: "functions/validation/common_validators.sql"
+          symbol: "check_email_format"
+
+  - id: "ds-func-003"
+    name: "update_inventory_count"
+    language: "SQL"
+    returnType: "VOID"
+    x-source-reference:
+      provenance: "inferred"
+      locations:
+        - file: "functions/inventory_management.sql"
+          symbol: "update_inventory_count"

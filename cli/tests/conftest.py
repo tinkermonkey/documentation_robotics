@@ -115,15 +115,44 @@ def initialized_model(temp_dir):
                     pass
 
 
-@pytest.fixture(autouse=True, scope="function")
-def cleanup_threads_and_processes():
+@pytest.fixture(scope="function")
+async def cleanup_async_resources():
     """
-    Cleanup threads and processes after each test to prevent resource warnings.
+    Cleanup async resources after async tests to prevent resource warnings.
+
+    Use this fixture explicitly in async tests that spawn subprocesses or async generators.
+    This ensures proper cleanup of:
+    - Async generators that may have spawned subprocesses
+    - Event loop transport cleanup callbacks
+
+    Usage:
+        async def test_my_async_test(cleanup_async_resources):
+            # test code
+    """
+    import asyncio
+    import gc
+
+    yield
+
+    # Force garbage collection to clean up any remaining resources
+    # This includes async generators that might be holding subprocess references
+    gc.collect()
+
+    # Give event loop time to process pending transport cleanup callbacks
+    # After async tests close generators/subprocesses, asyncio schedules callbacks
+    # to close transports. Without this sleep, pytest may close the event loop before
+    # these callbacks run, causing ResourceWarning about unclosed transports.
+    await asyncio.sleep(0.01)  # Reduced from 0.2s to 10ms
+
+
+@pytest.fixture(autouse=True, scope="function")
+def cleanup_threads():
+    """
+    Cleanup threads after each test to prevent resource warnings.
 
     This fixture runs after every test to ensure proper cleanup of:
     - Thread timers (from debouncing)
     - File observers (from watchdog)
-    - Any other background threads/processes
     """
     import gc
     import threading
@@ -136,5 +165,26 @@ def cleanup_threads_and_processes():
             if thread.is_alive():
                 thread.cancel()
 
-    # Force garbage collection to clean up any remaining resources
+    # Force garbage collection
     gc.collect()
+
+
+class MockElement:
+    """Mock Element for testing source reference utilities."""
+
+    def __init__(self, element_id_or_data, data=None):
+        """
+        Initialize mock element.
+
+        Supports two signatures:
+        - MockElement(data_dict) - for tests that only need data
+        - MockElement(element_id, data_dict) - for tests that need both
+        """
+        if data is None:
+            # Single argument: treat as data
+            self.data = element_id_or_data
+            self.id = "mock-element"
+        else:
+            # Two arguments: element_id and data
+            self.id = element_id_or_data
+            self.data = data

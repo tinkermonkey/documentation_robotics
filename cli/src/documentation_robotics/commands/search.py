@@ -19,10 +19,40 @@ console = Console()
 @click.option("--property", "-p", multiple=True, help="Filter by property (key=value)")
 @click.option("--output", type=click.Choice(["table", "yaml", "json"]), default="table")
 @click.option("--limit", type=int, help="Limit number of results")
+@click.option("--has-source-ref", is_flag=True, help="Filter to entities with source references")
+@click.option("--no-source-ref", is_flag=True, help="Filter to entities without source references")
+@click.option(
+    "--source-provenance",
+    type=click.Choice(["extracted", "manual", "inferred", "generated"]),
+    help="Filter by source reference provenance",
+)
 def search(
-    layer: str, element_type: str, name_pattern: str, property: tuple, output: str, limit: int
+    layer: str,
+    element_type: str,
+    name_pattern: str,
+    property: tuple,
+    output: str,
+    limit: int,
+    has_source_ref: bool,
+    no_source_ref: bool,
+    source_provenance: str,
 ):
     """Search for elements across layers."""
+
+    # Validate conflicting options
+    if has_source_ref and no_source_ref:
+        console.print(
+            "✗ Error: Cannot use both --has-source-ref and --no-source-ref",
+            style="red bold",
+        )
+        raise click.Abort()
+
+    if source_provenance and no_source_ref:
+        console.print(
+            "✗ Error: Cannot use --source-provenance with --no-source-ref",
+            style="red bold",
+        )
+        raise click.Abort()
 
     # Load model (with changeset context if active)
     try:
@@ -48,6 +78,21 @@ def search(
     elements = model.find_elements(
         layer=layer, element_type=element_type, name_pattern=name_pattern, **properties
     )
+
+    # Apply source reference filters
+    from ..utils.source_ref_utils import filter_elements_by_source
+
+    if no_source_ref:
+        elements = filter_elements_by_source(elements, has_source_ref=False)
+    elif has_source_ref:
+        elements = filter_elements_by_source(
+            elements, has_source_ref=True, provenance=source_provenance
+        )
+    elif source_provenance:
+        # If only provenance is specified without has_source_ref, still apply the filter
+        elements = filter_elements_by_source(
+            elements, has_source_ref=True, provenance=source_provenance
+        )
 
     # Apply limit
     if limit:

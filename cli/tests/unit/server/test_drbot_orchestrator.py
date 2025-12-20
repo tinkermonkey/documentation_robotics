@@ -392,8 +392,18 @@ class TestDrBotOrchestrator:
             raise
         finally:
             # Properly close the async generator to prevent ResourceWarning
+            # This ensures cleanup happens before the event loop closes
             if generator is not None:
-                await generator.aclose()
+                try:
+                    await generator.aclose()
+                    # CRITICAL: Give event loop time to process transport cleanup callbacks
+                    # After killing the subprocess, asyncio schedules callbacks to close transports.
+                    # Without this sleep, pytest-asyncio may close the event loop before
+                    # these callbacks run, causing ResourceWarning about unclosed transports.
+                    await asyncio.sleep(0.2)
+                except Exception:
+                    # Ignore errors during cleanup (e.g., FileNotFoundError if claude CLI not found)
+                    pass
 
 
 class TestDrBotSystemPrompt:

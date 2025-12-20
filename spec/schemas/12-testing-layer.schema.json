@@ -689,6 +689,15 @@
           "items": {
             "type": "string"
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference for the artifact requiring test coverage",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1126,6 +1135,15 @@
           "description": "Contains relationship",
           "items": {
             "type": "string"
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference to the test case implementation",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
           }
         }
       }

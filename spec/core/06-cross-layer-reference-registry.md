@@ -289,6 +289,12 @@ The Motivation Layer is referenced BY other layers but doesn't reference impleme
 | UX Component Ref            | 09           | Component          | `uxComponentRef`                         | Single      | String | UX component measured       |
 | Navigation Route Ref        | 10           | Route              | `navigationRouteRef`                     | Single      | String | Navigation route tracked    |
 
+### Source Code References (External → Code)
+
+| Pattern          | Source Layers | Target Type   | Field Path                                      | Cardinality | Format |
+| ---------------- | ------------- | ------------- | ----------------------------------------------- | ----------- | ------ |
+| Source Reference | 04, 06-12     | External Code | properties.source.reference, x-source-reference | Single      | Object |
+
 ## Validation Rules
 
 ### Target Existence

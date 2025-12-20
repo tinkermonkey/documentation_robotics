@@ -164,6 +164,7 @@ class DrBotOrchestrator:
         # --output-format stream-json: streaming JSON responses
         # (user_message piped via stdin)
         proc = None
+        cleanup_done = False
         try:
             proc = await asyncio.create_subprocess_exec(
                 "claude",
@@ -228,43 +229,69 @@ class DrBotOrchestrator:
                 "type": "complete",
                 "text": "".join(accumulated_text),
             }
+        except GeneratorExit:
+            # Generator is being closed early (e.g., test breaks after first yield)
+            # This is the critical path for cleanup when async generator is closed
+            cleanup_done = True
+            if proc is not None and proc.returncode is None:
+                # Process is still running - we need to clean it up NOW
+                # before the event loop closes
+                await self._cleanup_subprocess(proc)
+            raise
         finally:
             # Ensure process is terminated and resources are cleaned up
             # This is critical to prevent ResourceWarning about subprocess still running
-            if proc is not None:
-                if proc.returncode is None:
-                    # Process is still running - terminate it
-                    # Close stdin if it's open (stdin is a StreamWriter, has close())
-                    if proc.stdin and not proc.stdin.is_closing():
-                        proc.stdin.close()
-                        try:
-                            await proc.stdin.wait_closed()
-                        except Exception:
-                            pass
+            if not cleanup_done and proc is not None and proc.returncode is None:
+                await self._cleanup_subprocess(proc)
 
-                    # Drain any remaining data from stdout/stderr to close transports cleanly
-                    # This prevents ResourceWarning about unclosed transports
-                    if proc.stdout:
-                        try:
-                            # Read remaining data with a short timeout
-                            await asyncio.wait_for(proc.stdout.read(), timeout=0.1)
-                        except (asyncio.TimeoutError, Exception):
-                            pass
+    async def _cleanup_subprocess(self, proc: asyncio.subprocess.Process) -> None:
+        """
+        Clean up a subprocess and its resources.
 
-                    if proc.stderr:
-                        try:
-                            await asyncio.wait_for(proc.stderr.read(), timeout=0.1)
-                        except (asyncio.TimeoutError, Exception):
-                            pass
+        This ensures all pipes are drained and closed before terminating the process,
+        preventing ResourceWarning about unclosed transports.
 
-                    # Now kill the process
-                    proc.kill()
-                    try:
-                        # Wait for process to be killed (with timeout to prevent hanging)
-                        await asyncio.wait_for(proc.wait(), timeout=5.0)
-                    except asyncio.TimeoutError:
-                        # Process didn't terminate within timeout - this is rare but possible
-                        pass
+        Args:
+            proc: The subprocess to clean up
+        """
+        # Close stdin if it's open (stdin is a StreamWriter, has close())
+        if proc.stdin and not proc.stdin.is_closing():
+            proc.stdin.close()
+            try:
+                await proc.stdin.wait_closed()
+            except Exception:
+                pass
+
+        # Drain any remaining data from stdout/stderr to close transports cleanly
+        # This prevents ResourceWarning about unclosed transports
+        if proc.stdout:
+            try:
+                # Read remaining data with a short timeout
+                await asyncio.wait_for(proc.stdout.read(), timeout=0.1)
+            except (asyncio.TimeoutError, Exception):
+                pass
+
+        if proc.stderr:
+            try:
+                await asyncio.wait_for(proc.stderr.read(), timeout=0.1)
+            except (asyncio.TimeoutError, Exception):
+                pass
+
+        # Now kill the process
+        proc.kill()
+        try:
+            # Wait for process to be killed (with timeout to prevent hanging)
+            await asyncio.wait_for(proc.wait(), timeout=5.0)
+        except asyncio.TimeoutError:
+            # Process didn't terminate within timeout - this is rare but possible
+            pass
+
+        # CRITICAL: Give the event loop time to process transport cleanup callbacks
+        # When a process is killed, asyncio schedules transport._call_connection_lost()
+        # callbacks to close the pipe transports. If the event loop closes before
+        # these callbacks run, we get ResourceWarning about unclosed transports.
+        # A small sleep allows pending callbacks to execute.
+        await asyncio.sleep(0.1)
 
     async def handle_message(
         self,
@@ -766,28 +793,8 @@ class DrBotOrchestrator:
             try:
                 stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=self.timeout)
             except asyncio.TimeoutError:
-                # Close stdin if open (stdin is StreamWriter with close() method)
-                if proc.stdin and not proc.stdin.is_closing():
-                    proc.stdin.close()
-                    try:
-                        await proc.stdin.wait_closed()
-                    except Exception:
-                        pass
-
-                # Drain remaining data from stdout/stderr before killing
-                if proc.stdout:
-                    try:
-                        await asyncio.wait_for(proc.stdout.read(), timeout=0.1)
-                    except (asyncio.TimeoutError, Exception):
-                        pass
-                if proc.stderr:
-                    try:
-                        await asyncio.wait_for(proc.stderr.read(), timeout=0.1)
-                    except (asyncio.TimeoutError, Exception):
-                        pass
-
-                proc.kill()
-                await proc.wait()  # Wait for process to be killed
+                # Clean up subprocess on timeout
+                await self._cleanup_subprocess(proc)
                 return json.dumps(
                     {
                         "error": f"Command timed out after {self.timeout} seconds",
@@ -825,36 +832,8 @@ class DrBotOrchestrator:
             )
         finally:
             # Ensure process is cleaned up to prevent ResourceWarning
-            if proc is not None:
-                if proc.returncode is None:
-                    # Process is still running - terminate it
-                    # Close stdin if open (stdin is StreamWriter with close() method)
-                    if proc.stdin and not proc.stdin.is_closing():
-                        proc.stdin.close()
-                        try:
-                            await proc.stdin.wait_closed()
-                        except Exception:
-                            pass
-
-                    # Drain remaining data from stdout/stderr to close transports cleanly
-                    if proc.stdout:
-                        try:
-                            await asyncio.wait_for(proc.stdout.read(), timeout=0.1)
-                        except (asyncio.TimeoutError, Exception):
-                            pass
-                    if proc.stderr:
-                        try:
-                            await asyncio.wait_for(proc.stderr.read(), timeout=0.1)
-                        except (asyncio.TimeoutError, Exception):
-                            pass
-
-                    proc.kill()
-                    try:
-                        # Wait for process to be killed (with timeout to prevent hanging)
-                        await asyncio.wait_for(proc.wait(), timeout=5.0)
-                    except asyncio.TimeoutError:
-                        # Process didn't terminate within timeout - this is rare but possible
-                        pass
+            if proc is not None and proc.returncode is None:
+                await self._cleanup_subprocess(proc)
 
     def _load_dr_architect_prompt(self) -> str:
         """
