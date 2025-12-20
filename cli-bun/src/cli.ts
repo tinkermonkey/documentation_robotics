@@ -20,6 +20,7 @@ import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand } from './commands/project.js';
+import { exportCommand } from './commands/export.js';
 
 const program = new Command();
 
@@ -94,6 +95,21 @@ program
   .option('--layers <layers...>', 'Specific layers to validate')
   .option('--strict', 'Treat warnings as errors')
   .action(validateCommand);
+
+program
+  .command('export <format>')
+  .description('Export the architecture model to various formats')
+  .option('--output <path>', 'Output file path (default: print to stdout)')
+  .option('--layers <layers...>', 'Specific layers to export')
+  .action(async (format, options) => {
+    await exportCommand({
+      format,
+      output: options.output,
+      layers: options.layers,
+      verbose: options.parent.verbose,
+      debug: options.parent.debug,
+    });
+  });
 
 program
   .command('info')
