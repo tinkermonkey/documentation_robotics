@@ -459,7 +459,11 @@ class LinkValidator:
                     if not result.is_valid() or result.warnings:
                         # Create a pseudo LinkInstance for error reporting
                         pseudo_link = self._create_pseudo_link_instance(
-                            element.id, target_id, f"relationships[{predicate}]"
+                            source_id=element.id,
+                            target_id=target_id,
+                            field_path=f"relationships[{predicate}]",
+                            source_layer=source_layer,
+                            source_element_type=element.type,
                         )
 
                         if not result.is_valid():
@@ -485,7 +489,12 @@ class LinkValidator:
         return relationship_issues
 
     def _create_pseudo_link_instance(
-        self, source_id: str, target_id: str, field_path: str
+        self,
+        source_id: str,
+        target_id: str,
+        field_path: str,
+        source_layer: str,
+        source_element_type: str,
     ) -> LinkInstance:
         """Create a pseudo LinkInstance for relationship validation errors.
 
@@ -493,6 +502,8 @@ class LinkValidator:
             source_id: Source element ID
             target_id: Target element ID
             field_path: Field path for error reporting
+            source_layer: Source element layer
+            source_element_type: Source element type
 
         Returns:
             LinkInstance object
@@ -519,6 +530,8 @@ class LinkValidator:
 
         return LinkInstance(
             source_id=source_id,
+            source_layer=source_layer,
+            source_element_type=source_element_type,
             field_path=field_path,
             target_ids=[target_id],
             link_type=pseudo_link_type,
