@@ -23,6 +23,10 @@ import { projectCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
 import { visualizeCommand } from './commands/visualize.js';
 import { chatCommand } from './commands/chat.js';
+import { migrateCommand } from './commands/migrate.js';
+import { upgradeCommand } from './commands/upgrade.js';
+import { conformanceCommand } from './commands/conformance.js';
+import { changesetCommands } from './commands/changeset.js';
 
 const program = new Command();
 
@@ -177,5 +181,40 @@ program
   .action(async () => {
     await chatCommand();
   });
+
+// Advanced commands
+program
+  .command('migrate')
+  .description('Migrate the model to a different spec version')
+  .option('--to <version>', 'Target spec version')
+  .option('--dry-run', 'Preview changes without applying them')
+  .option('--force', 'Skip validation checks')
+  .action(async (options) => {
+    await migrateCommand({
+      to: options.to,
+      dryRun: options.dryRun,
+      force: options.force,
+    });
+  });
+
+program
+  .command('upgrade')
+  .description('Check for available CLI and spec version upgrades')
+  .action(async () => {
+    await upgradeCommand();
+  });
+
+program
+  .command('conformance')
+  .description('Check model conformance to layer specifications')
+  .option('--layers <layers...>', 'Specific layers to check')
+  .action(async (options) => {
+    await conformanceCommand({
+      layers: options.layers,
+    });
+  });
+
+// Changeset subcommands
+changesetCommands(program);
 
 program.parse();
