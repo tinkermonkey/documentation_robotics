@@ -120,11 +120,89 @@ Retrieve model data
 
 ### `WS /ws`
 
-WebSocket connection for real-time updates
+WebSocket connection for real-time updates.
 
-**Authentication**: Required (during handshake)
+**Authentication**: Required (token via query: `?token=<token>`, see API spec)
 
-**Messages**: See [websocket_protocol.py](./websocket_protocol.py) for full protocol documentation
+**Client → Server**
+
+- Subscribe to topics:
+
+  ```json
+  { "type": "subscribe", "topics": ["model", "changesets", "annotations"] }
+  ```
+
+- Heartbeat:
+
+  ```json
+  { "type": "ping" }
+  ```
+
+**Server → Client**
+
+- Connection acknowledgement (includes version):
+
+  ```json
+  { "type": "connected", "version": "0.2.3", "message": "WebSocket connection established" }
+  ```
+
+- Subscription acknowledgement:
+
+  ```json
+  { "type": "subscribed", "topics": ["model", "changesets", "annotations"] }
+  ```
+
+- Heartbeat response:
+
+  ```json
+  { "type": "pong" }
+  ```
+
+- Model changes (spec-aligned):
+
+  ```json
+  { "type": "model.updated", "timestamp": "2025-12-20T12:00:00Z" }
+  ```
+
+  The server also emits legacy incremental messages used by tests and some tooling:
+
+  ```json
+  { "type": "element_updated", "timestamp": "...", "data": {"layer": "business", "element_id": "...", "element": { /* optional */ } } }
+  { "type": "element_added",   "timestamp": "...", "data": {"layer": "business", "element_id": "...", "element": { /* required */ } } }
+  { "type": "element_removed", "timestamp": "...", "data": {"layer": "business", "element_id": "..." } }
+  { "type": "layer_updated",   "timestamp": "...", "data": {"layer": "business", "layer_data": { /* full layer */ } } }
+  ```
+
+- Changesets:
+
+  ```json
+  { "type": "changeset.created", "changesetId": "feature-add-payment-service", "timestamp": "..." }
+  ```
+
+- Annotations:
+
+  Spec-aligned REST API emits:
+
+  ```json
+  { "type": "annotation.added",   "annotationId": "...", "elementId": "...", "timestamp": "..." }
+  { "type": "annotation.updated", "annotationId": "...", "timestamp": "..." }
+  { "type": "annotation.deleted", "annotationId": "...", "timestamp": "..." }
+  ```
+
+  WebSocket broadcasts for add/reply use legacy message shapes to maintain unit test compatibility:
+
+  ```json
+  { "type": "annotation_added", "timestamp": "...", "data": { "id": "...", "entity_uri": "...", "user": "...", "message": "...", "parent_id": null } }
+  { "type": "annotation_reply_added", "timestamp": "...", "data": { "id": "...", "entity_uri": "...", "user": "...", "message": "...", "parent_id": "..." } }
+  ```
+
+**Subscriptions and filtering**
+
+- Clients can subscribe to any combination of topics: `model`, `changesets`, `annotations`.
+- The server filters outgoing broadcasts per connection based on the subscribed topics.
+- Messages without a specific topic (e.g., `connected`, `subscribed`, `pong`, `error`) are sent to all clients.
+
+See [websocket_protocol.py](./websocket_protocol.py) for helper creators and full message catalog.
 
 ## Security Considerations
 

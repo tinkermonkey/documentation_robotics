@@ -5,6 +5,7 @@ Handles automatic upgrades of project files when CLI version changes,
 including schemas, Claude integration, and manifest updates.
 """
 
+import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional
@@ -18,6 +19,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 
 from .. import __version__ as CLI_VERSION
+from ..versions import SPEC_VERSION
 from .manifest import Manifest
 
 console = Console()
@@ -64,12 +66,8 @@ class UpgradeManager:
         # Get stored CLI version from manifest
         stored_version = manifest.data.get("cli_version")
 
-        # Check if upgrade needed
+        # Check if upgrade needed based on CLI version
         if not force:
-            if stored_version == CLI_VERSION:
-                # Already up to date
-                return False
-
             if stored_version and Version(stored_version) > Version(CLI_VERSION):
                 # Downgrade detected
                 console.print(
@@ -81,10 +79,15 @@ class UpgradeManager:
                 return False
 
         # Determine what needs upgrading
-        upgrade_items = self._determine_upgrades(manifest, stored_version)
+        upgrade_items = self._determine_upgrades(manifest, stored_version, force=force)
 
-        if not upgrade_items and not force:
-            return False
+        # If no upgrade items and versions match, nothing to do
+        if not upgrade_items:
+            if not force:
+                return False
+            # Even with force, if there are truly no items, nothing to do
+            if stored_version == CLI_VERSION:
+                return False
 
         # Show upgrade summary
         self._show_upgrade_summary(stored_version, CLI_VERSION, upgrade_items)
@@ -101,13 +104,14 @@ class UpgradeManager:
         return True
 
     def _determine_upgrades(
-        self, manifest: Manifest, stored_version: Optional[str]
+        self, manifest: Manifest, stored_version: Optional[str], force: bool = False
     ) -> List[Dict[str, any]]:
         """Determine what needs to be upgraded.
 
         Args:
             manifest: Current manifest
             stored_version: Previously stored CLI version
+            force: Force upgrade even if versions match
 
         Returns:
             List of upgrade items
@@ -124,8 +128,8 @@ class UpgradeManager:
                 }
             )
 
-        # Check schemas
-        if self._schemas_need_update():
+        # Check schemas - always update if force=True
+        if force or self._schemas_need_update():
             items.append(
                 {
                     "type": "schemas",
@@ -160,6 +164,19 @@ class UpgradeManager:
         """Check if schema files need updating."""
         if not self.schemas_dir.exists():
             return True
+
+        # Check schema version in .manifest.json
+        manifest_path = self.schemas_dir / ".manifest.json"
+        if manifest_path.exists():
+            try:
+                with open(manifest_path) as f:
+                    data = json.load(f)
+                    current_version = data.get("spec_version")
+                    if current_version and current_version != SPEC_VERSION:
+                        return True
+            except (json.JSONDecodeError, KeyError, OSError):
+                # If we can't read the version, assume update is needed
+                return True
 
         # Check if any schema files are missing
         # Import from bundler to ensure we check for all files

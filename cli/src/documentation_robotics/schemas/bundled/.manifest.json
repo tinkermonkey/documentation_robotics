@@ -1,13 +1,13 @@
 {
   "spec_version": "0.6.0",
   "source": "local",
-  "created_at": "2025-12-20T13:50:29.109018+00:00",
+  "created_at": "2025-12-20T15:07:28.734798+00:00",
   "created_by": "prepare_build.py",
   "warning": "DO NOT EDIT - These files are generated from spec releases",
   "files": {
     ".manifest.json": {
-      "sha256": "a0d29c79d8fb0d461acbd8765a9725658ac714bf27d4b69d2bb1b1b7287f2360",
-      "size": 2321
+      "sha256": "ab39fe641a591cbf157f3f5608e272520f40ebe395cc44f5599d866f98cf7be6",
+      "size": 2320
     },
     "01-motivation-layer.schema.json": {
       "sha256": "18c1ee6b4d4318f9ef3fd6c29b9450667cc44d032b532a2937dce9e2d6938719",
@@ -60,6 +60,10 @@
     "relationship-catalog.json": {
       "sha256": "30dc16a30aef25ddccb1bb1c13eaab8f5237314bd267c476e6a44ecd089b8905",
       "size": 41426
+    },
+    "relationship-type.schema.json": {
+      "sha256": "323360bde2abd1c56eb86c2f038215705b2518bfba9aa48e2c8e6dd4376f4c7a",
+      "size": 6198
     }
   }
 }

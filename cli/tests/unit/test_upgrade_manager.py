@@ -5,6 +5,7 @@ import yaml
 from documentation_robotics import __version__
 from documentation_robotics.core.manifest import Manifest
 from documentation_robotics.core.upgrade_manager import UpgradeManager
+from documentation_robotics.versions import SPEC_VERSION
 
 
 class TestUpgradeManager:
@@ -168,6 +169,51 @@ class TestUpgradeManager:
         # Schemas should exist after init
         assert needs_update is False
 
+    def test_schemas_need_update_version_mismatch(self, initialized_project):
+        """Test that schemas need update when spec_version doesn't match."""
+        import json
+
+        # Modify .manifest.json to have old spec version
+        manifest_path = initialized_project / ".dr" / "schemas" / ".manifest.json"
+        with open(manifest_path) as f:
+            data = json.load(f)
+
+        data["spec_version"] = "0.5.0"
+
+        with open(manifest_path, "w") as f:
+            json.dump(data, f)
+
+        manager = UpgradeManager(initialized_project)
+        needs_update = manager._schemas_need_update()
+
+        assert needs_update is True
+
+    def test_check_upgrade_detects_schema_version_mismatch(self, initialized_project):
+        """Test that check_and_upgrade detects schema version mismatches even when CLI version matches."""
+        import json
+
+        # Set old spec version
+        manifest_path = initialized_project / ".dr" / "schemas" / ".manifest.json"
+        with open(manifest_path) as f:
+            data = json.load(f)
+
+        data["spec_version"] = "0.5.0"
+
+        with open(manifest_path, "w") as f:
+            json.dump(data, f)
+
+        manager = UpgradeManager(initialized_project)
+        upgraded = manager.check_and_upgrade(auto=True, force=False)
+
+        # Should detect schema update needed
+        assert upgraded is True
+
+        # Verify schema version was updated
+        with open(manifest_path) as f:
+            updated_data = json.load(f)
+
+        assert updated_data["spec_version"] == SPEC_VERSION
+
     def test_claude_not_installed(self, initialized_project):
         """Test Claude integration not installed."""
         manager = UpgradeManager(initialized_project)
@@ -222,9 +268,26 @@ class TestUpgradeManager:
         # Force upgrade should return True even though version matches
         upgraded = manager.check_and_upgrade(auto=True, force=True)
 
-        # With force=True, upgrade should run if there are any items
-        # or may return False if everything is truly identical
-        assert upgraded in [True, False]
+        # With force=True, upgrade should run schemas update
+        assert upgraded is True
+
+    def test_force_upgrade_updates_schemas(self, initialized_project):
+        """Test that force upgrade updates schemas even when files exist."""
+        # Modify a schema file
+        schema_path = initialized_project / ".dr" / "schemas" / "01-motivation-layer.schema.json"
+        original_content = schema_path.read_text()
+        schema_path.write_text(original_content + "\n// Modified")
+
+        manager = UpgradeManager(initialized_project)
+
+        # Force upgrade should restore the schema
+        upgraded = manager.check_and_upgrade(auto=True, force=True)
+        assert upgraded is True
+
+        # Verify schema was restored
+        new_content = schema_path.read_text()
+        assert "// Modified" not in new_content
+        assert new_content == original_content
 
     def test_upgrade_preserves_project_data(self, initialized_project):
         """Test that upgrade preserves existing project data."""
@@ -288,6 +351,23 @@ class TestUpgradeManager:
         # Should have at least manifest upgrade
         assert len(items) > 0
         assert any(item["type"] == "manifest" for item in items)
+
+    def test_determine_upgrades_with_force(self, initialized_project):
+        """Test that _determine_upgrades includes schemas when force=True."""
+        manifest_path = initialized_project / "documentation-robotics" / "model" / "manifest.yaml"
+        manifest = Manifest.load(manifest_path)
+
+        manager = UpgradeManager(initialized_project)
+
+        # Without force, schemas should not be included if they exist
+        items_no_force = manager._determine_upgrades(manifest, __version__, force=False)
+        schema_items_no_force = [item for item in items_no_force if item["type"] == "schemas"]
+        assert len(schema_items_no_force) == 0
+
+        # With force, schemas should be included even if they exist
+        items_with_force = manager._determine_upgrades(manifest, __version__, force=True)
+        schema_items_with_force = [item for item in items_with_force if item["type"] == "schemas"]
+        assert len(schema_items_with_force) == 1
 
     def test_upgrade_manifest_structure(self, initialized_project):
         """Test upgrading manifest structure."""

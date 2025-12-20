@@ -253,6 +253,9 @@ def copy_schemas_to_project(project_schemas_dir: Path) -> int:
         source_path = bundled_dir / filename
         dest_path = project_schemas_dir / filename
 
+        # Ensure parent directory exists for this file
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
         if not source_path.exists():
             logger.warning(f"Common schema file missing: {filename}")
             continue

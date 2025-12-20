@@ -68,6 +68,8 @@ where = ["src"]
 [tool.setuptools.package-data]
 documentation_robotics = [
     "schemas/bundled/*.json",
+    "schemas/bundled/.manifest.json",
+    "schemas/bundled/common/*.json",
     "schemas/link-registry.json",
     "claude_integration/reference_sheets/*.md",
     "claude_integration/commands/*.md",

@@ -1,0 +1,975 @@
+openapi: 3.0.3
+info:
+  title: Documentation Robotics Visualization Server API
+  description: 'API specification for the DR CLI visualization server (`dr visualize`).
+
+
+    This server provides access to the architecture model, JSON schemas, changesets,
+
+    and annotations for the Documentation Robotics viewer application.
+
+
+    ## Authentication
+
+
+    The server uses token-based authentication:
+
+    - Token is generated on server startup and included in a "magic link" URL
+
+    - Token can be provided via `Authorization: Bearer <token>` header
+
+    - Token can be provided via `?token=<token>` query parameter (for WebSocket)
+
+    - Static assets (HTML, JS, CSS, images) are public (no auth required)
+
+
+    ## Data Sources
+
+
+    - **Schemas**: `.dr/schemas/` directory (JSON Schema files)
+
+    - **Model**: `documentation-robotics/model/` directory (YAML files)
+
+    - **Changesets**: Changeset files (if implemented)
+
+    - **Annotations**: Annotation storage (if implemented)
+
+
+    Generated: 2025-12-20 12:38:31'
+  version: 0.2.3
+  contact:
+    name: Documentation Robotics
+    url: https://github.com/tinkermonkey/documentation_robotics
+  license:
+    name: ISC
+servers:
+- url: http://localhost:8765
+  description: Local development server
+- url: http://localhost:{port}
+  description: Configurable port server
+  variables:
+    port:
+      default: '8765'
+      description: Server port
+tags:
+- name: Health
+  description: Server health and status
+- name: Schema
+  description: JSON Schema specifications
+- name: Model
+  description: Architecture model data
+- name: Changesets
+  description: Model changesets and history
+- name: Annotations
+  description: User annotations on model elements
+- name: WebSocket
+  description: Real-time updates via WebSocket
+security:
+- BearerAuth: []
+- QueryAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      description: Check if the server is running. No authentication required.
+      tags:
+      - Health
+      security: []
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    enum:
+                    - ok
+                  version:
+                    type: string
+                    example: 0.2.3
+              example:
+                status: ok
+                version: 0.2.3
+  /api/spec:
+    get:
+      summary: Get JSON Schema specifications
+      description: 'Returns all JSON Schema files from `.dr/schemas/` directory.
+
+        Includes layer schemas, relationship catalog, and link registry.'
+      tags:
+      - Schema
+      responses:
+        '200':
+          description: Schema collection successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpecDataResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/model:
+    get:
+      summary: Get architecture model
+      description: 'Returns the current architecture model from `documentation-robotics/model/`.
+
+        Includes all layers, elements, relationships, and cross-layer references.'
+      tags:
+      - Model
+      responses:
+        '200':
+          description: Model successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ModelResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Model manifest not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              example:
+                error: Model manifest not found. Is dr CLI initialized?
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/link-registry:
+    get:
+      summary: Get cross-layer link registry
+      description: 'Returns the link registry defining valid cross-layer relationships.
+
+        Located at `.dr/schemas/link-registry.json`.'
+      tags:
+      - Schema
+      responses:
+        '200':
+          description: Link registry successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LinkRegistry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Link registry not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/changesets:
+    get:
+      summary: List all changesets
+      description: Returns a registry of all available changesets with summaries.
+      tags:
+      - Changesets
+      responses:
+        '200':
+          description: Changesets list successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangesetRegistry'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/changesets/{changesetId}:
+    get:
+      summary: Get changeset details
+      description: Returns detailed information about a specific changeset including
+        all changes.
+      tags:
+      - Changesets
+      parameters:
+      - name: changesetId
+        in: path
+        required: true
+        description: Unique identifier for the changeset
+        schema:
+          type: string
+        example: feature-add-payment-service
+      responses:
+        '200':
+          description: Changeset details successfully retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangesetDetails'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Changeset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/annotations:
+    get:
+      summary: Get annotations
+      description: 'Returns annotations, optionally filtered by element ID.
+
+        Used for displaying user notes and comments on model elements.'
+      tags:
+      - Annotations
+      parameters:
+      - name: elementId
+        in: query
+        required: false
+        description: Filter annotations by element ID
+        schema:
+          type: string
+        example: business.service.payment-processing
+      responses:
+        '200':
+          description: Annotations successfully retrieved
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  annotations:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Annotation'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    post:
+      summary: Create annotation
+      description: Create a new annotation on a model element.
+      tags:
+      - Annotations
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationCreate'
+      responses:
+        '201':
+          description: Annotation created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /api/annotations/{annotationId}:
+    put:
+      summary: Update annotation
+      description: Update an existing annotation.
+      tags:
+      - Annotations
+      parameters:
+      - name: annotationId
+        in: path
+        required: true
+        description: Unique identifier for the annotation
+        schema:
+          type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AnnotationUpdate'
+      responses:
+        '200':
+          description: Annotation updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Annotation'
+        '400':
+          description: Invalid request body
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Annotation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+    delete:
+      summary: Delete annotation
+      description: Delete an existing annotation.
+      tags:
+      - Annotations
+      parameters:
+      - name: annotationId
+        in: path
+        required: true
+        description: Unique identifier for the annotation
+        schema:
+          type: string
+      responses:
+        '204':
+          description: Annotation deleted successfully
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          description: Annotation not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          $ref: '#/components/responses/InternalServerError'
+  /ws:
+    get:
+      summary: WebSocket connection for real-time updates
+      description: 'WebSocket endpoint for receiving real-time updates about model
+        changes.
+
+
+        **Authentication**: Token must be provided as query parameter: `?token=<token>`
+
+
+        **Client → Server Messages**:
+
+        - `{"type": "subscribe", "topics": ["model", "changesets", "annotations"]}`
+
+        - `{"type": "ping"}`
+
+
+        **Server → Client Messages**:
+
+        - `{"type": "connected", "version": "0.2.3"}`
+
+        - `{"type": "subscribed", "topics": [...]}`
+
+        - `{"type": "pong"}`
+
+        - `{"type": "model.updated", "timestamp": "2025-12-20T12:00:00Z"}`
+
+        - `{"type": "changeset.created", "changesetId": "..."}`
+
+        - `{"type": "annotation.added", "annotationId": "...", "elementId": "..."}`
+
+        - `{"type": "annotation.updated", "annotationId": "..."}`
+
+        - `{"type": "annotation.deleted", "annotationId": "..."}`'
+      tags:
+      - WebSocket
+      security:
+      - QueryAuth: []
+      responses:
+        '101':
+          description: WebSocket connection established
+        '401':
+          description: Authentication required
+        '403':
+          description: Invalid token
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: token
+      description: 'Token provided in Authorization header: `Authorization: Bearer
+        <token>`'
+    QueryAuth:
+      type: apiKey
+      in: query
+      name: token
+      description: 'Token provided as query parameter: `?token=<token>`
+
+        Used primarily for WebSocket connections where custom headers are not supported.'
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Authentication required. Please provide a valid token.
+    Forbidden:
+      description: Invalid authentication token
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+          example:
+            error: Invalid authentication token
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+  schemas:
+    Error:
+      type: object
+      required:
+      - error
+      properties:
+        error:
+          type: string
+          description: Error message
+      example:
+        error: Failed to load model
+    SpecDataResponse:
+      type: object
+      required:
+      - version
+      - type
+      - schemas
+      properties:
+        version:
+          type: string
+          description: Specification version
+          example: 0.2.3
+        type:
+          type: string
+          enum:
+          - schema-collection
+          description: Response type identifier
+        description:
+          type: string
+          description: Human-readable description
+          example: JSON Schema definitions from dr CLI
+        source:
+          type: string
+          description: Source of the schemas
+          example: dr-cli
+        schemas:
+          type: object
+          additionalProperties:
+            type: object
+          description: Map of schema filename to JSON Schema object
+        schema_count:
+          type: integer
+          description: Number of schemas included
+          example: 12
+        schemaCount:
+          type: integer
+          description: Alternative field name for schema count
+        manifest:
+          type: object
+          description: Schema manifest metadata
+          properties:
+            spec_version:
+              type: string
+            source:
+              type: string
+            created_at:
+              type: string
+              format: date-time
+            created_by:
+              type: string
+            files:
+              type: object
+              additionalProperties:
+                type: object
+                properties:
+                  sha256:
+                    type: string
+                  size:
+                    type: integer
+        relationshipCatalog:
+          $ref: '#/components/schemas/RelationshipCatalog'
+        relationship_catalog:
+          $ref: '#/components/schemas/RelationshipCatalog'
+        linkRegistry:
+          $ref: '#/components/schemas/LinkRegistry'
+    RelationshipCatalog:
+      type: object
+      properties:
+        version:
+          type: string
+        relationshipTypes:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              predicate:
+                type: string
+              inversePredicate:
+                type: string
+              category:
+                type: string
+              description:
+                type: string
+    LinkRegistry:
+      type: object
+      required:
+      - version
+      - linkTypes
+      - categories
+      - metadata
+      properties:
+        version:
+          type: string
+          example: 1.0.0
+        linkTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/LinkType'
+        categories:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/LinkCategory'
+        metadata:
+          type: object
+          properties:
+            generatedDate:
+              type: string
+              format: date-time
+            generatedFrom:
+              type: string
+            generator:
+              type: string
+            totalLinkTypes:
+              type: integer
+            totalCategories:
+              type: integer
+            version:
+              type: string
+            schemaVersion:
+              type: string
+    LinkType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        category:
+          type: string
+        sourceLayers:
+          type: array
+          items:
+            type: string
+        targetLayer:
+          type: string
+        targetElementTypes:
+          type: array
+          items:
+            type: string
+        fieldPaths:
+          type: array
+          items:
+            type: string
+        cardinality:
+          type: string
+        format:
+          type: string
+        description:
+          type: string
+        examples:
+          type: array
+          items:
+            type: string
+        validationRules:
+          type: object
+          properties:
+            targetExists:
+              type: boolean
+            targetType:
+              type: string
+    LinkCategory:
+      type: object
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        color:
+          type: string
+    ModelResponse:
+      type: object
+      required:
+      - version
+      - metadata
+      - layers
+      - references
+      properties:
+        version:
+          type: string
+          description: Model format version
+          example: 0.1.0
+        metadata:
+          type: object
+          required:
+          - type
+          - source
+          properties:
+            type:
+              type: string
+              enum:
+              - yaml-instance
+              - schema-collection
+            description:
+              type: string
+            source:
+              type: string
+              example: dr-cli
+            project:
+              type: object
+              description: Project metadata from manifest
+            statistics:
+              type: object
+              description: Model statistics
+        layers:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Layer'
+          description: Map of layer ID to layer data
+        references:
+          type: array
+          items:
+            $ref: '#/components/schemas/CrossLayerReference'
+          description: Cross-layer references
+    Layer:
+      type: object
+      required:
+      - id
+      - type
+      - name
+      - elements
+      - relationships
+      properties:
+        id:
+          type: string
+          description: Normalized layer ID (lowercase, underscore-separated)
+          example: business
+        type:
+          type: string
+          description: Layer type name
+          example: Business
+        name:
+          type: string
+          description: Display name
+          example: Business Layer
+        elements:
+          type: array
+          items:
+            $ref: '#/components/schemas/Element'
+        relationships:
+          type: array
+          items:
+            $ref: '#/components/schemas/Relationship'
+    Element:
+      type: object
+      required:
+      - id
+      - type
+      - name
+      - layerId
+      - properties
+      properties:
+        id:
+          type: string
+          description: Fully qualified element ID
+          example: business.service.payment-processing
+        type:
+          type: string
+          description: Element type
+          example: service
+        name:
+          type: string
+          description: Display name
+          example: Payment Processing
+        layerId:
+          type: string
+          description: Parent layer ID
+          example: business
+        properties:
+          type: object
+          description: Element-specific properties
+        visual:
+          type: object
+          description: Visual layout information
+          properties:
+            position:
+              type: object
+              properties:
+                x:
+                  type: number
+                y:
+                  type: number
+            size:
+              type: object
+              properties:
+                width:
+                  type: number
+                height:
+                  type: number
+            style:
+              type: object
+              properties:
+                backgroundColor:
+                  type: string
+                borderColor:
+                  type: string
+    Relationship:
+      type: object
+      required:
+      - source
+      - target
+      - type
+      properties:
+        id:
+          type: string
+        source:
+          type: string
+          description: Source element ID
+        target:
+          type: string
+          description: Target element ID
+        type:
+          type: string
+          description: Relationship type
+        properties:
+          type: object
+          description: Additional relationship properties
+    CrossLayerReference:
+      type: object
+      required:
+      - source
+      - target
+      - type
+      properties:
+        source:
+          type: object
+          required:
+          - layerId
+          - elementId
+          properties:
+            layerId:
+              type: string
+            elementId:
+              type: string
+        target:
+          type: object
+          required:
+          - layerId
+          - elementId
+          properties:
+            layerId:
+              type: string
+            elementId:
+              type: string
+        type:
+          type: string
+          description: Reference type (e.g., "realizes", "uses", "deployedTo")
+    ChangesetRegistry:
+      type: object
+      required:
+      - version
+      - changesets
+      properties:
+        version:
+          type: string
+          example: 1.0.0
+        changesets:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ChangesetSummary'
+    ChangesetSummary:
+      type: object
+      properties:
+        name:
+          type: string
+        status:
+          type: string
+          enum:
+          - active
+          - applied
+          - abandoned
+        type:
+          type: string
+          enum:
+          - feature
+          - bugfix
+          - exploration
+        created_at:
+          type: string
+          format: date-time
+        elements_count:
+          type: integer
+    ChangesetDetails:
+      type: object
+      required:
+      - metadata
+      - changes
+      properties:
+        metadata:
+          $ref: '#/components/schemas/ChangesetMetadata'
+        changes:
+          type: object
+          required:
+          - version
+          - changes
+          properties:
+            version:
+              type: string
+            changes:
+              type: array
+              items:
+                $ref: '#/components/schemas/ChangesetChange'
+    ChangesetMetadata:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        type:
+          type: string
+        status:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        workflow:
+          type: string
+        summary:
+          type: object
+          properties:
+            elements_added:
+              type: integer
+            elements_updated:
+              type: integer
+            elements_deleted:
+              type: integer
+    ChangesetChange:
+      type: object
+      required:
+      - timestamp
+      - operation
+      - element_id
+      - layer
+      - element_type
+      properties:
+        timestamp:
+          type: string
+          format: date-time
+        operation:
+          type: string
+          enum:
+          - add
+          - update
+          - delete
+        element_id:
+          type: string
+        layer:
+          type: string
+        element_type:
+          type: string
+        data:
+          type: object
+          description: New element data (for add operations)
+        before:
+          type: object
+          description: Element state before change (for update operations)
+        after:
+          type: object
+          description: Element state after change (for update operations)
+    Annotation:
+      type: object
+      required:
+      - id
+      - elementId
+      - content
+      - createdAt
+      properties:
+        id:
+          type: string
+          description: Unique annotation ID
+        elementId:
+          type: string
+          description: ID of the annotated element
+        content:
+          type: string
+          description: Annotation text content
+        author:
+          type: string
+          description: Author of the annotation
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        tags:
+          type: array
+          items:
+            type: string
+          description: Optional tags for categorization
+    AnnotationCreate:
+      type: object
+      required:
+      - elementId
+      - content
+      properties:
+        elementId:
+          type: string
+        content:
+          type: string
+        author:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+    AnnotationUpdate:
+      type: object
+      properties:
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string

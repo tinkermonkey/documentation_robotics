@@ -29,6 +29,15 @@ MESSAGE_TYPES = {
     # Annotation message types
     "annotation_added": "Annotation created",
     "annotation_reply_added": "Reply to annotation created",
+    # Spec-aligned message types
+    "connected": "Server greeting with version",
+    "subscribed": "Server acknowledgement of topic subscriptions",
+    "pong": "Heartbeat response",
+    "model.updated": "Model changed (any element/layer updates)",
+    "changeset.created": "New changeset created",
+    "annotation.added": "Annotation created",
+    "annotation.updated": "Annotation updated",
+    "annotation.deleted": "Annotation deleted",
 }
 
 
@@ -57,6 +66,21 @@ def create_initial_state_message(
             "changesets": changesets,
         },
     }
+
+
+def create_connected_message(version: str) -> Dict[str, Any]:
+    """Create spec-aligned connected message with backward-compatible text."""
+    return {"type": "connected", "version": version, "message": "WebSocket connection established"}
+
+
+def create_subscribed_message(topics: List[str]) -> Dict[str, Any]:
+    """Create spec-aligned subscribed message."""
+    return {"type": "subscribed", "topics": topics}
+
+
+def create_pong_message() -> Dict[str, Any]:
+    """Create spec-aligned pong message."""
+    return {"type": "pong"}
 
 
 def create_element_update_message(
@@ -113,6 +137,11 @@ def create_layer_update_message(layer: str, layer_data: Dict[str, Any]) -> Dict[
     }
 
 
+def create_model_updated_message() -> Dict[str, Any]:
+    """Create spec-aligned model.updated message."""
+    return {"type": "model.updated", "timestamp": get_timestamp()}
+
+
 def create_error_message(error: str, details: Optional[str] = None) -> Dict[str, Any]:
     """
     Create error message.
@@ -140,13 +169,13 @@ def create_error_message(error: str, details: Optional[str] = None) -> Dict[str,
 
 def create_annotation_added_message(annotation: "Annotation") -> Dict[str, Any]:
     """
-    Create annotation_added WebSocket message.
+    Create legacy annotation_added WebSocket message (used in unit tests).
 
     Args:
         annotation: Annotation object from core.annotations
 
     Returns:
-        WebSocket message dict with annotation data
+        WebSocket message dict with nested data per legacy format
     """
     return {
         "type": "annotation_added",
@@ -164,15 +193,14 @@ def create_annotation_added_message(annotation: "Annotation") -> Dict[str, Any]:
 
 def create_annotation_reply_added_message(reply: "Annotation") -> Dict[str, Any]:
     """
-    Create annotation_reply_added WebSocket message.
+    Create legacy annotation_reply_added WebSocket message (used in unit tests).
 
     Args:
         reply: Annotation object representing a reply
 
     Returns:
-        WebSocket message dict with reply data
+        WebSocket message dict with nested data per legacy format
     """
-    # Replies are annotations with parent_id, so use same structure
     return {
         "type": "annotation_reply_added",
         "timestamp": get_timestamp(),
@@ -185,6 +213,29 @@ def create_annotation_reply_added_message(reply: "Annotation") -> Dict[str, Any]
             "parent_id": reply.parent_id,
         },
     }
+
+
+def create_annotation_updated_message(annotation_id: str) -> Dict[str, Any]:
+    """Create spec-aligned annotation.updated message."""
+    return {
+        "type": "annotation.updated",
+        "annotationId": annotation_id,
+        "timestamp": get_timestamp(),
+    }
+
+
+def create_annotation_deleted_message(annotation_id: str) -> Dict[str, Any]:
+    """Create spec-aligned annotation.deleted message."""
+    return {
+        "type": "annotation.deleted",
+        "annotationId": annotation_id,
+        "timestamp": get_timestamp(),
+    }
+
+
+def create_changeset_created_message(changeset_id: str) -> Dict[str, Any]:
+    """Create spec-aligned changeset.created message."""
+    return {"type": "changeset.created", "changesetId": changeset_id, "timestamp": get_timestamp()}
 
 
 def get_timestamp() -> str:

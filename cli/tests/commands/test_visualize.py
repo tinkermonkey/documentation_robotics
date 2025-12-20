@@ -56,7 +56,8 @@ class TestVisualizationServer(AioHTTPTestCase):
         resp = await self.client.request("GET", "/health")
         assert resp.status == 200
         data = await resp.json()
-        assert data["status"] == "healthy"
+        assert data["status"] == "ok"
+        assert "version" in data
 
     async def test_index_requires_auth_missing_token(self):
         """Test that index page requires authentication when token is missing."""
@@ -104,7 +105,8 @@ class TestVisualizationServer(AioHTTPTestCase):
         resp = await self.client.request("GET", f"/api/model?token={valid_token}")
         assert resp.status == 200
         data = await resp.json()
-        assert "model_path" in data
+        assert "layers" in data
+        assert "metadata" in data
 
     async def test_websocket_requires_auth(self):
         """Test that WebSocket upgrade requires authentication."""

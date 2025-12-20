@@ -26,6 +26,18 @@ viewer_bundled = pytest.mark.skipif(
 )
 
 
+@pytest.fixture
+def setup_manifest(tmp_path):
+    """Helper fixture to create minimal manifest structure for tests that need it."""
+
+    def _create_manifest(model_path):
+        manifest_path = model_path / "model" / "manifest.yaml"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text("project:\n  name: Test\nlayers: {}\n")
+
+    return _create_manifest
+
+
 class TestVisualizationServerInitialization:
     """Test server initialization and configuration."""
 
@@ -36,6 +48,11 @@ class TestVisualizationServerInitialization:
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        # Create manifest so resolver can find project root
+        manifest_path = model_path / "model" / "manifest.yaml"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text("project:\n  name: Test\nlayers: {}\n")
+
         server = VisualizationServer(
             model_path,
             spec_path,
@@ -43,7 +60,7 @@ class TestVisualizationServerInitialization:
             8080,
         )
 
-        assert server.model_path == model_path
+        assert server.model_path == tmp_path
         assert server.spec_path == spec_path
         assert server.host == "localhost"
         assert server.port == 8080
@@ -57,6 +74,11 @@ class TestVisualizationServerInitialization:
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
+
+        # Create manifest so resolver can find project root
+        manifest_path = model_path / "model" / "manifest.yaml"
+        manifest_path.parent.mkdir(parents=True, exist_ok=True)
+        manifest_path.write_text("project:\n  name: Test\nlayers: {}\n")
 
         server = VisualizationServer(
             model_path,
@@ -73,13 +95,14 @@ class TestHealthEndpoint:
     """Test health check endpoint functionality."""
 
     @pytest.mark.asyncio
-    async def test_health_endpoint_response(self, tmp_path):
+    async def test_health_endpoint_response(self, tmp_path, setup_manifest):
         """Test health endpoint returns correct data structure."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
         server.specification = {"version": "0.5.0"}
         server.file_monitor = Mock()
@@ -96,19 +119,18 @@ class TestHealthEndpoint:
         import json
 
         data = json.loads(response.text)
-        assert data["status"] == "healthy"
-        assert data["spec_version"] == "0.5.0"
-        assert data["connected_clients"] == 0
-        assert data["file_monitor_running"] is True
+        assert data["status"] == "ok"
+        assert data["version"] == "0.5.0"
 
     @pytest.mark.asyncio
-    async def test_health_endpoint_with_clients(self, tmp_path):
-        """Test health endpoint shows connected client count."""
+    async def test_health_endpoint_with_clients(self, tmp_path, setup_manifest):
+        """Test health endpoint returns version info."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
         server.specification = {"version": "0.5.0"}
 
@@ -124,20 +146,22 @@ class TestHealthEndpoint:
         import json
 
         data = json.loads(response.text)
-        assert data["connected_clients"] == 2
+        assert data["status"] == "ok"
+        assert data["version"] == "0.5.0"
 
 
 class TestIndexEndpoint:
     """Test index page handling and fallback behavior."""
 
     @pytest.mark.asyncio
-    async def test_index_fallback_without_viewer_package(self, tmp_path):
+    async def test_index_fallback_without_viewer_package(self, tmp_path, setup_manifest):
         """Test index page falls back to placeholder HTML when viewer not available."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
@@ -158,13 +182,14 @@ class TestStaticFileServing:
     """Test static file serving functionality."""
 
     @pytest.mark.asyncio
-    async def test_static_file_not_found(self, tmp_path):
+    async def test_static_file_not_found(self, tmp_path, setup_manifest):
         """Test 404 for missing static files."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
@@ -174,13 +199,14 @@ class TestStaticFileServing:
             await server._handle_static_file(request)
 
     @pytest.mark.asyncio
-    async def test_spa_routing(self, tmp_path):
+    async def test_spa_routing(self, tmp_path, setup_manifest):
         """Test SPA routing serves index for non-asset paths."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
@@ -198,13 +224,14 @@ class TestWebSocketHandling:
     """Test WebSocket connection management."""
 
     @pytest.mark.asyncio
-    async def test_websocket_connection_added(self, tmp_path):
+    async def test_websocket_connection_added(self, tmp_path, setup_manifest):
         """Test WebSocket connection is added to server set."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Verify WebSocket set starts empty
@@ -227,13 +254,14 @@ class TestWebSocketHandling:
         assert len(server.websockets) == 0
 
     @pytest.mark.asyncio
-    async def test_send_initial_state(self, tmp_path):
+    async def test_send_initial_state(self, tmp_path, setup_manifest):
         """Test initial state is sent to new WebSocket connection."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Mock dependencies
@@ -268,13 +296,14 @@ class TestBroadcasting:
     """Test message broadcasting to WebSocket clients."""
 
     @pytest.mark.asyncio
-    async def test_broadcast_to_single_client(self, tmp_path):
+    async def test_broadcast_to_single_client(self, tmp_path, setup_manifest):
         """Test broadcasting message to single WebSocket client."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
@@ -288,13 +317,14 @@ class TestBroadcasting:
         ws.send_json.assert_called_once_with(message)
 
     @pytest.mark.asyncio
-    async def test_broadcast_to_multiple_clients(self, tmp_path):
+    async def test_broadcast_to_multiple_clients(self, tmp_path, setup_manifest):
         """Test broadcasting message to multiple WebSocket clients."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws1 = AsyncMock(spec=web.WebSocketResponse)
@@ -317,13 +347,14 @@ class TestBroadcasting:
         ws3.send_json.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_broadcast_handles_failed_client(self, tmp_path):
+    async def test_broadcast_handles_failed_client(self, tmp_path, setup_manifest):
         """Test broadcasting removes disconnected clients."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws_working = AsyncMock(spec=web.WebSocketResponse)
@@ -351,13 +382,14 @@ class TestErrorHandling:
     """Test error handling in server operations."""
 
     @pytest.mark.asyncio
-    async def test_send_error_to_client(self, tmp_path):
+    async def test_send_error_to_client(self, tmp_path, setup_manifest):
         """Test error message sent to WebSocket client."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
@@ -378,13 +410,14 @@ class TestErrorHandling:
         assert call_args["message"] == error_msg
 
     @pytest.mark.asyncio
-    async def test_load_element_handles_invalid_yaml(self, tmp_path):
+    async def test_load_element_handles_invalid_yaml(self, tmp_path, setup_manifest):
         """Test loading element handles invalid YAML gracefully."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create invalid YAML file
@@ -397,13 +430,14 @@ class TestErrorHandling:
         assert result is None
 
     @pytest.mark.asyncio
-    async def test_load_element_handles_missing_file(self, tmp_path):
+    async def test_load_element_handles_missing_file(self, tmp_path, setup_manifest):
         """Test loading element handles missing file gracefully."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         missing_file = model_path / "nonexistent.yaml"
@@ -418,13 +452,14 @@ class TestShutdown:
     """Test server shutdown procedures."""
 
     @pytest.mark.asyncio
-    async def test_shutdown_closes_websockets(self, tmp_path):
+    async def test_shutdown_closes_websockets(self, tmp_path, setup_manifest):
         """Test shutdown closes all WebSocket connections."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Add mock WebSocket connections
@@ -446,13 +481,14 @@ class TestShutdown:
         assert len(server.websockets) == 0
 
     @pytest.mark.asyncio
-    async def test_shutdown_stops_file_monitor(self, tmp_path):
+    async def test_shutdown_stops_file_monitor(self, tmp_path, setup_manifest):
         """Test shutdown stops file monitoring."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Mock file monitor
@@ -469,21 +505,22 @@ class TestAnnotationWebSocketFlow:
     """Test annotation operations via WebSocket."""
 
     @pytest.mark.asyncio
-    async def test_annotation_add_success(self, tmp_path):
+    async def test_annotation_add_success(self, tmp_path, setup_manifest):
         """Test adding annotation via WebSocket."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Initialize annotation components
         from documentation_robotics.core.annotations import AnnotationRegistry
         from documentation_robotics.server.annotation_serializer import AnnotationSerializer
 
-        server.annotation_registry = AnnotationRegistry(model_path)
-        server.annotation_serializer = AnnotationSerializer(model_path)
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
         ws.send_json = AsyncMock()
@@ -501,7 +538,7 @@ class TestAnnotationWebSocketFlow:
         await server._handle_annotation_add(ws, message)
 
         # Verify annotation was created
-        annotations_file = model_path / "annotations" / "testuser" / "annotations.json"
+        annotations_file = server.model_path / "annotations" / "testuser" / "annotations.json"
         assert annotations_file.exists()
 
         import json
@@ -519,13 +556,14 @@ class TestAnnotationWebSocketFlow:
         assert broadcast_msg["data"]["entity_uri"] == "motivation.goal.test"
 
     @pytest.mark.asyncio
-    async def test_annotation_add_missing_fields(self, tmp_path):
+    async def test_annotation_add_missing_fields(self, tmp_path, setup_manifest):
         """Test adding annotation with missing required fields."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
@@ -552,15 +590,18 @@ class TestAnnotationWebSocketFlow:
         assert error_msg["type"] == "error"
 
     @pytest.mark.asyncio
-    async def test_annotation_reply_success(self, tmp_path):
+    async def test_annotation_reply_success(self, tmp_path, setup_manifest):
         """Test adding reply via WebSocket."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
         # Create parent annotation first
-        annotations_dir = model_path / "annotations" / "user1"
+        annotations_dir = server.model_path / "annotations" / "user1"
         annotations_dir.mkdir(parents=True)
 
         import json
@@ -578,15 +619,13 @@ class TestAnnotationWebSocketFlow:
         }
         (annotations_dir / "annotations.json").write_text(json.dumps(parent_data, indent=2))
 
-        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
-
         # Initialize annotation components
         from documentation_robotics.core.annotations import AnnotationRegistry
         from documentation_robotics.server.annotation_serializer import AnnotationSerializer
 
-        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_registry = AnnotationRegistry(server.model_path)
         server.annotation_registry.load_all()
-        server.annotation_serializer = AnnotationSerializer(model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
         ws.send_json = AsyncMock()
@@ -604,7 +643,7 @@ class TestAnnotationWebSocketFlow:
         await server._handle_annotation_reply(ws, message)
 
         # Verify reply was created in user2's file
-        reply_file = model_path / "annotations" / "user2" / "annotations.json"
+        reply_file = server.model_path / "annotations" / "user2" / "annotations.json"
         assert reply_file.exists()
 
         data = json.loads(reply_file.read_text())
@@ -620,19 +659,20 @@ class TestAnnotationWebSocketFlow:
         assert broadcast_msg["type"] == "annotation_reply_added"
 
     @pytest.mark.asyncio
-    async def test_annotation_reply_parent_not_found(self, tmp_path):
+    async def test_annotation_reply_parent_not_found(self, tmp_path, setup_manifest):
         """Test adding reply with nonexistent parent."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Initialize annotation components
         from documentation_robotics.core.annotations import AnnotationRegistry
 
-        server.annotation_registry = AnnotationRegistry(model_path)
+        server.annotation_registry = AnnotationRegistry(server.model_path)
         server.annotation_registry.load_all()
 
         ws = AsyncMock(spec=web.WebSocketResponse)
@@ -659,17 +699,20 @@ class TestAnnotationWebSocketFlow:
         assert error_msg["type"] == "error"
 
     @pytest.mark.asyncio
-    async def test_initial_state_includes_annotations(self, tmp_path):
+    async def test_initial_state_includes_annotations(self, tmp_path, setup_manifest):
         """Test initial state message includes annotations."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
         # Create test annotations
         import json
 
-        annotations_dir = model_path / "annotations" / "testuser"
+        annotations_dir = server.model_path / "annotations" / "testuser"
         annotations_dir.mkdir(parents=True)
         annotations_data = {
             "annotations": [
@@ -684,8 +727,6 @@ class TestAnnotationWebSocketFlow:
         }
         (annotations_dir / "annotations.json").write_text(json.dumps(annotations_data, indent=2))
 
-        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
-
         # Mock model serializer
         server.specification = {"version": "0.5.0"}
         server.model_serializer = Mock()
@@ -697,7 +738,7 @@ class TestAnnotationWebSocketFlow:
         # Initialize annotation components
         from documentation_robotics.server.annotation_serializer import AnnotationSerializer
 
-        server.annotation_serializer = AnnotationSerializer(model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
 
         ws = AsyncMock(spec=web.WebSocketResponse)
         ws.send_json = AsyncMock()
@@ -718,21 +759,22 @@ class TestAnnotationWebSocketFlow:
         assert call_args["data"]["model"]["annotations"][0]["id"] == "ann-test001"
 
     @pytest.mark.asyncio
-    async def test_broadcast_annotation_to_multiple_clients(self, tmp_path):
+    async def test_broadcast_annotation_to_multiple_clients(self, tmp_path, setup_manifest):
         """Test annotation broadcast reaches all connected clients."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Initialize annotation components
         from documentation_robotics.core.annotations import AnnotationRegistry
         from documentation_robotics.server.annotation_serializer import AnnotationSerializer
 
-        server.annotation_registry = AnnotationRegistry(model_path)
-        server.annotation_serializer = AnnotationSerializer(model_path)
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
 
         # Add multiple WebSocket clients
         ws1 = AsyncMock(spec=web.WebSocketResponse)
@@ -773,13 +815,14 @@ class TestCORSHeaders:
     """Test CORS header functionality."""
 
     @pytest.mark.asyncio
-    async def test_cors_headers_on_health_endpoint(self, tmp_path):
+    async def test_cors_headers_on_health_endpoint(self, tmp_path, setup_manifest):
         """Test CORS headers are added to health endpoint response."""
         model_path = tmp_path / "documentation-robotics"
         model_path.mkdir(parents=True)
         spec_path = tmp_path / ".dr" / "specification"
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
         server.specification = {"version": "0.5.0"}
         server.file_monitor = Mock()
@@ -802,13 +845,14 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Max-Age"] == "3600"
 
     @pytest.mark.asyncio
-    async def test_cors_headers_on_authenticated_endpoint(self, tmp_path):
+    async def test_cors_headers_on_authenticated_endpoint(self, tmp_path, setup_manifest):
         """Test CORS headers are added to authenticated endpoints."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create mock request with valid token
@@ -830,13 +874,14 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Max-Age"] == "3600"
 
     @pytest.mark.asyncio
-    async def test_cors_headers_on_unauthorized_response(self, tmp_path):
+    async def test_cors_headers_on_unauthorized_response(self, tmp_path, setup_manifest):
         """Test CORS headers are added even to 401 responses."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create mock request without token
@@ -856,13 +901,14 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
 
     @pytest.mark.asyncio
-    async def test_options_preflight_request(self, tmp_path):
+    async def test_options_preflight_request(self, tmp_path, setup_manifest):
         """Test OPTIONS preflight requests are handled without authentication."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create OPTIONS request without token
@@ -884,13 +930,14 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
         assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
 
-    def test_add_cors_headers_method(self, tmp_path):
+    def test_add_cors_headers_method(self, tmp_path, setup_manifest):
         """Test _add_cors_headers method adds all required headers."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Create a response
@@ -912,13 +959,14 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Max-Age"] == "3600"
 
     @pytest.mark.asyncio
-    async def test_static_assets_allowed_without_token(self, tmp_path):
+    async def test_static_assets_allowed_without_token(self, tmp_path, setup_manifest):
         """Test static assets (JS, CSS, etc.) can be accessed without authentication."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Test various static asset paths without token
@@ -950,13 +998,14 @@ class TestCORSHeaders:
             assert response.headers["Access-Control-Allow-Origin"] == "*"
 
     @pytest.mark.asyncio
-    async def test_api_endpoints_require_token(self, tmp_path):
+    async def test_api_endpoints_require_token(self, tmp_path, setup_manifest):
         """Test API endpoints and root path still require authentication."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Test API endpoints and root path without token
@@ -983,13 +1032,14 @@ class TestCORSHeaders:
             assert response.status == 401, f"Path {path} should require authentication"
 
     @pytest.mark.asyncio
-    async def test_root_path_with_valid_token(self, tmp_path):
+    async def test_root_path_with_valid_token(self, tmp_path, setup_manifest):
         """Test root path (/) is accessible WITH authentication token."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         request = Mock(spec=web.Request)
@@ -1006,13 +1056,14 @@ class TestCORSHeaders:
         # Verify root path is accessible with valid token
         assert response.status == 200
 
-    def test_is_static_asset_method(self, tmp_path):
+    def test_is_static_asset_method(self, tmp_path, setup_manifest):
         """Test _is_static_asset correctly identifies static asset paths."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
         spec_path.mkdir(parents=True)
 
+        setup_manifest(model_path)
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
         # Test static asset paths
@@ -1030,3 +1081,451 @@ class TestCORSHeaders:
         assert server._is_static_asset("/api/data") is False
         assert server._is_static_asset("/ws") is False
         assert server._is_static_asset("/health") is False
+
+
+class TestAnnotationEndpoints:
+    """Test annotation CRUD endpoint functionality."""
+
+    @pytest.mark.asyncio
+    async def test_create_annotation_success(self, tmp_path, setup_manifest):
+        """Test successful annotation creation."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Mock annotation registry and serializer
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request with valid data
+        request = Mock(spec=web.Request)
+        request.json = AsyncMock(
+            return_value={
+                "elementId": "business.service.auth",
+                "content": "This needs better error handling",
+                "author": "test-user",
+            }
+        )
+
+        # Mock broadcast_update
+        server.broadcast_update = AsyncMock()
+
+        # Call handler
+        response = await server._handle_create_annotation(request)
+
+        # Verify response
+        assert response.status == 201
+        import json
+
+        data = json.loads(response.text)
+        assert "id" in data
+        assert data["elementId"] == "business.service.auth"
+        assert data["author"] == "test-user"
+        assert data["content"] == "This needs better error handling"
+        assert data["resolved"] is False
+        assert "createdAt" in data
+
+        # Verify broadcast was called
+        server.broadcast_update.assert_called_once()
+        broadcast_call = server.broadcast_update.call_args[0][0]
+        assert broadcast_call["type"] == "annotation.added"
+        assert broadcast_call["elementId"] == "business.service.auth"
+
+    @pytest.mark.asyncio
+    async def test_create_annotation_missing_element_id(self, tmp_path, setup_manifest):
+        """Test annotation creation fails with missing elementId."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Mock annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request without elementId
+        request = Mock(spec=web.Request)
+        request.json = AsyncMock(
+            return_value={"content": "This needs better error handling", "author": "test-user"}
+        )
+
+        # Call handler
+        response = await server._handle_create_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "elementId" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_annotation_missing_content(self, tmp_path, setup_manifest):
+        """Test annotation creation fails with missing content."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Mock annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request without content
+        request = Mock(spec=web.Request)
+        request.json = AsyncMock(
+            return_value={"elementId": "business.service.auth", "author": "test-user"}
+        )
+
+        # Call handler
+        response = await server._handle_create_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "content" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_annotation_missing_author(self, tmp_path, setup_manifest):
+        """Test annotation creation fails with missing author."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Mock annotation components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request without author
+        request = Mock(spec=web.Request)
+        request.json = AsyncMock(
+            return_value={
+                "elementId": "business.service.auth",
+                "content": "This needs better error handling",
+            }
+        )
+
+        # Call handler
+        response = await server._handle_create_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "author" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_create_annotation_invalid_json(self, tmp_path, setup_manifest):
+        """Test annotation creation fails with invalid JSON."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create mock request with invalid JSON
+        request = Mock(spec=web.Request)
+        import json as json_module
+
+        request.json = AsyncMock(side_effect=json_module.JSONDecodeError("Invalid", "", 0))
+
+        # Call handler
+        response = await server._handle_create_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "Invalid JSON" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_update_annotation_success(self, tmp_path, setup_manifest):
+        """Test successful annotation update."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create an annotation first
+        from datetime import datetime
+
+        from documentation_robotics.core.annotations import (
+            Annotation,
+            AnnotationRegistry,
+            AnnotationStore,
+            generate_annotation_id,
+        )
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        annotation_id = generate_annotation_id()
+        store = AnnotationStore("test-user", server.model_path)
+        annotation = Annotation(
+            id=annotation_id,
+            entity_uri="business.service.auth",
+            timestamp=datetime.utcnow().isoformat() + "Z",
+            user="test-user",
+            message="Original message",
+            parent_id=None,
+        )
+        store.add_annotation(annotation)
+
+        # Initialize server components
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_registry.load_all()
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request with update data
+        request = Mock(spec=web.Request)
+        request.match_info = {"annotationId": annotation_id}
+        request.json = AsyncMock(return_value={"content": "Updated message"})
+
+        # Mock broadcast_update
+        server.broadcast_update = AsyncMock()
+
+        # Call handler
+        response = await server._handle_update_annotation(request)
+
+        # Verify response
+        assert response.status == 200
+        import json
+
+        data = json.loads(response.text)
+        assert data["id"] == annotation_id
+        assert data["content"] == "Updated message"
+        assert data["author"] == "test-user"
+
+        # Verify broadcast was called
+        server.broadcast_update.assert_called_once()
+        broadcast_call = server.broadcast_update.call_args[0][0]
+        assert broadcast_call["type"] == "annotation.updated"
+        assert broadcast_call["annotationId"] == annotation_id
+
+    @pytest.mark.asyncio
+    async def test_update_annotation_not_found(self, tmp_path, setup_manifest):
+        """Test annotation update fails when annotation doesn't exist."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize server components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_registry.load_all()
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request for non-existent annotation
+        request = Mock(spec=web.Request)
+        request.match_info = {"annotationId": "ann-nonexistent"}
+        request.json = AsyncMock(return_value={"content": "Updated message"})
+
+        # Call handler
+        response = await server._handle_update_annotation(request)
+
+        # Verify error response
+        assert response.status == 404
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "not found" in data["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_update_annotation_invalid_json(self, tmp_path, setup_manifest):
+        """Test annotation update fails with invalid JSON."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create mock request with invalid JSON
+        request = Mock(spec=web.Request)
+        request.match_info = {"annotationId": "ann-test123"}
+        import json as json_module
+
+        request.json = AsyncMock(side_effect=json_module.JSONDecodeError("Invalid", "", 0))
+
+        # Call handler
+        response = await server._handle_update_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "Invalid JSON" in data["error"]
+
+    @pytest.mark.asyncio
+    async def test_delete_annotation_success(self, tmp_path, setup_manifest):
+        """Test successful annotation deletion."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create an annotation first
+        from datetime import datetime
+
+        from documentation_robotics.core.annotations import (
+            Annotation,
+            AnnotationRegistry,
+            AnnotationStore,
+            generate_annotation_id,
+        )
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        annotation_id = generate_annotation_id()
+        store = AnnotationStore("test-user", server.model_path)
+        annotation = Annotation(
+            id=annotation_id,
+            entity_uri="business.service.auth",
+            timestamp=datetime.utcnow().isoformat() + "Z",
+            user="test-user",
+            message="Test message",
+            parent_id=None,
+        )
+        store.add_annotation(annotation)
+
+        # Initialize server components
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_registry.load_all()
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Verify annotation exists before deletion
+        existing_ann = server.annotation_registry.get_annotation(annotation_id)
+        assert existing_ann is not None
+
+        # Create mock request
+        request = Mock(spec=web.Request)
+        request.match_info = {"annotationId": annotation_id}
+
+        # Mock broadcast_update
+        server.broadcast_update = AsyncMock()
+
+        # Call handler
+        response = await server._handle_delete_annotation(request)
+
+        # Verify response
+        assert response.status == 204
+
+        # Verify annotation was deleted from file
+        # Create a fresh store and registry to read from disk
+        fresh_store = AnnotationStore("test-user", server.model_path)
+        fresh_annotations = fresh_store.load()
+        assert annotation_id not in [a.id for a in fresh_annotations]
+
+        # Verify broadcast was called
+        server.broadcast_update.assert_called_once()
+        broadcast_call = server.broadcast_update.call_args[0][0]
+        assert broadcast_call["type"] == "annotation.deleted"
+        assert broadcast_call["annotationId"] == annotation_id
+
+    @pytest.mark.asyncio
+    async def test_delete_annotation_not_found(self, tmp_path, setup_manifest):
+        """Test annotation deletion fails when annotation doesn't exist."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Initialize server components
+        from documentation_robotics.core.annotations import AnnotationRegistry
+        from documentation_robotics.server.annotation_serializer import AnnotationSerializer
+
+        server.annotation_registry = AnnotationRegistry(server.model_path)
+        server.annotation_registry.load_all()
+        server.annotation_serializer = AnnotationSerializer(server.model_path)
+
+        # Create mock request for non-existent annotation
+        request = Mock(spec=web.Request)
+        request.match_info = {"annotationId": "ann-nonexistent"}
+
+        # Call handler
+        response = await server._handle_delete_annotation(request)
+
+        # Verify error response
+        assert response.status == 404
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data
+        assert "not found" in data["error"].lower()
+
+    @pytest.mark.asyncio
+    async def test_delete_annotation_missing_id(self, tmp_path, setup_manifest):
+        """Test annotation deletion fails when ID is missing."""
+        model_path = tmp_path / "documentation-robotics"
+        model_path.mkdir(parents=True)
+        spec_path = tmp_path / ".dr" / "specification"
+        spec_path.mkdir(parents=True)
+
+        setup_manifest(model_path)
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Create mock request without ID
+        request = Mock(spec=web.Request)
+        request.match_info = {}
+
+        # Call handler
+        response = await server._handle_delete_annotation(request)
+
+        # Verify error response
+        assert response.status == 400
+        import json
+
+        data = json.loads(response.text)
+        assert "error" in data

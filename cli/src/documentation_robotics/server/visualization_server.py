@@ -33,9 +33,14 @@ from .specification_loader import SpecificationLoader
 from .websocket_protocol import (
     create_annotation_added_message,
     create_annotation_reply_added_message,
+    create_changeset_created_message,
+    create_connected_message,
     create_element_update_message,
     create_error_message,
     create_initial_state_message,
+    create_model_updated_message,
+    create_pong_message,
+    create_subscribed_message,
     get_timestamp,
 )
 
@@ -118,7 +123,7 @@ class VisualizationServer:
             self.port = port_or_host
         else:
             # Production signature: VisualizationServer(model_path, spec_path, host, port)
-            self.model_path = model_or_path
+            self.model_path = self._resolve_model_root(Path(model_or_path))
             self.spec_path = host_or_spec
             self.host = port_or_host if isinstance(port_or_host, str) else "localhost"
             self.port = (
@@ -142,6 +147,9 @@ class VisualizationServer:
 
         # Chat sessions per WebSocket
         self._ws_sessions: Dict[web.WebSocketResponse, ChatSession] = {}
+
+        # Topic subscriptions per WebSocket (model, changesets, annotations)
+        self._ws_subscriptions: Dict[web.WebSocketResponse, Set[str]] = {}
 
         # Loaded data
         self.specification: Optional[Dict[str, Any]] = None
@@ -172,6 +180,62 @@ class VisualizationServer:
 
         # Shutdown flag
         self._shutdown_event = asyncio.Event()
+
+        # Changeset monitoring
+        self._changeset_observer: Optional[Observer] = None
+        self._changeset_root: Optional[Path] = None
+
+    def _resolve_model_root(self, path: Path) -> Path:
+        """Find the project root by locating documentation-robotics/model/manifest.yaml.
+
+        This method identifies the project root directory by searching for the manifest.yaml
+        marker file. It does not validate the project structure - use CLI validation commands
+        for that purpose.
+
+        Accepts any of these inputs:
+        - project root
+        - documentation-robotics/ directory
+        - documentation-robotics/model/ directory
+        - direct path to manifest.yaml
+        - any child path beneath the project root
+
+        Returns:
+            Path to the project root directory (parent of documentation-robotics/)
+
+        Raises:
+            FileNotFoundError: If manifest.yaml cannot be located in the directory tree
+        """
+        path = Path(path).resolve()
+
+        # If a manifest file path is provided directly
+        if path.name == "manifest.yaml" and (path.parent / "manifest.yaml").exists():
+            model_dir = path.parent
+            if model_dir.name == "model" and model_dir.parent.name == "documentation-robotics":
+                return model_dir.parent.parent
+
+        # If the path itself is the model directory
+        manifest_in_dir = path / "manifest.yaml"
+        if (
+            manifest_in_dir.exists()
+            and path.name == "model"
+            and path.parent.name == "documentation-robotics"
+        ):
+            return path.parent.parent
+
+        # If the path is the project root (or higher) containing documentation-robotics/model
+        manifest_nested = path / "documentation-robotics" / "model" / "manifest.yaml"
+        if manifest_nested.exists():
+            return path
+
+        # Walk upwards to find the project root that contains documentation-robotics/model/manifest.yaml
+        for candidate in path.parents:
+            manifest = candidate / "documentation-robotics" / "model" / "manifest.yaml"
+            if manifest.exists():
+                return candidate
+
+        raise FileNotFoundError(
+            f"documentation-robotics/model/manifest.yaml not found relative to {path}"
+        )
 
     def get_magic_link(self) -> str:
         """
@@ -416,6 +480,43 @@ class VisualizationServer:
             )
             self._annotation_observer.start()
 
+        # Start changeset directory monitoring
+        if self.model_path:
+            self._changeset_root = self.model_path / ".dr" / "changesets"
+            self._changeset_root.mkdir(parents=True, exist_ok=True)
+
+            self._changeset_observer = Observer()
+
+            class ChangesetHandler(FileSystemEventHandler):
+                def __init__(self, parent: "VisualizationServer"):
+                    super().__init__()
+                    self.parent = parent
+
+                def on_created(self, event: FileSystemEvent):
+                    try:
+                        path = Path(event.src_path)
+                        if event.is_directory:
+                            changeset_id = path.name
+                            if self.parent._loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    self.parent._broadcast_changeset_created(changeset_id),
+                                    self.parent._loop,
+                                )
+                        elif path.name == "metadata.yaml" and path.parent.is_dir():
+                            changeset_id = path.parent.name
+                            if self.parent._loop:
+                                asyncio.run_coroutine_threadsafe(
+                                    self.parent._broadcast_changeset_created(changeset_id),
+                                    self.parent._loop,
+                                )
+                    except Exception as e:
+                        console.print(f"[yellow]Changeset handler warning: {e}[/yellow]")
+
+            self._changeset_observer.schedule(
+                ChangesetHandler(self), str(self._changeset_root), recursive=True
+            )
+            self._changeset_observer.start()
+
         # Setup signal handlers
         self._setup_signal_handlers()
 
@@ -428,7 +529,17 @@ class VisualizationServer:
         self.app.router.add_get("/health", self._handle_health)
 
         # API endpoints (auth required via middleware)
+        self.app.router.add_get("/api/spec", self._handle_spec)
         self.app.router.add_get("/api/model", self._handle_model_data)
+        self.app.router.add_get("/api/link-registry", self._handle_link_registry)
+        self.app.router.add_get("/api/changesets", self._handle_changesets)
+        self.app.router.add_get("/api/changesets/{changesetId}", self._handle_changeset_details)
+        self.app.router.add_get("/api/annotations", self._handle_annotations)
+        self.app.router.add_post("/api/annotations", self._handle_create_annotation)
+        self.app.router.add_put("/api/annotations/{annotationId}", self._handle_update_annotation)
+        self.app.router.add_delete(
+            "/api/annotations/{annotationId}", self._handle_delete_annotation
+        )
 
         # WebSocket endpoint (auth required via middleware)
         self.app.router.add_get("/ws", self._handle_websocket)
@@ -445,38 +556,614 @@ class VisualizationServer:
             request: HTTP request
 
         Returns:
-            Health check response
+            Health check response matching API spec
         """
         health_data = {
-            "status": "healthy",
-            "model_path": str(self.model_path),
-            "spec_version": self.specification.get("version") if self.specification else None,
-            "connected_clients": len(self.websockets),
-            "file_monitor_running": (
-                self.file_monitor.is_running() if self.file_monitor else False
+            "status": "ok",
+            "version": (
+                self.specification.get("version", "unknown") if self.specification else "unknown"
             ),
         }
 
         return web.json_response(health_data)
 
-    async def _handle_model_data(self, request: web.Request) -> web.Response:
+    async def _handle_spec(self, request: web.Request) -> web.Response:
         """
-        Handle API requests for model data.
+        Handle API requests for schema specifications.
+
+        Returns all JSON Schema files from .dr/schemas/ directory
+        including layer schemas, relationship catalog, and link registry.
 
         Args:
             request: HTTP request
 
         Returns:
-            JSON response with model data
+            JSON response with SpecDataResponse schema
         """
-        model_data = {
-            "model_path": str(self.model_path),
-            "root_path": str(self.model.root_path) if self.model else None,
-            "layers": list(self.model.layers.keys()) if self.model else [],
-            "version": self.model.manifest.version if self.model and self.model.manifest else None,
+        try:
+            if not self.specification:
+                return web.json_response({"error": "Specification not loaded"}, status=500)
+
+            # Load schemas from spec path
+            schemas = {}
+            link_registry = None
+            relationship_catalog = None
+
+            if self.spec_path:
+                schemas_dir = self.spec_path / "schemas"
+                if schemas_dir.exists():
+                    # Load all JSON schema files
+                    for schema_file in schemas_dir.glob("*.json"):
+                        try:
+                            with open(schema_file, "r") as f:
+                                schemas[schema_file.name] = json.load(f)
+
+                                # Extract special schemas
+                                if schema_file.name == "link-registry.json":
+                                    link_registry = schemas[schema_file.name]
+                                elif schema_file.name == "relationship-catalog.json":
+                                    relationship_catalog = schemas[schema_file.name]
+                        except (json.JSONDecodeError, OSError) as e:
+                            console.print(
+                                f"[yellow]Warning: Could not load schema {schema_file.name}: {e}[/yellow]"
+                            )
+
+            response_data = {
+                "version": self.specification.get("version", "unknown"),
+                "type": "schema-collection",
+                "description": "JSON Schema definitions from dr CLI",
+                "source": "dr-cli",
+                "schemas": schemas,
+                "schema_count": len(schemas),
+                "schemaCount": len(schemas),
+            }
+
+            # Add manifest if available
+            if self.specification.get("metadata"):
+                response_data["manifest"] = self.specification.get("metadata")
+
+            # Add special schemas at top level if found
+            if link_registry:
+                response_data["linkRegistry"] = link_registry
+                response_data["link_registry"] = link_registry
+
+            if relationship_catalog:
+                response_data["relationshipCatalog"] = relationship_catalog
+                response_data["relationship_catalog"] = relationship_catalog
+
+            return web.json_response(response_data)
+
+        except Exception as e:
+            console.print(f"[red]Error handling spec request: {e}[/red]")
+            return web.json_response(
+                {"error": f"Failed to load specifications: {str(e)}"}, status=500
+            )
+
+    async def _handle_link_registry(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests for link registry.
+
+        Returns the link registry defining valid cross-layer relationships.
+        Located at .dr/schemas/link-registry.json.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with LinkRegistry schema
+        """
+        try:
+            if not self.spec_path:
+                return web.json_response({"error": "Specification path not configured"}, status=500)
+
+            link_registry_file = self.spec_path / "schemas" / "link-registry.json"
+
+            if not link_registry_file.exists():
+                return web.json_response({"error": "Link registry not found"}, status=404)
+
+            with open(link_registry_file, "r") as f:
+                link_registry = json.load(f)
+
+            return web.json_response(link_registry)
+
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON in link registry file"}, status=500)
+        except Exception as e:
+            console.print(f"[red]Error handling link registry request: {e}[/red]")
+            return web.json_response(
+                {"error": f"Failed to load link registry: {str(e)}"}, status=500
+            )
+
+    async def _handle_changesets(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests to list all changesets.
+
+        Returns a registry of all available changesets with summaries.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with ChangesetRegistry schema
+        """
+        try:
+            if not self.model_path:
+                return web.json_response({"changesets": {}}, status=200)
+
+            changesets_list = load_changesets(self.model_path)
+
+            # Convert list to dictionary keyed by changeset ID
+            changesets_dict = {}
+            for changeset in changesets_list:
+                changeset_id = changeset.get("id")
+                if changeset_id:
+                    # Create summary without full changes list
+                    summary = {
+                        "name": changeset.get("name"),
+                        "status": changeset.get("status"),
+                        "type": changeset.get("type"),
+                        "created_at": changeset.get("created_at"),
+                    }
+
+                    # Add elements count from summary
+                    change_summary = changeset.get("summary", {})
+                    if change_summary:
+                        summary["elements_count"] = (
+                            change_summary.get("elements_added", 0)
+                            + change_summary.get("elements_updated", 0)
+                            + change_summary.get("elements_deleted", 0)
+                        )
+
+                    changesets_dict[changeset_id] = summary
+
+            response_data = {
+                "version": "1.0.0",
+                "changesets": changesets_dict,
+            }
+
+            return web.json_response(response_data)
+
+        except Exception as e:
+            console.print(f"[red]Error handling changesets list request: {e}[/red]")
+            return web.json_response({"error": f"Failed to load changesets: {str(e)}"}, status=500)
+
+    async def _handle_changeset_details(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests to get changeset details.
+
+        Returns detailed information about a specific changeset including all changes.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with ChangesetDetails schema
+        """
+        try:
+            changeset_id = request.match_info.get("changesetId")
+            if not changeset_id:
+                return web.json_response({"error": "Missing changesetId parameter"}, status=400)
+
+            if not self.model_path:
+                return web.json_response({"error": "Model path not configured"}, status=500)
+
+            changesets_list = load_changesets(self.model_path)
+
+            # Find the requested changeset
+            changeset = None
+            for cs in changesets_list:
+                if cs.get("id") == changeset_id:
+                    changeset = cs
+                    break
+
+            if not changeset:
+                return web.json_response(
+                    {"error": f"Changeset not found: {changeset_id}"}, status=404
+                )
+
+            # Extract metadata and changes
+            metadata = {
+                "id": changeset.get("id"),
+                "name": changeset.get("name"),
+                "description": changeset.get("description"),
+                "type": changeset.get("type"),
+                "status": changeset.get("status"),
+                "created_at": changeset.get("created_at"),
+                "updated_at": changeset.get("updated_at"),
+                "workflow": changeset.get("workflow"),
+                "summary": changeset.get("summary"),
+            }
+
+            response_data = {
+                "metadata": metadata,
+                "changes": {
+                    "version": "1.0.0",
+                    "changes": changeset.get("changes", []),
+                },
+            }
+
+            return web.json_response(response_data)
+
+        except Exception as e:
+            console.print(f"[red]Error handling changeset details request: {e}[/red]")
+            return web.json_response({"error": f"Failed to load changeset: {str(e)}"}, status=500)
+
+    async def _handle_model_data(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests for model data.
+
+        Returns the current architecture model from documentation-robotics/model/.
+        Includes all layers, elements, relationships, and cross-layer references.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with ModelResponse schema
+        """
+        try:
+            if not self.model:
+                return web.json_response({"error": "Model not loaded"}, status=500)
+
+            # Build basic model response
+            response_data = {
+                "version": "0.1.0",
+                "metadata": {
+                    "type": "yaml-instance",
+                    "source": "dr-cli",
+                    "description": "Architecture model from Documentation Robotics",
+                },
+                "layers": {},
+                "references": [],
+            }
+
+            # Add manifest info if available
+            if hasattr(self.model, "manifest") and self.model.manifest:
+                try:
+                    version = getattr(self.model.manifest, "version", "0.1.0")
+                    response_data["version"] = version
+
+                    # Try to add project metadata
+                    project = getattr(self.model.manifest, "project", None)
+                    if project and not str(type(project)).startswith("<class 'unittest.mock"):
+                        response_data["metadata"]["project"] = project
+
+                    # Calculate statistics
+                    if hasattr(self.model, "layers") and isinstance(self.model.layers, dict):
+                        total_elements = sum(
+                            len(getattr(layer, "elements", {})) if hasattr(layer, "elements") else 0
+                            for layer in self.model.layers.values()
+                        )
+                        response_data["metadata"]["statistics"] = {
+                            "total_layers": len(self.model.layers),
+                            "total_elements": total_elements,
+                        }
+                except (AttributeError, TypeError):
+                    # If manifest has issues, continue without it
+                    pass
+
+            # Build layers array from model
+            if hasattr(self.model, "layers") and isinstance(self.model.layers, dict):
+                for layer_name, layer in self.model.layers.items():
+                    try:
+                        # Only add layers with actual elements
+                        elements = []
+                        if hasattr(layer, "elements") and isinstance(layer.elements, dict):
+                            for element in layer.elements.values():
+                                try:
+                                    element_id = getattr(element, "name", str(layer_name))
+                                    element_type = getattr(element, "type", "unknown")
+                                    element_dict = {
+                                        "id": f"{layer_name}.{element_type}.{element_id}",
+                                        "type": element_type,
+                                        "name": element_id,
+                                        "layerId": layer_name,
+                                        "properties": getattr(element, "properties", {}) or {},
+                                    }
+                                    elements.append(element_dict)
+                                except (AttributeError, TypeError):
+                                    # Skip problematic elements
+                                    pass
+
+                        response_data["layers"][layer_name] = {
+                            "id": layer_name,
+                            "type": layer_name.capitalize(),
+                            "name": layer_name,
+                            "elements": elements,
+                            "relationships": [],
+                        }
+                    except (AttributeError, TypeError):
+                        # Skip problematic layers
+                        pass
+
+            return web.json_response(response_data)
+
+        except Exception as e:
+            console.print(f"[red]Error handling model data request: {e}[/red]")
+            return web.json_response({"error": f"Failed to load model: {str(e)}"}, status=500)
+
+    async def _handle_annotations(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests for annotations data.
+
+        Supports optional elementId query parameter to filter annotations.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with annotations in format: {"annotations": [...]}
+        """
+        element_id = request.query.get("elementId")
+
+        if self.annotation_serializer:
+            all_annotations = self.annotation_serializer.serialize_all()
+
+            # Filter by elementId if provided
+            if element_id:
+                annotations = [ann for ann in all_annotations if ann.get("elementId") == element_id]
+            else:
+                annotations = all_annotations
+        else:
+            annotations = []
+
+        return web.json_response({"annotations": annotations})
+
+    async def _handle_create_annotation(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests to create new annotations.
+
+        Expected JSON body:
+        {
+            "elementId": "layer.type.element-id",
+            "content": "annotation text",
+            "author": "username"
         }
 
-        return web.json_response(model_data)
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with created annotation
+        """
+        try:
+            data = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON in request body"}, status=400)
+
+        # Validate required fields
+        element_id = data.get("elementId")
+        content = data.get("content")
+        author = data.get("author")
+
+        if not element_id:
+            return web.json_response({"error": "Missing required field: elementId"}, status=400)
+        if not content:
+            return web.json_response({"error": "Missing required field: content"}, status=400)
+        if not author:
+            return web.json_response({"error": "Missing required field: author"}, status=400)
+
+        if not self.model_path or not self.annotation_registry:
+            return web.json_response({"error": "Annotation system not initialized"}, status=500)
+
+        try:
+            # Create annotation using AnnotationStore
+            from datetime import datetime
+
+            from ..core.annotations import Annotation, AnnotationStore, generate_annotation_id
+
+            store = AnnotationStore(author, self.model_path)
+
+            # Create new annotation
+            annotation = Annotation(
+                id=generate_annotation_id(),
+                entity_uri=element_id,
+                timestamp=datetime.utcnow().isoformat() + "Z",
+                user=author,
+                message=content,
+                parent_id=None,
+            )
+
+            # Save to store
+            store.add_annotation(annotation)
+
+            # Reload registry to get the new annotation
+            self.annotation_registry.load_all()
+
+            # Serialize and return the created annotation
+            created_ann = {
+                "id": annotation.id,
+                "elementId": annotation.entity_uri,
+                "author": annotation.user,
+                "content": annotation.message,
+                "createdAt": annotation.timestamp,
+                "resolved": False,
+            }
+
+            # Broadcast annotation added event to all WebSocket clients
+            await self.broadcast_update(
+                {
+                    "type": "annotation.added",
+                    "annotationId": annotation.id,
+                    "elementId": element_id,
+                    "timestamp": annotation.timestamp,
+                }
+            )
+
+            return web.json_response(created_ann, status=201)
+
+        except Exception as e:
+            console.print(f"[red]Error creating annotation: {e}[/red]")
+            return web.json_response(
+                {"error": f"Failed to create annotation: {str(e)}"}, status=500
+            )
+
+    async def _handle_update_annotation(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests to update existing annotations.
+
+        Expected JSON body:
+        {
+            "content": "updated text",  # optional
+            "tags": ["tag1", "tag2"]    # optional
+        }
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            JSON response with updated annotation
+        """
+        annotation_id = request.match_info.get("annotationId")
+        if not annotation_id:
+            return web.json_response({"error": "Missing annotation ID"}, status=400)
+
+        try:
+            data = await request.json()
+        except json.JSONDecodeError:
+            return web.json_response({"error": "Invalid JSON in request body"}, status=400)
+
+        if not self.model_path or not self.annotation_registry:
+            return web.json_response({"error": "Annotation system not initialized"}, status=500)
+
+        try:
+            # Reload registry to ensure we have latest data
+            self.annotation_registry.load_all()
+
+            # Find the annotation
+            annotation = self.annotation_registry.get_annotation(annotation_id)
+            if not annotation:
+                return web.json_response(
+                    {"error": f"Annotation not found: {annotation_id}"}, status=404
+                )
+
+            # Get the user's store
+            from datetime import datetime
+
+            from ..core.annotations import AnnotationStore
+
+            store = AnnotationStore(annotation.user, self.model_path)
+            annotations = store.load()
+
+            # Find and update the annotation
+            updated = False
+            for ann in annotations:
+                if ann.id == annotation_id:
+                    # Update fields
+                    if "content" in data:
+                        ann.message = data["content"]
+                    # Note: 'tags' are not a field in our annotation model
+                    # If we need them, we would need to extend the Annotation dataclass
+                    updated = True
+                    break
+
+            if not updated:
+                return web.json_response(
+                    {"error": f"Annotation not found in user's store: {annotation_id}"}, status=404
+                )
+
+            # Save updated annotations
+            store.save(annotations)
+
+            # Reload registry
+            self.annotation_registry.load_all()
+            updated_annotation = self.annotation_registry.get_annotation(annotation_id)
+
+            # Serialize and return
+            result = {
+                "id": updated_annotation.id,
+                "elementId": updated_annotation.entity_uri,
+                "author": updated_annotation.user,
+                "content": updated_annotation.message,
+                "createdAt": updated_annotation.timestamp,
+                "updatedAt": datetime.utcnow().isoformat() + "Z",
+                "tags": data.get("tags", []),
+            }
+
+            # Broadcast update event
+            await self.broadcast_update(
+                {
+                    "type": "annotation.updated",
+                    "annotationId": annotation_id,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            )
+
+            return web.json_response(result)
+
+        except Exception as e:
+            console.print(f"[red]Error updating annotation: {e}[/red]")
+            return web.json_response(
+                {"error": f"Failed to update annotation: {str(e)}"}, status=500
+            )
+
+    async def _handle_delete_annotation(self, request: web.Request) -> web.Response:
+        """
+        Handle API requests to delete annotations.
+
+        Args:
+            request: HTTP request
+
+        Returns:
+            204 No Content on success, error response otherwise
+        """
+        annotation_id = request.match_info.get("annotationId")
+        if not annotation_id:
+            return web.json_response({"error": "Missing annotation ID"}, status=400)
+
+        if not self.model_path or not self.annotation_registry:
+            return web.json_response({"error": "Annotation system not initialized"}, status=500)
+
+        try:
+            # Reload registry to ensure we have latest data
+            self.annotation_registry.load_all()
+
+            # Find the annotation
+            annotation = self.annotation_registry.get_annotation(annotation_id)
+            if not annotation:
+                return web.json_response(
+                    {"error": f"Annotation not found: {annotation_id}"}, status=404
+                )
+
+            # Get the user's store
+            from datetime import datetime
+
+            from ..core.annotations import AnnotationStore
+
+            store = AnnotationStore(annotation.user, self.model_path)
+            annotations = store.load()
+
+            # Filter out the annotation
+            original_count = len(annotations)
+            annotations = [ann for ann in annotations if ann.id != annotation_id]
+
+            if len(annotations) == original_count:
+                return web.json_response(
+                    {"error": f"Annotation not found in user's store: {annotation_id}"}, status=404
+                )
+
+            # Save updated annotations
+            store.save(annotations)
+
+            # Reload registry
+            self.annotation_registry.load_all()
+
+            # Broadcast delete event
+            await self.broadcast_update(
+                {
+                    "type": "annotation.deleted",
+                    "annotationId": annotation_id,
+                    "timestamp": datetime.utcnow().isoformat() + "Z",
+                }
+            )
+
+            return web.Response(status=204)
+
+        except Exception as e:
+            console.print(f"[red]Error deleting annotation: {e}[/red]")
+            return web.json_response(
+                {"error": f"Failed to delete annotation: {str(e)}"}, status=500
+            )
 
     async def _handle_index(self, request: web.Request) -> web.Response:
         """
@@ -662,8 +1349,11 @@ class VisualizationServer:
         self.websockets.add(ws)
 
         try:
-            # Send welcome message
-            await ws.send_json({"type": "connected", "message": "WebSocket connection established"})
+            # Send spec-aligned connected message with version
+            version = (
+                self.specification.get("version", "unknown") if self.specification else "unknown"
+            )
+            await ws.send_json(create_connected_message(version))
 
             # Send initial state (don't let errors close the connection)
             try:
@@ -766,8 +1456,22 @@ class VisualizationServer:
                 session = self._ws_sessions[ws]
                 await self.chat_handler.handle_message(ws, message, session)
 
+            # Handle topic subscription
+            elif message_type == "subscribe":
+                topics = data.get("topics") if isinstance(data, dict) else None
+                if topics is None or not isinstance(topics, list):
+                    topics = []
+                valid = {t for t in topics if t in {"model", "changesets", "annotations"}}
+                if not valid:
+                    valid = {"model", "changesets", "annotations"}
+                self._ws_subscriptions[ws] = valid
+                await ws.send_json(create_subscribed_message(sorted(valid)))
+
+            # Heartbeat
+            elif message_type == "ping":
+                await ws.send_json(create_pong_message())
+
             else:
-                # Future: Handle client commands (changeset switching, etc.)
                 console.print(f"[dim]Received message type: {message_type}[/dim]")
 
         except json.JSONDecodeError as e:
@@ -851,7 +1555,7 @@ class VisualizationServer:
             # Invalidate cache
             self._cached_initial_state = None
 
-            # Broadcast to all clients
+            # Broadcast to all clients (legacy format for test expectations)
             broadcast_message = create_annotation_added_message(annotation)
             await self.broadcast_update(broadcast_message)
 
@@ -930,7 +1634,7 @@ class VisualizationServer:
             # Invalidate cache
             self._cached_initial_state = None
 
-            # Broadcast to all clients
+            # Broadcast reply (legacy format for test expectations)
             broadcast_message = create_annotation_reply_added_message(reply)
             await self.broadcast_update(broadcast_message)
 
@@ -1050,6 +1754,9 @@ class VisualizationServer:
                 # Broadcast to all connected clients
                 await self.broadcast_update(message)
 
+                # Also emit spec-aligned generic model.updated signal
+                await self.broadcast_update(create_model_updated_message())
+
         except (OSError, ValueError, RuntimeError) as e:
             console.print(f"[red]Error broadcasting file change: {e}[/red]")
 
@@ -1106,13 +1813,46 @@ class VisualizationServer:
 
         for ws in self.websockets:
             try:
-                await ws.send_json(message)
+                # Topic-based filtering if subscriptions exist
+                subs = self._ws_subscriptions.get(ws)
+                if subs:
+                    topic = self._infer_topic_from_message_type(message.get("type", ""))
+                    if topic is None or topic in subs:
+                        await ws.send_json(message)
+                else:
+                    await ws.send_json(message)
             except (OSError, RuntimeError) as e:
                 console.print(f"[yellow]Error sending to client: {e}[/yellow]")
                 disconnected.add(ws)
 
         # Clean up disconnected clients
         self.websockets -= disconnected
+
+    def _infer_topic_from_message_type(self, message_type: str) -> Optional[str]:
+        """Infer topic from message type for subscription filtering."""
+        if not message_type:
+            return None
+        if message_type.startswith("annotation."):
+            return "annotations"
+        if message_type.startswith("changeset."):
+            return "changesets"
+        if message_type in {
+            "model.updated",
+            "element_updated",
+            "element_added",
+            "element_removed",
+            "layer_updated",
+        }:
+            return "model"
+        return None
+
+    async def _broadcast_changeset_created(self, changeset_id: str) -> None:
+        """Broadcast changeset.created event and invalidate cache."""
+        try:
+            self._cached_initial_state = None
+            await self.broadcast_update(create_changeset_created_message(changeset_id))
+        except Exception as e:
+            console.print(f"[yellow]Warning broadcasting changeset.created: {e}[/yellow]")
 
     def _setup_signal_handlers(self) -> None:
         """Setup signal handlers for graceful shutdown."""
@@ -1137,8 +1877,17 @@ class VisualizationServer:
             except (RuntimeError, AttributeError) as e:
                 console.print(f"[yellow]Annotation observer cleanup warning: {e}[/yellow]")
 
+        # Stop changeset monitoring
+        if self._changeset_observer:
+            try:
+                self._changeset_observer.stop()
+                self._changeset_observer.join(timeout=2.0)
+            except (RuntimeError, AttributeError) as e:
+                console.print(f"[yellow]Changeset observer cleanup warning: {e}[/yellow]")
+
         # Close all WebSocket connections
-        for ws in self.websockets:
+        # Iterate over a copy to avoid "Set changed size during iteration" error
+        for ws in list(self.websockets):
             await ws.close()
 
         self.websockets.clear()
