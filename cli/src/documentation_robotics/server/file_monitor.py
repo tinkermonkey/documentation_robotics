@@ -234,7 +234,12 @@ class FileMonitor:
         self.observer.start()
 
     def stop(self) -> None:
-        """Stop monitoring file system."""
+        """Stop monitoring file system.
+
+        Note: This may trigger PytestUnraisableExceptionWarning in test environments
+        due to watchdog's PollingObserver subprocess cleanup timing with asyncio event
+        loops. This is a known watchdog issue and is filtered in pytest configuration.
+        """
         # Cancel any pending debounce timers first
         if self.event_handler is not None:
             with self.event_handler._lock:
@@ -261,7 +266,10 @@ class FileMonitor:
             finally:
                 # Clear observer reference and allow garbage collection
                 # This ensures any pending asyncio/subprocess resources are cleaned up
+                # even if watchdog's internal cleanup hasn't completed yet
                 self.observer = None
+                # Force immediate garbage collection to clean up subprocess transports
+                # before event loops close (reduces but doesn't eliminate the warning)
                 gc.collect()
 
         self.event_handler = None
