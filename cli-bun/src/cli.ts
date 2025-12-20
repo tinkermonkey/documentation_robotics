@@ -21,6 +21,7 @@ import { relationshipCommands } from './commands/relationship.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
+import { visualizeCommand } from './commands/visualize.js';
 
 const program = new Command();
 
@@ -153,6 +154,18 @@ program
       reverse: options.reverse,
       maxDepth: options.maxDepth ? parseInt(options.maxDepth) : undefined,
       showReachability: options.reachability,
+    });
+  });
+
+program
+  .command('visualize')
+  .description('Launch visualization server with WebSocket support')
+  .option('--port <num>', 'Server port (default: 8080)')
+  .option('--no-browser', 'Do not auto-open browser')
+  .action(async (options) => {
+    await visualizeCommand({
+      port: options.port,
+      noBrowser: options.noBrowser,
     });
   });
 
