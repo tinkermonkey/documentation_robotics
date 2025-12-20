@@ -263,28 +263,28 @@ export function changesetCommands(program: Command): void {
     .command('create <name>')
     .description('Create a new changeset')
     .option('--description <desc>', 'Changeset description')
-    .action((name, options) => {
-      changesetCreateCommand(name, options);
+    .action(async (name, options) => {
+      await changesetCreateCommand(name, options);
     });
 
   changesetGroup
     .command('list')
     .description('List all changesets')
-    .action(() => {
-      changesetListCommand();
+    .action(async () => {
+      await changesetListCommand();
     });
 
   changesetGroup
     .command('apply <name>')
     .description('Apply a changeset to the model')
-    .action((name) => {
-      changesetApplyCommand(name);
+    .action(async (name) => {
+      await changesetApplyCommand(name);
     });
 
   changesetGroup
     .command('revert <name>')
     .description('Revert a changeset from the model')
-    .action((name) => {
-      changesetRevertCommand(name);
+    .action(async (name) => {
+      await changesetRevertCommand(name);
     });
 }

@@ -42,11 +42,11 @@ export class MigrationRegistry {
    * Register all available migrations
    */
   private registerMigrations(): void {
-    // Migration from v0.5.0 to v0.6.0: Enhanced Relationship Taxonomy
+    // Migration from v0.5.0 to v0.6.0: Relationship Taxonomy
     this.migrations.push({
       fromVersion: '0.5.0',
       toVersion: '0.6.0',
-      description: 'Enhanced Relationship Taxonomy (Spec v0.6.0)',
+      description: 'Relationship Taxonomy (Spec v0.6.0)',
       apply: async () => {
         // This migration is opt-in - the new relationship taxonomy
         // is fully backward compatible with existing models

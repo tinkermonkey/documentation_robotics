@@ -15,7 +15,6 @@ async function getPackageVersion(): Promise<string> {
   const possiblePaths = [
     `${process.cwd()}/package.json`,
     `${import.meta.url.replace('file://', '').split('/src/')[0]}/package.json`,
-    '/workspace/cli-bun/package.json',
   ];
 
   for (const path of possiblePaths) {
@@ -37,12 +36,18 @@ async function getPackageVersion(): Promise<string> {
  */
 async function getLatestSpecVersion(): Promise<string> {
   try {
-    // Try to read spec/VERSION from workspace
-    const specVersionPath = '/workspace/spec/VERSION';
-    if (await fileExists(specVersionPath)) {
-      const fs = await import('fs/promises');
-      const content = await fs.readFile(specVersionPath, 'utf-8');
-      return content.trim();
+    // Try to find spec/VERSION relative to package root
+    const possiblePaths = [
+      `${process.cwd()}/../spec/VERSION`,
+      `${import.meta.url.replace('file://', '').split('/src/')[0]}/../spec/VERSION`,
+    ];
+
+    for (const specVersionPath of possiblePaths) {
+      if (await fileExists(specVersionPath)) {
+        const fs = await import('fs/promises');
+        const content = await fs.readFile(specVersionPath, 'utf-8');
+        return content.trim();
+      }
     }
   } catch {
     // Fall back to bundled version info
