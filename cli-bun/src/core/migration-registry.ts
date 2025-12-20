@@ -53,7 +53,7 @@ export class MigrationRegistry {
         return {
           migrationsApplied: 1,
           filesModified: 0,
-          description: 'Spec version updated to 0.6.0 (Enhanced Relationship Taxonomy now available)',
+          description: 'Spec version updated to 0.6.0 (Relationship Taxonomy now available)',
         };
       },
     });
