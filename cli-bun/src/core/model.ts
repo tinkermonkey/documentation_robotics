@@ -118,6 +118,13 @@ export class Model {
         }
       } catch (e) {
         // If layers directory doesn't exist or can't be read, just continue
+        // Only log in debug mode if needed
+        if (process.env.DEBUG) {
+          const error = e instanceof Error ? e.message : String(e);
+          if (!error.includes('ENOENT')) {
+            console.debug(`Warning: Failed to load layers directory: ${error}`);
+          }
+        }
       }
     }
 

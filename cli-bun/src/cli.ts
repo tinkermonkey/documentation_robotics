@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env node
 
 /**
  * Documentation Robotics CLI - Bun Implementation
@@ -6,6 +6,7 @@
  */
 
 import { Command } from 'commander';
+import { setGlobalOptions } from './utils/globals.js';
 import { initCommand } from './commands/init.js';
 import { addCommand } from './commands/add.js';
 import { updateCommand } from './commands/update.js';
@@ -14,6 +15,7 @@ import { showCommand } from './commands/show.js';
 import { listCommand } from './commands/list.js';
 import { searchCommand } from './commands/search.js';
 import { validateCommand } from './commands/validate.js';
+import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
 
@@ -24,7 +26,14 @@ program
   .description('Documentation Robotics CLI - Architecture Model Management')
   .version('0.1.0')
   .option('-v, --verbose', 'Enable verbose output')
-  .option('--debug', 'Enable debug mode');
+  .option('--debug', 'Enable debug mode')
+  .hook('preAction', (thisCommand) => {
+    const options = thisCommand.opts();
+    setGlobalOptions({
+      verbose: options.verbose as boolean | undefined,
+      debug: options.debug as boolean | undefined,
+    });
+  });
 
 // Model commands
 program
@@ -83,6 +92,12 @@ program
   .option('--layers <layers...>', 'Specific layers to validate')
   .option('--strict', 'Treat warnings as errors')
   .action(validateCommand);
+
+program
+  .command('info')
+  .description('Show model information')
+  .option('--layer <layer>', 'Show specific layer details')
+  .action(infoCommand);
 
 // Element subcommands
 const elementGroup = program

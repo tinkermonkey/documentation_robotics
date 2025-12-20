@@ -6,6 +6,7 @@ import { intro, text, outro } from '@clack/prompts';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
+import { logVerbose, logDebug } from '../utils/globals.js';
 
 export interface InitOptions {
   name?: string;
@@ -52,6 +53,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
       }));
 
     // Initialize model
+    logDebug(`Creating model directory at ${rootPath}/.dr`);
     const model = await Model.init(
       rootPath,
       {
@@ -64,6 +66,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
       },
       { lazyLoad: false }
     );
+
+    logVerbose(`Model saved with:
+  - Version: 0.1.0
+  - Spec Version: 0.6.0
+  - Location: ${rootPath}/.dr`);
 
     outro(ansis.green(`✓ Model initialized: ${ansis.bold(model.manifest.name)}`));
   } catch (error) {

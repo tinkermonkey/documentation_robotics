@@ -6,19 +6,7 @@ import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
-
-/**
- * Find which layer contains an element by ID
- */
-async function findElementLayer(model: Model, elementId: string): Promise<string | undefined> {
-  for (const layerName of model.getLayerNames()) {
-    const layer = await model.getLayer(layerName);
-    if (layer && layer.getElement(elementId)) {
-      return layerName;
-    }
-  }
-  return undefined;
-}
+import { findElementLayer } from '../utils/element-utils.js';
 
 export function relationshipCommands(program: Command): void {
   program

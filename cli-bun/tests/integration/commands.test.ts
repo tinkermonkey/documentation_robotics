@@ -5,18 +5,18 @@
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdir, rm } from 'fs/promises';
-import { Model } from '@/core/model.js';
-import { fileExists, readJSON } from '@/utils/file-io.js';
+import { Model } from '../../src/core/model.js';
+import { fileExists, readJSON } from '../../src/utils/file-io.js';
 
 const TEMP_DIR = '/tmp/dr-cli-test';
 
 /**
- * Helper to run dr commands using Bun
+ * Helper to run dr commands using Node.js
  */
 async function runDr(...args: string[]): Promise<{ exitCode: number }> {
   try {
     const result = await Bun.spawnSync({
-      cmd: ['bun', 'run', 'dist/cli.js', ...args],
+      cmd: ['node', 'dist/cli.js', ...args],
       cwd: TEMP_DIR,
     });
 

@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
+import { findElementLayer } from '../utils/element-utils.js';
 
 export interface UpdateOptions {
   name?: string;
@@ -12,19 +13,6 @@ export interface UpdateOptions {
   properties?: string;
   verbose?: boolean;
   debug?: boolean;
-}
-
-/**
- * Find which layer contains an element by ID
- */
-async function findElementLayer(model: Model, elementId: string): Promise<string | undefined> {
-  for (const layerName of model.getLayerNames()) {
-    const layer = await model.getLayer(layerName);
-    if (layer && layer.getElement(elementId)) {
-      return layerName;
-    }
-  }
-  return undefined;
 }
 
 export async function updateCommand(id: string, options: UpdateOptions): Promise<void> {

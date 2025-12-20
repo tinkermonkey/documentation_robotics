@@ -6,24 +6,12 @@ import { confirm } from '@clack/prompts';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
+import { findElementLayer } from '../utils/element-utils.js';
 
 export interface DeleteOptions {
   force?: boolean;
   verbose?: boolean;
   debug?: boolean;
-}
-
-/**
- * Find which layer contains an element by ID
- */
-async function findElementLayer(model: Model, elementId: string): Promise<string | undefined> {
-  for (const layerName of model.getLayerNames()) {
-    const layer = await model.getLayer(layerName);
-    if (layer && layer.getElement(elementId)) {
-      return layerName;
-    }
-  }
-  return undefined;
 }
 
 export async function deleteCommand(id: string, options: DeleteOptions): Promise<void> {

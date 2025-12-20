@@ -63,15 +63,29 @@ export class SchemaValidator {
 
     for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
       try {
-        // Load JSON schema from file
-        const schemaPath = path.join(
+        // Try primary schema path first (development)
+        let schemaPath = path.join(
           __dirname,
           '..',
           'schemas',
           'bundled',
           schemaFileName
         );
-        const schemaContent = await readFile(schemaPath);
+
+        let schemaContent: string;
+        try {
+          schemaContent = await readFile(schemaPath);
+        } catch {
+          // Fallback to alternative path for bundled deployments
+          schemaPath = path.join(
+            __dirname,
+            'schemas',
+            'bundled',
+            schemaFileName
+          );
+          schemaContent = await readFile(schemaPath);
+        }
+
         const schema = JSON.parse(schemaContent);
         const validate = this.ajv.compile(schema);
         this.compiledSchemas.set(layerName, validate);
