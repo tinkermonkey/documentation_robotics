@@ -22,6 +22,7 @@ import { traceCommand } from './commands/trace.js';
 import { projectCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
 import { visualizeCommand } from './commands/visualize.js';
+import { chatCommand } from './commands/chat.js';
 
 const program = new Command();
 
@@ -167,6 +168,14 @@ program
       port: options.port,
       noBrowser: options.noBrowser,
     });
+  });
+
+// AI Integration command
+program
+  .command('chat')
+  .description('Interactive chat with Claude about the architecture model')
+  .action(async () => {
+    await chatCommand();
   });
 
 program.parse();
