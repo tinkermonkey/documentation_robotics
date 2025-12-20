@@ -1,0 +1,346 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://documentation-robotics.org/schemas/link-registry.schema.json",
+  "title": "Link Registry Schema (DEPRECATED)",
+  "description": "JSON Schema for validating the link-registry.json structure. DEPRECATED as of v0.7.0 - cross-layer relationships are now defined in layer schemas.",
+  "version": "2.0.0",
+  "deprecated": true,
+  "deprecationNotice": {
+    "since": "0.7.0",
+    "reason": "Cross-layer relationships are now defined in layer schemas using the crossLayerRelationships section",
+    "removeIn": "0.8.0",
+    "migration": "See layer schema crossLayerRelationships sections for relationship definitions"
+  },
+
+  "definitions": {
+    "linkType": {
+      "type": "object",
+      "description": "Definition of a cross-layer link type",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique identifier for the link type (kebab-case)"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 3,
+          "description": "Human-readable name for the link type"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "motivation",
+            "business",
+            "security",
+            "archimate",
+            "api",
+            "data",
+            "datastore",
+            "ux",
+            "navigation",
+            "apm"
+          ],
+          "description": "Category this link belongs to"
+        },
+        "sourceLayers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{2}-[a-z-]+$"
+          },
+          "minItems": 1,
+          "description": "Layers where this link can originate (e.g., '02-business')"
+        },
+        "targetLayer": {
+          "type": "string",
+          "pattern": "^\\d{2}-[a-z-]+$",
+          "description": "Layer this link points to (e.g., '01-motivation')"
+        },
+        "targetElementTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "description": "Element types in target layer this link can point to"
+        },
+        "fieldPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([a-z][a-zA-Z0-9]*\\.[a-z][a-z0-9-]*|x-[a-z][a-z0-9-]*)$"
+          },
+          "minItems": 1,
+          "description": "Property paths that encode this link (e.g., 'motivation.supports-goals')"
+        },
+        "cardinality": {
+          "type": "string",
+          "enum": ["single", "array"],
+          "description": "Whether this link expects a single value or an array"
+        },
+        "format": {
+          "type": "string",
+          "enum": ["uuid", "id", "string", "duration", "percentage", "path", "enum"],
+          "description": "Expected format of the link value"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Clear description of what this link represents"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "source": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string",
+                    "pattern": "^\\d{2}-[a-z-]+$"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["layer", "type", "id"]
+              },
+              "target": {
+                "type": "object",
+                "properties": {
+                  "layer": {
+                    "type": "string",
+                    "pattern": "^\\d{2}-[a-z-]+$"
+                  },
+                  "type": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": ["layer", "type", "id"]
+              },
+              "value": {
+                "oneOf": [
+                  {"type": "string"},
+                  {"type": "array", "items": {"type": "string"}}
+                ]
+              },
+              "description": {
+                "type": "string"
+              }
+            },
+            "required": ["source", "target", "value", "description"]
+          },
+          "description": "Example usages of this link type"
+        },
+        "validationRules": {
+          "type": "object",
+          "properties": {
+            "targetExists": {
+              "type": "boolean",
+              "description": "Whether to validate that target element exists"
+            },
+            "targetType": {
+              "type": "string",
+              "description": "Expected type of target element"
+            },
+            "sourceElementTypesValid": {
+              "type": "array",
+              "items": {"type": "string"},
+              "description": "Valid source element types"
+            },
+            "minimumCardinality": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Minimum number of links required (0 = optional)"
+            },
+            "maximumCardinality": {
+              "type": ["integer", "null"],
+              "minimum": 1,
+              "description": "Maximum number of links allowed (null = unlimited)"
+            }
+          },
+          "additionalProperties": true
+        },
+        "predicate": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Semantic predicate for this relationship (forward direction)"
+        },
+        "inversePredicate": {
+          "type": ["string", "null"],
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Inverse predicate for bidirectional navigation"
+        },
+        "relationshipCategory": {
+          "type": ["string", "null"],
+          "enum": [
+            "structural",
+            "behavioral",
+            "dependency",
+            "traceability",
+            "governance",
+            "apm",
+            "security",
+            "ux",
+            "data",
+            null
+          ],
+          "description": "Semantic category of this relationship"
+        },
+        "sourceElementTypes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Element types in source layer(s) that can have this link"
+        },
+        "strength": {
+          "type": ["string", "null"],
+          "enum": ["critical", "high", "medium", "low", null],
+          "description": "Importance/strength of this relationship"
+        },
+        "isRequired": {
+          "type": "boolean",
+          "description": "Whether this link is mandatory for the source element"
+        },
+        "bidirectional": {
+          "type": "boolean",
+          "description": "Whether this link supports bidirectional navigation"
+        },
+        "archimateAlignment": {
+          "type": ["string", "null"],
+          "enum": [
+            "Composition",
+            "Aggregation",
+            "Specialization",
+            "Realization",
+            "Assignment",
+            "Triggering",
+            "Flow",
+            "Serving",
+            "Access",
+            "Influence",
+            null
+          ],
+          "description": "Corresponding ArchiMate 3.2 relationship type, if any"
+        },
+        "deprecation": {
+          "type": ["object", "null"],
+          "properties": {
+            "deprecated": {
+              "type": "boolean"
+            },
+            "since": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+$"
+            },
+            "reason": {
+              "type": "string"
+            },
+            "replacement": {
+              "type": "string"
+            }
+          },
+          "description": "Deprecation information if this link type is being phased out"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "category",
+        "sourceLayers",
+        "targetLayer",
+        "targetElementTypes",
+        "fieldPaths",
+        "cardinality",
+        "format",
+        "description",
+        "validationRules"
+      ],
+      "additionalProperties": false
+    },
+
+    "category": {
+      "type": "object",
+      "description": "Metadata for a link category",
+      "properties": {
+        "description": {
+          "type": "string",
+          "minLength": 10
+        },
+        "color": {
+          "type": "string",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "description": "Hex color code for visualization"
+        },
+        "icon": {
+          "type": "string",
+          "description": "Icon identifier for this category"
+        }
+      },
+      "required": ["description"],
+      "additionalProperties": true
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Semantic version of the link registry"
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "generatedBy": {
+          "type": "string"
+        },
+        "generatedAt": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "totalLinkTypes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "schemaVersion": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        }
+      }
+    },
+    "categories": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/definitions/category"
+      },
+      "description": "Link category definitions with metadata"
+    },
+    "linkTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/linkType"
+      },
+      "minItems": 1,
+      "description": "Array of link type definitions"
+    }
+  },
+  "required": [
+    "$schema",
+    "version",
+    "linkTypes"
+  ]
+}
