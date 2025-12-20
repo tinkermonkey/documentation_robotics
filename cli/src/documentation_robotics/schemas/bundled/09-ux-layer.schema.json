@@ -3,6 +3,315 @@
   "$id": "https://example.com/schemas/09-ux-layer.schema.json",
   "title": "UX Layer Layer Schema",
   "description": "Defines user experience specifications including state management, component composition, and multi-channel interaction patterns for visual, voice, and chat interfaces.",
+  "layerMetadata": {
+    "layerId": "09-ux-layer",
+    "layerName": "UX Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": [
+          "PremiumAccount",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Account",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "flow",
+        "sourceTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "BusinessProcess",
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessProcess",
+            "description": "One business process flows to the next in sequence"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "CoverageRequirement",
+            "description": "Target flows to requirements that specify its coverage",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCaseSketch",
+            "description": "Requirement flows to sketches that implement it",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "uses",
+        "sourceTypes": [
+          "ApplicationComponent"
+        ],
+        "targetTypes": [
+          "TechnologyService"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationComponent",
+            "target": "TechnologyService",
+            "description": "Application component uses technology service"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "DataObject",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "Schema",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "Schema",
+            "description": "Data object references JSON schema"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "sourceTypes": [
+          "ApplicationService",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "DataObject",
+          "OutcomeCategory"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "DataObject",
+            "description": "Application service depends on data object"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "renders",
+        "sourceTypes": [
+          "UIComponent"
+        ],
+        "targetTypes": [
+          "UIView"
+        ],
+        "examples": [
+          {
+            "source": "UIComponent",
+            "target": "UIView",
+            "description": "Layout component renders view content"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "binds-to",
+        "sourceTypes": [
+          "UIComponent"
+        ],
+        "targetTypes": [
+          "DataObject"
+        ],
+        "examples": [
+          {
+            "source": "UIComponent",
+            "target": "DataObject",
+            "description": "Form component binds to user data object"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "navigates-to",
+        "sourceTypes": [
+          "UIView"
+        ],
+        "targetTypes": [
+          "UIView"
+        ],
+        "examples": [
+          {
+            "source": "UIView",
+            "target": "UIView",
+            "description": "Login view navigates to dashboard view"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": []
+  },
   "type": "object",
   "properties": {
     "ux-libraries": {
@@ -593,6 +902,15 @@
         "category": {
           "type": "string",
           "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -751,6 +1069,15 @@
         "description": {
           "type": "string",
           "minLength": 1
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -969,6 +1296,15 @@
           "description": "Contains relationship",
           "items": {
             "type": "string"
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
           }
         }
       }
