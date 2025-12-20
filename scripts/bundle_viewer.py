@@ -9,7 +9,7 @@ from pathlib import Path
 from urllib.request import urlopen
 
 VIEWER_REPO = "tinkermonkey/documentation_robotics_viewer"
-DEFAULT_VERSION = "0.2.0"
+DEFAULT_VERSION = "0.2.1"
 BUNDLE_DIR = Path(__file__).parent.parent / "cli" / "src" / "documentation_robotics" / "viewer"
 
 

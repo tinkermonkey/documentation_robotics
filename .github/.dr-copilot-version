@@ -1,0 +1,11 @@
+components:
+  agents:
+    dr-advisor.md:
+      hash: f88d9f24
+      modified: false
+    dr-architect.md:
+      hash: 08762872
+      modified: false
+  skills: {}
+installed_at: '2025-12-20T08:51:02.982980'
+version: 0.7.3

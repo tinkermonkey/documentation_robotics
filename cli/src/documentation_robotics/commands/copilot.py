@@ -30,8 +30,8 @@ else:
 
 # Target locations (relative to project root)
 GITHUB_DIR = Path(".github")
-KNOWLEDGE_DIR = GITHUB_DIR / "knowledge"
 AGENTS_DIR = GITHUB_DIR / "agents"
+SKILLS_DIR = GITHUB_DIR / "skills"
 VERSION_FILE = GITHUB_DIR / ".dr-copilot-version"
 
 
@@ -39,19 +39,19 @@ class CopilotIntegrationManager:
     """Manages GitHub Copilot integration files."""
 
     COMPONENTS = {
-        "knowledge": {
-            "source": "knowledge",
-            "target": KNOWLEDGE_DIR,
-            "description": "Knowledge base for Copilot",
-            "prefix": "",
-            "type": "files",
-        },
         "agents": {
             "source": "agents",
             "target": AGENTS_DIR,
             "description": "Agent definitions for Copilot",
             "prefix": "",
             "type": "files",
+        },
+        "skills": {
+            "source": "skills",
+            "target": SKILLS_DIR,
+            "description": "Skills for Copilot",
+            "prefix": "",
+            "type": "directories",
         },
     }
 
@@ -167,11 +167,7 @@ class CopilotIntegrationManager:
 
         # Handle different installation types
         if install_type == "files":
-            # Install .md files (and potentially others if needed, but sticking to .md for now as per claude.py)
-            # Actually, let's support all files since agents might be json/yaml?
-            # Claude.py used glob("*.md"). Let's stick to that unless I see other files.
-            # Checking integrations/github_copilot... I only saw folders.
-            # Let's assume .md and .json for agents/knowledge.
+            # Install files directly in the target directory
             for source_file in source_dir.glob("*"):
                 if not source_file.is_file():
                     continue
@@ -187,6 +183,30 @@ class CopilotIntegrationManager:
                 # Copy file
                 shutil.copy2(source_file, target_file)
                 console.print(f"  [green]✓[/] {source_file.name}")
+                count += 1
+
+        elif install_type == "directories":
+            # Install subdirectories with their contents
+            for source_subdir in source_dir.iterdir():
+                if not source_subdir.is_dir():
+                    continue
+
+                target_subdir = target_dir / source_subdir.name
+
+                # Check if directory exists
+                if target_subdir.exists() and not force:
+                    if not Confirm.ask(
+                        f"  {source_subdir.name}/ exists. Overwrite?", default=False
+                    ):
+                        console.print(f"  Skipped {source_subdir.name}/", style="dim")
+                        continue
+                    # Remove existing directory if overwriting
+                    shutil.rmtree(target_subdir)
+
+                # Copy directory
+                shutil.copytree(source_subdir, target_subdir)
+                file_count = len(list(target_subdir.rglob("*")))
+                console.print(f"  [green]✓[/] {source_subdir.name}/ ({file_count} files)")
                 count += 1
 
         return count
@@ -316,45 +336,96 @@ class CopilotIntegrationManager:
         source_dir = INTEGRATION_ROOT / config["source"]
         target_dir = self.root_path / config["target"]
         prefix = config["prefix"]
+        install_type = config.get("type", "files")
 
         if not source_dir.exists():
             return updates
 
-        for source_file in source_dir.glob("*"):
-            if not source_file.is_file():
-                continue
+        if install_type == "directories":
+            # Handle directory-based components
+            for source_subdir in source_dir.iterdir():
+                if not source_subdir.is_dir():
+                    continue
 
-            target_file = target_dir / f"{prefix}{source_file.name}"
-            target_name = target_file.name
+                target_subdir = target_dir / source_subdir.name
 
-            if not target_file.exists():
-                # New file
-                updates.append(
-                    {
-                        "file": target_name,
-                        "status": "New",
-                        "action": "Install",
-                        "source": source_file,
-                        "target": target_file,
-                    }
-                )
-                continue
+                if not target_subdir.exists():
+                    # New directory
+                    updates.append(
+                        {
+                            "file": f"{source_subdir.name}/",
+                            "status": "New",
+                            "action": "Install",
+                            "source": source_subdir,
+                            "target": target_subdir,
+                        }
+                    )
+                    continue
 
-            # Check if modified
-            current_hash = self._compute_hash(target_file)
-            source_hash = self._compute_hash(source_file)
+                # Check if any files in the directory have changed
+                has_changes = False
+                for source_file in source_subdir.rglob("*"):
+                    if not source_file.is_file():
+                        continue
 
-            if source_hash != current_hash:
-                # Update needed
-                updates.append(
-                    {
-                        "file": target_name,
-                        "status": "Update",
-                        "action": "Update",
-                        "source": source_file,
-                        "target": target_file,
-                    }
-                )
+                    rel_path = source_file.relative_to(source_subdir)
+                    target_file = target_subdir / rel_path
+
+                    if not target_file.exists():
+                        has_changes = True
+                        break
+
+                    if self._compute_hash(source_file) != self._compute_hash(target_file):
+                        has_changes = True
+                        break
+
+                if has_changes:
+                    updates.append(
+                        {
+                            "file": f"{source_subdir.name}/",
+                            "status": "Update",
+                            "action": "Update",
+                            "source": source_subdir,
+                            "target": target_subdir,
+                        }
+                    )
+        else:
+            # Handle file-based components
+            for source_file in source_dir.glob("*"):
+                if not source_file.is_file():
+                    continue
+
+                target_file = target_dir / f"{prefix}{source_file.name}"
+                target_name = target_file.name
+
+                if not target_file.exists():
+                    # New file
+                    updates.append(
+                        {
+                            "file": target_name,
+                            "status": "New",
+                            "action": "Install",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
+                    continue
+
+                # Check if modified
+                current_hash = self._compute_hash(target_file)
+                source_hash = self._compute_hash(source_file)
+
+                if source_hash != current_hash:
+                    # Update needed
+                    updates.append(
+                        {
+                            "file": target_name,
+                            "status": "Update",
+                            "action": "Update",
+                            "source": source_file,
+                            "target": target_file,
+                        }
+                    )
 
         return updates
 
@@ -371,9 +442,16 @@ class CopilotIntegrationManager:
         # Ensure target directory exists
         target.parent.mkdir(parents=True, exist_ok=True)
 
-        # Copy file
-        shutil.copy2(source, target)
-        console.print(f"  [green]✓[/] Updated {target.name}")
+        if source.is_dir():
+            # Handle directory updates
+            if target.exists():
+                shutil.rmtree(target)
+            shutil.copytree(source, target)
+            console.print(f"  [green]✓[/] Updated {update['file']}")
+        else:
+            # Handle file updates
+            shutil.copy2(source, target)
+            console.print(f"  [green]✓[/] Updated {target.name}")
 
     def remove(self, components: Optional[List[str]] = None, force: bool = False) -> None:
         """Remove installed files.
@@ -414,15 +492,23 @@ class CopilotIntegrationManager:
         config = self.COMPONENTS[component]
         target_dir = self.root_path / config["target"]
         prefix = config["prefix"]
+        install_type = config.get("type", "files")
 
         if not target_dir.exists():
             return
 
-        # Remove files with prefix
-        for file in target_dir.glob(f"{prefix}*"):
-            if file.is_file():
-                file.unlink()
-                console.print(f"  [red]✗[/] Removed {file.name}")
+        if install_type == "directories":
+            # Remove subdirectories
+            for subdir in target_dir.iterdir():
+                if subdir.is_dir():
+                    shutil.rmtree(subdir)
+                    console.print(f"  [red]✗[/] Removed {subdir.name}/")
+        else:
+            # Remove files with prefix
+            for file in target_dir.glob(f"{prefix}*"):
+                if file.is_file():
+                    file.unlink()
+                    console.print(f"  [red]✗[/] Removed {file.name}")
 
     def status(self) -> None:
         """Show installation status."""
@@ -447,18 +533,32 @@ class CopilotIntegrationManager:
         for component, config in self.COMPONENTS.items():
             target_dir = self.root_path / config["target"]
             prefix = config["prefix"]
+            install_type = config.get("type", "files")
 
             if not target_dir.exists():
                 table.add_row(component, "0", "-")
                 continue
 
-            files = list(target_dir.glob(f"{prefix}*"))
-            files = [f for f in files if f.is_file()]
-            modified_count = sum(1 for f in files if self._is_modified(f, component, version_data))
+            if install_type == "directories":
+                # Count subdirectories for directory-based components
+                items = [d for d in target_dir.iterdir() if d.is_dir()]
+                # For modified count, check if any files in subdirs are modified
+                modified_count = 0
+                for subdir in items:
+                    for f in subdir.rglob("*"):
+                        if f.is_file() and self._is_modified(f, component, version_data):
+                            modified_count += 1
+                            break  # Only count once per subdirectory
+            else:
+                # Count files for file-based components
+                items = [f for f in target_dir.glob(f"{prefix}*") if f.is_file()]
+                modified_count = sum(
+                    1 for f in items if self._is_modified(f, component, version_data)
+                )
 
             table.add_row(
                 component,
-                str(len(files)),
+                str(len(items)),
                 str(modified_count) if modified_count > 0 else "-",
             )
 
@@ -544,32 +644,57 @@ class CopilotIntegrationManager:
             target_dir = self.root_path / config["target"]
             source_dir = INTEGRATION_ROOT / config["source"]
             prefix = config.get("prefix", "")
+            install_type = config.get("type", "files")
 
             if not target_dir.exists():
                 continue
 
-            # Get files from source (what should exist)
-            if source_dir.exists():
-                source_files = {f.name for f in source_dir.glob("*") if f.is_file()}
+            if install_type == "directories":
+                # Handle directory-based components
+                if source_dir.exists():
+                    source_subdirs = {d.name for d in source_dir.iterdir() if d.is_dir()}
+                else:
+                    source_subdirs = set()
+
+                # Check installed directories
+                for installed_dir in target_dir.iterdir():
+                    if not installed_dir.is_dir():
+                        continue
+
+                    if installed_dir.name not in source_subdirs:
+                        obsolete_files.append(
+                            {
+                                "file": f"{installed_dir.name}/",
+                                "path": installed_dir,
+                                "type": "directory",
+                                "component": component,
+                            }
+                        )
             else:
-                source_files = set()
+                # Handle file-based components
+                if source_dir.exists():
+                    source_files = {f.name for f in source_dir.glob("*") if f.is_file()}
+                else:
+                    source_files = set()
 
-            # Check installed files (accounting for prefix)
-            for installed_file in target_dir.glob(f"{prefix}*"):
-                if not installed_file.is_file():
-                    continue
+                # Check installed files (accounting for prefix)
+                for installed_file in target_dir.glob(f"{prefix}*"):
+                    if not installed_file.is_file():
+                        continue
 
-                # Remove prefix to get the base filename
-                base_name = installed_file.name[len(prefix) :] if prefix else installed_file.name
-                if base_name not in source_files:
-                    obsolete_files.append(
-                        {
-                            "file": installed_file.name,
-                            "path": installed_file,
-                            "type": "file",
-                            "component": component,
-                        }
+                    # Remove prefix to get the base filename
+                    base_name = (
+                        installed_file.name[len(prefix) :] if prefix else installed_file.name
                     )
+                    if base_name not in source_files:
+                        obsolete_files.append(
+                            {
+                                "file": installed_file.name,
+                                "path": installed_file,
+                                "type": "file",
+                                "component": component,
+                            }
+                        )
 
         return obsolete_files
 
@@ -580,14 +705,17 @@ class CopilotIntegrationManager:
             obsolete: Obsolete file/directory information
         """
         path = obsolete["path"]
-        path.unlink()
+        if obsolete.get("type") == "directory":
+            shutil.rmtree(path)
+        else:
+            path.unlink()
         console.print(f"  [red]✗[/] Removed obsolete {obsolete['file']}")
 
     def _print_next_steps(self) -> None:
         """Print helpful next steps."""
         console.print("\n[bold]Next steps:[/]")
-        console.print("1. Knowledge base is available in .github/knowledge/")
-        console.print("2. Agents are available in .github/agents/")
+        console.print("1. Agents are available in .github/agents/")
+        console.print("2. Skills are available in .github/skills/")
         console.print("3. Run [cyan]dr copilot status[/] to see what's installed")
 
 
@@ -602,9 +730,9 @@ def copilot():
 
 @copilot.command()
 @click.option(
-    "--knowledge-only",
+    "--skills-only",
     is_flag=True,
-    help="Install only knowledge base",
+    help="Install only skills",
 )
 @click.option(
     "--agents-only",
@@ -616,13 +744,13 @@ def copilot():
     is_flag=True,
     help="Overwrite existing files without prompting",
 )
-def install(knowledge_only, agents_only, force):
+def install(skills_only, agents_only, force):
     """Install GitHub Copilot integration files."""
     manager = CopilotIntegrationManager()
 
     components = None
-    if knowledge_only:
-        components = ["knowledge"]
+    if skills_only:
+        components = ["skills"]
     elif agents_only:
         components = ["agents"]
 

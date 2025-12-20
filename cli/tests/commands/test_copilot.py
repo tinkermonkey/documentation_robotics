@@ -56,10 +56,12 @@ class TestCopilotCommand:
         source = tmp_path / "integration_source"
         source.mkdir()
 
-        # Create knowledge files
-        knowledge_dir = source / "knowledge"
-        knowledge_dir.mkdir()
-        (knowledge_dir / "test-guide.md").write_text("# Test Guide")
+        # Create skills directories
+        skills_dir = source / "skills"
+        skills_dir.mkdir()
+        test_skill_dir = skills_dir / "test_skill"
+        test_skill_dir.mkdir()
+        (test_skill_dir / "SKILL.md").write_text("# Test Skill")
 
         # Create agents files
         agents_dir = source / "agents"
@@ -89,7 +91,7 @@ class TestCopilotCommand:
         # Verify files installed
         github_dir = project_dir / ".github"
         assert github_dir.exists()
-        assert (github_dir / "knowledge" / "test-guide.md").exists()
+        assert (github_dir / "skills" / "test_skill" / "SKILL.md").exists()
         assert (github_dir / "agents" / "test-agent.md").exists()
         assert (github_dir / ".dr-copilot-version").exists()
 
@@ -98,15 +100,15 @@ class TestCopilotCommand:
         with patch("documentation_robotics.commands.copilot.INTEGRATION_ROOT", integration_source):
             result = runner.invoke(
                 cli,
-                ["--no-upgrade-check", "copilot", "install", "--knowledge-only"],
+                ["--no-upgrade-check", "copilot", "install", "--skills-only"],
                 cwd=str(project_dir),
             )
 
         assert result.exit_code == 0
 
-        # Verify only knowledge installed
+        # Verify only skills installed
         github_dir = project_dir / ".github"
-        assert (github_dir / "knowledge" / "test-guide.md").exists()
+        assert (github_dir / "skills" / "test_skill" / "SKILL.md").exists()
         assert not (github_dir / "agents" / "test-agent.md").exists()
 
     def test_status_not_installed(self, runner, project_dir):
@@ -133,7 +135,7 @@ class TestCopilotCommand:
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "installation status" in output.lower()
-        assert "knowledge" in output.lower()
+        assert "skills" in output.lower()
         assert "agents" in output.lower()
 
     def test_update_no_changes(self, runner, project_dir, integration_source):
@@ -158,7 +160,9 @@ class TestCopilotCommand:
             runner.invoke(cli, ["--no-upgrade-check", "copilot", "install"], cwd=str(project_dir))
 
             # Modify source file
-            (integration_source / "knowledge" / "test-guide.md").write_text("# Updated Guide")
+            (integration_source / "skills" / "test_skill" / "SKILL.md").write_text(
+                "# Updated Skill"
+            )
 
             # Update
             result = runner.invoke(
@@ -167,11 +171,11 @@ class TestCopilotCommand:
 
         assert result.exit_code == 0
         output = strip_ansi(result.output)
-        assert "updated test-guide.md" in output.lower()
+        assert "updated test_skill" in output.lower()
 
         # Verify file updated
-        installed_file = project_dir / ".github" / "knowledge" / "test-guide.md"
-        assert installed_file.read_text() == "# Updated Guide"
+        installed_file = project_dir / ".github" / "skills" / "test_skill" / "SKILL.md"
+        assert installed_file.read_text() == "# Updated Skill"
 
     def test_remove(self, runner, project_dir, integration_source):
         """Test remove command."""
@@ -190,7 +194,7 @@ class TestCopilotCommand:
 
         # Verify files removed
         github_dir = project_dir / ".github"
-        assert not (github_dir / "knowledge" / "test-guide.md").exists()
+        assert not (github_dir / "skills" / "test_skill" / "SKILL.md").exists()
         assert not (github_dir / "agents" / "test-agent.md").exists()
         assert not (github_dir / ".dr-copilot-version").exists()
 
@@ -201,5 +205,5 @@ class TestCopilotCommand:
         assert result.exit_code == 0
         output = strip_ansi(result.output)
         assert "available components" in output.lower()
-        assert "knowledge" in output.lower()
+        assert "skills" in output.lower()
         assert "agents" in output.lower()

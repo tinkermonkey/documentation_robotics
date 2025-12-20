@@ -76,8 +76,8 @@ documentation_robotics = [
     "claude_integration/templates/*.md",
     "claude_integration/templates/*.json",
     "claude_integration/templates/*.sh",
-    "copilot_integration/agents/*",
-    "copilot_integration/knowledge/*",
+    "copilot_integration/agents/*.md",
+    "copilot_integration/skills/*/SKILL.md",
     "viewer/dist/**/*",
 ]
 
