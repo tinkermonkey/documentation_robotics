@@ -51,7 +51,7 @@ export class GraphMLExporter implements Exporter {
       if (!layer) continue;
 
       for (const element of layer.listElements()) {
-        const color = LAYER_COLORS[layerName] || "#FFFFFF";
+        const color = `#${LAYER_COLORS[layerName] || "FFFFFF"}`;
 
         lines.push(`    <node id="${element.id}">`);
         lines.push(`      <data key="name">${escapeXml(element.name)}</data>`);

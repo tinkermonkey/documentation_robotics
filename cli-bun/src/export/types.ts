@@ -38,20 +38,21 @@ export interface ExportFormatInfo {
 
 /**
  * Shared layer colors for consistent visualization across exporters
+ * Note: Color values do NOT include '#' prefix - exporters add it as needed
  */
 export const LAYER_COLORS: Record<string, string> = {
-  motivation: "#FFE4E1",
-  business: "#E6F3FF",
-  security: "#FFE6E6",
-  application: "#E6FFE6",
-  technology: "#FFFFE6",
-  api: "#F0E6FF",
-  "data-model": "#E6F0FF",
-  "data-store": "#FFE6F0",
-  ux: "#FFCCCC",
-  navigation: "#CCFFCC",
-  apm: "#CCFFFF",
-  testing: "#FFCCFF",
+  motivation: "FFE4E1",
+  business: "E6F3FF",
+  security: "FFE6E6",
+  application: "E6FFE6",
+  technology: "FFFFE6",
+  api: "F0E6FF",
+  "data-model": "E6F0FF",
+  "data-store": "FFE6F0",
+  ux: "FFCCCC",
+  navigation: "CCFFCC",
+  apm: "CCFFFF",
+  testing: "FFCCFF",
 };
 
 /**
