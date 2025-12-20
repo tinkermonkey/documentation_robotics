@@ -39,7 +39,7 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('must have at least 3 parts');
+    expect(result.errors[0].message).toContain('must have type and name components after layer');
   });
 
   it('should detect mismatched layer prefix', () => {
