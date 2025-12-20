@@ -89,11 +89,11 @@ cli.add_command(search.search)
 cli.add_command(update.update_element)  # Renamed from update to update_element
 cli.add_command(remove.remove)
 cli.add_command(validate.validate)
-# Phase 2 commands
+# Projection and dependency tracing
 cli.add_command(project.project)
 cli.add_command(project.project_all)
 cli.add_command(trace.trace)
-# Phase 3 commands
+# Export and conformance
 cli.add_command(export.export)
 cli.add_command(conformance.conformance)
 # Changeset management
@@ -113,7 +113,7 @@ cli.add_command(relationship.relationship)
 cli.add_command(migrate.migrate)
 # Visualization
 cli.add_command(visualize.visualize)
-# Chat (DrBot test harness)
+# Chat interface with Claude (DrBot orchestrator)
 cli.add_command(chat.chat)
 # Annotation management
 cli.add_command(annotate.annotate)

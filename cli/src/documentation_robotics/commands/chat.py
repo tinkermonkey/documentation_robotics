@@ -213,6 +213,15 @@ async def _run_chat_session(model_dir: Optional[str]) -> None:
         console.print()
         raise click.Abort()
 
+    # Validate API key is configured
+    import os
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        console.print("[red]Error: ANTHROPIC_API_KEY environment variable not set[/red]")
+        console.print("\n[yellow]Set it with:[/yellow]")
+        console.print("  export ANTHROPIC_API_KEY=sk-...")
+        console.print()
+        raise click.Abort()
+
     # Resolve and validate model path
     model_path = _resolve_model_path(model_dir)
 

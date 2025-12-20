@@ -49,18 +49,18 @@ DRBOT_SYSTEM_PROMPT = """You are DrBot, an expert conversational assistant for D
 
 ## Your Expertise
 
-You understand the **full 12-layer DR architecture** (note that layers are numbered 00-10, plus 12 for Testing):
-1. Motivation (Layer 00) - WHY: goals, principles, requirements, constraints
-2. Business (Layer 01) - WHAT: capabilities, processes, services, actors
-3. Security (Layer 02) - WHO/PROTECTION: actors, roles, policies, threats
-4. Application (Layer 03) - HOW: components, services, interfaces, events
-5. Technology (Layer 04) - WITH: platforms, frameworks, infrastructure
-6. API (Layer 05) - CONTRACTS: OpenAPI 3.0.3 specs (26 entity types)
-7. Data Model (Layer 06) - STRUCTURE: JSON Schema Draft 7 (17 entity types)
-8. Datastore (Layer 07) - PERSISTENCE: SQL DDL (10 entity types)
-9. UX (Layer 08) - EXPERIENCE: Three-Tier Architecture (26 entity types)
-10. Navigation (Layer 09) - FLOW: Multi-Modal routing (10 entity types)
-11. APM (Layer 10) - OBSERVE: OpenTelemetry 1.0+ (14 entity types)
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 4) - HOW: components, services, interfaces, events
+5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs (26 entity types)
+7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7 (17 entity types)
+8. Datastore (Layer 8) - PERSISTENCE: SQL DDL (10 entity types)
+9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture (26 entity types)
+10. Navigation (Layer 10) - FLOW: Multi-Modal routing (10 entity types)
+11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+ (14 entity types)
 12. Testing (Layer 12) - VERIFY: ISP Coverage Model (17 entity types)
 
 ## Your Tools
@@ -115,6 +115,7 @@ class DrBotOrchestrator:
         model_path: Path,
         timeout: int = 120,
         agents_dir: Optional[Path] = None,
+        claude_model: str = "claude-sonnet-4-5-20250929",
     ):
         """
         Initialize DrBot orchestrator.
@@ -124,10 +125,12 @@ class DrBotOrchestrator:
             timeout: Timeout in seconds for agent operations
             agents_dir: Optional path to agents directory; if None, uses default
                        location relative to model_path
+            claude_model: Claude model to use for inference (default: claude-sonnet-4-5-20250929)
         """
         self.model_path = Path(model_path)
         self.timeout = timeout
         self.agents_dir = agents_dir
+        self.claude_model = claude_model
 
     async def _handle_via_claude_cli(
         self,
@@ -157,7 +160,12 @@ class DrBotOrchestrator:
 
         # Launch Claude CLI with:
         # --print: non-interactive output
-        # --dangerously-skip-permissions: skip permission prompts (safe in this context)
+        # --dangerously-skip-permissions: skip permission prompts
+        #   Security Note: This is safe in this context because:
+        #   1. The subprocess runs with restricted tools (Bash, Read only)
+        #   2. Only whitelisted tools (dr commands) are available
+        #   3. Subprocess is limited to model directory (cwd=self.model_path)
+        #   4. No file write or system command execution permissions
         # --system-prompt: DR context and expertise
         # --tools: allow Bash for running dr commands
         # --verbose: required for stream-json
@@ -345,7 +353,7 @@ class DrBotOrchestrator:
         for turn in range(max_turns):
             # Call Claude with streaming
             async with client.messages.stream(
-                model="claude-sonnet-4-5-20250929",
+                model=self.claude_model,
                 max_tokens=4096,
                 system=system_prompt,
                 messages=messages,
@@ -491,7 +499,7 @@ class DrBotOrchestrator:
                             "type": "string",
                             "description": "The DR layer name. Must be one of: motivation, business, security, application, technology, api, data_model, datastore, ux, navigation, apm, testing",
                         },
-                        "element_type": {
+                        "type": {
                             "type": "string",
                             "description": "Optional element type (e.g., 'service', 'operation')",
                         },
@@ -505,26 +513,31 @@ class DrBotOrchestrator:
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "element_id": {
+                        "id": {
                             "type": "string",
                             "description": "Element ID (e.g., 'business.service.orders', 'api.operation.create-user')",
                         }
                     },
-                    "required": ["element_id"],
+                    "required": ["id"],
                 },
             },
             {
                 "name": "dr_search",
-                "description": "Search for elements matching a pattern across all layers. Use this to find elements by name or content.",
+                "description": "Search for elements matching a query across all layers. Use this to find elements by name or content.",
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "pattern": {
+                        "query": {
                             "type": "string",
-                            "description": "Search pattern (can be text or regex)",
+                            "description": "Search query (text or pattern)",
+                        },
+                        "layers": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "description": "Optional list of layers to search in",
                         }
                     },
-                    "required": ["pattern"],
+                    "required": ["query"],
                 },
             },
             {
@@ -533,12 +546,17 @@ class DrBotOrchestrator:
                 "input_schema": {
                     "type": "object",
                     "properties": {
-                        "element_id": {
+                        "id": {
                             "type": "string",
                             "description": "Element ID to trace",
+                        },
+                        "direction": {
+                            "type": "string",
+                            "enum": ["up", "down", "both"],
+                            "description": "Dependency direction (up=what depends on it, down=what it depends on, both=both)",
                         }
                     },
-                    "required": ["element_id"],
+                    "required": ["id"],
                 },
             },
             {
@@ -571,14 +589,20 @@ class DrBotOrchestrator:
         if tool_name == "dr_list":
             return await self._dr_list_impl(
                 layer=tool_input["layer"],
-                element_type=tool_input.get("element_type"),
+                element_type=tool_input.get("type"),
             )
         elif tool_name == "dr_find":
-            return await self._dr_find_impl(element_id=tool_input["element_id"])
+            return await self._dr_find_impl(element_id=tool_input["id"])
         elif tool_name == "dr_search":
-            return await self._dr_search_impl(pattern=tool_input["pattern"])
+            return await self._dr_search_impl(
+                query=tool_input["query"],
+                layers=tool_input.get("layers"),
+            )
         elif tool_name == "dr_trace":
-            return await self._dr_trace_impl(element_id=tool_input["element_id"])
+            return await self._dr_trace_impl(
+                element_id=tool_input["id"],
+                direction=tool_input.get("direction", "both"),
+            )
         elif tool_name == "delegate_to_architect":
             return await self._delegate_to_architect_impl(
                 task_description=tool_input["task_description"]
@@ -627,14 +651,18 @@ class DrBotOrchestrator:
         cmd_parts = ["dr", "find", element_id, "--output", "json"]
         return await self._execute_cli(cmd_parts)
 
-    async def _dr_search_impl(self, pattern: str) -> str:
+    async def _dr_search_impl(self, query: str, layers: Optional[List[str]] = None) -> str:
         """Implementation of dr_search tool."""
-        cmd_parts = ["dr", "search", pattern, "--output", "json"]
+        cmd_parts = ["dr", "search", query, "--output", "json"]
+        if layers:
+            cmd_parts.extend(["--layers", ",".join(layers)])
         return await self._execute_cli(cmd_parts)
 
-    async def _dr_trace_impl(self, element_id: str) -> str:
+    async def _dr_trace_impl(self, element_id: str, direction: str = "both") -> str:
         """Implementation of dr_trace tool."""
         cmd_parts = ["dr", "trace", element_id, "--output", "json"]
+        if direction != "both":
+            cmd_parts.extend(["--direction", direction])
         return await self._execute_cli(cmd_parts)
 
     async def _delegate_to_architect_impl(self, task_description: str) -> str:
