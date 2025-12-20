@@ -9,17 +9,26 @@ from pathlib import Path
 from urllib.request import urlopen
 
 VIEWER_REPO = "tinkermonkey/documentation_robotics_viewer"
-DEFAULT_VERSION = "0.1.0"
+DEFAULT_VERSION = "0.2.0"
 BUNDLE_DIR = Path(__file__).parent.parent / "cli" / "src" / "documentation_robotics" / "viewer"
 
 
 def bundle_viewer(version: str = DEFAULT_VERSION, force: bool = False) -> None:
     """Bundle viewer assets into CLI package."""
     dist_dir = BUNDLE_DIR / "dist"
+    version_file = dist_dir / ".viewer-version"
 
+    # Check if we need to bundle
     if dist_dir.exists() and not force:
-        print(f"Viewer already bundled at {dist_dir}")
-        return
+        if version_file.exists():
+            current_version = version_file.read_text().strip()
+            if current_version == version:
+                print(f"Viewer {version} already bundled at {dist_dir}")
+                return
+            else:
+                print(f"Updating viewer from {current_version} to {version}...")
+        else:
+            print(f"Bundling viewer {version} (no version info found)...")
 
     BUNDLE_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -65,7 +74,12 @@ def bundle_viewer(version: str = DEFAULT_VERSION, force: bool = False) -> None:
         if dist_dir.exists():
             shutil.rmtree(dist_dir)
         shutil.copytree(bundle_candidates[0], dist_dir)
-        print(f"✓ Bundled viewer to {dist_dir}")
+
+        # Write version file
+        version_file = dist_dir / ".viewer-version"
+        version_file.write_text(version)
+
+        print(f"✓ Bundled viewer {version} to {dist_dir}")
 
 
 if __name__ == "__main__":

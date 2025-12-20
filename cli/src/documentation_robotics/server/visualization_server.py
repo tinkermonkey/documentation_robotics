@@ -270,16 +270,18 @@ class VisualizationServer:
             return response
 
         # Allow static assets without authentication
-        # Static assets are public - they're just the viewer UI
-        # Authentication protects the API endpoints that return model data
+        # Static assets (JS, CSS, images, fonts) are public - they're just the viewer UI files
+        # The root path (/) requires authentication via magic link token
+        # Authentication also protects API endpoints that return model data
         path = request.path
-        if path == "/" or self._is_static_asset(path):
+        if self._is_static_asset(path):
             response = await handler(request)
             self._add_cors_headers(response)
             return response
 
-        # Require authentication for API and WebSocket endpoints
-        # These endpoints return sensitive model data
+        # Require authentication for root path, API and WebSocket endpoints
+        # Root path uses token-based "magic link" for access
+        # API/WebSocket endpoints return sensitive model data
         if not self._validate_token(request):
             # Check if token was provided but invalid
             has_token = "token" in request.query or "Authorization" in request.headers

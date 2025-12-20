@@ -1,8 +1,328 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://example.com/schemas/12-testing-layer.schema.json",
-  "title": "Testing Layer Layer Schema",
+  "title": "Testing Layer Schema",
   "description": "Models test coverage requirements, input space partitioning, and coverage criteria to ensure comprehensive testing with traceability to requirements.",
+  "layerMetadata": {
+    "layerId": "12-testing",
+    "layerName": "Testing Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCoverageModel",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "InputPartitionSelection",
+          "OutcomeCategory",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCoverageModel",
+            "target": "TestCoverageTarget",
+            "description": "Coverage model composes targets defining what needs testing"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "OutcomeCategory",
+            "description": "Coverage target composes expected outcome categories"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Coverage requirement composes partition value selections"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "InputPartitionSelection"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "InputPartitionSelection",
+            "target": "PartitionValue",
+            "description": "Partition selection aggregates multiple partition values to cover"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "ContextVariation",
+            "description": "Requirement aggregates selected contexts for testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "sourceTypes": [
+          "CoverageGap",
+          "PartitionDependency"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "PartitionDependency",
+            "target": "PartitionValue",
+            "description": "Dependency condition triggers inclusion/exclusion of partition values"
+          },
+          {
+            "source": "CoverageGap",
+            "target": "CoverageRequirement",
+            "description": "Identified gap triggers need for additional coverage"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "flow",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "examples": [
+          {
+            "source": "TestCoverageTarget",
+            "target": "CoverageRequirement",
+            "description": "Target flows to requirements that specify its coverage"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCaseSketch",
+            "description": "Requirement flows to sketches that implement it"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "sourceTypes": [
+          "ContextVariation",
+          "InputSpacePartition"
+        ],
+        "targetTypes": [
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "InputSpacePartition",
+            "target": "TestCoverageTarget",
+            "description": "Partition serves target by defining testable input space"
+          },
+          {
+            "source": "ContextVariation",
+            "target": "TestCoverageTarget",
+            "description": "Context serves target by defining execution environments"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "InputPartitionSelection",
+          "InputSelection"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "InputSelection",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "PartitionValue",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers"
+          },
+          {
+            "source": "InputSelection",
+            "target": "PartitionValue",
+            "description": "Input selection references selected partition value"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "InputSpacePartition",
+          "OutcomeCategory"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputSpacePartition",
+            "description": "Requirement depends on partitions for coverage criteria"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "validates",
+        "sourceTypes": [
+          "TargetCoverageSummary",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test sketch validates requirement is satisfied"
+          },
+          {
+            "source": "TargetCoverageSummary",
+            "target": "TestCoverageTarget",
+            "description": "Summary validates coverage completeness of target"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "testing-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "Goal"
+        ],
+        "sourceTypes": [
+          "TestCoverageModel",
+          "TestCaseSketch"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "uuid",
+        "strength": "high",
+        "required": false,
+        "description": "Testing elements support strategic goals"
+      },
+      {
+        "id": "testing-fulfills-requirements",
+        "predicate": "fulfills-requirements",
+        "inversePredicate": "fulfilled-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "Requirement"
+        ],
+        "sourceTypes": [
+          "TestCoverageModel",
+          "TestCaseSketch",
+          "CoverageRequirement"
+        ],
+        "fieldPath": "motivation.fulfills-requirements",
+        "cardinality": "array",
+        "format": "uuid",
+        "strength": "high",
+        "required": false,
+        "description": "Testing elements fulfill requirements"
+      },
+      {
+        "id": "testing-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "Principle"
+        ],
+        "sourceTypes": [
+          "TestCoverageModel"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "uuid",
+        "strength": "high",
+        "required": false,
+        "description": "Testing models governed by testing principles"
+      },
+      {
+        "id": "testing-constrained-by",
+        "predicate": "constrained-by",
+        "inversePredicate": "constrains",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "Constraint"
+        ],
+        "sourceTypes": [
+          "TestCoverageModel",
+          "CoverageRequirement"
+        ],
+        "fieldPath": "motivation.constrained-by",
+        "cardinality": "array",
+        "format": "uuid",
+        "strength": "medium",
+        "required": false,
+        "description": "Testing elements constrained by limitations"
+      }
+    ],
+    "incoming": []
+  },
   "type": "object",
   "properties": {
     "test-coverage-models": {

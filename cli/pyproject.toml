@@ -44,7 +44,6 @@ dependencies = [
     "watchdog>=3.0.0",
     # AI chat integration
     "anthropic>=0.75.0",
-    # "documentation-robotics-viewer>=0.1.0",
 ]
 
 [project.optional-dependencies]

@@ -951,7 +951,7 @@ class TestCORSHeaders:
 
     @pytest.mark.asyncio
     async def test_api_endpoints_require_token(self, tmp_path):
-        """Test API endpoints still require authentication."""
+        """Test API endpoints and root path still require authentication."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
@@ -959,14 +959,15 @@ class TestCORSHeaders:
 
         server = VisualizationServer(model_path, spec_path, "localhost", 8080)
 
-        # Test API endpoints without token
-        api_paths = [
+        # Test API endpoints and root path without token
+        protected_paths = [
+            "/",  # Root path requires token (magic link)
             "/api/model",
             "/api/data",
             "/ws",
         ]
 
-        for path in api_paths:
+        for path in protected_paths:
             request = Mock(spec=web.Request)
             request.path = path
             request.method = "GET"
@@ -982,8 +983,8 @@ class TestCORSHeaders:
             assert response.status == 401, f"Path {path} should require authentication"
 
     @pytest.mark.asyncio
-    async def test_root_path_allowed_without_token(self, tmp_path):
-        """Test root path (/) is accessible without authentication."""
+    async def test_root_path_with_valid_token(self, tmp_path):
+        """Test root path (/) is accessible WITH authentication token."""
         model_path = tmp_path / "documentation-robotics"
         spec_path = tmp_path / ".dr" / "specification"
         model_path.mkdir(parents=True)
@@ -994,7 +995,7 @@ class TestCORSHeaders:
         request = Mock(spec=web.Request)
         request.path = "/"
         request.method = "GET"
-        request.query = {}  # No token
+        request.query = {"token": server.token}  # Valid token
         request.headers = {}
 
         async def mock_handler(req):
@@ -1002,7 +1003,7 @@ class TestCORSHeaders:
 
         response = await server.auth_middleware(request, mock_handler)
 
-        # Verify root path is accessible
+        # Verify root path is accessible with valid token
         assert response.status == 200
 
     def test_is_static_asset_method(self, tmp_path):
