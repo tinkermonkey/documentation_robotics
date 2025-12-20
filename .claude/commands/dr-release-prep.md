@@ -651,7 +651,7 @@ Which option? (1/2/3)
 Error: Test suite failed
 
 Failed tests: 3
-  - test_link_validation_strict_mode (FAILED)
+  - test_relationship_validation_strict_mode (FAILED)
   - test_migration_v01_to_v02 (FAILED)
   - test_export_archimate_with_links (FAILED)
 

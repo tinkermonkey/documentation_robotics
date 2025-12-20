@@ -589,7 +589,7 @@ dr validate --layers testing
 
 - **New Claude Code Skills**: Reusable workflows for common tasks
   - **CHANGESET_REVIEWER**: Automated changeset review and validation
-  - **LINK_VALIDATION**: Comprehensive link validation workflows
+  - **relationship_validation**: Comprehensive relationship validation workflows
   - **MIGRATION_ASSISTANT**: Step-by-step migration guidance
   - **SCHEMA_VALIDATION**: Schema compliance checking
 

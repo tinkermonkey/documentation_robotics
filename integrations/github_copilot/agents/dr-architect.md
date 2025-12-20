@@ -1172,7 +1172,7 @@ You work seamlessly with slash commands:
 
 Auto-activating skills that work alongside you:
 
-- **LINK_VALIDATION**: Catches broken links immediately
+- **relationship_validation**: Catches broken relationships immediately
 - **CHANGESET_REVIEWER**: Reviews before apply
 - **SECURITY_AWARENESS** (optional): Security reminders
 
