@@ -1,0 +1,74 @@
+/**
+ * Initialize a new Documentation Robotics model
+ */
+
+import { intro, text, outro } from '@clack/prompts';
+import ansis from 'ansis';
+import { Model } from '../core/model.js';
+import { fileExists } from '../utils/file-io.js';
+
+export interface InitOptions {
+  name?: string;
+  author?: string;
+  description?: string;
+  verbose?: boolean;
+  debug?: boolean;
+}
+
+export async function initCommand(options: InitOptions): Promise<void> {
+  intro(ansis.bold(ansis.blue('⚙️  Initialize Documentation Robotics Model')));
+
+  try {
+    const rootPath = process.cwd();
+    const drPath = `${rootPath}/.dr`;
+    const manifestPath = `${drPath}/manifest.json`;
+
+    // Check if model already exists
+    if (await fileExists(manifestPath)) {
+      console.error(ansis.red('Error: Model already initialized in this directory'));
+      process.exit(1);
+    }
+
+    // Gather model metadata
+    const name =
+      options.name ||
+      (await text({
+        message: 'Model name:',
+        validate: (value) => (value.length === 0 ? 'Name is required' : undefined),
+      }));
+
+    const description =
+      options.description ||
+      (await text({
+        message: 'Description (optional):',
+        defaultValue: '',
+      }));
+
+    const author =
+      options.author ||
+      (await text({
+        message: 'Author (optional):',
+        defaultValue: '',
+      }));
+
+    // Initialize model
+    const model = await Model.init(
+      rootPath,
+      {
+        name: name as string,
+        version: '0.1.0',
+        description: (description as string) || undefined,
+        author: (author as string) || undefined,
+        specVersion: '0.6.0',
+        created: new Date().toISOString(),
+      },
+      { lazyLoad: false }
+    );
+
+    outro(ansis.green(`✓ Model initialized: ${ansis.bold(model.manifest.name)}`));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(ansis.red(`Error: ${message}`));
+    process.exit(1);
+  }
+}

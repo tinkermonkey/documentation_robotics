@@ -8,6 +8,7 @@ import { ValidationResult } from './types.js';
 import type { Layer } from '../core/layer.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
+import { readFile } from '../utils/file-io.js';
 
 /**
  * Validator for JSON Schema compliance
@@ -62,7 +63,7 @@ export class SchemaValidator {
 
     for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
       try {
-        // Use dynamic import to load JSON at runtime
+        // Load JSON schema from file
         const schemaPath = path.join(
           __dirname,
           '..',
@@ -70,9 +71,8 @@ export class SchemaValidator {
           'bundled',
           schemaFileName
         );
-        const schema = await import(schemaPath, { assert: { type: 'json' } }).then(
-          (m) => m.default
-        );
+        const schemaContent = await readFile(schemaPath);
+        const schema = JSON.parse(schemaContent);
         const validate = this.ajv.compile(schema);
         this.compiledSchemas.set(layerName, validate);
       } catch (error) {

@@ -1,4 +1,4 @@
-import type { Element as IElement, Reference, Relationship } from "@/types/index";
+import type { Element as IElement, Reference, Relationship } from "../types/index.js";
 
 /**
  * Element class representing an individual architecture item

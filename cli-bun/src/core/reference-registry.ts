@@ -1,4 +1,4 @@
-import type { Reference } from "@/types/index";
+import type { Reference } from "../types/index.js";
 
 /**
  * Reference registry - tracks and validates cross-layer references

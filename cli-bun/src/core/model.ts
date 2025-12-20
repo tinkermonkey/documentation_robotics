@@ -1,7 +1,7 @@
-import { Layer } from "./layer";
-import { Manifest } from "./manifest";
-import { ensureDir, writeJSON, readJSON, fileExists } from "@/utils/file-io";
-import type { LayerData, ManifestData, ModelOptions } from "@/types/index";
+import { Layer } from "./layer.js";
+import { Manifest } from "./manifest.js";
+import { ensureDir, writeJSON, readJSON, fileExists } from "../utils/file-io.js";
+import type { LayerData, ManifestData, ModelOptions } from "../types/index.js";
 
 /**
  * Model class representing the complete architecture model
@@ -102,7 +102,26 @@ export class Model {
     const manifestPath = `${rootPath}/.dr/manifest.json`;
     const json = await readJSON<ManifestData>(manifestPath);
     const manifest = new Manifest(json);
-    return new Model(rootPath, manifest, options);
+    const model = new Model(rootPath, manifest, options);
+
+    // Load all available layers if lazyLoad is false
+    if (!options.lazyLoad) {
+      try {
+        const layersDir = `${rootPath}/.dr/layers`;
+        const fs = await import('fs/promises');
+        const files = await fs.readdir(layersDir);
+        for (const file of files) {
+          if (file.endsWith('.json')) {
+            const layerName = file.slice(0, -5); // Remove .json extension
+            await model.loadLayer(layerName);
+          }
+        }
+      } catch (e) {
+        // If layers directory doesn't exist or can't be read, just continue
+      }
+    }
+
+    return model;
   }
 
   /**

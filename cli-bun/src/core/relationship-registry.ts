@@ -1,4 +1,4 @@
-import type { Relationship } from "@/types/index";
+import type { Relationship } from "../types/index.js";
 
 /**
  * Relationship type metadata

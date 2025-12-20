@@ -1,5 +1,5 @@
-import { Element } from "./element";
-import type { LayerData } from "@/types/index";
+import { Element } from "./element.js";
+import type { LayerData } from "../types/index.js";
 
 /**
  * Layer class representing a container for elements within a layer

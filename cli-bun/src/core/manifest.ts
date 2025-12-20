@@ -1,4 +1,4 @@
-import type { ManifestData } from "@/types/index";
+import type { ManifestData } from "../types/index.js";
 
 /**
  * Manifest class representing model metadata
