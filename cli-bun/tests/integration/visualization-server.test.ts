@@ -8,7 +8,7 @@ import { VisualizationServer } from '../../src/server/server.js';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdirSync, rmSync, writeFileSync } from 'fs';
-import { sleep } from '../helpers.js';
+import { sleep } from '../helpers.ts';
 
 // Test fixture setup
 async function createTestModel(rootPath: string): Promise<Model> {

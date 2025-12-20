@@ -27,7 +27,18 @@ export async function visualizeCommand(
 
     // Create and start server
     const server = new VisualizationServer(model);
-    const port = options.port ? parseInt(String(options.port), 10) : 8080;
+
+    // Parse and validate port
+    let port = 8080;
+    if (options.port) {
+      const portNum = parseInt(String(options.port), 10);
+      if (isNaN(portNum) || portNum < 1 || portNum > 65535) {
+        throw new Error(
+          `Invalid port number: ${options.port}. Port must be between 1 and 65535.`
+        );
+      }
+      port = portNum;
+    }
 
     logDebug(`Starting visualization server on port ${port}`);
     await server.start(port);

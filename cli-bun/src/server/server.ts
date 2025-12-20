@@ -26,13 +26,16 @@ interface ClientAnnotation {
   timestamp: string;
 }
 
+// Type for WebSocket context from Hono/Bun
+type HonoWSContext = any;
+
 /**
  * Visualization Server class
  */
 export class VisualizationServer {
   private app: Hono;
   private model: Model;
-  private clients: Set<any> = new Set();
+  private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation[]> = new Map();
 
@@ -120,12 +123,28 @@ export class VisualizationServer {
     this.app.post('/api/elements/:id/annotations', async (c) => {
       try {
         const elementId = c.req.param('id');
+
+        // Verify element exists
+        const element = await this.findElement(elementId);
+        if (!element) {
+          return c.json({ error: 'Element not found' }, 404);
+        }
+
         const body = await c.req.json();
+
+        // Validate text is non-empty string
+        const text = body.text && String(body.text).trim();
+        if (!text) {
+          return c.json({ error: 'Annotation text cannot be empty' }, 400);
+        }
+
+        // Validate author if provided
+        const author = body.author ? String(body.author).trim() : 'Anonymous';
 
         const annotation: ClientAnnotation = {
           elementId,
-          author: body.author || 'Anonymous',
-          text: body.text,
+          author,
+          text,
           timestamp: new Date().toISOString(),
         };
 
@@ -155,9 +174,8 @@ export class VisualizationServer {
           }
         },
 
-        onClose: () => {
-          // Unable to track specific ws in onClose due to Hono API
-          // Will just log general disconnection
+        onClose: (_evt, ws) => {
+          this.clients.delete(ws);
           if (process.env.VERBOSE) {
             console.log(
               `[WebSocket] Client disconnected (total: ${this.clients.size})`
@@ -237,7 +255,7 @@ export class VisualizationServer {
   /**
    * Handle WebSocket messages
    */
-  private async handleWSMessage(ws: any, data: WSMessage): Promise<void> {
+  private async handleWSMessage(ws: HonoWSContext, data: WSMessage): Promise<void> {
     switch (data.type) {
       case 'subscribe':
         // Send initial model state
@@ -275,16 +293,21 @@ export class VisualizationServer {
       data: annotation,
     });
 
+    let failureCount = 0;
     for (const client of this.clients) {
       try {
         client.send(message);
       } catch (error) {
-        // Silently ignore send errors
-        if (process.env.DEBUG) {
-          const msg = error instanceof Error ? error.message : String(error);
-          console.debug(`[WebSocket] Failed to send message: ${msg}`);
+        failureCount++;
+        const msg = error instanceof Error ? error.message : String(error);
+        if (process.env.VERBOSE) {
+          console.warn(`[WebSocket] Failed to send annotation to client: ${msg}`);
         }
       }
+    }
+
+    if (failureCount > 0 && process.env.VERBOSE) {
+      console.warn(`[WebSocket] Failed to send annotation to ${failureCount}/${this.clients.size} clients`);
     }
   }
 
@@ -294,11 +317,16 @@ export class VisualizationServer {
   private setupFileWatcher(): void {
     const drPath = `${this.model.rootPath}/.dr`;
 
-    // Use dynamic import for Bun-specific APIs
-    const bunModule = require('bun');
-    this.watcher = bunModule.watch(drPath, {
+    // Use Bun's global watch API (cast to any due to type definitions)
+    const bunWatch = (globalThis as any).Bun?.watch;
+    if (!bunWatch) {
+      console.warn('[Watcher] Bun.watch not available, file watching disabled');
+      return;
+    }
+
+    this.watcher = bunWatch(drPath, {
       recursive: true,
-      onChange: async (_event: any, path: any) => {
+      onChange: async (_event: string, path: string) => {
         if (process.env.VERBOSE) {
           console.log(`[Watcher] File changed: ${path}`);
         }
@@ -663,6 +691,18 @@ export class VisualizationServer {
     const detailsEl = document.getElementById('element-details');
     const statsEl = document.getElementById('stats');
 
+    /**
+     * Escape HTML special characters to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} HTML-escaped text
+     */
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
     const ws = new WebSocket(\`ws://\${window.location.host}/ws\`);
 
     ws.addEventListener('open', () => {
@@ -743,7 +783,7 @@ export class VisualizationServer {
           if (element.id === selectedElementId) {
             elemDiv.classList.add('selected');
           }
-          elemDiv.innerHTML = \`\${element.id}<br><span style="font-size: 11px; color: #999;">\${element.name}</span>\`;
+          elemDiv.innerHTML = \`\${escapeHtml(element.id)}<br><span style="font-size: 11px; color: #999;">\${escapeHtml(element.name)}</span>\`;
           elemDiv.addEventListener('click', () => {
             selectedElementId = element.id;
             document.querySelectorAll('.element-item').forEach(el => el.classList.remove('selected'));
@@ -780,9 +820,9 @@ export class VisualizationServer {
 
       let html = \`
         <div class="detail-header">
-          <div class="element-type">\${element.type}</div>
-          <h2>\${element.name}</h2>
-          <div style="font-size: 12px; color: #666; margin-top: 4px;"><code>\${element.id}</code></div>
+          <div class="element-type">\${escapeHtml(element.type)}</div>
+          <h2>\${escapeHtml(element.name)}</h2>
+          <div style="font-size: 12px; color: #666; margin-top: 4px;"><code>\${escapeHtml(element.id)}</code></div>
         </div>
       \`;
 
@@ -790,7 +830,7 @@ export class VisualizationServer {
         html += \`
           <div class="detail-section">
             <h3>Description</h3>
-            <div class="detail-value">\${element.description}</div>
+            <div class="detail-value">\${escapeHtml(element.description)}</div>
           </div>
         \`;
       }
@@ -799,7 +839,7 @@ export class VisualizationServer {
         html += \`
           <div class="detail-section">
             <h3>Properties</h3>
-            <div class="detail-value"><pre>\${JSON.stringify(element.properties, null, 2)}</pre></div>
+            <div class="detail-value"><pre>\${escapeHtml(JSON.stringify(element.properties, null, 2))}</pre></div>
           </div>
         \`;
       }
@@ -811,8 +851,8 @@ export class VisualizationServer {
             <div class="annotations-list">
               \${element.annotations.map(ann => \`
                 <div class="annotation-item">
-                  <div class="author">\${ann.author}</div>
-                  <div class="text">\${ann.text}</div>
+                  <div class="author">\${escapeHtml(ann.author)}</div>
+                  <div class="text">\${escapeHtml(ann.text)}</div>
                   <div class="timestamp">\${new Date(ann.timestamp).toLocaleString()}</div>
                 </div>
               \`).join('')}
@@ -824,7 +864,7 @@ export class VisualizationServer {
       html += \`
         <div class="detail-section">
           <h3>Add Annotation</h3>
-          <form class="annotation-form" onsubmit="addAnnotation(event, '\${element.id}')">
+          <form class="annotation-form" onsubmit="addAnnotation(event, '\${escapeHtml(element.id)}')">
             <input type="text" placeholder="Author name" id="ann-author" required>
             <textarea placeholder="Annotation text" id="ann-text" required></textarea>
             <button type="submit">Add Annotation</button>
