@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
 
 /**
  * PlantUML Exporter - generates PlantUML syntax for diagram visualization
@@ -7,35 +8,7 @@ import type { Exporter, ExportOptions } from "./types.js";
  */
 export class PlantUMLExporter implements Exporter {
   name = "PlantUML";
-  supportedLayers = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
-
-  private readonly layerColors: Record<string, string> = {
-    motivation: "#FFE4E1",
-    business: "#E6F3FF",
-    security: "#FFE6E6",
-    application: "#E6FFE6",
-    technology: "#FFFFE6",
-    api: "#F0E6FF",
-    "data-model": "#E6F0FF",
-    "data-store": "#FFE6F0",
-    ux: "#FFCCCC",
-    navigation: "#CCFFCC",
-    apm: "#CCFFFF",
-    testing: "#FFCCFF",
-  };
+  supportedLayers = ALL_LAYERS;
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
     const lines: string[] = [];
@@ -73,7 +46,7 @@ export class PlantUMLExporter implements Exporter {
       const elements = elementsByLayer.get(layerName);
       if (!elements || elements.length === 0) continue;
 
-      const color = this.layerColors[layerName] || "#FFFFFF";
+      const color = LAYER_COLORS[layerName] || "FFFFFF";
       lines.push(`package "${layerName}" #${color} {`);
 
       for (const { id, name } of elements) {

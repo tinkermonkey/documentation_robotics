@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import { ALL_LAYERS, LAYER_COLORS, escapeXml } from "./types.js";
 
 /**
  * GraphML Exporter - generates GraphML format for graph visualization tools
@@ -7,35 +8,7 @@ import type { Exporter, ExportOptions } from "./types.js";
  */
 export class GraphMLExporter implements Exporter {
   name = "GraphML";
-  supportedLayers = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
-
-  private readonly layerColors: Record<string, string> = {
-    motivation: "#FFE4E1",
-    business: "#E6F3FF",
-    security: "#FFE6E6",
-    application: "#E6FFE6",
-    technology: "#FFFFE6",
-    api: "#F0E6FF",
-    "data-model": "#E6F0FF",
-    "data-store": "#FFE6F0",
-    ux: "#FFCCCC",
-    navigation: "#CCFFCC",
-    apm: "#CCFFFF",
-    testing: "#FFCCFF",
-  };
+  supportedLayers = ALL_LAYERS;
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
     const lines: string[] = [];
@@ -66,7 +39,7 @@ export class GraphMLExporter implements Exporter {
       `  <graph id="model" edgedefault="directed">`
     );
     lines.push(
-      `    <data key="name">${this.escapeXml(model.manifest.name)}</data>`
+      `    <data key="name">${escapeXml(model.manifest.name)}</data>`
     );
 
     const layersToExport = options.layers || this.supportedLayers;
@@ -78,16 +51,16 @@ export class GraphMLExporter implements Exporter {
       if (!layer) continue;
 
       for (const element of layer.listElements()) {
-        const color = this.layerColors[layerName] || "#FFFFFF";
+        const color = LAYER_COLORS[layerName] || "#FFFFFF";
 
         lines.push(`    <node id="${element.id}">`);
-        lines.push(`      <data key="name">${this.escapeXml(element.name)}</data>`);
+        lines.push(`      <data key="name">${escapeXml(element.name)}</data>`);
         lines.push(`      <data key="node_layer">${layerName}</data>`);
         lines.push(`      <data key="node_type">${element.type}</data>`);
 
         if (element.description) {
           lines.push(
-            `      <data key="node_description">${this.escapeXml(element.description)}</data>`
+            `      <data key="node_description">${escapeXml(element.description)}</data>`
           );
         }
 
@@ -95,7 +68,7 @@ export class GraphMLExporter implements Exporter {
         lines.push(`      <graphics x="0" y="0" w="150" h="50" fill="${color}" type="rectangle"/>`);
         lines.push(`      <data key="d6">`);
         lines.push(`        <y:ShapeNode>`);
-        lines.push(`          <y:NodeLabel>${this.escapeXml(element.name)}</y:NodeLabel>`);
+        lines.push(`          <y:NodeLabel>${escapeXml(element.name)}</y:NodeLabel>`);
         lines.push(`        </y:ShapeNode>`);
         lines.push(`      </data>`);
 
@@ -119,35 +92,39 @@ export class GraphMLExporter implements Exporter {
       for (const element of layer.listElements()) {
         // Cross-layer references
         for (const ref of element.references) {
-          if (elementMap.has(ref.target)) {
-            lines.push(
-              `    <edge id="e${edgeCounter}" source="${element.id}" target="${ref.target}">`
-            );
-            lines.push(`      <data key="edge_type">${ref.type}</data>`);
-            lines.push(`      <data key="name">${this.escapeXml(ref.type)}</data>`);
-
-            if (ref.description) {
-              lines.push(
-                `      <data key="description">${this.escapeXml(ref.description)}</data>`
-              );
-            }
-
-            lines.push(`    </edge>`);
-            edgeCounter++;
+          if (!elementMap.has(ref.target)) {
+            // Log warning for dangling reference (in verbose mode this could be extended)
+            continue;
           }
+          lines.push(
+            `    <edge id="e${edgeCounter}" source="${element.id}" target="${ref.target}">`
+          );
+          lines.push(`      <data key="edge_type">${ref.type}</data>`);
+          lines.push(`      <data key="name">${escapeXml(ref.type)}</data>`);
+
+          if (ref.description) {
+            lines.push(
+              `      <data key="description">${escapeXml(ref.description)}</data>`
+            );
+          }
+
+          lines.push(`    </edge>`);
+          edgeCounter++;
         }
 
         // Intra-layer relationships
         for (const rel of element.relationships) {
-          if (elementMap.has(rel.target)) {
-            lines.push(
-              `    <edge id="e${edgeCounter}" source="${element.id}" target="${rel.target}">`
-            );
-            lines.push(`      <data key="edge_type">${rel.predicate}</data>`);
-            lines.push(`      <data key="name">${this.escapeXml(rel.predicate)}</data>`);
-            lines.push(`    </edge>`);
-            edgeCounter++;
+          if (!elementMap.has(rel.target)) {
+            // Skip relationships to non-existent targets
+            continue;
           }
+          lines.push(
+            `    <edge id="e${edgeCounter}" source="${element.id}" target="${rel.target}">`
+          );
+          lines.push(`      <data key="edge_type">${rel.predicate}</data>`);
+          lines.push(`      <data key="name">${escapeXml(rel.predicate)}</data>`);
+          lines.push(`    </edge>`);
+          edgeCounter++;
         }
       }
     }
@@ -156,17 +133,5 @@ export class GraphMLExporter implements Exporter {
     lines.push(`</graphml>`);
 
     return lines.join("\n");
-  }
-
-  /**
-   * Escape XML special characters
-   */
-  private escapeXml(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
   }
 }

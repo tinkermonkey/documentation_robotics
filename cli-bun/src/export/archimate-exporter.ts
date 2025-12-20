@@ -1,6 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
-import { Element } from "../core/element.js";
+import { escapeXml } from "./types.js";
 
 /**
  * ArchiMate XML Exporter for layers 1, 2, 4, 5
@@ -28,10 +28,10 @@ export class ArchiMateExporter implements Exporter {
     );
 
     // Model metadata
-    lines.push(`  <name>${this.escapeXml(model.manifest.name)}</name>`);
+    lines.push(`  <name>${escapeXml(model.manifest.name)}</name>`);
     if (model.manifest.description) {
       lines.push(
-        `  <documentation>${this.escapeXml(model.manifest.description)}</documentation>`
+        `  <documentation>${escapeXml(model.manifest.description)}</documentation>`
       );
     }
 
@@ -39,7 +39,7 @@ export class ArchiMateExporter implements Exporter {
     lines.push("  <elements>");
 
     const layersToExport = options.layers || this.supportedLayers;
-    const elements: Array<{ layer: string; element: Element }> = [];
+    const elements: Array<{ layer: string; element: any }> = [];
 
     for (const layerName of layersToExport) {
       if (!this.supportedLayers.includes(layerName)) continue;
@@ -55,11 +55,11 @@ export class ArchiMateExporter implements Exporter {
     for (const { layer, element } of elements) {
       const archiType = this.mapToArchiMateType(element.type, layer);
       lines.push(`    <element identifier="${element.id}" xsi:type="${archiType}">`);
-      lines.push(`      <name>${this.escapeXml(element.name)}</name>`);
+      lines.push(`      <name>${escapeXml(element.name)}</name>`);
 
       if (element.description) {
         lines.push(
-          `      <documentation>${this.escapeXml(element.description)}</documentation>`
+          `      <documentation>${escapeXml(element.description)}</documentation>`
         );
       }
 
@@ -74,7 +74,7 @@ export class ArchiMateExporter implements Exporter {
           .join("; ");
         if (propsStr) {
           lines.push(
-            `      <documentation>Properties: ${this.escapeXml(propsStr)}</documentation>`
+            `      <documentation>Properties: ${escapeXml(propsStr)}</documentation>`
           );
         }
       }
@@ -97,7 +97,7 @@ export class ArchiMateExporter implements Exporter {
         lines.push(`                  xsi:type="Association">`);
         if (ref.description) {
           lines.push(
-            `      <documentation>${this.escapeXml(ref.description)}</documentation>`
+            `      <documentation>${escapeXml(ref.description)}</documentation>`
           );
         }
         lines.push(`      <name>${ref.type}</name>`);
@@ -178,18 +178,6 @@ export class ArchiMateExporter implements Exporter {
     };
 
     return mapping[layer]?.[type] || "Element";
-  }
-
-  /**
-   * Escape XML special characters
-   */
-  private escapeXml(str: string): string {
-    return str
-      .replace(/&/g, "&amp;")
-      .replace(/</g, "&lt;")
-      .replace(/>/g, "&gt;")
-      .replace(/"/g, "&quot;")
-      .replace(/'/g, "&apos;");
   }
 
   /**

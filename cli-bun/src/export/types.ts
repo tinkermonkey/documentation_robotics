@@ -35,3 +35,51 @@ export interface ExportFormatInfo {
   supportedLayers: string[];
   mimeType: string;
 }
+
+/**
+ * Shared layer colors for consistent visualization across exporters
+ */
+export const LAYER_COLORS: Record<string, string> = {
+  motivation: "#FFE4E1",
+  business: "#E6F3FF",
+  security: "#FFE6E6",
+  application: "#E6FFE6",
+  technology: "#FFFFE6",
+  api: "#F0E6FF",
+  "data-model": "#E6F0FF",
+  "data-store": "#FFE6F0",
+  ux: "#FFCCCC",
+  navigation: "#CCFFCC",
+  apm: "#CCFFFF",
+  testing: "#FFCCFF",
+};
+
+/**
+ * All 12 supported layers
+ */
+export const ALL_LAYERS: string[] = [
+  "motivation",
+  "business",
+  "security",
+  "application",
+  "technology",
+  "api",
+  "data-model",
+  "data-store",
+  "ux",
+  "navigation",
+  "apm",
+  "testing",
+];
+
+/**
+ * Escape XML special characters
+ */
+export function escapeXml(str: string): string {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&apos;");
+}

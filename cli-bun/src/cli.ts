@@ -106,8 +106,6 @@ program
       format,
       output: options.output,
       layers: options.layers,
-      verbose: options.parent.verbose,
-      debug: options.parent.debug,
     });
   });
 

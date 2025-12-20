@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import { ALL_LAYERS } from "./types.js";
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
@@ -7,20 +8,7 @@ import type { Exporter, ExportOptions } from "./types.js";
  */
 export class MarkdownExporter implements Exporter {
   name = "Markdown";
-  supportedLayers = [
-    "motivation",
-    "business",
-    "security",
-    "application",
-    "technology",
-    "api",
-    "data-model",
-    "data-store",
-    "ux",
-    "navigation",
-    "apm",
-    "testing",
-  ];
+  supportedLayers = ALL_LAYERS;
 
   private readonly layerDescriptions: Record<string, string> = {
     motivation:

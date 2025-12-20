@@ -20,8 +20,6 @@ export interface ExportOptions {
   format: string;
   output?: string;
   layers?: string[];
-  verbose?: boolean;
-  debug?: boolean;
 }
 
 export async function exportCommand(options: ExportOptions): Promise<void> {
@@ -91,12 +89,6 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       process.exit(1);
     }
 
-    if (options.verbose) {
-      console.log(
-        ansis.dim(`Exporting model to ${ansis.cyan(format)} format...`)
-      );
-      console.log("");
-    }
 
     // Perform export
     const result = await manager.export(model, format, {
@@ -115,27 +107,9 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       console.log(
         ansis.green(`✓ Exported to ${ansis.cyan(outputPath)}`)
       );
-
-      if (options.verbose) {
-        const formatInfo = manager.getFormatInfo(format);
-        if (formatInfo) {
-          console.log(`  Format: ${formatInfo.name}`);
-          console.log(`  Size: ${result.length} bytes`);
-          console.log(
-            `  Supported layers: ${formatInfo.supportedLayers.join(", ")}`
-          );
-        }
-      }
     } else {
       // Output to stdout
       console.log(result);
-    }
-
-    if (options.verbose) {
-      console.log("");
-      console.log(
-        ansis.dim("Export completed successfully")
-      );
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

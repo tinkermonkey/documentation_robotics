@@ -36,6 +36,9 @@ export class OpenAPIExporter implements Exporter {
       throw new Error("No API layer found in model");
     }
 
+    // Note: _options is not used for OpenAPI exporter as it only supports the api layer
+    // The parameter is kept for interface consistency with other exporters
+
     const spec: OpenAPISpec = {
       openapi: "3.0.0",
       info: {
