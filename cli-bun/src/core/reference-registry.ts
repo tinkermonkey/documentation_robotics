@@ -1,4 +1,5 @@
-import type { Reference } from "../types/index.js";
+import Graph from 'graphology';
+import type { Reference, Element } from "../types/index.js";
 
 /**
  * Reference registry - tracks and validates cross-layer references
@@ -87,6 +88,54 @@ export class ReferenceRegistry {
     this.references.clear();
     this.targetIndex.clear();
     this.typeIndex.clear();
+  }
+
+  /**
+   * Register an element and all its references
+   */
+  registerElement(element: Element): void {
+    if (element.references) {
+      for (const ref of element.references) {
+        this.addReference(ref);
+      }
+    }
+  }
+
+  /**
+   * Find broken references (references to non-existent elements)
+   */
+  findBrokenReferences(validIds: Set<string>): Reference[] {
+    return this.getAllReferences().filter(ref => !validIds.has(ref.target));
+  }
+
+  /**
+   * Get dependency graph as a directed graph using graphology
+   * Nodes are element IDs, edges represent references
+   */
+  getDependencyGraph(): Graph {
+    const graph = new Graph({ type: 'directed' });
+
+    // Add all unique nodes
+    const nodes = new Set<string>();
+    for (const ref of this.getAllReferences()) {
+      nodes.add(ref.source);
+      nodes.add(ref.target);
+    }
+
+    for (const node of nodes) {
+      graph.addNode(node);
+    }
+
+    // Add edges for all references
+    for (const ref of this.getAllReferences()) {
+      // Use reference type as edge data
+      graph.addEdge(ref.source, ref.target, {
+        type: ref.type,
+        description: ref.description,
+      });
+    }
+
+    return graph;
   }
 
   /**

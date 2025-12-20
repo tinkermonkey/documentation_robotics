@@ -217,4 +217,123 @@ describe("ReferenceRegistry", () => {
       expect(stats.referenceTypes).toContain("exposes");
     });
   });
+
+  describe("registerElement", () => {
+    it("should register all references from an element", () => {
+      const elem = {
+        id: "01-goal-test",
+        type: "goal",
+        name: "Test Goal",
+        references: [
+          {
+            source: "01-goal-test",
+            target: "02-process-test1",
+            type: "realizes",
+          },
+          {
+            source: "01-goal-test",
+            target: "02-process-test2",
+            type: "realizes",
+          },
+        ],
+      };
+
+      registry.registerElement(elem);
+
+      const refs = registry.getReferencesFrom("01-goal-test");
+      expect(refs.length).toBe(2);
+    });
+
+    it("should handle elements with no references", () => {
+      const elem = {
+        id: "01-goal-test",
+        type: "goal",
+        name: "Test Goal",
+      };
+
+      registry.registerElement(elem);
+
+      expect(registry.getReferencesFrom("01-goal-test")).toEqual([]);
+    });
+  });
+
+  describe("findBrokenReferences", () => {
+    it("should find references to non-existent elements", () => {
+      const refs = [
+        { source: "01-goal-test", target: "02-process-test", type: "realizes" },
+        { source: "01-goal-test", target: "03-nonexistent", type: "requires" },
+      ];
+
+      refs.forEach(ref => registry.addReference(ref));
+
+      const validIds = new Set(["01-goal-test", "02-process-test"]);
+      const broken = registry.findBrokenReferences(validIds);
+
+      expect(broken.length).toBe(1);
+      expect(broken[0].target).toBe("03-nonexistent");
+    });
+
+    it("should return empty array if no broken references", () => {
+      const refs = [
+        { source: "01-goal-test", target: "02-process-test", type: "realizes" },
+      ];
+
+      refs.forEach(ref => registry.addReference(ref));
+
+      const validIds = new Set(["01-goal-test", "02-process-test"]);
+      const broken = registry.findBrokenReferences(validIds);
+
+      expect(broken).toEqual([]);
+    });
+  });
+
+  describe("getDependencyGraph", () => {
+    it("should create a directed graph from references", () => {
+      const refs = [
+        { source: "01-goal-test", target: "02-process-test", type: "realizes" },
+        { source: "02-process-test", target: "03-policy-test", type: "requires" },
+      ];
+
+      refs.forEach(ref => registry.addReference(ref));
+
+      const graph = registry.getDependencyGraph();
+
+      expect(graph.order).toBe(3); // 3 nodes
+      expect(graph.size).toBe(2); // 2 edges
+      expect(graph.hasNode("01-goal-test")).toBe(true);
+      expect(graph.hasNode("02-process-test")).toBe(true);
+      expect(graph.hasNode("03-policy-test")).toBe(true);
+      expect(graph.hasEdge("01-goal-test", "02-process-test")).toBe(true);
+      expect(graph.hasEdge("02-process-test", "03-policy-test")).toBe(true);
+    });
+
+    it("should return empty graph for no references", () => {
+      const graph = registry.getDependencyGraph();
+
+      expect(graph.order).toBe(0);
+      expect(graph.size).toBe(0);
+    });
+
+    it("should include edge attributes", () => {
+      const refs = [
+        {
+          source: "01-goal-test",
+          target: "02-process-test",
+          type: "realizes",
+          description: "Goal is realized by process",
+        },
+      ];
+
+      refs.forEach(ref => registry.addReference(ref));
+
+      const graph = registry.getDependencyGraph();
+      const edge = graph.getEdgeAttributes(
+        "01-goal-test",
+        "02-process-test"
+      );
+
+      expect(edge.type).toBe("realizes");
+      expect(edge.description).toBe("Goal is realized by process");
+    });
+  });
 });
