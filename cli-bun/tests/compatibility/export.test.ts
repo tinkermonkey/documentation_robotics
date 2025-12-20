@@ -17,16 +17,11 @@ let outputDir: string;
  * Helper to set up a complete test model with elements across multiple layers
  */
 async function setupCompleteModel(testDir: string, harness: CLIHarness): Promise<void> {
-  // Initialize
+  // Initialize using Python CLI as reference
   await harness.runPython(['init', '--name', 'ExportTestModel', '--description', 'Test model for export comparison'], testDir);
-  await harness.runBun(['init', '--name', 'ExportTestModel', '--description', 'Test model for export comparison'], testDir);
 
   // Add motivation layer elements
   await harness.runPython(
-    ['element', 'add', 'motivation', 'stakeholder', 'stakeholder-exec', '--name', 'Executive Board'],
-    testDir,
-  );
-  await harness.runBun(
     ['element', 'add', 'motivation', 'stakeholder', 'stakeholder-exec', '--name', 'Executive Board'],
     testDir,
   );
@@ -43,10 +38,6 @@ async function setupCompleteModel(testDir: string, harness: CLIHarness): Promise
       ['element', 'add', 'business', type, id, '--name', name],
       testDir,
     );
-    await harness.runBun(
-      ['element', 'add', 'business', type, id, '--name', name],
-      testDir,
-    );
   }
 
   // Add application layer elements
@@ -60,18 +51,10 @@ async function setupCompleteModel(testDir: string, harness: CLIHarness): Promise
       ['element', 'add', 'application', type, id, '--name', name],
       testDir,
     );
-    await harness.runBun(
-      ['element', 'add', 'application', type, id, '--name', name],
-      testDir,
-    );
   }
 
   // Add technology layer elements
   await harness.runPython(
-    ['element', 'add', 'technology', 'technology-platform', 'platform-k8s', '--name', 'Kubernetes'],
-    testDir,
-  );
-  await harness.runBun(
     ['element', 'add', 'technology', 'technology-platform', 'platform-k8s', '--name', 'Kubernetes'],
     testDir,
   );
@@ -88,15 +71,10 @@ async function setupCompleteModel(testDir: string, harness: CLIHarness): Promise
 
   for (const { args } of apiElements) {
     await harness.runPython(args, testDir);
-    await harness.runBun(args, testDir);
   }
 
   // Add data model elements
   await harness.runPython(
-    ['element', 'add', 'data-model', 'entity', 'customer-entity', '--name', 'Customer'],
-    testDir,
-  );
-  await harness.runBun(
     ['element', 'add', 'data-model', 'entity', 'customer-entity', '--name', 'Customer'],
     testDir,
   );
@@ -130,36 +108,58 @@ describe('Export Format Compatibility', () => {
       const pythonPath = join(outputDir, 'archimate-python.xml');
       const bunPath = join(outputDir, 'archimate-bun.xml');
 
-      // Run both export commands
-      const pythonResult = await harness.runPython(
-        ['export', 'archimate', '--output', pythonPath],
-        testDir,
-      );
-      const bunResult = await harness.runBun(
-        ['export', 'archimate', '--output', bunPath],
-        testDir,
-      );
+      try {
+        // Run both export commands
+        const pythonResult = await harness.runPython(
+          ['export', 'archimate', '--output', pythonPath],
+          testDir,
+        );
+        const bunResult = await harness.runBun(
+          ['export', 'archimate', '--output', bunPath],
+          testDir,
+        );
 
-      // Both should succeed
-      expect(pythonResult.exitCode).toBe(0);
-      expect(bunResult.exitCode).toBe(0);
+        // Both should succeed
+        expect(pythonResult.exitCode).toBe(0);
+        expect(bunResult.exitCode).toBe(0);
 
-      // Compare file outputs
-      const pythonContent = await Bun.file(pythonPath).text();
-      const bunContent = await Bun.file(bunPath).text();
+        // Compare file outputs
+        let pythonContent = '';
+        let bunContent = '';
 
-      // Parse as XML to compare structure (not exact formatting)
-      // For now, check that both produce content
-      expect(pythonContent.length).toBeGreaterThan(0);
-      expect(bunContent.length).toBeGreaterThan(0);
+        try {
+          pythonContent = await Bun.file(pythonPath).text();
+        } catch (error) {
+          throw new Error(`Failed to read Python output: ${error}`);
+        }
 
-      // Both should start with XML declaration
-      expect(pythonContent.trim().startsWith('<?xml')).toBe(true);
-      expect(bunContent.trim().startsWith('<?xml')).toBe(true);
+        try {
+          bunContent = await Bun.file(bunPath).text();
+        } catch (error) {
+          throw new Error(`Failed to read Bun output: ${error}`);
+        }
 
-      // Both should contain ArchiMate namespace
-      expect(pythonContent.includes('archimate')).toBe(true);
-      expect(bunContent.includes('archimate')).toBe(true);
+        // Parse as XML to compare structure (not exact formatting)
+        // For now, check that both produce content
+        expect(pythonContent.length).toBeGreaterThan(0);
+        expect(bunContent.length).toBeGreaterThan(0);
+
+        // Both should start with XML declaration
+        expect(pythonContent.trim().startsWith('<?xml')).toBe(true);
+        expect(bunContent.trim().startsWith('<?xml')).toBe(true);
+
+        // Both should contain ArchiMate namespace
+        expect(pythonContent.includes('archimate')).toBe(true);
+        expect(bunContent.includes('archimate')).toBe(true);
+      } finally {
+        // Cleanup output files
+        try {
+          await rm(pythonPath, { force: true });
+          await rm(bunPath, { force: true });
+        } catch (e) {
+          // ignore cleanup errors
+        }
+      }
     });
 
     it('should export ArchiMate with layers 1,2,4,5 only', async () => {

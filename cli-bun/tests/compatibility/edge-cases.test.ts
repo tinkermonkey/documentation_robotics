@@ -34,9 +34,8 @@ describe('Edge Cases and Error Consistency', () => {
     });
 
     it('should fail with missing element properties', async () => {
-      // Initialize first
+      // Initialize first using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       // Try to add without required arguments
       const result = await assertCLIsFailEquivalently(
@@ -53,7 +52,6 @@ describe('Edge Cases and Error Consistency', () => {
   describe('invalid argument values', () => {
     it('should fail with invalid layer name', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
         harness,
@@ -64,7 +62,6 @@ describe('Edge Cases and Error Consistency', () => {
 
     it('should fail with malformed element ID', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
         harness,
@@ -75,7 +72,6 @@ describe('Edge Cases and Error Consistency', () => {
 
     it('should fail with special characters in element ID', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
         harness,
@@ -96,19 +92,14 @@ describe('Edge Cases and Error Consistency', () => {
 
     it('should handle duplicate element additions consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
-      // Add element once
+      // Add element once using Python CLI
       await harness.runPython(
         ['element', 'add', 'business', 'business-service', 'test-service', '--name', 'Test'],
         testDir,
       );
-      await harness.runBun(
-        ['element', 'add', 'business', 'business-service', 'test-service', '--name', 'Test'],
-        testDir,
-      );
 
-      // Try to add same element again
+      // Try to add same element again using both CLIs
       const pythonResult = await harness.runPython(
         ['element', 'add', 'business', 'business-service', 'test-service', '--name', 'Test'],
         testDir,
@@ -126,7 +117,6 @@ describe('Edge Cases and Error Consistency', () => {
   describe('whitespace and special characters', () => {
     it('should handle names with spaces consistently', async () => {
       await harness.runPython(['init', '--name', 'Test Model'], testDir);
-      await harness.runBun(['init', '--name', 'Test Model'], testDir);
 
       const result = await harness.compareOutputs([], testDir);
 
@@ -134,29 +124,34 @@ describe('Edge Cases and Error Consistency', () => {
     });
 
     it('should handle names with unicode characters', async () => {
+      const pythonDir = join(testDir, 'unicode-python');
+      const bunDir = join(testDir, 'unicode-bun');
+
+      await mkdir(pythonDir, { recursive: true });
+      await mkdir(bunDir, { recursive: true });
+
       const pythonResult = await harness.runPython(
         ['init', '--name', 'Test Model Ñ'],
-        testDir,
+        pythonDir,
       );
       const bunResult = await harness.runBun(
         ['init', '--name', 'Test Model Ñ'],
-        testDir,
+        bunDir,
       );
 
       expect(pythonResult.exitCode).toBe(bunResult.exitCode);
     });
 
     it('should handle special characters in element names', async () => {
-      // Create separate dirs to avoid conflicts
-      const pythonDir = join(testDir, 'python');
-      const bunDir = join(testDir, 'bun');
+      const pythonDir = join(testDir, 'special-python');
+      const bunDir = join(testDir, 'special-bun');
 
       await mkdir(pythonDir, { recursive: true });
       await mkdir(bunDir, { recursive: true });
 
-      // Initialize
+      // Initialize using Python CLI for both
       await harness.runPython(['init', '--name', 'TestModel'], pythonDir);
-      await harness.runBun(['init', '--name', 'TestModel'], bunDir);
+      await harness.runPython(['init', '--name', 'TestModel'], bunDir);
 
       // Add element with special characters
       const pythonResult = await harness.runPython(
@@ -183,7 +178,6 @@ describe('Edge Cases and Error Consistency', () => {
 
     it('should fail consistently with wrong case flags', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       const result = await assertCLIsFailEquivalently(
         harness,

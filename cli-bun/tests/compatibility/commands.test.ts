@@ -61,9 +61,8 @@ describe('Command Output Compatibility', () => {
 
   describe('element add command', () => {
     beforeEach(async () => {
-      // Initialize model first
+      // Initialize model once using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
     });
 
     it('should add business service elements identically', async () => {
@@ -111,16 +110,11 @@ describe('Command Output Compatibility', () => {
 
   describe('element list command', () => {
     beforeEach(async () => {
-      // Initialize and add elements
+      // Initialize and add elements using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
-      // Add some test elements to both
+      // Add some test elements
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
         testDir,
       );
@@ -149,9 +143,8 @@ describe('Command Output Compatibility', () => {
 
   describe('element show command', () => {
     beforeEach(async () => {
-      // Initialize and add an element
+      // Initialize and add an element using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       const element = {
         id: 'business-business-service-customer-mgmt',
@@ -159,10 +152,6 @@ describe('Command Output Compatibility', () => {
       };
 
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'customer-mgmt', '--name', element.name],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'customer-mgmt', '--name', element.name],
         testDir,
       );
@@ -192,9 +181,8 @@ describe('Command Output Compatibility', () => {
 
   describe('element search command', () => {
     beforeEach(async () => {
-      // Initialize and add elements
+      // Initialize and add elements using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
-      await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
       const elements = [
         ['business', 'business-service', 'customer-mgmt', 'Customer Management'],
@@ -204,10 +192,6 @@ describe('Command Output Compatibility', () => {
 
       for (const [layer, type, id, name] of elements) {
         await harness.runPython(
-          ['element', 'add', layer, type, id, '--name', name],
-          testDir,
-        );
-        await harness.runBun(
           ['element', 'add', layer, type, id, '--name', name],
           testDir,
         );

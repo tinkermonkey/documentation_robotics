@@ -3,7 +3,7 @@
  * Executes both Python and Bun CLIs with identical arguments and compares outputs
  */
 
-import { spawn, spawnSync } from 'bun';
+import { spawnSync } from 'bun';
 import { mkdir, rm, readFile } from 'fs/promises';
 import { join, dirname } from 'path';
 
@@ -27,24 +27,43 @@ export interface ComparisonResult {
   differences: string[];
 }
 
+const DEFAULT_PYTHON_CLI = process.env.DR_PYTHON_CLI || process.env.PATH?.split(':').find(p => p.includes('.local')) + '/dr' || 'dr';
+const DEFAULT_BUN_CLI = 'node dist/cli.js';
+const CLI_TIMEOUT = 30000; // 30 seconds
+
 export class CLIHarness {
   private pythonCLI: string;
   private bunCLI: string;
 
-  constructor(pythonCLI: string = '/home/orchestrator/.local/bin/dr', bunCLI: string = 'node dist/cli.js') {
-    this.pythonCLI = pythonCLI;
-    this.bunCLI = bunCLI;
+  constructor(pythonCLI?: string, bunCLI?: string) {
+    this.pythonCLI = pythonCLI || DEFAULT_PYTHON_CLI;
+    this.bunCLI = bunCLI || DEFAULT_BUN_CLI;
   }
 
   /**
-   * Run Python CLI with given arguments
+   * Run Python CLI with given arguments (synchronous)
    */
-  async runPython(args: string[], cwd?: string): Promise<CLIResult> {
+  runPython(args: string[], cwd?: string): Promise<CLIResult> {
+    return this._runCLI(this.pythonCLI, args, cwd);
+  }
+
+  /**
+   * Run Bun CLI with given arguments (synchronous)
+   */
+  runBun(args: string[], cwd?: string): Promise<CLIResult> {
+    return this._runCLI(this.bunCLI, args, cwd);
+  }
+
+  /**
+   * Internal method to run CLI with timeout
+   */
+  private async _runCLI(cli: string, args: string[], cwd?: string): Promise<CLIResult> {
     try {
       const result = spawnSync({
-        cmd: [this.pythonCLI, ...args],
+        cmd: [cli, ...args],
         cwd: cwd || process.cwd(),
         stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: CLI_TIMEOUT,
       });
 
       const stdout = result.stdout?.toString() ?? '';
@@ -60,38 +79,7 @@ export class CLIHarness {
     } catch (error) {
       return {
         stdout: '',
-        stderr: `Error running Python CLI: ${error instanceof Error ? error.message : String(error)}`,
-        exitCode: 1,
-        success: false,
-      };
-    }
-  }
-
-  /**
-   * Run Bun CLI with given arguments
-   */
-  async runBun(args: string[], cwd?: string): Promise<CLIResult> {
-    try {
-      const result = spawnSync({
-        cmd: [this.bunCLI, ...args],
-        cwd: cwd || process.cwd(),
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-
-      const stdout = result.stdout?.toString() ?? '';
-      const stderr = result.stderr?.toString() ?? '';
-      const exitCode = result.exitCode;
-
-      return {
-        stdout,
-        stderr,
-        exitCode,
-        success: exitCode === 0,
-      };
-    } catch (error) {
-      return {
-        stdout: '',
-        stderr: `Error running Bun CLI: ${error instanceof Error ? error.message : String(error)}`,
+        stderr: `Error running CLI: ${error instanceof Error ? error.message : String(error)}`,
         exitCode: 1,
         success: false,
       };
@@ -222,8 +210,25 @@ export class CLIHarness {
     }
 
     try {
-      const pythonContent = await readFile(pythonOutputPath, 'utf-8');
-      const bunContent = await readFile(bunOutputPath, 'utf-8');
+      // Check file existence before reading
+      let pythonContent = '';
+      let bunContent = '';
+
+      try {
+        pythonContent = await readFile(pythonOutputPath, 'utf-8');
+      } catch (error) {
+        differences.push(`Failed to read Python output file: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      try {
+        bunContent = await readFile(bunOutputPath, 'utf-8');
+      } catch (error) {
+        differences.push(`Failed to read Bun output file: ${error instanceof Error ? error.message : String(error)}`);
+      }
+
+      if (differences.length > 0) {
+        return { pythonFile: '', bunFile: '', match: false, differences };
+      }
 
       let match = false;
 

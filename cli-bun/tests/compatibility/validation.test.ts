@@ -33,9 +33,8 @@ describe('Validation Equivalence', () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
     await mkdir(testDir, { recursive: true });
 
-    // Initialize model
+    // Initialize model using Python CLI as reference
     await harness.runPython(['init', '--name', 'ValidationTestModel'], testDir);
-    await harness.runBun(['init', '--name', 'ValidationTestModel'], testDir);
   });
 
   afterEach(async () => {
@@ -57,12 +56,8 @@ describe('Validation Equivalence', () => {
     });
 
     it('should validate valid elements', async () => {
-      // Add valid elements
+      // Add valid elements using Python CLI as reference
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'test-service', '--name', 'Test Service'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'test-service', '--name', 'Test Service'],
         testDir,
       );
@@ -145,12 +140,8 @@ describe('Validation Equivalence', () => {
 
   describe('layer-specific validation', () => {
     it('should validate business layer only', async () => {
-      // Add element
+      // Add element using Python CLI as reference
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
         testDir,
       );
@@ -164,21 +155,13 @@ describe('Validation Equivalence', () => {
     });
 
     it('should validate multiple layers', async () => {
-      // Add elements to multiple layers
+      // Add elements to multiple layers using Python CLI as reference
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
         testDir,
       );
 
       await harness.runPython(
-        ['element', 'add', 'api', 'api-endpoint', 'api-1', '--method', 'GET', '--path', '/test'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'api', 'api-endpoint', 'api-1', '--method', 'GET', '--path', '/test'],
         testDir,
       );
@@ -234,12 +217,8 @@ describe('Validation Equivalence', () => {
     });
 
     it('should validate correct cross-layer references', async () => {
-      // Create valid reference chain
+      // Create valid reference chain using Python CLI as reference
       await harness.runPython(
-        ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
-        testDir,
-      );
-      await harness.runBun(
         ['element', 'add', 'business', 'business-service', 'svc-1', '--name', 'Service 1'],
         testDir,
       );

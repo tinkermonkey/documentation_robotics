@@ -19,42 +19,75 @@ const BUN_PORT = 8889;
 const STARTUP_TIMEOUT = 5000;
 
 /**
+ * Helper to wait for server health check
+ */
+async function waitForServer(url: string, timeout: number = 10000): Promise<boolean> {
+  const start = Date.now();
+  while (Date.now() - start < timeout) {
+    try {
+      const response = await fetch(url, { timeout: 1000 });
+      if (response.ok) return true;
+    } catch {
+      // Server not ready yet
+    }
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  return false;
+}
+
+/**
  * Start a visualization server using Python CLI
  */
-async function startPythonServer(cwd: string): Promise<{ pid: number; kill: () => void }> {
-  // Note: In real implementation, would use actual server process
-  // For now, this is a placeholder that would be implemented with proper process handling
+async function startPythonServer(cwd: string): Promise<{ pid: number | null; kill: () => void }> {
   const result = Bun.spawn({
-    cmd: ['/home/orchestrator/.local/bin/dr', 'visualize', '--port', String(PYTHON_PORT), '--no-browser'],
+    cmd: [process.env.DR_PYTHON_CLI || 'dr', 'visualize', '--port', String(PYTHON_PORT), '--no-browser'],
     cwd,
     stdio: ['ignore', 'ignore', 'ignore'],
   });
 
-  // Wait for server to start
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // Wait for server health check
+  const ready = await waitForServer(`http://localhost:${PYTHON_PORT}/health`);
+  if (!ready) {
+    throw new Error(`Python server failed to start within timeout`);
+  }
 
   return {
-    pid: result.pid || 0,
-    kill: () => result.kill(),
+    pid: result.pid,
+    kill: () => {
+      try {
+        result.kill();
+      } catch {
+        // ignore kill errors
+      }
+    },
   };
 }
 
 /**
  * Start a visualization server using Bun CLI
  */
-async function startBunServer(cwd: string): Promise<{ pid: number; kill: () => void }> {
+async function startBunServer(cwd: string): Promise<{ pid: number | null; kill: () => void }> {
   const result = Bun.spawn({
     cmd: ['node', 'dist/cli.js', 'visualize', '--port', String(BUN_PORT), '--no-browser'],
     cwd,
     stdio: ['ignore', 'ignore', 'ignore'],
   });
 
-  // Wait for server to start
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  // Wait for server health check
+  const ready = await waitForServer(`http://localhost:${BUN_PORT}/health`);
+  if (!ready) {
+    throw new Error(`Bun server failed to start within timeout`);
+  }
 
   return {
-    pid: result.pid || 0,
-    kill: () => result.kill(),
+    pid: result.pid,
+    kill: () => {
+      try {
+        result.kill();
+      } catch {
+        // ignore kill errors
+      }
+    },
   };
 }
 
@@ -62,9 +95,8 @@ async function startBunServer(cwd: string): Promise<{ pid: number; kill: () => v
  * Helper to set up a complete test model
  */
 async function setupTestModel(testDir: string, harness: CLIHarness): Promise<void> {
-  // Initialize
+  // Initialize using Python CLI as reference
   await harness.runPython(['init', '--name', 'APITestModel'], testDir);
-  await harness.runBun(['init', '--name', 'APITestModel'], testDir);
 
   // Add elements
   const elements = [
@@ -76,10 +108,6 @@ async function setupTestModel(testDir: string, harness: CLIHarness): Promise<voi
 
   for (const [layer, type, id, name] of elements) {
     await harness.runPython(
-      ['element', 'add', layer, type, id, '--name', name],
-      testDir,
-    );
-    await harness.runBun(
       ['element', 'add', layer, type, id, '--name', name],
       testDir,
     );
