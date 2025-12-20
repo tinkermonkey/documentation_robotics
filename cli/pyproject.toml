@@ -88,6 +88,13 @@ python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = "-v --cov=documentation_robotics --cov-report=term-missing"
 asyncio_mode = "auto"
+# Ignore unraisable exception warnings from asyncio event loop cleanup in watchdog library
+# This is a known issue where subprocess transports are being garbage collected after their
+# event loop has been closed, triggering BaseSubprocessTransport.__del__ exceptions.
+# The fix (gc.collect() in FileMonitor.stop) helps but we need this filter as fallback.
+filterwarnings = [
+    "ignore::pytest.PytestUnraisableExceptionWarning:asyncio",
+]
 
 [tool.coverage.run]
 source = ["documentation_robotics"]

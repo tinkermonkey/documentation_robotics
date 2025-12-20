@@ -5,6 +5,7 @@ Uses watchdog library to detect file changes in the model directory
 and notify the server for broadcasting to connected clients.
 """
 
+import gc
 import threading
 import time
 from pathlib import Path
@@ -258,7 +259,10 @@ class FileMonitor:
                 # Handle potential cleanup errors gracefully
                 console.print(f"[yellow]Observer cleanup warning: {e}[/yellow]")
             finally:
+                # Clear observer reference and allow garbage collection
+                # This ensures any pending asyncio/subprocess resources are cleaned up
                 self.observer = None
+                gc.collect()
 
         self.event_handler = None
 
