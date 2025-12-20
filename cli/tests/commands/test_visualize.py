@@ -192,13 +192,20 @@ class TestVisualizationServer(AioHTTPTestCase):
         request = MagicMock()
         request.query = {"token": "wrong-token"}
         request.headers = {}
+        request.cookies = {}  # Add cookies dict for cookie-based auth
 
         # Validate - should use secrets.compare_digest internally
         result = server._validate_token(request)
         assert result is False
 
-        # Valid token
+        # Valid token in query param
         request.query = {"token": server.token}
+        result = server._validate_token(request)
+        assert result is True
+
+        # Valid token in cookie
+        request.query = {}
+        request.cookies = {"auth_token": server.token}
         result = server._validate_token(request)
         assert result is True
 

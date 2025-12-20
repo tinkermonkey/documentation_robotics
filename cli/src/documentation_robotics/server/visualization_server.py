@@ -278,9 +278,10 @@ class VisualizationServer:
         """
         Validate authentication token from request.
 
-        Supports token in:
-        - Query parameter: ?token=...
-        - Authorization header: Bearer <token>
+        Checks in order:
+        1. httpOnly cookie (primary method for web clients)
+        2. Query parameter (for magic link initial access)
+        3. Authorization header (for API clients)
 
         Args:
             request: The incoming HTTP request
@@ -288,7 +289,12 @@ class VisualizationServer:
         Returns:
             True if token is valid, False otherwise
         """
-        # Check query parameter
+        # Check httpOnly cookie first (primary auth method)
+        cookie_token = request.cookies.get("auth_token")
+        if cookie_token and secrets.compare_digest(cookie_token, self.token):
+            return True
+
+        # Check query parameter (for magic link)
         query_token = request.query.get("token")
         if query_token and secrets.compare_digest(query_token, self.token):
             return True
@@ -310,6 +316,9 @@ class VisualizationServer:
         Validates token on API and WebSocket endpoints only.
         Static assets (HTML, JS, CSS, images, fonts) are served without authentication
         since they contain no sensitive data - the viewer UI is public.
+
+        When a valid token is provided via query param or Authorization header,
+        sets an httpOnly cookie for subsequent requests.
 
         Returns 401 Unauthorized for missing tokens on protected endpoints.
         Returns 403 Forbidden for invalid tokens on protected endpoints.
@@ -348,7 +357,11 @@ class VisualizationServer:
         # API/WebSocket endpoints return sensitive model data
         if not self._validate_token(request):
             # Check if token was provided but invalid
-            has_token = "token" in request.query or "Authorization" in request.headers
+            has_token = (
+                "token" in request.query
+                or "Authorization" in request.headers
+                or "auth_token" in request.cookies
+            )
 
             if has_token:
                 response = web.json_response({"error": "Invalid authentication token"}, status=403)
@@ -359,8 +372,25 @@ class VisualizationServer:
             self._add_cors_headers(response)
             return response
 
+        # Valid token found - proceed with request
         response = await handler(request)
         self._add_cors_headers(response)
+
+        # Set httpOnly cookie if valid token came from query param or header (not already a cookie)
+        # This upgrades magic link or API authentication to cookie-based auth
+        has_cookie = "auth_token" in request.cookies
+        has_query_or_header = "token" in request.query or "Authorization" in request.headers
+
+        if not has_cookie and has_query_or_header:
+            response.set_cookie(
+                "auth_token",
+                self.token,
+                max_age=86400 * 30,  # 30 days
+                httponly=True,
+                samesite="Lax",
+                secure=request.scheme == "https",  # Only set secure flag for HTTPS
+            )
+
         return response
 
     def _is_static_asset(self, path: str) -> bool:

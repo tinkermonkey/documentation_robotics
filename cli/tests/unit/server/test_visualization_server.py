@@ -860,6 +860,8 @@ class TestCORSHeaders:
         request.path = "/api/test"
         request.query = {"token": server.token}
         request.headers = {}
+        request.cookies = {}  # Add cookies dict
+        request.scheme = "http"  # Add scheme for secure cookie check
 
         # Create mock handler that returns a response
         async def mock_handler(req):
@@ -889,6 +891,8 @@ class TestCORSHeaders:
         request.path = "/api/test"
         request.query = {}
         request.headers = {}
+        request.cookies = {}
+        request.scheme = "http"
 
         async def mock_handler(req):
             return web.Response(text="OK")
@@ -917,6 +921,8 @@ class TestCORSHeaders:
         request.path = "/api/test"
         request.query = {}
         request.headers = {}
+        request.cookies = {}
+        request.scheme = "http"
 
         async def mock_handler(req):
             # This should not be called for OPTIONS requests
@@ -987,6 +993,8 @@ class TestCORSHeaders:
             request.method = "GET"
             request.query = {}  # No token
             request.headers = {}
+            request.cookies = {}
+            request.scheme = "http"
 
             async def mock_handler(req):
                 return web.Response(text="OK")
@@ -1022,6 +1030,8 @@ class TestCORSHeaders:
             request.method = "GET"
             request.query = {}  # No token
             request.headers = {}
+            request.cookies = {}
+            request.scheme = "http"
 
             async def mock_handler(req):
                 return web.Response(text="OK")
@@ -1047,6 +1057,8 @@ class TestCORSHeaders:
         request.method = "GET"
         request.query = {"token": server.token}  # Valid token
         request.headers = {}
+        request.cookies = {}
+        request.scheme = "http"
 
         async def mock_handler(req):
             return web.Response(text="OK")

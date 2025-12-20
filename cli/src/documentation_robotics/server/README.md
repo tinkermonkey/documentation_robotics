@@ -1,11 +1,13 @@
 # Visualization Server
 
-A secure HTTP/WebSocket server for visualizing Documentation Robotics architecture models with Jupyter-style token-based authentication.
+A secure HTTP/WebSocket server for visualizing Documentation Robotics architecture models with httpOnly cookie-based authentication.
 
 ## Features
 
 - **Secure Authentication**: Cryptographically secure token generation using Python's `secrets` module
-- **Multiple Auth Methods**: Support for token in query parameters or Authorization header
+- **HttpOnly Cookies**: Cookie-based authentication with httpOnly, SameSite, and secure flags for enhanced security
+- **Magic Link Support**: Initial access via token-embedded URL that automatically upgrades to cookie-based session
+- **Multiple Auth Methods**: Support for cookies (primary), query parameters (magic link), or Authorization header (API clients)
 - **WebSocket Support**: Real-time updates via WebSocket with authentication
 - **Health Endpoint**: Unauthenticated health check for monitoring
 - **Session-based Security**: Token valid only for server process lifetime
@@ -52,22 +54,43 @@ Press Ctrl+C to stop the server
 
 Tokens are generated using `secrets.token_urlsafe(32)`, providing cryptographically secure random values suitable for authentication.
 
+### Authentication Flow
+
+1. **Initial Access**: User receives a magic link with the token embedded in the URL query parameter
+2. **Cookie Setting**: When accessing the server with a valid token (query param or header), an httpOnly cookie is automatically set
+3. **Subsequent Requests**: The cookie is used for authentication on all subsequent requests
+4. **Cookie Security**: Cookies are configured with:
+   - `httponly=True`: Prevents JavaScript access (XSS protection)
+   - `samesite=Lax`: CSRF protection while allowing navigation
+   - `secure=True`: Only transmitted over HTTPS (when server uses HTTPS)
+   - `max_age=2592000`: 30-day expiration
+
 ### Token Validation
 
 The server validates tokens on:
 
-- All HTTP requests (except `/health`)
+- All HTTP requests (except `/health` and static assets)
 - WebSocket upgrade handshakes
+
+Token validation checks in order:
+
+1. **httpOnly cookie** (primary method for web clients)
+2. **Query parameter** (for magic link initial access)
+3. **Authorization header** (for API clients)
 
 ### Providing Tokens
 
-**Query Parameter (recommended for browser access):**
+**HttpOnly Cookie (automatic, recommended):**
+
+When you first access the server via magic link or provide a valid token via query parameter or header, an httpOnly cookie is automatically set for subsequent requests.
+
+**Query Parameter (magic link for initial access):**
 
 ```
 http://localhost:8080/?token=YOUR_TOKEN_HERE
 ```
 
-**Authorization Header (recommended for API clients):**
+**Authorization Header (for API clients):**
 
 ```
 Authorization: Bearer YOUR_TOKEN_HERE
