@@ -1,6 +1,6 @@
 import { Layer } from "./layer";
 import { Manifest } from "./manifest";
-import { ensureDir, readFile, writeJSON, readJSON, fileExists } from "@/utils/file-io";
+import { ensureDir, writeJSON, readJSON, fileExists } from "@/utils/file-io";
 import type { LayerData, ManifestData, ModelOptions } from "@/types/index";
 
 /**
@@ -90,18 +90,18 @@ export class Model {
    */
   async saveManifest(): Promise<void> {
     this.manifest.updateModified();
-    const manifestPath = `${this.rootPath}/.dr/manifest.yaml`;
+    const manifestPath = `${this.rootPath}/.dr/manifest.json`;
     await ensureDir(`${this.rootPath}/.dr`);
-    await Bun.write(manifestPath, this.manifest.toYAML());
+    await writeJSON(manifestPath, this.manifest.toJSON(), true);
   }
 
   /**
    * Load a model from disk
    */
   static async load(rootPath: string, options: ModelOptions = {}): Promise<Model> {
-    const manifestPath = `${rootPath}/.dr/manifest.yaml`;
-    const yaml = await readFile(manifestPath);
-    const manifest = Manifest.fromYAML(yaml);
+    const manifestPath = `${rootPath}/.dr/manifest.json`;
+    const json = await readJSON<ManifestData>(manifestPath);
+    const manifest = new Manifest(json);
     return new Model(rootPath, manifest, options);
   }
 

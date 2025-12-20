@@ -1,34 +1,35 @@
 # Documentation Robotics CLI - Bun Implementation
 
-Phase 1: Foundation - Core domain models and infrastructure
+TypeScript-based CLI for managing federated architecture data models across 12 interconnected layers.
 
 ## Overview
 
 This is the Bun implementation of the Documentation Robotics CLI. It provides a parallel implementation to the existing Python CLI while maintaining full compatibility with the shared specification and model structure.
 
-## Project Status
-
-**Phase 1: Foundation** ✅ COMPLETE
+## Foundation
 
 - ✅ Project structure initialized
 - ✅ TypeScript configuration (strict mode)
 - ✅ Core domain models (Element, Layer, Model, Manifest)
+- ✅ Reference and Relationship registries for tracking dependencies
 - ✅ File I/O utilities with atomic writes
 - ✅ JSON schemas bundled (all 12 layers)
 - ✅ Comprehensive unit tests
-- ✅ Code formatted with Prettier
+- ✅ Code formatted and configured for linting
 
 ## Directory Structure
 
 ```
 cli-bun/
 ├── src/
-│   ├── cli.ts                          # Entry point (Phase 3)
+│   ├── cli.ts                          # Entry point
 │   ├── core/                           # Domain models
 │   │   ├── element.ts                  # Individual architecture items
 │   │   ├── layer.ts                    # Layer containers
 │   │   ├── model.ts                    # Complete model orchestration
-│   │   └── manifest.ts                 # Model metadata (YAML)
+│   │   ├── manifest.ts                 # Model metadata (JSON)
+│   │   ├── reference-registry.ts       # Cross-layer reference tracking
+│   │   └── relationship-registry.ts    # Intra-layer relationship management
 │   ├── types/
 │   │   └── index.ts                    # TypeScript type definitions
 │   ├── utils/
@@ -51,6 +52,8 @@ cli-bun/
 │       │   ├── layer.test.ts
 │       │   ├── manifest.test.ts
 │       │   ├── model.test.ts
+│       │   ├── reference-registry.test.ts
+│       │   ├── relationship-registry.test.ts
 │       │   └── element.integration.test.js
 │       └── utils/
 │           └── file-io.test.ts
@@ -128,10 +131,10 @@ if (layer.isDirty()) {
 
 ### Manifest
 
-Model metadata (YAML-based). Supports:
+Model metadata (JSON-based). Supports:
 
 - Automatic timestamp management
-- YAML serialization/deserialization
+- JSON serialization/deserialization
 - Version tracking
 
 ```typescript
@@ -142,8 +145,8 @@ const manifest = new Manifest({
   specVersion: '0.6.0'
 });
 
-const yaml = manifest.toYAML();
-const deserialized = Manifest.fromYAML(yaml);
+const json = JSON.stringify(manifest.toJSON());
+const deserialized = Manifest.fromJSON(json);
 ```
 
 ### Model
@@ -169,6 +172,53 @@ await model.saveManifest();
 await model.saveDirtyLayers();
 ```
 
+### ReferenceRegistry
+
+Tracks cross-layer references between architecture elements. Provides:
+
+- Add/query references by source, target, or type
+- Reference validation and integrity checking
+- Impact analysis (find all references to/from an element)
+- Statistics on reference usage
+
+```typescript
+const refRegistry = new ReferenceRegistry();
+
+refRegistry.addReference({
+  source: '01-motivation-goal-create-customer',
+  target: '02-business-process-create-order',
+  type: 'realizes'
+});
+
+const refsFrom = refRegistry.getReferencesFrom('01-motivation-goal-create-customer');
+const refsTo = refRegistry.getReferencesTo('02-business-process-create-order');
+```
+
+### RelationshipRegistry
+
+Manages intra-layer relationships and their semantic metadata. Provides:
+
+- Register relationship types with predicates and metadata
+- Query relationships by source, layer, or predicate
+- Validate relationship predicates
+- Layer-specific relationship rules
+
+```typescript
+const relRegistry = new RelationshipRegistry();
+
+relRegistry.registerType({
+  id: 'depends-on',
+  predicate: 'depends-on',
+  category: 'dependency'
+});
+
+relRegistry.addRelationship({
+  source: '02-process-create-order',
+  target: '02-process-validate-order',
+  predicate: 'depends-on'
+});
+```
+
 ## File I/O Utilities
 
 Atomic file operations for safe persistence:
@@ -180,7 +230,7 @@ import { ensureDir, writeFile, readFile, writeJSON, readJSON, atomicWrite } from
 await ensureDir('.dr/layers');
 
 // Atomic write (safe for crash recovery)
-await atomicWrite('.dr/manifest.yaml', content);
+await atomicWrite('.dr/manifest.json', content);
 
 // JSON operations
 await writeJSON('.dr/layers/motivation.json', data, true);
@@ -229,10 +279,10 @@ These schemas are loaded at build time and do not require filesystem access at r
 ## Code Quality
 
 - **TypeScript**: Strict mode with comprehensive type coverage
-- **Formatting**: Prettier with 2-space indentation
-- **No Linting**: Biome unavailable in npm (version issues), but code is formatted
+- **Linting**: Biome configured for code quality checks
+- **Formatting**: Code formatted to project standards
 
-## Next Steps (Phase 2)
+## Next Steps
 
 - Validation pipeline (schema, naming, reference, semantic)
 - AJV schema validation

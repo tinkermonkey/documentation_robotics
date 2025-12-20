@@ -109,35 +109,18 @@ describe("Manifest", () => {
     expect(json.specVersion).toBe("0.6.0");
   });
 
-  it("should serialize to YAML", () => {
-    const manifest = new Manifest({
+  it("should deserialize from JSON", () => {
+    const json = JSON.stringify({
       name: "Test Model",
       version: "1.0.0",
       description: "A test model",
       author: "Test Author",
+      created: "2024-01-01T00:00:00Z",
+      modified: "2024-01-02T00:00:00Z",
+      specVersion: "0.6.0",
     });
 
-    const yaml = manifest.toYAML();
-
-    expect(yaml).toContain("name: Test Model");
-    expect(yaml).toContain("version: 1.0.0");
-    expect(yaml).toContain("description: A test model");
-    expect(yaml).toContain("author: Test Author");
-    expect(yaml).toContain("created:");
-    expect(yaml).toContain("modified:");
-  });
-
-  it("should deserialize from YAML", () => {
-    const yaml = `name: Test Model
-version: 1.0.0
-description: A test model
-author: Test Author
-created: 2024-01-01T00:00:00Z
-modified: 2024-01-02T00:00:00Z
-specVersion: 0.6.0
-`;
-
-    const manifest = Manifest.fromYAML(yaml);
+    const manifest = Manifest.fromJSON(json);
 
     expect(manifest.name).toBe("Test Model");
     expect(manifest.version).toBe("1.0.0");
@@ -148,7 +131,7 @@ specVersion: 0.6.0
     expect(manifest.specVersion).toBe("0.6.0");
   });
 
-  it("should round-trip YAML serialization", () => {
+  it("should round-trip JSON serialization", () => {
     const originalManifest = new Manifest({
       name: "Test Model",
       version: "1.0.0",
@@ -157,8 +140,8 @@ specVersion: 0.6.0
       specVersion: "0.6.0",
     });
 
-    const yaml = originalManifest.toYAML();
-    const deserializedManifest = Manifest.fromYAML(yaml);
+    const json = JSON.stringify(originalManifest.toJSON());
+    const deserializedManifest = Manifest.fromJSON(json);
 
     expect(deserializedManifest.name).toBe(originalManifest.name);
     expect(deserializedManifest.version).toBe(originalManifest.version);

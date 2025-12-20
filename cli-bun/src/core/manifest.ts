@@ -1,4 +1,3 @@
-import { parse as parseYAML, stringify as stringifyYAML } from "yaml";
 import type { ManifestData } from "@/types/index";
 
 /**
@@ -57,18 +56,11 @@ export class Manifest {
   }
 
   /**
-   * Create Manifest from YAML string
+   * Create Manifest from JSON string
    */
-  static fromYAML(yaml: string): Manifest {
-    const data = parseYAML(yaml) as ManifestData;
+  static fromJSON(json: string): Manifest {
+    const data = JSON.parse(json) as ManifestData;
     return new Manifest(data);
-  }
-
-  /**
-   * Serialize to YAML string
-   */
-  toYAML(): string {
-    return stringifyYAML(this.toJSON());
   }
 
   /**
