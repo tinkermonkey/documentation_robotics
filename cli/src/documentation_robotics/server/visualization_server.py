@@ -243,9 +243,12 @@ class VisualizationServer:
         """
         Authentication middleware for all HTTP requests.
 
-        Validates token on all requests except /health endpoint.
-        Returns 401 Unauthorized for missing tokens.
-        Returns 403 Forbidden for invalid tokens.
+        Validates token on API and WebSocket endpoints only.
+        Static assets (HTML, JS, CSS, images, fonts) are served without authentication
+        since they contain no sensitive data - the viewer UI is public.
+
+        Returns 401 Unauthorized for missing tokens on protected endpoints.
+        Returns 403 Forbidden for invalid tokens on protected endpoints.
 
         Args:
             request: The incoming HTTP request
@@ -266,7 +269,17 @@ class VisualizationServer:
             self._add_cors_headers(response)
             return response
 
-        # Validate token
+        # Allow static assets without authentication
+        # Static assets are public - they're just the viewer UI
+        # Authentication protects the API endpoints that return model data
+        path = request.path
+        if path == "/" or self._is_static_asset(path):
+            response = await handler(request)
+            self._add_cors_headers(response)
+            return response
+
+        # Require authentication for API and WebSocket endpoints
+        # These endpoints return sensitive model data
         if not self._validate_token(request):
             # Check if token was provided but invalid
             has_token = "token" in request.query or "Authorization" in request.headers
@@ -283,6 +296,39 @@ class VisualizationServer:
         response = await handler(request)
         self._add_cors_headers(response)
         return response
+
+    def _is_static_asset(self, path: str) -> bool:
+        """
+        Check if path is a static asset (JS, CSS, images, fonts, etc.).
+
+        Static assets are public and don't require authentication.
+
+        Args:
+            path: Request path
+
+        Returns:
+            True if path is a static asset, False otherwise
+        """
+        # Common static asset extensions
+        static_extensions = (
+            ".js",
+            ".mjs",
+            ".css",
+            ".html",
+            ".ico",
+            ".png",
+            ".jpg",
+            ".jpeg",
+            ".gif",
+            ".svg",
+            ".woff",
+            ".woff2",
+            ".ttf",
+            ".eot",
+            ".map",  # Source maps
+        )
+        path_lower = path.lower()
+        return any(path_lower.endswith(ext) for ext in static_extensions)
 
     def _add_cors_headers(self, response: web.Response) -> None:
         """

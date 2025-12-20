@@ -910,3 +910,122 @@ class TestCORSHeaders:
         assert response.headers["Access-Control-Allow-Methods"] == "GET, POST, OPTIONS"
         assert response.headers["Access-Control-Allow-Headers"] == "Content-Type, Authorization"
         assert response.headers["Access-Control-Max-Age"] == "3600"
+
+    @pytest.mark.asyncio
+    async def test_static_assets_allowed_without_token(self, tmp_path):
+        """Test static assets (JS, CSS, etc.) can be accessed without authentication."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Test various static asset paths without token
+        static_paths = [
+            "/assets/main.js",
+            "/assets/vendor.js",
+            "/assets/style.css",
+            "/favicon.ico",
+            "/assets/logo.png",
+            "/assets/font.woff2",
+            "/index.html",
+            "/assets/source.map",
+        ]
+
+        for path in static_paths:
+            request = Mock(spec=web.Request)
+            request.path = path
+            request.method = "GET"
+            request.query = {}  # No token
+            request.headers = {}
+
+            async def mock_handler(req):
+                return web.Response(text="OK")
+
+            response = await server.auth_middleware(request, mock_handler)
+
+            # Verify request was allowed through without authentication
+            assert response.status == 200, f"Path {path} should be accessible without token"
+            assert response.headers["Access-Control-Allow-Origin"] == "*"
+
+    @pytest.mark.asyncio
+    async def test_api_endpoints_require_token(self, tmp_path):
+        """Test API endpoints still require authentication."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Test API endpoints without token
+        api_paths = [
+            "/api/model",
+            "/api/data",
+            "/ws",
+        ]
+
+        for path in api_paths:
+            request = Mock(spec=web.Request)
+            request.path = path
+            request.method = "GET"
+            request.query = {}  # No token
+            request.headers = {}
+
+            async def mock_handler(req):
+                return web.Response(text="OK")
+
+            response = await server.auth_middleware(request, mock_handler)
+
+            # Verify authentication is required
+            assert response.status == 401, f"Path {path} should require authentication"
+
+    @pytest.mark.asyncio
+    async def test_root_path_allowed_without_token(self, tmp_path):
+        """Test root path (/) is accessible without authentication."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        request = Mock(spec=web.Request)
+        request.path = "/"
+        request.method = "GET"
+        request.query = {}  # No token
+        request.headers = {}
+
+        async def mock_handler(req):
+            return web.Response(text="OK")
+
+        response = await server.auth_middleware(request, mock_handler)
+
+        # Verify root path is accessible
+        assert response.status == 200
+
+    def test_is_static_asset_method(self, tmp_path):
+        """Test _is_static_asset correctly identifies static asset paths."""
+        model_path = tmp_path / "documentation-robotics"
+        spec_path = tmp_path / ".dr" / "specification"
+        model_path.mkdir(parents=True)
+        spec_path.mkdir(parents=True)
+
+        server = VisualizationServer(model_path, spec_path, "localhost", 8080)
+
+        # Test static asset paths
+        assert server._is_static_asset("/assets/main.js") is True
+        assert server._is_static_asset("/assets/vendor-abc123.js") is True
+        assert server._is_static_asset("/style.css") is True
+        assert server._is_static_asset("/favicon.ico") is True
+        assert server._is_static_asset("/assets/logo.png") is True
+        assert server._is_static_asset("/fonts/font.woff2") is True
+        assert server._is_static_asset("/app.mjs") is True
+        assert server._is_static_asset("/main.js.map") is True
+
+        # Test non-static paths
+        assert server._is_static_asset("/api/model") is False
+        assert server._is_static_asset("/api/data") is False
+        assert server._is_static_asset("/ws") is False
+        assert server._is_static_asset("/health") is False
