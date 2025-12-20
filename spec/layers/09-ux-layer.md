@@ -123,7 +123,7 @@ LibraryComponent:
     description: string (optional)
     category: string (optional) # Component category for organization
 
-  # Source code linking
+  # Source code linking (FR-2: Phase 4)
   source:
     reference: SourceReference (optional) # Link to component implementation in source code
 
@@ -649,7 +649,7 @@ UXSpec:
     title: string (optional)
     description: string (optional)
 
-  # Source code linking
+  # Source code linking (FR-2: Phase 4)
   source:
     reference: SourceReference (optional) # Link to UX specification in source code
 
@@ -881,7 +881,7 @@ View:
     routable: boolean (optional)
     layout: LayoutConfig (optional)
 
-  # Source code linking
+  # Source code linking (FR-2: Phase 4)
   source:
     reference: SourceReference (optional) # Link to view implementation in source code
 
