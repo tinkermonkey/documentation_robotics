@@ -40,8 +40,8 @@ export class SemanticValidator {
       this.relationshipCatalog = await import(catalogPath, { assert: { type: 'json' } }).then(
         (m) => m.default
       );
-    } catch (error) {
-      console.warn('Failed to load relationship catalog:', error);
+    } catch {
+      // Catalog load failure is gracefully handled - validation continues without predicate checking
       this.relationshipCatalog = null;
     }
   }

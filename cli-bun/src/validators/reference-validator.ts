@@ -25,6 +25,22 @@ export class ReferenceValidator {
     testing: 12,
   };
 
+  // Known layer names (including hyphenated ones)
+  private readonly KNOWN_LAYERS = [
+    'motivation',
+    'business',
+    'security',
+    'application',
+    'technology',
+    'api',
+    'data-model',
+    'data-store',
+    'ux',
+    'navigation',
+    'apm',
+    'testing',
+  ];
+
   /**
    * Validate all references in a model
    */
@@ -122,10 +138,19 @@ export class ReferenceValidator {
   }
 
   /**
-   * Extract layer name from element ID
+   * Extract layer name from element ID, handling hyphenated layer names
    */
   private extractLayerFromId(elementId: string): string {
-    const parts = elementId.split('-');
-    return parts[0] || '';
+    // Try to match known layers in order of specificity (longest first)
+    const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
+
+    for (const layer of sortedLayers) {
+      if (elementId.startsWith(layer + '-')) {
+        return layer;
+      }
+    }
+
+    // Fallback: return first segment (shouldn't reach here with valid element IDs)
+    return elementId.split('-')[0] || '';
   }
 }

@@ -10,7 +10,23 @@ import type { Layer } from '../core/layer.js';
  */
 export class NamingValidator {
   // Element ID format: {layer}-{type}-{kebab-case-name}
-  private readonly ELEMENT_ID_PATTERN = /^[a-z0-9]+\-[a-z0-9]+(\-[a-z0-9]+)*$/;
+  private readonly ELEMENT_ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*(-[a-z0-9]+)+$/;
+
+  // Known layer names (including hyphenated ones)
+  private readonly KNOWN_LAYERS = [
+    'motivation',
+    'business',
+    'security',
+    'application',
+    'technology',
+    'api',
+    'data-model',
+    'data-store',
+    'ux',
+    'navigation',
+    'apm',
+    'testing',
+  ];
 
   /**
    * Validate all elements in a layer
@@ -44,20 +60,7 @@ export class NamingValidator {
       return;
     }
 
-    const parts = elementId.split('-');
-
-    // Must have at least 3 parts: layer, type, name
-    if (parts.length < 3) {
-      result.addError({
-        layer: layerName,
-        elementId,
-        message: 'Element ID must have at least 3 parts: layer, type, and name',
-        fixSuggestion: 'Use format: {layer}-{type}-{kebab-case-name}',
-      });
-      return;
-    }
-
-    const [idLayer, idType, ...nameParts] = parts;
+    const idLayer = this.extractLayerFromId(elementId);
 
     // Verify layer prefix matches the actual layer
     if (idLayer !== layerName) {
@@ -65,30 +68,40 @@ export class NamingValidator {
         layer: layerName,
         elementId,
         message: `Element ID layer prefix '${idLayer}' does not match layer '${layerName}'`,
-        fixSuggestion: `Change prefix to '${layerName}' (e.g., ${layerName}-${idType}-${nameParts.join('-')})`,
+        fixSuggestion: `Change prefix to '${layerName}' (e.g., ${layerName}-type-name)`,
       });
       return;
     }
+
+    // Extract remaining parts after layer
+    const remainingParts = elementId.slice(idLayer.length + 1).split('-');
 
     // Verify type is present and non-empty
-    if (!idType || idType.length === 0) {
+    if (remainingParts.length < 2) {
       result.addError({
         layer: layerName,
         elementId,
-        message: 'Element ID missing type component',
-        fixSuggestion: 'Add type after layer prefix (e.g., motivation-goal-...)',
+        message: 'Element ID must have type and name components after layer',
+        fixSuggestion: 'Use format: {layer}-{type}-{kebab-case-name}',
       });
       return;
     }
+  }
 
-    // Verify name is present
-    if (nameParts.length === 0) {
-      result.addError({
-        layer: layerName,
-        elementId,
-        message: 'Element ID missing name component',
-        fixSuggestion: 'Add kebab-case name after type (e.g., motivation-goal-increase-revenue)',
-      });
+  /**
+   * Extract layer name from element ID, handling hyphenated layer names
+   */
+  private extractLayerFromId(elementId: string): string {
+    // Try to match known layers in order of specificity (longest first)
+    const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
+
+    for (const layer of sortedLayers) {
+      if (elementId.startsWith(layer + '-')) {
+        return layer;
+      }
     }
+
+    // Fallback: return first segment (shouldn't reach here with valid format)
+    return elementId.split('-')[0] || '';
   }
 }

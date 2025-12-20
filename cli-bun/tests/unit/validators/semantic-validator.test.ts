@@ -14,7 +14,7 @@ describe('SemanticValidator', () => {
     return new Model('/test', manifest);
   }
 
-  it('should validate unique element IDs', () => {
+  it('should validate unique element IDs', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -37,13 +37,13 @@ describe('SemanticValidator', () => {
     model.addLayer(layer1);
     model.addLayer(layer2);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(true);
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should detect duplicate element IDs across layers', () => {
+  it('should detect duplicate element IDs across layers', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -66,7 +66,7 @@ describe('SemanticValidator', () => {
     model.addLayer(layer1);
     model.addLayer(layer2);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
@@ -74,7 +74,7 @@ describe('SemanticValidator', () => {
     expect(result.errors[0].message).toContain('motivation');
   });
 
-  it('should detect duplicate IDs within same layer', () => {
+  it('should detect duplicate IDs within same layer', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -93,13 +93,13 @@ describe('SemanticValidator', () => {
 
     model.addLayer(layer);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(1);
   });
 
-  it('should detect multiple duplicate IDs', () => {
+  it('should detect multiple duplicate IDs', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -132,13 +132,13 @@ describe('SemanticValidator', () => {
     model.addLayer(layer1);
     model.addLayer(layer2);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(false);
     expect(result.errors).toHaveLength(2);
   });
 
-  it('should validate relationship predicates', () => {
+  it('should validate relationship predicates', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -164,14 +164,14 @@ describe('SemanticValidator', () => {
 
     model.addLayer(layer);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     // Valid predicates should not produce errors, but may produce warnings
     // for predicates not in the catalog
     expect(result.errors).toHaveLength(0);
   });
 
-  it('should warn about unknown relationship predicates', () => {
+  it('should warn about unknown relationship predicates', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -197,7 +197,7 @@ describe('SemanticValidator', () => {
 
     model.addLayer(layer);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     // Unknown predicates should generate warnings
     expect(result.errors).toHaveLength(0);
@@ -205,7 +205,7 @@ describe('SemanticValidator', () => {
     // Just verify it doesn't error out
   });
 
-  it('should handle elements with no relationships', () => {
+  it('should handle elements with no relationships', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -219,21 +219,21 @@ describe('SemanticValidator', () => {
 
     model.addLayer(layer);
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(true);
   });
 
-  it('should validate empty model', () => {
+  it('should validate empty model', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(true);
   });
 
-  it('should handle multiple layers with multiple elements', () => {
+  it('should handle multiple layers with multiple elements', async () => {
     const validator = new SemanticValidator();
     const model = createTestModel();
 
@@ -253,7 +253,7 @@ describe('SemanticValidator', () => {
       model.addLayer(layer);
     }
 
-    const result = validator.validateModel(model);
+    const result = await validator.validateModel(model);
 
     expect(result.isValid()).toBe(true);
     expect(result.errors).toHaveLength(0);

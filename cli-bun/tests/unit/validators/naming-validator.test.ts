@@ -164,4 +164,85 @@ describe('NamingValidator', () => {
 
     expect(result.isValid()).toBe(true);
   });
+
+  it('should validate data-store layer elements', () => {
+    const validator = new NamingValidator();
+    const layer = new Layer('data-store', [
+      new Element({
+        id: 'data-store-table-users',
+        type: 'Table',
+        name: 'Users Table',
+      }),
+      new Element({
+        id: 'data-store-schema-inventory',
+        type: 'Schema',
+        name: 'Inventory Schema',
+      }),
+    ]);
+
+    const result = validator.validateLayer(layer);
+
+    expect(result.isValid()).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should reject data-store elements with wrong layer prefix', () => {
+    const validator = new NamingValidator();
+    const layer = new Layer('data-store', [
+      new Element({
+        id: 'data-model-table-users',
+        type: 'Table',
+        name: 'Users Table',
+      }),
+    ]);
+
+    const result = validator.validateLayer(layer);
+
+    expect(result.isValid()).toBe(false);
+    expect(result.errors).toHaveLength(1);
+    expect(result.errors[0].message).toContain('data-model');
+    expect(result.errors[0].message).toContain('data-store');
+  });
+
+  it('should validate data-model elements with complex names', () => {
+    const validator = new NamingValidator();
+    const layer = new Layer('data-model', [
+      new Element({
+        id: 'data-model-relationship-user-to-order',
+        type: 'Relationship',
+        name: 'User To Order',
+      }),
+    ]);
+
+    const result = validator.validateLayer(layer);
+
+    expect(result.isValid()).toBe(true);
+  });
+
+  it('should handle all hyphenated layer names correctly', () => {
+    const validator = new NamingValidator();
+
+    const testCases = [
+      { layerName: 'data-model', elementId: 'data-model-entity-customer', valid: true },
+      { layerName: 'data-store', elementId: 'data-store-table-orders', valid: true },
+      { layerName: 'data-model', elementId: 'data-store-entity-customer', valid: false },
+      { layerName: 'data-store', elementId: 'data-model-table-orders', valid: false },
+    ];
+
+    for (const testCase of testCases) {
+      const layer = new Layer(testCase.layerName, [
+        new Element({
+          id: testCase.elementId,
+          type: 'Type',
+          name: 'Test',
+        }),
+      ]);
+
+      const validator_instance = new NamingValidator();
+      const result = validator_instance.validateLayer(layer);
+
+      expect(result.isValid()).toBe(testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+    }
+  });
 });
