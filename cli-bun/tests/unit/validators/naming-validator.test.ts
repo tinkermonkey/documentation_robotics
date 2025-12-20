@@ -29,7 +29,7 @@ describe('NamingValidator', () => {
     const validator = new NamingValidator();
     const layer = new Layer('motivation', [
       new Element({
-        id: 'invalid-id',
+        id: 'motivation-goal',
         type: 'Goal',
         name: 'Test',
       }),

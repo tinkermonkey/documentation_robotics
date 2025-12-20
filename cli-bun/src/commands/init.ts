@@ -31,26 +31,38 @@ export async function initCommand(options: InitOptions): Promise<void> {
     }
 
     // Gather model metadata
+    // Check if stdin is a TTY to determine if we should prompt
+    const isInteractive = process.stdin.isTTY;
+
     const name =
       options.name ||
-      (await text({
-        message: 'Model name:',
-        validate: (value) => (value.length === 0 ? 'Name is required' : undefined),
-      }));
+      (isInteractive
+        ? await text({
+            message: 'Model name:',
+            validate: (value) => (value.length === 0 ? 'Name is required' : undefined),
+          })
+        : (() => {
+            console.error(ansis.red('Error: Model name is required (use --name option)'));
+            process.exit(1);
+          })());
 
     const description =
       options.description ||
-      (await text({
-        message: 'Description (optional):',
-        defaultValue: '',
-      }));
+      (isInteractive
+        ? await text({
+            message: 'Description (optional):',
+            defaultValue: '',
+          })
+        : '');
 
     const author =
       options.author ||
-      (await text({
-        message: 'Author (optional):',
-        defaultValue: '',
-      }));
+      (isInteractive
+        ? await text({
+            message: 'Author (optional):',
+            defaultValue: '',
+          })
+        : '');
 
     // Initialize model
     logDebug(`Creating model directory at ${rootPath}/.dr`);

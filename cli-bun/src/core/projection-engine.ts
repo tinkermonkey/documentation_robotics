@@ -19,6 +19,30 @@ export class ProjectionEngine {
   private static readonly MAX_RECURSION_DEPTH = 20;
 
   /**
+   * Extract the layer number from a layer name (e.g., "01-motivation" -> "01")
+   */
+  private getLayerNumber(layerName: string): string {
+    const match = layerName.match(/^(\d+)/);
+    return match ? match[1] : layerName;
+  }
+
+
+  /**
+   * Find which layer contains the given element
+   */
+  private async findElementLayer(
+    model: Model,
+    elementId: string
+  ): Promise<string | undefined> {
+    for (const [layerName, layer] of model.layers) {
+      if (layer.getElement(elementId)) {
+        return layerName;
+      }
+    }
+    return undefined;
+  }
+
+  /**
    * Add a projection rule
    */
   addRule(rule: ProjectionRule): void {
@@ -67,8 +91,11 @@ export class ProjectionEngine {
       }
       visited.add(elementId);
 
-      // Extract layer from element ID (format: {layer}-{type}-{name})
-      const [currentLayer] = elementId.split('-');
+      // Find which layer contains this element
+      const currentLayer = await this.findElementLayer(model, elementId);
+      if (!currentLayer) {
+        return;
+      }
 
       const layer = await model.getLayer(currentLayer);
       if (!layer) {
@@ -92,11 +119,17 @@ export class ProjectionEngine {
       // Follow references according to projection rules
       if (element.references) {
         for (const ref of element.references) {
-          const [refLayer] = ref.target.split('-');
+          // Find which layer contains the referenced element
+          const refLayer = await this.findElementLayer(model, ref.target);
+          if (!refLayer) {
+            continue;
+          }
 
-          // Find matching projection rule
+          // Find matching projection rule (compare by layer number)
+          const currentLayerNum = this.getLayerNumber(currentLayer);
+          const refLayerNum = this.getLayerNumber(refLayer);
           const matchingRule = this.rules.find(
-            r => r.sourceLayer === currentLayer && r.targetLayer === refLayer
+            r => r.sourceLayer === currentLayerNum && r.targetLayer === refLayerNum
           );
 
           if (matchingRule) {
@@ -136,7 +169,11 @@ export class ProjectionEngine {
       }
       visited.add(elementId);
 
-      const [currentLayer] = elementId.split('-');
+      // Find which layer contains this element
+      const currentLayer = await this.findElementLayer(model, elementId);
+      if (!currentLayer) {
+        return;
+      }
 
       const layer = await model.getLayer(currentLayer);
       if (!layer) {
@@ -159,11 +196,17 @@ export class ProjectionEngine {
       // Use reference registry to find all elements that reference this one (O(1) lookup)
       const referencesTo = registry.getReferencesTo(elementId);
       for (const ref of referencesTo) {
-        const [referencingLayer] = ref.source.split('-');
+        // Find which layer contains the referencing element
+        const referencingLayer = await this.findElementLayer(model, ref.source);
+        if (!referencingLayer) {
+          continue;
+        }
 
-        // Check if there's a projection rule back to source
+        // Check if there's a projection rule back to source (compare by layer number)
+        const referencingLayerNum = this.getLayerNumber(referencingLayer);
+        const currentLayerNum = this.getLayerNumber(currentLayer);
         const hasReverseRule = this.rules.some(
-          r => r.sourceLayer === referencingLayer && r.targetLayer === currentLayer
+          r => r.sourceLayer === referencingLayerNum && r.targetLayer === currentLayerNum
         );
 
         if (hasReverseRule) {
@@ -201,7 +244,12 @@ export class ProjectionEngine {
         reachable.set(elementId, depth);
       }
 
-      const [currentLayer] = elementId.split('-');
+      // Find which layer contains this element
+      const currentLayer = await this.findElementLayer(model, elementId);
+      if (!currentLayer) {
+        return;
+      }
+
       const layer = await model.getLayer(currentLayer);
       if (!layer) {
         return;
@@ -213,11 +261,17 @@ export class ProjectionEngine {
       }
 
       for (const ref of element.references) {
-        const [refLayer] = ref.target.split('-');
+        // Find which layer contains the referenced element
+        const refLayer = await this.findElementLayer(model, ref.target);
+        if (!refLayer) {
+          continue;
+        }
 
-        // Check if there's a rule allowing this transition
+        // Check if there's a rule allowing this transition (compare by layer number)
+        const currentLayerNum = this.getLayerNumber(currentLayer);
+        const refLayerNum = this.getLayerNumber(refLayer);
         const hasRule = this.rules.some(
-          r => r.sourceLayer === currentLayer && r.targetLayer === refLayer
+          r => r.sourceLayer === currentLayerNum && r.targetLayer === refLayerNum
         );
 
         if (hasRule) {

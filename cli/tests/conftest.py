@@ -153,9 +153,11 @@ def cleanup_threads():
     This fixture runs after every test to ensure proper cleanup of:
     - Thread timers (from debouncing)
     - File observers (from watchdog)
+    - Subprocess transports (from watchdog PollingObserver)
     """
     import gc
     import threading
+    import asyncio
 
     yield
 
@@ -165,7 +167,27 @@ def cleanup_threads():
             if thread.is_alive():
                 thread.cancel()
 
-    # Force garbage collection
+    # Force garbage collection to clean up references
+    gc.collect()
+
+    # Give subprocess cleanup callbacks a chance to run
+    # This is especially important for watchdog PollingObserver which uses Popen
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is running, we can't use run_until_complete
+            # Just wait a bit for callbacks to process
+            import time
+            time.sleep(0.01)
+        else:
+            # If loop exists but isn't running, try to process pending callbacks
+            loop.run_until_complete(asyncio.sleep(0.01))
+    except (RuntimeError, AttributeError):
+        # No event loop or other asyncio issues - just wait
+        import time
+        time.sleep(0.01)
+
+    # Final garbage collection pass
     gc.collect()
 
 

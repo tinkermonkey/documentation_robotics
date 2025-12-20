@@ -99,12 +99,12 @@ describe("Model", () => {
 
     await model.saveManifest();
 
-    const manifestPath = `${testDir}/.dr/manifest.yaml`;
+    const manifestPath = `${testDir}/.dr/manifest.json`;
     expect(await fileExists(manifestPath)).toBe(true);
 
     const content = await readFile(manifestPath);
-    expect(content).toContain("name: Test Model");
-    expect(content).toContain("version: 1.0.0");
+    expect(content).toContain("\"name\": \"Test Model\"");
+    expect(content).toContain("\"version\": \"1.0.0\"");
   });
 
   it("should save layer to disk", async () => {
@@ -240,7 +240,7 @@ describe("Model", () => {
     expect(model.rootPath).toBe(testDir);
     expect(model.manifest.name).toBe("Test Model");
 
-    const manifestPath = `${testDir}/.dr/manifest.yaml`;
+    const manifestPath = `${testDir}/.dr/manifest.json`;
     expect(await fileExists(manifestPath)).toBe(true);
   });
 

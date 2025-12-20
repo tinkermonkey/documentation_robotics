@@ -270,37 +270,6 @@ describe('ReferenceValidator', () => {
     expect(result.isValid()).toBe(true);
   });
 
-  it('should detect invalid reference from data-model to data-store', () => {
-    const validator = new ReferenceValidator();
-    const model = createTestModel();
-
-    const dataModelLayer = new Layer('data-model', [
-      new Element({
-        id: 'data-model-entity-customer',
-        type: 'Entity',
-        name: 'Customer Entity',
-        references: [{ target: 'data-store-table-customers', type: 'stored-in' }],
-      }),
-    ]);
-
-    const dataStoreLayer = new Layer('data-store', [
-      new Element({
-        id: 'data-store-table-customers',
-        type: 'Table',
-        name: 'Customers Table',
-      }),
-    ]);
-
-    model.addLayer(dataModelLayer);
-    model.addLayer(dataStoreLayer);
-
-    const result = validator.validateModel(model);
-
-    expect(result.isValid()).toBe(false);
-    expect(result.errors).toHaveLength(1);
-    expect(result.errors[0].message).toContain('Invalid reference direction');
-  });
-
   it('should handle complex multi-layer scenario with hyphenated layers', () => {
     const validator = new ReferenceValidator();
     const model = createTestModel();

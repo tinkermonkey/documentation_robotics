@@ -13,16 +13,21 @@ const TEMP_DIR = '/tmp/dr-cli-test';
 /**
  * Helper to run dr commands using Node.js
  */
-async function runDr(...args: string[]): Promise<{ exitCode: number }> {
+async function runDr(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   try {
+    const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
     const result = await Bun.spawnSync({
-      cmd: ['node', 'dist/cli.js', ...args],
+      cmd: ['node', cliPath, ...args],
       cwd: TEMP_DIR,
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
-    return { exitCode: result.exitCode };
+    const stdout = result.stdout?.toString() || '';
+    const stderr = result.stderr?.toString() || '';
+
+    return { exitCode: result.exitCode, stdout, stderr };
   } catch (error) {
-    return { exitCode: 1 };
+    return { exitCode: 1, stdout: '', stderr: String(error) };
   }
 }
 

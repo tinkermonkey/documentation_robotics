@@ -63,8 +63,8 @@ export class ValidationResult {
       valid: this.isValid(),
       errors: this.errors,
       warnings: this.warnings,
-      error_count: this.errors.length,
-      warning_count: this.warnings.length,
+      errorCount: this.errors.length,
+      warningCount: this.warnings.length,
     };
   }
 }

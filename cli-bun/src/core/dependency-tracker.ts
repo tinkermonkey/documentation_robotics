@@ -230,14 +230,23 @@ export class DependencyTracker {
     }
 
     const depths = new Map<string, number>();
+    const visiting = new Set<string>();
 
     const calculateDepth = (node: string): number => {
       if (depths.has(node)) {
         return depths.get(node)!;
       }
 
+      // If node is in visiting set, we've detected a cycle
+      if (visiting.has(node)) {
+        return 0;
+      }
+
+      visiting.add(node);
+
       const outgoing = this.graph.outNeighbors(node);
       if (outgoing.length === 0) {
+        visiting.delete(node);
         depths.set(node, 0);
         return 0;
       }
@@ -248,6 +257,7 @@ export class DependencyTracker {
         maxDepth = Math.max(maxDepth, neighborDepth + 1);
       }
 
+      visiting.delete(node);
       depths.set(node, maxDepth);
       return maxDepth;
     };

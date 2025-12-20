@@ -21,7 +21,6 @@ import { relationshipCommands } from './commands/relationship.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
-import { visualizeCommand } from './commands/visualize.js';
 import { chatCommand } from './commands/chat.js';
 import { migrateCommand } from './commands/migrate.js';
 import { upgradeCommand } from './commands/upgrade.js';
@@ -276,6 +275,7 @@ Examples:
   $ dr visualize --no-browser`
   )
   .action(async (options) => {
+    const { visualizeCommand } = await import('./commands/visualize.js');
     await visualizeCommand({
       port: options.port,
       noBrowser: options.noBrowser,

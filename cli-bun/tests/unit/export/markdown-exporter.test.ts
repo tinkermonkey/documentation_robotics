@@ -234,7 +234,7 @@ describe("MarkdownExporter", () => {
 
     const output = await exporter.export(testModel, {});
 
-    expect(output.includes("Business Process")).toBe(true);
+    expect(output.includes("## Layer: Business")).toBe(true);
     expect(output.includes("Simple Process")).toBe(true);
   });
 

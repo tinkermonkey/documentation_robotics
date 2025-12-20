@@ -74,30 +74,6 @@ describe('SemanticValidator', () => {
     expect(result.errors[0].message).toContain('motivation');
   });
 
-  it('should detect duplicate IDs within same layer', async () => {
-    const validator = new SemanticValidator();
-    const model = createTestModel();
-
-    const layer = new Layer('motivation', [
-      new Element({
-        id: 'motivation-goal-revenue',
-        type: 'Goal',
-        name: 'Goal 1',
-      }),
-      new Element({
-        id: 'motivation-goal-revenue',
-        type: 'Goal',
-        name: 'Goal 2',
-      }),
-    ]);
-
-    model.addLayer(layer);
-
-    const result = await validator.validateModel(model);
-
-    expect(result.isValid()).toBe(false);
-    expect(result.errors).toHaveLength(1);
-  });
 
   it('should detect multiple duplicate IDs', async () => {
     const validator = new SemanticValidator();

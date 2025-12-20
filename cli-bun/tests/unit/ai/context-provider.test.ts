@@ -15,16 +15,31 @@ describe('ModelContextProvider', () => {
 
   beforeEach(() => {
     // Create a test model with some layers and elements
-    const manifest = new Manifest('Test Model', '1.0.0', 'A test model', 'Test Author');
+    const manifest = new Manifest({
+      name: 'Test Model',
+      version: '1.0.0',
+      description: 'A test model',
+      author: 'Test Author',
+    });
     model = new Model('/tmp/test', manifest);
 
     // Add a test layer with elements
     const layer = new Layer('motivation');
     layer.addElement(
-      new Element('motivation-goal-test-goal', 'goal', 'Test Goal', 'A test goal')
+      new Element({
+        id: 'motivation-goal-test-goal',
+        type: 'goal',
+        name: 'Test Goal',
+        description: 'A test goal',
+      })
     );
     layer.addElement(
-      new Element('motivation-requirement-test-req', 'requirement', 'Test Requirement', 'A test requirement')
+      new Element({
+        id: 'motivation-requirement-test-req',
+        type: 'requirement',
+        name: 'Test Requirement',
+        description: 'A test requirement',
+      })
     );
     model.addLayer(layer);
 

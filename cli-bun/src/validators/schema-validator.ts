@@ -60,17 +60,35 @@ export class SchemaValidator {
     };
 
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
+    const schemasDir = path.join(__dirname, '..', 'schemas', 'bundled');
+
+    // First, register all common schemas that other schemas reference
+    const commonSchemas = [
+      'common/source-references.schema.json',
+      'common/predicates.schema.json',
+      'common/relationships.schema.json',
+      'common/layer-extensions.schema.json',
+    ];
+
+    for (const commonSchemaFile of commonSchemas) {
+      try {
+        const schemaPath = path.join(schemasDir, commonSchemaFile);
+        const schemaContent = await readFile(schemaPath);
+        const schema = JSON.parse(schemaContent);
+        this.ajv.addSchema(schema);
+      } catch (error) {
+        // Common schemas not all layers may reference - warn but continue
+        console.warn(
+          `Warning: Failed to load common schema ${commonSchemaFile}:`,
+          error
+        );
+      }
+    }
 
     for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
       try {
         // Try primary schema path first (development)
-        let schemaPath = path.join(
-          __dirname,
-          '..',
-          'schemas',
-          'bundled',
-          schemaFileName
-        );
+        let schemaPath = path.join(schemasDir, schemaFileName);
 
         let schemaContent: string;
         try {

@@ -352,18 +352,18 @@ describe('VisualizationServer Integration Tests', () => {
     it('should include model visualization elements', () => {
       const html = server['getViewerHTML']();
 
-      expect(html).toContain('#model-tree');
-      expect(html).toContain('#element-details');
-      expect(html).toContain('#status');
+      expect(html).toContain('id="model-tree"');
+      expect(html).toContain('id="element-details"');
+      expect(html).toContain('id="status"');
     });
 
     it('should include WebSocket connection handling', () => {
       const html = server['getViewerHTML']();
 
       expect(html).toContain('new WebSocket');
-      expect(html).toContain('ws.onopen');
-      expect(html).toContain('ws.onmessage');
-      expect(html).toContain('ws.onclose');
+      expect(html).toContain('addEventListener(\'open\'');
+      expect(html).toContain('addEventListener(\'message\'');
+      expect(html).toContain('addEventListener(\'close\'');
     });
 
     it('should include annotation functionality', () => {

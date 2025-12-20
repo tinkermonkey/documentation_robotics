@@ -14,31 +14,50 @@ describe('Model Tools', () => {
 
   beforeEach(() => {
     // Create a test model with multiple layers
-    const manifest = new Manifest('Test Model', '1.0.0', 'A test model');
+    const manifest = new Manifest({
+      name: 'Test Model',
+      version: '1.0.0',
+      description: 'A test model',
+    });
     model = new Model('/tmp/test', manifest);
 
     // Create motivation layer
     const motivationLayer = new Layer('motivation');
     motivationLayer.addElement(
-      new Element('motivation-goal-increase-sales', 'goal', 'Increase Sales', 'Increase revenue')
+      new Element({
+        id: 'motivation-goal-increase-sales',
+        type: 'goal',
+        name: 'Increase Sales',
+        description: 'Increase revenue',
+      })
     );
     motivationLayer.addElement(
-      new Element('motivation-requirement-api-spec', 'requirement', 'API Specification', 'Define API')
+      new Element({
+        id: 'motivation-requirement-api-spec',
+        type: 'requirement',
+        name: 'API Specification',
+        description: 'Define API',
+      })
     );
     model.addLayer(motivationLayer);
 
     // Create API layer
     const apiLayer = new Layer('api');
     apiLayer.addElement(
-      new Element(
-        'api-endpoint-create-order',
-        'endpoint',
-        'Create Order',
-        'POST endpoint for creating orders'
-      )
+      new Element({
+        id: 'api-endpoint-create-order',
+        type: 'endpoint',
+        name: 'Create Order',
+        description: 'POST endpoint for creating orders',
+      })
     );
     apiLayer.addElement(
-      new Element('api-endpoint-get-order', 'endpoint', 'Get Order', 'GET endpoint for retrieving orders')
+      new Element({
+        id: 'api-endpoint-get-order',
+        type: 'endpoint',
+        name: 'Get Order',
+        description: 'GET endpoint for retrieving orders',
+      })
     );
     model.addLayer(apiLayer);
   });

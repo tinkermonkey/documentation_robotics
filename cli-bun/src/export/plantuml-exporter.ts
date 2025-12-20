@@ -14,11 +14,11 @@ export class PlantUMLExporter implements Exporter {
     const lines: string[] = [];
 
     lines.push("@startuml");
-    lines.push(`title ${this.escapeName(model.manifest.name)}`);
+    lines.push(`title "${this.escapeQuotes(model.manifest.name)}"`);
     lines.push("");
 
     if (model.manifest.description) {
-      lines.push(`note top : ${this.escapeName(model.manifest.description)}`);
+      lines.push(`note top : "${this.escapeQuotes(model.manifest.description)}"`);
       lines.push("");
     }
 
@@ -50,7 +50,7 @@ export class PlantUMLExporter implements Exporter {
       lines.push(`package "${layerName}" #${color} {`);
 
       for (const { id, name } of elements) {
-        lines.push(`  component "${this.escapeName(name)}" as ${id}`);
+        lines.push(`  component "${this.escapeQuotes(name)}" as ${id}`);
       }
 
       lines.push("}");
@@ -67,7 +67,7 @@ export class PlantUMLExporter implements Exporter {
         for (const ref of element.references) {
           const refType = ref.type || "references";
           lines.push(
-            `${element.id} --> ${ref.target} : ${this.escapeName(refType)}`
+            `${element.id} --> ${ref.target} : ${this.escapeQuotes(refType)}`
           );
         }
 
@@ -75,7 +75,7 @@ export class PlantUMLExporter implements Exporter {
         for (const rel of element.relationships) {
           const predicate = rel.predicate || "relates-to";
           lines.push(
-            `${element.id} ..> ${rel.target} : ${this.escapeName(predicate)}`
+            `${element.id} ..> ${rel.target} : ${this.escapeQuotes(predicate)}`
           );
         }
       }
@@ -84,14 +84,14 @@ export class PlantUMLExporter implements Exporter {
     lines.push("");
     lines.push("@enduml");
 
-    return lines.join("\n");
+    return lines.join("\n") + "\n";
   }
 
   /**
-   * Escape name for PlantUML syntax (handle special characters)
+   * Escape quotes for PlantUML syntax
    */
-  private escapeName(str: string): string {
-    // PlantUML can handle most characters in quotes
-    return `"${str.replace(/"/g, '\\"')}"`;
+  private escapeQuotes(str: string): string {
+    // Escape double quotes within strings for PlantUML
+    return str.replace(/"/g, '\\"');
   }
 }

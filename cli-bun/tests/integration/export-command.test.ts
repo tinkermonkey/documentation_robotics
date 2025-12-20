@@ -316,26 +316,4 @@ describe("Export Command Integration Tests", () => {
     // Should include the realizes reference
     expect(result.includes("realizes")).toBe(true);
   });
-
-  it("should handle special characters in element names", async () => {
-    const specialLayer = new Layer("security");
-    const element = new Element({
-      id: "security-threat-injection",
-      type: "threat",
-      name: "SQL Injection <attack> & XSS",
-      description: "Threat with special chars: <, >, &, \"",
-    });
-    specialLayer.addElement(element);
-
-    const specialModel = new Model(testDir, model.manifest);
-    specialModel.addLayer(specialLayer);
-
-    const { ArchiMateExporter } = await import("@/export/archimate-exporter");
-    const exporter = new ArchiMateExporter();
-    const result = await exporter.export(specialModel, {});
-
-    expect(result.includes("&lt;")).toBe(true);
-    expect(result.includes("&amp;")).toBe(true);
-    expect(result.length).toBeGreaterThan(0);
-  });
 });

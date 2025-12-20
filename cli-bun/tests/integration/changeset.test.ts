@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { Layer } from '../../src/core/layer.js';
+import { Element } from '../../src/core/element.js';
 import { ChangesetManager, Changeset } from '../../src/core/changeset.js';
 import { rm } from 'fs/promises';
 
@@ -26,11 +27,13 @@ describe('changeset commands integration', () => {
 
     // Add a motivation layer with an initial element
     const layer = new Layer('motivation');
-    layer.addElement('motivation-goal-initial', {
+    const initialGoal = new Element({
+      id: 'motivation-goal-initial',
       type: 'goal',
       name: 'Initial Goal',
       description: 'This is the initial goal',
     });
+    layer.addElement(initialGoal);
     model.addLayer(layer);
 
     await model.saveManifest();

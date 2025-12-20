@@ -24,16 +24,30 @@ describe('Chat Integration', () => {
     await mkdir(testDir, { recursive: true });
 
     // Create a test model
-    const manifest = new Manifest('Integration Test Model', '1.0.0', 'Integration test model');
+    const manifest = new Manifest({
+      name: 'Integration Test Model',
+      version: '1.0.0',
+      description: 'Integration test model',
+    });
     model = new Model(testDir, manifest);
 
     // Add test data
     const layer = new Layer('api');
     layer.addElement(
-      new Element('api-endpoint-list-users', 'endpoint', 'List Users', 'Returns a list of users')
+      new Element({
+        id: 'api-endpoint-list-users',
+        type: 'endpoint',
+        name: 'List Users',
+        description: 'Returns a list of users',
+      })
     );
     layer.addElement(
-      new Element('api-endpoint-create-user', 'endpoint', 'Create User', 'Creates a new user')
+      new Element({
+        id: 'api-endpoint-create-user',
+        type: 'endpoint',
+        name: 'Create User',
+        description: 'Creates a new user',
+      })
     );
     model.addLayer(layer);
   });
