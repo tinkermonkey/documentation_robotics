@@ -18,7 +18,7 @@ export class DependencyTracker {
     if (!this.graph.hasNode(elementId)) {
       return [];
     }
-    return Array.from(this.graph.inNeighbors(elementId));
+    return this.graph.inNeighbors(elementId);
   }
 
   /**
@@ -29,7 +29,7 @@ export class DependencyTracker {
     if (!this.graph.hasNode(elementId)) {
       return [];
     }
-    return Array.from(this.graph.outNeighbors(elementId));
+    return this.graph.outNeighbors(elementId);
   }
 
   /**
@@ -166,8 +166,8 @@ export class DependencyTracker {
         visited.add(node);
 
         // Add all neighbors (both in and out)
-        const outgoing = Array.from(this.graph.outNeighbors(node));
-        const incoming = Array.from(this.graph.inNeighbors(node));
+        const outgoing = this.graph.outNeighbors(node);
+        const incoming = this.graph.inNeighbors(node);
         const neighbors = [...new Set([...outgoing, ...incoming])];
 
         for (const neighbor of neighbors) {

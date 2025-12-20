@@ -333,15 +333,15 @@ describe('DependencyTracker', () => {
 
   describe('getImpactRadius', () => {
     it('should calculate impact radius correctly', () => {
-      // a → b → c, a → d
-      // Impact radius of a = 3 (b, c, d)
+      // a ← b ← c, a ← d
+      // Impact radius of a = 3 (b, c, d depend on a)
       graph.addNode('a');
       graph.addNode('b');
       graph.addNode('c');
       graph.addNode('d');
-      graph.addEdge('a', 'b');
-      graph.addEdge('b', 'c');
-      graph.addEdge('a', 'd');
+      graph.addEdge('b', 'a');
+      graph.addEdge('c', 'b');
+      graph.addEdge('d', 'a');
 
       const impactRadius = tracker.getImpactRadius('a');
       expect(impactRadius).toBe(3);
@@ -398,6 +398,22 @@ describe('DependencyTracker', () => {
       graph.addEdge('a', 'b');
 
       expect(tracker.getDependencyDepth('b')).toBe(0);
+    });
+
+    it('should handle cycles correctly by using memoization', () => {
+      // a → b → c → a (cycle)
+      graph.addNode('a');
+      graph.addNode('b');
+      graph.addNode('c');
+      graph.addEdge('a', 'b');
+      graph.addEdge('b', 'c');
+      graph.addEdge('c', 'a');
+
+      // Memoization should prevent infinite recursion
+      // Depth depends on when the cycle is detected
+      const depthA = tracker.getDependencyDepth('a');
+      expect(typeof depthA).toBe('number');
+      expect(depthA).toBeGreaterThanOrEqual(0);
     });
   });
 });

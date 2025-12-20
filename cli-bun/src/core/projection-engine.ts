@@ -1,4 +1,5 @@
 import { Model } from './model.js';
+import { ReferenceRegistry } from './reference-registry.js';
 import type { Element } from '../types/index.js';
 
 /**
@@ -15,6 +16,7 @@ export interface ProjectionRule {
  */
 export class ProjectionEngine {
   private rules: ProjectionRule[] = [];
+  private static readonly MAX_RECURSION_DEPTH = 20;
 
   /**
    * Add a projection rule
@@ -60,7 +62,7 @@ export class ProjectionEngine {
 
     const traverse = async (elementId: string, currentDepth: number = 0): Promise<void> => {
       // Prevent infinite recursion and circular dependencies
-      if (visited.has(elementId) || currentDepth > 20) {
+      if (visited.has(elementId) || currentDepth > ProjectionEngine.MAX_RECURSION_DEPTH) {
         return;
       }
       visited.add(elementId);
@@ -120,8 +122,16 @@ export class ProjectionEngine {
     const results: Element[] = [];
     const visited = new Set<string>();
 
+    // Build reference registry for efficient lookups
+    const registry = new ReferenceRegistry();
+    for (const layer of model.layers.values()) {
+      for (const element of layer.listElements()) {
+        registry.registerElement(element);
+      }
+    }
+
     const traverse = async (elementId: string, currentDepth: number = 0): Promise<void> => {
-      if (visited.has(elementId) || currentDepth > 20) {
+      if (visited.has(elementId) || currentDepth > ProjectionEngine.MAX_RECURSION_DEPTH) {
         return;
       }
       visited.add(elementId);
@@ -146,30 +156,18 @@ export class ProjectionEngine {
         return;
       }
 
-      // Find all elements that reference this one
-      for (const otherLayerName of model.getLayerNames()) {
-        const otherLayer = await model.getLayer(otherLayerName);
-        if (!otherLayer) continue;
+      // Use reference registry to find all elements that reference this one (O(1) lookup)
+      const referencesTo = registry.getReferencesTo(elementId);
+      for (const ref of referencesTo) {
+        const [referencingLayer] = ref.source.split('-');
 
-        for (const otherElement of otherLayer.listElements()) {
-          if (otherElement.references) {
-            const referencesTarget = otherElement.references.some(
-              ref => ref.target === elementId
-            );
+        // Check if there's a projection rule back to source
+        const hasReverseRule = this.rules.some(
+          r => r.sourceLayer === referencingLayer && r.targetLayer === currentLayer
+        );
 
-            if (referencesTarget) {
-              const [otherLayer] = otherElement.id.split('-');
-
-              // Check if there's a projection rule back to source
-              const hasReverseRule = this.rules.some(
-                r => r.sourceLayer === otherLayer && r.targetLayer === currentLayer
-              );
-
-              if (hasReverseRule) {
-                await traverse(otherElement.id, currentDepth + 1);
-              }
-            }
-          }
+        if (hasReverseRule) {
+          await traverse(ref.source, currentDepth + 1);
         }
       }
     };
@@ -180,6 +178,10 @@ export class ProjectionEngine {
 
   /**
    * Get all elements reachable from source through projection rules
+   * @param model The architecture model
+   * @param sourceElementId The source element ID
+   * @param maxDepth Maximum traversal depth (visited at depth <= maxDepth)
+   * @returns Map of element IDs to their depth from source
    */
   async getReachable(
     model: Model,

@@ -423,15 +423,16 @@ describe('ProjectionEngine', () => {
       engine.addRule({ sourceLayer: '01', targetLayer: '02' });
       engine.addRule({ sourceLayer: '02', targetLayer: '03' });
 
-      // With maxDepth=0, should only find direct dependencies
+      // With maxDepth=1, should only find direct dependencies (depth 1)
       const reachable = await engine.getReachable(
         model,
         '01-motivation-goal-test',
-        0
+        1
       );
 
       expect(reachable.size).toBe(1);
       expect(reachable.has('02-business-process-test')).toBe(true);
+      expect(reachable.has('03-security-policy-test')).toBe(false);
     });
 
     it('should return empty map for element with no dependencies', async () => {

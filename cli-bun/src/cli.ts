@@ -18,6 +18,8 @@ import { validateCommand } from './commands/validate.js';
 import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
+import { traceCommand } from './commands/trace.js';
+import { projectCommand } from './commands/project.js';
 
 const program = new Command();
 
@@ -110,5 +112,34 @@ const relationshipGroup = program
   .command('relationship')
   .description('Relationship operations');
 relationshipCommands(relationshipGroup);
+
+// Dependency analysis commands
+program
+  .command('trace <elementId>')
+  .description('Trace dependencies for an element')
+  .option('--direction <dir>', 'Trace direction: up, down, or both (default: both)')
+  .option('--depth <num>', 'Maximum traversal depth')
+  .option('--metrics', 'Show graph and element metrics')
+  .action(async (elementId, options) => {
+    await traceCommand(elementId, {
+      direction: options.direction as 'up' | 'down' | 'both' | undefined,
+      depth: options.depth ? parseInt(options.depth) : undefined,
+      showMetrics: options.metrics,
+    });
+  });
+
+program
+  .command('project <elementId> <targetLayer>')
+  .description('Project dependencies to a target layer')
+  .option('--reverse', 'Perform reverse projection (impact analysis)')
+  .option('--max-depth <num>', 'Maximum projection depth (default: 10)')
+  .option('--reachability', 'Show reachability analysis')
+  .action(async (elementId, targetLayer, options) => {
+    await projectCommand(elementId, targetLayer, {
+      reverse: options.reverse,
+      maxDepth: options.maxDepth ? parseInt(options.maxDepth) : undefined,
+      showReachability: options.reachability,
+    });
+  });
 
 program.parse();
