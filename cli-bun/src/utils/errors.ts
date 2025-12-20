@@ -1,6 +1,9 @@
 /**
  * Error handling utilities with formatted output
  * Matches Python CLI error message formatting
+ *
+ * NOTE: The add.ts command demonstrates usage of CLIError.
+ * Future commands should adopt this pattern to ensure consistent error handling.
  */
 
 import ansis from 'ansis';

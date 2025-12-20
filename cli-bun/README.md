@@ -576,14 +576,6 @@ These schemas are loaded at build time and do not require filesystem access at r
 - **Linting**: Biome configured for code quality checks
 - **Formatting**: Code formatted to project standards
 
-## Next Steps
-
-- Validation pipeline (schema, naming, reference, semantic)
-- AJV schema validation
-- Naming convention enforcement
-- Cross-layer constraint checking
-- Relationship predicate validation
-
 ## Related Resources
 
 - Specification: `/workspace/spec/`

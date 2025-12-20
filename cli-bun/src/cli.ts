@@ -55,9 +55,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun init
-  $ dr-bun init --name "Enterprise Architecture" --author "Team A"
-  $ dr-bun init --description "12-layer federated model"`
+  $ dr init
+  $ dr init --name "Enterprise Architecture" --author "Team A"
+  $ dr init --description "12-layer federated model"`
   )
   .action(initCommand);
 
@@ -71,9 +71,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun add business business-service customer-mgmt --name "Customer Management"
-  $ dr-bun add api endpoint create-customer --properties '{"method":"POST","path":"/customers"}'
-  $ dr-bun add application component customer-api --description "REST API for customer operations"`
+  $ dr add business business-service customer-mgmt --name "Customer Management"
+  $ dr add api endpoint create-customer --properties '{"method":"POST","path":"/customers"}'
+  $ dr add application component customer-api --description "REST API for customer operations"`
   )
   .action(addCommand);
 
@@ -87,8 +87,8 @@ program
     'after',
     `
 Examples:
-  $ dr-bun update api-endpoint-create-customer --name "Create Customer (v2)"
-  $ dr-bun update business-service-order --description "Updated description"`
+  $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
+  $ dr update business-service-order --description "Updated description"`
   )
   .action(updateCommand);
 
@@ -100,8 +100,8 @@ program
     'after',
     `
 Examples:
-  $ dr-bun delete api-endpoint-old-endpoint
-  $ dr-bun delete api-endpoint-old-endpoint --force`
+  $ dr delete api-endpoint-old-endpoint
+  $ dr delete api-endpoint-old-endpoint --force`
   )
   .action(deleteCommand);
 
@@ -112,8 +112,8 @@ program
     'after',
     `
 Examples:
-  $ dr-bun show api-endpoint-create-customer
-  $ dr-bun show business-service-order-mgmt`
+  $ dr show api-endpoint-create-customer
+  $ dr show business-service-order-mgmt`
   )
   .action(showCommand);
 
@@ -126,9 +126,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun list api
-  $ dr-bun list business --type business-service
-  $ dr-bun list api --json`
+  $ dr list api
+  $ dr list business --type business-service
+  $ dr list api --json`
   )
   .action(listCommand);
 
@@ -142,9 +142,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun search customer
-  $ dr-bun search "order processing" --layer business
-  $ dr-bun search create-* --type endpoint`
+  $ dr search customer
+  $ dr search "order processing" --layer business
+  $ dr search create-* --type endpoint`
   )
   .action(searchCommand);
 
@@ -157,9 +157,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun validate
-  $ dr-bun validate --layers business api
-  $ dr-bun validate --strict`
+  $ dr validate
+  $ dr validate --layers business api
+  $ dr validate --strict`
   )
   .action(validateCommand);
 
@@ -180,9 +180,9 @@ Supported formats:
   markdown     Export to Markdown documentation
 
 Examples:
-  $ dr-bun export archimate --output model.xml
-  $ dr-bun export openapi --layers api
-  $ dr-bun export markdown --output docs/architecture.md`
+  $ dr export archimate --output model.xml
+  $ dr export openapi --layers api
+  $ dr export markdown --output docs/architecture.md`
   )
   .action(async (format, options) => {
     await exportCommand({
@@ -200,8 +200,8 @@ program
     'after',
     `
 Examples:
-  $ dr-bun info
-  $ dr-bun info --layer business`
+  $ dr info
+  $ dr info --layer business`
   )
   .action(infoCommand);
 
@@ -228,9 +228,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun trace api-endpoint-create-customer
-  $ dr-bun trace business-service-order --direction down --metrics
-  $ dr-bun trace application-component-api --depth 3`
+  $ dr trace api-endpoint-create-customer
+  $ dr trace business-service-order --direction down --metrics
+  $ dr trace application-component-api --depth 3`
   )
   .action(async (elementId, options) => {
     await traceCommand(elementId, {
@@ -250,9 +250,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun project api-endpoint-create-customer business
-  $ dr-bun project business-service-order motivation --reverse
-  $ dr-bun project application-component-api data-model --reachability`
+  $ dr project api-endpoint-create-customer business
+  $ dr project business-service-order motivation --reverse
+  $ dr project application-component-api data-model --reachability`
   )
   .action(async (elementId, targetLayer, options) => {
     await projectCommand(elementId, targetLayer, {
@@ -271,9 +271,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun visualize
-  $ dr-bun visualize --port 3000
-  $ dr-bun visualize --no-browser`
+  $ dr visualize
+  $ dr visualize --port 3000
+  $ dr visualize --no-browser`
   )
   .action(async (options) => {
     await visualizeCommand({
@@ -290,7 +290,7 @@ program
     'after',
     `
 Examples:
-  $ dr-bun chat
+  $ dr chat
 
 This launches an interactive chat interface where you can ask Claude questions
 about your architecture model. Requires ANTHROPIC_API_KEY to be set.`
@@ -310,9 +310,9 @@ program
     'after',
     `
 Examples:
-  $ dr-bun migrate --to 1.0.0
-  $ dr-bun migrate --to 1.0.0 --dry-run
-  $ dr-bun migrate --to 1.0.0 --force`
+  $ dr migrate --to 1.0.0
+  $ dr migrate --to 1.0.0 --dry-run
+  $ dr migrate --to 1.0.0 --force`
   )
   .action(async (options) => {
     await migrateCommand({
@@ -329,7 +329,7 @@ program
     'after',
     `
 Examples:
-  $ dr-bun upgrade`
+  $ dr upgrade`
   )
   .action(async () => {
     await upgradeCommand();
@@ -343,8 +343,8 @@ program
     'after',
     `
 Examples:
-  $ dr-bun conformance
-  $ dr-bun conformance --layers business api application`
+  $ dr conformance
+  $ dr conformance --layers business api application`
   )
   .action(async (options) => {
     await conformanceCommand({

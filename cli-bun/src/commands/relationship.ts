@@ -282,6 +282,13 @@ Examples:
   program
     .command('show <source> <target>')
     .description('Show relationship details')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr relationship show api-endpoint-create-customer business-service-customer-mgmt
+  $ dr relationship show application-component-api motivation-goal-sales-efficiency`
+    )
     .action(async (source, target) => {
       try {
         const rootPath = process.cwd();
