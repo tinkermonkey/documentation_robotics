@@ -14,6 +14,14 @@ export function relationshipCommands(program: Command): void {
     .description('Add a relationship between elements')
     .requiredOption('--predicate <predicate>', 'Relationship predicate (e.g., depends-on, implements)')
     .option('--properties <json>', 'Relationship properties (JSON)')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr relationship add business-service-a business-service-b --predicate depends-on
+  $ dr relationship add api-endpoint-1 api-endpoint-2 --predicate "service-of"
+  $ dr relationship add element-1 element-2 --predicate implements --properties '{"method":"REST"}'`
+    )
     .action(async (source, target, options) => {
       try {
         const rootPath = process.cwd();
@@ -92,6 +100,13 @@ export function relationshipCommands(program: Command): void {
     .description('Delete a relationship')
     .option('--predicate <predicate>', 'Specific predicate to delete (optional, delete all if not specified)')
     .option('--force', 'Skip confirmation prompt')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr relationship delete element-1 element-2 --predicate depends-on
+  $ dr relationship delete element-1 element-2 --force`
+    )
     .action(async (source, target, options) => {
       try {
         const rootPath = process.cwd();
@@ -169,6 +184,14 @@ export function relationshipCommands(program: Command): void {
     .description('List relationships for an element')
     .option('--direction <dir>', 'Filter by direction (incoming/outgoing/all)', 'all')
     .option('--json', 'Output as JSON')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr relationship list api-endpoint-create-customer
+  $ dr relationship list business-service-order --direction outgoing
+  $ dr relationship list element-1 --json`
+    )
     .action(async (id, options) => {
       try {
         const rootPath = process.cwd();

@@ -7,6 +7,13 @@ import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
 import { fileExists } from '../utils/file-io.js';
+import {
+  ModelNotFoundError,
+  InvalidJSONError,
+  CLIError,
+  handleError,
+  handleSuccess,
+} from '../utils/errors.js';
 
 export interface AddOptions {
   name?: string;
@@ -27,8 +34,7 @@ export async function addCommand(
 
     // Check if model exists
     if (!(await fileExists(`${rootPath}/.dr/manifest.json`))) {
-      console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-      process.exit(1);
+      throw new ModelNotFoundError(rootPath);
     }
 
     // Load model
@@ -47,8 +53,7 @@ export async function addCommand(
       try {
         properties = JSON.parse(options.properties);
       } catch (e) {
-        console.error(ansis.red('Error: Invalid JSON in --properties'));
-        process.exit(1);
+        throw new InvalidJSONError(options.properties, '--properties');
       }
     }
 
@@ -63,8 +68,11 @@ export async function addCommand(
 
     // Check if element already exists
     if (layerObj.getElement(id)) {
-      console.error(ansis.red(`Error: Element ${id} already exists in ${layer} layer`));
-      process.exit(1);
+      throw new CLIError(
+        `Element ${id} already exists in ${layer} layer`,
+        1,
+        [`Use "dr show ${id}" to view the existing element`, `Use "dr update ${id}" to modify it`]
+      );
     }
 
     // Add to layer
@@ -74,17 +82,12 @@ export async function addCommand(
     await model.saveLayer(layer);
     await model.saveManifest();
 
-    console.log(ansis.green(`✓ Added element ${ansis.bold(id)} to ${ansis.bold(layer)} layer`));
-    if (options.verbose) {
-      console.log(ansis.dim(`  Type: ${type}`));
-      console.log(ansis.dim(`  Name: ${options.name || id}`));
-      if (options.description) {
-        console.log(ansis.dim(`  Description: ${options.description}`));
-      }
-    }
+    handleSuccess(`Added element ${ansis.bold(id)} to ${ansis.bold(layer)} layer`, {
+      type,
+      name: options.name || id,
+      description: options.description || '(none)',
+    });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   }
 }

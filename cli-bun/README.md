@@ -64,27 +64,321 @@ cli-bun/
 └── README.md
 ```
 
-## Setup
+## Installation & Setup
 
 ### Prerequisites
 
-- Node.js 18+ (Bun 1.3+ preferred, but Node.js works for development)
-- npm or bun
+- **Node.js 18+** (npm included)
+- **Bun 1.3+** (optional, recommended for best performance)
+- A Documentation Robotics model directory (`.dr/`)
 
-### Installation
+### Quick Start
 
 ```bash
+# Install the CLI globally
+npm install -g @doc-robotics/cli-bun
+
+# Or install locally in your project
+npm install @doc-robotics/cli-bun
+
+# Run CLI
+dr --version
+dr --help
+```
+
+### Development Setup
+
+For contributing to the CLI:
+
+```bash
+# Clone the repository
+git clone https://github.com/tinkermonkey/documentation_robotics.git
+cd documentation_robotics/cli-bun
+
 # Install dependencies
 npm install
 
 # Build TypeScript
 npm run build
 
-# Run tests (when Bun is available)
+# Run tests with Bun (preferred)
 bun test
+
+# Or run tests with Node.js
+npm test
 
 # Format code
 npm run format
+
+# Run CLI locally during development
+node dist/cli.js --help
+```
+
+### Installation Methods
+
+#### Option 1: Global Installation (Recommended)
+
+```bash
+# Using npm
+npm install -g @doc-robotics/cli-bun
+
+# Using bun
+bun add -g @doc-robotics/cli-bun
+
+# Verify installation
+dr --version
+```
+
+#### Option 2: Project-Local Installation
+
+```bash
+# Install as a dev dependency
+npm install --save-dev @doc-robotics/cli-bun
+
+# Or add to package.json and run npm install
+{
+  "devDependencies": {
+    "@doc-robotics/cli-bun": "^0.1.0"
+  }
+}
+
+# Run via npx
+npx dr --help
+```
+
+#### Option 3: Build from Source
+
+```bash
+# Clone and build
+git clone https://github.com/tinkermonkey/documentation_robotics.git
+cd documentation_robotics/cli-bun
+npm install
+npm run build
+
+# Install globally from built dist
+npm install -g .
+
+# Or run directly
+node dist/cli.js --help
+```
+
+### Configuration
+
+#### API Key Setup (for Chat Features)
+
+```bash
+# Set Anthropic API key (for chat command)
+export ANTHROPIC_API_KEY="sk-xxx..."
+
+# Or add to .env file
+echo "ANTHROPIC_API_KEY=sk-xxx..." >> .env
+```
+
+#### Visualization Server
+
+```bash
+# Run visualization server with custom port
+dr visualize --port 3000
+
+# Run without auto-opening browser
+dr visualize --no-browser
+```
+
+### System Requirements
+
+| Feature | Requirement | Notes |
+|---------|-------------|-------|
+| Basic CLI | Node.js 18+ | All commands work |
+| Visualization | Node.js 18+ | WebSocket support required |
+| Chat | ANTHROPIC_API_KEY | Requires Anthropic API access |
+| Performance | Bun 1.3+ | Optional but recommended |
+
+### Troubleshooting
+
+#### Command Not Found
+
+```bash
+# If "dr" is not found after global installation
+npm install -g @doc-robotics/cli-bun
+
+# Check npm global location
+npm config get prefix
+
+# Add to PATH if needed (macOS/Linux)
+export PATH="$(npm config get prefix)/bin:$PATH"
+
+# Add to PATH permanently (.bashrc or .zshrc)
+echo 'export PATH="$(npm config get prefix)/bin:$PATH"' >> ~/.bashrc
+source ~/.bashrc
+```
+
+#### Module Not Found Errors
+
+```bash
+# Clear and reinstall
+rm -rf node_modules package-lock.json
+npm install
+
+# Rebuild
+npm run build
+```
+
+#### Test Failures
+
+```bash
+# Check that all dependencies are installed
+npm list
+
+# Reinstall with clean cache
+npm cache clean --force
+npm install
+
+# Run tests with verbose output
+DEBUG=* npm test
+```
+
+## Command Reference
+
+All commands include detailed help. View help for any command:
+
+```bash
+dr --help                              # Show all commands
+dr <command> --help                    # Show command-specific help
+dr element add --help                  # Show element add help
+```
+
+### Quick Command Summary
+
+| Category | Command | Purpose |
+|----------|---------|---------|
+| **Model** | `init` | Initialize a new architecture model |
+| | `info` | Show model information and statistics |
+| | `validate` | Validate the complete model |
+| **Elements** | `add` | Add an element to a layer |
+| | `update` | Update an element |
+| | `delete` | Delete an element |
+| | `show` | Display element details |
+| | `list` | List elements in a layer |
+| | `search` | Search for elements by name/ID |
+| **Relationships** | `relationship add` | Add intra-layer relationship |
+| | `relationship delete` | Delete a relationship |
+| | `relationship list` | List relationships for an element |
+| **Dependencies** | `trace` | Trace element dependencies |
+| | `project` | Project dependencies to a target layer |
+| **Export** | `export` | Export to various formats (ArchiMate, OpenAPI, etc.) |
+| **Visualization** | `visualize` | Launch interactive visualization server |
+| **AI** | `chat` | Interactive Claude AI chat about model |
+| **Advanced** | `migrate` | Migrate model to new spec version |
+| | `upgrade` | Check for version upgrades |
+| | `conformance` | Check spec conformance |
+| | `changeset` | Manage model change tracking |
+
+### Common Workflows
+
+#### Create a New Model
+
+```bash
+# Initialize model
+dr init --name "My Architecture" --author "Team A"
+
+# Add some elements
+dr add motivation goal customer-satisfaction --name "Ensure customer satisfaction"
+dr add business service-category order-mgmt --name "Order Management"
+dr add api endpoint create-order --properties '{"method":"POST","path":"/orders"}'
+
+# View the model
+dr info
+dr list api
+```
+
+#### Search and Update Elements
+
+```bash
+# Search for elements
+dr search customer
+
+# Show details
+dr show api-endpoint-create-order
+
+# Update an element
+dr update api-endpoint-create-order --name "Create Order API (v2)"
+
+# Delete an element
+dr delete api-endpoint-old-endpoint --force
+```
+
+#### Analyze Dependencies
+
+```bash
+# Trace dependencies for an element
+dr trace api-endpoint-create-order
+
+# Show dependencies in a specific direction
+dr trace api-endpoint-create-order --direction up
+
+# Show element metrics
+dr trace api-endpoint-create-order --metrics
+
+# Project to another layer
+dr project api-endpoint-create-order business
+```
+
+#### Manage Relationships
+
+```bash
+# Add a relationship
+dr relationship add business-process-1 business-process-2 --predicate depends-on
+
+# List relationships
+dr relationship list business-process-1
+
+# Show only outgoing relationships
+dr relationship list business-process-1 --direction outgoing
+
+# Delete a relationship
+dr relationship delete business-process-1 business-process-2 --force
+```
+
+#### Export and Visualize
+
+```bash
+# Export to multiple formats
+dr export archimate --output model.xml
+dr export openapi --layers api --output api-spec.yaml
+dr export markdown --output docs/architecture.md
+
+# Launch visualization server
+dr visualize
+dr visualize --port 3000 --no-browser
+```
+
+#### Use AI Chat
+
+```bash
+# Interactive chat with Claude about your architecture
+dr chat
+
+# Ask about dependencies
+# > What are the dependencies for the create-order endpoint?
+
+# Get architecture insights
+# > Show me the critical path in the business layer
+```
+
+#### Manage Changesets
+
+```bash
+# Create a changeset
+dr changeset create "v1.1 migration" --description "Migrate to new API structure"
+
+# List changesets
+dr changeset list
+
+# Apply a changeset
+dr changeset apply "v1.1 migration"
+
+# Revert a changeset
+dr changeset revert "v1.1 migration"
 ```
 
 ## Core Classes

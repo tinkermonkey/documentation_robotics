@@ -263,6 +263,13 @@ export function changesetCommands(program: Command): void {
     .command('create <name>')
     .description('Create a new changeset')
     .option('--description <desc>', 'Changeset description')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset create "v1.1 migration"
+  $ dr changeset create "api-refactoring" --description "Refactor API layer endpoints"`
+    )
     .action(async (name, options) => {
       await changesetCreateCommand(name, options);
     });
@@ -270,6 +277,12 @@ export function changesetCommands(program: Command): void {
   changesetGroup
     .command('list')
     .description('List all changesets')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset list`
+    )
     .action(async () => {
       await changesetListCommand();
     });
@@ -277,6 +290,12 @@ export function changesetCommands(program: Command): void {
   changesetGroup
     .command('apply <name>')
     .description('Apply a changeset to the model')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset apply "v1.1 migration"`
+    )
     .action(async (name) => {
       await changesetApplyCommand(name);
     });
@@ -284,6 +303,12 @@ export function changesetCommands(program: Command): void {
   changesetGroup
     .command('revert <name>')
     .description('Revert a changeset from the model')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset revert "v1.1 migration"`
+    )
     .action(async (name) => {
       await changesetRevertCommand(name);
     });

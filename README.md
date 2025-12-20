@@ -107,11 +107,15 @@ The Documentation Robotics specification defines a standards-based approach to m
 
 ### 2. The CLI Tool (`dr`)
 
-**Location:** [`cli/`](cli/)
-**Version:** 0.7.2
-**Status:** Proof of Concept (MVP cli + Agents)
+Two fully-compatible implementations available:
 
-A command-line tool for managing project models conforming to the specification.
+#### Python CLI (Mature)
+
+**Location:** [`cli/`](cli/)
+**Version:** 0.7.3
+**Status:** Production-ready
+
+A Python-based command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
@@ -123,30 +127,45 @@ A command-line tool for managing project models conforming to the specification.
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
 - ✅ **Visualization Server** - Can serve interactive model visualizations for easier exploration and validation
 
-**Quick Start:**
+#### Bun CLI (Modern & Fast)
+
+**Location:** [`cli-bun/`](cli-bun/)
+**Version:** 0.1.0
+**Status:** Feature-parity with Python CLI, **~8x faster**
+
+A TypeScript/Bun implementation with identical commands and 200ms startup time.
+
+**Quick Start (Either CLI):**
 
 ```bash
-# Install
-pip install -e cli/
+# Python CLI
+pip install documentation-robotics
+dr --help
 
-# Initialize a model
+# OR Bun CLI
+npm install -g @doc-robotics/cli-bun
+dr --help
+
+# Both work with the same commands and models
 dr init my-project
-
-# Add elements
 dr add motivation goal --name "Improve Customer Satisfaction"
-
-# Validate (with link checking)
-dr validate --validate-links
-
-# Migrate model to latest spec version
-dr migrate --dry-run  # Preview changes
-dr migrate --apply    # Apply migration
-
-# Check conformance
+dr validate
+dr migrate --dry-run
 dr conformance
 ```
 
-[→ Full CLI Documentation](cli/)
+**Choose Your CLI:**
+
+| Feature | Python | Bun |
+|---------|--------|-----|
+| Startup Time | ~1.2s | ~150ms |
+| Install | `pip install` | `npm install -g` |
+| Status | Production (v0.7.3) | Feature-parity (v0.1.0) |
+| Best For | Python environments | Node.js environments |
+
+Both CLIs work on identical `.dr/` model directories.
+
+[→ Python CLI Documentation](cli/) | [→ Bun CLI Documentation](cli-bun/) | [→ Migration Guide](MIGRATION_GUIDE.md)
 
 ## Repository Structure
 
@@ -154,7 +173,7 @@ dr conformance
 documentation_robotics/
 │
 ├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.5.0)
+│   ├── VERSION                  # Current spec version (0.6.0)
 │   ├── CHANGELOG.md             # Specification changelog
 │   ├── GOVERNANCE.md            # Governance model
 │   ├── CONTRIBUTING.md          # Contribution guidelines
@@ -167,14 +186,25 @@ documentation_robotics/
 │   ├── test-fixtures/           # Test data for validators
 │   └── reference/               # Reference materials
 │
-├── cli/                         # CLI IMPLEMENTATION
+├── cli/                         # PYTHON CLI IMPLEMENTATION (v0.7.3)
 │   ├── src/                     # Python source code
 │   ├── tests/                   # Test suite
 │   ├── docs/                    # CLI documentation
-│   └── README.md                # CLI README
+│   └── README.md                # Python CLI README
 │
-├── implementations/             # REFERENCE IMPLEMENTATIONS
-│   └── python-dr/               # Python reference (→ cli/)
+├── cli-bun/                     # TYPESCRIPT/BUN CLI IMPLEMENTATION (v0.1.0)
+│   ├── src/                     # TypeScript source code
+│   │   ├── commands/            # 23+ command implementations
+│   │   ├── core/                # Domain models
+│   │   ├── validators/          # Validation pipeline
+│   │   ├── export/              # Export handlers
+│   │   ├── server/              # Visualization server
+│   │   ├── ai/                  # AI integration
+│   │   └── utils/               # Utilities
+│   ├── tests/                   # Test suite (unit, integration, compatibility)
+│   ├── dist/                    # Compiled JavaScript
+│   ├── package.json             # Node.js dependencies
+│   └── README.md                # Bun CLI README
 │
 ├── tools/                       # PROJECT TOOLING
 │
@@ -183,6 +213,8 @@ documentation_robotics/
 │   └── workflows/               # CI/CD workflows
 │
 ├── README.md                    # This file
+├── MIGRATION_GUIDE.md           # Guide for switching between CLIs
+├── CLAUDE.md                    # AI assistant instructions
 ├── CONTRIBUTING.md              # Project contribution guidelines
 ├── RELEASE_PROCESS.md           # Release process documentation
 └── LICENSE                      # MIT License
