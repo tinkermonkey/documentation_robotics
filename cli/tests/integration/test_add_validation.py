@@ -397,8 +397,9 @@ class TestAddEntityTypeValidation:
 
     def test_add_source_reference_data_stored_correctly(self, runner, initialized_project):
         """Test that source reference data is stored correctly in element properties."""
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         result = runner.invoke(
             cli,
@@ -426,7 +427,13 @@ class TestAddEntityTypeValidation:
         assert result.exit_code == 0
 
         # Read the stored element from the model (elements stored in model/04_application/components.yaml)
-        model_file = Path(initialized_project) / "documentation-robotics" / "model" / "04_application" / "components.yaml"
+        model_file = (
+            Path(initialized_project)
+            / "documentation-robotics"
+            / "model"
+            / "04_application"
+            / "components.yaml"
+        )
         assert model_file.exists(), f"Components file not found at {model_file}"
 
         with open(model_file, "r") as f:
@@ -453,8 +460,9 @@ class TestAddEntityTypeValidation:
 
     def test_add_with_uppercase_commit_sha(self, runner, initialized_project):
         """Test that uppercase commit SHA is accepted and normalized."""
-        import yaml
         from pathlib import Path
+
+        import yaml
 
         result = runner.invoke(
             cli,
@@ -477,7 +485,13 @@ class TestAddEntityTypeValidation:
         assert "Successfully added element" in result.output
 
         # Read the stored element to verify commit was normalized to lowercase
-        model_file = Path(initialized_project) / "documentation-robotics" / "model" / "04_application" / "components.yaml"
+        model_file = (
+            Path(initialized_project)
+            / "documentation-robotics"
+            / "model"
+            / "04_application"
+            / "components.yaml"
+        )
         with open(model_file, "r") as f:
             layer_data = yaml.safe_load(f) or {}
 

@@ -214,11 +214,9 @@ def format_stale_report(
             if ref.commit_date:
                 commit_str += f" ({ref.commit_date.date()} - {ref.days_old} days old)"
             lines.append(f"    Commit: {commit_str}")
-        lines.append(f"    Recommendation: Re-ingest or verify manually")
+        lines.append("    Recommendation: Re-ingest or verify manually")
         lines.append("")
 
-    lines.append(
-        f"Summary: {len(stale_refs)}/{total_elements_with_sources} source links are stale"
-    )
+    lines.append(f"Summary: {len(stale_refs)}/{total_elements_with_sources} source links are stale")
 
     return "\n".join(lines)

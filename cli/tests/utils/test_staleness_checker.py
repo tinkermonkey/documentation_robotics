@@ -8,9 +8,8 @@ import pytest
 
 # Import MockElement from parent conftest
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from conftest import MockElement
-
-from documentation_robotics.utils.staleness_checker import (
+from conftest import MockElement  # noqa: E402
+from documentation_robotics.utils.staleness_checker import (  # noqa: E402
     StaleSourceRef,
     check_staleness,
     format_stale_report,
@@ -91,13 +90,7 @@ class TestGetCommitDate:
         """Test extracting ISO format timestamp."""
         element_data = {
             "properties": {
-                "source": {
-                    "reference": {
-                        "repository": {
-                            "timestamp": "2024-01-15T10:30:00"
-                        }
-                    }
-                }
+                "source": {"reference": {"repository": {"timestamp": "2024-01-15T10:30:00"}}}
             }
         }
         date = get_commit_date(element_data)
@@ -109,15 +102,7 @@ class TestGetCommitDate:
     def test_extract_date_field(self):
         """Test extracting date field."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {
-                        "repository": {
-                            "date": "2024-06-01T15:30:00"
-                        }
-                    }
-                }
-            }
+            "properties": {"source": {"reference": {"repository": {"date": "2024-06-01T15:30:00"}}}}
         }
         date = get_commit_date(element_data)
         assert date is not None
@@ -126,15 +111,7 @@ class TestGetCommitDate:
 
     def test_return_none_when_no_repository(self):
         """Test returning None when no repository info."""
-        element_data = {
-            "properties": {
-                "source": {
-                    "reference": {
-                        "provenance": "manual"
-                    }
-                }
-            }
-        }
+        element_data = {"properties": {"source": {"reference": {"provenance": "manual"}}}}
         date = get_commit_date(element_data)
         assert date is None
 
@@ -147,15 +124,7 @@ class TestGetCommitDate:
     def test_return_none_when_invalid_timestamp_format(self):
         """Test returning None with invalid timestamp format."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {
-                        "repository": {
-                            "timestamp": "invalid-date"
-                        }
-                    }
-                }
-            }
+            "properties": {"source": {"reference": {"repository": {"timestamp": "invalid-date"}}}}
         }
         date = get_commit_date(element_data)
         assert date is None

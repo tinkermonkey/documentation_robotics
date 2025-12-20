@@ -3,13 +3,10 @@
 import sys
 from pathlib import Path
 
-import pytest
-
 # Import MockElement from parent conftest
 sys.path.insert(0, str(Path(__file__).parent.parent))
-from conftest import MockElement
-
-from documentation_robotics.utils.source_ref_utils import (
+from conftest import MockElement  # noqa: E402
+from documentation_robotics.utils.source_ref_utils import (  # noqa: E402
     filter_elements_by_source,
     get_repository_info,
     get_source_locations,
@@ -26,9 +23,7 @@ class TestGetSourceReference:
         """Test extracting source reference from element properties."""
         element_data = {
             "name": "test-element",
-            "properties": {
-                "source": {"reference": {"provenance": "manual", "locations": []}}
-            },
+            "properties": {"source": {"reference": {"provenance": "manual", "locations": []}}},
         }
         source_ref = get_source_reference(element_data)
         assert source_ref is not None
@@ -64,9 +59,7 @@ class TestHasSourceReference:
         """Test returning True when source reference exists."""
         element_data = {
             "name": "test-element",
-            "properties": {
-                "source": {"reference": {"provenance": "manual"}}
-            },
+            "properties": {"source": {"reference": {"provenance": "manual"}}},
         }
         assert has_source_reference(element_data) is True
 
@@ -86,11 +79,7 @@ class TestGetSourceProvenance:
     def test_extract_manual_provenance(self):
         """Test extracting manual provenance."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {"provenance": "manual", "locations": []}
-                }
-            }
+            "properties": {"source": {"reference": {"provenance": "manual", "locations": []}}}
         }
         provenance = get_source_provenance(element_data)
         assert provenance == "manual"
@@ -98,11 +87,7 @@ class TestGetSourceProvenance:
     def test_extract_extracted_provenance(self):
         """Test extracting extracted provenance."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {"provenance": "extracted", "locations": []}
-                }
-            }
+            "properties": {"source": {"reference": {"provenance": "extracted", "locations": []}}}
         }
         provenance = get_source_provenance(element_data)
         assert provenance == "extracted"
@@ -110,11 +95,7 @@ class TestGetSourceProvenance:
     def test_extract_inferred_provenance(self):
         """Test extracting inferred provenance."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {"provenance": "inferred", "locations": []}
-                }
-            }
+            "properties": {"source": {"reference": {"provenance": "inferred", "locations": []}}}
         }
         provenance = get_source_provenance(element_data)
         assert provenance == "inferred"
@@ -122,11 +103,7 @@ class TestGetSourceProvenance:
     def test_extract_generated_provenance(self):
         """Test extracting generated provenance."""
         element_data = {
-            "properties": {
-                "source": {
-                    "reference": {"provenance": "generated", "locations": []}
-                }
-            }
+            "properties": {"source": {"reference": {"provenance": "generated", "locations": []}}}
         }
         provenance = get_source_provenance(element_data)
         assert provenance == "generated"
@@ -252,11 +229,7 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "with-source",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement({"name": "without-source"}),
@@ -272,11 +245,7 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "with-source",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement({"name": "without-source"}),
@@ -292,21 +261,13 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "manual-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement(
                 {
                     "name": "extracted-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "extracted"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "extracted"}}},
                 }
             ),
         ]
@@ -321,31 +282,19 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "manual-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement(
                 {
                     "name": "extracted-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "extracted"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "extracted"}}},
                 }
             ),
             MockElement(
                 {
                     "name": "inferred-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "inferred"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "inferred"}}},
                 }
             ),
         ]
@@ -360,11 +309,7 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "generated-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "generated"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "generated"}}},
                 }
             ),
             MockElement({"name": "no-source"}),
@@ -380,21 +325,13 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "inferred-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "inferred"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "inferred"}}},
                 }
             ),
             MockElement(
                 {
                     "name": "manual-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
         ]
@@ -408,11 +345,7 @@ class TestFilterElementsBySource:
         elements = [
             {
                 "name": "with-source",
-                "properties": {
-                    "source": {
-                        "reference": {"provenance": "manual"}
-                    }
-                },
+                "properties": {"source": {"reference": {"provenance": "manual"}}},
             },
             {"name": "without-source"},
         ]
@@ -427,11 +360,7 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "with-source",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement({"name": "without-source"}),
@@ -451,11 +380,7 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "manual-element",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement({"name": "no-source"}),
@@ -471,22 +396,14 @@ class TestFilterElementsBySource:
             MockElement(
                 {
                     "name": "first",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "manual"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "manual"}}},
                 }
             ),
             MockElement({"name": "second"}),
             MockElement(
                 {
                     "name": "third",
-                    "properties": {
-                        "source": {
-                            "reference": {"provenance": "extracted"}
-                        }
-                    },
+                    "properties": {"source": {"reference": {"provenance": "extracted"}}},
                 }
             ),
         ]

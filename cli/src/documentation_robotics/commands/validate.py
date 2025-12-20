@@ -161,7 +161,9 @@ def validate(
                 )
 
                 if source_link_issues:
-                    console.print(f"Found {len(source_link_issues)} source link validation issue(s)\n")
+                    console.print(
+                        f"Found {len(source_link_issues)} source link validation issue(s)\n"
+                    )
                 else:
                     console.print("[green]✓ All source references are valid[/green]\n")
 

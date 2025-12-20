@@ -89,6 +89,8 @@ class TestFullWorkflow:
                 "Improve Customer Satisfaction",
                 "--property",
                 "description=Increase customer satisfaction scores",
+                "--property",
+                "priority=high",
             ],
             cwd=str(temp_project),
         )

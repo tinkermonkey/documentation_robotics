@@ -85,10 +85,14 @@ def search(
     if no_source_ref:
         elements = filter_elements_by_source(elements, has_source_ref=False)
     elif has_source_ref:
-        elements = filter_elements_by_source(elements, has_source_ref=True, provenance=source_provenance)
+        elements = filter_elements_by_source(
+            elements, has_source_ref=True, provenance=source_provenance
+        )
     elif source_provenance:
         # If only provenance is specified without has_source_ref, still apply the filter
-        elements = filter_elements_by_source(elements, has_source_ref=True, provenance=source_provenance)
+        elements = filter_elements_by_source(
+            elements, has_source_ref=True, provenance=source_provenance
+        )
 
     # Apply limit
     if limit:

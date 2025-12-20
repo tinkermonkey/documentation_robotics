@@ -1,13 +1,9 @@
 """Unit tests for source map exporter."""
 
 import json
-from datetime import datetime
-from pathlib import Path
 
 import pytest
-
 from documentation_robotics.core.element import Element
-from documentation_robotics.core.layer import Layer
 from documentation_robotics.export.export_manager import ExportFormat, ExportOptions
 from documentation_robotics.export.source_map_exporter import SourceMapExporter
 
@@ -124,7 +120,9 @@ def test_source_map_generation_empty_model(mock_model, tmp_path):
     assert source_map["sourceMap"] == []
 
 
-def test_extract_source_references_with_x_source_reference(element_with_source_reference, mock_model, tmp_path):
+def test_extract_source_references_with_x_source_reference(
+    element_with_source_reference, mock_model, tmp_path
+):
     """Test extracting source references from x-source-reference field."""
     options = ExportOptions(
         format=ExportFormat.SOURCE_MAP,
@@ -155,7 +153,9 @@ def test_extract_source_references_with_properties_source_reference(
         output_path=tmp_path,
     )
     exporter = SourceMapExporter(mock_model, options)
-    entries = exporter._extract_source_references(element_with_properties_source_reference, "04-application")
+    entries = exporter._extract_source_references(
+        element_with_properties_source_reference, "04-application"
+    )
 
     assert len(entries) == 1
     assert entries[0]["file"] == "src/services/order_service.py"
@@ -168,7 +168,9 @@ def test_extract_source_references_with_properties_source_reference(
     assert entries[0]["commit"] == "def456ghi789"
 
 
-def test_extract_source_references_without_source_reference(element_without_source_reference, mock_model, tmp_path):
+def test_extract_source_references_without_source_reference(
+    element_without_source_reference, mock_model, tmp_path
+):
     """Test extracting source references from element without source reference."""
     options = ExportOptions(
         format=ExportFormat.SOURCE_MAP,
@@ -291,6 +293,7 @@ def test_source_map_generated_timestamp(mock_model, tmp_path):
     # Should be parseable as ISO format
     try:
         from datetime import datetime as dt
+
         dt.fromisoformat(timestamp.replace("Z", "+00:00"))
     except ValueError:
         pytest.fail(f"Invalid ISO timestamp format: {timestamp}")

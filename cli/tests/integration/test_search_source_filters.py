@@ -4,7 +4,6 @@ import re
 
 import pytest
 from click.testing import CliRunner
-
 from documentation_robotics.cli import cli
 
 
@@ -129,7 +128,9 @@ class TestSearchSourceFiltering:
         output = strip_ansi(result.output)
         assert "cannot use both" in output.lower() or "error" in output.lower()
 
-    def test_search_source_provenance_without_has_source_ref(self, runner, project_with_source_refs):
+    def test_search_source_provenance_without_has_source_ref(
+        self, runner, project_with_source_refs
+    ):
         """Test --source-provenance filter without --has-source-ref."""
         result = runner.invoke(
             cli,

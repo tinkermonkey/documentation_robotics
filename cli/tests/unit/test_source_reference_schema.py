@@ -58,9 +58,7 @@ class TestSourceReferenceSchema:
         assert "file" in source_location["required"]
         assert "symbol" not in source_location.get("required", [])
 
-    def test_source_reference_requires_provenance_and_locations(
-        self, source_reference_schema
-    ):
+    def test_source_reference_requires_provenance_and_locations(self, source_reference_schema):
         """SourceReference should require provenance and locations."""
         source_ref = source_reference_schema["definitions"]["SourceReference"]
         assert set(source_ref["required"]) == {"provenance", "locations"}
@@ -95,9 +93,7 @@ class TestSourceReferenceValidation:
         """Validate a complete extracted source reference."""
         data = {
             "provenance": "extracted",
-            "locations": [
-                {"file": "src/main.py", "symbol": "MyClass.my_method"}
-            ],
+            "locations": [{"file": "src/main.py", "symbol": "MyClass.my_method"}],
             "repository": {
                 "url": "https://github.com/example/repo",
                 "commit": "a" * 40,  # Valid 40-char hex

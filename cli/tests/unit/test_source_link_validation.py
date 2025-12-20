@@ -10,13 +10,13 @@ Tests cover:
 import os
 import tempfile
 from pathlib import Path
-from unittest.mock import MagicMock
 
-import pytest
-
-from documentation_robotics.core.link_analyzer import LinkAnalyzer, LinkInstance
+from documentation_robotics.core.link_analyzer import LinkAnalyzer
 from documentation_robotics.core.link_registry import LinkRegistry
-from documentation_robotics.validators.link_validator import LinkValidator, ValidationIssue, ValidationSeverity
+from documentation_robotics.validators.link_validator import (
+    LinkValidator,
+    ValidationSeverity,
+)
 
 
 class MockElement:
@@ -646,7 +646,9 @@ class TestFullModelValidation:
                     },
                 }
                 api_element = MockElement("application-service-my-service", element_data)
-                app_layer = MockLayer("application", {"application-service-my-service": api_element})
+                app_layer = MockLayer(
+                    "application", {"application-service-my-service": api_element}
+                )
 
                 model = MockModel({"application": app_layer})
 
@@ -654,17 +656,22 @@ class TestFullModelValidation:
                 analyzer = LinkAnalyzer(registry)
                 validator = LinkValidator(registry, analyzer)
 
-                # Validate both intra-layer relationships and source references
-                relationship_issues = validator.validate_intra_layer_relationships(model)
+                # Validate source references
                 source_issues = validator.validate_source_references(model, deep_validation=True)
 
                 # Should not have errors for valid references and existing symbols
-                source_errors = [issue for issue in source_issues if issue.severity == ValidationSeverity.ERROR]
+                source_errors = [
+                    issue for issue in source_issues if issue.severity == ValidationSeverity.ERROR
+                ]
                 assert len(source_errors) == 0
 
                 # Symbol should be found (not a warning)
-                source_warnings = [issue for issue in source_issues if issue.severity == ValidationSeverity.WARNING]
-                symbol_warnings = [w for w in source_warnings if w.issue_type == "source-symbol-not-found"]
+                source_warnings = [
+                    issue for issue in source_issues if issue.severity == ValidationSeverity.WARNING
+                ]
+                symbol_warnings = [
+                    w for w in source_warnings if w.issue_type == "source-symbol-not-found"
+                ]
                 assert len(symbol_warnings) == 0
 
         finally:

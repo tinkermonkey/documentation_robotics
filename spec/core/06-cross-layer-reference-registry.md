@@ -291,9 +291,9 @@ The Motivation Layer is referenced BY other layers but doesn't reference impleme
 
 ### Source Code References (External → Code)
 
-| Pattern | Source Layers | Target Type | Field Path | Cardinality | Format |
-|---------|---------------|-------------|------------|-------------|--------|
-| Source Reference | 04, 06-12 | External Code | properties.source.reference, x-source-reference | Single | Object |
+| Pattern          | Source Layers | Target Type   | Field Path                                      | Cardinality | Format |
+| ---------------- | ------------- | ------------- | ----------------------------------------------- | ----------- | ------ |
+| Source Reference | 04, 06-12     | External Code | properties.source.reference, x-source-reference | Single      | Object |
 
 ## Validation Rules
 

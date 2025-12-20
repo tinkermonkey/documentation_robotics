@@ -593,7 +593,9 @@ class LinkValidator:
             data["properties"].get("source"), dict
         ):
             if isinstance(data["properties"]["source"].get("reference"), dict):
-                refs.append(("properties.source.reference", data["properties"]["source"]["reference"]))
+                refs.append(
+                    ("properties.source.reference", data["properties"]["source"]["reference"])
+                )
 
         return refs
 

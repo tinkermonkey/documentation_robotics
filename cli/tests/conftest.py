@@ -126,9 +126,9 @@ async def cleanup_threads_and_processes():
     - Any other background threads/processes
     - Async generators that may have spawned subprocesses
     """
+    import asyncio
     import gc
     import threading
-    import asyncio
 
     yield
 
