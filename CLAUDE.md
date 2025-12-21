@@ -96,16 +96,23 @@ dr --help
 ### Key Dependencies
 
 **Python CLI:**
+
 - Python 3.10+, click, pydantic, jsonschema, networkx, rich
 
 **Bun CLI:**
+
 - Node.js 18+, TypeScript, Commander.js, AJV, Ansis, Graphology, Hono, @anthropic-ai/sdk
 
 ### Approved Commands
 
 You have pre-approved access to:
+
 - **Python CLI:** `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
 - **Bun CLI:** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`
+
+### Pre-commit Checks
+
+Run `pre-commit run --all-files` from the repo root before committing to ensure formatting and linters pass.
 
 ## Critical Rules
 
@@ -318,15 +325,15 @@ pytest tests/integration/
 
 Both CLIs implement the same commands and operate on identical model structures. Choose based on your preference:
 
-| Aspect | Python CLI | Bun CLI |
-|--------|------------|---------|
-| **Installation** | `pip install` | `npm install -g` |
-| **Performance** | ~1-2s startup | ~200ms startup |
-| **Environment** | Python 3.10+ | Node.js 18+ |
-| **State** | Production-ready (v0.7.3) | Feature-parity (v0.1.0) |
-| **Development** | Pytest, mature | Jest/Bun test, modern |
-| **Package Mgmt** | pip/Poetry | npm/Bun |
-| **Best For** | Legacy Python environments | Modern Node.js dev stacks |
+| Aspect           | Python CLI                 | Bun CLI                   |
+| ---------------- | -------------------------- | ------------------------- |
+| **Installation** | `pip install`              | `npm install -g`          |
+| **Performance**  | ~1-2s startup              | ~200ms startup            |
+| **Environment**  | Python 3.10+               | Node.js 18+               |
+| **State**        | Production-ready (v0.7.3)  | Feature-parity (v0.1.0)   |
+| **Development**  | Pytest, mature             | Jest/Bun test, modern     |
+| **Package Mgmt** | pip/Poetry                 | npm/Bun                   |
+| **Best For**     | Legacy Python environments | Modern Node.js dev stacks |
 
 ### Using the Bun CLI
 
