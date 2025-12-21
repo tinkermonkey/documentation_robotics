@@ -122,8 +122,9 @@ class TestChatCommand:
         manifest.write_text("name: Test\nspecVersion: 0.5.0\n")
 
         # Mock both the API key check and find_spec to isolate SDK check
-        with patch("os.getenv") as mock_getenv, patch(
-            "importlib.util.find_spec", return_value=None
+        with (
+            patch("os.getenv") as mock_getenv,
+            patch("importlib.util.find_spec", return_value=None),
         ):
             # Mock API key to return a valid value
             mock_getenv.return_value = "sk-test-key"

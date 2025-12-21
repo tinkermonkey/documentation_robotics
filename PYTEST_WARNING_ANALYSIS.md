@@ -39,6 +39,7 @@ This is a **known watchdog limitation** with asyncio, not a bug in the Documenta
 The codebase implements a **multi-layered defense** against this warning:
 
 ### 1. **Pytest Configuration Filter** (Primary)
+
 **File:** `cli/pyproject.toml` (lines 91-97)
 
 ```toml
@@ -50,11 +51,13 @@ filterwarnings = [
 ```
 
 **Effect:** Tells pytest to silently ignore these specific warnings. This is the correct approach because:
+
 - The warning is from external library code (watchdog), not our code
 - The condition is unavoidable without changing watchdog itself
 - No action is needed on our side
 
 ### 2. **Explicit Observer Cleanup** (Secondary)
+
 **File:** `cli/src/documentation_robotics/server/file_monitor.py` (lines 236-276)
 
 ```python
@@ -87,6 +90,7 @@ def stop(self) -> None:
 ```
 
 **Effect:** Ensures proper shutdown sequence:
+
 - ✅ Cancels pending timers first
 - ✅ Gracefully stops observer with timeout
 - ✅ Handles cleanup exceptions
@@ -94,6 +98,7 @@ def stop(self) -> None:
 - ✅ Clears references to allow immediate resource release
 
 ### 3. **Visualization Server Cleanup** (Secondary)
+
 **File:** `cli/src/documentation_robotics/server/visualization_server.py` (lines 1128-1138)
 
 ```python
@@ -119,6 +124,7 @@ async def shutdown(self) -> None:
 **Effect:** Coordinates shutdown of multiple observers in proper order
 
 ### 4. **Test Fixtures for Resource Cleanup** (Tertiary)
+
 **File:** `cli/tests/conftest.py` (lines 148-169)
 
 ```python
@@ -149,6 +155,7 @@ def cleanup_threads():
 **Effect:** Ensures every test cleans up dangling threads and forces GC
 
 ### 5. **Async Resource Cleanup** (Tertiary)
+
 **File:** `cli/tests/conftest.py` (lines 118-145)
 
 ```python
@@ -167,6 +174,7 @@ async def cleanup_async_resources():
 **Effect:** Allows async tests to run pending event loop cleanup callbacks
 
 ### 6. **Rich Console Configuration** (Quaternary)
+
 **File:** `cli/tests/conftest.py` (lines 11-36)
 
 ```python
@@ -192,12 +200,12 @@ def configure_rich_for_tests():
 
 ## Assessment Summary
 
-| Aspect | Status | Evidence |
-|--------|--------|----------|
-| **Expected?** | ✅ YES | Known watchdog/asyncio incompatibility |
-| **Fixable?** | ❌ NO | Would require patching watchdog itself |
-| **Properly Mitigated?** | ✅ YES | Multi-layered defense in place |
-| **Action Needed?** | ❌ NO | All mitigations already implemented |
+| Aspect                  | Status | Evidence                               |
+| ----------------------- | ------ | -------------------------------------- |
+| **Expected?**           | ✅ YES | Known watchdog/asyncio incompatibility |
+| **Fixable?**            | ❌ NO  | Would require patching watchdog itself |
+| **Properly Mitigated?** | ✅ YES | Multi-layered defense in place         |
+| **Action Needed?**      | ❌ NO  | All mitigations already implemented    |
 
 ---
 

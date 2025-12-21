@@ -535,7 +535,7 @@ class DrBotOrchestrator:
                             "type": "array",
                             "items": {"type": "string"},
                             "description": "Optional list of layers to search in",
-                        }
+                        },
                     },
                     "required": ["query"],
                 },
@@ -554,7 +554,7 @@ class DrBotOrchestrator:
                             "type": "string",
                             "enum": ["up", "down", "both"],
                             "description": "Dependency direction (up=what depends on it, down=what it depends on, both=both)",
-                        }
+                        },
                     },
                     "required": ["id"],
                 },

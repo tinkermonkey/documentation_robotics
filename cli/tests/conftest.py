@@ -155,9 +155,9 @@ def cleanup_threads():
     - File observers (from watchdog)
     - Subprocess transports (from watchdog PollingObserver)
     """
+    import asyncio
     import gc
     import threading
-    import asyncio
 
     yield
 
@@ -178,6 +178,7 @@ def cleanup_threads():
             # If loop is running, we can't use run_until_complete
             # Just wait a bit for callbacks to process
             import time
+
             time.sleep(0.01)
         else:
             # If loop exists but isn't running, try to process pending callbacks
@@ -185,6 +186,7 @@ def cleanup_threads():
     except (RuntimeError, AttributeError):
         # No event loop or other asyncio issues - just wait
         import time
+
         time.sleep(0.01)
 
     # Final garbage collection pass

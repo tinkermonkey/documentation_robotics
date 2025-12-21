@@ -156,12 +156,12 @@ dr conformance
 
 **Choose Your CLI:**
 
-| Feature | Python | Bun |
-|---------|--------|-----|
-| Startup Time | ~1.2s | ~150ms |
-| Install | `pip install` | `npm install -g` |
-| Status | Production (v0.7.3) | Feature-parity (v0.1.0) |
-| Best For | Python environments | Node.js environments |
+| Feature      | Python              | Bun                     |
+| ------------ | ------------------- | ----------------------- |
+| Startup Time | ~1.2s               | ~150ms                  |
+| Install      | `pip install`       | `npm install -g`        |
+| Status       | Production (v0.7.3) | Feature-parity (v0.1.0) |
+| Best For     | Python environments | Node.js environments    |
 
 Both CLIs work on identical `.dr/` model directories.
 

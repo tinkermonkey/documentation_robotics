@@ -117,13 +117,13 @@ Your existing models work unchanged with both CLIs:
 
 ## Performance Comparison
 
-| Operation | Python CLI | Bun CLI | Improvement |
-|-----------|-----------|---------|------------|
-| `dr --help` | ~1.2s | ~150ms | **8x faster** |
-| `dr init` | ~1.5s | ~200ms | **7.5x faster** |
-| `dr list api` | ~1.3s | ~180ms | **7.2x faster** |
-| `dr validate` | ~2.0s | ~250ms | **8x faster** |
-| `dr visualize` | ~2.5s | ~350ms | **7x faster** |
+| Operation      | Python CLI | Bun CLI | Improvement     |
+| -------------- | ---------- | ------- | --------------- |
+| `dr --help`    | ~1.2s      | ~150ms  | **8x faster**   |
+| `dr init`      | ~1.5s      | ~200ms  | **7.5x faster** |
+| `dr list api`  | ~1.3s      | ~180ms  | **7.2x faster** |
+| `dr validate`  | ~2.0s      | ~250ms  | **8x faster**   |
+| `dr visualize` | ~2.5s      | ~350ms  | **7x faster**   |
 
 ## Switching Between CLIs
 
@@ -253,6 +253,7 @@ The Python CLI may have features not yet in Bun CLI v0.1.0. Check `/cli/CHANGELO
 File an issue: https://github.com/tinkermonkey/documentation_robotics/issues
 
 Include:
+
 - Command you ran
 - Error message
 - Python CLI output (for comparison)
@@ -261,11 +262,13 @@ Include:
 ### Which CLI should I use?
 
 **Use Bun CLI if:**
+
 - You want faster performance (8x speedup)
 - You use Node.js in your stack
 - You prefer TypeScript over Python
 
 **Use Python CLI if:**
+
 - You need features not yet in Bun CLI
 - You use Python in your stack
 - You want a mature, stable implementation

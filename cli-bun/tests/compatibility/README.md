@@ -11,11 +11,13 @@ The compatibility test suite provides comprehensive validation that the Bun CLI 
 The core testing infrastructure that manages dual CLI execution and output comparison.
 
 **Key Components:**
+
 - `CLIHarness` - Main test harness class
 - `CLIResult` - Interface for CLI execution results
 - `ComparisonResult` - Detailed comparison data between Python and Bun outputs
 
 **Core Methods:**
+
 ```typescript
 // Run CLIs with identical arguments
 async runPython(args: string[], cwd?: string): Promise<CLIResult>
@@ -34,6 +36,7 @@ async compareFileOutputs(
 ```
 
 **Output Normalization:**
+
 - Removes ANSI color codes
 - Normalizes whitespace
 - Handles line ending differences
@@ -46,6 +49,7 @@ async compareFileOutputs(
 Validates that CLI commands produce equivalent outputs for all major operations.
 
 **Test Scenarios:**
+
 - `init` - Model initialization with various options
 - `element add` - Adding elements to different layers
 - `element list` - Listing elements with filters
@@ -55,6 +59,7 @@ Validates that CLI commands produce equivalent outputs for all major operations.
 - Error handling - Invalid arguments and missing models
 
 **Coverage:**
+
 - ✅ Command success paths
 - ✅ Error exit codes
 - ✅ Output formatting consistency
@@ -65,6 +70,7 @@ Validates that CLI commands produce equivalent outputs for all major operations.
 Ensures both CLIs perform identical validation on models.
 
 **Test Scenarios:**
+
 - **Schema Validation** - JSON schema compliance checking
 - **Naming Validation** - Element ID format enforcement
 - **Reference Validation** - Cross-layer reference integrity
@@ -72,6 +78,7 @@ Ensures both CLIs perform identical validation on models.
 - **Error Counting** - Identical error/warning counts
 
 **Coverage:**
+
 - ✅ Valid model acceptance
 - ✅ Invalid model rejection
 - ✅ Error message consistency
@@ -82,6 +89,7 @@ Ensures both CLIs perform identical validation on models.
 Validates semantic equivalence of exported outputs.
 
 **Supported Formats:**
+
 - **ArchiMate XML** (Layers 1, 2, 4, 5)
 - **OpenAPI JSON** (Layer 6)
 - **JSON Schema** (Layer 7)
@@ -90,11 +98,13 @@ Validates semantic equivalence of exported outputs.
 - **GraphML** (Graph visualization)
 
 **Comparison Methods:**
+
 - JSON: Deep structural comparison
 - XML: Normalized whitespace and attribute comparison
 - Text: Semantic similarity checking
 
 **Coverage:**
+
 - ✅ Full model export
 - ✅ Layer-filtered export
 - ✅ File generation consistency
@@ -105,6 +115,7 @@ Validates semantic equivalence of exported outputs.
 Compares JSON API responses from visualization servers.
 
 **Test Scenarios:**
+
 - Model serialization (`/api/model`)
 - Layer data (`/api/layers/:name`)
 - Element details (`/api/elements/:id`)
@@ -114,6 +125,7 @@ Compares JSON API responses from visualization servers.
 **Note:** Server-based tests are marked as `.skip` for CI/CD environments where running long-lived server processes may not be practical. They can be enabled in dedicated integration test environments.
 
 **Coverage:**
+
 - ✅ Response structure parity
 - ✅ Data serialization consistency
 - ✅ Error response matching
@@ -123,6 +135,7 @@ Compares JSON API responses from visualization servers.
 Validates behavior in edge cases and error scenarios.
 
 **Test Scenarios:**
+
 - Missing required arguments
 - Invalid argument values
 - Special characters in names
@@ -135,6 +148,7 @@ Validates behavior in edge cases and error scenarios.
 - Error message structure
 
 **Coverage:**
+
 - ✅ Input validation consistency
 - ✅ Character encoding handling
 - ✅ Path resolution consistency
@@ -144,11 +158,13 @@ Validates behavior in edge cases and error scenarios.
 ## Running the Tests
 
 ### Run All Compatibility Tests
+
 ```bash
 npm run test:compatibility
 ```
 
 ### Run Specific Test Suite
+
 ```bash
 # Command output tests
 npm run test:compatibility:commands
@@ -167,6 +183,7 @@ npm run test:compatibility:edge-cases
 ```
 
 ### Run All Tests (Including Unit Tests)
+
 ```bash
 npm run test:all
 ```
@@ -174,12 +191,14 @@ npm run test:all
 ## Test Environment Setup
 
 The test harness automatically:
+
 1. Creates temporary test directories (`/tmp/dr-compatibility-*`)
 2. Initializes fresh models for each test
 3. Manages both Python and Bun CLI processes
 4. Cleans up temporary files after each test
 
 **Requirements:**
+
 - Python CLI installed at `/home/orchestrator/.local/bin/dr` (or adjust `CLIHarness` constructor)
 - Bun CLI built and available at `dist/cli.js`
 - Write access to `/tmp` directory
@@ -187,16 +206,20 @@ The test harness automatically:
 ## Accessing Both CLIs
 
 ### Python CLI
+
 The harness expects the Python CLI to be installed in the system PATH or at a specific location:
+
 ```typescript
 const harness = new CLIHarness(
-  '/home/orchestrator/.local/bin/dr',  // Python CLI path
-  'node dist/cli.js'                    // Bun CLI path
+  "/home/orchestrator/.local/bin/dr", // Python CLI path
+  "node dist/cli.js" // Bun CLI path
 );
 ```
 
 ### Bun CLI
+
 The Bun CLI is accessed via Node.js from the built `dist/` directory:
+
 ```bash
 node dist/cli.js [args]
 ```
@@ -204,10 +227,12 @@ node dist/cli.js [args]
 ## Output Comparison Strategy
 
 ### Exit Code Matching
+
 - Both CLIs must exit with the same code (0 for success, non-zero for errors)
 - Allows flexibility in exact exit code values (any non-zero = failure)
 
 ### Stdout/Stderr Comparison
+
 - **Exact:** Exit codes must match
 - **Normalized:** Output compared after:
   - Removing ANSI color codes
@@ -216,6 +241,7 @@ node dist/cli.js [args]
   - Converting path separators
 
 ### File Comparison
+
 - **JSON:** Deep structural comparison (ignoring formatting)
 - **XML:** Structure comparison (ignoring attribute order and whitespace)
 - **Text:** Normalized string comparison
@@ -246,29 +272,35 @@ The compatibility tests are designed for automated CI/CD pipelines:
 ## Troubleshooting
 
 ### Python CLI Not Found
+
 **Error:** `Error running Python CLI: command not found`
 
 **Solution:** Update the Python CLI path in `harness.ts` constructor:
+
 ```typescript
 const harness = new CLIHarness(
-  '/path/to/python/dr',  // Update this path
-  'node dist/cli.js'
+  "/path/to/python/dr", // Update this path
+  "node dist/cli.js"
 );
 ```
 
 ### Permission Denied
+
 **Error:** `EACCES: permission denied`
 
 **Solution:** Ensure execute permissions on CLI:
+
 ```bash
 chmod +x /home/orchestrator/.local/bin/dr
 chmod +x dist/cli.js
 ```
 
 ### Temp Directory Issues
+
 **Error:** `ENOENT: no such file or directory`
 
 **Solution:** Ensure `/tmp` exists and is writable:
+
 ```bash
 mkdir -p /tmp
 chmod 777 /tmp
@@ -277,6 +309,7 @@ chmod 777 /tmp
 ## Test Statistics
 
 ### Coverage
+
 - **Commands:** 20+ scenarios
 - **Validation:** 15+ test cases
 - **Export Formats:** 6 formats tested

@@ -186,12 +186,12 @@ dr visualize --no-browser
 
 ### System Requirements
 
-| Feature | Requirement | Notes |
-|---------|-------------|-------|
-| Basic CLI | Node.js 18+ | All commands work |
-| Visualization | Node.js 18+ | WebSocket support required |
-| Chat | ANTHROPIC_API_KEY | Requires Anthropic API access |
-| Performance | Bun 1.3+ | Optional but recommended |
+| Feature       | Requirement       | Notes                         |
+| ------------- | ----------------- | ----------------------------- |
+| Basic CLI     | Node.js 18+       | All commands work             |
+| Visualization | Node.js 18+       | WebSocket support required    |
+| Chat          | ANTHROPIC_API_KEY | Requires Anthropic API access |
+| Performance   | Bun 1.3+          | Optional but recommended      |
 
 ### Troubleshooting
 
@@ -249,29 +249,29 @@ dr element add --help                  # Show element add help
 
 ### Quick Command Summary
 
-| Category | Command | Purpose |
-|----------|---------|---------|
-| **Model** | `init` | Initialize a new architecture model |
-| | `info` | Show model information and statistics |
-| | `validate` | Validate the complete model |
-| **Elements** | `add` | Add an element to a layer |
-| | `update` | Update an element |
-| | `delete` | Delete an element |
-| | `show` | Display element details |
-| | `list` | List elements in a layer |
-| | `search` | Search for elements by name/ID |
-| **Relationships** | `relationship add` | Add intra-layer relationship |
-| | `relationship delete` | Delete a relationship |
-| | `relationship list` | List relationships for an element |
-| **Dependencies** | `trace` | Trace element dependencies |
-| | `project` | Project dependencies to a target layer |
-| **Export** | `export` | Export to various formats (ArchiMate, OpenAPI, etc.) |
-| **Visualization** | `visualize` | Launch interactive visualization server |
-| **AI** | `chat` | Interactive Claude AI chat about model |
-| **Advanced** | `migrate` | Migrate model to new spec version |
-| | `upgrade` | Check for version upgrades |
-| | `conformance` | Check spec conformance |
-| | `changeset` | Manage model change tracking |
+| Category          | Command               | Purpose                                              |
+| ----------------- | --------------------- | ---------------------------------------------------- |
+| **Model**         | `init`                | Initialize a new architecture model                  |
+|                   | `info`                | Show model information and statistics                |
+|                   | `validate`            | Validate the complete model                          |
+| **Elements**      | `add`                 | Add an element to a layer                            |
+|                   | `update`              | Update an element                                    |
+|                   | `delete`              | Delete an element                                    |
+|                   | `show`                | Display element details                              |
+|                   | `list`                | List elements in a layer                             |
+|                   | `search`              | Search for elements by name/ID                       |
+| **Relationships** | `relationship add`    | Add intra-layer relationship                         |
+|                   | `relationship delete` | Delete a relationship                                |
+|                   | `relationship list`   | List relationships for an element                    |
+| **Dependencies**  | `trace`               | Trace element dependencies                           |
+|                   | `project`             | Project dependencies to a target layer               |
+| **Export**        | `export`              | Export to various formats (ArchiMate, OpenAPI, etc.) |
+| **Visualization** | `visualize`           | Launch interactive visualization server              |
+| **AI**            | `chat`                | Interactive Claude AI chat about model               |
+| **Advanced**      | `migrate`             | Migrate model to new spec version                    |
+|                   | `upgrade`             | Check for version upgrades                           |
+|                   | `conformance`         | Check spec conformance                               |
+|                   | `changeset`           | Manage model change tracking                         |
 
 ### Common Workflows
 
@@ -394,15 +394,15 @@ Individual architecture items in the model. Supports:
 
 ```typescript
 const element = new Element({
-  id: 'motivation-goal-test',
-  type: 'Goal',
-  name: 'Test Goal',
-  description: 'A test goal',
-  properties: { priority: 'high' }
+  id: "motivation-goal-test",
+  type: "Goal",
+  name: "Test Goal",
+  description: "A test goal",
+  properties: { priority: "high" },
 });
 
-element.setProperty('owner', 'team-a');
-element.addToArrayProperty('tags', 'important');
+element.setProperty("owner", "team-a");
+element.addToArrayProperty("tags", "important");
 ```
 
 ### Layer
@@ -414,11 +414,11 @@ Container for elements within a single layer. Supports:
 - JSON serialization/deserialization
 
 ```typescript
-const layer = new Layer('motivation');
+const layer = new Layer("motivation");
 layer.addElement(element);
 
 if (layer.isDirty()) {
-  await model.saveLayer('motivation');
+  await model.saveLayer("motivation");
   layer.markClean();
 }
 ```
@@ -433,10 +433,10 @@ Model metadata (JSON-based). Supports:
 
 ```typescript
 const manifest = new Manifest({
-  name: 'Test Model',
-  version: '1.0.0',
-  description: 'A test model',
-  specVersion: '0.6.0'
+  name: "Test Model",
+  version: "1.0.0",
+  description: "A test model",
+  specVersion: "0.6.0",
 });
 
 const json = JSON.stringify(manifest.toJSON());
@@ -453,13 +453,13 @@ Central orchestrator for the complete architecture model. Supports:
 
 ```typescript
 // Initialize a new model
-const model = await Model.init('.', {
-  name: 'My Model',
-  version: '1.0.0'
+const model = await Model.init(".", {
+  name: "My Model",
+  version: "1.0.0",
 });
 
 // Load an existing model
-const loaded = await Model.load('.');
+const loaded = await Model.load(".");
 
 // Save changes
 await model.saveManifest();
@@ -479,13 +479,13 @@ Tracks cross-layer references between architecture elements. Provides:
 const refRegistry = new ReferenceRegistry();
 
 refRegistry.addReference({
-  source: '01-motivation-goal-create-customer',
-  target: '02-business-process-create-order',
-  type: 'realizes'
+  source: "01-motivation-goal-create-customer",
+  target: "02-business-process-create-order",
+  type: "realizes",
 });
 
-const refsFrom = refRegistry.getReferencesFrom('01-motivation-goal-create-customer');
-const refsTo = refRegistry.getReferencesTo('02-business-process-create-order');
+const refsFrom = refRegistry.getReferencesFrom("01-motivation-goal-create-customer");
+const refsTo = refRegistry.getReferencesTo("02-business-process-create-order");
 ```
 
 ### RelationshipRegistry
@@ -501,15 +501,15 @@ Manages intra-layer relationships and their semantic metadata. Provides:
 const relRegistry = new RelationshipRegistry();
 
 relRegistry.registerType({
-  id: 'depends-on',
-  predicate: 'depends-on',
-  category: 'dependency'
+  id: "depends-on",
+  predicate: "depends-on",
+  category: "dependency",
 });
 
 relRegistry.addRelationship({
-  source: '02-process-create-order',
-  target: '02-process-validate-order',
-  predicate: 'depends-on'
+  source: "02-process-create-order",
+  target: "02-process-validate-order",
+  predicate: "depends-on",
 });
 ```
 
@@ -518,17 +518,17 @@ relRegistry.addRelationship({
 Atomic file operations for safe persistence:
 
 ```typescript
-import { ensureDir, writeFile, readFile, writeJSON, readJSON, atomicWrite } from '@/utils/file-io';
+import { ensureDir, writeFile, readFile, writeJSON, readJSON, atomicWrite } from "@/utils/file-io";
 
 // Ensure directory exists
-await ensureDir('.dr/layers');
+await ensureDir(".dr/layers");
 
 // Atomic write (safe for crash recovery)
-await atomicWrite('.dr/manifest.json', content);
+await atomicWrite(".dr/manifest.json", content);
 
 // JSON operations
-await writeJSON('.dr/layers/motivation.json', data, true);
-const loaded = await readJSON('.dr/layers/motivation.json');
+await writeJSON(".dr/layers/motivation.json", data, true);
+const loaded = await readJSON(".dr/layers/motivation.json");
 ```
 
 ## Type Definitions

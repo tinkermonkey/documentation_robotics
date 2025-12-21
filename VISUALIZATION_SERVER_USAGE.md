@@ -3,35 +3,43 @@
 ## Starting the Server
 
 ### Basic Usage
+
 ```bash
 dr visualize
 ```
+
 - Starts server on default port 8080
 - Automatically opens browser to `http://localhost:8080`
 - Loads entire model from current directory
 
 ### Custom Port
+
 ```bash
 dr visualize --port 3000
 ```
+
 - Starts server on port 3000
 - Opens browser to `http://localhost:3000`
 
 ### No Auto-Open Browser
+
 ```bash
 dr visualize --no-browser
 ```
+
 - Starts server but doesn't auto-open browser
 - You can manually navigate to `http://localhost:8080`
 
 ## Viewer Interface
 
 ### Left Panel - Model Tree
+
 - **Layers:** Collapsible list of all layers in the model
 - **Elements:** Click layer header to expand/collapse
 - **Selection:** Click any element to view details
 
 ### Right Panel - Element Details
+
 - **Type & Name:** Element type and display name
 - **ID:** Unique identifier in code format
 - **Description:** Full description if available
@@ -39,17 +47,20 @@ dr visualize --no-browser
 - **Annotations:** Comments and feedback from team
 
 ### Status Badge (Top Right)
+
 - **Green "Connected":** WebSocket connected, receiving updates
 - **Red "Disconnected":** WebSocket disconnected, not receiving updates
 
 ## Features
 
 ### Real-Time Updates
+
 - Changes to model files trigger automatic reload
 - All connected browsers receive updates
 - No need to refresh manually
 
 ### Annotations
+
 1. Click an element to select it
 2. Scroll to "Add Annotation" section
 3. Enter author name and comment text
@@ -57,6 +68,7 @@ dr visualize --no-browser
 5. Annotation appears in list and broadcasts to other clients
 
 ### Search & Browse
+
 - Expand layers to see all elements
 - Click any element for details
 - View all metadata and properties
@@ -67,26 +79,31 @@ dr visualize --no-browser
 The server provides REST endpoints for programmatic access:
 
 ### Get Complete Model
+
 ```bash
 curl http://localhost:8080/api/model
 ```
 
 ### Get Specific Layer
+
 ```bash
 curl http://localhost:8080/api/layers/motivation
 ```
 
 ### Get Element Details
+
 ```bash
 curl http://localhost:8080/api/elements/motivation-goal-example
 ```
 
 ### Get Element Annotations
+
 ```bash
 curl http://localhost:8080/api/elements/motivation-goal-example/annotations
 ```
 
 ### Add Annotation
+
 ```bash
 curl -X POST http://localhost:8080/api/elements/motivation-goal-example/annotations \
   -H "Content-Type: application/json" \
@@ -101,24 +118,29 @@ curl -X POST http://localhost:8080/api/elements/motivation-goal-example/annotati
 ### Message Format
 
 #### Subscribe to Updates
+
 ```javascript
 ws.send(JSON.stringify({ type: "subscribe" }));
 ```
 
 #### Add Annotation
+
 ```javascript
-ws.send(JSON.stringify({
-  type: "annotate",
-  annotation: {
-    elementId: "element-id",
-    author: "Author Name",
-    text: "Annotation text",
-    timestamp: new Date().toISOString()
-  }
-}));
+ws.send(
+  JSON.stringify({
+    type: "annotate",
+    annotation: {
+      elementId: "element-id",
+      author: "Author Name",
+      text: "Annotation text",
+      timestamp: new Date().toISOString(),
+    },
+  })
+);
 ```
 
 #### Receive Model Data
+
 ```javascript
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data);
@@ -135,6 +157,7 @@ ws.onmessage = (event) => {
 ## Architecture
 
 ### Server Components
+
 1. **HTTP Server:** Hono framework with Bun runtime
 2. **WebSocket Handler:** Real-time client communication
 3. **File Watcher:** Monitors model changes
@@ -142,6 +165,7 @@ ws.onmessage = (event) => {
 5. **Annotation System:** In-memory annotation storage
 
 ### Client Components
+
 1. **HTML Viewer:** Interactive model browser
 2. **WebSocket Client:** Real-time connection
 3. **Model Tree Renderer:** Dynamic layer/element display
@@ -159,23 +183,27 @@ ws.onmessage = (event) => {
 ## Troubleshooting
 
 ### Server Won't Start
+
 - Check port is available: `lsof -i :8080`
 - Verify model is initialized: `ls .dr/manifest.json`
 - Check file permissions on model directory
 
 ### WebSocket Connection Fails
+
 - Verify server is running
 - Check firewall/proxy settings
 - Look for browser console errors (F12)
 - Try different port: `dr visualize --port 9000`
 
 ### Model Not Updating
+
 - Verify file watcher is active
 - Check .dr/ directory has write permissions
 - Restart server to force reload
 - Check browser console for errors
 
 ### Browser Won't Auto-Open
+
 - Use `--no-browser` and manually navigate
 - Check browser/firewall settings
 - Verify port is accessible
@@ -183,6 +211,7 @@ ws.onmessage = (event) => {
 ## Advanced Usage
 
 ### Multiple Concurrent Sessions
+
 ```bash
 # Terminal 1
 dr visualize --port 8080
@@ -190,20 +219,24 @@ dr visualize --port 8080
 # Terminal 2
 dr visualize --port 8081
 ```
+
 Both servers can run independently, each monitoring same model for changes.
 
 ### Programmatic Access
-```typescript
-import { VisualizationServer } from '@doc-robotics/cli-bun';
-import { Model } from '@doc-robotics/cli-bun';
 
-const model = await Model.load('.', { lazyLoad: false });
+```typescript
+import { VisualizationServer } from "@doc-robotics/cli-bun";
+import { Model } from "@doc-robotics/cli-bun";
+
+const model = await Model.load(".", { lazyLoad: false });
 const server = new VisualizationServer(model);
 await server.start(8080);
 ```
 
 ### Custom Integration
+
 Use REST API to integrate visualization with other tools:
+
 - CI/CD pipelines for model validation
 - External dashboards for monitoring
 - Automated annotation creation
@@ -212,15 +245,19 @@ Use REST API to integrate visualization with other tools:
 ## Environment Variables
 
 ### VERBOSE
+
 ```bash
 VERBOSE=1 dr visualize
 ```
+
 Logs all WebSocket connections and file changes.
 
 ### DEBUG
+
 ```bash
 DEBUG=1 dr visualize
 ```
+
 Enables detailed error logging and stack traces.
 
 ## Limitations & Notes
@@ -234,6 +271,7 @@ Enables detailed error logging and stack traces.
 ## Future Enhancements
 
 Planned improvements:
+
 - Persistent annotation storage (database)
 - User authentication and authorization
 - Real-time collaboration cursors
@@ -245,6 +283,7 @@ Planned improvements:
 ## Support
 
 For issues or feature requests:
+
 1. Check this guide first
 2. Review logs with `DEBUG=1`
 3. Check project documentation

@@ -69,6 +69,7 @@ A comprehensive compatibility test suite has been implemented for the Documentat
 ### Package.json Updates
 
 Added test scripts for targeted test execution:
+
 ```json
 {
   "test:compatibility": "bun test tests/compatibility/**/*.test.ts",
@@ -84,17 +85,20 @@ Added test scripts for targeted test execution:
 ## Key Features
 
 ### 1. Dual CLI Execution
+
 - Spawns both Python and Bun CLIs with identical arguments
 - Captures stdout, stderr, and exit codes
 - Handles async execution with Promise.all for performance
 
 ### 2. Output Normalization
+
 - Removes ANSI color codes
 - Normalizes whitespace and line endings
 - Converts path separators for cross-platform compatibility
 - Allows meaningful comparison despite formatting differences
 
 ### 3. Semantic Comparison
+
 - **Exit Codes:** Exact matching (success=0, failure=non-zero)
 - **Text Output:** Normalized string comparison
 - **JSON:** Deep structural comparison via JSON.stringify
@@ -104,6 +108,7 @@ Added test scripts for targeted test execution:
 ### 4. Comprehensive Test Coverage
 
 #### Command Testing (30+ scenarios)
+
 - Model initialization
 - Element CRUD operations (add, update, delete)
 - Listing and searching
@@ -111,6 +116,7 @@ Added test scripts for targeted test execution:
 - Error scenarios
 
 #### Validation Testing (20+ scenarios)
+
 - Schema validation
 - Naming conventions
 - Cross-layer references
@@ -118,6 +124,7 @@ Added test scripts for targeted test execution:
 - Error counting and reporting
 
 #### Export Testing (20+ scenarios)
+
 - ArchiMate XML export
 - OpenAPI JSON export
 - JSON Schema export
@@ -126,6 +133,7 @@ Added test scripts for targeted test execution:
 - Format-specific validation
 
 #### API Testing (15+ scenarios)
+
 - Model serialization
 - Layer endpoint responses
 - Element detail endpoints
@@ -133,6 +141,7 @@ Added test scripts for targeted test execution:
 - Data consistency
 
 #### Edge Case Testing (25+ scenarios)
+
 - Invalid inputs
 - Unicode and special characters
 - Path handling
@@ -165,6 +174,7 @@ assertCLIsFailEquivalently(harness: CLIHarness, args: string[], cwd?: string): P
 ## Test Organization
 
 ### Directory Structure
+
 ```
 cli-bun/tests/
 ├── compatibility/
@@ -182,6 +192,7 @@ cli-bun/tests/
 ## Running the Tests
 
 ### Prerequisites
+
 ```bash
 # Build the Bun CLI
 npm run build
@@ -191,6 +202,7 @@ pip install -e ../cli
 ```
 
 ### Execute Tests
+
 ```bash
 # All compatibility tests
 npm run test:compatibility
@@ -223,21 +235,27 @@ npm run test:all
 ## Notable Design Decisions
 
 ### 1. Output Normalization
+
 Instead of exact string matching, outputs are normalized to handle legitimate formatting differences between implementations while catching meaningful divergences.
 
 ### 2. File Comparison Methods
+
 Different comparison strategies for different file types:
+
 - **JSON:** Deep structural comparison (allows reordering)
 - **XML:** Normalized structure matching (allows attribute reordering)
 - **Text:** Whitespace-normalized matching
 
 ### 3. Skippable Server Tests
+
 API server tests use `.skip()` to prevent blocking CI/CD pipelines, but can be enabled in dedicated integration test environments by removing the `.skip()` wrapper.
 
 ### 4. Temporary Directory Management
+
 Each test gets isolated temp directories with cleanup, preventing test interference and state pollution.
 
 ### 5. Helper Assertions
+
 `assertCLIsEquivalent()` and `assertCLIsFailEquivalently()` provide clear test semantics without verbose setup code.
 
 ## Integration with CI/CD
@@ -295,6 +313,7 @@ The test suite is ready for CI/CD integration:
 ## Verification
 
 All test files have been:
+
 - ✅ Created and formatted
 - ✅ TypeScript verified (compilation check)
 - ✅ Properly imported and structured
