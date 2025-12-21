@@ -6,10 +6,11 @@
 
 **Components:**
 
-1. **CLI Tool (`dr`)** - Python command-line interface for managing architecture models
-2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
+1. **CLI Tool - Python (`cli/`)** - Python command-line interface for managing architecture models (v0.7.3)
+2. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation with parallel feature parity (v0.1.0)
+3. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Versions:** CLI v0.7.3, Spec v0.6.0
+**Current Versions:** Python CLI v0.7.3, Bun CLI v0.1.0, Spec v0.6.0
 
 ## Repository Structure
 
@@ -21,45 +22,97 @@ documentation_robotics/
 │   ├── schemas/                 # JSON Schema definitions
 │   └── [CHANGELOG, guides, examples, test-fixtures]
 │
-└── cli/                         # CLI IMPLEMENTATION (v0.7.3)
-    ├── src/documentation_robotics/
-    │   ├── cli.py              # Main entry point
-    │   ├── commands/           # Command implementations
-    │   ├── core/               # Domain logic (model, layer, element)
-    │   ├── validators/         # Validation pipeline
-    │   ├── export/             # Export format handlers
-    │   ├── schemas/            # CLI's copy of JSON schemas
-    │   └── [server, viewer, claude_integration, copilot_integration, utils]
-    ├── tests/                  # Unit and integration tests
-    └── pyproject.toml          # Package configuration
+├── cli/                         # PYTHON CLI (v0.7.3)
+│   ├── src/documentation_robotics/
+│   │   ├── cli.py              # Main entry point
+│   │   ├── commands/           # Command implementations
+│   │   ├── core/               # Domain logic (model, layer, element)
+│   │   ├── validators/         # Validation pipeline
+│   │   ├── export/             # Export format handlers
+│   │   ├── schemas/            # CLI's copy of JSON schemas
+│   │   └── [server, viewer, claude_integration, copilot_integration, utils]
+│   ├── tests/                  # Unit and integration tests
+│   └── pyproject.toml          # Package configuration
+│
+└── cli-bun/                     # Bстановuntypescript/BUN CLI (v0.1.0)
+    ├── src/
+    │   ├── cli.ts              # CLI entry point (Commander.js)
+    │   ├── commands/           # 23+ command implementations
+    │   ├── core/               # Domain models (Element, Layer, Model, Manifest)
+    │   ├── validators/         # Validation pipeline (Schema, Naming, Reference, Semantic)
+    │   ├── export/             # Export handlers (ArchiMate, OpenAPI, PlantUML, etc.)
+    │   ├── server/             # Visualization server (Hono + WebSocket)
+    │   ├── ai/                 # AI integration (Claude API)
+    │   ├── schemas/            # Bundled JSON schemas
+    │   ├── types/              # TypeScript type definitions
+    │   └── utils/              # Utilities (file-io, errors, element-utils)
+    ├── tests/
+    │   ├── unit/               # Unit tests
+    │   ├── integration/        # Integration tests
+    │   └── compatibility/      # Python CLI compatibility tests
+    ├── dist/                   # Compiled JavaScript
+    ├── package.json            # Dependencies and build scripts
+    ├── tsconfig.json           # TypeScript configuration
+    └── README.md               # Installation and usage guide
 ```
 
 ## Quick Reference
 
-### Virtual Environment Setup
+### Python CLI Setup (Legacy)
 
 ```bash
 # Venv is at repo root, CLI code is in cli/ subdirectory
 cd cli && pip install -e ".[dev]"
 source ../.venv/bin/activate  # From cli/ directory
-```
 
-### Common Commands
-
-```bash
+# Common commands
 dr --help                    # CLI help
 pytest                       # Run all tests
 pytest tests/unit/           # Unit tests only
 pytest --cov                 # With coverage
 ```
 
+### Bun CLI Setup (Recommended)
+
+```bash
+# Install from source for development
+cd cli-bun
+npm install
+npm run build
+
+# Test
+npm run test                 # Run all tests with Bun
+npm run test:unit           # Unit tests only
+npm run test:compatibility  # Compatibility tests
+
+# Run CLI locally
+node dist/cli.js --help
+
+# Install globally
+npm install -g .
+dr --help
+```
+
 ### Key Dependencies
+
+**Python CLI:**
 
 - Python 3.10+, click, pydantic, jsonschema, networkx, rich
 
+**Bun CLI:**
+
+- Node.js 18+, TypeScript, Commander.js, AJV, Ansis, Graphology, Hono, @anthropic-ai/sdk
+
 ### Approved Commands
 
-You have pre-approved access to: `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
+You have pre-approved access to:
+
+- **Python CLI:** `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
+- **Bun CLI:** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`
+
+### Pre-commit Checks
+
+Run `pre-commit run --all-files` from the repo root before committing to ensure formatting and linters pass.
 
 ## Critical Rules
 
@@ -268,6 +321,45 @@ pytest tests/integration/
    - Manually editing version numbers
    - Use `/dr-release-prep` command for proper release preparation
 
+## Bun CLI vs. Python CLI
+
+Both CLIs implement the same commands and operate on identical model structures. Choose based on your preference:
+
+| Aspect           | Python CLI                 | Bun CLI                   |
+| ---------------- | -------------------------- | ------------------------- |
+| **Installation** | `pip install`              | `npm install -g`          |
+| **Performance**  | ~1-2s startup              | ~200ms startup            |
+| **Environment**  | Python 3.10+               | Node.js 18+               |
+| **State**        | Production-ready (v0.7.3)  | Feature-parity (v0.1.0)   |
+| **Development**  | Pytest, mature             | Jest/Bun test, modern     |
+| **Package Mgmt** | pip/Poetry                 | npm/Bun                   |
+| **Best For**     | Legacy Python environments | Modern Node.js dev stacks |
+
+### Using the Bun CLI
+
+All commands are identical to the Python CLI:
+
+```bash
+# Basic operations
+dr init --name "My Model"
+dr add business service my-service --name "My Service"
+dr list api
+dr validate
+
+# Advanced features
+dr trace element-id
+dr export archimate --output model.xml
+dr visualize
+dr chat
+```
+
+For complete command documentation:
+
+```bash
+dr --help                    # Show all commands
+dr <command> --help          # Show command-specific help
+```
+
 ## Design Philosophy
 
 1. **Separation of Concerns** - Clear boundaries between commands, core logic, validators
@@ -275,11 +367,13 @@ pytest tests/integration/
 3. **Standards Compliance** - Leverage industry standards (ArchiMate, OpenAPI, etc.)
 4. **Testability** - Comprehensive unit and integration test coverage
 5. **User Experience** - Clear errors, helpful output, intuitive commands
+6. **Parallel Implementations** - Python and Bun CLIs share spec, maintain parity
 
 ## Documentation
 
 - Main README: `/README.md`
 - Specification: `/spec/` (especially `spec/layers/` and `spec/CHANGELOG.md`)
-- CLI README: `/cli/README.md`
+- Python CLI README: `/cli/README.md`
+- Bun CLI README: `/cli-bun/README.md`
 - CLI design docs: `/cli/docs/`
 - Release command: `/dr-release-prep` for version management

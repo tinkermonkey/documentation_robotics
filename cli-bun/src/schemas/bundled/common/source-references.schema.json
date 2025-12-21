@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/common/source-references.schema.json",
+  "title": "Source Code Reference Definitions",
+  "description": "Reusable JSON Schema definitions for linking architecture elements to source code locations",
+  "version": "1.0.0",
+
+  "definitions": {
+    "ProvenanceType": {
+      "type": "string",
+      "enum": ["extracted", "manual", "inferred", "generated"],
+      "description": "How this reference was created: extracted (automated ingestion), manual (human added), inferred (pattern matching), generated (code generated from model)"
+    },
+
+    "SourceLocation": {
+      "type": "object",
+      "description": "A specific location in source code, identified by file path and optional symbol",
+      "required": ["file"],
+      "properties": {
+        "file": {
+          "type": "string",
+          "minLength": 1,
+          "description": "File path relative to repository root"
+        },
+        "symbol": {
+          "type": "string",
+          "description": "Named code element (e.g., ClassName.methodName, function_name)"
+        }
+      }
+    },
+
+    "RepositoryContext": {
+      "type": "object",
+      "description": "Repository context for the source reference",
+      "properties": {
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Git remote URL (HTTPS or SSH format)"
+        },
+        "commit": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$",
+          "description": "Full 40-character Git commit SHA"
+        }
+      }
+    },
+
+    "SourceReference": {
+      "type": "object",
+      "description": "Links entity to source code location(s) with provenance tracking",
+      "required": ["provenance", "locations"],
+      "properties": {
+        "provenance": {
+          "$ref": "#/definitions/ProvenanceType"
+        },
+        "locations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/definitions/SourceLocation"
+          },
+          "description": "One or more source code locations"
+        },
+        "repository": {
+          "$ref": "#/definitions/RepositoryContext"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,2663 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/03-security-layer.schema.json",
+  "title": "Security Layer Layer Schema",
+  "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",
+  "layerMetadata": {
+    "layerId": "03-security-layer",
+    "layerName": "Security Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": [
+          "BusinessCollaboration",
+          "TestCoverageModel",
+          "TestCoverageTarget"
+        ],
+        "targetTypes": [
+          "BusinessRole",
+          "OutcomeCategory",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "BusinessCollaboration",
+            "target": "BusinessRole",
+            "description": "Business collaboration composes business roles that participate in it"
+          },
+          {
+            "source": "TestCoverageModel",
+            "target": "TestCoverageTarget",
+            "description": "Coverage model composes targets defining what needs testing",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "OutcomeCategory",
+            "description": "Coverage target composes expected outcome categories",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "Goal",
+          "InputPartitionSelection"
+        ],
+        "targetTypes": [
+          "ContextVariation",
+          "Goal",
+          "PartitionValue"
+        ],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Goal",
+            "description": "High-level goal aggregates sub-goals",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "InputPartitionSelection",
+            "target": "PartitionValue",
+            "description": "Partition selection aggregates multiple partition values to cover",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "ContextVariation",
+            "description": "Requirement aggregates selected contexts for testing",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": [
+          "PremiumAccount",
+          "Schema"
+        ],
+        "targetTypes": [
+          "Account",
+          "Schema"
+        ],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "assignment",
+        "sourceTypes": [
+          "BusinessActor"
+        ],
+        "targetTypes": [
+          "BusinessRole"
+        ],
+        "examples": [
+          {
+            "source": "BusinessActor",
+            "target": "BusinessRole",
+            "description": "Business actor assigned to business role"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "association",
+        "sourceTypes": [
+          "Requirement",
+          "Stakeholder"
+        ],
+        "targetTypes": [
+          "Constraint",
+          "Driver",
+          "Goal"
+        ],
+        "examples": [
+          {
+            "source": "Stakeholder",
+            "target": "Driver",
+            "description": "Stakeholder has concern represented by driver",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Stakeholder",
+            "target": "Goal",
+            "description": "Stakeholder has interest in goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Requirement",
+            "target": "Constraint",
+            "description": "Requirement is limited by constraint",
+            "layer": "01-motivation"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "uses",
+        "sourceTypes": [
+          "ApplicationComponent"
+        ],
+        "targetTypes": [
+          "TechnologyService"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationComponent",
+            "target": "TechnologyService",
+            "description": "Application component uses technology service"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": [
+          "CoverageRequirement",
+          "DataObject",
+          "TestCaseSketch"
+        ],
+        "targetTypes": [
+          "CoverageRequirement",
+          "Schema",
+          "TestCoverageTarget"
+        ],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "Schema",
+            "description": "Data object references JSON schema"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "fulfills-requirements",
+        "sourceTypes": [
+          "ApplicationService",
+          "Operation"
+        ],
+        "targetTypes": [
+          "Requirement"
+        ],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "Requirement",
+            "description": "OAuth service fulfills authentication requirement"
+          },
+          {
+            "source": "Operation",
+            "sourceLayer": "06-api",
+            "target": "Requirement",
+            "targetLayer": "01-motivation",
+            "value": "req-product-creation-capability",
+            "description": "POST /products operation fulfills product creation requirement"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "constrainedby",
+        "sourceTypes": [
+          "APIOperation"
+        ],
+        "targetTypes": [
+          "Constraint"
+        ],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Constraint",
+            "description": "API operation constrained by rate limit"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "enforces-requirement",
+        "sourceTypes": [
+          "NavigationGuard"
+        ],
+        "targetTypes": [
+          "Requirement"
+        ],
+        "examples": [
+          {
+            "source": "NavigationGuard",
+            "target": "Requirement",
+            "description": "Auth guard enforces authentication requirement"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "protects",
+        "sourceTypes": [
+          "SecurityControl"
+        ],
+        "targetTypes": [
+          "ApplicationService"
+        ],
+        "examples": [
+          {
+            "source": "SecurityControl",
+            "target": "ApplicationService",
+            "description": "Encryption control protects sensitive data service"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "authenticates",
+        "sourceTypes": [
+          "AuthenticationService"
+        ],
+        "targetTypes": [
+          "User"
+        ],
+        "examples": [
+          {
+            "source": "AuthenticationService",
+            "target": "User",
+            "description": "OAuth service authenticates user"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "authorization",
+        "sourceTypes": [
+          "Role"
+        ],
+        "targetTypes": [
+          "Operation"
+        ],
+        "examples": [
+          {
+            "source": "Role",
+            "target": "Operation",
+            "description": "Admin role authorizes delete operation"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "derivedfrom",
+        "sourceTypes": [
+          "TotalPrice"
+        ],
+        "targetTypes": [
+          "Quantity, UnitPrice"
+        ],
+        "examples": [
+          {
+            "source": "TotalPrice",
+            "target": "Quantity, UnitPrice",
+            "description": "Total price derives from quantity times unit price"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "GovernedByPrinciple"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": [
+          "SupportsGoal"
+        ],
+        "sourceTypes": [
+          "BusinessService"
+        ],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": [
+          "Classification"
+        ],
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": [
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "02-business",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "03-security",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "04-application",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "05-technology",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "06-api",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "07-data-model",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "08-datastore",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "09-ux",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "10-navigation",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "11-apm-observability",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-classification",
+        "predicate": "referenced-by",
+        "inversePredicate": "classification",
+        "sourceLayer": "12-testing",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Classification"
+        ],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Classification in target layer"
+      },
+      {
+        "id": "security-data-pii",
+        "predicate": "referenced-by",
+        "inversePredicate": "pii",
+        "sourceLayer": "04-application",
+        "sourceTypes": [
+          "Data Properties",
+          "DataObject"
+        ],
+        "targetTypes": [
+          "Pii"
+        ],
+        "fieldPath": "data.pii",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Pii in target layer"
+      },
+      {
+        "id": "security-encrypted",
+        "predicate": "referenced-by",
+        "inversePredicate": "encrypted",
+        "sourceLayer": "06-api",
+        "sourceTypes": [
+          "Schema"
+        ],
+        "targetTypes": [
+          "Encrypted"
+        ],
+        "fieldPath": "x-encrypted",
+        "cardinality": "single",
+        "description": "Inverse of: boolean"
+      },
+      {
+        "id": "security-encryption-required",
+        "predicate": "referenced-by",
+        "inversePredicate": "encryption-required",
+        "sourceLayer": "05-technology",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "EncryptionRequired"
+        ],
+        "fieldPath": "security.encryption-required",
+        "cardinality": "single",
+        "description": "Inverse of: Links to EncryptionRequired in target layer"
+      },
+      {
+        "id": "security-encryption-type",
+        "predicate": "referenced-by",
+        "inversePredicate": "encryption-type",
+        "sourceLayer": "05-technology",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "EncryptionType"
+        ],
+        "fieldPath": "security.encryption-type",
+        "cardinality": "single",
+        "description": "Inverse of: Links to EncryptionType in target layer"
+      },
+      {
+        "id": "security-pii",
+        "predicate": "referenced-by",
+        "inversePredicate": "pii",
+        "sourceLayer": "05-technology",
+        "sourceTypes": [
+          "Artifact"
+        ],
+        "targetTypes": [
+          "Pii"
+        ],
+        "fieldPath": "security.pii",
+        "cardinality": "single",
+        "description": "Inverse of: contains personally identifiable information"
+      },
+      {
+        "id": "security-pii",
+        "predicate": "referenced-by",
+        "inversePredicate": "pii",
+        "sourceLayer": "06-api",
+        "sourceTypes": [
+          "Schema"
+        ],
+        "targetTypes": [
+          "Pii"
+        ],
+        "fieldPath": "security.pii",
+        "cardinality": "single",
+        "description": "Inverse of: contains personally identifiable information"
+      },
+      {
+        "id": "security-process-security-controls",
+        "predicate": "referenced-by",
+        "inversePredicate": "security-controls",
+        "sourceLayer": "02-business",
+        "sourceTypes": [
+          "BusinessProcess"
+        ],
+        "targetTypes": [
+          "SecurityControl"
+        ],
+        "fieldPath": "process.security-controls",
+        "cardinality": "array",
+        "description": "Inverse of: security control references"
+      },
+      {
+        "id": "security-process-separation-of-duty",
+        "predicate": "referenced-by",
+        "inversePredicate": "separation-of-duty",
+        "sourceLayer": "02-business",
+        "sourceTypes": [
+          "BusinessProcess"
+        ],
+        "targetTypes": [
+          "SeparationOfDuty"
+        ],
+        "fieldPath": "process.separation-of-duty",
+        "cardinality": "single",
+        "description": "Inverse of: Links to SeparationOfDuty in target layer"
+      },
+      {
+        "id": "security-required-permissions",
+        "predicate": "referenced-by",
+        "inversePredicate": "required-permissions",
+        "sourceLayer": "06-api",
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "targetTypes": [
+          "Permission"
+        ],
+        "fieldPath": "x-required-permissions",
+        "cardinality": "array",
+        "description": "Inverse of: string[] (Permission.name[], optional)"
+      },
+      {
+        "id": "security-resource",
+        "predicate": "referenced-by",
+        "inversePredicate": "security-resource",
+        "sourceLayer": "06-api",
+        "sourceTypes": [
+          "Operation",
+          "SecurityScheme"
+        ],
+        "targetTypes": [
+          "SecureResource"
+        ],
+        "fieldPath": "x-security-resource",
+        "cardinality": "single",
+        "description": "Inverse of: string (SecureResource.resource, optional)"
+      }
+    ]
+  },
+  "type": "object",
+  "properties": {
+    "security-models": {
+      "type": "array",
+      "description": "Collection of SecurityModel entities",
+      "items": {
+        "$ref": "#/definitions/SecurityModel"
+      }
+    },
+    "authentication-configs": {
+      "type": "array",
+      "description": "Collection of AuthenticationConfig entities",
+      "items": {
+        "$ref": "#/definitions/AuthenticationConfig"
+      }
+    },
+    "password-policies": {
+      "type": "array",
+      "description": "Collection of PasswordPolicy entities",
+      "items": {
+        "$ref": "#/definitions/PasswordPolicy"
+      }
+    },
+    "roles": {
+      "type": "array",
+      "description": "Collection of Role entities",
+      "items": {
+        "$ref": "#/definitions/Role"
+      }
+    },
+    "permissions": {
+      "type": "array",
+      "description": "Collection of Permission entities",
+      "items": {
+        "$ref": "#/definitions/Permission"
+      }
+    },
+    "secure-resources": {
+      "type": "array",
+      "description": "Collection of SecureResource entities",
+      "items": {
+        "$ref": "#/definitions/SecureResource"
+      }
+    },
+    "resource-operations": {
+      "type": "array",
+      "description": "Collection of ResourceOperation entities",
+      "items": {
+        "$ref": "#/definitions/ResourceOperation"
+      }
+    },
+    "access-conditions": {
+      "type": "array",
+      "description": "Collection of AccessCondition entities",
+      "items": {
+        "$ref": "#/definitions/AccessCondition"
+      }
+    },
+    "field-access-controls": {
+      "type": "array",
+      "description": "Collection of FieldAccessControl entities",
+      "items": {
+        "$ref": "#/definitions/FieldAccessControl"
+      }
+    },
+    "security-policies": {
+      "type": "array",
+      "description": "Collection of SecurityPolicy entities",
+      "items": {
+        "$ref": "#/definitions/SecurityPolicy"
+      }
+    },
+    "policy-rules": {
+      "type": "array",
+      "description": "Collection of PolicyRule entities",
+      "items": {
+        "$ref": "#/definitions/PolicyRule"
+      }
+    },
+    "policy-actions": {
+      "type": "array",
+      "description": "Collection of PolicyAction entities",
+      "items": {
+        "$ref": "#/definitions/PolicyAction"
+      }
+    },
+    "data-classifications": {
+      "type": "array",
+      "description": "Collection of DataClassification entities",
+      "items": {
+        "$ref": "#/definitions/DataClassification"
+      }
+    },
+    "classifications": {
+      "type": "array",
+      "description": "Collection of Classification entities",
+      "items": {
+        "$ref": "#/definitions/Classification"
+      }
+    },
+    "actors": {
+      "type": "array",
+      "description": "Collection of Actor entities",
+      "items": {
+        "$ref": "#/definitions/Actor"
+      }
+    },
+    "actor-objectives": {
+      "type": "array",
+      "description": "Collection of ActorObjective entities",
+      "items": {
+        "$ref": "#/definitions/ActorObjective"
+      }
+    },
+    "actor-dependencies": {
+      "type": "array",
+      "description": "Collection of ActorDependency entities",
+      "items": {
+        "$ref": "#/definitions/ActorDependency"
+      }
+    },
+    "information-entities": {
+      "type": "array",
+      "description": "Collection of InformationEntity entities",
+      "items": {
+        "$ref": "#/definitions/InformationEntity"
+      }
+    },
+    "information-rights": {
+      "type": "array",
+      "description": "Collection of InformationRight entities",
+      "items": {
+        "$ref": "#/definitions/InformationRight"
+      }
+    },
+    "delegations": {
+      "type": "array",
+      "description": "Collection of Delegation entities",
+      "items": {
+        "$ref": "#/definitions/Delegation"
+      }
+    },
+    "security-constraintses": {
+      "type": "array",
+      "description": "Collection of SecurityConstraints entities",
+      "items": {
+        "$ref": "#/definitions/SecurityConstraints"
+      }
+    },
+    "separation-of-duties": {
+      "type": "array",
+      "description": "Collection of SeparationOfDuty entities",
+      "items": {
+        "$ref": "#/definitions/SeparationOfDuty"
+      }
+    },
+    "binding-of-duties": {
+      "type": "array",
+      "description": "Collection of BindingOfDuty entities",
+      "items": {
+        "$ref": "#/definitions/BindingOfDuty"
+      }
+    },
+    "need-to-knows": {
+      "type": "array",
+      "description": "Collection of NeedToKnow entities",
+      "items": {
+        "$ref": "#/definitions/NeedToKnow"
+      }
+    },
+    "social-dependencies": {
+      "type": "array",
+      "description": "Collection of SocialDependency entities",
+      "items": {
+        "$ref": "#/definitions/SocialDependency"
+      }
+    },
+    "accountability-requirements": {
+      "type": "array",
+      "description": "Collection of AccountabilityRequirement entities",
+      "items": {
+        "$ref": "#/definitions/AccountabilityRequirement"
+      }
+    },
+    "evidences": {
+      "type": "array",
+      "description": "Collection of Evidence entities",
+      "items": {
+        "$ref": "#/definitions/Evidence"
+      }
+    },
+    "threats": {
+      "type": "array",
+      "description": "Collection of Threat entities",
+      "items": {
+        "$ref": "#/definitions/Threat"
+      }
+    },
+    "countermeasures": {
+      "type": "array",
+      "description": "Collection of Countermeasure entities",
+      "items": {
+        "$ref": "#/definitions/Countermeasure"
+      }
+    },
+    "rate-limits": {
+      "type": "array",
+      "description": "Collection of RateLimit entities",
+      "items": {
+        "$ref": "#/definitions/RateLimit"
+      }
+    },
+    "audit-configs": {
+      "type": "array",
+      "description": "Collection of AuditConfig entities",
+      "items": {
+        "$ref": "#/definitions/AuditConfig"
+      }
+    },
+    "conditions": {
+      "type": "array",
+      "description": "Collection of Condition entities",
+      "items": {
+        "$ref": "#/definitions/Condition"
+      }
+    },
+    "retention-policies": {
+      "type": "array",
+      "description": "Collection of RetentionPolicy entities",
+      "items": {
+        "$ref": "#/definitions/RetentionPolicy"
+      }
+    },
+    "validation-rules": {
+      "type": "array",
+      "description": "Collection of ValidationRule entities",
+      "items": {
+        "$ref": "#/definitions/ValidationRule"
+      }
+    }
+  },
+  "definitions": {
+    "AuthProvider": {
+      "type": "string",
+      "enum": [
+        "oauth2",
+        "openid-connect",
+        "saml",
+        "jwt",
+        "session",
+        "api-key",
+        "certificate"
+      ]
+    },
+    "PermissionScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "resource",
+        "attribute",
+        "owner"
+      ]
+    },
+    "ResourceType": {
+      "type": "string",
+      "enum": [
+        "api",
+        "screen",
+        "data",
+        "file",
+        "service"
+      ]
+    },
+    "ConditionOperator": {
+      "type": "string",
+      "enum": [
+        "equals",
+        "notEquals",
+        "in",
+        "notIn",
+        "greaterThan",
+        "lessThan",
+        "greaterThanOrEqual",
+        "lessThanOrEqual",
+        "contains",
+        "notContains",
+        "startsWith",
+        "endsWith",
+        "matches",
+        "exists",
+        "notExists"
+      ]
+    },
+    "DataSource": {
+      "type": "string",
+      "enum": [
+        "constant",
+        "user-attribute",
+        "resource-field",
+        "context",
+        "computed"
+      ]
+    },
+    "MaskingStrategy": {
+      "type": "string",
+      "enum": [
+        "none",
+        "partial",
+        "full",
+        "hash",
+        "redact"
+      ]
+    },
+    "PolicyTarget": {
+      "type": "string",
+      "enum": [
+        "all",
+        "api",
+        "data",
+        "screen"
+      ]
+    },
+    "PolicyEffect": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny",
+        "audit",
+        "warn"
+      ]
+    },
+    "ActionType": {
+      "type": "string",
+      "enum": [
+        "allow",
+        "deny",
+        "audit-access",
+        "require-mfa",
+        "require-approval",
+        "apply-mask",
+        "apply-encryption",
+        "apply-retention",
+        "notify",
+        "rate-limit",
+        "check-ip-whitelist",
+        "check-time-window"
+      ]
+    },
+    "ClassificationLevel": {
+      "type": "string",
+      "enum": [
+        "public",
+        "internal",
+        "confidential",
+        "restricted"
+      ]
+    },
+    "EncryptionRequirement": {
+      "type": "string",
+      "enum": [
+        "none",
+        "in-transit",
+        "at-rest",
+        "both",
+        "end-to-end"
+      ]
+    },
+    "AccessControlLevel": {
+      "type": "string",
+      "enum": [
+        "open",
+        "authenticated",
+        "role-based",
+        "attribute-based"
+      ]
+    },
+    "AuditLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "minimal",
+        "standard",
+        "comprehensive"
+      ]
+    },
+    "ActorType": {
+      "type": "string",
+      "enum": [
+        "role",
+        "agent",
+        "organization",
+        "system"
+      ]
+    },
+    "TrustLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "low",
+        "medium",
+        "high",
+        "full"
+      ]
+    },
+    "Criticality": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "DelegationType": {
+      "type": "string",
+      "enum": [
+        "execution",
+        "permission",
+        "approval"
+      ]
+    },
+    "VerificationLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "manual",
+        "automated",
+        "continuous"
+      ]
+    },
+    "RequirementLevel": {
+      "type": "string",
+      "enum": [
+        "none",
+        "optional",
+        "required",
+        "mandatory"
+      ]
+    },
+    "EvidenceType": {
+      "type": "string",
+      "enum": [
+        "digital-signature",
+        "timestamp",
+        "ip-address",
+        "device-fingerprint",
+        "biometric",
+        "user-authentication",
+        "access-reason",
+        "approval-chain",
+        "video-recording"
+      ]
+    },
+    "EvidenceStrength": {
+      "type": "string",
+      "enum": [
+        "weak",
+        "moderate",
+        "strong",
+        "cryptographic"
+      ]
+    },
+    "Likelihood": {
+      "type": "string",
+      "enum": [
+        "very-low",
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
+    },
+    "Impact": {
+      "type": "string",
+      "enum": [
+        "negligible",
+        "low",
+        "medium",
+        "high",
+        "critical"
+      ]
+    },
+    "Effectiveness": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high",
+        "very-high"
+      ]
+    },
+    "RateLimitScope": {
+      "type": "string",
+      "enum": [
+        "global",
+        "user",
+        "ip",
+        "api-key",
+        "tenant"
+      ]
+    },
+    "RateLimitAction": {
+      "type": "string",
+      "enum": [
+        "reject",
+        "queue",
+        "throttle",
+        "degrade"
+      ]
+    },
+    "StorageClass": {
+      "type": "string",
+      "enum": [
+        "hot",
+        "warm",
+        "cold",
+        "archive"
+      ]
+    },
+    "DestinationType": {
+      "type": "string",
+      "enum": [
+        "database",
+        "log-service",
+        "siem",
+        "file"
+      ]
+    },
+    "EvaluationType": {
+      "type": "string",
+      "enum": [
+        "synchronous",
+        "asynchronous",
+        "cached"
+      ]
+    },
+    "DeletionMethod": {
+      "type": "string",
+      "enum": [
+        "soft",
+        "hard",
+        "cryptographic",
+        "overwrite",
+        "physical"
+      ]
+    },
+    "ValidationRuleType": {
+      "type": "string",
+      "enum": [
+        "required",
+        "pattern",
+        "minLength",
+        "maxLength",
+        "min",
+        "max",
+        "enum",
+        "email",
+        "url",
+        "date",
+        "custom"
+      ]
+    },
+    "ValidationSeverity": {
+      "type": "string",
+      "enum": [
+        "error",
+        "warning",
+        "info"
+      ]
+    },
+    "SecurityModel": {
+      "type": "object",
+      "description": "Complete security model for application",
+      "required": [
+        "id",
+        "name",
+        "version",
+        "application"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "application": {
+          "type": "string",
+          "minLength": 1
+        },
+        "authentication": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "actors": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "permissions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "resources": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "informationEntities": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "delegations": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "securityConstraints": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "policies": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dataClassification": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "socialDependencies": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "accountability": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "threats": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "AuthenticationConfig": {
+      "type": "object",
+      "description": "Authentication configuration",
+      "required": [
+        "id",
+        "name",
+        "provider",
+        "sessionTimeout"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "provider": {
+          "$ref": "#/definitions/AuthProvider"
+        },
+        "sessionTimeout": {
+          "type": "integer"
+        },
+        "mfaRequired": {
+          "type": "boolean"
+        },
+        "passwordPolicy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "PasswordPolicy": {
+      "type": "object",
+      "description": "Password requirements",
+      "required": [
+        "id",
+        "name",
+        "expiryDays"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "requireUppercase": {
+          "type": "boolean"
+        },
+        "requireLowercase": {
+          "type": "boolean"
+        },
+        "requireNumbers": {
+          "type": "boolean"
+        },
+        "requireSpecialChars": {
+          "type": "boolean"
+        },
+        "preventReuse": {
+          "type": "integer"
+        },
+        "expiryDays": {
+          "type": "integer"
+        },
+        "lockoutAttempts": {
+          "type": "integer"
+        },
+        "lockoutDuration": {
+          "type": "integer"
+        }
+      }
+    },
+    "Role": {
+      "type": "object",
+      "description": "User role definition",
+      "required": [
+        "id",
+        "name",
+        "displayName",
+        "level",
+        "inheritsFrom"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "level": {
+          "type": "integer"
+        },
+        "inheritsFrom": {
+          "type": "string",
+          "minLength": 1
+        },
+        "permissions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Permission": {
+      "type": "object",
+      "description": "Permission definition",
+      "required": [
+        "name",
+        "id",
+        "scope",
+        "resource",
+        "action"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/PermissionScope"
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SecureResource": {
+      "type": "object",
+      "description": "Protected resource definition",
+      "required": [
+        "resource",
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/ResourceType"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operations": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "fieldAccess": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ResourceOperation": {
+      "type": "object",
+      "description": "Operation on a resource",
+      "required": [
+        "id",
+        "name",
+        "operation"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "conditions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "rateLimit": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "audit": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "AccessCondition": {
+      "type": "object",
+      "description": "Conditional access rule",
+      "required": [
+        "id",
+        "name",
+        "field",
+        "operator",
+        "value",
+        "message",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "operator": {
+          "$ref": "#/definitions/ConditionOperator"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source": {
+          "$ref": "#/definitions/DataSource"
+        }
+      }
+    },
+    "FieldAccessControl": {
+      "type": "object",
+      "description": "Field-level access control",
+      "required": [
+        "id",
+        "name",
+        "field"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "field": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SecurityPolicy": {
+      "type": "object",
+      "description": "Declarative security policy",
+      "required": [
+        "id",
+        "name",
+        "priority",
+        "target"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "priority": {
+          "type": "integer"
+        },
+        "target": {
+          "$ref": "#/definitions/PolicyTarget"
+        },
+        "rules": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PolicyRule": {
+      "type": "object",
+      "description": "Individual policy rule",
+      "required": [
+        "id",
+        "name",
+        "condition",
+        "effect"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "condition": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect": {
+          "$ref": "#/definitions/PolicyEffect"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "PolicyAction": {
+      "type": "object",
+      "description": "Action to take when policy rule matches",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "parameters"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/ActionType"
+        },
+        "parameters": {
+          "type": "object"
+        }
+      }
+    },
+    "DataClassification": {
+      "type": "object",
+      "description": "Data classification and protection policies",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classifications": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Classification": {
+      "type": "object",
+      "description": "A single classification level defining data sensitivity and protection requirements",
+      "required": [
+        "level",
+        "label",
+        "description"
+      ],
+      "properties": {
+        "level": {
+          "$ref": "#/definitions/ClassificationLevel"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Actor": {
+      "type": "object",
+      "description": "Actor in the system (beyond roles)",
+      "required": [
+        "id",
+        "name",
+        "type"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/ActorType"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "trustLevel": {
+          "$ref": "#/definitions/TrustLevel"
+        },
+        "objectives": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dependencies": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ActorObjective": {
+      "type": "object",
+      "description": "Security-related objective or goal of an actor",
+      "required": [
+        "id",
+        "name",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criticality": {
+          "$ref": "#/definitions/Criticality"
+        }
+      }
+    },
+    "ActorDependency": {
+      "type": "object",
+      "description": "Dependency between actors",
+      "required": [
+        "id",
+        "name",
+        "dependee",
+        "resource",
+        "objective",
+        "criticality"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependee": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criticality": {
+          "$ref": "#/definitions/Criticality"
+        }
+      }
+    },
+    "InformationEntity": {
+      "type": "object",
+      "description": "Information asset with fine-grained rights",
+      "required": [
+        "id",
+        "name",
+        "classification"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "classification": {
+          "$ref": "#/definitions/ClassificationLevel"
+        },
+        "authorizationRequirements": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "InformationRight": {
+      "type": "object",
+      "description": "Fine-grained information access rights",
+      "required": [
+        "id",
+        "name",
+        "actor",
+        "constraint"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "actor": {
+          "type": "string",
+          "minLength": 1
+        },
+        "constraint": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Delegation": {
+      "type": "object",
+      "description": "Explicit delegation of permissions or goals",
+      "required": [
+        "id",
+        "name",
+        "delegator",
+        "delegatee",
+        "delegationType"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegator": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegatee": {
+          "type": "string",
+          "minLength": 1
+        },
+        "delegationType": {
+          "$ref": "#/definitions/DelegationType"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SecurityConstraints": {
+      "type": "object",
+      "description": "Security patterns and constraints",
+      "required": [
+        "id",
+        "name"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1
+        },
+        "separationOfDuty": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "bindingOfDuty": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "needToKnow": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SeparationOfDuty": {
+      "type": "object",
+      "description": "Different actors must perform related tasks",
+      "required": [
+        "name",
+        "message"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tasks": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "roles": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "mutuallyExclusive": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "BindingOfDuty": {
+      "type": "object",
+      "description": "Same actor must complete related tasks",
+      "required": [
+        "name",
+        "message"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tasks": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "scope": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "NeedToKnow": {
+      "type": "object",
+      "description": "Information access based on objective/purpose requirements",
+      "required": [
+        "name",
+        "resource",
+        "objective",
+        "message",
+        "justificationRequired"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "justificationRequired": {
+          "type": "boolean"
+        }
+      }
+    },
+    "SocialDependency": {
+      "type": "object",
+      "description": "Dependencies and trust between actors",
+      "required": [
+        "id",
+        "name",
+        "depender",
+        "dependee",
+        "resource",
+        "objective",
+        "criticality"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "depender": {
+          "type": "string",
+          "minLength": 1
+        },
+        "dependee": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1
+        },
+        "criticality": {
+          "$ref": "#/definitions/Criticality"
+        }
+      }
+    },
+    "AccountabilityRequirement": {
+      "type": "object",
+      "description": "Accountability and non-repudiation requirements",
+      "required": [
+        "id",
+        "name",
+        "action",
+        "resource",
+        "nonRepudiation",
+        "purposeDeclaration",
+        "challengeable"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1
+        },
+        "resource": {
+          "type": "string",
+          "minLength": 1
+        },
+        "nonRepudiation": {
+          "type": "boolean"
+        },
+        "purposeDeclaration": {
+          "$ref": "#/definitions/RequirementLevel"
+        },
+        "challengeable": {
+          "type": "boolean"
+        }
+      }
+    },
+    "Evidence": {
+      "type": "object",
+      "description": "Evidence required for accountability",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "source"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/EvidenceType"
+        },
+        "strength": {
+          "$ref": "#/definitions/EvidenceStrength"
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Threat": {
+      "type": "object",
+      "description": "Security threat and countermeasures",
+      "required": [
+        "id",
+        "name",
+        "description",
+        "threatens",
+        "likelihood",
+        "impact"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "threatens": {
+          "type": "string",
+          "minLength": 1
+        },
+        "likelihood": {
+          "$ref": "#/definitions/Likelihood"
+        },
+        "impact": {
+          "$ref": "#/definitions/Impact"
+        },
+        "countermeasures": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "Countermeasure": {
+      "type": "object",
+      "description": "Security countermeasure for a threat",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "description"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effectiveness": {
+          "$ref": "#/definitions/Effectiveness"
+        },
+        "implemented": {
+          "type": "boolean"
+        }
+      }
+    },
+    "RateLimit": {
+      "type": "object",
+      "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+      "required": [
+        "id",
+        "name",
+        "requests",
+        "window",
+        "keyBy"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "requests": {
+          "type": "integer"
+        },
+        "window": {
+          "type": "string",
+          "minLength": 1
+        },
+        "scope": {
+          "$ref": "#/definitions/RateLimitScope"
+        },
+        "keyBy": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "AuditConfig": {
+      "type": "object",
+      "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
+      "required": [
+        "id",
+        "name",
+        "level",
+        "sanitizeFields"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean"
+        },
+        "level": {
+          "$ref": "#/definitions/AuditLevel"
+        },
+        "includePayload": {
+          "type": "boolean"
+        },
+        "includeHeaders": {
+          "type": "boolean"
+        },
+        "sanitizeFields": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Condition": {
+      "type": "object",
+      "description": "A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource state.",
+      "required": [
+        "id",
+        "name",
+        "expression"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expression": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "evaluationType": {
+          "$ref": "#/definitions/EvaluationType"
+        }
+      }
+    },
+    "RetentionPolicy": {
+      "type": "object",
+      "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
+      "required": [
+        "id",
+        "name",
+        "period"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "period": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ValidationRule": {
+      "type": "object",
+      "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+      "required": [
+        "id",
+        "name",
+        "type",
+        "value",
+        "message"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/ValidationRuleType"
+        },
+        "value": {
+          "type": "string",
+          "minLength": 1
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1
+        },
+        "severity": {
+          "$ref": "#/definitions/ValidationSeverity"
+        }
+      }
+    }
+  }
+}

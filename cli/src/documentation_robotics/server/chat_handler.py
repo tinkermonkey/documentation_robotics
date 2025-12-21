@@ -6,6 +6,7 @@ Handles JSON-RPC 2.0 chat messages and integrates with Anthropic SDK.
 
 import asyncio
 import json
+import traceback
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
@@ -175,8 +176,6 @@ class ChatHandler:
         except Exception as e:
             # Catch any unhandled exceptions from the task
             console.print(f"[red]Unhandled error in chat request {request_id}: {e}[/red]")
-            import traceback
-
             traceback.print_exc()
             await ws.send_json(
                 create_chat_error(
@@ -283,8 +282,6 @@ class ChatHandler:
 
         except Exception as e:
             console.print(f"[red]Chat query error: {e}[/red]")
-            import traceback
-
             traceback.print_exc()
             await ws.send_json(
                 create_chat_error(
@@ -298,7 +295,7 @@ class ChatHandler:
         self,
         ws: web.WebSocketResponse,
         session: ChatSession,
-        params: Dict[str, Any],
+        _params: Dict[str, Any],
         request_id: str,
     ) -> None:
         """
@@ -307,7 +304,7 @@ class ChatHandler:
         Args:
             ws: WebSocket response object
             session: Chat session
-            params: Request parameters (included for API consistency, currently unused)
+            _params: Request parameters (included for API consistency, currently unused)
             request_id: Request ID for response
         """
         cancelled = await session.cancel_active_task()

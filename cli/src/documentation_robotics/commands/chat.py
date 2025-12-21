@@ -7,6 +7,7 @@ a separate server. It directly invokes the DrBotOrchestrator in-process.
 
 import asyncio
 import importlib.util
+import os
 import signal
 import sys
 import traceback
@@ -205,7 +206,15 @@ async def _run_chat_session(model_dir: Optional[str]) -> None:
     # Set up signal handler
     _setup_signal_handler()
 
-    # Check for Anthropic SDK availability early
+    # Validate API key is configured first (before checking SDK)
+    if not os.getenv("ANTHROPIC_API_KEY"):
+        console.print("[red]Error: ANTHROPIC_API_KEY environment variable not set[/red]")
+        console.print("\n[yellow]Set it with:[/yellow]")
+        console.print("  export ANTHROPIC_API_KEY=sk-...")
+        console.print()
+        raise click.Abort()
+
+    # Check for Anthropic SDK availability
     if importlib.util.find_spec("anthropic") is None:
         console.print("[red]Anthropic SDK not installed[/red]")
         console.print("\n[yellow]Install with:[/yellow]")

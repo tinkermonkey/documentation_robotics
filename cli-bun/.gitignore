@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build output
+dist/
+*.d.ts
+*.d.ts.map
+*.js.map
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Bun
+.bun
+
+# Temp files
+*.tmp
+*.log
