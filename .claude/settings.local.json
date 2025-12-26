@@ -86,7 +86,8 @@
       "Bash(gh pr checks:*)",
       "Bash(md5sum:*)",
       "Bash(git -C /home/austinsand/workspace/orchestrator/documentation_robotics log --oneline --all -- integrations/claude_code cli/src/documentation_robotics/claude_integration)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(mkdir:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

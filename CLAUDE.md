@@ -6,11 +6,11 @@
 
 **Components:**
 
-1. **CLI Tool - Python (`cli/`)** - Python command-line interface for managing architecture models (v0.7.3)
-2. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation with parallel feature parity (v0.1.0)
+1. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation, primary CLI (v0.1.0, ~8x faster)
+2. **CLI Tool - Python (`cli/`)** - Python command-line interface, legacy but still supported (v0.7.3)
 3. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Versions:** Python CLI v0.7.3, Bun CLI v0.1.0, Spec v0.6.0
+**Current Versions:** Bun CLI v0.1.0 (primary), Python CLI v0.7.3 (legacy), Spec v0.6.0
 
 ## Repository Structure
 
@@ -58,21 +58,7 @@ documentation_robotics/
 
 ## Quick Reference
 
-### Python CLI Setup (Legacy)
-
-```bash
-# Venv is at repo root, CLI code is in cli/ subdirectory
-cd cli && pip install -e ".[dev]"
-source ../.venv/bin/activate  # From cli/ directory
-
-# Common commands
-dr --help                    # CLI help
-pytest                       # Run all tests
-pytest tests/unit/           # Unit tests only
-pytest --cov                 # With coverage
-```
-
-### Bun CLI Setup (Recommended)
+### Bun CLI Setup (Primary/Recommended)
 
 ```bash
 # Install from source for development
@@ -93,6 +79,20 @@ npm install -g .
 dr --help
 ```
 
+### Python CLI Setup (Legacy/Fallback)
+
+```bash
+# Venv is at repo root, CLI code is in cli/ subdirectory
+cd cli && pip install -e ".[dev]"
+source ../.venv/bin/activate  # From cli/ directory
+
+# Common commands
+dr --help                    # CLI help
+pytest                       # Run all tests
+pytest tests/unit/           # Unit tests only
+pytest --cov                 # With coverage
+```
+
 ### Key Dependencies
 
 **Python CLI:**
@@ -107,8 +107,10 @@ dr --help
 
 You have pre-approved access to:
 
-- **Python CLI:** `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
-- **Bun CLI:** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`
+- **Bun CLI (Primary):** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`, `node dist/cli.js`
+- **Python CLI (Legacy):** `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
+
+**Default**: Use the Bun CLI unless working on Python-specific issues or features.
 
 ### Pre-commit Checks
 
@@ -321,23 +323,24 @@ pytest tests/integration/
    - Manually editing version numbers
    - Use `/dr-release-prep` command for proper release preparation
 
-## Bun CLI vs. Python CLI
+## CLI Implementations: Bun (Primary) vs. Python (Legacy)
 
-Both CLIs implement the same commands and operate on identical model structures. Choose based on your preference:
+Both CLIs implement the same commands and operate on identical model structures. **The Bun CLI is now the primary implementation:**
 
-| Aspect           | Python CLI                 | Bun CLI                   |
-| ---------------- | -------------------------- | ------------------------- |
-| **Installation** | `pip install`              | `npm install -g`          |
-| **Performance**  | ~1-2s startup              | ~200ms startup            |
-| **Environment**  | Python 3.10+               | Node.js 18+               |
-| **State**        | Production-ready (v0.7.3)  | Feature-parity (v0.1.0)   |
-| **Development**  | Pytest, mature             | Jest/Bun test, modern     |
-| **Package Mgmt** | pip/Poetry                 | npm/Bun                   |
-| **Best For**     | Legacy Python environments | Modern Node.js dev stacks |
+| Aspect           | Bun CLI (Primary)              | Python CLI (Legacy)       |
+| ---------------- | ------------------------------ | ------------------------- |
+| **Status**       | **Active development**         | Maintenance mode          |
+| **Performance**  | **~200ms startup (8x faster)** | ~1-2s startup             |
+| **Installation** | `npm install -g`               | `pip install`             |
+| **Environment**  | Node.js 18+                    | Python 3.10+              |
+| **Version**      | v0.1.0 (feature complete)      | v0.7.3 (mature)           |
+| **Development**  | Modern TS, Bun test            | Pytest                    |
+| **Package Mgmt** | npm/Bun                        | pip/Poetry                |
+| **Best For**     | **All new work**               | Existing Python workflows |
 
 ### Using the Bun CLI
 
-All commands are identical to the Python CLI:
+All commands are identical between implementations:
 
 ```bash
 # Basic operations
