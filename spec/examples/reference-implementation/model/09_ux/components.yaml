@@ -20,14 +20,14 @@ YAML Output Format:
     for readability
   type: output-format
   library: pyyaml
-  default_flow_style: 'false'
+  default_flow_style: "false"
   id: ux.component.yaml-output-format
 JSON Output Format:
   name: JSON Output Format
   description: JSON serialization with indentation for machine-readable output
   type: output-format
   library: json
-  indent: '2'
+  indent: "2"
   id: ux.component.json-output-format
 Progress Spinner:
   name: Progress Spinner

@@ -217,11 +217,5 @@
       }
     }
   },
-  "required": [
-    "$schema",
-    "title",
-    "description",
-    "version",
-    "relationshipTypes"
-  ]
+  "required": ["$schema", "title", "description", "version", "relationshipTypes"]
 }

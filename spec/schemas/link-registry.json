@@ -75,16 +75,10 @@
       "id": "apm-criticality",
       "name": "Criticality",
       "category": "apm",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "Criticality"
-      ],
-      "fieldPaths": [
-        "x-apm-criticality"
-      ],
+      "targetElementTypes": ["Criticality"],
+      "fieldPaths": ["x-apm-criticality"],
       "cardinality": "single",
       "format": "duration",
       "description": "enum [low, medium, high, critical] (optional)",
@@ -92,10 +86,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Criticality",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -105,15 +96,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "medium",
       "isRequired": false
     },
@@ -121,16 +106,10 @@
       "id": "apm-health-check-endpoint",
       "name": "Health Check Endpoint",
       "category": "apm",
-      "sourceLayers": [
-        "05-technology"
-      ],
+      "sourceLayers": ["05-technology"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "HealthCheckEndpoint"
-      ],
-      "fieldPaths": [
-        "apm.health-check-endpoint"
-      ],
+      "targetElementTypes": ["HealthCheckEndpoint"],
+      "fieldPaths": ["apm.health-check-endpoint"],
       "cardinality": "single",
       "format": "string",
       "description": "health check endpoint",
@@ -147,9 +126,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "HealthCheckEndpoint",
-        "sourceElementTypesValid": [
-          "TechnologyService"
-        ],
+        "sourceElementTypesValid": ["TechnologyService"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -159,13 +136,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "TechnologyService"
-        ]
+        "05-technology": ["TechnologyService"]
       },
-      "sourceElementTypes": [
-        "TechnologyService"
-      ],
+      "sourceElementTypes": ["TechnologyService"],
       "strength": "medium",
       "isRequired": false
     },
@@ -173,16 +146,10 @@
       "id": "apm-health-monitored",
       "name": "Health Monitored",
       "category": "apm",
-      "sourceLayers": [
-        "05-technology"
-      ],
+      "sourceLayers": ["05-technology"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "HealthMonitored"
-      ],
-      "fieldPaths": [
-        "apm.health-monitored"
-      ],
+      "targetElementTypes": ["HealthMonitored"],
+      "fieldPaths": ["apm.health-monitored"],
       "cardinality": "single",
       "format": "boolean",
       "description": "whether health is actively monitored",
@@ -207,9 +174,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "HealthMonitored",
-        "sourceElementTypesValid": [
-          "TechnologyService"
-        ],
+        "sourceElementTypesValid": ["TechnologyService"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -219,13 +184,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "TechnologyService"
-        ]
+        "05-technology": ["TechnologyService"]
       },
-      "sourceElementTypes": [
-        "TechnologyService"
-      ],
+      "sourceElementTypes": ["TechnologyService"],
       "strength": "medium",
       "isRequired": false
     },
@@ -233,19 +194,10 @@
       "id": "apm-sla-target-availability",
       "name": "Sla Target Availability",
       "category": "apm",
-      "sourceLayers": [
-        "04-application",
-        "05-technology",
-        "06-api"
-      ],
+      "sourceLayers": ["04-application", "05-technology", "06-api"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "SlaTargetAvailability"
-      ],
-      "fieldPaths": [
-        "apm.sla-target-availability",
-        "x-apm-sla-target-availability"
-      ],
+      "targetElementTypes": ["SlaTargetAvailability"],
+      "fieldPaths": ["apm.sla-target-availability", "x-apm-sla-target-availability"],
       "cardinality": "single",
       "format": "percentage",
       "description": "string (e.g., \"99.95%\", \"99.99%\", optional)",
@@ -285,16 +237,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "ApplicationService"
-        ],
-        "05-technology": [
-          "TechnologyService"
-        ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "04-application": ["ApplicationService"],
+        "05-technology": ["TechnologyService"],
+        "06-api": ["Operation", "SecurityScheme"]
       },
       "sourceElementTypes": [
         "ApplicationService",
@@ -309,19 +254,10 @@
       "id": "apm-sla-target-latency",
       "name": "Sla Target Latency",
       "category": "apm",
-      "sourceLayers": [
-        "04-application",
-        "05-technology",
-        "06-api"
-      ],
+      "sourceLayers": ["04-application", "05-technology", "06-api"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "SlaTargetLatency"
-      ],
-      "fieldPaths": [
-        "apm.sla-target-latency",
-        "x-apm-sla-target-latency"
-      ],
+      "targetElementTypes": ["SlaTargetLatency"],
+      "fieldPaths": ["apm.sla-target-latency", "x-apm-sla-target-latency"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (e.g., \"200ms\", \"500ms\", optional)",
@@ -353,16 +289,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "ApplicationService"
-        ],
-        "05-technology": [
-          "TechnologyService"
-        ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "04-application": ["ApplicationService"],
+        "05-technology": ["TechnologyService"],
+        "06-api": ["Operation", "SecurityScheme"]
       },
       "sourceElementTypes": [
         "ApplicationService",
@@ -377,16 +306,10 @@
       "id": "apm-trace",
       "name": "Trace",
       "category": "apm",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "Trace"
-      ],
-      "fieldPaths": [
-        "x-apm-trace"
-      ],
+      "targetElementTypes": ["Trace"],
+      "fieldPaths": ["x-apm-trace"],
       "cardinality": "single",
       "format": "string",
       "description": "boolean (optional)",
@@ -394,10 +317,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Trace",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -407,15 +327,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "medium",
       "isRequired": false
     },
@@ -423,16 +337,10 @@
       "id": "apm-traced",
       "name": "Traced",
       "category": "apm",
-      "sourceLayers": [
-        "04-application"
-      ],
+      "sourceLayers": ["04-application"],
       "targetLayer": "11-apm",
-      "targetElementTypes": [
-        "Traced"
-      ],
-      "fieldPaths": [
-        "apm.traced"
-      ],
+      "targetElementTypes": ["Traced"],
+      "fieldPaths": ["apm.traced"],
       "cardinality": "single",
       "format": "boolean",
       "description": "Links to Traced in target layer",
@@ -449,10 +357,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Traced",
-        "sourceElementTypesValid": [
-          "ApplicationService",
-          "Data Properties"
-        ],
+        "sourceElementTypesValid": ["ApplicationService", "Data Properties"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -462,15 +367,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "ApplicationService",
-          "Data Properties"
-        ]
+        "04-application": ["ApplicationService", "Data Properties"]
       },
-      "sourceElementTypes": [
-        "ApplicationService",
-        "Data Properties"
-      ],
+      "sourceElementTypes": ["ApplicationService", "Data Properties"],
       "strength": "medium",
       "isRequired": false
     },
@@ -478,16 +377,10 @@
       "id": "archimate-application-master-data-source",
       "name": "Application Master Data Source",
       "category": "archimate",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "04-application",
-      "targetElementTypes": [
-        "MasterDataSource"
-      ],
-      "fieldPaths": [
-        "application.master-data-source"
-      ],
+      "targetElementTypes": ["MasterDataSource"],
+      "fieldPaths": ["application.master-data-source"],
       "cardinality": "single",
       "format": "string",
       "description": "BusinessObject master data source from DataObject",
@@ -495,9 +388,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "MasterDataSource",
-        "sourceElementTypesValid": [
-          "BusinessObject"
-        ],
+        "sourceElementTypesValid": ["BusinessObject"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -507,13 +398,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessObject"
-        ]
+        "02-business": ["BusinessObject"]
       },
-      "sourceElementTypes": [
-        "BusinessObject"
-      ],
+      "sourceElementTypes": ["BusinessObject"],
       "strength": "medium",
       "isRequired": false
     },
@@ -521,16 +408,10 @@
       "id": "archimate-application-process-steps",
       "name": "Application Process Steps",
       "category": "archimate",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "04-application",
-      "targetElementTypes": [
-        "ProcessStep"
-      ],
-      "fieldPaths": [
-        "application.process-steps"
-      ],
+      "targetElementTypes": ["ProcessStep"],
+      "fieldPaths": ["application.process-steps"],
       "cardinality": "array",
       "format": "reference",
       "description": "which specific ApplicationProcess steps realize this business process",
@@ -538,9 +419,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "ProcessStep",
-        "sourceElementTypesValid": [
-          "BusinessProcess"
-        ],
+        "sourceElementTypesValid": ["BusinessProcess"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -550,13 +429,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessProcess"
-        ]
+        "02-business": ["BusinessProcess"]
       },
-      "sourceElementTypes": [
-        "BusinessProcess"
-      ],
+      "sourceElementTypes": ["BusinessProcess"],
       "strength": "medium",
       "isRequired": false
     },
@@ -564,16 +439,10 @@
       "id": "archimate-application-realized-by-process",
       "name": "Application Realized By Process",
       "category": "archimate",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "04-application",
-      "targetElementTypes": [
-        "RealizedByProces"
-      ],
-      "fieldPaths": [
-        "application.realized-by-process"
-      ],
+      "targetElementTypes": ["RealizedByProces"],
+      "fieldPaths": ["application.realized-by-process"],
       "cardinality": "single",
       "format": "reference",
       "description": "ApplicationService - **BusinessProcess** automated by ApplicationProcess",
@@ -581,9 +450,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "RealizedByProces",
-        "sourceElementTypesValid": [
-          "BusinessProcess"
-        ],
+        "sourceElementTypesValid": ["BusinessProcess"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -593,13 +460,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessProcess"
-        ]
+        "02-business": ["BusinessProcess"]
       },
-      "sourceElementTypes": [
-        "BusinessProcess"
-      ],
+      "sourceElementTypes": ["BusinessProcess"],
       "strength": "medium",
       "isRequired": false
     },
@@ -607,16 +470,10 @@
       "id": "archimate-application-represented-by-dataobject",
       "name": "Application Represented By Dataobject",
       "category": "archimate",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "04-application",
-      "targetElementTypes": [
-        "RepresentedByDataobject"
-      ],
-      "fieldPaths": [
-        "application.represented-by-dataobject"
-      ],
+      "targetElementTypes": ["RepresentedByDataobject"],
+      "fieldPaths": ["application.represented-by-dataobject"],
       "cardinality": "single",
       "format": "string",
       "description": "BusinessObject represented in DataObject",
@@ -624,9 +481,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "RepresentedByDataobject",
-        "sourceElementTypesValid": [
-          "BusinessObject"
-        ],
+        "sourceElementTypesValid": ["BusinessObject"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -636,13 +491,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessObject"
-        ]
+        "02-business": ["BusinessObject"]
       },
-      "sourceElementTypes": [
-        "BusinessObject"
-      ],
+      "sourceElementTypes": ["BusinessObject"],
       "strength": "medium",
       "isRequired": false
     },
@@ -650,17 +501,10 @@
       "id": "archimate-ref",
       "name": "Ref",
       "category": "archimate",
-      "sourceLayers": [
-        "06-api",
-        "07-data-model"
-      ],
+      "sourceLayers": ["06-api", "07-data-model"],
       "targetLayer": "04-application",
-      "targetElementTypes": [
-        "Element"
-      ],
-      "fieldPaths": [
-        "x-archimate-ref"
-      ],
+      "targetElementTypes": ["Element"],
+      "fieldPaths": ["x-archimate-ref"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (Element.id reference to ApplicationService)",
@@ -684,15 +528,8 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "OpenAPIDocument",
-          "Operation",
-          "SecurityScheme"
-        ],
-        "07-data-model": [
-          "JSONSchema",
-          "x-security Extension"
-        ]
+        "06-api": ["OpenAPIDocument", "Operation", "SecurityScheme"],
+        "07-data-model": ["JSONSchema", "x-security Extension"]
       },
       "sourceElementTypes": [
         "JSONSchema",
@@ -708,19 +545,10 @@
       "id": "business-apm-business-metrics",
       "name": "Apm Business Metrics",
       "category": "business",
-      "sourceLayers": [
-        "02-business",
-        "04-application",
-        "06-api"
-      ],
+      "sourceLayers": ["02-business", "04-application", "06-api"],
       "targetLayer": "02-business",
-      "targetElementTypes": [
-        "BusinessMetric"
-      ],
-      "fieldPaths": [
-        "apm.business-metrics",
-        "x-apm-business-metrics"
-      ],
+      "targetElementTypes": ["BusinessMetric"],
+      "fieldPaths": ["apm.business-metrics", "x-apm-business-metrics"],
       "cardinality": "array",
       "format": "reference",
       "description": "comma-separated business metric IDs this service tracks",
@@ -752,16 +580,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessProcess"
-        ],
-        "04-application": [
-          "ApplicationService"
-        ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "02-business": ["BusinessProcess"],
+        "04-application": ["ApplicationService"],
+        "06-api": ["Operation", "SecurityScheme"]
       },
       "sourceElementTypes": [
         "ApplicationService",
@@ -776,16 +597,10 @@
       "id": "business-interface-ref",
       "name": "Interface Ref",
       "category": "business",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "02-business",
-      "targetElementTypes": [
-        "BusinessInterface"
-      ],
-      "fieldPaths": [
-        "x-business-interface-ref"
-      ],
+      "targetElementTypes": ["BusinessInterface"],
+      "fieldPaths": ["x-business-interface-ref"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (BusinessInterface.id, optional)",
@@ -793,10 +608,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessInterface",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -806,15 +618,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "medium",
       "isRequired": false
     },
@@ -822,16 +628,10 @@
       "id": "business-object-ref",
       "name": "Object Ref",
       "category": "business",
-      "sourceLayers": [
-        "07-data-model"
-      ],
+      "sourceLayers": ["07-data-model"],
       "targetLayer": "02-business",
-      "targetElementTypes": [
-        "BusinessObject"
-      ],
-      "fieldPaths": [
-        "x-business-object-ref"
-      ],
+      "targetElementTypes": ["BusinessObject"],
+      "fieldPaths": ["x-business-object-ref"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (BusinessObject.id reference, optional)",
@@ -853,11 +653,7 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "07-data-model": [
-          "JSONSchema",
-          "x-business-object-ref Extension",
-          "x-security Extension"
-        ]
+        "07-data-model": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"]
       },
       "sourceElementTypes": [
         "JSONSchema",
@@ -871,16 +667,10 @@
       "id": "business-service-ref",
       "name": "Service Ref",
       "category": "business",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "02-business",
-      "targetElementTypes": [
-        "BusinessService"
-      ],
-      "fieldPaths": [
-        "x-business-service-ref"
-      ],
+      "targetElementTypes": ["BusinessService"],
+      "fieldPaths": ["x-business-service-ref"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (BusinessService.id, optional)",
@@ -888,10 +678,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "BusinessService",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -901,15 +688,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "medium",
       "isRequired": false
     },
@@ -917,16 +698,10 @@
       "id": "data-apm-data-quality-metrics",
       "name": "Apm Data Quality Metrics",
       "category": "data",
-      "sourceLayers": [
-        "07-data-model"
-      ],
+      "sourceLayers": ["07-data-model"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "DataQualityMetric"
-      ],
-      "fieldPaths": [
-        "x-apm-data-quality-metrics"
-      ],
+      "targetElementTypes": ["DataQualityMetric"],
+      "fieldPaths": ["x-apm-data-quality-metrics"],
       "cardinality": "single",
       "format": "duration",
       "description": "DataQualityMetrics (optional)",
@@ -966,16 +741,10 @@
       "id": "data-governance",
       "name": "Governance",
       "category": "data",
-      "sourceLayers": [
-        "07-data-model"
-      ],
+      "sourceLayers": ["07-data-model"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "Governance"
-      ],
-      "fieldPaths": [
-        "x-data-governance"
-      ],
+      "targetElementTypes": ["Governance"],
+      "fieldPaths": ["x-data-governance"],
       "cardinality": "single",
       "format": "string",
       "description": "DataGovernance (optional)",
@@ -997,17 +766,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "07-data-model": [
-          "JSONSchema",
-          "x-data-governance Extension",
-          "x-security Extension"
-        ]
+        "07-data-model": ["JSONSchema", "x-data-governance Extension", "x-security Extension"]
       },
-      "sourceElementTypes": [
-        "JSONSchema",
-        "x-data-governance Extension",
-        "x-security Extension"
-      ],
+      "sourceElementTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1015,16 +776,10 @@
       "id": "data-governance-owner",
       "name": "Governance Owner",
       "category": "data",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "GovernanceOwner"
-      ],
-      "fieldPaths": [
-        "data.governance-owner"
-      ],
+      "targetElementTypes": ["GovernanceOwner"],
+      "fieldPaths": ["data.governance-owner"],
       "cardinality": "single",
       "format": "reference",
       "description": "BusinessObject ownership by BusinessActor",
@@ -1041,9 +796,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "GovernanceOwner",
-        "sourceElementTypesValid": [
-          "BusinessObject"
-        ],
+        "sourceElementTypesValid": ["BusinessObject"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1053,13 +806,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessObject"
-        ]
+        "02-business": ["BusinessObject"]
       },
-      "sourceElementTypes": [
-        "BusinessObject"
-      ],
+      "sourceElementTypes": ["BusinessObject"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1067,16 +816,10 @@
       "id": "data-retention",
       "name": "Retention",
       "category": "data",
-      "sourceLayers": [
-        "04-application"
-      ],
+      "sourceLayers": ["04-application"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "Retention"
-      ],
-      "fieldPaths": [
-        "data.retention"
-      ],
+      "targetElementTypes": ["Retention"],
+      "fieldPaths": ["data.retention"],
       "cardinality": "single",
       "format": "duration",
       "description": "Links to Retention in target layer",
@@ -1093,10 +836,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Retention",
-        "sourceElementTypesValid": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "sourceElementTypesValid": ["Data Properties", "DataObject"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1106,15 +846,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "Data Properties",
-          "DataObject"
-        ]
+        "04-application": ["Data Properties", "DataObject"]
       },
-      "sourceElementTypes": [
-        "Data Properties",
-        "DataObject"
-      ],
+      "sourceElementTypes": ["Data Properties", "DataObject"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1122,16 +856,10 @@
       "id": "database",
       "name": "Database",
       "category": "data",
-      "sourceLayers": [
-        "07-data-model"
-      ],
+      "sourceLayers": ["07-data-model"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "Database"
-      ],
-      "fieldPaths": [
-        "x-database"
-      ],
+      "targetElementTypes": ["Database"],
+      "fieldPaths": ["x-database"],
       "cardinality": "single",
       "format": "duration",
       "description": "DatabaseMapping (optional)",
@@ -1174,16 +902,10 @@
       "id": "database-column",
       "name": "Database Column",
       "category": "data",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "Column"
-      ],
-      "fieldPaths": [
-        "x-database-column"
-      ],
+      "targetElementTypes": ["Column"],
+      "fieldPaths": ["x-database-column"],
       "cardinality": "single",
       "format": "duration",
       "description": "string",
@@ -1191,9 +913,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Column",
-        "sourceElementTypesValid": [
-          "Schema"
-        ],
+        "sourceElementTypesValid": ["Schema"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1203,13 +923,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Schema"
-        ]
+        "06-api": ["Schema"]
       },
-      "sourceElementTypes": [
-        "Schema"
-      ],
+      "sourceElementTypes": ["Schema"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1217,16 +933,10 @@
       "id": "database-table",
       "name": "Database Table",
       "category": "data",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "07-data-model",
-      "targetElementTypes": [
-        "Table"
-      ],
-      "fieldPaths": [
-        "x-database-table"
-      ],
+      "targetElementTypes": ["Table"],
+      "fieldPaths": ["x-database-table"],
       "cardinality": "single",
       "format": "duration",
       "description": "string",
@@ -1234,10 +944,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Table",
-        "sourceElementTypesValid": [
-          "Schema",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Schema", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1247,15 +954,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Schema",
-          "SecurityScheme"
-        ]
+        "06-api": ["Schema", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Schema",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Schema", "SecurityScheme"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1263,18 +964,10 @@
       "id": "motivation-constrained-by",
       "name": "Constrained By",
       "category": "motivation",
-      "sourceLayers": [
-        "05-technology",
-        "06-api"
-      ],
+      "sourceLayers": ["05-technology", "06-api"],
       "targetLayer": "01-motivation",
-      "targetElementTypes": [
-        "ConstrainedBy"
-      ],
-      "fieldPaths": [
-        "motivation.constrained-by",
-        "x-constrained-by"
-      ],
+      "targetElementTypes": ["ConstrainedBy"],
+      "fieldPaths": ["motivation.constrained-by", "x-constrained-by"],
       "cardinality": "array",
       "format": "reference",
       "description": "string[] (Constraint IDs for regulatory/compliance, optional)",
@@ -1332,10 +1025,7 @@
           "SystemSoftware",
           "TechnologyService"
         ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
       "sourceElementTypes": [
         "Artifact",
@@ -1353,17 +1043,10 @@
       "id": "motivation-delivers-value",
       "name": "Delivers Value",
       "category": "motivation",
-      "sourceLayers": [
-        "02-business",
-        "04-application"
-      ],
+      "sourceLayers": ["02-business", "04-application"],
       "targetLayer": "01-motivation",
-      "targetElementTypes": [
-        "DeliversValue"
-      ],
-      "fieldPaths": [
-        "motivation.delivers-value"
-      ],
+      "targetElementTypes": ["DeliversValue"],
+      "fieldPaths": ["motivation.delivers-value"],
       "cardinality": "array",
       "format": "reference",
       "description": "BusinessService delivers Value",
@@ -1388,10 +1071,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "DeliversValue",
-        "sourceElementTypesValid": [
-          "ApplicationService",
-          "BusinessService"
-        ],
+        "sourceElementTypesValid": ["ApplicationService", "BusinessService"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1401,17 +1081,10 @@
       "archimateAlignment": null,
       "bidirectional": true,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessService"
-        ],
-        "04-application": [
-          "ApplicationService"
-        ]
+        "02-business": ["BusinessService"],
+        "04-application": ["ApplicationService"]
       },
-      "sourceElementTypes": [
-        "ApplicationService",
-        "BusinessService"
-      ],
+      "sourceElementTypes": ["ApplicationService", "BusinessService"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1419,19 +1092,10 @@
       "id": "motivation-fulfills-requirements",
       "name": "Fulfills Requirements",
       "category": "motivation",
-      "sourceLayers": [
-        "04-application",
-        "05-technology",
-        "06-api"
-      ],
+      "sourceLayers": ["04-application", "05-technology", "06-api"],
       "targetLayer": "01-motivation",
-      "targetElementTypes": [
-        "FulfillsRequirement"
-      ],
-      "fieldPaths": [
-        "motivation.fulfills-requirements",
-        "x-fulfills-requirements"
-      ],
+      "targetElementTypes": ["FulfillsRequirement"],
+      "fieldPaths": ["motivation.fulfills-requirements", "x-fulfills-requirements"],
       "cardinality": "array",
       "format": "reference",
       "description": "comma-separated Requirement IDs this function fulfills",
@@ -1481,18 +1145,9 @@
       "archimateAlignment": null,
       "bidirectional": true,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "ApplicationFunction"
-        ],
-        "05-technology": [
-          "CommunicationNetwork",
-          "Node",
-          "SystemSoftware"
-        ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "04-application": ["ApplicationFunction"],
+        "05-technology": ["CommunicationNetwork", "Node", "SystemSoftware"],
+        "06-api": ["Operation", "SecurityScheme"]
       },
       "sourceElementTypes": [
         "ApplicationFunction",
@@ -1523,13 +1178,8 @@
         "12-testing"
       ],
       "targetLayer": "01-motivation",
-      "targetElementTypes": [
-        "GovernedByPrinciple"
-      ],
-      "fieldPaths": [
-        "motivation.governed-by-principles",
-        "x-governed-by-principles"
-      ],
+      "targetElementTypes": ["GovernedByPrinciple"],
+      "fieldPaths": ["motivation.governed-by-principles", "x-governed-by-principles"],
       "cardinality": "array",
       "format": "reference",
       "description": "BusinessService governed by Principles",
@@ -1583,45 +1233,17 @@
       "archimateAlignment": null,
       "bidirectional": true,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessService"
-        ],
-        "04-application": [
-          "ApplicationFunction",
-          "ApplicationService"
-        ],
-        "05-technology": [
-          "CommunicationNetwork",
-          "Node",
-          "SystemSoftware",
-          "TechnologyService"
-        ],
-        "06-api": [
-          "OpenAPIDocument",
-          "Operation",
-          "SecurityScheme"
-        ],
-        "03-security": [
-          "BusinessService"
-        ],
-        "07-data-model": [
-          "BusinessService"
-        ],
-        "08-datastore": [
-          "BusinessService"
-        ],
-        "09-ux": [
-          "BusinessService"
-        ],
-        "10-navigation": [
-          "BusinessService"
-        ],
-        "11-apm-observability": [
-          "BusinessService"
-        ],
-        "12-testing": [
-          "BusinessService"
-        ]
+        "02-business": ["BusinessService"],
+        "04-application": ["ApplicationFunction", "ApplicationService"],
+        "05-technology": ["CommunicationNetwork", "Node", "SystemSoftware", "TechnologyService"],
+        "06-api": ["OpenAPIDocument", "Operation", "SecurityScheme"],
+        "03-security": ["BusinessService"],
+        "07-data-model": ["BusinessService"],
+        "08-datastore": ["BusinessService"],
+        "09-ux": ["BusinessService"],
+        "10-navigation": ["BusinessService"],
+        "11-apm-observability": ["BusinessService"],
+        "12-testing": ["BusinessService"]
       },
       "sourceElementTypes": [
         "ApplicationFunction",
@@ -1656,13 +1278,8 @@
         "12-testing"
       ],
       "targetLayer": "01-motivation",
-      "targetElementTypes": [
-        "SupportsGoal"
-      ],
-      "fieldPaths": [
-        "motivation.supports-goals",
-        "x-supports-goals"
-      ],
+      "targetElementTypes": ["SupportsGoal"],
+      "fieldPaths": ["motivation.supports-goals", "x-supports-goals"],
       "cardinality": "array",
       "format": "reference",
       "description": "BusinessService supports Goals",
@@ -1711,40 +1328,17 @@
       "archimateAlignment": null,
       "bidirectional": true,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessService"
-        ],
-        "04-application": [
-          "ApplicationService"
-        ],
-        "05-technology": [
-          "TechnologyService"
-        ],
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "03-security": [
-          "BusinessService"
-        ],
-        "07-data-model": [
-          "BusinessService"
-        ],
-        "08-datastore": [
-          "BusinessService"
-        ],
-        "09-ux": [
-          "BusinessService"
-        ],
-        "10-navigation": [
-          "BusinessService"
-        ],
-        "11-apm-observability": [
-          "BusinessService"
-        ],
-        "12-testing": [
-          "BusinessService"
-        ]
+        "02-business": ["BusinessService"],
+        "04-application": ["ApplicationService"],
+        "05-technology": ["TechnologyService"],
+        "06-api": ["Operation", "SecurityScheme"],
+        "03-security": ["BusinessService"],
+        "07-data-model": ["BusinessService"],
+        "08-datastore": ["BusinessService"],
+        "09-ux": ["BusinessService"],
+        "10-navigation": ["BusinessService"],
+        "11-apm-observability": ["BusinessService"],
+        "12-testing": ["BusinessService"]
       },
       "sourceElementTypes": [
         "ApplicationService",
@@ -1774,12 +1368,8 @@
         "12-testing"
       ],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "Classification"
-      ],
-      "fieldPaths": [
-        "security.classification"
-      ],
+      "targetElementTypes": ["Classification"],
+      "fieldPaths": ["security.classification"],
       "cardinality": "single",
       "format": "string",
       "description": "Links to Classification in target layer",
@@ -1804,9 +1394,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Classification",
-        "sourceElementTypesValid": [
-          "Artifact"
-        ],
+        "sourceElementTypesValid": ["Artifact"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1816,43 +1404,19 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "Artifact"
-        ],
-        "02-business": [
-          "Artifact"
-        ],
-        "03-security": [
-          "Artifact"
-        ],
-        "04-application": [
-          "Artifact"
-        ],
-        "06-api": [
-          "Artifact"
-        ],
-        "07-data-model": [
-          "Artifact"
-        ],
-        "08-datastore": [
-          "Artifact"
-        ],
-        "09-ux": [
-          "Artifact"
-        ],
-        "10-navigation": [
-          "Artifact"
-        ],
-        "11-apm-observability": [
-          "Artifact"
-        ],
-        "12-testing": [
-          "Artifact"
-        ]
+        "05-technology": ["Artifact"],
+        "02-business": ["Artifact"],
+        "03-security": ["Artifact"],
+        "04-application": ["Artifact"],
+        "06-api": ["Artifact"],
+        "07-data-model": ["Artifact"],
+        "08-datastore": ["Artifact"],
+        "09-ux": ["Artifact"],
+        "10-navigation": ["Artifact"],
+        "11-apm-observability": ["Artifact"],
+        "12-testing": ["Artifact"]
       },
-      "sourceElementTypes": [
-        "Artifact"
-      ],
+      "sourceElementTypes": ["Artifact"],
       "strength": "low",
       "isRequired": false
     },
@@ -1860,16 +1424,10 @@
       "id": "security-data-pii",
       "name": "Data Pii",
       "category": "security",
-      "sourceLayers": [
-        "04-application"
-      ],
+      "sourceLayers": ["04-application"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "Pii"
-      ],
-      "fieldPaths": [
-        "data.pii"
-      ],
+      "targetElementTypes": ["Pii"],
+      "fieldPaths": ["data.pii"],
       "cardinality": "single",
       "format": "boolean",
       "description": "Links to Pii in target layer",
@@ -1886,10 +1444,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Pii",
-        "sourceElementTypesValid": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "sourceElementTypesValid": ["Data Properties", "DataObject"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1899,15 +1454,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "Data Properties",
-          "DataObject"
-        ]
+        "04-application": ["Data Properties", "DataObject"]
       },
-      "sourceElementTypes": [
-        "Data Properties",
-        "DataObject"
-      ],
+      "sourceElementTypes": ["Data Properties", "DataObject"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1915,16 +1464,10 @@
       "id": "security-encrypted",
       "name": "Encrypted",
       "category": "security",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "Encrypted"
-      ],
-      "fieldPaths": [
-        "x-encrypted"
-      ],
+      "targetElementTypes": ["Encrypted"],
+      "fieldPaths": ["x-encrypted"],
       "cardinality": "single",
       "format": "string",
       "description": "boolean",
@@ -1932,9 +1475,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Encrypted",
-        "sourceElementTypesValid": [
-          "Schema"
-        ],
+        "sourceElementTypesValid": ["Schema"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -1944,13 +1485,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Schema"
-        ]
+        "06-api": ["Schema"]
       },
-      "sourceElementTypes": [
-        "Schema"
-      ],
+      "sourceElementTypes": ["Schema"],
       "strength": "medium",
       "isRequired": false
     },
@@ -1958,16 +1495,10 @@
       "id": "security-encryption-required",
       "name": "Encryption Required",
       "category": "security",
-      "sourceLayers": [
-        "05-technology"
-      ],
+      "sourceLayers": ["05-technology"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "EncryptionRequired"
-      ],
-      "fieldPaths": [
-        "security.encryption-required"
-      ],
+      "targetElementTypes": ["EncryptionRequired"],
+      "fieldPaths": ["security.encryption-required"],
       "cardinality": "single",
       "format": "boolean",
       "description": "Links to EncryptionRequired in target layer",
@@ -1992,9 +1523,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "EncryptionRequired",
-        "sourceElementTypesValid": [
-          "Artifact"
-        ],
+        "sourceElementTypesValid": ["Artifact"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2004,13 +1533,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "Artifact"
-        ]
+        "05-technology": ["Artifact"]
       },
-      "sourceElementTypes": [
-        "Artifact"
-      ],
+      "sourceElementTypes": ["Artifact"],
       "strength": "medium",
       "isRequired": false
     },
@@ -2018,16 +1543,10 @@
       "id": "security-encryption-type",
       "name": "Encryption Type",
       "category": "security",
-      "sourceLayers": [
-        "05-technology"
-      ],
+      "sourceLayers": ["05-technology"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "EncryptionType"
-      ],
-      "fieldPaths": [
-        "security.encryption-type"
-      ],
+      "targetElementTypes": ["EncryptionType"],
+      "fieldPaths": ["security.encryption-type"],
       "cardinality": "single",
       "format": "string",
       "description": "Links to EncryptionType in target layer",
@@ -2052,9 +1571,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "EncryptionType",
-        "sourceElementTypesValid": [
-          "Artifact"
-        ],
+        "sourceElementTypesValid": ["Artifact"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2064,13 +1581,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "Artifact"
-        ]
+        "05-technology": ["Artifact"]
       },
-      "sourceElementTypes": [
-        "Artifact"
-      ],
+      "sourceElementTypes": ["Artifact"],
       "strength": "medium",
       "isRequired": false
     },
@@ -2078,18 +1591,10 @@
       "id": "security-pii",
       "name": "Pii",
       "category": "security",
-      "sourceLayers": [
-        "05-technology",
-        "06-api"
-      ],
+      "sourceLayers": ["05-technology", "06-api"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "Pii"
-      ],
-      "fieldPaths": [
-        "security.pii",
-        "x-pii"
-      ],
+      "targetElementTypes": ["Pii"],
+      "fieldPaths": ["security.pii", "x-pii"],
       "cardinality": "single",
       "format": "boolean",
       "description": "contains personally identifiable information",
@@ -2106,10 +1611,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Pii",
-        "sourceElementTypesValid": [
-          "Artifact",
-          "Schema"
-        ],
+        "sourceElementTypesValid": ["Artifact", "Schema"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2119,17 +1621,10 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "05-technology": [
-          "Artifact"
-        ],
-        "06-api": [
-          "Schema"
-        ]
+        "05-technology": ["Artifact"],
+        "06-api": ["Schema"]
       },
-      "sourceElementTypes": [
-        "Artifact",
-        "Schema"
-      ],
+      "sourceElementTypes": ["Artifact", "Schema"],
       "strength": "medium",
       "isRequired": false
     },
@@ -2137,16 +1632,10 @@
       "id": "security-process-security-controls",
       "name": "Process Security Controls",
       "category": "security",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "SecurityControl"
-      ],
-      "fieldPaths": [
-        "process.security-controls"
-      ],
+      "targetElementTypes": ["SecurityControl"],
+      "fieldPaths": ["process.security-controls"],
       "cardinality": "array",
       "format": "string",
       "description": "security control references",
@@ -2163,9 +1652,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "SecurityControl",
-        "sourceElementTypesValid": [
-          "BusinessProcess"
-        ],
+        "sourceElementTypesValid": ["BusinessProcess"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2175,13 +1662,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessProcess"
-        ]
+        "02-business": ["BusinessProcess"]
       },
-      "sourceElementTypes": [
-        "BusinessProcess"
-      ],
+      "sourceElementTypes": ["BusinessProcess"],
       "strength": "high",
       "isRequired": false
     },
@@ -2189,16 +1672,10 @@
       "id": "security-process-separation-of-duty",
       "name": "Process Separation Of Duty",
       "category": "security",
-      "sourceLayers": [
-        "02-business"
-      ],
+      "sourceLayers": ["02-business"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "SeparationOfDuty"
-      ],
-      "fieldPaths": [
-        "process.separation-of-duty"
-      ],
+      "targetElementTypes": ["SeparationOfDuty"],
+      "fieldPaths": ["process.separation-of-duty"],
       "cardinality": "single",
       "format": "boolean",
       "description": "Links to SeparationOfDuty in target layer",
@@ -2215,9 +1692,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "SeparationOfDuty",
-        "sourceElementTypesValid": [
-          "BusinessProcess"
-        ],
+        "sourceElementTypesValid": ["BusinessProcess"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2227,13 +1702,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "02-business": [
-          "BusinessProcess"
-        ]
+        "02-business": ["BusinessProcess"]
       },
-      "sourceElementTypes": [
-        "BusinessProcess"
-      ],
+      "sourceElementTypes": ["BusinessProcess"],
       "strength": "medium",
       "isRequired": false
     },
@@ -2241,16 +1712,10 @@
       "id": "security-required-permissions",
       "name": "Required Permissions",
       "category": "security",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "Permission"
-      ],
-      "fieldPaths": [
-        "x-required-permissions"
-      ],
+      "targetElementTypes": ["Permission"],
+      "fieldPaths": ["x-required-permissions"],
       "cardinality": "array",
       "format": "duration",
       "description": "string[] (Permission.name[], optional)",
@@ -2258,10 +1723,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "Permission",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2271,15 +1733,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "critical",
       "isRequired": false
     },
@@ -2287,16 +1743,10 @@
       "id": "security-resource",
       "name": "Resource",
       "category": "security",
-      "sourceLayers": [
-        "06-api"
-      ],
+      "sourceLayers": ["06-api"],
       "targetLayer": "03-security",
-      "targetElementTypes": [
-        "SecureResource"
-      ],
-      "fieldPaths": [
-        "x-security-resource"
-      ],
+      "targetElementTypes": ["SecureResource"],
+      "fieldPaths": ["x-security-resource"],
       "cardinality": "single",
       "format": "duration",
       "description": "string (SecureResource.resource, optional)",
@@ -2304,10 +1754,7 @@
       "validationRules": {
         "targetExists": true,
         "targetType": "SecureResource",
-        "sourceElementTypesValid": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "sourceElementTypesValid": ["Operation", "SecurityScheme"],
         "minimumCardinality": 0,
         "maximumCardinality": null
       },
@@ -2317,15 +1764,9 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "06-api": [
-          "Operation",
-          "SecurityScheme"
-        ]
+        "06-api": ["Operation", "SecurityScheme"]
       },
-      "sourceElementTypes": [
-        "Operation",
-        "SecurityScheme"
-      ],
+      "sourceElementTypes": ["Operation", "SecurityScheme"],
       "strength": "critical",
       "isRequired": false
     },
@@ -2344,13 +1785,8 @@
         "12-testing"
       ],
       "targetLayer": "external-code",
-      "targetElementTypes": [
-        "external-code"
-      ],
-      "fieldPaths": [
-        "properties.source.reference",
-        "x-source-reference"
-      ],
+      "targetElementTypes": ["external-code"],
+      "fieldPaths": ["properties.source.reference", "x-source-reference"],
       "cardinality": "single",
       "format": "object",
       "description": "Links model entity to source code location(s)",
@@ -2377,30 +1813,14 @@
       "archimateAlignment": null,
       "bidirectional": false,
       "sourceElementTypesByLayer": {
-        "04-application": [
-          "ApplicationService"
-        ],
-        "06-api": [
-          "Operation"
-        ],
-        "07-data-model": [
-          "JSONSchema"
-        ],
-        "08-datastore": [
-          "Table"
-        ],
-        "09-ux": [
-          "Component"
-        ],
-        "10-navigation": [
-          "Route"
-        ],
-        "11-apm-observability": [
-          "Metric"
-        ],
-        "12-testing": [
-          "TestCase"
-        ]
+        "04-application": ["ApplicationService"],
+        "06-api": ["Operation"],
+        "07-data-model": ["JSONSchema"],
+        "08-datastore": ["Table"],
+        "09-ux": ["Component"],
+        "10-navigation": ["Route"],
+        "11-apm-observability": ["Metric"],
+        "12-testing": ["TestCase"]
       },
       "sourceElementTypes": [
         "ApplicationService",

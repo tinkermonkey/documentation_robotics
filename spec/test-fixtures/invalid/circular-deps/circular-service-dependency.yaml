@@ -24,4 +24,4 @@
   description: Service with circular dependency
   properties:
     uses:
-      - application.service.service-a  # Creates circular dependency: A -> B -> C -> A
+      - application.service.service-a # Creates circular dependency: A -> B -> C -> A

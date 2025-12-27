@@ -3,7 +3,7 @@ name: Specification Validation
 # DISABLED: Re-enable after pre-commit hooks are in place
 # See .pre-commit-config.yaml for local validation
 on:
-  workflow_dispatch:  # Manual trigger only
+  workflow_dispatch: # Manual trigger only
   # push:
   #   branches: [main, develop]
   #   paths:
@@ -24,7 +24,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install AJV CLI
         run: npm install -g ajv-cli ajv-formats
@@ -50,7 +50,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: "18"
 
       - name: Install markdown-link-check
         run: npm install -g markdown-link-check

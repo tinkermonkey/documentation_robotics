@@ -9,16 +9,8 @@
         "inversePredicate": "composed-of",
         "category": "structural",
         "description": "Whole-part relationship where the part cannot exist without the whole",
-        "sourceTypes": [
-          "BusinessCollaboration",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessRole",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessCollaboration",
@@ -45,16 +37,8 @@
         "inversePredicate": "aggregated-by",
         "category": "structural",
         "description": "Whole-part relationship where the part can exist independently",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "Goal",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "Goal",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
         "examples": [
           {
             "source": "Goal",
@@ -82,14 +66,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -110,12 +88,8 @@
         "inversePredicate": "assigns",
         "category": "structural",
         "description": "Active element assigned to behavior or role",
-        "sourceTypes": [
-          "BusinessActor"
-        ],
-        "targetTypes": [
-          "BusinessRole"
-        ],
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
         "examples": [
           {
             "source": "BusinessActor",
@@ -130,15 +104,8 @@
         "inversePredicate": "associated-with",
         "category": "structural",
         "description": "Generic relationship indicating elements are related or connected",
-        "sourceTypes": [
-          "Requirement",
-          "Stakeholder"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal"
-        ],
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -166,12 +133,8 @@
         "inversePredicate": "used-by",
         "category": "dependency",
         "description": "Element depends on another for functionality",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -186,16 +149,8 @@
         "inversePredicate": "referenced-by",
         "category": "dependency",
         "description": "Pointer reference without functional dependency",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -222,13 +177,8 @@
         "inversePredicate": "fulfilled-by",
         "category": "traceability",
         "description": "Implementation satisfies requirement",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -251,12 +201,8 @@
         "inversePredicate": "constrains",
         "category": "governance",
         "description": "Element limited by constraint",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -271,12 +217,8 @@
         "inversePredicate": "enforced-by",
         "category": "governance",
         "description": "Element actively enforces requirement",
-        "sourceTypes": [
-          "NavigationGuard"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["NavigationGuard"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "NavigationGuard",
@@ -291,12 +233,8 @@
         "inversePredicate": "protected-by",
         "category": "security",
         "description": "Security control relationships",
-        "sourceTypes": [
-          "SecurityControl"
-        ],
-        "targetTypes": [
-          "ApplicationService"
-        ],
+        "sourceTypes": ["SecurityControl"],
+        "targetTypes": ["ApplicationService"],
         "examples": [
           {
             "source": "SecurityControl",
@@ -311,12 +249,8 @@
         "inversePredicate": "authenticated-by",
         "category": "security",
         "description": "Authentication flows",
-        "sourceTypes": [
-          "AuthenticationService"
-        ],
-        "targetTypes": [
-          "User"
-        ],
+        "sourceTypes": ["AuthenticationService"],
+        "targetTypes": ["User"],
         "examples": [
           {
             "source": "AuthenticationService",
@@ -331,12 +265,8 @@
         "inversePredicate": "authorized-by",
         "category": "security",
         "description": "Permission grants",
-        "sourceTypes": [
-          "Role"
-        ],
-        "targetTypes": [
-          "Operation"
-        ],
+        "sourceTypes": ["Role"],
+        "targetTypes": ["Operation"],
         "examples": [
           {
             "source": "Role",
@@ -351,12 +281,8 @@
         "inversePredicate": "derived-by",
         "category": "data",
         "description": "Calculated field relationships",
-        "sourceTypes": [
-          "TotalPrice"
-        ],
-        "targetTypes": [
-          "Quantity, UnitPrice"
-        ],
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
         "examples": [
           {
             "source": "TotalPrice",
@@ -376,12 +302,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -412,12 +334,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -448,12 +366,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",
@@ -489,12 +403,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "02-business",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -504,12 +414,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "03-security",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -519,12 +425,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "04-application",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -534,12 +436,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "05-technology",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -549,12 +447,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -564,12 +458,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "07-data-model",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -579,12 +469,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "08-datastore",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -594,12 +480,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "09-ux",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -609,12 +491,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "10-navigation",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -624,12 +502,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "11-apm-observability",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -639,12 +513,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "classification",
           "sourceLayer": "12-testing",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Classification"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Classification"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "description": "Inverse of: Links to Classification in target layer"
@@ -654,13 +524,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "pii",
           "sourceLayer": "04-application",
-          "sourceTypes": [
-            "Data Properties",
-            "DataObject"
-          ],
-          "targetTypes": [
-            "Pii"
-          ],
+          "sourceTypes": ["Data Properties", "DataObject"],
+          "targetTypes": ["Pii"],
           "fieldPath": "data.pii",
           "cardinality": "single",
           "description": "Inverse of: Links to Pii in target layer"
@@ -670,12 +535,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "encrypted",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Schema"
-          ],
-          "targetTypes": [
-            "Encrypted"
-          ],
+          "sourceTypes": ["Schema"],
+          "targetTypes": ["Encrypted"],
           "fieldPath": "x-encrypted",
           "cardinality": "single",
           "description": "Inverse of: boolean"
@@ -685,12 +546,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "encryption-required",
           "sourceLayer": "05-technology",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "EncryptionRequired"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["EncryptionRequired"],
           "fieldPath": "security.encryption-required",
           "cardinality": "single",
           "description": "Inverse of: Links to EncryptionRequired in target layer"
@@ -700,12 +557,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "encryption-type",
           "sourceLayer": "05-technology",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "EncryptionType"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["EncryptionType"],
           "fieldPath": "security.encryption-type",
           "cardinality": "single",
           "description": "Inverse of: Links to EncryptionType in target layer"
@@ -715,12 +568,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "pii",
           "sourceLayer": "05-technology",
-          "sourceTypes": [
-            "Artifact"
-          ],
-          "targetTypes": [
-            "Pii"
-          ],
+          "sourceTypes": ["Artifact"],
+          "targetTypes": ["Pii"],
           "fieldPath": "security.pii",
           "cardinality": "single",
           "description": "Inverse of: contains personally identifiable information"
@@ -730,12 +579,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "pii",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Schema"
-          ],
-          "targetTypes": [
-            "Pii"
-          ],
+          "sourceTypes": ["Schema"],
+          "targetTypes": ["Pii"],
           "fieldPath": "security.pii",
           "cardinality": "single",
           "description": "Inverse of: contains personally identifiable information"
@@ -745,12 +590,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "security-controls",
           "sourceLayer": "02-business",
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
-          "targetTypes": [
-            "SecurityControl"
-          ],
+          "sourceTypes": ["BusinessProcess"],
+          "targetTypes": ["SecurityControl"],
           "fieldPath": "process.security-controls",
           "cardinality": "array",
           "description": "Inverse of: security control references"
@@ -760,12 +601,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "separation-of-duty",
           "sourceLayer": "02-business",
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
-          "targetTypes": [
-            "SeparationOfDuty"
-          ],
+          "sourceTypes": ["BusinessProcess"],
+          "targetTypes": ["SeparationOfDuty"],
           "fieldPath": "process.separation-of-duty",
           "cardinality": "single",
           "description": "Inverse of: Links to SeparationOfDuty in target layer"
@@ -775,13 +612,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "required-permissions",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "Permission"
-          ],
+          "sourceTypes": ["Operation", "SecurityScheme"],
+          "targetTypes": ["Permission"],
           "fieldPath": "x-required-permissions",
           "cardinality": "array",
           "description": "Inverse of: string[] (Permission.name[], optional)"
@@ -791,13 +623,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "security-resource",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "SecureResource"
-          ],
+          "sourceTypes": ["Operation", "SecurityScheme"],
+          "targetTypes": ["SecureResource"],
           "fieldPath": "x-security-resource",
           "cardinality": "single",
           "description": "Inverse of: string (SecureResource.resource, optional)"

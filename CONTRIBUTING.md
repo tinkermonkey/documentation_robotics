@@ -6,8 +6,8 @@ Thank you for your interest in contributing!
 
 Before contributing, ensure you have:
 
-- **Python 3.10 or higher**
-- **pip** (Python package manager)
+- **Node.js 18 or higher**
+- **npm** (Node package manager)
 - **Git**
 
 ## Important: Pre-commit Hooks Required
@@ -43,8 +43,8 @@ For specification contributions (new layers, entities, changes):
 
 For CLI improvements (features, bug fixes):
 
-- See [cli/README.md#development](cli/README.md#development)
-- Run tests: `cd cli && pytest`
+- See [cli-bun/README.md#development](cli-bun/README.md#development)
+- Run tests: `cd cli-bun && npm run test`
 - Use "CLI" issue templates
 
 ## Quick Start
@@ -64,8 +64,9 @@ pip install pre-commit
 pre-commit install
 
 # For CLI development
-cd cli
-pip install -e ".[dev]"
+cd cli-bun
+npm install
+npm run build
 cd ..
 
 # For spec work (optional)
@@ -95,8 +96,8 @@ git commit -m "your message"
 pre-commit run --all-files
 
 # For CLI changes, also run tests
-cd cli
-pytest
+cd cli-bun
+npm run test
 ```
 
 ### 6. Push and Create PR
@@ -132,16 +133,15 @@ git commit -m "spec: add new entity to motivation layer"
 
 ```bash
 # 1. Make changes
-vim cli/src/documentation_robotics/commands/new_command.py
+vim cli-bun/src/commands/new-command.ts
 
 # 2. Add tests
-vim cli/tests/unit/test_new_command.py
+vim cli-bun/tests/unit/new-command.test.ts
 
 # 3. Run tests
-cd cli
-pytest
-black src/
-ruff check src/
+cd cli-bun
+npm run test
+npm run format
 
 # 4. Commit (pre-commit will auto-format)
 git add .
@@ -150,35 +150,35 @@ git commit -m "feat(cli): add new command"
 
 ### Building the CLI Package
 
-For building and packaging the CLI, see [BUILDING.md](BUILDING.md).
-
-Quick build:
+For building and packaging the CLI:
 
 ```bash
-# Prepare build (fetches schemas from GitHub release)
-python scripts/prepare_build.py
-
 # Build package
-cd cli
-python -m build
+cd cli-bun
+npm run build
+
+# Test locally
+npm install -g .
+dr --help
 ```
 
-For development builds using local schemas:
+For development builds:
 
 ```bash
-python scripts/prepare_build.py --local
-cd cli
-pip install -e .
+cd cli-bun
+npm install
+npm run build
+npm link
 ```
 
 ## Code Style
 
-### Python (CLI)
+### TypeScript (CLI)
 
-- **Formatter:** Black (line-length=100)
-- **Linter:** Ruff
-- **Type Checking:** mypy
-- **Imports:** Sorted automatically
+- **Formatter:** Prettier
+- **Linter:** ESLint
+- **Type Checking:** TypeScript compiler
+- **Imports:** Organized automatically
 
 Pre-commit hooks enforce these automatically.
 
@@ -212,24 +212,23 @@ Pre-commit hooks enforce these automatically.
 ### CLI
 
 ```bash
-cd cli
+cd cli-bun
 
 # Run all tests
-pytest
+npm run test
 
 # Run with coverage
-pytest --cov=documentation_robotics --cov-report=html
+npm run test:coverage
 
 # Run specific tests
-pytest tests/unit/
-pytest tests/conformance/
+npm run test:unit
+npm run test:integration
 
 # Type checking
-mypy src/
+npm run type-check
 
 # Linting
-black --check src/
-ruff check src/
+npm run lint
 ```
 
 ## Commit Messages
@@ -353,4 +352,4 @@ By contributing, you agree that your contributions will be licensed under the MI
 3. Pick an issue or propose a new feature
 4. Start coding!
 
-Thank you for contributing! 🎉
+Thank you for contributing!

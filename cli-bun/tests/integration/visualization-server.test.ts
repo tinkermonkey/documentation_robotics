@@ -78,7 +78,7 @@ describe('VisualizationServer Integration Tests', () => {
     testDir = join(tmpdir(), `dr-integration-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model);
+    server = new VisualizationServer(model, { authEnabled: false });
   });
 
   afterAll(() => {
@@ -220,16 +220,20 @@ describe('VisualizationServer Integration Tests', () => {
     it('should include annotations in serialized model', async () => {
       const elementId = 'motivation-goal-integration-test';
       const annotation = {
+        id: server['generateAnnotationId'](),
         elementId,
         author: 'Test User',
-        text: 'Integration test annotation',
-        timestamp: new Date().toISOString(),
+        content: 'Integration test annotation',
+        createdAt: new Date().toISOString(),
+        tags: [],
       };
 
-      if (!server['annotations'].has(elementId)) {
-        server['annotations'].set(elementId, []);
+      // Store annotation using new structure
+      server['annotations'].set(annotation.id, annotation);
+      if (!server['annotationsByElement'].has(elementId)) {
+        server['annotationsByElement'].set(elementId, new Set());
       }
-      server['annotations'].get(elementId)!.push(annotation);
+      server['annotationsByElement'].get(elementId)!.add(annotation.id);
 
       const modelData = await server['serializeModel']();
       const element = modelData.layers.motivation.elements.find(
@@ -264,10 +268,10 @@ describe('VisualizationServer Integration Tests', () => {
       let broadcastCalled = false;
 
       // Store original broadcast method
-      const originalBroadcast = server['broadcastAnnotation'];
+      const originalBroadcast = server['broadcastMessage'];
 
       // Mock broadcast method
-      server['broadcastAnnotation'] = async () => {
+      server['broadcastMessage'] = async () => {
         broadcastCalled = true;
       };
 
@@ -287,7 +291,7 @@ describe('VisualizationServer Integration Tests', () => {
       expect(broadcastCalled).toBe(true);
 
       // Restore original method
-      server['broadcastAnnotation'] = originalBroadcast;
+      server['broadcastMessage'] = originalBroadcast;
     });
 
     it('should handle invalid messages gracefully', async () => {

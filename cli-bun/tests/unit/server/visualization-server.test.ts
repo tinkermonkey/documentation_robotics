@@ -55,7 +55,7 @@ describe('VisualizationServer', () => {
     testDir = join(tmpdir(), `dr-test-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     model = await createTestModel(testDir);
-    server = new VisualizationServer(model);
+    server = new VisualizationServer(model, { authEnabled: false });
   });
 
   afterAll(() => {
@@ -258,7 +258,7 @@ describe('VisualizationServer', () => {
 
   describe('stop', () => {
     it('should handle stop without watcher', () => {
-      const tempServer = new VisualizationServer(model);
+      const tempServer = new VisualizationServer(model, { authEnabled: false });
       expect(() => {
         tempServer.stop();
       }).not.toThrow();

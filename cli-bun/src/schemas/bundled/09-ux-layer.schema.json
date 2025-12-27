@@ -15,14 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -39,16 +33,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -71,12 +57,8 @@
       },
       {
         "relationshipTypeId": "uses",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -87,16 +69,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -119,15 +93,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "ApplicationService",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "DataObject",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -150,12 +117,8 @@
       },
       {
         "relationshipTypeId": "renders",
-        "sourceTypes": [
-          "UIComponent"
-        ],
-        "targetTypes": [
-          "UIView"
-        ],
+        "sourceTypes": ["UIComponent"],
+        "targetTypes": ["UIView"],
         "examples": [
           {
             "source": "UIComponent",
@@ -166,12 +129,8 @@
       },
       {
         "relationshipTypeId": "binds-to",
-        "sourceTypes": [
-          "UIComponent"
-        ],
-        "targetTypes": [
-          "DataObject"
-        ],
+        "sourceTypes": ["UIComponent"],
+        "targetTypes": ["DataObject"],
         "examples": [
           {
             "source": "UIComponent",
@@ -182,12 +141,8 @@
       },
       {
         "relationshipTypeId": "navigates-to",
-        "sourceTypes": [
-          "UIView"
-        ],
-        "targetTypes": [
-          "UIView"
-        ],
+        "sourceTypes": ["UIView"],
+        "targetTypes": ["UIView"],
         "examples": [
           {
             "source": "UIView",
@@ -206,12 +161,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -242,12 +193,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -278,12 +225,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -519,13 +462,7 @@
     },
     "LayoutStyle": {
       "type": "string",
-      "enum": [
-        "grid",
-        "flex",
-        "stack",
-        "flow",
-        "custom"
-      ]
+      "enum": ["grid", "flex", "stack", "flow", "custom"]
     },
     "ActionType": {
       "type": "string",
@@ -544,13 +481,7 @@
     },
     "ChannelType": {
       "type": "string",
-      "enum": [
-        "visual",
-        "voice",
-        "chat",
-        "sms",
-        "multimodal"
-      ]
+      "enum": ["visual", "voice", "chat", "sms", "multimodal"]
     },
     "DataSource": {
       "type": "string",
@@ -566,29 +497,11 @@
     },
     "TriggerType": {
       "type": "string",
-      "enum": [
-        "success",
-        "failure",
-        "submit",
-        "cancel",
-        "click",
-        "timeout",
-        "dataReady",
-        "custom"
-      ]
+      "enum": ["success", "failure", "submit", "cancel", "click", "timeout", "dataReady", "custom"]
     },
     "ViewType": {
       "type": "string",
-      "enum": [
-        "form",
-        "list",
-        "detail",
-        "dashboard",
-        "wizard",
-        "split",
-        "conversational",
-        "custom"
-      ]
+      "enum": ["form", "list", "detail", "dashboard", "wizard", "split", "conversational", "custom"]
     },
     "ActionComponentType": {
       "type": "string",
@@ -604,15 +517,7 @@
     },
     "ButtonStyle": {
       "type": "string",
-      "enum": [
-        "primary",
-        "secondary",
-        "danger",
-        "success",
-        "warning",
-        "ghost",
-        "icon"
-      ]
+      "enum": ["primary", "secondary", "danger", "success", "warning", "ghost", "icon"]
     },
     "ValidationType": {
       "type": "string",
@@ -630,96 +535,39 @@
     },
     "LayoutType": {
       "type": "string",
-      "enum": [
-        "grid",
-        "flex",
-        "stack",
-        "flow",
-        "fixed",
-        "absolute",
-        "custom"
-      ]
+      "enum": ["grid", "flex", "stack", "flow", "fixed", "absolute", "custom"]
     },
     "JustifyContent": {
       "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "space-between",
-        "space-around",
-        "space-evenly"
-      ]
+      "enum": ["start", "end", "center", "space-between", "space-around", "space-evenly"]
     },
     "AlignItems": {
       "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch",
-        "baseline"
-      ]
+      "enum": ["start", "end", "center", "stretch", "baseline"]
     },
     "JustifyItems": {
       "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch"
-      ]
+      "enum": ["start", "end", "center", "stretch"]
     },
     "AlignContent": {
       "type": "string",
-      "enum": [
-        "start",
-        "end",
-        "center",
-        "stretch",
-        "space-between",
-        "space-around"
-      ]
+      "enum": ["start", "end", "center", "stretch", "space-between", "space-around"]
     },
     "NotificationType": {
       "type": "string",
-      "enum": [
-        "toast",
-        "alert",
-        "inline",
-        "banner",
-        "none"
-      ]
+      "enum": ["toast", "alert", "inline", "banner", "none"]
     },
     "HttpMethod": {
       "type": "string",
-      "enum": [
-        "GET",
-        "POST",
-        "PUT",
-        "PATCH",
-        "DELETE",
-        "HEAD",
-        "OPTIONS"
-      ]
+      "enum": ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
     },
     "CacheStrategy": {
       "type": "string",
-      "enum": [
-        "no-cache",
-        "cache-first",
-        "network-first",
-        "stale-while-revalidate"
-      ]
+      "enum": ["no-cache", "cache-first", "network-first", "stale-while-revalidate"]
     },
     "AnimationType": {
       "type": "string",
-      "enum": [
-        "fade",
-        "slide",
-        "scale",
-        "none"
-      ]
+      "enum": ["fade", "slide", "scale", "none"]
     },
     "ColumnDisplayType": {
       "type": "string",
@@ -740,38 +588,19 @@
     },
     "TextAlign": {
       "type": "string",
-      "enum": [
-        "left",
-        "center",
-        "right"
-      ]
+      "enum": ["left", "center", "right"]
     },
     "SortDirection": {
       "type": "string",
-      "enum": [
-        "asc",
-        "desc"
-      ]
+      "enum": ["asc", "desc"]
     },
     "FilterType": {
       "type": "string",
-      "enum": [
-        "text",
-        "select",
-        "multiselect",
-        "date",
-        "daterange",
-        "number",
-        "boolean"
-      ]
+      "enum": ["text", "select", "multiselect", "date", "daterange", "number", "boolean"]
     },
     "StickyPosition": {
       "type": "string",
-      "enum": [
-        "left",
-        "right",
-        "none"
-      ]
+      "enum": ["left", "right", "none"]
     },
     "SeriesType": {
       "type": "string",
@@ -790,30 +619,16 @@
     },
     "LineStyle": {
       "type": "string",
-      "enum": [
-        "solid",
-        "dashed",
-        "dotted"
-      ]
+      "enum": ["solid", "dashed", "dotted"]
     },
     "LabelPosition": {
       "type": "string",
-      "enum": [
-        "inside",
-        "outside",
-        "center",
-        "top",
-        "bottom"
-      ]
+      "enum": ["inside", "outside", "center", "top", "bottom"]
     },
     "UXLibrary": {
       "type": "object",
       "description": "Collection of reusable UI components and sub-views that can be shared across applications",
-      "required": [
-        "id",
-        "name",
-        "version"
-      ],
+      "required": ["id", "name", "version"],
       "properties": {
         "id": {
           "type": "string",
@@ -873,11 +688,7 @@
     "LibraryComponent": {
       "type": "object",
       "description": "Reusable UI component definition that can be instantiated in multiple UXSpecs",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -917,10 +728,7 @@
     "LibrarySubView": {
       "type": "object",
       "description": "Reusable grouping of components that can be composed into views",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -948,10 +756,7 @@
     "StatePattern": {
       "type": "object",
       "description": "Reusable state machine pattern for common UX flows",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -975,10 +780,7 @@
     "ActionPattern": {
       "type": "object",
       "description": "Reusable action configuration for common user interactions",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1002,11 +804,7 @@
     "UXApplication": {
       "type": "object",
       "description": "Application-level UX configuration that groups UXSpecs and defines shared settings",
-      "required": [
-        "id",
-        "name",
-        "channel"
-      ],
+      "required": ["id", "name", "channel"],
       "properties": {
         "id": {
           "type": "string",
@@ -1040,10 +838,7 @@
     "UXSpec": {
       "type": "object",
       "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1084,10 +879,7 @@
     "ExperienceState": {
       "type": "object",
       "description": "Distinct state that the experience can be in (works across all channels)",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1156,11 +948,7 @@
     "StateAction": {
       "type": "object",
       "description": "Action executed during state lifecycle",
-      "required": [
-        "id",
-        "name",
-        "action"
-      ],
+      "required": ["id", "name", "action"],
       "properties": {
         "id": {
           "type": "string",
@@ -1183,11 +971,7 @@
     "StateTransition": {
       "type": "object",
       "description": "Transition from current state to another state",
-      "required": [
-        "id",
-        "name",
-        "trigger"
-      ],
+      "required": ["id", "name", "trigger"],
       "properties": {
         "id": {
           "type": "string",
@@ -1221,10 +1005,7 @@
     "Condition": {
       "type": "object",
       "description": "Boolean expression for guard conditions",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1244,11 +1025,7 @@
     "View": {
       "type": "object",
       "description": "Routable grouping of components (a complete user experience)",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1312,10 +1089,7 @@
     "SubView": {
       "type": "object",
       "description": "Instance of a LibrarySubView or custom sub-view definition",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1342,10 +1116,7 @@
     "ComponentInstance": {
       "type": "object",
       "description": "Instance of a LibraryComponent with application-specific configuration",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1364,11 +1135,7 @@
     "ActionComponent": {
       "type": "object",
       "description": "Interactive element that triggers actions (button, menu, link, voice command)",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1413,11 +1180,7 @@
     "ValidationRule": {
       "type": "object",
       "description": "Client-side validation rule for a field",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1444,11 +1207,7 @@
     "LayoutConfig": {
       "type": "object",
       "description": "Configuration for UI layout structure, defining grid systems, responsive breakpoints, spacing rules, and component arrangement patterns. Controls visual organization of the interface.",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1497,10 +1256,7 @@
     "ErrorConfig": {
       "type": "object",
       "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1530,14 +1286,7 @@
     "ApiConfig": {
       "type": "object",
       "description": "Configuration for API integration within UI components, specifying endpoints, request/response mapping, authentication, and caching strategies. Connects UI to backend services.",
-      "required": [
-        "id",
-        "name",
-        "operationId",
-        "method",
-        "endpoint",
-        "baseUrl"
-      ],
+      "required": ["id", "name", "operationId", "method", "endpoint", "baseUrl"],
       "properties": {
         "id": {
           "type": "string",
@@ -1568,12 +1317,7 @@
     "DataConfig": {
       "type": "object",
       "description": "Configuration for data binding and state management within UI components, defining data sources, transformation pipelines, and update triggers. Manages component data flow.",
-      "required": [
-        "id",
-        "name",
-        "source",
-        "target"
-      ],
+      "required": ["id", "name", "source", "target"],
       "properties": {
         "id": {
           "type": "string",
@@ -1600,10 +1344,7 @@
     "PerformanceTargets": {
       "type": "object",
       "description": "Defines performance SLAs for UI components including load time, interaction responsiveness, and rendering thresholds. Enables performance monitoring and optimization.",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1619,11 +1360,7 @@
     "ComponentReference": {
       "type": "object",
       "description": "A reference to another UI component that can be embedded or composed within a parent component. Enables component reuse and modular UI architecture.",
-      "required": [
-        "id",
-        "name",
-        "ref"
-      ],
+      "required": ["id", "name", "ref"],
       "properties": {
         "id": {
           "type": "string",
@@ -1651,12 +1388,7 @@
     "TransitionTemplate": {
       "type": "object",
       "description": "Defines reusable animation and transition patterns for state changes, page navigation, or component lifecycle events. Ensures consistent motion design across the application.",
-      "required": [
-        "id",
-        "name",
-        "to",
-        "trigger"
-      ],
+      "required": ["id", "name", "to", "trigger"],
       "properties": {
         "id": {
           "type": "string",
@@ -1683,11 +1415,7 @@
     "StateActionTemplate": {
       "type": "object",
       "description": "A reusable template defining actions to execute during component state transitions. Enables standardized behavior patterns for common state changes.",
-      "required": [
-        "id",
-        "name",
-        "action"
-      ],
+      "required": ["id", "name", "action"],
       "properties": {
         "id": {
           "type": "string",
@@ -1710,12 +1438,7 @@
     "TableColumn": {
       "type": "object",
       "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
-      "required": [
-        "id",
-        "name",
-        "header",
-        "field"
-      ],
+      "required": ["id", "name", "header", "field"],
       "properties": {
         "id": {
           "type": "string",
@@ -1751,12 +1474,7 @@
     "ChartSeries": {
       "type": "object",
       "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
-      "required": [
-        "id",
-        "name",
-        "label",
-        "dataField"
-      ],
+      "required": ["id", "name", "label", "dataField"],
       "properties": {
         "id": {
           "type": "string",

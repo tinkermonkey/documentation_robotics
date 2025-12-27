@@ -9,14 +9,8 @@
         "inversePredicate": "composed-of",
         "category": "structural",
         "description": "Whole-part relationship where the part cannot exist without the whole",
-        "sourceTypes": [
-          "JSONSchema",
-          "SchemaDefinition"
-        ],
-        "targetTypes": [
-          "SchemaDefinition",
-          "SchemaProperty"
-        ],
+        "sourceTypes": ["JSONSchema", "SchemaDefinition"],
+        "targetTypes": ["SchemaDefinition", "SchemaProperty"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -38,13 +32,8 @@
         "inversePredicate": "aggregated-by",
         "category": "structural",
         "description": "Whole-part relationship where the part can exist independently",
-        "sourceTypes": [
-          "JSONSchema"
-        ],
-        "targetTypes": [
-          "DataGovernance",
-          "DataQualityMetrics"
-        ],
+        "sourceTypes": ["JSONSchema"],
+        "targetTypes": ["DataGovernance", "DataQualityMetrics"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -66,14 +55,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -94,16 +77,8 @@
         "inversePredicate": "realized-by",
         "category": "structural",
         "description": "Implementation element realizes abstract element",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -130,16 +105,8 @@
         "inversePredicate": "accessed-by",
         "category": "behavioral",
         "description": "Behavior accesses passive element (data/artifact)",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -166,16 +133,8 @@
         "inversePredicate": "referenced-by",
         "category": "dependency",
         "description": "Pointer reference without functional dependency",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -202,12 +161,8 @@
         "inversePredicate": "governs",
         "category": "governance",
         "description": "Element follows architectural principle",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -222,12 +177,8 @@
         "inversePredicate": "constrains",
         "category": "governance",
         "description": "Element limited by constraint",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -242,12 +193,8 @@
         "inversePredicate": "mapped-from",
         "category": "data",
         "description": "Schema/table mapping",
-        "sourceTypes": [
-          "DataObject"
-        ],
-        "targetTypes": [
-          "DatabaseTable"
-        ],
+        "sourceTypes": ["DataObject"],
+        "targetTypes": ["DatabaseTable"],
         "examples": [
           {
             "source": "DataObject",
@@ -262,12 +209,8 @@
         "inversePredicate": "derived-by",
         "category": "data",
         "description": "Calculated field relationships",
-        "sourceTypes": [
-          "TotalPrice"
-        ],
-        "targetTypes": [
-          "Quantity, UnitPrice"
-        ],
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
         "examples": [
           {
             "source": "TotalPrice",
@@ -287,13 +230,8 @@
           "predicate": "archimate-ref",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "Element"
-          ],
-          "sourceTypes": [
-            "JSONSchema",
-            "x-security Extension"
-          ],
+          "targetTypes": ["Element"],
+          "sourceTypes": ["JSONSchema", "x-security Extension"],
           "fieldPath": "x-archimate-ref",
           "cardinality": "single",
           "format": "duration",
@@ -307,14 +245,8 @@
           "predicate": "business-object-ref",
           "inversePredicate": "referenced-by",
           "targetLayer": "02-business",
-          "targetTypes": [
-            "BusinessObject"
-          ],
-          "sourceTypes": [
-            "JSONSchema",
-            "x-business-object-ref Extension",
-            "x-security Extension"
-          ],
+          "targetTypes": ["BusinessObject"],
+          "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
           "fieldPath": "x-business-object-ref",
           "cardinality": "single",
           "format": "duration",
@@ -328,9 +260,7 @@
           "predicate": "apm-data-quality-metrics",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "DataQualityMetric"
-          ],
+          "targetTypes": ["DataQualityMetric"],
           "sourceTypes": [
             "JSONSchema",
             "x-apm-data-quality-metrics Extension",
@@ -349,14 +279,8 @@
           "predicate": "data-governance",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "Governance"
-          ],
-          "sourceTypes": [
-            "JSONSchema",
-            "x-data-governance Extension",
-            "x-security Extension"
-          ],
+          "targetTypes": ["Governance"],
+          "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
           "fieldPath": "x-data-governance",
           "cardinality": "single",
           "format": "string",
@@ -370,9 +294,7 @@
           "predicate": "database",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "Database"
-          ],
+          "targetTypes": ["Database"],
           "sourceTypes": [
             "JSONSchema",
             "SchemaProperty",
@@ -392,12 +314,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -428,12 +346,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -464,12 +378,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",
@@ -510,9 +420,7 @@
             "x-apm-data-quality-metrics Extension",
             "x-security Extension"
           ],
-          "targetTypes": [
-            "DataQualityMetric"
-          ],
+          "targetTypes": ["DataQualityMetric"],
           "fieldPath": "x-apm-data-quality-metrics",
           "cardinality": "single",
           "description": "Inverse of: DataQualityMetrics (optional)"
@@ -522,14 +430,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "data-governance",
           "sourceLayer": "07-data-model",
-          "sourceTypes": [
-            "JSONSchema",
-            "x-data-governance Extension",
-            "x-security Extension"
-          ],
-          "targetTypes": [
-            "Governance"
-          ],
+          "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
+          "targetTypes": ["Governance"],
           "fieldPath": "x-data-governance",
           "cardinality": "single",
           "description": "Inverse of: DataGovernance (optional)"
@@ -539,12 +441,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "governance-owner",
           "sourceLayer": "02-business",
-          "sourceTypes": [
-            "BusinessObject"
-          ],
-          "targetTypes": [
-            "GovernanceOwner"
-          ],
+          "sourceTypes": ["BusinessObject"],
+          "targetTypes": ["GovernanceOwner"],
           "fieldPath": "data.governance-owner",
           "cardinality": "single",
           "description": "Inverse of: BusinessObject ownership by BusinessActor"
@@ -554,13 +452,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "retention",
           "sourceLayer": "04-application",
-          "sourceTypes": [
-            "Data Properties",
-            "DataObject"
-          ],
-          "targetTypes": [
-            "Retention"
-          ],
+          "sourceTypes": ["Data Properties", "DataObject"],
+          "targetTypes": ["Retention"],
           "fieldPath": "data.retention",
           "cardinality": "single",
           "description": "Inverse of: Links to Retention in target layer"
@@ -576,9 +469,7 @@
             "x-database Extension",
             "x-security Extension"
           ],
-          "targetTypes": [
-            "Database"
-          ],
+          "targetTypes": ["Database"],
           "fieldPath": "x-database",
           "cardinality": "single",
           "description": "Inverse of: DatabaseMapping (optional)"
@@ -588,12 +479,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "database-column",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Schema"
-          ],
-          "targetTypes": [
-            "Column"
-          ],
+          "sourceTypes": ["Schema"],
+          "targetTypes": ["Column"],
           "fieldPath": "x-database-column",
           "cardinality": "single",
           "description": "Inverse of: string"
@@ -603,13 +490,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "database-table",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Schema",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "Table"
-          ],
+          "sourceTypes": ["Schema", "SecurityScheme"],
+          "targetTypes": ["Table"],
           "fieldPath": "x-database-table",
           "cardinality": "single",
           "description": "Inverse of: string"

@@ -124,7 +124,6 @@ projections:
           monitors:
             target: properties.monitors
         create_bidirectional: true
-
 # Transformation examples:
 # - uppercase: Convert to UPPERCASE
 # - lowercase: Convert to lowercase

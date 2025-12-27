@@ -9,16 +9,8 @@
         "inversePredicate": "composed-of",
         "category": "structural",
         "description": "Whole-part relationship where the part cannot exist without the whole",
-        "sourceTypes": [
-          "BusinessCollaboration",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessRole",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessCollaboration",
@@ -45,16 +37,8 @@
         "inversePredicate": "aggregated-by",
         "category": "structural",
         "description": "Whole-part relationship where the part can exist independently",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "Goal",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "Goal",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
         "examples": [
           {
             "source": "Goal",
@@ -82,14 +66,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -110,16 +88,8 @@
         "inversePredicate": "realized-by",
         "category": "structural",
         "description": "Implementation element realizes abstract element",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -146,12 +116,8 @@
         "inversePredicate": "assigns",
         "category": "structural",
         "description": "Active element assigned to behavior or role",
-        "sourceTypes": [
-          "BusinessActor"
-        ],
-        "targetTypes": [
-          "BusinessRole"
-        ],
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
         "examples": [
           {
             "source": "BusinessActor",
@@ -166,15 +132,8 @@
         "inversePredicate": "associated-with",
         "category": "structural",
         "description": "Generic relationship indicating elements are related or connected",
-        "sourceTypes": [
-          "Requirement",
-          "Stakeholder"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal"
-        ],
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -202,14 +161,8 @@
         "inversePredicate": "influenced-by",
         "category": "behavioral",
         "description": "Element affects or impacts another element",
-        "sourceTypes": [
-          "Assessment",
-          "Driver"
-        ],
-        "targetTypes": [
-          "Assessment",
-          "Goal"
-        ],
+        "sourceTypes": ["Assessment", "Driver"],
+        "targetTypes": ["Assessment", "Goal"],
         "examples": [
           {
             "source": "Driver",
@@ -237,16 +190,8 @@
         "inversePredicate": "triggered-by",
         "category": "behavioral",
         "description": "Event or behavior triggers another behavior",
-        "sourceTypes": [
-          "BusinessEvent",
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["BusinessEvent", "CoverageGap", "PartitionDependency"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "BusinessEvent",
@@ -273,16 +218,8 @@
         "inversePredicate": "flows-from",
         "category": "behavioral",
         "description": "Sequential or data flow between behaviors",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -309,15 +246,8 @@
         "inversePredicate": "served-by",
         "category": "behavioral",
         "description": "Service available to consumer",
-        "sourceTypes": [
-          "BusinessService",
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "BusinessActor",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessService", "ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["BusinessActor", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessService",
@@ -344,16 +274,8 @@
         "inversePredicate": "accessed-by",
         "category": "behavioral",
         "description": "Behavior accesses passive element (data/artifact)",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -380,12 +302,8 @@
         "inversePredicate": "used-by",
         "category": "dependency",
         "description": "Element depends on another for functionality",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -400,13 +318,8 @@
         "inversePredicate": "supported-by",
         "category": "traceability",
         "description": "Implementation contributes to achieving goal",
-        "sourceTypes": [
-          "BusinessService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Goal"
-        ],
+        "sourceTypes": ["BusinessService", "Operation"],
+        "targetTypes": ["Goal"],
         "examples": [
           {
             "source": "BusinessService",
@@ -432,13 +345,8 @@
         "inversePredicate": "fulfilled-by",
         "category": "traceability",
         "description": "Implementation satisfies requirement",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -461,12 +369,8 @@
         "inversePredicate": "delivered-by",
         "category": "traceability",
         "description": "Implementation provides business value",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "Value"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["Value"],
         "examples": [
           {
             "source": "BusinessService",
@@ -481,12 +385,8 @@
         "inversePredicate": "governs",
         "category": "governance",
         "description": "Element follows architectural principle",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -506,12 +406,8 @@
           "predicate": "master-data-source",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "MasterDataSource"
-          ],
-          "sourceTypes": [
-            "BusinessObject"
-          ],
+          "targetTypes": ["MasterDataSource"],
+          "sourceTypes": ["BusinessObject"],
           "fieldPath": "application.master-data-source",
           "cardinality": "single",
           "format": "string",
@@ -525,12 +421,8 @@
           "predicate": "process-steps",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "ProcessStep"
-          ],
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
+          "targetTypes": ["ProcessStep"],
+          "sourceTypes": ["BusinessProcess"],
           "fieldPath": "application.process-steps",
           "cardinality": "array",
           "format": "reference",
@@ -544,12 +436,8 @@
           "predicate": "realized-by-process",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "RealizedByProces"
-          ],
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
+          "targetTypes": ["RealizedByProces"],
+          "sourceTypes": ["BusinessProcess"],
           "fieldPath": "application.realized-by-process",
           "cardinality": "single",
           "format": "reference",
@@ -563,12 +451,8 @@
           "predicate": "represented-by-dataobject",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "RepresentedByDataobject"
-          ],
-          "sourceTypes": [
-            "BusinessObject"
-          ],
+          "targetTypes": ["RepresentedByDataobject"],
+          "sourceTypes": ["BusinessObject"],
           "fieldPath": "application.represented-by-dataobject",
           "cardinality": "single",
           "format": "string",
@@ -582,12 +466,8 @@
           "predicate": "business-metrics",
           "inversePredicate": "referenced-by",
           "targetLayer": "02-business",
-          "targetTypes": [
-            "BusinessMetric"
-          ],
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
+          "targetTypes": ["BusinessMetric"],
+          "sourceTypes": ["BusinessProcess"],
           "fieldPath": "apm.business-metrics",
           "cardinality": "array",
           "format": "reference",
@@ -610,12 +490,8 @@
           "predicate": "governance-owner",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "GovernanceOwner"
-          ],
-          "sourceTypes": [
-            "BusinessObject"
-          ],
+          "targetTypes": ["GovernanceOwner"],
+          "sourceTypes": ["BusinessObject"],
           "fieldPath": "data.governance-owner",
           "cardinality": "single",
           "format": "reference",
@@ -638,12 +514,8 @@
           "predicate": "delivers-value",
           "inversePredicate": "delivered-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "DeliversValue"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["DeliversValue"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.delivers-value",
           "cardinality": "array",
           "format": "reference",
@@ -674,12 +546,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -710,12 +578,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -746,12 +610,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",
@@ -782,12 +642,8 @@
           "predicate": "security-controls",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "SecurityControl"
-          ],
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
+          "targetTypes": ["SecurityControl"],
+          "sourceTypes": ["BusinessProcess"],
           "fieldPath": "process.security-controls",
           "cardinality": "array",
           "format": "string",
@@ -810,12 +666,8 @@
           "predicate": "separation-of-duty",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "SeparationOfDuty"
-          ],
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
+          "targetTypes": ["SeparationOfDuty"],
+          "sourceTypes": ["BusinessProcess"],
           "fieldPath": "process.separation-of-duty",
           "cardinality": "single",
           "format": "boolean",
@@ -843,12 +695,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-metrics",
           "sourceLayer": "02-business",
-          "sourceTypes": [
-            "BusinessProcess"
-          ],
-          "targetTypes": [
-            "BusinessMetric"
-          ],
+          "sourceTypes": ["BusinessProcess"],
+          "targetTypes": ["BusinessMetric"],
           "fieldPath": "apm.business-metrics",
           "cardinality": "array",
           "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -858,12 +706,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-metrics",
           "sourceLayer": "04-application",
-          "sourceTypes": [
-            "ApplicationService"
-          ],
-          "targetTypes": [
-            "BusinessMetric"
-          ],
+          "sourceTypes": ["ApplicationService"],
+          "targetTypes": ["BusinessMetric"],
           "fieldPath": "apm.business-metrics",
           "cardinality": "array",
           "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -873,13 +717,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-metrics",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "BusinessMetric"
-          ],
+          "sourceTypes": ["Operation", "SecurityScheme"],
+          "targetTypes": ["BusinessMetric"],
           "fieldPath": "apm.business-metrics",
           "cardinality": "array",
           "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -889,13 +728,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-interface-ref",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "BusinessInterface"
-          ],
+          "sourceTypes": ["Operation", "SecurityScheme"],
+          "targetTypes": ["BusinessInterface"],
           "fieldPath": "x-business-interface-ref",
           "cardinality": "single",
           "description": "Inverse of: string (BusinessInterface.id, optional)"
@@ -905,14 +739,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-object-ref",
           "sourceLayer": "07-data-model",
-          "sourceTypes": [
-            "JSONSchema",
-            "x-business-object-ref Extension",
-            "x-security Extension"
-          ],
-          "targetTypes": [
-            "BusinessObject"
-          ],
+          "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
+          "targetTypes": ["BusinessObject"],
           "fieldPath": "x-business-object-ref",
           "cardinality": "single",
           "description": "Inverse of: string (BusinessObject.id reference, optional)"
@@ -922,13 +750,8 @@
           "predicate": "referenced-by",
           "inversePredicate": "business-service-ref",
           "sourceLayer": "06-api",
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
-          "targetTypes": [
-            "BusinessService"
-          ],
+          "sourceTypes": ["Operation", "SecurityScheme"],
+          "targetTypes": ["BusinessService"],
           "fieldPath": "x-business-service-ref",
           "cardinality": "single",
           "description": "Inverse of: string (BusinessService.id, optional)"

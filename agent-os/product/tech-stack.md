@@ -49,7 +49,7 @@
 
 ### Build & Distribution
 
-- **npm**: Package management and distribution - published to npm registry as @doc-robotics/cli-bun
+- **npm**: Package management and distribution - published to npm registry as @documentation-robotics/cli
 - **esbuild** (via Bun): Fast bundling and compilation
 
 ## Legacy CLI Implementation (Python) - Deprecation Path

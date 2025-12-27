@@ -87,11 +87,30 @@
       "Bash(md5sum:*)",
       "Bash(git -C /home/austinsand/workspace/orchestrator/documentation_robotics log --oneline --all -- integrations/claude_code cli/src/documentation_robotics/claude_integration)",
       "Bash(gh api:*)",
-      "Bash(mkdir:*)"
+      "Bash(mkdir:*)",
+      "Bash(npm run test:compatibility:*)",
+      "Bash(bun test:*)",
+      "Bash(DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr bun test tests/compatibility/commands.test.ts)",
+      "Bash(/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr:*)",
+      "Bash(npm run test:*)",
+      "Bash(dr:*)",
+      "Bash(DR_PYTHON_CLI=\"/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr\" npm run test -- tests/compatibility/export.test.ts)",
+      "Bash(DR_PYTHON_CLI=\"/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr\" bun test:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm test:*)",
+      "Bash(DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr npm test -- tests/compatibility/model-files.test.ts)",
+      "Bash(DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr bun test:*)",
+      "Bash(npm run test:unit:*)",
+      "Bash(do echo \"=== Test Run $i ===\")",
+      "Bash(pip3 install:*)",
+      "Bash(/Users/austinsand/workspace/documentation_robotics/agent-os/specs/2025-12-26-python-cli-deprecation/update-integration-files.sh)",
+      "Bash(node:*)",
+      "Bash(git -C /Users/austinsand/workspace/documentation_robotics log --oneline --all --decorate -10)",
+      "Bash(test:*)",
+      "Bash(npm run test:integration:*)",
+      "Bash(npm run lint)"
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": [
-    "context7"
-  ]
+  "enabledMcpjsonServers": ["context7"]
 }

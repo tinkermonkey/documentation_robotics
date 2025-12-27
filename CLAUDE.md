@@ -6,11 +6,10 @@
 
 **Components:**
 
-1. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation, primary CLI (v0.1.0, ~8x faster)
-2. **CLI Tool - Python (`cli/`)** - Python command-line interface, legacy but still supported (v0.7.3)
-3. **Metadata Model Specification** - Formal documentation defining the 12-layer model
+1. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation (v0.1.0, ~8x faster)
+2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Versions:** Bun CLI v0.1.0 (primary), Python CLI v0.7.3 (legacy), Spec v0.6.0
+**Current Versions:** Bun CLI v0.1.0, Spec v0.6.0
 
 ## Repository Structure
 
@@ -22,19 +21,7 @@ documentation_robotics/
 │   ├── schemas/                 # JSON Schema definitions
 │   └── [CHANGELOG, guides, examples, test-fixtures]
 │
-├── cli/                         # PYTHON CLI (v0.7.3)
-│   ├── src/documentation_robotics/
-│   │   ├── cli.py              # Main entry point
-│   │   ├── commands/           # Command implementations
-│   │   ├── core/               # Domain logic (model, layer, element)
-│   │   ├── validators/         # Validation pipeline
-│   │   ├── export/             # Export format handlers
-│   │   ├── schemas/            # CLI's copy of JSON schemas
-│   │   └── [server, viewer, claude_integration, copilot_integration, utils]
-│   ├── tests/                  # Unit and integration tests
-│   └── pyproject.toml          # Package configuration
-│
-└── cli-bun/                     # Bстановuntypescript/BUN CLI (v0.1.0)
+└── cli-bun/                     # TYPESCRIPT/BUN CLI (v0.1.0)
     ├── src/
     │   ├── cli.ts              # CLI entry point (Commander.js)
     │   ├── commands/           # 23+ command implementations
@@ -49,7 +36,7 @@ documentation_robotics/
     ├── tests/
     │   ├── unit/               # Unit tests
     │   ├── integration/        # Integration tests
-    │   └── compatibility/      # Python CLI compatibility tests
+    │   └── compatibility/      # Compatibility tests
     ├── dist/                   # Compiled JavaScript
     ├── package.json            # Dependencies and build scripts
     ├── tsconfig.json           # TypeScript configuration
@@ -58,7 +45,7 @@ documentation_robotics/
 
 ## Quick Reference
 
-### Bun CLI Setup (Primary/Recommended)
+### Bun CLI Setup
 
 ```bash
 # Install from source for development
@@ -69,7 +56,7 @@ npm run build
 # Test
 npm run test                 # Run all tests with Bun
 npm run test:unit           # Unit tests only
-npm run test:compatibility  # Compatibility tests
+npm run test:integration    # Integration tests
 
 # Run CLI locally
 node dist/cli.js --help
@@ -79,25 +66,7 @@ npm install -g .
 dr --help
 ```
 
-### Python CLI Setup (Legacy/Fallback)
-
-```bash
-# Venv is at repo root, CLI code is in cli/ subdirectory
-cd cli && pip install -e ".[dev]"
-source ../.venv/bin/activate  # From cli/ directory
-
-# Common commands
-dr --help                    # CLI help
-pytest                       # Run all tests
-pytest tests/unit/           # Unit tests only
-pytest --cov                 # With coverage
-```
-
 ### Key Dependencies
-
-**Python CLI:**
-
-- Python 3.10+, click, pydantic, jsonschema, networkx, rich
 
 **Bun CLI:**
 
@@ -107,10 +76,7 @@ pytest --cov                 # With coverage
 
 You have pre-approved access to:
 
-- **Bun CLI (Primary):** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`, `node dist/cli.js`
-- **Python CLI (Legacy):** `python3`, `source .venv/bin/activate`, `dr validate`, `dr search`, `pip install`, `pytest`
-
-**Default**: Use the Bun CLI unless working on Python-specific issues or features.
+- **Bun CLI:** `npm`, `node`, `bun`, `npm run build`, `npm run test`, `npm run format`, `node dist/cli.js`
 
 ### Pre-commit Checks
 
@@ -120,10 +86,10 @@ Run `pre-commit run --all-files` from the repo root before committing to ensure 
 
 ### 1. Spec vs. CLI Separation
 
-- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/pyproject.toml`)
+- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli-bun/package.json`)
 - **Schema synchronization**: Schema changes require updating BOTH:
   - `spec/schemas/{layer}.schema.json`
-  - `cli/src/documentation_robotics/schemas/bundled/{layer}.schema.json`
+  - `cli-bun/src/schemas/bundled/{layer}.schema.json`
 - **Layer spec changes**: Must update both `spec/layers/{layer}.md` AND corresponding CLI validators/code
 
 ### 2. When to Ask First
@@ -144,20 +110,20 @@ Run `pre-commit run --all-files` from the repo root before committing to ensure 
 - CLI version can be ahead of spec version
 - CLI must remain compatible with current spec version
 - Breaking spec changes require spec version bump
-- Check `spec/CHANGELOG.md` and `cli/CHANGELOG.md` for version history
+- Check `spec/CHANGELOG.md` and `cli-bun/CHANGELOG.md` for version history
 
 ### 4. Element Naming Convention
 
 - **Format**: `{layer}-{type}-{kebab-case-name}`
 - **Example**: `api-endpoint-create-customer`
 - Must be unique across entire model
-- Use `id_generator.py` utilities for consistency
+- Use element utilities for consistency
 
 ### 5. Cross-Layer References
 
 - **Direction**: Higher layers → lower layers only
 - Always validate references exist before creating
-- Use `reference_registry.py` for lookups and validation
+- Use reference registry for lookups and validation
 
 ## The 12-Layer Architecture Model
 
@@ -222,9 +188,9 @@ Federated architecture model spanning 12 interconnected layers:
 
 ### Coding Conventions
 
-- Follow PEP 8
-- Type hints throughout
-- Docstrings for public functions/classes
+- Follow TypeScript best practices
+- Type annotations throughout
+- JSDoc comments for public functions/classes
 - Commands in `commands/`, core logic in `core/`, validators in `validators/`
 - Tests: `tests/unit/` and `tests/integration/`
 
@@ -241,16 +207,16 @@ Federated architecture model spanning 12 interconnected layers:
 
 1. Create command file in `commands/`
 2. Implement command class (inherit from base)
-3. Register in `cli.py`
+3. Register in `cli.ts`
 4. Add integration tests in `tests/integration/`
-5. Run `pytest` to verify
+5. Run `npm run test` to verify
 
 ### Adding/Modifying a Layer
 
 1. **ASK FIRST** - Layer changes affect spec
 2. Update `spec/layers/{layer}.md`
 3. Update `spec/schemas/{layer}.schema.json`
-4. Copy schema to `cli/src/documentation_robotics/schemas/bundled/`
+4. Copy schema to `cli-bun/src/schemas/bundled/`
 5. Update validators if needed
 6. Add export support if applicable
 7. Update tests
@@ -259,46 +225,46 @@ Federated architecture model spanning 12 interconnected layers:
 
 1. Create exporter in `export/`
 2. Inherit from base exporter pattern
-3. Register in `export_manager.py`
-4. Add tests in `tests/unit/test_*_exporter.py`
+3. Register in export manager
+4. Add tests in `tests/unit/`
 
 ### Testing
 
 ```bash
-# Run all tests with coverage
-pytest --cov=documentation_robotics --cov-report=html
+# Run all tests
+npm run test
 
 # Run specific test file
-pytest tests/unit/test_reference_registry.py
+npm run test -- tests/unit/test-reference-registry.test.ts
 
 # Run integration tests only
-pytest tests/integration/
+npm run test:integration
 ```
 
 **Testing Strategy:**
 
 - **Unit tests**: Test components in isolation, mock dependencies, focus on edge cases
 - **Integration tests**: Test complete workflows using temporary directories
-- **Fixtures**: Common test data in `conftest.py`
+- **Fixtures**: Common test data in test files
 
 ## Key Files to Understand
 
-1. **cli.py** - CLI entry point, command routing
-2. **core/model.py** - Central model management
-3. **core/reference_registry.py** - Reference tracking system
-4. **core/relationship_registry.py** - Intra-layer relationship tracking
-5. **validators/semantic.py** - Business rule validation
-6. **export/export_manager.py** - Export orchestration
+1. **cli.ts** - CLI entry point, command routing
+2. **core/model.ts** - Central model management
+3. **core/reference-registry.ts** - Reference tracking system
+4. **core/relationship-registry.ts** - Intra-layer relationship tracking
+5. **validators/semantic.ts** - Business rule validation
+6. **export/export-manager.ts** - Export orchestration
 
 ## Common Pitfalls
 
 1. **Schema Synchronization**
    - Schema changes require updating BOTH spec and CLI schemas
-   - As of v0.7.0, layer schemas include relationship metadata:
+   - Layer schemas include relationship metadata:
      - `layerMetadata` - layer identifier and catalog version
      - `intraLayerRelationships` - relationships within the layer
      - `crossLayerRelationships` - outgoing/incoming relationships to/from other layers
-   - Relationship catalog (`relationship-catalog.json`) now bundled with CLI
+   - Relationship catalog (`relationship-catalog.json`) bundled with CLI
    - Always update both spec and CLI or validation will fail
 
 2. **Cross-Layer References**
@@ -315,32 +281,27 @@ pytest tests/integration/
    - Attempting to export layers to unsupported formats
    - Not checking format compatibility before exporting
 
-5. **Virtual Environment Path**
-   - Venv is at repo root (`.venv/`), not in `cli/`
-   - Must install from `cli/` directory: `cd cli && pip install -e .`
-
-6. **Version Bumps**
+5. **Version Bumps**
    - Manually editing version numbers
    - Use `/dr-release-prep` command for proper release preparation
 
-## CLI Implementations: Bun (Primary) vs. Python (Legacy)
+## CLI Implementation
 
-Both CLIs implement the same commands and operate on identical model structures. **The Bun CLI is now the primary implementation:**
+The Bun CLI is a TypeScript/Bun implementation providing:
 
-| Aspect           | Bun CLI (Primary)              | Python CLI (Legacy)       |
-| ---------------- | ------------------------------ | ------------------------- |
-| **Status**       | **Active development**         | Maintenance mode          |
-| **Performance**  | **~200ms startup (8x faster)** | ~1-2s startup             |
-| **Installation** | `npm install -g`               | `pip install`             |
-| **Environment**  | Node.js 18+                    | Python 3.10+              |
-| **Version**      | v0.1.0 (feature complete)      | v0.7.3 (mature)           |
-| **Development**  | Modern TS, Bun test            | Pytest                    |
-| **Package Mgmt** | npm/Bun                        | pip/Poetry                |
-| **Best For**     | **All new work**               | Existing Python workflows |
+| Aspect           | Bun CLI                    |
+| ---------------- | -------------------------- |
+| **Status**       | Production-ready           |
+| **Performance**  | ~200ms startup (8x faster) |
+| **Installation** | `npm install -g`           |
+| **Environment**  | Node.js 18+                |
+| **Version**      | v0.1.0                     |
+| **Development**  | Modern TS, Bun test        |
+| **Package Mgmt** | npm/Bun                    |
 
 ### Using the Bun CLI
 
-All commands are identical between implementations:
+All commands follow intuitive patterns:
 
 ```bash
 # Basic operations
@@ -370,13 +331,11 @@ dr <command> --help          # Show command-specific help
 3. **Standards Compliance** - Leverage industry standards (ArchiMate, OpenAPI, etc.)
 4. **Testability** - Comprehensive unit and integration test coverage
 5. **User Experience** - Clear errors, helpful output, intuitive commands
-6. **Parallel Implementations** - Python and Bun CLIs share spec, maintain parity
 
 ## Documentation
 
 - Main README: `/README.md`
 - Specification: `/spec/` (especially `spec/layers/` and `spec/CHANGELOG.md`)
-- Python CLI README: `/cli/README.md`
-- Bun CLI README: `/cli-bun/README.md`
-- CLI design docs: `/cli/docs/`
+- CLI README: `/cli-bun/README.md`
+- CLI design docs: `/cli-bun/docs/`
 - Release command: `/dr-release-prep` for version management

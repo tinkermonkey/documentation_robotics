@@ -15,16 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["InputPartitionSelection", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCoverageModel",
@@ -45,14 +37,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "PartitionValue"],
         "examples": [
           {
             "source": "InputPartitionSelection",
@@ -68,14 +54,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageGap", "PartitionDependency"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "PartitionDependency",
@@ -91,14 +71,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "TestCoverageTarget",
@@ -114,13 +88,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["TestCoverageTarget"],
         "examples": [
           {
             "source": "InputSpacePartition",
@@ -136,14 +105,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -159,16 +122,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputSelection",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputSelection", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -189,15 +144,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "InputSpacePartition",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "InputSpacePartition", "OutcomeCategory"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -218,14 +166,8 @@
       },
       {
         "relationshipTypeId": "validates",
-        "sourceTypes": [
-          "TargetCoverageSummary",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["TargetCoverageSummary", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -249,13 +191,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "Goal"
-        ],
-        "sourceTypes": [
-          "TestCoverageModel",
-          "TestCaseSketch"
-        ],
+        "targetTypes": ["Goal"],
+        "sourceTypes": ["TestCoverageModel", "TestCaseSketch"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "uuid",
@@ -268,14 +205,8 @@
         "predicate": "fulfills-requirements",
         "inversePredicate": "fulfilled-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "Requirement"
-        ],
-        "sourceTypes": [
-          "TestCoverageModel",
-          "TestCaseSketch",
-          "CoverageRequirement"
-        ],
+        "targetTypes": ["Requirement"],
+        "sourceTypes": ["TestCoverageModel", "TestCaseSketch", "CoverageRequirement"],
         "fieldPath": "motivation.fulfills-requirements",
         "cardinality": "array",
         "format": "uuid",
@@ -288,12 +219,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "Principle"
-        ],
-        "sourceTypes": [
-          "TestCoverageModel"
-        ],
+        "targetTypes": ["Principle"],
+        "sourceTypes": ["TestCoverageModel"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "uuid",
@@ -306,13 +233,8 @@
         "predicate": "constrained-by",
         "inversePredicate": "constrains",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "Constraint"
-        ],
-        "sourceTypes": [
-          "TestCoverageModel",
-          "CoverageRequirement"
-        ],
+        "targetTypes": ["Constraint"],
+        "sourceTypes": ["TestCoverageModel", "CoverageRequirement"],
         "fieldPath": "motivation.constrained-by",
         "cardinality": "array",
         "format": "uuid",
@@ -461,57 +383,27 @@
     },
     "Priority": {
       "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
+      "enum": ["critical", "high", "medium", "low"]
     },
     "FieldRelevance": {
       "type": "string",
-      "enum": [
-        "primary",
-        "secondary",
-        "contextual"
-      ]
+      "enum": ["primary", "secondary", "contextual"]
     },
     "PresenceRule": {
       "type": "string",
-      "enum": [
-        "required",
-        "optional",
-        "conditional"
-      ]
+      "enum": ["required", "optional", "conditional"]
     },
     "PartitionCategory": {
       "type": "string",
-      "enum": [
-        "typical",
-        "boundary",
-        "invalid",
-        "None",
-        "special"
-      ]
+      "enum": ["typical", "boundary", "invalid", "None", "special"]
     },
     "DependencyEffect": {
       "type": "string",
-      "enum": [
-        "requires",
-        "excludes",
-        "enables",
-        "modifies"
-      ]
+      "enum": ["requires", "excludes", "enables", "modifies"]
     },
     "ContextType": {
       "type": "string",
-      "enum": [
-        "ui-entry",
-        "api-entry",
-        "event-triggered",
-        "scheduled",
-        "integration"
-      ]
+      "enum": ["ui-entry", "api-entry", "event-triggered", "scheduled", "integration"]
     },
     "OutcomeType": {
       "type": "string",
@@ -541,14 +433,7 @@
     },
     "SketchStatus": {
       "type": "string",
-      "enum": [
-        "planned",
-        "implemented",
-        "automated",
-        "manual",
-        "blocked",
-        "deprecated"
-      ]
+      "enum": ["planned", "implemented", "automated", "manual", "blocked", "deprecated"]
     },
     "ImplementationFormat": {
       "type": "string",
@@ -566,22 +451,12 @@
     },
     "GapSeverity": {
       "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
+      "enum": ["critical", "high", "medium", "low"]
     },
     "TestCoverageModel": {
       "type": "object",
       "description": "Complete test coverage model for application",
-      "required": [
-        "id",
-        "name",
-        "version",
-        "application"
-      ],
+      "required": ["id", "name", "version", "application"],
       "properties": {
         "id": {
           "type": "string",
@@ -644,11 +519,7 @@
     "TestCoverageTarget": {
       "type": "object",
       "description": "An artifact or functionality that requires test coverage",
-      "required": [
-        "id",
-        "name",
-        "targetType"
-      ],
+      "required": ["id", "name", "targetType"],
       "properties": {
         "id": {
           "type": "string",
@@ -704,12 +575,7 @@
     "TargetInputField": {
       "type": "object",
       "description": "Input field associated with a coverage target",
-      "required": [
-        "id",
-        "name",
-        "fieldRef",
-        "partitionRef"
-      ],
+      "required": ["id", "name", "fieldRef", "partitionRef"],
       "properties": {
         "id": {
           "type": "string",
@@ -740,12 +606,7 @@
     "InputSpacePartition": {
       "type": "object",
       "description": "Partitioning of an input dimension into testable categories",
-      "required": [
-        "id",
-        "name",
-        "fieldRef",
-        "presenceRule"
-      ],
+      "required": ["id", "name", "fieldRef", "presenceRule"],
       "properties": {
         "id": {
           "type": "string",
@@ -875,11 +736,7 @@
     "ContextVariation": {
       "type": "object",
       "description": "Different context in which functionality can be invoked",
-      "required": [
-        "id",
-        "name",
-        "contextType"
-      ],
+      "required": ["id", "name", "contextType"],
       "properties": {
         "id": {
           "type": "string",
@@ -909,12 +766,7 @@
     "EnvironmentFactor": {
       "type": "object",
       "description": "Environmental condition that may affect behavior",
-      "required": [
-        "id",
-        "name",
-        "factor",
-        "value"
-      ],
+      "required": ["id", "name", "factor", "value"],
       "properties": {
         "id": {
           "type": "string",
@@ -942,12 +794,7 @@
     "OutcomeCategory": {
       "type": "object",
       "description": "Category of expected outcomes (not specific assertions)",
-      "required": [
-        "id",
-        "name",
-        "outcomeType",
-        "httpStatusRange"
-      ],
+      "required": ["id", "name", "outcomeType", "httpStatusRange"],
       "properties": {
         "id": {
           "type": "string",
@@ -974,11 +821,7 @@
     "CoverageRequirement": {
       "type": "object",
       "description": "Requirement for test coverage of a target",
-      "required": [
-        "id",
-        "name",
-        "coverageCriteria"
-      ],
+      "required": ["id", "name", "coverageCriteria"],
       "properties": {
         "id": {
           "type": "string",
@@ -1070,14 +913,7 @@
     "CoverageExclusion": {
       "type": "object",
       "description": "Explicit exclusion from coverage with justification",
-      "required": [
-        "id",
-        "name",
-        "description",
-        "reason",
-        "riskAccepted",
-        "approvedBy"
-      ],
+      "required": ["id", "name", "description", "reason", "riskAccepted", "approvedBy"],
       "properties": {
         "id": {
           "type": "string",
@@ -1108,11 +944,7 @@
     "TestCaseSketch": {
       "type": "object",
       "description": "Abstract test case selecting specific partition values",
-      "required": [
-        "id",
-        "name",
-        "status"
-      ],
+      "required": ["id", "name", "status"],
       "properties": {
         "id": {
           "type": "string",
@@ -1151,14 +983,7 @@
     "InputSelection": {
       "type": "object",
       "description": "Specific partition value selected for a test case",
-      "required": [
-        "id",
-        "name",
-        "partitionRef",
-        "selectedValue",
-        "concreteValue",
-        "valueSource"
-      ],
+      "required": ["id", "name", "partitionRef", "selectedValue", "concreteValue", "valueSource"],
       "properties": {
         "id": {
           "type": "string",
@@ -1190,11 +1015,7 @@
     "CoverageSummary": {
       "type": "object",
       "description": "Summary of coverage status (can be computed or declared)",
-      "required": [
-        "totalTargets",
-        "totalRequirements",
-        "totalSketches"
-      ],
+      "required": ["totalTargets", "totalRequirements", "totalSketches"],
       "properties": {
         "generatedAt": {
           "type": "string",
@@ -1228,12 +1049,7 @@
     "TargetCoverageSummary": {
       "type": "object",
       "description": "Coverage metrics summary for a single test coverage target",
-      "required": [
-        "targetRef",
-        "sketchCount",
-        "implementedCount",
-        "automatedCount"
-      ],
+      "required": ["targetRef", "sketchCount", "implementedCount", "automatedCount"],
       "properties": {
         "targetRef": {
           "type": "string",
@@ -1256,11 +1072,7 @@
     "CoverageGap": {
       "type": "object",
       "description": "Identified gap in test coverage requiring attention",
-      "required": [
-        "description",
-        "severity",
-        "affectedRequirements"
-      ],
+      "required": ["description", "severity", "affectedRequirements"],
       "properties": {
         "description": {
           "type": "string",

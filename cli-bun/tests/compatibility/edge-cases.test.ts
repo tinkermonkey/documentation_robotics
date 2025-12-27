@@ -3,17 +3,35 @@
  * Verifies that both CLIs handle edge cases and errors consistently
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { CLIHarness, assertCLIsFailEquivalently } from './harness.js';
+import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'bun:test';
+import { CLIHarness, checkPythonCLIAvailable, assertCLIsFailEquivalently } from './harness.js';
 import { mkdir, rm } from 'fs/promises';
 import { join, resolve } from 'path';
 
 const TEMP_DIR = '/tmp/dr-compatibility-edge-cases';
 let harness: CLIHarness;
 let testDir: string;
+let pythonCLIAvailable = false;
+
+// Helper to conditionally run tests based on Python CLI availability
+function compatTest(name: string, fn: () => Promise<void>) {
+  it(name, async () => {
+    if (!pythonCLIAvailable) {
+      console.log(`⏭️  Skipping: ${name}`);
+      return;
+    }
+    await fn();
+  });
+}
 
 describe('Edge Cases and Error Consistency', () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
   beforeEach(async () => {
+    if (!pythonCLIAvailable) return;
+
     harness = new CLIHarness();
 
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
@@ -21,6 +39,8 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   afterEach(async () => {
+    if (!pythonCLIAvailable) return;
+
     try {
       await rm(testDir, { recursive: true, force: true });
     } catch (e) {
@@ -29,11 +49,15 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('missing required arguments', () => {
-    it('should fail with missing model name in init', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should fail with missing model name in init', async () => {
       await assertCLIsFailEquivalently(harness, ['init'], testDir);
     });
 
-    it('should fail with missing element properties', async () => {
+    compatTest('should fail with missing element properties', async () => {
       // Initialize first using Python CLI as reference
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
@@ -50,7 +74,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('invalid argument values', () => {
-    it('should fail with invalid layer name', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should fail with invalid layer name', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
@@ -60,7 +88,7 @@ describe('Edge Cases and Error Consistency', () => {
       );
     });
 
-    it('should fail with malformed element ID', async () => {
+    compatTest('should fail with malformed element ID', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
@@ -70,7 +98,7 @@ describe('Edge Cases and Error Consistency', () => {
       );
     });
 
-    it('should fail with special characters in element ID', async () => {
+    compatTest('should fail with special characters in element ID', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
       await assertCLIsFailEquivalently(
@@ -82,7 +110,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('state consistency', () => {
-    it('should handle operations on non-existent models', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle operations on non-existent models', async () => {
       // Try to list elements without initializing model
       const result = await harness.compareOutputs(['element', 'list', 'business'], testDir);
 
@@ -90,7 +122,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(result.exitCodesMatch).toBe(true);
     });
 
-    it('should handle duplicate element additions consistently', async () => {
+    compatTest('should handle duplicate element additions consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
       // Add element once using Python CLI
@@ -115,7 +147,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('whitespace and special characters', () => {
-    it('should handle names with spaces consistently', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle names with spaces consistently', async () => {
       await harness.runPython(['init', '--name', 'Test Model'], testDir);
 
       const result = await harness.compareOutputs([], testDir);
@@ -123,7 +159,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(result.exitCodesMatch).toBe(true);
     });
 
-    it('should handle names with unicode characters', async () => {
+    compatTest('should handle names with unicode characters', async () => {
       const pythonDir = join(testDir, 'unicode-python');
       const bunDir = join(testDir, 'unicode-bun');
 
@@ -142,7 +178,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(pythonResult.exitCode).toBe(bunResult.exitCode);
     });
 
-    it('should handle special characters in element names', async () => {
+    compatTest('should handle special characters in element names', async () => {
       const pythonDir = join(testDir, 'special-python');
       const bunDir = join(testDir, 'special-bun');
 
@@ -168,7 +204,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('command case sensitivity', () => {
-    it('should fail consistently with wrong case commands', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should fail consistently with wrong case commands', async () => {
       const result = await harness.compareOutputs(['INIT', '--name', 'Test']);
 
       // Both should fail with unknown command
@@ -176,7 +216,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(result.bunExitCode).not.toBe(0);
     });
 
-    it('should fail consistently with wrong case flags', async () => {
+    compatTest('should fail consistently with wrong case flags', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
 
       const result = await assertCLIsFailEquivalently(
@@ -191,7 +231,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('path handling', () => {
-    it('should handle absolute paths consistently', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle absolute paths consistently', async () => {
       const absolutePath = resolve(testDir);
 
       const pythonResult = await harness.runPython(
@@ -206,7 +250,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(pythonResult.exitCode).toBe(bunResult.exitCode);
     });
 
-    it('should handle relative paths consistently', async () => {
+    compatTest('should handle relative paths consistently', async () => {
       // Both should work with current directory
       const result = await harness.compareOutputs(['init', '--name', 'TestModel'], testDir);
 
@@ -215,7 +259,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('output format options', () => {
-    it('should handle --format json consistently', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle --format json consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
       await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
@@ -248,7 +296,7 @@ describe('Edge Cases and Error Consistency', () => {
       }
     });
 
-    it('should handle unknown format options consistently', async () => {
+    compatTest('should handle unknown format options consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
       await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
@@ -267,7 +315,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('empty and null values', () => {
-    it('should handle empty element lists consistently', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle empty element lists consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
       await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
@@ -278,7 +330,7 @@ describe('Edge Cases and Error Consistency', () => {
       expect(result.bunExitCode).toBe(0);
     });
 
-    it('should handle empty search results consistently', async () => {
+    compatTest('should handle empty search results consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
       await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
@@ -294,7 +346,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('concurrent operations simulation', () => {
-    it('should handle sequential operations consistently', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should handle sequential operations consistently', async () => {
       await harness.runPython(['init', '--name', 'TestModel'], testDir);
       await harness.runBun(['init', '--name', 'TestModel'], testDir);
 
@@ -316,7 +372,11 @@ describe('Edge Cases and Error Consistency', () => {
   });
 
   describe('error message structure consistency', () => {
-    it('should include helpful context in error messages', async () => {
+  beforeAll(async () => {
+    pythonCLIAvailable = await checkPythonCLIAvailable();
+  });
+
+    compatTest('should include helpful context in error messages', async () => {
       const pythonResult = await harness.runPython(
         ['element', 'add', 'invalid-layer', 'type', 'id'],
         testDir,

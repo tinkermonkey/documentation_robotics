@@ -15,14 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "JSONSchema",
-          "SchemaDefinition"
-        ],
-        "targetTypes": [
-          "SchemaDefinition",
-          "SchemaProperty"
-        ],
+        "sourceTypes": ["JSONSchema", "SchemaDefinition"],
+        "targetTypes": ["SchemaDefinition", "SchemaProperty"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -40,13 +34,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "JSONSchema"
-        ],
-        "targetTypes": [
-          "DataGovernance",
-          "DataQualityMetrics"
-        ],
+        "sourceTypes": ["JSONSchema"],
+        "targetTypes": ["DataGovernance", "DataQualityMetrics"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -64,14 +53,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -88,16 +71,8 @@
       },
       {
         "relationshipTypeId": "realization",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -120,16 +95,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -152,16 +119,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -184,12 +143,8 @@
       },
       {
         "relationshipTypeId": "governed-by-principles",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -200,12 +155,8 @@
       },
       {
         "relationshipTypeId": "constrainedby",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -216,12 +167,8 @@
       },
       {
         "relationshipTypeId": "maps-to",
-        "sourceTypes": [
-          "DataObject"
-        ],
-        "targetTypes": [
-          "DatabaseTable"
-        ],
+        "sourceTypes": ["DataObject"],
+        "targetTypes": ["DatabaseTable"],
         "examples": [
           {
             "source": "DataObject",
@@ -232,12 +179,8 @@
       },
       {
         "relationshipTypeId": "derivedfrom",
-        "sourceTypes": [
-          "TotalPrice"
-        ],
-        "targetTypes": [
-          "Quantity, UnitPrice"
-        ],
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
         "examples": [
           {
             "source": "TotalPrice",
@@ -256,13 +199,8 @@
         "predicate": "archimate-ref",
         "inversePredicate": "referenced-by",
         "targetLayer": "04-application",
-        "targetTypes": [
-          "Element"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-security Extension"
-        ],
+        "targetTypes": ["Element"],
+        "sourceTypes": ["JSONSchema", "x-security Extension"],
         "fieldPath": "x-archimate-ref",
         "cardinality": "single",
         "format": "duration",
@@ -276,14 +214,8 @@
         "predicate": "business-object-ref",
         "inversePredicate": "referenced-by",
         "targetLayer": "02-business",
-        "targetTypes": [
-          "BusinessObject"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-business-object-ref Extension",
-          "x-security Extension"
-        ],
+        "targetTypes": ["BusinessObject"],
+        "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
         "fieldPath": "x-business-object-ref",
         "cardinality": "single",
         "format": "duration",
@@ -297,9 +229,7 @@
         "predicate": "apm-data-quality-metrics",
         "inversePredicate": "referenced-by",
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "DataQualityMetric"
-        ],
+        "targetTypes": ["DataQualityMetric"],
         "sourceTypes": [
           "JSONSchema",
           "x-apm-data-quality-metrics Extension",
@@ -318,14 +248,8 @@
         "predicate": "data-governance",
         "inversePredicate": "referenced-by",
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Governance"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-data-governance Extension",
-          "x-security Extension"
-        ],
+        "targetTypes": ["Governance"],
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
         "fieldPath": "x-data-governance",
         "cardinality": "single",
         "format": "string",
@@ -339,9 +263,7 @@
         "predicate": "database",
         "inversePredicate": "referenced-by",
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Database"
-        ],
+        "targetTypes": ["Database"],
         "sourceTypes": [
           "JSONSchema",
           "SchemaProperty",
@@ -361,12 +283,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -397,12 +315,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -433,12 +347,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -476,9 +386,7 @@
           "x-apm-data-quality-metrics Extension",
           "x-security Extension"
         ],
-        "targetTypes": [
-          "DataQualityMetric"
-        ],
+        "targetTypes": ["DataQualityMetric"],
         "fieldPath": "x-apm-data-quality-metrics",
         "cardinality": "single",
         "description": "Inverse of: DataQualityMetrics (optional)"
@@ -488,14 +396,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "data-governance",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "JSONSchema",
-          "x-data-governance Extension",
-          "x-security Extension"
-        ],
-        "targetTypes": [
-          "Governance"
-        ],
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
+        "targetTypes": ["Governance"],
         "fieldPath": "x-data-governance",
         "cardinality": "single",
         "description": "Inverse of: DataGovernance (optional)"
@@ -505,12 +407,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "governance-owner",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessObject"
-        ],
-        "targetTypes": [
-          "GovernanceOwner"
-        ],
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["GovernanceOwner"],
         "fieldPath": "data.governance-owner",
         "cardinality": "single",
         "description": "Inverse of: BusinessObject ownership by BusinessActor"
@@ -520,13 +418,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "retention",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
-        "targetTypes": [
-          "Retention"
-        ],
+        "sourceTypes": ["Data Properties", "DataObject"],
+        "targetTypes": ["Retention"],
         "fieldPath": "data.retention",
         "cardinality": "single",
         "description": "Inverse of: Links to Retention in target layer"
@@ -542,9 +435,7 @@
           "x-database Extension",
           "x-security Extension"
         ],
-        "targetTypes": [
-          "Database"
-        ],
+        "targetTypes": ["Database"],
         "fieldPath": "x-database",
         "cardinality": "single",
         "description": "Inverse of: DatabaseMapping (optional)"
@@ -554,12 +445,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "database-column",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Schema"
-        ],
-        "targetTypes": [
-          "Column"
-        ],
+        "sourceTypes": ["Schema"],
+        "targetTypes": ["Column"],
         "fieldPath": "x-database-column",
         "cardinality": "single",
         "description": "Inverse of: string"
@@ -569,13 +456,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "database-table",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Schema",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Table"
-        ],
+        "sourceTypes": ["Schema", "SecurityScheme"],
+        "targetTypes": ["Table"],
         "fieldPath": "x-database-table",
         "cardinality": "single",
         "description": "Inverse of: string"
@@ -679,15 +561,7 @@
   "definitions": {
     "string": {
       "type": "string",
-      "enum": [
-        "string",
-        "number",
-        "integer",
-        "boolean",
-        "object",
-        "array",
-        "null"
-      ]
+      "enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
     },
     "StringFormat": {
       "type": "string",
@@ -715,13 +589,7 @@
     },
     "DataClassificationLevel": {
       "type": "string",
-      "enum": [
-        "public",
-        "internal",
-        "confidential",
-        "restricted",
-        "secret"
-      ]
+      "enum": ["public", "internal", "confidential", "restricted", "secret"]
     },
     "SQLType": {
       "type": "string",
@@ -755,42 +623,19 @@
     },
     "ReferentialAction": {
       "type": "string",
-      "enum": [
-        "CASCADE",
-        "SET_NULL",
-        "SET_DEFAULT",
-        "RESTRICT",
-        "NO_ACTION"
-      ]
+      "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
     },
     "IndexType": {
       "type": "string",
-      "enum": [
-        "BTREE",
-        "HASH",
-        "GIN",
-        "GIST",
-        "BRIN"
-      ]
+      "enum": ["BTREE", "HASH", "GIN", "GIST", "BRIN"]
     },
     "ConstraintType": {
       "type": "string",
-      "enum": [
-        "PRIMARY_KEY",
-        "UNIQUE",
-        "FOREIGN_KEY",
-        "CHECK",
-        "NOT_NULL",
-        "EXCLUSION"
-      ]
+      "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK", "NOT_NULL", "EXCLUSION"]
     },
     "PartitionStrategy": {
       "type": "string",
-      "enum": [
-        "RANGE",
-        "LIST",
-        "HASH"
-      ]
+      "enum": ["RANGE", "LIST", "HASH"]
     },
     "UIComponent": {
       "type": "string",
@@ -816,32 +661,16 @@
     },
     "SecurityClassification": {
       "type": "string",
-      "enum": [
-        "public",
-        "internal",
-        "confidential",
-        "restricted"
-      ]
+      "enum": ["public", "internal", "confidential", "restricted"]
     },
     "MaskingStrategy": {
       "type": "string",
-      "enum": [
-        "none",
-        "partial",
-        "full",
-        "hash"
-      ]
+      "enum": ["none", "partial", "full", "hash"]
     },
     "JSONSchema": {
       "type": "object",
       "description": "Root schema document",
-      "required": [
-        "id",
-        "name",
-        "$schema",
-        "$id",
-        "type"
-      ],
+      "required": ["id", "name", "$schema", "$id", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -895,9 +724,7 @@
     "JSONType": {
       "type": "object",
       "description": "Core JSON data types",
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "properties": {
         "value": {
           "$ref": "#/definitions/string"
@@ -907,9 +734,7 @@
     "StringSchema": {
       "type": "object",
       "description": "StringSchema validation rules",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -933,9 +758,7 @@
     "NumericSchema": {
       "type": "object",
       "description": "NumericSchema validation rules",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -961,9 +784,7 @@
     "ArraySchema": {
       "type": "object",
       "description": "ArraySchema validation rules",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -991,9 +812,7 @@
     "ObjectSchema": {
       "type": "object",
       "description": "ObjectSchema validation rules",
-      "required": [
-        "type"
-      ],
+      "required": ["type"],
       "properties": {
         "type": {
           "type": "string",
@@ -1025,10 +844,7 @@
     "SchemaComposition": {
       "type": "object",
       "description": "Combining multiple schemas",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1044,10 +860,7 @@
     "Reference": {
       "type": "object",
       "description": "Reference to another schema",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1063,12 +876,7 @@
     "SchemaDefinition": {
       "type": "object",
       "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
-      "required": [
-        "id",
-        "name",
-        "title",
-        "type"
-      ],
+      "required": ["id", "name", "title", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1110,17 +918,7 @@
     "SchemaProperty": {
       "type": "object",
       "description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "title",
-        "format",
-        "default",
-        "enum",
-        "const",
-        "examples"
-      ],
+      "required": ["id", "name", "type", "title", "format", "default", "enum", "const", "examples"],
       "properties": {
         "id": {
           "type": "string",
@@ -1177,10 +975,7 @@
     "DataGovernance": {
       "type": "object",
       "description": "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1196,11 +991,7 @@
     "DataQualityMetrics": {
       "type": "object",
       "description": "Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.",
-      "required": [
-        "id",
-        "name",
-        "schemaRef"
-      ],
+      "required": ["id", "name", "schemaRef"],
       "properties": {
         "id": {
           "type": "string",
@@ -1223,14 +1014,7 @@
     "DatabaseMapping": {
       "type": "object",
       "description": "Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.",
-      "required": [
-        "id",
-        "name",
-        "table",
-        "schema",
-        "catalog",
-        "engine"
-      ],
+      "required": ["id", "name", "table", "schema", "catalog", "engine"],
       "properties": {
         "id": {
           "type": "string",
@@ -1262,9 +1046,7 @@
     "x-business-object-ref": {
       "type": "object",
       "description": "Reference to BusinessObject this schema implements",
-      "required": [
-        "value"
-      ],
+      "required": ["value"],
       "properties": {
         "value": {
           "type": "string",
@@ -1275,10 +1057,7 @@
     "x-data-governance": {
       "type": "object",
       "description": "Data model governance metadata (root-level)",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1346,13 +1125,7 @@
     "x-database": {
       "type": "object",
       "description": "Database mapping information",
-      "required": [
-        "id",
-        "name",
-        "table",
-        "schema",
-        "engine"
-      ],
+      "required": ["id", "name", "table", "schema", "engine"],
       "properties": {
         "id": {
           "type": "string",

@@ -11,14 +11,8 @@
     "allowed": [
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "Goal",
-          "Requirement"
-        ],
-        "targetTypes": [
-          "Goal",
-          "Requirement"
-        ],
+        "sourceTypes": ["Goal", "Requirement"],
+        "targetTypes": ["Goal", "Requirement"],
         "examples": [
           {
             "source": "Goal",
@@ -34,14 +28,8 @@
       },
       {
         "relationshipTypeId": "realization",
-        "sourceTypes": [
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["Goal", "Outcome"],
+        "targetTypes": ["Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -57,21 +45,8 @@
       },
       {
         "relationshipTypeId": "association",
-        "sourceTypes": [
-          "Meaning",
-          "Outcome",
-          "Requirement",
-          "Stakeholder",
-          "Value"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal",
-          "Outcome",
-          "Stakeholder",
-          "Value"
-        ],
+        "sourceTypes": ["Meaning", "Outcome", "Requirement", "Stakeholder", "Value"],
+        "targetTypes": ["Constraint", "Driver", "Goal", "Outcome", "Stakeholder", "Value"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -112,19 +87,8 @@
       },
       {
         "relationshipTypeId": "influence",
-        "sourceTypes": [
-          "Assessment",
-          "Constraint",
-          "Driver",
-          "Goal",
-          "Principle"
-        ],
-        "targetTypes": [
-          "Assessment",
-          "Goal",
-          "Principle",
-          "Requirement"
-        ],
+        "sourceTypes": ["Assessment", "Constraint", "Driver", "Goal", "Principle"],
+        "targetTypes": ["Assessment", "Goal", "Principle", "Requirement"],
         "examples": [
           {
             "source": "Driver",
@@ -169,9 +133,7 @@
         "predicate": "constrained-by",
         "inversePredicate": "constrains",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "ConstrainedBy"
-        ],
+        "targetTypes": ["ConstrainedBy"],
         "sourceTypes": [
           "Artifact",
           "CommunicationNetwork",
@@ -220,13 +182,8 @@
         "predicate": "delivers-value",
         "inversePredicate": "delivered-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "DeliversValue"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "BusinessService"
-        ],
+        "targetTypes": ["DeliversValue"],
+        "sourceTypes": ["ApplicationService", "BusinessService"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "format": "reference",
@@ -258,9 +215,7 @@
         "predicate": "fulfills-requirements",
         "inversePredicate": "fulfilled-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
+        "targetTypes": ["FulfillsRequirement"],
         "sourceTypes": [
           "ApplicationFunction",
           "CommunicationNetwork",
@@ -308,9 +263,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -362,9 +315,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",

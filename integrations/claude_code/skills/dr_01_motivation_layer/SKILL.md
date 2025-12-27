@@ -142,7 +142,7 @@ def configure_oauth(provider: str):
 ### Pattern 2: Non-Functional Requirements in Tests
 
 ```python
-@pytest.mark.performance
+@npm test.mark.performance
 def test_api_response_time():
     """Verify API responds within 200ms (GOAL: sub-second response)"""
     response_time = measure_api_call()

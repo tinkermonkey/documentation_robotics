@@ -16,12 +16,12 @@ paths:
       security:
         - oauth2: []
       responses:
-        '200':
+        "200":
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DataResponse'
+                $ref: "#/components/schemas/DataResponse"
 
 components:
   schemas:

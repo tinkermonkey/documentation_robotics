@@ -11,16 +11,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["InputPartitionSelection", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCoverageModel",
@@ -41,14 +33,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "PartitionValue"],
         "examples": [
           {
             "source": "InputPartitionSelection",
@@ -64,14 +50,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageGap", "PartitionDependency"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "PartitionDependency",
@@ -87,14 +67,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "TestCoverageTarget",
@@ -110,13 +84,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["TestCoverageTarget"],
         "examples": [
           {
             "source": "InputSpacePartition",
@@ -132,14 +101,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -155,16 +118,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputSelection",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputSelection", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -185,15 +140,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "InputSpacePartition",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "InputSpacePartition", "OutcomeCategory"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -214,14 +162,8 @@
       },
       {
         "relationshipTypeId": "validates",
-        "sourceTypes": [
-          "TargetCoverageSummary",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["TargetCoverageSummary", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -245,9 +187,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -298,9 +238,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",
@@ -346,12 +284,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",

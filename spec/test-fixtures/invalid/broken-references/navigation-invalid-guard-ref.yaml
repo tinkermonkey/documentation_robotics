@@ -9,6 +9,6 @@ routes:
   - identifier: "protected-route"
     name: "Protected Route"
     type: experience
-    guards: ["non-existent-guard"]  # Guard doesn't exist
+    guards: ["non-existent-guard"] # Guard doesn't exist
     addressing:
       url: "/protected"

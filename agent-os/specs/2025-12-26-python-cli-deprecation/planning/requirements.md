@@ -25,7 +25,7 @@ The goal is to validate feature parity, create migration tooling, and safely rem
 **Q3:** I assume the deprecation notice should be displayed prominently when users run the Python CLI (printed to stderr before every command execution starting from a specific version), with a grace period before actual removal. Should this be a warning-only period (e.g., 2-3 months) before we remove the code, or do you have a different timeline in mind?
 **Answer:** The whole codebase is effectively in the alpha stage, so deprecation can be immediate as soon as the Bun CLI is ready.
 
-**Q4:** For users who have CI/CD pipelines using the Python CLI (`pip install documentation-robotics` in their workflows), I'm thinking we should provide drop-in replacement instructions showing how to swap `pip install` with `npm install -g @doc-robotics/cli-bun`. Should we also publish a migration script that scans GitHub Actions/GitLab CI files and suggests changes?
+**Q4:** For users who have CI/CD pipelines using the Python CLI (`pip install documentation-robotics` in their workflows), I'm thinking we should provide drop-in replacement instructions showing how to swap `pip install` with `npm install -g @documentation-robotics/cli`. Should we also publish a migration script that scans GitHub Actions/GitLab CI files and suggests changes?
 **Answer:** Provide instructions on how to integrate the Bun CLI into a pipeline and allow the users to perform the migration themselves.
 
 **Q5:** I assume we should update PyPI metadata for the Python package to mark it as deprecated with a link to migration docs, but keep the package published (not remove it entirely). Is that correct, or should we eventually unpublish the Python package after a deprecation period?

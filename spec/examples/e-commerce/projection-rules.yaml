@@ -274,7 +274,6 @@ projections:
             target: properties.measures_goal
             source: id
         create_bidirectional: true
-
 # Advanced Features Demonstrated:
 #
 # 1. Multiple Conditions:

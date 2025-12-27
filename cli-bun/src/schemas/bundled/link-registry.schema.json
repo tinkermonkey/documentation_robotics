@@ -127,10 +127,7 @@
                 "required": ["layer", "type", "id"]
               },
               "value": {
-                "oneOf": [
-                  {"type": "string"},
-                  {"type": "array", "items": {"type": "string"}}
-                ]
+                "oneOf": [{ "type": "string" }, { "type": "array", "items": { "type": "string" } }]
               },
               "description": {
                 "type": "string"
@@ -153,7 +150,7 @@
             },
             "sourceElementTypesValid": {
               "type": "array",
-              "items": {"type": "string"},
+              "items": { "type": "string" },
               "description": "Valid source element types"
             },
             "minimumCardinality": {
@@ -338,9 +335,5 @@
       "description": "Array of link type definitions"
     }
   },
-  "required": [
-    "$schema",
-    "version",
-    "linkTypes"
-  ]
+  "required": ["$schema", "version", "linkTypes"]
 }

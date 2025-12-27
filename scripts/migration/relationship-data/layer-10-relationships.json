@@ -9,14 +9,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -37,16 +31,8 @@
         "inversePredicate": "flows-from",
         "category": "behavioral",
         "description": "Sequential or data flow between behaviors",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -73,12 +59,8 @@
         "inversePredicate": "enforced-by",
         "category": "governance",
         "description": "Element actively enforces requirement",
-        "sourceTypes": [
-          "NavigationGuard"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["NavigationGuard"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "NavigationGuard",
@@ -93,12 +75,8 @@
         "inversePredicate": "navigated-from",
         "category": "ux",
         "description": "Navigation flows",
-        "sourceTypes": [
-          "UIView"
-        ],
-        "targetTypes": [
-          "UIView"
-        ],
+        "sourceTypes": ["UIView"],
+        "targetTypes": ["UIView"],
         "examples": [
           {
             "source": "UIView",
@@ -118,12 +96,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -154,12 +128,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -190,12 +160,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",

@@ -3,20 +3,20 @@ Multi-Format Export Support:
   description: Export models to ArchiMate, OpenAPI, PlantUML, GraphML, and Markdown
     formats
   type: functional
-  phase: '3'
+  phase: "3"
   status: implemented
   id: motivation.requirement.multi-format-export-support
 Dependency Tracking and Analysis:
   name: Dependency Tracking and Analysis
   description: Track and analyze dependencies between elements across layers
   type: functional
-  phase: '2'
+  phase: "2"
   status: implemented
   id: motivation.requirement.dependency-tracking-and-analysis
 Version Control Friendly Storage:
   name: Version Control Friendly Storage
   description: Store models as human-readable YAML files suitable for git
   type: non-functional
-  phase: '1'
+  phase: "1"
   status: implemented
   id: motivation.requirement.version-control-friendly-storage

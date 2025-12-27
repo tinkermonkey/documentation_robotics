@@ -18,9 +18,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -71,9 +69,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",
@@ -119,12 +115,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -157,12 +149,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -194,13 +182,8 @@
         "predicate": "pii",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Pii"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Pii"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.pii",
         "cardinality": "single",
         "format": "boolean",
@@ -224,12 +207,8 @@
         "predicate": "encrypted",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Encrypted"
-        ],
-        "sourceTypes": [
-          "Schema"
-        ],
+        "targetTypes": ["Encrypted"],
+        "sourceTypes": ["Schema"],
         "fieldPath": "x-encrypted",
         "cardinality": "single",
         "format": "string",
@@ -244,12 +223,8 @@
         "predicate": "encryption-required",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "EncryptionRequired"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["EncryptionRequired"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.encryption-required",
         "cardinality": "single",
         "format": "boolean",
@@ -281,12 +256,8 @@
         "predicate": "encryption-type",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "EncryptionType"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["EncryptionType"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.encryption-type",
         "cardinality": "single",
         "format": "string",
@@ -318,13 +289,8 @@
         "predicate": "pii",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Pii"
-        ],
-        "sourceTypes": [
-          "Artifact",
-          "Schema"
-        ],
+        "targetTypes": ["Pii"],
+        "sourceTypes": ["Artifact", "Schema"],
         "fieldPath": "security.pii",
         "cardinality": "single",
         "format": "boolean",
@@ -348,12 +314,8 @@
         "predicate": "security-controls",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "SecurityControl"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["SecurityControl"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "process.security-controls",
         "cardinality": "array",
         "format": "string",
@@ -377,12 +339,8 @@
         "predicate": "separation-of-duty",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "SeparationOfDuty"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["SeparationOfDuty"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "process.separation-of-duty",
         "cardinality": "single",
         "format": "boolean",
@@ -406,13 +364,8 @@
         "predicate": "required-permissions",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Permission"
-        ],
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "targetTypes": ["Permission"],
+        "sourceTypes": ["Operation", "SecurityScheme"],
         "fieldPath": "x-required-permissions",
         "cardinality": "array",
         "format": "duration",
@@ -427,13 +380,8 @@
         "predicate": "security-resource",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "SecureResource"
-        ],
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
+        "targetTypes": ["SecureResource"],
+        "sourceTypes": ["Operation", "SecurityScheme"],
         "fieldPath": "x-security-resource",
         "cardinality": "single",
         "format": "duration",

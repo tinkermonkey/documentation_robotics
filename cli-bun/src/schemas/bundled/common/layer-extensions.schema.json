@@ -205,7 +205,17 @@
           "description": "Example usages of this cross-layer relationship"
         }
       },
-      "required": ["id", "predicate", "inversePredicate", "targetLayer", "targetTypes", "fieldPath", "cardinality", "format", "description"],
+      "required": [
+        "id",
+        "predicate",
+        "inversePredicate",
+        "targetLayer",
+        "targetTypes",
+        "fieldPath",
+        "cardinality",
+        "format",
+        "description"
+      ],
       "additionalProperties": false
     },
 

@@ -15,18 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "Database",
-          "DatabaseSchema",
-          "Table"
-        ],
-        "targetTypes": [
-          "Column",
-          "Constraint",
-          "DatabaseSchema",
-          "Index",
-          "Table"
-        ],
+        "sourceTypes": ["Database", "DatabaseSchema", "Table"],
+        "targetTypes": ["Column", "Constraint", "DatabaseSchema", "Index", "Table"],
         "examples": [
           {
             "source": "Database",
@@ -50,13 +40,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "Constraint",
-          "Index"
-        ],
-        "targetTypes": [
-          "Column"
-        ],
+        "sourceTypes": ["Constraint", "Index"],
+        "targetTypes": ["Column"],
         "examples": [
           {
             "source": "Index",
@@ -74,14 +59,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -98,12 +77,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "Trigger"
-        ],
-        "targetTypes": [
-          "Function"
-        ],
+        "sourceTypes": ["Trigger"],
+        "targetTypes": ["Function"],
         "examples": [
           {
             "source": "Trigger",
@@ -115,15 +90,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "BusinessService",
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "BusinessActor",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessService", "ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["BusinessActor", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessService",
@@ -146,16 +114,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -178,16 +138,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -210,15 +162,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "ApplicationService",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "DataObject",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -241,12 +186,8 @@
       },
       {
         "relationshipTypeId": "maps-to",
-        "sourceTypes": [
-          "DataObject"
-        ],
-        "targetTypes": [
-          "DatabaseTable"
-        ],
+        "sourceTypes": ["DataObject"],
+        "targetTypes": ["DatabaseTable"],
         "examples": [
           {
             "source": "DataObject",
@@ -257,12 +198,8 @@
       },
       {
         "relationshipTypeId": "references-table",
-        "sourceTypes": [
-          "OrderTable"
-        ],
-        "targetTypes": [
-          "CustomerTable"
-        ],
+        "sourceTypes": ["OrderTable"],
+        "targetTypes": ["CustomerTable"],
         "examples": [
           {
             "source": "OrderTable",
@@ -273,12 +210,8 @@
       },
       {
         "relationshipTypeId": "derivedfrom",
-        "sourceTypes": [
-          "TotalPrice"
-        ],
-        "targetTypes": [
-          "Quantity, UnitPrice"
-        ],
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
         "examples": [
           {
             "source": "TotalPrice",
@@ -297,12 +230,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -333,12 +262,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -369,12 +294,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -479,14 +400,7 @@
   "definitions": {
     "DatabaseType": {
       "type": "string",
-      "enum": [
-        "PostgreSQL",
-        "MySQL",
-        "SQLite",
-        "MariaDB",
-        "Oracle",
-        "SQL Server"
-      ]
+      "enum": ["PostgreSQL", "MySQL", "SQLite", "MariaDB", "Oracle", "SQL Server"]
     },
     "SQLDataType": {
       "type": "string",
@@ -522,134 +436,64 @@
     },
     "GenerationType": {
       "type": "string",
-      "enum": [
-        "ALWAYS",
-        "BY_DEFAULT"
-      ]
+      "enum": ["ALWAYS", "BY_DEFAULT"]
     },
     "ConstraintType": {
       "type": "string",
-      "enum": [
-        "PRIMARY_KEY",
-        "UNIQUE",
-        "FOREIGN_KEY",
-        "CHECK",
-        "EXCLUSION"
-      ]
+      "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK", "EXCLUSION"]
     },
     "ReferentialAction": {
       "type": "string",
-      "enum": [
-        "CASCADE",
-        "SET_NULL",
-        "SET_DEFAULT",
-        "RESTRICT",
-        "NO_ACTION"
-      ]
+      "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
     },
     "IndexMethod": {
       "type": "string",
-      "enum": [
-        "BTREE",
-        "HASH",
-        "GIN",
-        "GIST",
-        "BRIN",
-        "SP-GIST"
-      ]
+      "enum": ["BTREE", "HASH", "GIN", "GIST", "BRIN", "SP-GIST"]
     },
     "RefreshMode": {
       "type": "string",
-      "enum": [
-        "ON_COMMIT",
-        "ON_DEMAND",
-        "SCHEDULED"
-      ]
+      "enum": ["ON_COMMIT", "ON_DEMAND", "SCHEDULED"]
     },
     "TriggerTiming": {
       "type": "string",
-      "enum": [
-        "BEFORE",
-        "AFTER",
-        "INSTEAD_OF"
-      ]
+      "enum": ["BEFORE", "AFTER", "INSTEAD_OF"]
     },
     "TriggerEvent": {
       "type": "string",
-      "enum": [
-        "INSERT",
-        "UPDATE",
-        "DELETE",
-        "TRUNCATE"
-      ]
+      "enum": ["INSERT", "UPDATE", "DELETE", "TRUNCATE"]
     },
     "TriggerForEach": {
       "type": "string",
-      "enum": [
-        "ROW",
-        "STATEMENT"
-      ]
+      "enum": ["ROW", "STATEMENT"]
     },
     "SequenceDataType": {
       "type": "string",
-      "enum": [
-        "SMALLINT",
-        "INTEGER",
-        "BIGINT"
-      ]
+      "enum": ["SMALLINT", "INTEGER", "BIGINT"]
     },
     "FunctionLanguage": {
       "type": "string",
-      "enum": [
-        "SQL",
-        "PLPGSQL",
-        "PLPYTHON3U",
-        "PLPERL",
-        "PLPYTHON",
-        "C"
-      ]
+      "enum": ["SQL", "PLPGSQL", "PLPYTHON3U", "PLPERL", "PLPYTHON", "C"]
     },
     "FunctionVolatility": {
       "type": "string",
-      "enum": [
-        "IMMUTABLE",
-        "STABLE",
-        "VOLATILE"
-      ]
+      "enum": ["IMMUTABLE", "STABLE", "VOLATILE"]
     },
     "ParallelSafety": {
       "type": "string",
-      "enum": [
-        "UNSAFE",
-        "RESTRICTED",
-        "SAFE"
-      ]
+      "enum": ["UNSAFE", "RESTRICTED", "SAFE"]
     },
     "SecurityDefiner": {
       "type": "string",
-      "enum": [
-        "INVOKER",
-        "DEFINER"
-      ]
+      "enum": ["INVOKER", "DEFINER"]
     },
     "ParameterMode": {
       "type": "string",
-      "enum": [
-        "IN",
-        "OUT",
-        "INOUT",
-        "VARIADIC"
-      ]
+      "enum": ["IN", "OUT", "INOUT", "VARIADIC"]
     },
     "Database": {
       "type": "object",
       "description": "Database instance containing schemas",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "version"
-      ],
+      "required": ["id", "name", "type", "version"],
       "properties": {
         "id": {
           "type": "string",
@@ -687,10 +531,7 @@
     "DatabaseSchema": {
       "type": "object",
       "description": "Logical grouping of database objects",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -738,10 +579,7 @@
     "Table": {
       "type": "object",
       "description": "Database table definition",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -797,11 +635,7 @@
     "Column": {
       "type": "object",
       "description": "Table column definition",
-      "required": [
-        "id",
-        "name",
-        "dataType"
-      ],
+      "required": ["id", "name", "dataType"],
       "properties": {
         "id": {
           "type": "string",
@@ -836,11 +670,7 @@
     "Constraint": {
       "type": "object",
       "description": "Table constraint",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -859,10 +689,7 @@
     "Index": {
       "type": "object",
       "description": "Database index for query optimization",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -897,10 +724,7 @@
     "View": {
       "type": "object",
       "description": "Database view",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -973,10 +797,7 @@
     "Sequence": {
       "type": "object",
       "description": "A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers.",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1021,12 +842,7 @@
     "Function": {
       "type": "object",
       "description": "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.",
-      "required": [
-        "id",
-        "name",
-        "language",
-        "returnType"
-      ],
+      "required": ["id", "name", "language", "returnType"],
       "properties": {
         "id": {
           "type": "string",

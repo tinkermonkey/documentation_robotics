@@ -125,7 +125,6 @@ apm:
       measures-goal: motivation.goal.reduce-support-costs
       target: 15
       current-value: 18
-
 # Expected Validation Results:
 # ✓ Upward traceability: All implementation elements trace to motivation.goal.reduce-support-costs
 # ✓ Bidirectional consistency: realizes <-> realizedBy, instruments <-> instrumentedBy, hosts <-> deployedTo

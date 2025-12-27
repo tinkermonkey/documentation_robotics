@@ -7,15 +7,10 @@
   "title": "Data",
   "type": "object",
   "x-security-classification": "public",
-  "properties": {
-    "id": {
-      "type": "string",
-      "description": "Unique identifier"
+  "properties":
+    {
+      "id": { "type": "string", "description": "Unique identifier" },
+      "value": { "type": "string", "description": "Data value" },
     },
-    "value": {
-      "type": "string",
-      "description": "Data value"
-    }
-  },
-  "required": ["id", "value"]
+  "required": ["id", "value"],
 }

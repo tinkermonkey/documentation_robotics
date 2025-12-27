@@ -1,36 +1,36 @@
-# ✅ GraphML Export
+# GraphML Export
 
 ## Overview
 
-This new feature provides a simple way to export the entire specification ontology as a GraphML file, which can be easily visualized using popular graph tools like yEd, Gephi, or Cytoscape. This allows architects and engineers to explore the architecture layers, link types, and relationships visually without needing to set up a graph database.
+This feature provides a simple way to export the entire specification ontology as a GraphML file, which can be easily visualized using popular graph tools like yEd, Gephi, or Cytoscape. This allows architects and engineers to explore the architecture layers, link types, and relationships visually without needing to set up a graph database.
 
-### 1. GraphML Exporter Script ✅
+### 1. GraphML Export via CLI
 
-**File**: `scripts/tools/export_graphml.py`
+**Command**: `dr export graphml`
 
 **Features**:
 
-- Pure Python (no dependencies except stdlib)
+- Pure TypeScript/Bun implementation (no external dependencies)
 - Exports to standard GraphML format
 - Three export modes: standard, full (with entities), minimal
 - Clean, well-documented code
 
-### 2. Generated Visualizations ✅
+### 2. Generated Visualizations
 
 **Files created**:
 
-- `reports/visualization/spec-ontology.graphml` (47 KB)
+- `spec-ontology.graphml` (47 KB)
   - 81 nodes (12 Layers + 38 LinkTypes + 31 Predicates)
   - 130 edges (relationships)
 
-- `reports/visualization/spec-ontology-full.graphml` (larger)
+- `spec-ontology-full.graphml` (larger)
   - 292 nodes (includes 211 EntityTypes)
   - 348 edges
 
-### 3. Documentation ✅
+### 3. Documentation
 
-- `reports/visualization/README.md` - Technical reference
 - `docs/guides/graph-visualization-quickstart.md` - User guide
+- CLI help: `dr export graphml --help`
 
 ## Quick Start
 
@@ -38,13 +38,13 @@ This new feature provides a simple way to export the entire specification ontolo
 
 ```bash
 # Standard export (recommended)
-python scripts/tools/export_graphml.py
+dr export graphml --output spec-ontology.graphml
 
 # With all entity types
-python scripts/tools/export_graphml.py --include-entities
+dr export graphml --include-entities --output spec-ontology-full.graphml
 
 # Minimal (layers and links only)
-python scripts/tools/export_graphml.py --minimal
+dr export graphml --minimal --output spec-ontology-minimal.graphml
 ```
 
 ### Visualize
@@ -52,14 +52,14 @@ python scripts/tools/export_graphml.py --minimal
 **Option 1: yEd (Easiest)**
 
 1. Download: https://www.yworks.com/products/yed/download
-2. Open `reports/visualization/spec-ontology.graphml`
+2. Open `spec-ontology.graphml`
 3. Layout → Hierarchical
 4. Done! Interactive graph in seconds
 
 **Option 2: Gephi (Most Powerful)**
 
 1. Download: https://gephi.org/
-2. Open `reports/visualization/spec-ontology-full.graphml`
+2. Open `spec-ontology-full.graphml`
 3. Layout → Force Atlas 2
 4. Analyze with built-in metrics
 
@@ -173,7 +173,7 @@ Edges by Relationship:
 
 ### Why GraphML is Great
 
-✅ **No installation** - Just Python stdlib, no database needed
+✅ **No installation** - Just the CLI tool, no database needed
 ✅ **Standard format** - Works with all major graph tools
 ✅ **Portable** - Share files via email, git, etc.
 ✅ **Visual** - See the ontology immediately
@@ -196,16 +196,13 @@ Edges by Relationship:
 # 1. Edit schemas
 vim spec/schemas/06-api-layer.schema.json
 
-# 2. Regenerate link registry (if needed)
-python scripts/generators/link_registry_generator.py
+# 2. Export GraphML
+dr export graphml --output spec-ontology.graphml
 
-# 3. Export GraphML
-python scripts/tools/export_graphml.py
-
-# 4. Open in visualization tool
+# 3. Open in visualization tool
 # yEd, Gephi, or Cytoscape
 
-# 5. Validate changes visually
+# 4. Validate changes visually
 ```
 
 ### CI/CD Integration
@@ -213,38 +210,38 @@ python scripts/tools/export_graphml.py
 ```yaml
 # Add to .github/workflows/validate.yml
 - name: Generate GraphML
-  run: python scripts/tools/export_graphml.py
+  run: dr export graphml --output spec-ontology.graphml
 
 - name: Upload visualization
   uses: actions/upload-artifact@v3
   with:
     name: spec-visualization
-    path: reports/visualization/spec-ontology.graphml
+    path: spec-ontology.graphml
 ```
 
 ## Files to Visualize
 
-All generated and ready:
+All generated and ready via CLI:
 
-- ✅ `reports/visualization/spec-ontology.graphml`
-- ✅ `reports/visualization/spec-ontology-full.graphml`
+- `dr export graphml --output spec-ontology.graphml`
+- `dr export graphml --include-entities --output spec-ontology-full.graphml`
 
 ## Documentation
 
 Everything you need:
 
-- ✅ `scripts/tools/export_graphml.py --help`
-- ✅ `reports/visualization/README.md`
-- ✅ `docs/guides/graph-visualization-quickstart.md`
+- `dr export graphml --help`
+- `docs/guides/graph-visualization-quickstart.md`
 
 ## Next Steps
 
 ### For You Right Now
 
 1. **Download yEd** (5 minutes): https://www.yworks.com/products/yed/download
-2. **Open the file** (10 seconds): File → Open → `spec-ontology.graphml`
-3. **Apply layout** (5 seconds): Layout → Hierarchical
-4. **Explore!** Interactive visualization of your entire spec
+2. **Generate GraphML**: `dr export graphml --output spec-ontology.graphml`
+3. **Open the file** (10 seconds): File → Open → `spec-ontology.graphml`
+4. **Apply layout** (5 seconds): Layout → Hierarchical
+5. **Explore!** Interactive visualization of your entire spec
 
 ### For Later
 
@@ -258,7 +255,7 @@ Everything you need:
 You now have:
 
 - ✅ Working graph export (no database needed)
-- ✅ Two GraphML files ready to visualize
+- ✅ CLI command ready to use
 - ✅ Complete documentation
 - ✅ Multiple visualization tool options
 - ✅ Integration with existing workflow
@@ -271,4 +268,4 @@ The GraphML export gives you everything you need to:
 - Share with team
 - Document the architecture
 
-**And it works right now!** 🎉
+**And it works right now!**

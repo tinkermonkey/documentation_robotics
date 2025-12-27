@@ -5,7 +5,7 @@ A comprehensive toolkit for managing federated data models for modeling large so
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
 [![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.7.3-green)](cli/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](cli-bun/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -51,7 +51,7 @@ The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, 
 
 See [UX Layer Specification](spec/layers/09-ux-layer.md) for complete architecture details.
 
-**Link Registry & Validation (Spec v0.4.0 / CLI v0.7.1)**
+**Link Registry & Validation (Spec v0.4.0 / CLI v0.1.0)**
 
 - 📖 **Comprehensive Catalog** - 60+ cross-layer reference patterns across 9 categories
 - 🔍 **Automated Discovery** - Automatically detect and analyze all cross-layer links in your model
@@ -60,9 +60,9 @@ See [UX Layer Specification](spec/layers/09-ux-layer.md) for complete architectu
 - 🔄 **Path Tracing** - Find and visualize paths between any two elements across layers
 - 🚀 **CI/CD Ready** - Strict mode for treating warnings as errors in automated pipelines
 
-See [Link Management Guide](cli/docs/user-guide/link-management.md) for complete documentation.
+See [Link Management Guide](cli-bun/docs/user-guide/link-management.md) for complete documentation.
 
-**Managed Upgrades (CLI v0.7.1)**
+**Managed Upgrades (CLI v0.1.0)**
 
 - 🔄 **Automated Migration** - Seamlessly migrate models between specification versions
 - 🔧 **Pattern Detection** - Automatically identify and fix non-standard reference patterns
@@ -75,9 +75,10 @@ See `dr migrate --help` for usage details.
 ## Quick Links
 
 - **[Read the Specification](spec/)** - Complete specification with all 12 layers
-- **[Use the CLI Tool](cli/)** - Install and use the `dr` command
+- **[Use the CLI Tool](cli-bun/)** - Install and use the `dr` command
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Release Process](RELEASE_PROCESS.md)** - How releases work
+- **[Migrating from Python CLI](docs/migration-from-python-cli.md)** - Migration guide for Python CLI users
 
 ## Project Components
 
@@ -107,15 +108,11 @@ The Documentation Robotics specification defines a standards-based approach to m
 
 ### 2. The CLI Tool (`dr`)
 
-Two fully-compatible implementations available:
-
-#### Python CLI (Mature)
-
-**Location:** [`cli/`](cli/)
-**Version:** 0.7.3
+**Location:** [`cli-bun/`](cli-bun/)
+**Version:** 0.1.0
 **Status:** Production-ready
 
-A Python-based command-line tool for managing project models conforming to the specification.
+A TypeScript/Bun-based command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
@@ -125,47 +122,68 @@ A Python-based command-line tool for managing project models conforming to the s
 - ✅ **Link Management** - Discover, validate, trace, and document inter-layer links
 - ✅ **Managed Upgrades** - Automated migration between specification versions
 - ✅ **Export Formats** - ArchiMate, OpenAPI, PlantUML, Markdown, GraphML
-- ✅ **Visualization Server** - Can serve interactive model visualizations for easier exploration and validation
+- ✅ **Visualization Server** - Serves interactive model visualizations for easier exploration and validation
+- ✅ **Fast Performance** - ~150ms startup time, 8x faster than legacy implementations
 
-#### Bun CLI (Modern & Fast)
-
-**Location:** [`cli-bun/`](cli-bun/)
-**Version:** 0.1.0
-**Status:** Feature-parity with Python CLI, **~8x faster**
-
-A TypeScript/Bun implementation with identical commands and 200ms startup time.
-
-**Quick Start (Either CLI):**
+**Installation:**
 
 ```bash
-# Python CLI
-pip install documentation-robotics
-dr --help
+# Install globally via npm
+npm install -g @documentation-robotics/cli
 
-# OR Bun CLI
-npm install -g @doc-robotics/cli-bun
+# Verify installation
 dr --help
-
-# Both work with the same commands and models
-dr init my-project
-dr add motivation goal --name "Improve Customer Satisfaction"
-dr validate
-dr migrate --dry-run
-dr conformance
 ```
 
-**Choose Your CLI:**
+**Quick Start:**
 
-| Feature      | Python              | Bun                     |
-| ------------ | ------------------- | ----------------------- |
-| Startup Time | ~1.2s               | ~150ms                  |
-| Install      | `pip install`       | `npm install -g`        |
-| Status       | Production (v0.7.3) | Feature-parity (v0.1.0) |
-| Best For     | Python environments | Node.js environments    |
+```bash
+# Initialize a new model
+dr init --name "My Project"
 
-Both CLIs work on identical `.dr/` model directories.
+# Add elements to layers (format: layer type id --name "Name")
+dr add motivation goal motivation-goal-improve-satisfaction --name "Improve Customer Satisfaction"
+dr add business service business-service-customer-support --name "Customer Support Service"
 
-[→ Python CLI Documentation](cli/) | [→ Bun CLI Documentation](cli-bun/) | [→ Migration Guide](MIGRATION_GUIDE.md)
+# Validate your model
+dr validate
+
+# Migrate to latest spec version
+dr migrate --dry-run
+
+# Check conformance
+dr conformance
+
+# Export to various formats
+dr export archimate --output model.xml
+```
+
+**Requirements:**
+
+- Node.js 18 or higher
+- npm (Node package manager)
+
+[→ CLI Documentation](cli-bun/) | [→ CLI User Guide](cli-bun/docs/user-guide/)
+
+### Migrating from Python CLI
+
+The Python CLI has been deprecated as of version 0.8.0. If you're currently using the Python CLI, please migrate to the Bun CLI for continued support and new features.
+
+**Key Benefits of Migrating:**
+
+- 8x faster performance (~200ms vs ~1-2s startup time)
+- Active development with new features and bug fixes
+- Full feature parity with Python CLI
+- Modern TypeScript/Node.js ecosystem
+
+**Your existing `.dr/` models work without modification** - just install the Bun CLI and continue working.
+
+[→ Complete Migration Guide](docs/migration-from-python-cli.md)
+
+**Deprecation Timeline:**
+
+- December 26, 2025: Python CLI v0.8.0 released with deprecation warnings
+- January 26, 2026: Python package removed from PyPI
 
 ## Repository Structure
 
@@ -186,12 +204,6 @@ documentation_robotics/
 │   ├── test-fixtures/           # Test data for validators
 │   └── reference/               # Reference materials
 │
-├── cli/                         # PYTHON CLI IMPLEMENTATION (v0.7.3)
-│   ├── src/                     # Python source code
-│   ├── tests/                   # Test suite
-│   ├── docs/                    # CLI documentation
-│   └── README.md                # Python CLI README
-│
 ├── cli-bun/                     # TYPESCRIPT/BUN CLI IMPLEMENTATION (v0.1.0)
 │   ├── src/                     # TypeScript source code
 │   │   ├── commands/            # 23+ command implementations
@@ -204,16 +216,14 @@ documentation_robotics/
 │   ├── tests/                   # Test suite (unit, integration, compatibility)
 │   ├── dist/                    # Compiled JavaScript
 │   ├── package.json             # Node.js dependencies
-│   └── README.md                # Bun CLI README
+│   └── README.md                # CLI README
 │
 ├── tools/                       # PROJECT TOOLING
 │
 ├── .github/                     # GitHub configuration
-│   ├── ISSUE_TEMPLATE/          # Issue templates (spec vs CLI)
 │   └── workflows/               # CI/CD workflows
 │
 ├── README.md                    # This file
-├── MIGRATION_GUIDE.md           # Guide for switching between CLIs
 ├── CLAUDE.md                    # AI assistant instructions
 ├── CONTRIBUTING.md              # Project contribution guidelines
 ├── RELEASE_PROCESS.md           # Release process documentation
@@ -224,20 +234,20 @@ documentation_robotics/
 
 The specification defines 12 interconnected layers:
 
-| #   | Layer                                                          | Focus        | Standard      |
+| #   | Layer                                                          | Focus        | Standard      | Notes                                                   |
 | --- | -------------------------------------------------------------- | ------------ | ------------- | ------------------------------------------------------- |
-| 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |
-| 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |
-| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |
-| 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |
-| 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |
-| 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |
-| 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |
-| 08  | [Datastore](spec/layers/08-datastore-layer.md)                 | STORAGE      | SQL DDL       |
+| 01  | [Motivation](spec/layers/01-motivation-layer.md)               | WHY          | ArchiMate 3.2 |                                                         |
+| 02  | [Business](spec/layers/02-business-layer.md)                   | WHAT         | ArchiMate 3.2 |                                                         |
+| 03  | [Security](spec/layers/03-security-layer.md)                   | WHO CAN      | _Custom_      |                                                         |
+| 04  | [Application](spec/layers/04-application-layer.md)             | HOW          | ArchiMate 3.2 |                                                         |
+| 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |                                                         |
+| 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |                                                         |
+| 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |                                                         |
+| 08  | [Datastore](spec/layers/08-datastore-layer.md)                 | STORAGE      | SQL DDL       |                                                         |
 | 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
-| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |
-| 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |
-| 12  | [Testing](spec/layers/12-testing-layer.md)                     | VERIFY       | _Custom_      |
+| 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |                                                         |
+| 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |                                                         |
+| 12  | [Testing](spec/layers/12-testing-layer.md)                     | VERIFY       | _Custom_      |                                                         |
 
 ## Standards Leveraged
 
@@ -261,25 +271,21 @@ Want to use this for modeling your project?
 2. **Install the CLI**
 
    ```bash
-   cd cli
-   pip install -e .
+   npm install -g @documentation-robotics/cli
    ```
 
 3. **Create Your First Model**
 
    ```bash
-   dr init my-project # creates a documentation-robotics folder at the project root
-   dr add motivation goal --name "My First Goal"
+   dr init --name "My Project"
+   dr add motivation goal motivation-goal-first --name "My First Goal"
    dr validate
    ```
 
 4. **Learn More**
    - Browse [spec/examples/](spec/examples/)
    - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-   - Review [docs/guides/](docs/guides/) for implementation guides:
-     - [Relationship Documentation Guide](docs/guides/relationship-documentation.md)
-     - [GraphML Export Guide](docs/guides/graphml-export.md)
-     - [Graph Visualization Quickstart](docs/guides/graph-visualization-quickstart.md)
+   - Review [cli-bun/docs/user-guide/](cli-bun/docs/user-guide/) for implementation guides
 
 Evaluating this approach?
 
@@ -294,7 +300,7 @@ We welcome contributions! See:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) - General contribution guidelines
 - [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md) - Specification contributions
-- [cli/README.md#development](cli/README.md#development) - CLI development
+- [cli-bun/README.md#development](cli-bun/README.md#development) - CLI development
 
 **Ways to Contribute:**
 
@@ -314,10 +320,10 @@ We welcome contributions! See:
 
 ## Versions
 
-| Component         | Current Version | Status                    |
-| ----------------- | --------------- | ------------------------- |
-| **Specification** | 0.5.0           | Stable                    |
-| **CLI Tool**      | 0.7.2           | Feature Complete + Agents |
+| Component         | Current Version | Status           |
+| ----------------- | --------------- | ---------------- |
+| **Specification** | 0.5.0           | Stable           |
+| **CLI Tool**      | 0.1.0           | Production-ready |
 
 ## License
 
@@ -327,8 +333,6 @@ This project is licensed under the MIT License - see [LICENSE](LICENSE) for deta
 
 - **Questions:** [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
 - **Issues:** [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues)
-- **Specification Issues:** Use "Specification Bug Report" template
-- **CLI Issues:** Use "CLI Bug Report" template
 
 ## Citation
 
@@ -358,5 +362,5 @@ This project integrates and builds upon:
 **Ready to get started?**
 
 - Read the specification: [spec/README.md](spec/README.md)
-- Install the CLI: `pip install -e cli/`
+- Install the CLI: `npm install -g @documentation-robotics/cli`
 - Join the discussion: [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)

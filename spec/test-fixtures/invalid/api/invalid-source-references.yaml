@@ -14,7 +14,7 @@ operations:
     description: "Should fail validation"
     tags: "test"
     x-source-reference:
-      provenance: "invalid_value"  # Should be: extracted, manual, inferred, or generated
+      provenance: "invalid_value" # Should be: extracted, manual, inferred, or generated
       locations:
         - file: "src/test.py"
           symbol: "test_func"
@@ -39,7 +39,7 @@ operations:
     tags: "test"
     x-source-reference:
       provenance: "extracted"
-      locations: []  # Array must not be empty
+      locations: [] # Array must not be empty
 
   # Invalid commit SHA - too short
   - id: "api-op-invalid-004"
@@ -54,7 +54,7 @@ operations:
         - file: "src/test.py"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "abc123"  # Must be 40 hex characters
+        commit: "abc123" # Must be 40 hex characters
 
   # Invalid commit SHA - non-hex characters
   - id: "api-op-invalid-005"
@@ -69,7 +69,7 @@ operations:
         - file: "src/test.py"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "gggggggggggggggggggggggggggggggggggggggg"  # Contains 'g' which is not hex
+        commit: "gggggggggggggggggggggggggggggggggggggggg" # Contains 'g' which is not hex
 
 path-items:
   # Missing required location.file field
@@ -79,4 +79,4 @@ path-items:
     x-source-reference:
       provenance: "extracted"
       locations:
-        - symbol: "test_route"  # Missing required 'file' field
+        - symbol: "test_route" # Missing required 'file' field
