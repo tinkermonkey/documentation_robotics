@@ -255,7 +255,13 @@ class TestVisualizeCommand:
             mock_server_class.return_value = mock_server
 
             # Mock asyncio.run to raise KeyboardInterrupt (simulates Ctrl+C)
-            mock_asyncio_run.side_effect = KeyboardInterrupt()
+            # Properly handle the coroutine to avoid RuntimeWarning
+            def mock_asyncio_run_impl(coro):
+                # Don't close the coroutine - just let it be handled by garbage collection
+                # This prevents "coroutine was never awaited" warnings
+                raise KeyboardInterrupt()
+
+            mock_asyncio_run.side_effect = mock_asyncio_run_impl
 
             # Run command
             result = runner.invoke(visualize, catch_exceptions=False)
@@ -299,8 +305,14 @@ class TestVisualizeCommand:
             mock_server.get_magic_link.return_value = "http://localhost:9000/?token=abc123"
             mock_server_class.return_value = mock_server
 
-            # Mock asyncio.run to raise KeyboardInterrupt
-            mock_asyncio_run.side_effect = KeyboardInterrupt()
+            # Mock asyncio.run to clean up coroutine and raise KeyboardInterrupt
+            # Properly handle the coroutine to avoid RuntimeWarning
+            def mock_asyncio_run_impl(coro):
+                # Don't close the coroutine - just let it be handled by garbage collection
+                # This prevents "coroutine was never awaited" warnings
+                raise KeyboardInterrupt()
+
+            mock_asyncio_run.side_effect = mock_asyncio_run_impl
 
             # Run with custom port
             result = runner.invoke(visualize, ["--port", "9000"], catch_exceptions=False)

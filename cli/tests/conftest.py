@@ -158,6 +158,8 @@ def cleanup_threads():
     import asyncio
     import gc
     import threading
+    import time
+    import warnings
 
     yield
 
@@ -177,17 +179,26 @@ def cleanup_threads():
         if loop.is_running():
             # If loop is running, we can't use run_until_complete
             # Just wait a bit for callbacks to process
-            import time
-
-            time.sleep(0.01)
+            time.sleep(0.05)
         else:
             # If loop exists but isn't running, try to process pending callbacks
-            loop.run_until_complete(asyncio.sleep(0.01))
+            # Use warnings context to suppress expected BaseSubprocessTransport errors
+            with warnings.catch_warnings():
+                # Suppress expected warnings from subprocess cleanup
+                warnings.filterwarnings("ignore", category=ResourceWarning)
+                warnings.filterwarnings(
+                    "ignore",
+                    message="Exception ignored in.*BaseSubprocessTransport",
+                    category=Warning,
+                )
+                try:
+                    loop.run_until_complete(asyncio.sleep(0.05))
+                except RuntimeError:
+                    # Event loop may be closed - just wait instead
+                    time.sleep(0.05)
     except (RuntimeError, AttributeError):
         # No event loop or other asyncio issues - just wait
-        import time
-
-        time.sleep(0.01)
+        time.sleep(0.05)
 
     # Final garbage collection pass
     gc.collect()
