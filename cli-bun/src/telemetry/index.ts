@@ -13,6 +13,11 @@ import type { Span } from '@opentelemetry/api';
 import type { NodeSDK } from '@opentelemetry/sdk-node';
 import type { Tracer } from '@opentelemetry/api';
 
+// Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
+// This ensures tests and non-bundled code don't crash
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
 // Module-level state: SDK and tracer instances
 // Only initialized when TELEMETRY_ENABLED is true
 let sdk: NodeSDK | null = null;
@@ -31,7 +36,7 @@ let tracer: Tracer | null = null;
  * configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
  */
 export function initTelemetry(): void {
-  if (TELEMETRY_ENABLED) {
+  if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
     const { NodeSDK } = require('@opentelemetry/sdk-node');
@@ -83,7 +88,7 @@ export function startSpan(
   name: string,
   attributes?: Record<string, any>
 ): Span | null {
-  if (TELEMETRY_ENABLED && tracer) {
+  if (isTelemetryEnabled && tracer) {
     return tracer.startSpan(name, { attributes });
   }
   return null;
@@ -104,7 +109,7 @@ export function startSpan(
  * ```
  */
 export function endSpan(span: Span | null): void {
-  if (TELEMETRY_ENABLED && span) {
+  if (isTelemetryEnabled && span) {
     span.end();
   }
 }
@@ -116,7 +121,7 @@ export function endSpan(span: Span | null): void {
  * Ignores shutdown failures to avoid blocking process exit.
  */
 export async function shutdownTelemetry(): Promise<void> {
-  if (TELEMETRY_ENABLED && sdk) {
+  if (isTelemetryEnabled && sdk) {
     try {
       await sdk.shutdown();
     } catch {
