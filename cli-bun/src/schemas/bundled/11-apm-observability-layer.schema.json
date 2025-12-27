@@ -15,16 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "APMConfiguration",
-          "MeterConfig",
-          "Span"
-        ],
-        "targetTypes": [
-          "MetricInstrument",
-          "SpanEvent",
-          "TraceConfiguration"
-        ],
+        "sourceTypes": ["APMConfiguration", "MeterConfig", "Span"],
+        "targetTypes": ["MetricInstrument", "SpanEvent", "TraceConfiguration"],
         "examples": [
           {
             "source": "Span",
@@ -48,16 +40,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "InstrumentationScope",
-          "Resource",
-          "TraceConfiguration"
-        ],
-        "targetTypes": [
-          "ExporterConfig",
-          "MetricInstrument",
-          "Span"
-        ],
+        "sourceTypes": ["InstrumentationScope", "Resource", "TraceConfiguration"],
+        "targetTypes": ["ExporterConfig", "MetricInstrument", "Span"],
         "examples": [
           {
             "source": "Resource",
@@ -81,14 +65,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -105,12 +83,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "DataQualityMetric"
-        ],
-        "targetTypes": [
-          "LogRecord"
-        ],
+        "sourceTypes": ["DataQualityMetric"],
+        "targetTypes": ["LogRecord"],
         "examples": [
           {
             "source": "DataQualityMetric",
@@ -122,16 +96,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "LogProcessor",
-          "MetricInstrument",
-          "Span"
-        ],
-        "targetTypes": [
-          "ExporterConfig",
-          "LogProcessor",
-          "Span"
-        ],
+        "sourceTypes": ["LogProcessor", "MetricInstrument", "Span"],
+        "targetTypes": ["ExporterConfig", "LogProcessor", "Span"],
         "examples": [
           {
             "source": "Span",
@@ -155,14 +121,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "ExporterConfig",
-          "InstrumentationConfig"
-        ],
-        "targetTypes": [
-          "APMConfiguration",
-          "Resource"
-        ],
+        "sourceTypes": ["ExporterConfig", "InstrumentationConfig"],
+        "targetTypes": ["APMConfiguration", "Resource"],
         "examples": [
           {
             "source": "InstrumentationConfig",
@@ -180,13 +140,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "LogProcessor",
-          "MetricInstrument"
-        ],
-        "targetTypes": [
-          "Attribute"
-        ],
+        "sourceTypes": ["LogProcessor", "MetricInstrument"],
+        "targetTypes": ["Attribute"],
         "examples": [
           {
             "source": "LogProcessor",
@@ -204,14 +159,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "LogRecord",
-          "Span",
-          "SpanLink"
-        ],
-        "targetTypes": [
-          "Span"
-        ],
+        "sourceTypes": ["LogRecord", "Span", "SpanLink"],
+        "targetTypes": ["Span"],
         "examples": [
           {
             "source": "Span",
@@ -235,15 +184,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "LogRecord",
-          "MetricInstrument",
-          "Span"
-        ],
-        "targetTypes": [
-          "InstrumentationScope",
-          "Resource"
-        ],
+        "sourceTypes": ["LogRecord", "MetricInstrument", "Span"],
+        "targetTypes": ["InstrumentationScope", "Resource"],
         "examples": [
           {
             "source": "Span",
@@ -267,13 +209,8 @@
       },
       {
         "relationshipTypeId": "fulfills-requirements",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -292,12 +229,8 @@
       },
       {
         "relationshipTypeId": "measures-outcome",
-        "sourceTypes": [
-          "Metric"
-        ],
-        "targetTypes": [
-          "Outcome"
-        ],
+        "sourceTypes": ["Metric"],
+        "targetTypes": ["Outcome"],
         "examples": [
           {
             "source": "Metric",
@@ -308,12 +241,8 @@
       },
       {
         "relationshipTypeId": "traces",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "DistributedTrace"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["DistributedTrace"],
         "examples": [
           {
             "source": "APIOperation",
@@ -324,12 +253,8 @@
       },
       {
         "relationshipTypeId": "monitors",
-        "sourceTypes": [
-          "HealthCheck"
-        ],
-        "targetTypes": [
-          "ApplicationService"
-        ],
+        "sourceTypes": ["HealthCheck"],
+        "targetTypes": ["ApplicationService"],
         "examples": [
           {
             "source": "HealthCheck",
@@ -340,12 +265,8 @@
       },
       {
         "relationshipTypeId": "measures",
-        "sourceTypes": [
-          "Metric"
-        ],
-        "targetTypes": [
-          "APIOperation"
-        ],
+        "sourceTypes": ["Metric"],
+        "targetTypes": ["APIOperation"],
         "examples": [
           {
             "source": "Metric",
@@ -364,12 +285,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -400,12 +317,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -436,12 +349,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -474,13 +383,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "apm-criticality",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Criticality"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["Criticality"],
         "fieldPath": "x-apm-criticality",
         "cardinality": "single",
         "description": "Inverse of: enum [low, medium, high, critical] (optional)"
@@ -490,12 +394,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "health-check-endpoint",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "HealthCheckEndpoint"
-        ],
+        "sourceTypes": ["TechnologyService"],
+        "targetTypes": ["HealthCheckEndpoint"],
         "fieldPath": "apm.health-check-endpoint",
         "cardinality": "single",
         "description": "Inverse of: health check endpoint"
@@ -505,12 +405,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "health-monitored",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "HealthMonitored"
-        ],
+        "sourceTypes": ["TechnologyService"],
+        "targetTypes": ["HealthMonitored"],
         "fieldPath": "apm.health-monitored",
         "cardinality": "single",
         "description": "Inverse of: whether health is actively monitored"
@@ -520,12 +416,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-availability",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "SlaTargetAvailability"
-        ],
+        "sourceTypes": ["ApplicationService"],
+        "targetTypes": ["SlaTargetAvailability"],
         "fieldPath": "apm.sla-target-availability",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"99.95%\", \"99.99%\", optional)"
@@ -535,12 +427,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-availability",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "SlaTargetAvailability"
-        ],
+        "sourceTypes": ["TechnologyService"],
+        "targetTypes": ["SlaTargetAvailability"],
         "fieldPath": "apm.sla-target-availability",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"99.95%\", \"99.99%\", optional)"
@@ -550,13 +438,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-availability",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "SlaTargetAvailability"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["SlaTargetAvailability"],
         "fieldPath": "apm.sla-target-availability",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"99.95%\", \"99.99%\", optional)"
@@ -566,12 +449,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-latency",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "SlaTargetLatency"
-        ],
+        "sourceTypes": ["ApplicationService"],
+        "targetTypes": ["SlaTargetLatency"],
         "fieldPath": "apm.sla-target-latency",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"200ms\", \"500ms\", optional)"
@@ -581,12 +460,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-latency",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "SlaTargetLatency"
-        ],
+        "sourceTypes": ["TechnologyService"],
+        "targetTypes": ["SlaTargetLatency"],
         "fieldPath": "apm.sla-target-latency",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"200ms\", \"500ms\", optional)"
@@ -596,13 +471,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "sla-target-latency",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "SlaTargetLatency"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["SlaTargetLatency"],
         "fieldPath": "apm.sla-target-latency",
         "cardinality": "single",
         "description": "Inverse of: string (e.g., \"200ms\", \"500ms\", optional)"
@@ -612,13 +482,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "apm-trace",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Trace"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["Trace"],
         "fieldPath": "x-apm-trace",
         "cardinality": "single",
         "description": "Inverse of: boolean (optional)"
@@ -628,13 +493,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "traced",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService",
-          "Data Properties"
-        ],
-        "targetTypes": [
-          "Traced"
-        ],
+        "sourceTypes": ["ApplicationService", "Data Properties"],
+        "targetTypes": ["Traced"],
         "fieldPath": "apm.traced",
         "cardinality": "single",
         "description": "Inverse of: Links to Traced in target layer"
@@ -780,21 +640,11 @@
   "definitions": {
     "SpanKind": {
       "type": "string",
-      "enum": [
-        "INTERNAL",
-        "SERVER",
-        "CLIENT",
-        "PRODUCER",
-        "CONSUMER"
-      ]
+      "enum": ["INTERNAL", "SERVER", "CLIENT", "PRODUCER", "CONSUMER"]
     },
     "StatusCode": {
       "type": "string",
-      "enum": [
-        "UNSET",
-        "OK",
-        "ERROR"
-      ]
+      "enum": ["UNSET", "OK", "ERROR"]
     },
     "SeverityNumber": {
       "type": "string",
@@ -828,43 +678,19 @@
     },
     "ExporterType": {
       "type": "string",
-      "enum": [
-        "otlp",
-        "jaeger",
-        "zipkin",
-        "prometheus",
-        "console",
-        "file",
-        "logging",
-        "noop"
-      ]
+      "enum": ["otlp", "jaeger", "zipkin", "prometheus", "console", "file", "logging", "noop"]
     },
     "ExporterProtocol": {
       "type": "string",
-      "enum": [
-        "grpc",
-        "http",
-        "http/json"
-      ]
+      "enum": ["grpc", "http", "http/json"]
     },
     "CompressionType": {
       "type": "string",
-      "enum": [
-        "none",
-        "gzip",
-        "zstd"
-      ]
+      "enum": ["none", "gzip", "zstd"]
     },
     "AuthType": {
       "type": "string",
-      "enum": [
-        "none",
-        "api-key",
-        "bearer",
-        "basic",
-        "oauth2",
-        "mTLS"
-      ]
+      "enum": ["none", "api-key", "bearer", "basic", "oauth2", "mTLS"]
     },
     "InstrumentationType": {
       "type": "string",
@@ -912,10 +738,7 @@
     },
     "AggregationTemporality": {
       "type": "string",
-      "enum": [
-        "delta",
-        "cumulative"
-      ]
+      "enum": ["delta", "cumulative"]
     },
     "InstrumentType": {
       "type": "string",
@@ -942,25 +765,11 @@
     },
     "PropagatorType": {
       "type": "string",
-      "enum": [
-        "w3c-trace-context",
-        "w3c-baggage",
-        "b3",
-        "jaeger",
-        "xray",
-        "ottrace"
-      ]
+      "enum": ["w3c-trace-context", "w3c-baggage", "b3", "jaeger", "xray", "ottrace"]
     },
     "LogLevel": {
       "type": "string",
-      "enum": [
-        "TRACE",
-        "DEBUG",
-        "INFO",
-        "WARN",
-        "ERROR",
-        "FATAL"
-      ]
+      "enum": ["TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"]
     },
     "DataQualityType": {
       "type": "string",
@@ -1067,12 +876,7 @@
     "SpanEvent": {
       "type": "object",
       "description": "Timestamped event during span execution",
-      "required": [
-        "id",
-        "timeUnixNano",
-        "name",
-        "droppedAttributesCount"
-      ],
+      "required": ["id", "timeUnixNano", "name", "droppedAttributesCount"],
       "properties": {
         "id": {
           "type": "string",
@@ -1103,13 +907,7 @@
     "SpanLink": {
       "type": "object",
       "description": "Link to related span (different trace or parent)",
-      "required": [
-        "id",
-        "name",
-        "traceId",
-        "spanId",
-        "droppedAttributesCount"
-      ],
+      "required": ["id", "name", "traceId", "spanId", "droppedAttributesCount"],
       "properties": {
         "id": {
           "type": "string",
@@ -1148,11 +946,7 @@
     "SpanStatus": {
       "type": "object",
       "description": "Outcome of span execution",
-      "required": [
-        "id",
-        "name",
-        "code"
-      ],
+      "required": ["id", "name", "code"],
       "properties": {
         "id": {
           "type": "string",
@@ -1234,11 +1028,7 @@
     "Resource": {
       "type": "object",
       "description": "Immutable representation of entity producing telemetry",
-      "required": [
-        "id",
-        "name",
-        "droppedAttributesCount"
-      ],
+      "required": ["id", "name", "droppedAttributesCount"],
       "properties": {
         "id": {
           "type": "string",
@@ -1269,11 +1059,7 @@
     "InstrumentationScope": {
       "type": "object",
       "description": "Logical unit of code that generates telemetry",
-      "required": [
-        "id",
-        "name",
-        "droppedAttributesCount"
-      ],
+      "required": ["id", "name", "droppedAttributesCount"],
       "properties": {
         "id": {
           "type": "string",
@@ -1308,12 +1094,7 @@
     "ExporterConfig": {
       "type": "object",
       "description": "Configuration for telemetry data export destinations, specifying protocol (OTLP, Jaeger, Prometheus), endpoints, authentication, batching, and retry policies. Controls where observability data is sent.",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "endpoint"
-      ],
+      "required": ["id", "name", "type", "endpoint"],
       "properties": {
         "id": {
           "type": "string",
@@ -1342,11 +1123,7 @@
     "InstrumentationConfig": {
       "type": "object",
       "description": "Configuration for automatic or manual instrumentation of application code, specifying which libraries, frameworks, or code paths to instrument and capture telemetry from.",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1372,11 +1149,7 @@
     "LogProcessor": {
       "type": "object",
       "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1401,10 +1174,7 @@
     "MeterConfig": {
       "type": "object",
       "description": "Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated.",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1439,12 +1209,7 @@
     "MetricInstrument": {
       "type": "object",
       "description": "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "unit"
-      ],
+      "required": ["id", "name", "type", "unit"],
       "properties": {
         "id": {
           "type": "string",
@@ -1483,12 +1248,7 @@
     "Attribute": {
       "type": "object",
       "description": "Key-value pair metadata",
-      "required": [
-        "id",
-        "name",
-        "key",
-        "value"
-      ],
+      "required": ["id", "name", "key", "value"],
       "properties": {
         "id": {
           "type": "string",
@@ -1512,12 +1272,7 @@
     "APMConfiguration": {
       "type": "object",
       "description": "Complete APM configuration for an application",
-      "required": [
-        "id",
-        "name",
-        "version",
-        "application"
-      ],
+      "required": ["id", "name", "version", "application"],
       "properties": {
         "id": {
           "type": "string",
@@ -1541,11 +1296,7 @@
     "TraceConfiguration": {
       "type": "object",
       "description": "Distributed tracing configuration",
-      "required": [
-        "id",
-        "name",
-        "serviceName"
-      ],
+      "required": ["id", "name", "serviceName"],
       "properties": {
         "id": {
           "type": "string",
@@ -1582,12 +1333,7 @@
     "LogConfiguration": {
       "type": "object",
       "description": "Logging configuration",
-      "required": [
-        "name",
-        "id",
-        "serviceName",
-        "logLevel"
-      ],
+      "required": ["name", "id", "serviceName", "logLevel"],
       "properties": {
         "name": {
           "type": "string",
@@ -1610,11 +1356,7 @@
     "MetricConfiguration": {
       "type": "object",
       "description": "Metrics configuration",
-      "required": [
-        "id",
-        "name",
-        "serviceName"
-      ],
+      "required": ["id", "name", "serviceName"],
       "properties": {
         "id": {
           "type": "string",
@@ -1637,9 +1379,7 @@
     "DataQualityMetrics": {
       "type": "object",
       "description": "Data quality monitoring metrics (referenced by Data Model Layer x-apm-data-quality-metrics)",
-      "required": [
-        "schemaRef"
-      ],
+      "required": ["schemaRef"],
       "properties": {
         "schemaRef": {
           "type": "string",
@@ -1660,12 +1400,7 @@
     "DataQualityMetric": {
       "type": "object",
       "description": "Individual data quality metric",
-      "required": [
-        "type",
-        "name",
-        "measurement",
-        "threshold"
-      ],
+      "required": ["type", "name", "measurement", "threshold"],
       "properties": {
         "type": {
           "$ref": "#/definitions/DataQualityType"

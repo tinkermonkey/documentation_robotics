@@ -34,7 +34,7 @@ Validate complete feature parity between Bun and Python CLIs, deprecate the Pyth
 
 - Bump Python package version to final release (e.g., `v0.8.0`)
 - Add deprecation warning printed to stderr on every Python CLI command execution
-- Warning message must include: deprecation notice, Bun CLI installation instructions (`npm install -g @doc-robotics/cli-bun`), migration timeline (1 month until PyPI removal), and link to migration documentation
+- Warning message must include: deprecation notice, Bun CLI installation instructions (`npm install -g @documentation-robotics/cli`), migration timeline (1 month until PyPI removal), and link to migration documentation
 - Update PyPI package metadata to mark as deprecated with clear migration link
 - Publish final Python CLI release to PyPI with deprecation warnings
 - Set 1-month timeline before removing package from PyPI entirely

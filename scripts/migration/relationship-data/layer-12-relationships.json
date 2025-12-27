@@ -9,16 +9,8 @@
         "inversePredicate": "composed-of",
         "category": "structural",
         "description": "Whole-part relationship where the part cannot exist without the whole",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["InputPartitionSelection", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCoverageModel",
@@ -46,14 +38,8 @@
         "inversePredicate": "aggregated-by",
         "category": "structural",
         "description": "Whole-part relationship where the part can exist independently",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "PartitionValue"],
         "examples": [
           {
             "source": "InputPartitionSelection",
@@ -75,14 +61,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -103,14 +83,8 @@
         "inversePredicate": "triggered-by",
         "category": "behavioral",
         "description": "Event or behavior triggers another behavior",
-        "sourceTypes": [
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageGap", "PartitionDependency"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "PartitionDependency",
@@ -132,14 +106,8 @@
         "inversePredicate": "flows-from",
         "category": "behavioral",
         "description": "Sequential or data flow between behaviors",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "TestCoverageTarget",
@@ -161,13 +129,8 @@
         "inversePredicate": "served-by",
         "category": "behavioral",
         "description": "Service available to consumer",
-        "sourceTypes": [
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["TestCoverageTarget"],
         "examples": [
           {
             "source": "InputSpacePartition",
@@ -189,14 +152,8 @@
         "inversePredicate": "accessed-by",
         "category": "behavioral",
         "description": "Behavior accesses passive element (data/artifact)",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -218,16 +175,8 @@
         "inversePredicate": "referenced-by",
         "category": "dependency",
         "description": "Pointer reference without functional dependency",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "InputSelection",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "PartitionValue",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "InputSelection", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "PartitionValue", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -255,15 +204,8 @@
         "inversePredicate": "dependency-of",
         "category": "dependency",
         "description": "Element requires another to function",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "InputSpacePartition",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "InputSpacePartition", "OutcomeCategory"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -291,12 +233,8 @@
         "inversePredicate": "measured-by",
         "category": "traceability",
         "description": "Metric validates outcome achievement",
-        "sourceTypes": [
-          "Metric"
-        ],
-        "targetTypes": [
-          "Outcome"
-        ],
+        "sourceTypes": ["Metric"],
+        "targetTypes": ["Outcome"],
         "examples": [
           {
             "source": "Metric",
@@ -311,14 +249,8 @@
         "inversePredicate": "validated-by",
         "category": "testing",
         "description": "Test element validates that a requirement or target is satisfied",
-        "sourceTypes": [
-          "TargetCoverageSummary",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["TargetCoverageSummary", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "TestCoverageTarget"],
         "examples": [
           {
             "source": "TestCaseSketch",
@@ -345,12 +277,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -381,12 +309,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -417,12 +341,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",

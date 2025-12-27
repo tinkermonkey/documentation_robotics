@@ -18,9 +18,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -71,9 +69,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",
@@ -119,12 +115,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",

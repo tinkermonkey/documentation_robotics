@@ -15,7 +15,7 @@ json-schemas:
     title: "InvalidProvenance"
     description: "Schema with invalid provenance"
     x-source-reference:
-      provenance: "auto_generated"  # Should be: extracted, manual, inferred, or generated
+      provenance: "auto_generated" # Should be: extracted, manual, inferred, or generated
       locations:
         - file: "src/models/invalid.py"
 
@@ -41,7 +41,7 @@ json-schemas:
     description: "Schema with empty locations"
     x-source-reference:
       provenance: "extracted"
-      locations: []  # Array must not be empty
+      locations: [] # Array must not be empty
 
   # Invalid commit SHA - too long
   - id: "dm-schema-invalid-004"
@@ -57,7 +57,7 @@ json-schemas:
         - file: "src/models/test.py"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "abcdef1234567890abcdef1234567890abcdef12345"  # Too long (45 chars instead of 40)
+        commit: "abcdef1234567890abcdef1234567890abcdef12345" # Too long (45 chars instead of 40)
 
   # Invalid commit SHA - uppercase (must be lowercase)
   - id: "dm-schema-invalid-005"
@@ -73,7 +73,7 @@ json-schemas:
         - file: "src/models/test.py"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "ABCDEF1234567890ABCDEF1234567890ABCDEF12"  # Must be lowercase hex
+        commit: "ABCDEF1234567890ABCDEF1234567890ABCDEF12" # Must be lowercase hex
 
   # Missing required file field in location
   - id: "dm-schema-invalid-006"
@@ -86,4 +86,4 @@ json-schemas:
     x-source-reference:
       provenance: "extracted"
       locations:
-        - symbol: "TestClass"  # Missing required 'file' field
+        - symbol: "TestClass" # Missing required 'file' field

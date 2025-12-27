@@ -18,15 +18,8 @@
         "predicate": "sla-target-availability",
         "inversePredicate": null,
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "SlaTargetAvailability"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation",
-          "SecurityScheme",
-          "TechnologyService"
-        ],
+        "targetTypes": ["SlaTargetAvailability"],
+        "sourceTypes": ["ApplicationService", "Operation", "SecurityScheme", "TechnologyService"],
         "fieldPath": "apm.sla-target-availability",
         "cardinality": "single",
         "format": "percentage",
@@ -57,15 +50,8 @@
         "predicate": "sla-target-latency",
         "inversePredicate": null,
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "SlaTargetLatency"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation",
-          "SecurityScheme",
-          "TechnologyService"
-        ],
+        "targetTypes": ["SlaTargetLatency"],
+        "sourceTypes": ["ApplicationService", "Operation", "SecurityScheme", "TechnologyService"],
         "fieldPath": "apm.sla-target-latency",
         "cardinality": "single",
         "format": "duration",
@@ -88,13 +74,8 @@
         "predicate": "traced",
         "inversePredicate": null,
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "Traced"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "Data Properties"
-        ],
+        "targetTypes": ["Traced"],
+        "sourceTypes": ["ApplicationService", "Data Properties"],
         "fieldPath": "apm.traced",
         "cardinality": "single",
         "format": "boolean",
@@ -117,15 +98,8 @@
         "predicate": "business-metrics",
         "inversePredicate": null,
         "targetLayer": "02-business",
-        "targetTypes": [
-          "BusinessMetric"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "BusinessProcess",
-          "Operation",
-          "SecurityScheme"
-        ],
+        "targetTypes": ["BusinessMetric"],
+        "sourceTypes": ["ApplicationService", "BusinessProcess", "Operation", "SecurityScheme"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "format": "reference",
@@ -148,13 +122,8 @@
         "predicate": "retention",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Retention"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Retention"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.retention",
         "cardinality": "single",
         "format": "duration",
@@ -177,13 +146,8 @@
         "predicate": "delivers-value",
         "inversePredicate": "delivered-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "DeliversValue"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "BusinessService"
-        ],
+        "targetTypes": ["DeliversValue"],
+        "sourceTypes": ["ApplicationService", "BusinessService"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "format": "reference",
@@ -214,9 +178,7 @@
         "predicate": "fulfills-requirements",
         "inversePredicate": "fulfilled-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
+        "targetTypes": ["FulfillsRequirement"],
         "sourceTypes": [
           "ApplicationFunction",
           "CommunicationNetwork",
@@ -263,9 +225,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -316,9 +276,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",
@@ -364,12 +322,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -400,13 +354,8 @@
         "predicate": "pii",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Pii"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Pii"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.pii",
         "cardinality": "single",
         "format": "boolean",
@@ -431,12 +380,8 @@
         "predicate": "master-data-source",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "MasterDataSource"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["MasterDataSource"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "application.master-data-source",
         "cardinality": "single",
         "format": "string",
@@ -451,12 +396,8 @@
         "predicate": "process-steps",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "ProcessStep"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["ProcessStep"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "application.process-steps",
         "cardinality": "array",
         "format": "reference",
@@ -471,12 +412,8 @@
         "predicate": "realized-by-process",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "RealizedByProces"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["RealizedByProces"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "application.realized-by-process",
         "cardinality": "single",
         "format": "reference",
@@ -491,12 +428,8 @@
         "predicate": "represented-by-dataobject",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "RepresentedByDataobject"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["RepresentedByDataobject"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "application.represented-by-dataobject",
         "cardinality": "single",
         "format": "string",
@@ -511,9 +444,7 @@
         "predicate": "archimate-ref",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "Element"
-        ],
+        "targetTypes": ["Element"],
         "sourceTypes": [
           "JSONSchema",
           "OpenAPIDocument",

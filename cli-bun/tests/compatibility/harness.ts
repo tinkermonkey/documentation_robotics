@@ -34,10 +34,34 @@ const CLI_TIMEOUT = 30000; // 30 seconds
 export class CLIHarness {
   private pythonCLI: string;
   private bunCLI: string;
+  private pythonCLIAvailable: boolean | null = null;
 
   constructor(pythonCLI?: string, bunCLI?: string) {
     this.pythonCLI = pythonCLI || DEFAULT_PYTHON_CLI;
     this.bunCLI = bunCLI || DEFAULT_BUN_CLI;
+  }
+
+  /**
+   * Check if Python CLI is available
+   */
+  async isPythonCLIAvailable(): Promise<boolean> {
+    if (this.pythonCLIAvailable !== null) {
+      return this.pythonCLIAvailable;
+    }
+
+    try {
+      const result = spawnSync({
+        cmd: [this.pythonCLI, '--version'],
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 5000,
+      });
+
+      this.pythonCLIAvailable = result.exitCode === 0;
+      return this.pythonCLIAvailable;
+    } catch {
+      this.pythonCLIAvailable = false;
+      return false;
+    }
   }
 
   /**
@@ -374,4 +398,25 @@ export async function assertCLIsFailEquivalently(
   }
 
   return result;
+}
+
+/**
+ * Check if Python CLI is available for compatibility testing.
+ * Returns true if available, false otherwise.
+ * Set DR_PYTHON_CLI environment variable to specify Python CLI path.
+ */
+export async function checkPythonCLIAvailable(): Promise<boolean> {
+  const harness = new CLIHarness();
+  const available = await harness.isPythonCLIAvailable();
+
+  if (!available) {
+    console.warn(
+      '\n⚠️  Python CLI not available - skipping compatibility tests.\n' +
+      '   The Python CLI has been deprecated in favor of the Bun CLI.\n' +
+      '   To run compatibility tests, set DR_PYTHON_CLI environment variable.\n' +
+      '   Example: DR_PYTHON_CLI=/path/to/dr npm test\n'
+    );
+  }
+
+  return available;
 }

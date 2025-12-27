@@ -11,14 +11,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "JSONSchema",
-          "SchemaDefinition"
-        ],
-        "targetTypes": [
-          "SchemaDefinition",
-          "SchemaProperty"
-        ],
+        "sourceTypes": ["JSONSchema", "SchemaDefinition"],
+        "targetTypes": ["SchemaDefinition", "SchemaProperty"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -34,13 +28,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "JSONSchema"
-        ],
-        "targetTypes": [
-          "DataGovernance",
-          "DataQualityMetrics"
-        ],
+        "sourceTypes": ["JSONSchema"],
+        "targetTypes": ["DataGovernance", "DataQualityMetrics"],
         "examples": [
           {
             "source": "JSONSchema",
@@ -64,9 +53,7 @@
         "predicate": "archimate-ref",
         "inversePredicate": null,
         "targetLayer": "04-application",
-        "targetTypes": [
-          "Element"
-        ],
+        "targetTypes": ["Element"],
         "sourceTypes": [
           "JSONSchema",
           "OpenAPIDocument",
@@ -87,14 +74,8 @@
         "predicate": "business-object-ref",
         "inversePredicate": null,
         "targetLayer": "02-business",
-        "targetTypes": [
-          "BusinessObject"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-business-object-ref Extension",
-          "x-security Extension"
-        ],
+        "targetTypes": ["BusinessObject"],
+        "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
         "fieldPath": "x-business-object-ref",
         "cardinality": "single",
         "format": "duration",
@@ -108,9 +89,7 @@
         "predicate": "apm-data-quality-metrics",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "DataQualityMetric"
-        ],
+        "targetTypes": ["DataQualityMetric"],
         "sourceTypes": [
           "JSONSchema",
           "x-apm-data-quality-metrics Extension",
@@ -129,14 +108,8 @@
         "predicate": "data-governance",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Governance"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-data-governance Extension",
-          "x-security Extension"
-        ],
+        "targetTypes": ["Governance"],
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
         "fieldPath": "x-data-governance",
         "cardinality": "single",
         "format": "string",
@@ -150,9 +123,7 @@
         "predicate": "database",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Database"
-        ],
+        "targetTypes": ["Database"],
         "sourceTypes": [
           "JSONSchema",
           "SchemaProperty",
@@ -172,9 +143,7 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
         "sourceTypes": [
           "ApplicationFunction",
           "ApplicationService",
@@ -225,9 +194,7 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "targetTypes": ["SupportsGoal"],
         "sourceTypes": [
           "ApplicationService",
           "BusinessService",
@@ -273,12 +240,8 @@
         "predicate": "classification",
         "inversePredicate": null,
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -311,9 +274,7 @@
         "predicate": "apm-data-quality-metrics",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "DataQualityMetric"
-        ],
+        "targetTypes": ["DataQualityMetric"],
         "sourceTypes": [
           "JSONSchema",
           "x-apm-data-quality-metrics Extension",
@@ -333,14 +294,8 @@
         "predicate": "data-governance",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Governance"
-        ],
-        "sourceTypes": [
-          "JSONSchema",
-          "x-data-governance Extension",
-          "x-security Extension"
-        ],
+        "targetTypes": ["Governance"],
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
         "fieldPath": "x-data-governance",
         "cardinality": "single",
         "format": "string",
@@ -355,12 +310,8 @@
         "predicate": "governance-owner",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "GovernanceOwner"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["GovernanceOwner"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "data.governance-owner",
         "cardinality": "single",
         "format": "reference",
@@ -384,13 +335,8 @@
         "predicate": "retention",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Retention"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Retention"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.retention",
         "cardinality": "single",
         "format": "duration",
@@ -414,9 +360,7 @@
         "predicate": "database",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Database"
-        ],
+        "targetTypes": ["Database"],
         "sourceTypes": [
           "JSONSchema",
           "SchemaProperty",
@@ -437,12 +381,8 @@
         "predicate": "database-column",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Column"
-        ],
-        "sourceTypes": [
-          "Schema"
-        ],
+        "targetTypes": ["Column"],
+        "sourceTypes": ["Schema"],
         "fieldPath": "x-database-column",
         "cardinality": "single",
         "format": "duration",
@@ -457,13 +397,8 @@
         "predicate": "database-table",
         "inversePredicate": null,
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Table"
-        ],
-        "sourceTypes": [
-          "Schema",
-          "SecurityScheme"
-        ],
+        "targetTypes": ["Table"],
+        "sourceTypes": ["Schema", "SecurityScheme"],
         "fieldPath": "x-database-table",
         "cardinality": "single",
         "format": "duration",
