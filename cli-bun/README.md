@@ -184,6 +184,51 @@ dr visualize --port 3000
 dr visualize --no-browser
 ```
 
+#### Telemetry & Observability (Optional)
+
+The CLI supports OpenTelemetry instrumentation for tracing and observability during development. To view traces locally, use the provided Docker Compose configuration to run Jaeger.
+
+**Prerequisites:**
+- Docker and Docker Compose installed
+
+**Start Jaeger locally:**
+
+```bash
+# From the repository root
+docker-compose -f docker/docker-compose.telemetry.yml up -d
+
+# Verify Jaeger is running
+curl http://localhost:16686/search
+
+# View Jaeger UI
+# Open http://localhost:16686 in your browser
+```
+
+**Run CLI with telemetry enabled:**
+
+```bash
+# Build CLI with telemetry support
+npm run build:debug
+
+# Run commands - traces will be sent to localhost:4318 (OTLP HTTP)
+node dist/cli.js validate
+node dist/cli.js list motivation
+
+# View traces in Jaeger UI at http://localhost:16686
+```
+
+**Stop Jaeger:**
+
+```bash
+docker-compose -f docker/docker-compose.telemetry.yml down
+```
+
+**Notes:**
+- Telemetry is **compile-time configurable** - production builds have zero overhead
+- The CLI gracefully handles missing Jaeger (no blocking or errors)
+- Default telemetry collection endpoint: `http://localhost:4318` (OTLP HTTP)
+- Requires gRPC and HTTP OTLP collectors enabled in Jaeger (default in all-in-one image)
+
 ### System Requirements
 
 | Feature       | Requirement       | Notes                         |
@@ -191,6 +236,7 @@ dr visualize --no-browser
 | Basic CLI     | Node.js 18+       | All commands work             |
 | Visualization | Node.js 18+       | WebSocket support required    |
 | Chat          | ANTHROPIC_API_KEY | Requires Anthropic API access |
+| Telemetry     | Docker Compose    | Optional, for local Jaeger tracing |
 | Performance   | Bun 1.3+          | Optional but recommended      |
 
 ### Troubleshooting
