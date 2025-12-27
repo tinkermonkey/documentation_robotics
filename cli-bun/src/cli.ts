@@ -32,6 +32,9 @@ import { changesetCommands } from './commands/changeset.js';
 import type { Span } from '@opentelemetry/api';
 import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
 
+// Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
+declare const TELEMETRY_ENABLED: boolean;
+
 const program = new Command();
 
 // Global to hold root span across async boundaries
@@ -45,27 +48,18 @@ program
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
   .hook('preAction', (thisCommand) => {
-    // Initialize telemetry before creating root span
+    // Initialize telemetry and create root span
     if (TELEMETRY_ENABLED) {
       initTelemetry();
-    }
 
-    // Create root span for command execution
-    if (TELEMETRY_ENABLED) {
       const commandName = process.argv[2] || 'unknown';
       const args = process.argv.slice(3).join(' ');
-      const packageJson = JSON.parse(
-        require('fs').readFileSync(
-          new URL('../package.json', import.meta.url).pathname,
-          'utf-8'
-        )
-      );
 
       rootSpan = startSpan('cli.execute', {
         'cli.command': commandName,
         'cli.args': args,
         'cli.cwd': process.cwd(),
-        'cli.version': packageJson.version,
+        'cli.version': '0.1.0',
       });
     }
 
@@ -389,9 +383,22 @@ Examples:
 // Changeset subcommands
 changesetCommands(program);
 
-// Process exit handler to end root span and shutdown telemetry
-// This ensures spans are exported before process exits
-process.on('exit', async (code) => {
+// Graceful shutdown handler: Fires when event loop drains
+// This is the primary handler - allows async operations like exporting spans
+process.on('beforeExit', async () => {
+  if (TELEMETRY_ENABLED && rootSpan) {
+    try {
+      endSpan(rootSpan);
+      await shutdownTelemetry();
+    } catch {
+      // Silently ignore shutdown errors - don't block process exit
+    }
+  }
+});
+
+// Fallback exit handler: Fires when process must exit immediately
+// Must be synchronous - async operations will NOT complete here
+process.on('exit', (code) => {
   if (TELEMETRY_ENABLED && rootSpan) {
     try {
       const span = rootSpan as Span;
@@ -407,13 +414,10 @@ process.on('exit', async (code) => {
         code: code === 0 ? SpanStatusCode.OK : SpanStatusCode.ERROR,
       });
 
-      // End the root span
+      // End the root span (synchronous)
       endSpan(span);
-
-      // Shutdown telemetry to ensure all spans are exported
-      await shutdownTelemetry();
-    } catch (error) {
-      // Silently ignore shutdown errors - don't block process exit
+    } catch {
+      // Silently ignore errors - don't block process exit
     }
   }
 });
@@ -424,9 +428,10 @@ try {
 } catch (error) {
   if (TELEMETRY_ENABLED && rootSpan) {
     try {
-      // Record exception details
       const { SpanStatusCode } = require('@opentelemetry/api');
       const span = rootSpan as Span;
+
+      // Record exception details
       span.setStatus({
         code: SpanStatusCode.ERROR,
         message: error instanceof Error ? error.message : String(error),
@@ -435,13 +440,15 @@ try {
       // Record full exception details with stack trace
       span.recordException(error as Error);
 
-      // End the root span
+      // End the root span synchronously
       endSpan(span);
 
-      // Shutdown telemetry
-      await shutdownTelemetry();
-    } catch (shutdownError) {
-      // Silently ignore shutdown errors - don't block error propagation
+      // Attempt async shutdown but don't block on error propagation
+      shutdownTelemetry().catch(() => {
+        /* Ignore shutdown errors */
+      });
+    } catch {
+      /* Silently ignore */
     }
   }
 
