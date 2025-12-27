@@ -10,11 +10,13 @@
  */
 
 import type { Span } from '@opentelemetry/api';
+import type { NodeSDK } from '@opentelemetry/sdk-node';
+import type { Tracer } from '@opentelemetry/api';
 
 // Module-level state: SDK and tracer instances
 // Only initialized when TELEMETRY_ENABLED is true
-let sdk: any = null; // NodeSDK type
-let tracer: any = null; // Tracer type
+let sdk: NodeSDK | null = null;
+let tracer: Tracer | null = null;
 
 /**
  * Initialize OpenTelemetry SDK. Must be called before creating spans.
@@ -46,13 +48,14 @@ export function initTelemetry(): void {
     });
 
     // Initialize NodeSDK with SimpleSpanProcessor for immediate export
-    sdk = new NodeSDK({
+    const nodeSdk = new NodeSDK({
       serviceName: 'dr-cli',
       spanProcessor: new SimpleSpanProcessor(exporter),
     });
 
     // Start the SDK
-    sdk.start();
+    nodeSdk.start();
+    sdk = nodeSdk;
 
     // Get tracer instance for span creation
     tracer = trace.getTracer('dr-cli');
@@ -78,7 +81,7 @@ export function initTelemetry(): void {
  */
 export function startSpan(
   name: string,
-  attributes?: Record<string, unknown>
+  attributes?: Record<string, any>
 ): Span | null {
   if (TELEMETRY_ENABLED && tracer) {
     return tracer.startSpan(name, { attributes });
@@ -121,3 +124,16 @@ export async function shutdownTelemetry(): Promise<void> {
     }
   }
 }
+
+/**
+ * Re-export ResilientOTLPExporter for advanced use cases and testing.
+ *
+ * This allows users to:
+ * - Unit test the circuit-breaker logic directly
+ * - Create custom exporter configurations
+ * - Inspect the exporter behavior in debug scenarios
+ *
+ * Note: Import is dynamic inside TELEMETRY_ENABLED guard in initTelemetry().
+ * For direct imports, you may need to import from './resilient-exporter.ts'.
+ */
+export { ResilientOTLPExporter } from './resilient-exporter';

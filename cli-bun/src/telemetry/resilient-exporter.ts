@@ -10,6 +10,7 @@ import type {
 } from '@opentelemetry/sdk-trace-base';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
+import type { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 
 /**
  * OTLP exporter with circuit-breaker pattern for graceful failure.
@@ -22,7 +23,7 @@ import { ExportResultCode } from '@opentelemetry/core';
  * - Timeout: 500ms aggressive timeout prevents blocking CLI execution
  */
 export class ResilientOTLPExporter implements SpanExporter {
-  private delegate: any; // OTLPTraceExporter type
+  private delegate: OTLPTraceExporter;
   private retryAfter = 0;
 
   constructor(
@@ -32,9 +33,9 @@ export class ResilientOTLPExporter implements SpanExporter {
     }
   ) {
     // Dynamically require to support tree-shaking when TELEMETRY_ENABLED is false
-    const { OTLPTraceExporter } = require('@opentelemetry/exporter-trace-otlp-http');
+    const { OTLPTraceExporter: ExporterClass } = require('@opentelemetry/exporter-trace-otlp-http');
 
-    this.delegate = new OTLPTraceExporter({
+    this.delegate = new ExporterClass({
       ...config,
       url: config?.url || 'http://localhost:4318/v1/traces',
       timeoutMillis: config?.timeoutMillis ?? 500, // Aggressive timeout for local dev
@@ -42,7 +43,8 @@ export class ResilientOTLPExporter implements SpanExporter {
   }
 
   export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
-    // Circuit breaker: skip export if recently failed
+    // Circuit breaker: skip export if recently failed.
+    // Boundary: when Date.now() === this.retryAfter, retry immediately (intended behavior).
     if (Date.now() < this.retryAfter) {
       // Pretend success and silently discard spans
       resultCallback({ code: ExportResultCode.SUCCESS });
@@ -62,6 +64,19 @@ export class ResilientOTLPExporter implements SpanExporter {
         resultCallback(result);
       }
     });
+  }
+
+  async forceFlush(): Promise<void> {
+    // Circuit breaker open: skip flush to avoid wasting resources
+    if (Date.now() < this.retryAfter) {
+      return;
+    }
+
+    try {
+      await this.delegate.forceFlush?.();
+    } catch {
+      // Silently ignore flush failures - don't block shutdown
+    }
   }
 
   async shutdown(): Promise<void> {
