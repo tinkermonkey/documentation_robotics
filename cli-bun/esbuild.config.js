@@ -8,10 +8,14 @@ const isDebug = process.env.DR_TELEMETRY === 'true';
 // This processes all dist/**/*.js files but keeps module structure
 const entryPoints = globSync('dist/**/*.js');
 
+// Validate that TypeScript compilation produced output
+if (entryPoints.length === 0) {
+  console.error('Error: No JavaScript files found in dist/. Did tsc compilation succeed?');
+  process.exit(1);
+}
+
 // Clean up previous temp directory if it exists
-try {
-  rmSync('dist.tmp', { recursive: true, force: true });
-} catch {}
+rmSync('dist.tmp', { recursive: true, force: true });
 
 await esbuild.build({
   entryPoints,
