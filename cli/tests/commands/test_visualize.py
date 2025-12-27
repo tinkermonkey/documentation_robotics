@@ -257,8 +257,8 @@ class TestVisualizeCommand:
             # Mock asyncio.run to raise KeyboardInterrupt (simulates Ctrl+C)
             # Properly handle the coroutine to avoid RuntimeWarning
             def mock_asyncio_run_impl(coro):
-                # Don't close the coroutine - just let it be handled by garbage collection
-                # This prevents "coroutine was never awaited" warnings
+                # Close the coroutine properly to avoid RuntimeWarning
+                coro.close()
                 raise KeyboardInterrupt()
 
             mock_asyncio_run.side_effect = mock_asyncio_run_impl
@@ -308,8 +308,8 @@ class TestVisualizeCommand:
             # Mock asyncio.run to clean up coroutine and raise KeyboardInterrupt
             # Properly handle the coroutine to avoid RuntimeWarning
             def mock_asyncio_run_impl(coro):
-                # Don't close the coroutine - just let it be handled by garbage collection
-                # This prevents "coroutine was never awaited" warnings
+                # Close the coroutine properly to avoid RuntimeWarning
+                coro.close()
                 raise KeyboardInterrupt()
 
             mock_asyncio_run.side_effect = mock_asyncio_run_impl

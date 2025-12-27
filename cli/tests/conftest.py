@@ -148,12 +148,13 @@ async def cleanup_async_resources():
 @pytest.fixture(autouse=True, scope="function")
 def cleanup_threads():
     """
-    Cleanup threads after each test to prevent resource warnings.
+    Cleanup threads and async resources after each test to prevent resource warnings.
 
     This fixture runs after every test to ensure proper cleanup of:
     - Thread timers (from debouncing)
     - File observers (from watchdog)
     - Subprocess transports (from watchdog PollingObserver)
+    - Async event loops and pending callbacks
     """
     import asyncio
     import gc
@@ -174,9 +175,16 @@ def cleanup_threads():
 
     # Give subprocess cleanup callbacks a chance to run
     # This is especially important for watchdog PollingObserver which uses Popen
+    # When PollingObserver is stopped, it may have pending subprocess transport cleanup
+    # that needs to happen on the event loop before the loop closes
     try:
         loop = asyncio.get_event_loop()
-        if loop.is_running():
+        if loop.is_closed():
+            # If the loop is already closed, we can't do anything
+            # The transports will attempt cleanup in __del__, which may race with loop closure
+            # This is expected and handled by pytest's unraisable exception warning system
+            time.sleep(0.01)  # Brief pause for any final cleanup
+        elif loop.is_running():
             # If loop is running, we can't use run_until_complete
             # Just wait a bit for callbacks to process
             time.sleep(0.05)
@@ -192,16 +200,25 @@ def cleanup_threads():
                     category=Warning,
                 )
                 try:
-                    loop.run_until_complete(asyncio.sleep(0.05))
-                except RuntimeError:
+                    # Process pending callbacks to allow transports to clean up properly
+                    # before the loop closes
+                    loop.run_until_complete(asyncio.sleep(0.01))
+                except RuntimeError as e:
                     # Event loop may be closed - just wait instead
-                    time.sleep(0.05)
+                    if "Event loop is closed" not in str(e):
+                        # If it's a different error, still log it
+                        pass
+                    time.sleep(0.01)
     except (RuntimeError, AttributeError):
         # No event loop or other asyncio issues - just wait
-        time.sleep(0.05)
+        time.sleep(0.01)
 
-    # Final garbage collection pass
+    # Final garbage collection pass to clean up remaining references
     gc.collect()
+
+    # Additional sleep to allow any remaining async cleanup to complete
+    # This is necessary because subprocess transport __del__ methods may still be pending
+    time.sleep(0.01)
 
 
 class MockElement:

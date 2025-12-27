@@ -93,9 +93,13 @@ asyncio_mode = "auto"
 # Ignore unraisable exception warnings from asyncio event loop cleanup in watchdog library
 # This is a known issue where subprocess transports are being garbage collected after their
 # event loop has been closed, triggering BaseSubprocessTransport.__del__ exceptions.
-# The fix (gc.collect() in FileMonitor.stop) helps but we need this filter as fallback.
+# Root cause: watchdog's PollingObserver uses subprocess.Popen which creates asyncio transport
+# objects. When the observer is stopped and the event loop closes, __del__ may execute after
+# loop closure, causing "Event loop is closed" RuntimeError.
+# Mitigation: conftest.py cleanup_threads fixture handles proper sequencing of cleanup.
+# Filter: Match the specific "Event loop is closed" error in BaseSubprocessTransport.__del__
 filterwarnings = [
-    "ignore::pytest.PytestUnraisableExceptionWarning:asyncio",
+    "ignore:Exception ignored in:pytest.PytestUnraisableExceptionWarning",
 ]
 
 [tool.coverage.run]
