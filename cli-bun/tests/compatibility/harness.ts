@@ -1,377 +1,425 @@
 /**
  * Compatibility Test Harness
- * Executes both Python and Bun CLIs with identical arguments and compares outputs
+ * Dual CLI execution and comparison utilities for Python and Bun CLI
  */
 
-import { spawnSync } from 'bun';
-import { mkdir, rm, readFile } from 'fs/promises';
-import { join, dirname } from 'path';
+import { execSync } from 'child_process';
+import { mkdir, rm, writeFile, readFile } from 'fs/promises';
+import { existsSync } from 'fs';
+import { parse } from 'path';
 
+/**
+ * Result from executing a CLI command
+ */
 export interface CLIResult {
+  exitCode: number;
   stdout: string;
   stderr: string;
-  exitCode: number | null;
-  success: boolean;
 }
 
+/**
+ * Comparison result between Python and Bun CLI outputs
+ */
 export interface ComparisonResult {
+  pythonResult: CLIResult;
+  bunResult: CLIResult;
   exitCodesMatch: boolean;
-  stdoutMatch: boolean;
-  stderrMatch: boolean;
-  pythonExitCode: number | null;
-  bunExitCode: number | null;
-  pythonStdout: string;
-  bunStdout: string;
-  pythonStderr: string;
-  bunStderr: string;
+  outputsMatch: boolean;
+  normalizedPythonOutput: string;
+  normalizedBunOutput: string;
   differences: string[];
 }
 
-const DEFAULT_PYTHON_CLI = process.env.DR_PYTHON_CLI || process.env.PATH?.split(':').find(p => p.includes('.local')) + '/dr' || 'dr';
-const DEFAULT_BUN_CLI = 'node dist/cli.js';
-const CLI_TIMEOUT = 30000; // 30 seconds
+/**
+ * File comparison result
+ */
+export interface FileComparison {
+  pythonFile: string;
+  bunFile: string;
+  filesMatch: boolean;
+  differences: string[];
+}
 
+/**
+ * CLI Harness for running and comparing Python and Bun CLIs
+ */
 export class CLIHarness {
-  private pythonCLI: string;
-  private bunCLI: string;
+  private pythonCliPath: string;
+  private bunCliPath: string;
 
-  constructor(pythonCLI?: string, bunCLI?: string) {
-    this.pythonCLI = pythonCLI || DEFAULT_PYTHON_CLI;
-    this.bunCLI = bunCLI || DEFAULT_BUN_CLI;
+  constructor(pythonCliPath: string = '', bunCliPath: string = '') {
+    this.pythonCliPath = pythonCliPath || this.getPythonCliPath();
+    this.bunCliPath = bunCliPath || this.getBunCliPath();
   }
 
   /**
-   * Run Python CLI with given arguments (synchronous)
+   * Get path to Python CLI
    */
-  runPython(args: string[], cwd?: string): Promise<CLIResult> {
-    return this._runCLI(this.pythonCLI, args, cwd);
+  private getPythonCliPath(): string {
+    // Try common installation paths
+    const paths = [
+      '/home/orchestrator/.local/bin/dr',
+      '/usr/local/bin/dr',
+      '/usr/bin/dr',
+      'dr', // Fallback to PATH
+    ];
+
+    for (const path of paths) {
+      try {
+        execSync(`${path} --version`, { stdio: 'pipe' });
+        return path;
+      } catch {
+        // Try next path
+      }
+    }
+    return 'dr'; // Last resort
   }
 
   /**
-   * Run Bun CLI with given arguments (synchronous)
+   * Get path to Bun CLI dist/cli.js
    */
-  runBun(args: string[], cwd?: string): Promise<CLIResult> {
-    return this._runCLI(this.bunCLI, args, cwd);
+  private getBunCliPath(): string {
+    const cwd = process.cwd();
+    if (cwd.includes('cli-bun')) {
+      // Running from cli-bun directory
+      return `${cwd}/dist/cli.js`;
+    }
+    // Default path relative to repo root
+    return `${cwd}/cli-bun/dist/cli.js`;
   }
 
   /**
-   * Internal method to run CLI with timeout
+   * Run Python CLI
    */
-  private async _runCLI(cli: string, args: string[], cwd?: string): Promise<CLIResult> {
+  async runPython(args: string[], cwd: string = '/tmp'): Promise<CLIResult> {
     try {
-      const result = spawnSync({
-        cmd: [cli, ...args],
-        cwd: cwd || process.cwd(),
+      // Convert Bun CLI arguments to Python CLI arguments
+      const pythonArgs = this.convertArgsToPython(args);
+      const cmd = `${this.pythonCliPath} ${pythonArgs.join(' ')}`;
+      const stdout = execSync(cmd, {
+        cwd,
+        encoding: 'utf-8',
         stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: CLI_TIMEOUT,
       });
-
-      const stdout = result.stdout?.toString() ?? '';
-      const stderr = result.stderr?.toString() ?? '';
-      const exitCode = result.exitCode;
-
+      return { exitCode: 0, stdout, stderr: '' };
+    } catch (error: any) {
       return {
-        stdout,
-        stderr,
-        exitCode,
-        success: exitCode === 0,
-      };
-    } catch (error) {
-      return {
-        stdout: '',
-        stderr: `Error running CLI: ${error instanceof Error ? error.message : String(error)}`,
-        exitCode: 1,
-        success: false,
+        exitCode: error.status || 1,
+        stdout: error.stdout?.toString() || '',
+        stderr: error.stderr?.toString() || error.message,
       };
     }
   }
 
   /**
-   * Normalize output for comparison (handles whitespace, line endings, formatting)
+   * Run Bun CLI
+   */
+  async runBun(args: string[], cwd: string = '/tmp'): Promise<CLIResult> {
+    try {
+      const cmd = `node ${this.bunCliPath} ${args.join(' ')}`;
+      const stdout = execSync(cmd, {
+        cwd,
+        encoding: 'utf-8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
+      return { exitCode: 0, stdout, stderr: '' };
+    } catch (error: any) {
+      return {
+        exitCode: error.status || 1,
+        stdout: error.stdout?.toString() || '',
+        stderr: error.stderr?.toString() || error.message,
+      };
+    }
+  }
+
+  /**
+   * Convert Bun CLI arguments to Python CLI arguments
+   * Handles differences in CLI interfaces (positional args vs named args)
+   */
+  private convertArgsToPython(bunArgs: string[]): string[] {
+    const pythonArgs = [...bunArgs];
+
+    // Convert init command arguments
+    if (pythonArgs[0] === 'init') {
+      let name = '';
+      let description = '';
+      let author = '';
+
+      // Extract --name, --description, --author
+      for (let i = 1; i < pythonArgs.length; i++) {
+        if (pythonArgs[i] === '--name' && pythonArgs[i + 1]) {
+          name = pythonArgs[i + 1];
+          pythonArgs.splice(i, 2);
+          i -= 2;
+        } else if (pythonArgs[i] === '--description' && pythonArgs[i + 1]) {
+          description = pythonArgs[i + 1];
+          pythonArgs.splice(i, 2);
+          i -= 2;
+        } else if (pythonArgs[i] === '--author' && pythonArgs[i + 1]) {
+          author = pythonArgs[i + 1];
+          pythonArgs.splice(i, 2);
+          i -= 2;
+        }
+      }
+
+      // Reconstruct: python CLI expects positional project name first
+      if (name) {
+        pythonArgs.splice(1, 0, name);
+      }
+
+      // Add optional flags
+      if (description) {
+        pythonArgs.push('--description', description);
+      }
+      if (author) {
+        pythonArgs.push('--author', author);
+      }
+    }
+
+    return pythonArgs;
+  }
+
+  /**
+   * Normalize CLI output for comparison
    */
   private normalizeOutput(output: string): string {
-    return (
-      output
-        .trim()
-        // Normalize line endings
-        .replace(/\r\n/g, '\n')
-        // Normalize multiple spaces
-        .replace(/[ \t]+/g, ' ')
-        // Remove ANSI color codes
-        .replace(/\x1b\[[0-9;]*m/g, '')
-        // Normalize file paths (convert backslashes to forward slashes)
-        .replace(/\\/g, '/')
-    );
+    if (!output) return '';
+    // Remove ANSI color codes
+    let normalized = output.replace(/\x1b\[[0-9;]*m/g, '');
+    // Normalize line endings
+    normalized = normalized.replace(/\r\n/g, '\n');
+    // Normalize path separators
+    normalized = normalized.replace(/\\/g, '/');
+    // Collapse multiple spaces
+    normalized = normalized.replace(/  +/g, ' ');
+    // Trim each line
+    normalized = normalized
+      .split('\n')
+      .map((line) => line.trim())
+      .filter((line) => line.length > 0)
+      .join('\n');
+    return normalized.trim();
   }
 
   /**
-   * Check if two outputs are semantically equivalent
+   * Compare JSON outputs
    */
-  private areOutputsEquivalent(actual: string, expected: string): boolean {
-    return this.normalizeOutput(actual) === this.normalizeOutput(expected);
+  private compareJSON(pythonJson: string, bunJson: string): boolean {
+    try {
+      const pythonObj = JSON.parse(pythonJson);
+      const bunObj = JSON.parse(bunJson);
+      return JSON.stringify(pythonObj, null, 2) === JSON.stringify(bunObj, null, 2);
+    } catch {
+      // Fall back to string comparison if parsing fails
+      return pythonJson === bunJson;
+    }
   }
 
   /**
-   * Compare exit codes (allowing for success variations)
+   * Compare XML outputs (normalized structure)
    */
-  private exitCodesMatch(pythonCode: number | null, bunCode: number | null): boolean {
-    // Both successful
-    if (pythonCode === 0 && bunCode === 0) return true;
-    // Both failed (non-zero)
-    if (pythonCode !== 0 && pythonCode !== null && bunCode !== 0 && bunCode !== null) return true;
-    // Exact match
-    return pythonCode === bunCode;
+  private compareXML(pythonXml: string, bunXml: string): boolean {
+    // Simple structure normalization - compare without whitespace
+    const normalizeXml = (xml: string) => {
+      return xml.replace(/>\s+</g, '><').replace(/\s+/g, ' ').trim();
+    };
+    return normalizeXml(pythonXml) === normalizeXml(bunXml);
   }
 
   /**
-   * Compare outputs from both CLIs and return detailed comparison results
+   * Compare CLI outputs
    */
-  async compareOutputs(args: string[], cwd?: string): Promise<ComparisonResult> {
+  async compareOutputs(args: string[], cwd: string = '/tmp'): Promise<ComparisonResult> {
     const [pythonResult, bunResult] = await Promise.all([
       this.runPython(args, cwd),
       this.runBun(args, cwd),
     ]);
 
-    const differences: string[] = [];
+    const normalizedPython = this.normalizeOutput(pythonResult.stdout);
+    const normalizedBun = this.normalizeOutput(bunResult.stdout);
 
-    // Check exit codes
-    const exitCodesMatch = this.exitCodesMatch(pythonResult.exitCode, bunResult.exitCode);
+    const differences: string[] = [];
+    const exitCodesMatch = pythonResult.exitCode === bunResult.exitCode;
+    const outputsMatch = normalizedPython === normalizedBun;
+
     if (!exitCodesMatch) {
       differences.push(
-        `Exit code mismatch: Python=${pythonResult.exitCode}, Bun=${bunResult.exitCode}`,
+        `Exit code mismatch: Python=${pythonResult.exitCode}, Bun=${bunResult.exitCode}`
       );
     }
 
-    // Check stdout
-    const stdoutMatch = this.areOutputsEquivalent(pythonResult.stdout, bunResult.stdout);
-    if (!stdoutMatch) {
-      differences.push('Stdout output differs');
-    }
-
-    // Check stderr (more lenient - content may differ for errors)
-    const stderrMatch = this.areOutputsEquivalent(pythonResult.stderr, bunResult.stderr);
-    if (!stderrMatch && pythonResult.stderr.length > 0 && bunResult.stderr.length > 0) {
-      // Only report if both produced errors
-      differences.push('Stderr output differs');
+    if (!outputsMatch) {
+      differences.push(
+        `Output mismatch:\nPython:\n${normalizedPython}\n\nBun:\n${normalizedBun}`
+      );
     }
 
     return {
+      pythonResult,
+      bunResult,
       exitCodesMatch,
-      stdoutMatch,
-      stderrMatch,
-      pythonExitCode: pythonResult.exitCode,
-      bunExitCode: bunResult.exitCode,
-      pythonStdout: this.normalizeOutput(pythonResult.stdout),
-      bunStdout: this.normalizeOutput(bunResult.stdout),
-      pythonStderr: this.normalizeOutput(pythonResult.stderr),
-      bunStderr: this.normalizeOutput(bunResult.stderr),
+      outputsMatch,
+      normalizedPythonOutput: normalizedPython,
+      normalizedBunOutput: normalizedBun,
       differences,
     };
   }
 
   /**
-   * Compare file outputs from both CLIs
+   * Compare file outputs (JSON, XML, text)
    */
   async compareFileOutputs(
     args: string[],
     outputPath: string,
-    cwd?: string,
-    fileExtension: string = 'json',
-  ): Promise<{ pythonFile: string; bunFile: string; match: boolean; differences: string[] }> {
-    const pythonOutputPath = `${outputPath}.python.${fileExtension}`;
-    const bunOutputPath = `${outputPath}.bun.${fileExtension}`;
+    cwd: string = '/tmp'
+  ): Promise<FileComparison> {
+    // Determine file type by extension
+    const ext = outputPath.split('.').pop()?.toLowerCase() || 'txt';
 
-    // Run both CLIs with output paths
-    const pythonArgs = [...args, '--output', pythonOutputPath];
-    const bunArgs = [...args, '--output', bunOutputPath];
-
-    const [pythonResult, bunResult] = await Promise.all([
-      this.runPython(pythonArgs, cwd),
-      this.runBun(bunArgs, cwd),
-    ]);
-
-    const differences: string[] = [];
-
-    // Check if both commands succeeded
-    if (pythonResult.exitCode !== 0) {
-      differences.push(`Python CLI failed with exit code ${pythonResult.exitCode}`);
-    }
-    if (bunResult.exitCode !== 0) {
-      differences.push(`Bun CLI failed with exit code ${bunResult.exitCode}`);
-    }
-
-    if (differences.length > 0) {
-      return {
-        pythonFile: '',
-        bunFile: '',
-        match: false,
-        differences,
-      };
-    }
+    // Create temp directories for each CLI
+    const pythonTempDir = `/tmp/dr-compat-python-${Date.now()}`;
+    const bunTempDir = `/tmp/dr-compat-bun-${Date.now()}`;
 
     try {
-      // Check file existence before reading
-      let pythonContent = '';
-      let bunContent = '';
+      await mkdir(pythonTempDir, { recursive: true });
+      await mkdir(bunTempDir, { recursive: true });
 
-      try {
-        pythonContent = await readFile(pythonOutputPath, 'utf-8');
-      } catch (error) {
-        differences.push(`Failed to read Python output file: ${error instanceof Error ? error.message : String(error)}`);
+      // Run both CLIs in their temp directories
+      const pythonArgs = [...args, '--output', `${pythonTempDir}/${outputPath}`];
+      const bunArgs = [...args, '--output', `${bunTempDir}/${outputPath}`];
+
+      await Promise.all([this.runPython(pythonArgs, cwd), this.runBun(bunArgs, cwd)]);
+
+      // Read generated files
+      const pythonFile = `${pythonTempDir}/${outputPath}`;
+      const bunFile = `${bunTempDir}/${outputPath}`;
+
+      if (!existsSync(pythonFile) || !existsSync(bunFile)) {
+        return {
+          pythonFile,
+          bunFile,
+          filesMatch: false,
+          differences: [
+            `Missing files: Python exists=${existsSync(pythonFile)}, Bun exists=${existsSync(bunFile)}`,
+          ],
+        };
       }
 
-      try {
-        bunContent = await readFile(bunOutputPath, 'utf-8');
-      } catch (error) {
-        differences.push(`Failed to read Bun output file: ${error instanceof Error ? error.message : String(error)}`);
-      }
+      const pythonContent = await readFile(pythonFile, 'utf-8');
+      const bunContent = await readFile(bunFile, 'utf-8');
 
-      if (differences.length > 0) {
-        return { pythonFile: '', bunFile: '', match: false, differences };
-      }
+      let filesMatch = false;
+      const differences: string[] = [];
 
-      let match = false;
-
-      if (fileExtension === 'json') {
-        match = this.areJSONEquivalent(pythonContent, bunContent);
-      } else if (fileExtension === 'xml' || fileExtension === 'archimate') {
-        match = this.areXMLEquivalent(pythonContent, bunContent);
+      // Compare based on file type
+      if (ext === 'json') {
+        filesMatch = this.compareJSON(pythonContent, bunContent);
+      } else if (ext === 'xml') {
+        filesMatch = this.compareXML(pythonContent, bunContent);
       } else {
-        match = this.normalizeOutput(pythonContent) === this.normalizeOutput(bunContent);
+        const normalizedPython = this.normalizeOutput(pythonContent);
+        const normalizedBun = this.normalizeOutput(bunContent);
+        filesMatch = normalizedPython === normalizedBun;
       }
 
-      if (!match) {
-        differences.push(`File contents differ`);
+      if (!filesMatch) {
+        differences.push(
+          `Content mismatch:\nPython:\n${pythonContent.substring(0, 500)}\n...\n\nBun:\n${bunContent.substring(0, 500)}\n...`
+        );
       }
 
       return {
-        pythonFile: pythonContent,
-        bunFile: bunContent,
-        match,
+        pythonFile,
+        bunFile,
+        filesMatch,
         differences,
       };
-    } catch (error) {
-      return {
-        pythonFile: '',
-        bunFile: '',
-        match: false,
-        differences: [
-          `Error reading output files: ${error instanceof Error ? error.message : String(error)}`,
-        ],
-      };
+    } finally {
+      // Cleanup
+      try {
+        await rm(pythonTempDir, { recursive: true, force: true });
+        await rm(bunTempDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   }
 
   /**
-   * Compare JSON files semantically (ignoring formatting)
+   * Create a test directory with optional file structure
    */
-  private areJSONEquivalent(pythonJSON: string, bunJSON: string): boolean {
-    try {
-      const pythonObj = JSON.parse(pythonJSON);
-      const bunObj = JSON.parse(bunJSON);
-      return JSON.stringify(pythonObj, null, 0) === JSON.stringify(bunObj, null, 0);
-    } catch {
-      // Fall back to string comparison if parsing fails
-      return this.normalizeOutput(pythonJSON) === this.normalizeOutput(bunJSON);
-    }
-  }
-
-  /**
-   * Compare XML files structurally (ignoring whitespace and attribute order)
-   */
-  private areXMLEquivalent(pythonXML: string, bunXML: string): boolean {
-    // Normalize XML: remove comments, normalize whitespace, sort attributes
-    const normalize = (xml: string) => {
-      return xml
-        .replace(/<!--[\s\S]*?-->/g, '') // Remove comments
-        .replace(/>\s+</g, '><') // Remove whitespace between tags
-        .replace(/\s+/g, ' ') // Normalize internal whitespace
-        .trim();
-    };
-
-    return normalize(pythonXML) === normalize(bunXML);
-  }
-
-  /**
-   * Create a temporary test directory with given structure
-   */
-  async createTestDirectory(basePath: string, structure?: Record<string, string>): Promise<string> {
-    const testDir = join(basePath, `test-${Date.now()}`);
-    await mkdir(testDir, { recursive: true });
+  async createTestDirectory(
+    basePath: string,
+    structure?: Record<string, string>
+  ): Promise<string> {
+    await mkdir(basePath, { recursive: true });
 
     if (structure) {
       for (const [filePath, content] of Object.entries(structure)) {
-        const fullPath = join(testDir, filePath);
-        const dirPath = dirname(fullPath);
-        await mkdir(dirPath, { recursive: true });
-        const file = Bun.file(fullPath);
-        await Bun.write(file, content);
+        const fullPath = `${basePath}/${filePath}`;
+        const dir = parse(fullPath).dir;
+        await mkdir(dir, { recursive: true });
+        await writeFile(fullPath, content, 'utf-8');
       }
     }
 
-    return testDir;
+    return basePath;
   }
 
   /**
-   * Clean up test directory
+   * Cleanup a test directory
    */
   async cleanupTestDirectory(testDir: string): Promise<void> {
     try {
       await rm(testDir, { recursive: true, force: true });
-    } catch (error) {
+    } catch {
       // Ignore cleanup errors
     }
   }
 
   /**
-   * Extract error count from validation output
+   * Parse error count from validation output
    */
   parseErrorCount(output: string): number {
-    const match = output.match(/(\d+)\s+error/i);
+    const match = output.match(/(\d+)\s+errors?/i);
     return match ? parseInt(match[1], 10) : 0;
   }
 
   /**
-   * Extract warning count from validation output
+   * Parse warning count from validation output
    */
   parseWarningCount(output: string): number {
-    const match = output.match(/(\d+)\s+warning/i);
+    const match = output.match(/(\d+)\s+warnings?/i);
     return match ? parseInt(match[1], 10) : 0;
   }
-}
 
-/**
- * Helper to run both CLIs and assert they produce equivalent results
- */
-export async function assertCLIsEquivalent(
-  harness: CLIHarness,
-  args: string[],
-  cwd?: string,
-): Promise<ComparisonResult> {
-  const result = await harness.compareOutputs(args, cwd);
-
-  if (!result.exitCodesMatch || !result.stdoutMatch) {
-    throw new Error(`CLIs produced different outputs:\n${result.differences.join('\n')}`);
+  /**
+   * Assert that CLIs produce equivalent outputs
+   */
+  async assertCLIsEquivalent(args: string[], cwd: string = '/tmp'): Promise<ComparisonResult> {
+    const result = await this.compareOutputs(args, cwd);
+    if (!result.exitCodesMatch || !result.outputsMatch) {
+      throw new Error(`CLI outputs not equivalent:\n${result.differences.join('\n')}`);
+    }
+    return result;
   }
 
-  return result;
-}
-
-/**
- * Helper to run both CLIs and assert they fail with equivalent errors
- */
-export async function assertCLIsFailEquivalently(
-  harness: CLIHarness,
-  args: string[],
-  cwd?: string,
-): Promise<ComparisonResult> {
-  const result = await harness.compareOutputs(args, cwd);
-
-  if (result.bunExitCode === 0 || result.pythonExitCode === 0) {
-    throw new Error(
-      `Expected both CLIs to fail, but got Python=${result.pythonExitCode}, Bun=${result.bunExitCode}`,
-    );
+  /**
+   * Assert that CLIs fail equivalently (same exit code)
+   */
+  async assertCLIsFailEquivalently(
+    args: string[],
+    cwd: string = '/tmp'
+  ): Promise<ComparisonResult> {
+    const result = await this.compareOutputs(args, cwd);
+    if (!result.exitCodesMatch) {
+      throw new Error(
+        `CLI exit codes don't match: Python=${result.pythonResult.exitCode}, Bun=${result.bunResult.exitCode}`
+      );
+    }
+    if (result.exitCodesMatch && result.pythonResult.exitCode === 0) {
+      throw new Error('Expected both CLIs to fail, but both succeeded');
+    }
+    return result;
   }
-
-  return result;
 }

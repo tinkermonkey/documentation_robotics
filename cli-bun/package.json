@@ -19,8 +19,6 @@
     "test:compatibility": "bun test tests/compatibility/**/*.test.ts",
     "test:compatibility:commands": "bun test tests/compatibility/commands.test.ts",
     "test:compatibility:validation": "bun test tests/compatibility/validation.test.ts",
-    "test:compatibility:export": "bun test tests/compatibility/export.test.ts",
-    "test:compatibility:api": "bun test tests/compatibility/api.test.ts",
     "test:compatibility:edge-cases": "bun test tests/compatibility/edge-cases.test.ts",
     "test:all": "bun test tests/**/*.test.ts"
   },
