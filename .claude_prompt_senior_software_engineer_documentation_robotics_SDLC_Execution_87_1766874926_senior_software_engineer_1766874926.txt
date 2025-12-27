@@ -1,0 +1,607 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 5: Trace schema validation operations
+
+**Description**:
+Instrument the validation pipeline to create spans for schema validation and validation stages. This captures validation timing, success/failure, and error counts for debugging agent-generated models.
+
+## Requirements
+- **FR6.1**: Instrument schema validation with span `schema.validate` capturing path, valid, error_count
+- **FR8.1**: Span names must follow pattern `{domain}.{operation}`
+- **FR8.2**: Attribute names must follow OpenTelemetry semantic conventions where applicable
+
+## Design Guidance
+**Validation Pipeline** (`cli-bun/src/validators/validator.ts`):
+The 4-stage validation pipeline (lines 35-58) provides natural instrumentation points:
+```typescript
+// Current structure
+async validateModel(model: Model): Promise<ValidationResult> {
+  const errors: string[] = [];
+  
+  // Stage 1: Schema validation
+  const schemaErrors = await this.schemaValidator.validateModel(model);
+  errors.push(...schemaErrors);
+  
+  // Stage 2: Naming validation
+  const namingErrors = await this.namingValidator.validateModel(model);
+  errors.push(...namingErrors);
+  
+  // Stage 3: Reference validation
+  const refErrors = await this.referenceValidator.validateModel(model);
+  errors.push(...refErrors);
+  
+  // Stage 4: Semantic validation (if enabled)
+  if (this.enableSemanticValidation) {
+    const semanticErrors = await this.semanticValidator.validateModel(model);
+    errors.push(...semanticErrors);
+  }
+  
+  return { valid: errors.length === 0, errors };
+}
+```
+
+**Instrumented Validation Pipeline**:
+```typescript
+import { startSpan, endSpan } from '../telemetry';
+
+async validateModel(model: Model): Promise<ValidationResult> {
+  const rootSpan = startSpan('model.validate', {
+    'model.path': model.basePath,
+  });
+  
+  const errors: string[] = [];
+  
+  try {
+    // Stage 1: Schema validation
+    const schemaSpan = startSpan('validation.stage.schema');
+    const schemaErrors = await this.schemaValidator.validateModel(model);
+    if (TELEMETRY_ENABLED && schemaSpan) {
+      schemaSpan.setAttribute('validation.error_count', schemaErrors.length);
+    }
+    endSpan(schemaSpan);
+    errors.push(...schemaErrors);
+    
+    // Stage 2: Naming validation
+    const namingSpan = startSpan('validation.stage.naming');
+    const namingErrors = await this.namingValidator.validateModel(model);
+    if (TELEMETRY_ENABLED && namingSpan) {
+      namingSpan.setAttribute('validation.error_count', namingErrors.length);
+    }
+    endSpan(namingSpan);
+    errors.push(...namingErrors);
+    
+    // Stage 3: Reference validation
+    const refSpan = startSpan('validation.stage.reference');
+    const refErrors = await this.referenceValidator.validateModel(model);
+    if (TELEMETRY_ENABLED && refSpan) {
+      refSpan.setAttribute('validation.error_count', refErrors.length);
+    }
+    endSpan(refSpan);
+    errors.push(...refErrors);
+    
+    // Stage 4: Semantic validation (if enabled)
+    if (this.enableSemanticValidation) {
+      const semanticSpan = startSpan('validation.stage.semantic');
+      const semanticErrors = await this.semanticValidator.validateModel(model);
+      if (TELEMETRY_ENABLED && semanticSpan) {
+        semanticSpan.setAttribute('validation.error_count', semanticErrors.length);
+      }
+      endSpan(semanticSpan);
+      errors.push(...semanticErrors);
+    }
+    
+    const result = { valid: errors.length === 0, errors };
+    
+    if (TELEMETRY_ENABLED && rootSpan) {
+      rootSpan.setAttribute('validation.valid', result.valid);
+      rootSpan.setAttribute('validation.error_count', errors.length);
+    }
+    
+    return result;
+  } finally {
+    endSpan(rootSpan);
+  }
+}
+```
+
+**Schema Validator** (`cli-bun/src/validators/schema-validator.ts`):
+Instrument per-layer validation (line 119):
+```typescript
+async validateLayer(layerName: string, layerData: unknown): Promise<string[]> {
+  const span = startSpan('schema.validate', {
+    'schema.layer': layerName,
+  });
+  
+  try {
+    const schema = this.getSchema(layerName);
+    const valid = this.ajv.validate(schema, layerData);
+    
+    if (TELEMETRY_ENABLED && span) {
+      span.setAttribute('schema.valid', valid);
+      span.setAttribute('schema.error_count', this.ajv.errors?.length || 0);
+    }
+    
+    if (!valid) {
+      return this.formatErrors(layerName, this.ajv.errors || []);
+    }
+    
+    return [];
+  } finally {
+    endSpan(span);
+  }
+}
+```
+
+**Span Hierarchy**:
+```
+cli.execute (root)
+└── model.validate
+    ├── validation.stage.schema
+    │   ├── schema.validate (motivation layer)
+    │   ├── schema.validate (business layer)
+    │   └── ...
+    ├── validation.stage.naming
+    ├── validation.stage.reference
+    └── validation.stage.semantic
+```
+
+**Span Attributes**:
+
+**model.validate**:
+- `model.path`: Base path to model directory
+- `validation.valid`: Boolean overall validation result
+- `validation.error_count`: Total error count across all stages
+
+**validation.stage.***:
+- `validation.error_count`: Errors from this stage
+
+**schema.validate**:
+- `schema.layer`: Layer name being validated
+- `schema.valid`: Boolean validation result for this layer
+- `schema.error_count`: Number of schema errors for this layer
+
+**Integration with Existing Patterns**:
+The validation pipeline already uses a staged approach. Spans naturally map to these stages, providing visibility into where validation time is spent and where errors occur.
+
+## Acceptance Criteria
+- [ ] `Validator.validateModel()` creates `model.validate` root span
+- [ ] Each validation stage creates child span (`validation.stage.{schema|naming|reference|semantic}`)
+- [ ] `SchemaValidator.validateLayer()` creates `schema.validate` span per layer
+- [ ] `model.validate` span includes `model.path`, `validation.valid`, `validation.error_count`
+- [ ] Stage spans include `validation.error_count`
+- [ ] `schema.validate` spans include `schema.layer`, `schema.valid`, `schema.error_count`
+- [ ] Spans are nested correctly (stages under model, schema under stage)
+- [ ] Spans are ended in `finally` blocks
+- [ ] Validation errors propagate normally while spans are cleaned up
+- [ ] All telemetry code guarded by `TELEMETRY_ENABLED` checks
+- [ ] Validation works normally when telemetry is disabled
+- [ ] Code is reviewed and approved
+
+## Dependencies
+Phase 2 (telemetry module must exist)
+
+## Parent Issue
+Part of #80
+
+## Discussion
+This work is detailed in discussion [82](https://github.com/tinkermonkey/documentation_robotics/discussions/82)
+
+---
+
+
+## Previous Work and Feedback
+
+The following is the complete history of agent outputs and feedback for this issue.
+This includes outputs from ALL previous stages (design, testing, QA, etc.) and any
+user feedback. If this issue was returned from testing or QA, pay special attention
+to their feedback and address all issues they identified.
+
+## Output from Software Architect
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+## System Architecture
+
+### High-Level Design
+
+The OpenTelemetry instrumentation introduces a compile-time-configurable telemetry layer that wraps the existing CLI execution flow. The architecture follows a **zero-cost abstraction pattern**—in production builds, all telemetry code paths are eliminated during minification via dead code elimination.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         Build Configuration                         │
+├──────────────────────────┬──────────────────────────────────────────┤
+│    Production Build      │           Debug Build                    │
+│  TELEMETRY_ENABLED=false │     TELEMETRY_ENABLED=true               │
+│  ┌─────────────────┐     │     ┌─────────────────┐                  │
+│  │   cli.ts        │     │     │   cli.ts        │                  │
+│  │   (no otel)     │     │     │   ↓             │                  │
+│  └────────┬────────┘     │     │   telemetry/    │                  │
+│           │              │     │   ├─index.ts    │                  │
+│           ↓              │     │   ├─resilient-  │                  │
+│  commands/ validators/   │     │   │ exporter.ts │                  │
+│  (zero overhead)         │     │   └─────────────┘                  │
+└──────────────────────────┴────────────────────────────────────────┬─┘
+                                                                    │
+                                                         OTLP HTTP  │
+                                                                    ↓
+                                                    ┌───────────────────────┐
+                                                    │      Jaeger           │
+                                                    │   (local docker)      │
+                                                    │   :4318 OTLP HTTP     │
+                                                    │   :16686 UI           │
+                                                    └───────────────────────┘
+```
+
+### Component Architecture
+
+```
+cli-bun/src/
+├── telemetry/                     # NEW: Telemetry module
+│   ├── index.ts                   # SDK initialization, span wrappers
+│   ├── resilient-exporter.ts      # Graceful-failure OTLP exporter
+│   └── globals.d.ts               # TELEMETRY_ENABLED declaration
+├── cli.ts                         # Entry point (instrumented)
+├── commands/                      # Command handlers (instrumented)
+├── core/                          # Domain logic
+├── utils/
+│   └── file-io.ts                 # File operations (instrumented)
+├── validators/
+│   └── schema-validator.ts        # Schema validation (instrumented)
+└── ...
+```
+
+### Build System Changes
+
+The current build system uses TypeScript compiler (`tsc`) directly. This presents a challenge: `tsc` does not support build-time constants or dead code elimination. The solution requires introducing a bundler with these capabilities.
+
+**Option A: esbuild (Recommended)**
+- Add esbuild as a build step for the final bundle
+- Use `define` option for `TELEMETRY_ENABLED` constant
+- Enable `minifySyntax` for branch elimination
+- Produces single-file bundle with proper tree shaking
+
+**Option B: tsup**
+- Wrapper around esbuild with simpler configuration
+- Same underlying capabilities
+- Slightly more abstraction
+
+**Recommended Approach**: Use esbuild directly since the project already uses minimal tooling. Add an `esbuild.config.js` for bundling:
+
+```
+package.json scripts:
+  "build":       "tsc && node esbuild.config.js"           → Production (no telemetry)
+  "build:debug": "tsc && DR_TELEMETRY=true node esbuild.config.js" → Debug (with telemetry)
+```
+
+## Scalability Design
+
+### Performance Characteristics
+
+| Scenario | Production Build | Debug Build (no collector) | Debug Build (with collector) |
+|----------|-----------------|---------------------------|------------------------------|
+| Cold start overhead | 0ms | ~5-10ms SDK init | ~5-10ms SDK init |
+| Per-command overhead | 0 bytes | ~50μs span creation | ~100μs span + export |
+| Bundle size delta | 0 bytes | +~150KB (otel deps) | +~150KB (otel deps) |
+| Memory overhead | 0 | ~2-5MB | ~2-5MB + span buffer |
+
+### Graceful Degradation Strategy
+
+The `ResilientOTLPExporter` implements a circuit-breaker pattern:
+
+1. **Initial State**: Attempts export to configured OTLP endpoint
+2. **On Failure**: Sets 30-second backoff window, silently discards spans
+3. **Backoff Expired**: Retries export, resets on success or extends backoff on failure
+4. **Timeout**: 500ms aggressive timeout prevents blocking CLI execution
+
+This ensures the CLI never blocks waiting for telemetry infrastructure.
+
+### Span Lifecycle
+
+Using `SimpleSpanProcessor` instead of `BatchSpanProcessor`:
+- Guarantees all spans export before process exit
+- Critical for short-lived CLI processes
+- Acceptable for development-only tracing (not production workload)
+
+## Established Patterns
+
+### Pattern 1: Build-Time Feature Flags
+
+The codebase already uses environment variables for debug behavior (`process.env.DEBUG` in `model.ts:122`, `validate.ts:101`). This instrumentation extends that pattern with compile-time elimination.
+
+**Current Pattern (runtime)**:
+```typescript
+// model.ts:122
+if (process.env.DEBUG) {
+  console.debug(`Warning: Failed to load layers directory: ${error}`);
+}
+```
+
+**New Pattern (compile-time)**:
+```typescript
+if (TELEMETRY_ENABLED) {
+  // Entire block eliminated from production bundle
+  const span = tracer.startSpan('model.load');
+}
+```
+
+### Pattern 2: Global State Management
+
+The `globals.ts` utility demonstrates the project's approach to global state:
+- Simple module-level singleton
+- Getter/setter functions for access
+- Immutable option copies
+
+The telemetry module follows this pattern:
+```typescript
+// telemetry/index.ts
+let sdk: NodeSDK | null = null;
+let tracer: Tracer | null = null;
+
+export function initTelemetry(): void { ... }
+export function shutdownTelemetry(): Promise<void> { ... }
+```
+
+### Pattern 3: Utility Wrapper Functions
+
+The `file-io.ts` pattern of thin wrappers around Node.js APIs maps directly to telemetry instrumentation:
+
+**Current** (`file-io.ts:35-37`):
+```typescript
+export async function readFile(path: string): Promise<string> {
+  return await fsReadFile(path, 'utf-8');
+}
+```
+
+**Instrumented**:
+```typescript
+export async function readFile(path: string): Promise<string> {
+  const span = startSpan('file.read', { 'file.path': path });
+  try {
+    const content = await fsReadFile(path, 'utf-8');
+    if (TELEMETRY_ENABLED && span) {
+      span.setAttribute('file.size', content.length);
+    }
+    return content;
+  } finally {
+    endSpan(span);
+  }
+}
+```
+
+### Pattern 4: Validation Pipeline
+
+The 4-stage validation pipeline (`validator.ts:35-58`) provides natural instrumentation points:
+- Each stage becomes a child span under `model.validate`
+- Schema validation per-layer generates `schema.validate` spans
+- Clear correlation between trace structure and code architecture
+
+## Component Reuse
+
+### Existing Components to Leverage
+
+| Component | Location | Instrumentation Point |
+|-----------|----------|----------------------|
+| `Model.load()` | `core/model.ts:101` | `model.load` span |
+| `Validator.validateModel()` | `validators/validator.ts:35` | `model.validate` span |
+| `SchemaValidator.validateLayer()` | `validators/schema-validator.ts:119` | `schema.validate` span |
+| `readFile()` / `writeFile()` | `utils/file-io.ts` | `file.read` / `file.write` spans |
+| `readJSON()` / `writeJSON()` | `utils/file-io.ts` | `file.read` / `file.write` spans |
+| CLI entry point | `cli.ts:32-358` | `cli.execute` root span |
+
+### Commander.js Integration
+
+The CLI uses Commander.js with a `preAction` hook (`cli.ts:38-44`). This hook provides a clean integration point for initializing telemetry before command execution. The root span can be created in a modified hook, then passed through the command context or via the global state pattern.
+
+### Globals Module Extension
+
+The existing `globals.ts` can be extended to hold telemetry state, or a parallel `telemetry/index.ts` module can follow the same singleton pattern. Recommend keeping telemetry in its own module for:
+- Clear separation of concerns
+- Easier tree-shaking verification
+- Independent testing
+
+## Implementation Plan
+
+### Phase 1: Build System Enhancement
+
+**Objective**: Add esbuild bundling with conditional compilation support
+
+**Files to Create**:
+- `cli-bun/esbuild.config.js` - Build configuration with `define` for `TELEMETRY_ENABLED`
+
+**Files to Modify**:
+- `cli-bun/package.json` - Add esbuild dev dependency, modify build scripts
+- `cli-bun/tsconfig.json` - Adjust for esbuild compatibility
+
+**Tasks**:
+1. Install esbuild as dev dependency
+2. Create `esbuild.config.js` with production (no telemetry) and debug (with telemetry) modes
+3. Update `package.json` scripts: `build`, `build:debug`
+4. Verify production bundle contains no OpenTelemetry imports
+
+### Phase 2: Telemetry Module
+
+**Objective**: Create telemetry wrapper module with graceful failure
+
+**Files to Create**:
+- `cli-bun/src/telemetry/index.ts` - SDK initialization, span utilities
+- `cli-bun/src/telemetry/resilient-exporter.ts` - Circuit-breaker OTLP exporter
+- `cli-bun/src/telemetry/globals.d.ts` - TypeScript declaration for `TELEMETRY_ENABLED`
+
+**Tasks**:
+1. Add OpenTelemetry packages to devDependencies
+2. Create `ResilientOTLPExporter` with 500ms timeout and 30s backoff
+3. Implement `initTelemetry()`, `startSpan()`, `endSpan()`, `shutdownTelemetry()`
+4. Ensure all functions are no-ops when `TELEMETRY_ENABLED` is false
+
+### Phase 3: CLI Entry Point Instrumentation
+
+**Objective**: Add root span for all command executions
+
+**Files to Modify**:
+- `cli-bun/src/cli.ts` - Add telemetry lifecycle around command execution
+
+**Tasks**:
+1. Import telemetry module
+2. Initialize SDK in `preAction` hook
+3. Create `cli.execute` root span with command, args, cwd, version
+4. Handle errors with proper span status and exception recording
+5. Shutdown SDK in process exit handler
+
+### Phase 4: File Operation Instrumentation
+
+**Objective**: Trace all file reads and writes
+
+**Files to Modify**:
+- `cli-bun/src/utils/file-io.ts` - Wrap all I/O functions with spans
+
+**Tasks**:
+1. Add `file.read` spans to `readFile()`, `readJSON()`
+2. Add `file.write` spans to `writeFile()`, `writeJSON()`, `atomicWrite()`
+3. Record `file.path`, `file.size`, `file.exists` attributes
+4. Verify spans are properly ended in finally blocks
+
+### Phase 5: Validation Instrumentation
+
+**Objective**: Trace schema validation operations
+
+**Files to Modify**:
+- `cli-bun/src/validators/schema-validator.ts` - Add validation spans
+- `cli-bun/src/validators/validator.ts` - Add pipeline stage spans
+
+**Tasks**:
+1. Add `model.validate` span in `Validator.validateModel()`
+2. Add `schema.validate` spans in `SchemaValidator.validateLayer()`
+3. Record `schema.valid`, `schema.error_count` attributes
+4. Add validation stage spans (naming, reference, semantic)
+
+### Phase 6: Model Operation Instrumentation
+
+**Objective**: Trace model load and save operations
+
+**Files to Modify**:
+- `cli-bun/src/core/model.ts` - Add model lifecycle spans
+
+**Tasks**:
+1. Add `model.load` span in `Model.load()`
+2. Record `model.path`, `model.entity_count` attributes
+3. Add `layer.load` child spans for each layer loaded
+4. Add `model.save` span in `saveDirtyLayers()`
+
+### Phase 7: Docker Compose Setup
+
+**Objective**: Provide local Jaeger for easy telemetry viewing
+
+**Files to Create**:
+- `docker/docker-compose.telemetry.yml` - Jaeger all-in-one configuration
+
+**Tasks**:
+1. Create Docker Compose file with Jaeger image
+2. Expose ports 4318 (OTLP HTTP), 16686 (UI)
+3. Document usage in README or inline comments
+
+### Phase 8: Testing and Verification
+
+**Objective**: Verify zero-overhead in production, full tracing in debug
+
+**Tasks**:
+1. Build production bundle, grep for "opentelemetry" - expect zero matches
+2. Build debug bundle, verify OpenTelemetry imports present
+3. Run CLI without Jaeger, verify no errors or performance degradation
+4. Run CLI with Jaeger, verify traces appear in UI
+5. Verify span attributes match semantic conventions
+6. Test error scenarios - verify exception recording
+
+### Dependency Matrix
+
+| Phase | Depends On | Deliverable |
+|-------|------------|-------------|
+| 1 | - | Working esbuild with conditional compilation |
+| 2 | 1 | Telemetry module with no-op mode |
+| 3 | 1, 2 | Root span for all commands |
+| 4 | 2 | File I/O spans |
+| 5 | 2 | Validation spans |
+| 6 | 2 | Model operation spans |
+| 7 | - | Docker Compose file |
+| 8 | All | Verified implementation |
+
+### Risk Mitigation
+
+| Risk | Mitigation |
+|------|------------|
+| esbuild incompatibility with existing build | Fallback to tsup which provides simpler API |
+| Tree shaking fails to eliminate dead code | Verify with bundle analysis; use explicit `/* #__PURE__ */` annotations if needed |
+| OpenTelemetry SDK size bloat | Dynamic imports inside guards; verify with bundle size comparison |
+| Span export blocking CLI exit | `SimpleSpanProcessor` ensures synchronous export; add process exit timeout |
+| Type errors with conditional compilation | Use `declare const` in globals.d.ts; configure tsconfig to recognize |
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+**@tinkermonkey** (human feedback):
+let's use esbuild
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+Sounds good — esbuild it is. I'll proceed with that approach for Phase 1.
+
+**What this means for the build setup:**
+
+```javascript
+// esbuild.config.js
+import * as esbuild from 'esbuild';
+
+const isDebug = process.env.DR_TELEMETRY === 'true';
+
+await esbuild.build({
+  entryPoints: ['src/cli.ts'],
+  bundle: true,
+  platform: 'node',
+  target: 'node18',
+  outfile: 'dist/cli.js',
+  format: 'esm',
+  define: {
+    'TELEMETRY_ENABLED': isDebug ? 'true' : 'false',
+  },
+  minifySyntax: true,  // Required for dead branch elimination
+  external: [
+    // Mark node builtins as external
+    // Plus any deps that shouldn't be bundled
+  ],
+});
+```
+
+**Updated package.json scripts:**
+
+```json
+{
+  "scripts": {
+    "build": "tsc && node esbuild.config.js",
+    "build:debug": "tsc && DR_TELEMETRY=true node esbuild.config.js"
+  },
+  "devDependencies": {
+    "esbuild": "^0.24.0"
+  }
+}
+```
+
+esbuild's `define` + `minifySyntax` combination will completely eliminate all `if (TELEMETRY_ENABLED) { ... }` blocks from production builds. The TypeScript compilation still happens first (for type checking), then esbuild bundles and tree-shakes the result.
+
+Want me to start implementing this? I can begin with Phase 1 (build system changes) and work through the phases sequentially.
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
+
+
