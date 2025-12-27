@@ -8,8 +8,8 @@
     "dr": "dist/cli.js"
   },
   "scripts": {
-    "build": "tsc && npm run copy-schemas && node esbuild.config.js",
-    "build:debug": "tsc && npm run copy-schemas && DR_TELEMETRY=true node esbuild.config.js",
+    "build": "tsc && node esbuild.config.js && npm run copy-schemas",
+    "build:debug": "tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
     "copy-schemas": "cp -r src/schemas dist/",
     "dev": "node dist/cli.js",
     "test": "bun test tests/**/*.test.ts",
