@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach, mock } from 'bun:test';
 
 // Import after setting the global
 import * as telemetry from '../../src/telemetry/index';
-import { ResilientOTLPExporter } from '../../src/telemetry/index';
+import { ResilientOTLPExporter } from '../../src/telemetry/resilient-exporter';
 
 describe('Telemetry Module (Production No-Op Mode)', () => {
   describe('initTelemetry()', () => {

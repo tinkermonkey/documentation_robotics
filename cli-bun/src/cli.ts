@@ -3,6 +3,9 @@
 /**
  * Documentation Robotics CLI - Bun Implementation
  * Entry point for the command-line interface
+ *
+ * Instrumented with OpenTelemetry to create root spans for command execution.
+ * Telemetry is controlled by the TELEMETRY_ENABLED build-time constant.
  */
 
 import { Command } from 'commander';
@@ -26,8 +29,14 @@ import { migrateCommand } from './commands/migrate.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
 import { changesetCommands } from './commands/changeset.js';
+import type { Span } from '@opentelemetry/api';
+import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
 
 const program = new Command();
+
+// Global to hold root span across async boundaries
+// Will be set in preAction hook and ended in process exit handler
+let rootSpan: Span | null = null;
 
 program
   .name('dr')
@@ -36,6 +45,31 @@ program
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
   .hook('preAction', (thisCommand) => {
+    // Initialize telemetry before creating root span
+    if (TELEMETRY_ENABLED) {
+      initTelemetry();
+    }
+
+    // Create root span for command execution
+    if (TELEMETRY_ENABLED) {
+      const commandName = process.argv[2] || 'unknown';
+      const args = process.argv.slice(3).join(' ');
+      const packageJson = JSON.parse(
+        require('fs').readFileSync(
+          new URL('../package.json', import.meta.url).pathname,
+          'utf-8'
+        )
+      );
+
+      rootSpan = startSpan('cli.execute', {
+        'cli.command': commandName,
+        'cli.args': args,
+        'cli.cwd': process.cwd(),
+        'cli.version': packageJson.version,
+      });
+    }
+
+    // Existing global state setup
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
@@ -355,4 +389,62 @@ Examples:
 // Changeset subcommands
 changesetCommands(program);
 
-program.parse();
+// Process exit handler to end root span and shutdown telemetry
+// This ensures spans are exported before process exits
+process.on('exit', async (code) => {
+  if (TELEMETRY_ENABLED && rootSpan) {
+    try {
+      const span = rootSpan as Span;
+
+      // Record exit code if non-zero
+      if (code !== 0) {
+        span.setAttribute('cli.exit_code', code);
+      }
+
+      // Set final status based on exit code
+      const { SpanStatusCode } = require('@opentelemetry/api');
+      span.setStatus({
+        code: code === 0 ? SpanStatusCode.OK : SpanStatusCode.ERROR,
+      });
+
+      // End the root span
+      endSpan(span);
+
+      // Shutdown telemetry to ensure all spans are exported
+      await shutdownTelemetry();
+    } catch (error) {
+      // Silently ignore shutdown errors - don't block process exit
+    }
+  }
+});
+
+// Wrap program execution in try/catch for exception handling
+try {
+  program.parse();
+} catch (error) {
+  if (TELEMETRY_ENABLED && rootSpan) {
+    try {
+      // Record exception details
+      const { SpanStatusCode } = require('@opentelemetry/api');
+      const span = rootSpan as Span;
+      span.setStatus({
+        code: SpanStatusCode.ERROR,
+        message: error instanceof Error ? error.message : String(error),
+      });
+
+      // Record full exception details with stack trace
+      span.recordException(error as Error);
+
+      // End the root span
+      endSpan(span);
+
+      // Shutdown telemetry
+      await shutdownTelemetry();
+    } catch (shutdownError) {
+      // Silently ignore shutdown errors - don't block error propagation
+    }
+  }
+
+  // Re-throw the error to preserve CLI exit behavior
+  throw error;
+}

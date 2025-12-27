@@ -125,15 +125,3 @@ export async function shutdownTelemetry(): Promise<void> {
   }
 }
 
-/**
- * Re-export ResilientOTLPExporter for advanced use cases and testing.
- *
- * This allows users to:
- * - Unit test the circuit-breaker logic directly
- * - Create custom exporter configurations
- * - Inspect the exporter behavior in debug scenarios
- *
- * Note: Import is dynamic inside TELEMETRY_ENABLED guard in initTelemetry().
- * For direct imports, you may need to import from './resilient-exporter.ts'.
- */
-export { ResilientOTLPExporter } from './resilient-exporter';
