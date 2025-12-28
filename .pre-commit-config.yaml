@@ -30,7 +30,7 @@ repos:
       - id: prettier
         types_or: [markdown, yaml, json]
         args: [--write, --prose-wrap=preserve]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli-bun/CHANGELOG\.md)
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md)
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -45,16 +45,16 @@ repos:
     hooks:
       - id: eslint
         name: TypeScript Linting
-        entry: bash -c 'cd cli-bun && npm run lint'
+        entry: bash -c 'cd cli && npm run lint'
         language: system
-        files: ^cli-bun/.*\.(ts|js)$
+        files: ^cli/.*\.(ts|js)$
         pass_filenames: false
 
       - id: typescript-check
         name: TypeScript type checking
-        entry: bash -c 'cd cli-bun && npm run type-check || echo "⚠️  Type checking found issues (not blocking)"'
+        entry: bash -c 'cd cli && npm run type-check || echo "⚠️  Type checking found issues (not blocking)"'
         language: system
-        files: ^cli-bun/src/.*\.ts$
+        files: ^cli/src/.*\.ts$
         pass_filenames: false
 
   # JSON Schema validation

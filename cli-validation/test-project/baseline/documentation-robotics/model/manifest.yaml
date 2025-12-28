@@ -1,0 +1,112 @@
+version: 0.1.0
+schema: documentation-robotics-v1
+cli_version: 0.7.1
+spec_version: 0.4.0
+created: "2025-12-28T15:00:20.908085Z"
+updated: "2025-12-28T15:00:20.908085Z"
+project:
+  name: test-project
+  description: Architecture model for test-project
+  version: 1.0.0
+documentation: .dr/README.md
+layers:
+  motivation:
+    order: 1
+    name: Motivation
+    path: documentation-robotics/model/01_motivation/
+    schema: .dr/schemas/01-motivation-layer.schema.json
+    enabled: true
+    elements: {}
+  business:
+    order: 2
+    name: Business
+    path: documentation-robotics/model/02_business/
+    schema: .dr/schemas/02-business-layer.schema.json
+    enabled: true
+    elements: {}
+  security:
+    order: 3
+    name: Security
+    path: documentation-robotics/model/03_security/
+    schema: .dr/schemas/03-security-layer.schema.json
+    enabled: true
+    elements: {}
+  application:
+    order: 4
+    name: Application
+    path: documentation-robotics/model/04_application/
+    schema: .dr/schemas/04-application-layer.schema.json
+    enabled: true
+    elements: {}
+  technology:
+    order: 5
+    name: Technology
+    path: documentation-robotics/model/05_technology/
+    schema: .dr/schemas/05-technology-layer.schema.json
+    enabled: true
+    elements: {}
+  api:
+    order: 6
+    name: API
+    path: documentation-robotics/model/06_api/
+    schema: .dr/schemas/06-api-layer.schema.json
+    enabled: true
+    elements: {}
+  data_model:
+    order: 7
+    name: Data Model
+    path: documentation-robotics/model/07_data_model/
+    schema: .dr/schemas/07-data-model-layer.schema.json
+    enabled: true
+    elements: {}
+  datastore:
+    order: 8
+    name: Data Store
+    path: documentation-robotics/model/08_datastore/
+    schema: .dr/schemas/08-datastore-layer.schema.json
+    enabled: true
+    elements: {}
+  ux:
+    order: 9
+    name: UX
+    path: documentation-robotics/model/09_ux/
+    schema: .dr/schemas/09-ux-layer.schema.json
+    enabled: true
+    elements: {}
+  navigation:
+    order: 10
+    name: Navigation
+    path: documentation-robotics/model/10_navigation/
+    schema: .dr/schemas/10-navigation-layer.schema.json
+    enabled: true
+    elements: {}
+  apm:
+    order: 11
+    name: APM/Observability
+    path: documentation-robotics/model/11_apm/
+    schema: .dr/schemas/11-apm-observability-layer.schema.json
+    enabled: true
+    elements: {}
+  testing:
+    order: 12
+    name: Testing
+    path: documentation-robotics/model/12_testing/
+    schema: .dr/schemas/12-testing-layer.schema.json
+    enabled: true
+    elements: {}
+cross_references:
+  total: 0
+  by_type: {}
+statistics:
+  total_elements: 0
+  total_relationships: 0
+  completeness: 0.0
+  last_validation: null
+  validation_status: not_validated
+conventions:
+  id_format: "{layer}.{type}.{kebab-case-name}"
+  file_naming:
+    api: "{service-name}-api.yaml"
+    schema: "{entity-name}.schema.json"
+    ux: "{screen-name}.ux.yaml"
+upgrade_history: []

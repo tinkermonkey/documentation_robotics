@@ -42,7 +42,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 - **WebSearch**: Research technologies, patterns, compliance standards
 - **WebFetch**: Access DR documentation and examples
 
-**Note**: The DR CLI is implemented in TypeScript/Bun (cli-bun/) for high performance. Installation: `npm install -g @documentation-robotics/cli` or `npm install -g .` from the cli-bun directory.
+**Note**: The DR CLI is implemented in TypeScript/Bun (cli/) for high performance. Installation: `npm install -g @documentation-robotics/cli` or `npm install -g .` from the cli directory.
 
 ## Knowledge Base: DR Specification v0.5.0
 

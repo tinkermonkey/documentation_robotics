@@ -61,10 +61,10 @@
 
 4. **`/Users/austinsand/workspace/documentation_robotics/spec/README.md`**
    - Updated CLI version badge from v0.7.2 to v0.1.0
-   - Changed CLI link from `../cli/` to `../cli-bun/`
+   - Changed CLI link from `../cli/` to `../cli/`
    - Updated installation instructions from `pip install` to `npm install -g @documentation-robotics/cli`
 
-5. **`/Users/austinsand/workspace/documentation_robotics/cli-bun/README.md`**
+5. **`/Users/austinsand/workspace/documentation_robotics/cli/README.md`**
    - Updated to position as "primary and only CLI"
    - Removed comparisons to Python CLI
    - Emphasized stability and production-readiness
@@ -116,12 +116,12 @@
     - Removed all Python test jobs
     - Added Bun CLI test job with Node.js 18 setup
     - Updated workflow name to "Bun CLI Tests"
-    - Updated trigger paths to `cli-bun/**`
+    - Updated trigger paths to `cli/**`
 
 14. **`.github/workflows/release.yml`**
     - Removed Python CLI release job (lines 86-156)
     - Added Bun CLI release job
-    - Updated tag pattern: `cli-v*.*.*` → `cli-bun-v*.*.*`
+    - Updated tag pattern: `cli-v*.*.*` → `cli-v*.*.*`
     - Removed Python package build/publish steps
 
 15. **`.github/workflows/spec-validation.yml`**
@@ -230,7 +230,7 @@ M README.md
 M CLAUDE.md
 M CONTRIBUTING.md
 M spec/README.md
-M cli-bun/README.md
+M cli/README.md
 M integrations/claude_code/
 M integrations/github_copilot/
 M docs/

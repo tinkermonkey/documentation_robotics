@@ -39,7 +39,7 @@ Task Group 9 focuses on preparing and documenting the final Python CLI release (
    Homepage = "https://github.com/tinkermonkey/documentation_robotics"
    Documentation = "https://github.com/tinkermonkey/documentation_robotics/tree/main/spec"
    "Migration Guide" = "https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/migration-from-python-cli.md"
-   "Bun CLI" = "https://github.com/tinkermonkey/documentation_robotics/tree/main/cli-bun"
+   "Bun CLI" = "https://github.com/tinkermonkey/documentation_robotics/tree/main/cli"
    Repository = "https://github.com/tinkermonkey/documentation_robotics"
    "Bug Tracker" = "https://github.com/tinkermonkey/documentation_robotics/issues"
    ```

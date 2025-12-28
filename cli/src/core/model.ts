@@ -1,0 +1,540 @@
+import { Layer } from "./layer.js"
+import { Manifest } from "./manifest.js"
+import { Element } from "./element.js";
+import { ensureDir } from "../utils/file-io.js";
+import { startSpan, endSpan } from "../telemetry/index.js";
+import { resolveModelRoot } from "../utils/model-path.js";
+import type { ManifestData, ModelOptions } from "../types/index.js";
+
+// Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
+declare const TELEMETRY_ENABLED: boolean | undefined
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false
+
+/**
+ * Model class representing the complete architecture model
+ */
+export class Model {
+  rootPath: string
+  manifest: Manifest
+  layers: Map<string, Layer>
+  lazyLoad: boolean
+  private loadedLayers: Set<string>
+
+  constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
+    this.rootPath = rootPath
+    this.manifest = manifest
+    this.layers = new Map()
+    this.lazyLoad = options.lazyLoad ?? false
+    this.loadedLayers = new Set()
+  }
+
+  /**
+   * Get a layer, loading it if lazy loading is enabled
+   */
+  async getLayer(name: string): Promise<Layer | undefined> {
+    if (this.lazyLoad && !this.loadedLayers.has(name)) {
+      await this.loadLayer(name)
+    }
+    return this.layers.get(name)
+  }
+
+  /**
+   * Load a layer from disk (legacy format: model/XX_layername/*.yaml files)
+   * Supports reading layer paths from manifest for Python CLI compatibility
+   */
+  async loadLayer(name: string): Promise<void> {
+    const layerSpan = isTelemetryEnabled ? startSpan('layer.load', {
+      'layer.name': name,
+    }) : null
+
+    try {
+      const fs = await import('fs/promises')
+      const yaml = await import('yaml')
+
+      let layerPath: string | null = null
+
+      // PRIORITY 1: Read layer path from manifest (Python CLI compatibility)
+      if (this.manifest.layers && this.manifest.layers[name]) {
+        const layerConfig = this.manifest.layers[name]
+        if (layerConfig.path) {
+          // Path in manifest is relative to root
+          const fullPath = `${this.rootPath}/${layerConfig.path.replace(/\/$/, '')}`
+          try {
+            await fs.access(fullPath)
+            layerPath = fullPath
+          } catch (err) {
+            // Path in manifest doesn't exist - this is an error
+            if (process.env.DEBUG) {
+              console.debug(`Manifest specifies path ${layerConfig.path} but it doesn't exist`)
+            }
+          }
+        }
+      }
+
+      // FALLBACK: Auto-discover by scanning directories with naming convention
+      if (!layerPath) {
+        const possibleDirs = [
+          `${this.rootPath}/model`,
+          `${this.rootPath}/documentation-robotics/model`
+        ]
+
+        for (const modelDir of possibleDirs) {
+          try {
+            const entries = await fs.readdir(modelDir, { withFileTypes: true })
+            const layerDir = entries.find(e =>
+              e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, '') === name
+            )
+
+            if (layerDir) {
+              layerPath = `${modelDir}/${layerDir.name}`
+              break
+            }
+          } catch {
+            continue
+          }
+        }
+      }
+
+      if (!layerPath) {
+        return // Layer directory not found
+      }
+
+      const layer = new Layer(name)
+
+      // Load all YAML files in the layer directory
+      const files = await fs.readdir(layerPath)
+      for (const file of files) {
+        if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+          const filePath = `${layerPath}/${file}`
+          const yamlContent = await fs.readFile(filePath, 'utf-8')
+          const elements = yaml.parse(yamlContent)
+
+          // Add each element from the YAML file
+          if (elements && typeof elements === 'object') {
+            for (const [key, element] of Object.entries(elements)) {
+              if (element && typeof element === 'object') {
+                const el: any = element
+
+                // Auto-generate layer-prefixed ID if missing (Python CLI compatibility)
+                // Python: element_id = f"{self.name}.{key}" when no id field
+                const elementId = el.id || `${name}.${key}`
+
+                // Infer type from filename if not specified (Python CLI compatibility)
+                // Python: _infer_type_from_file removes trailing 's' from stem
+                let elementType = el.type
+                if (!elementType) {
+                  const stem = file.replace(/\.ya?ml$/, '')
+                  elementType = stem.endsWith('s') ? stem.slice(0, -1) : stem
+                }
+
+                const newElement = new Element({
+                  id: elementId,
+                  name: el.name || key,
+                  type: elementType,
+                  description: el.description || el.documentation || '',
+                  properties: el.properties || {},
+                  relationships: el.relationships || [],
+                  references: el.references || [],
+                  layer: name,  // Track layer (Python CLI compatibility)
+                  filePath: filePath,  // Track source file (Python CLI compatibility)
+                  rawData: el  // Preserve raw YAML data (Python CLI compatibility)
+                });
+                layer.addElement(newElement);
+              }
+            }
+          }
+        }
+      }
+
+      this.layers.set(name, layer)
+      this.loadedLayers.add(name)
+
+      if (isTelemetryEnabled && layerSpan) {
+        layerSpan.setAttribute('layer.element_count', layer.elements.size)
+      }
+    } finally {
+      if (isTelemetryEnabled) {
+        endSpan(layerSpan)
+      }
+    }
+  }
+
+  /**
+   * Add a layer to the model
+   */
+  addLayer(layer: Layer): void {
+    this.layers.set(layer.name, layer)
+    this.loadedLayers.add(layer.name)
+  }
+
+  /**
+   * Get all loaded layer names
+   */
+  getLayerNames(): string[] {
+    return Array.from(this.layers.keys())
+  }
+
+  /**
+   * Save a layer to disk (legacy format: model/XX_layername/*.yaml)
+   */
+  async saveLayer(name: string): Promise<void> {
+    const layer = this.layers.get(name)
+    if (!layer) {
+      throw new Error(`Layer ${name} not found`)
+    }
+
+    const fs = await import('fs/promises')
+    const yaml = await import('yaml')
+
+    let layerPath: string | null = null
+
+    // Try to get layer path from manifest first (Python CLI compatibility)
+    if (this.manifest.layers && this.manifest.layers[name]) {
+      const layerConfig = this.manifest.layers[name]
+      if (layerConfig.path) {
+        const fullPath = `${this.rootPath}/${layerConfig.path.replace(/\/$/, '')}`
+        try {
+          await fs.access(fullPath)
+          layerPath = fullPath
+        } catch {
+          // Path doesn't exist, create it
+          await ensureDir(fullPath)
+          layerPath = fullPath
+        }
+      }
+    }
+
+    // If manifest path not found, try discovery by scanning directory
+    if (!layerPath) {
+      const possibleDirs = [
+        `${this.rootPath}/model`,
+        `${this.rootPath}/documentation-robotics/model`
+      ]
+
+      for (const modelDir of possibleDirs) {
+        try {
+          const entries = await fs.readdir(modelDir, { withFileTypes: true })
+          const layerDir = entries.find(e =>
+            e.isDirectory() && e.name.match(/^\d{2}_/) &&
+            e.name.replace(/^\d{2}_/, '') === name
+          )
+
+          if (layerDir) {
+            layerPath = `${modelDir}/${layerDir.name}`
+            break
+          }
+        } catch {
+          continue
+        }
+      }
+    }
+
+    // If still not found, create using default format
+    if (!layerPath) {
+      // Find the order number for this layer
+      const layerOrder = [
+        'motivation', 'business', 'security', 'application', 'technology',
+        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+      ]
+      const index = layerOrder.indexOf(name)
+      if (index >= 0) {
+        const orderNum = String(index + 1).padStart(2, '0')
+        layerPath = `${this.rootPath}/model/${orderNum}_${name}`
+        await ensureDir(layerPath)
+      } else {
+        throw new Error(`Unknown layer ${name} and no path configured in manifest`)
+      }
+    }
+
+    // Group elements by type
+    const elementsByType = new Map<string, any[]>()
+    for (const element of layer.elements.values()) {
+      const type = element.type + 's' // pluralize (e.g., goal -> goals)
+      if (!elementsByType.has(type)) {
+        elementsByType.set(type, [])
+      }
+      elementsByType.get(type)!.push(element)
+    }
+
+    // Write each type to its own YAML file
+    for (const [type, elements] of elementsByType) {
+      const filename = `${type}.yaml`
+      const filePath = `${layerPath}/${filename}`
+
+      // Convert elements to YAML format
+      const yamlData: any = {}
+      for (const element of elements) {
+        const key = element.id.split('.').pop() || element.id
+        yamlData[key] = {
+          id: element.id,
+          name: element.name,
+          type: element.type,
+          ...(element.description && { documentation: element.description }),
+          ...(Object.keys(element.properties || {}).length > 0 && { properties: element.properties }),
+          ...(element.relationships && element.relationships.length > 0 && { relationships: element.relationships }),
+        }
+      }
+
+      await fs.writeFile(filePath, yaml.stringify(yamlData), 'utf-8')
+    }
+
+    layer.markClean()
+  }
+
+  /**
+   * Save all dirty layers to disk
+   */
+  async saveDirtyLayers(): Promise<void> {
+    // Count dirty layers before operation
+    let dirtyLayerCount = 0
+    for (const layer of this.layers.values()) {
+      if (layer.isDirty()) {
+        dirtyLayerCount++
+      }
+    }
+
+    const span = isTelemetryEnabled ? startSpan('model.save', {
+      'model.path': this.rootPath,
+      'model.dirty_layer_count': dirtyLayerCount,
+    }) : null
+
+    try {
+      for (const layer of this.layers.values()) {
+        if (layer.isDirty()) {
+          await this.saveLayer(layer.name)
+        }
+      }
+    } finally {
+      if (isTelemetryEnabled) {
+        endSpan(span)
+      }
+    }
+  }
+
+  /**
+   * Save the manifest to disk (legacy format: model/manifest.yaml)
+   * Preserves Python CLI metadata fields for compatibility
+   */
+  async saveManifest(): Promise<void> {
+    this.manifest.updateModified()
+    const yaml = await import('yaml')
+    const fs = await import('fs/promises')
+    const manifestPath = `${this.rootPath}/model/manifest.yaml`
+
+    // Convert to legacy YAML format, preserving Python CLI fields
+    const yamlData: any = {
+      version: this.manifest.version,
+      schema: 'documentation-robotics-v1',
+      cli_version: this.manifest.version || '0.1.0',
+      spec_version: this.manifest.specVersion,
+      created: this.manifest.created,
+      updated: this.manifest.modified,
+      project: {
+        name: this.manifest.name,
+        description: this.manifest.description,
+        version: this.manifest.version,
+      },
+      documentation: '.dr/README.md',
+      layers: this.manifest.layers || {} as any,
+    }
+
+    // If layers not preserved from load, generate default structure
+    if (!this.manifest.layers || Object.keys(this.manifest.layers).length === 0) {
+      const layerOrder = [
+        'motivation', 'business', 'security', 'application', 'technology',
+        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+      ]
+
+      for (let i = 0; i < layerOrder.length; i++) {
+        const layerName = layerOrder[i]
+        const layer = this.layers.get(layerName)
+        const orderNum = String(i + 1).padStart(2, '0')
+
+        yamlData.layers[layerName] = {
+          order: i + 1,
+          name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace('-', ' '),
+          path: `model/${orderNum}_${layerName}/`,
+          schema: `.dr/schemas/${orderNum}-${layerName}-layer.schema.json`,
+          enabled: true,
+          ...(layer && { elements: this.getLayerElementCounts(layer) }),
+        }
+      }
+    } else {
+      // Update element counts in existing layer configs
+      for (const [layerName, layerConfig] of Object.entries(yamlData.layers)) {
+        const layer = this.layers.get(layerName)
+        if (layer) {
+          (layerConfig as any).elements = this.getLayerElementCounts(layer)
+        }
+      }
+    }
+
+    // Preserve Python CLI metadata fields
+    if (this.manifest.statistics) {
+      // Update statistics with current counts
+      const stats = { ...this.manifest.statistics }
+      stats.total_elements = Array.from(this.layers.values())
+        .reduce((sum, layer) => sum + layer.elements.size, 0)
+      yamlData.statistics = stats
+    }
+
+    if (this.manifest.cross_references) {
+      yamlData.cross_references = this.manifest.cross_references
+    }
+
+    if (this.manifest.conventions) {
+      yamlData.conventions = this.manifest.conventions
+    }
+
+    if (this.manifest.upgrade_history) {
+      yamlData.upgrade_history = this.manifest.upgrade_history
+    }
+
+    await ensureDir(`${this.rootPath}/model`)
+    await fs.writeFile(manifestPath, yaml.stringify(yamlData), 'utf-8')
+  }
+
+  private getLayerElementCounts(layer: Layer): Record<string, number> {
+    const counts: Record<string, number> = {}
+    for (const element of layer.elements.values()) {
+      counts[element.type] = (counts[element.type] || 0) + 1
+    }
+    return counts
+  }
+
+  /**
+   * Load a model from disk (supports both new and legacy formats)
+   * Uses resolveModelRoot to find manifest in multiple locations:
+   * - root/model/manifest.yaml (TypeScript layout)
+   * - root/documentation-robotics/model/manifest.yaml (Python layout)
+   * - Respects DR_MODEL_PATH environment variable
+   */
+  static async load(rootPath: string, options: ModelOptions = {}): Promise<Model> {
+    const span = isTelemetryEnabled ? startSpan('model.load', {
+      'model.path': rootPath,
+      'model.type': 'dr-legacy',
+    }) : null
+
+    try {
+      // Use resolveModelRoot to find manifest (supports both layouts)
+      const { rootPath: resolvedRoot, manifestPath } = await resolveModelRoot({
+        modelPath: rootPath
+      })
+
+      const fs = await import('fs/promises')
+      const yaml = await import('yaml')
+
+      // Load manifest from resolved path
+      const yamlContent = await fs.readFile(manifestPath, 'utf-8')
+      const legacyData = yaml.parse(yamlContent)
+
+      // Convert legacy format to internal format
+      const manifestData: any = {
+        name: legacyData.project?.name || 'Unnamed Model',
+        description: legacyData.project?.description || '',
+        version: legacyData.project?.version || legacyData.version || '0.1.0',
+        specVersion: legacyData.spec_version || '0.6.0',
+        created: legacyData.created || new Date().toISOString(),
+        modified: legacyData.updated || new Date().toISOString(),
+        // Preserve Python CLI metadata fields
+        layers: legacyData.layers,
+        statistics: legacyData.statistics || {
+          total_elements: 0,
+          total_relationships: 0,
+          completeness: 0.0,
+          last_validation: null,
+          validation_status: 'not_validated'
+        },
+        cross_references: legacyData.cross_references || {
+          total: 0,
+          by_type: {}
+        },
+        conventions: legacyData.conventions,
+        upgrade_history: legacyData.upgrade_history || []
+      }
+      const manifest = new Manifest(manifestData)
+      const model = new Model(resolvedRoot, manifest, options)
+
+      // Load all available layers if lazyLoad is false
+      if (!options.lazyLoad) {
+        try {
+          // If manifest has layer definitions, use those
+          if (legacyData.layers) {
+            for (const layerName of Object.keys(legacyData.layers)) {
+              const layerConfig = legacyData.layers[layerName]
+              if (layerConfig.enabled !== false) {
+                await model.loadLayer(layerName)
+              }
+            }
+          } else {
+            // Otherwise scan for layer directories
+            const modelDir = manifestPath.replace('/manifest.yaml', '')
+            const entries = await fs.readdir(modelDir, { withFileTypes: true })
+
+            for (const entry of entries) {
+              if (entry.isDirectory() && entry.name.match(/^\d{2}_/)) {
+                const layerName = entry.name.replace(/^\d{2}_/, '')
+                await model.loadLayer(layerName)
+              }
+            }
+          }
+        } catch (e) {
+          // If layers directory doesn't exist or can't be read, just continue
+          if (process.env.DEBUG) {
+            const error = e instanceof Error ? e.message : String(e)
+            if (!error.includes('ENOENT')) {
+              console.debug(`Warning: Failed to load layers directory: ${error}`)
+            }
+          }
+        }
+      }
+
+      // Count total entities across all layers
+      let entityCount = 0
+      for (const layer of model.layers.values()) {
+        entityCount += layer.elements.size
+      }
+
+      if (isTelemetryEnabled && span) {
+        span.setAttribute('model.entity_count', entityCount)
+        span.setAttribute('model.layer_count', model.layers.size)
+      }
+
+      return model
+    } finally {
+      if (isTelemetryEnabled) {
+        endSpan(span)
+      }
+    }
+  }
+
+  /**
+   * Initialize a new model in a directory (legacy format)
+   */
+  static async init(
+    rootPath: string,
+    manifestData: ManifestData,
+    options: ModelOptions = {}
+  ): Promise<Model> {
+    // Create model directory and layer directories
+    await ensureDir(`${rootPath}/model`);
+
+    const layerOrder = [
+      'motivation', 'business', 'security', 'application', 'technology',
+      'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+    ];
+
+    for (let i = 0; i < layerOrder.length; i++) {
+      const orderNum = String(i + 1).padStart(2, '0');
+      const layerName = layerOrder[i];
+      await ensureDir(`${rootPath}/model/${orderNum}_${layerName}`);
+    }
+
+    const manifest = new Manifest(manifestData);
+    const model = new Model(rootPath, manifest, options);
+
+    await model.saveManifest();
+
+    return model;
+  }
+}

@@ -14,8 +14,8 @@ The repository uses GitHub Actions for continuous integration and continuous del
 
 **Triggers:**
 
-- Push to `main` or `develop` branches (when `cli-bun/**` changes)
-- Pull requests to `main` or `develop` branches (when `cli-bun/**` changes)
+- Push to `main` or `develop` branches (when `cli/**` changes)
+- Pull requests to `main` or `develop` branches (when `cli/**` changes)
 - Manual workflow dispatch
 
 **Jobs:**
@@ -24,7 +24,7 @@ The repository uses GitHub Actions for continuous integration and continuous del
 
 Runs the complete Bun CLI test suite:
 
-1. Setup Node.js 18
+1. Setup Node.js 24
 2. Install Bun runtime
 3. Install dependencies
 4. Build CLI
@@ -89,7 +89,7 @@ Runs spell checking on specification markdown files:
 **Triggers:**
 
 - Tags matching `spec-v*.*.*` (specification releases)
-- Tags matching `cli-bun-v*.*.*` (Bun CLI releases)
+- Tags matching `cli-v*.*.*` (Bun CLI releases)
 
 **Jobs:**
 
@@ -153,7 +153,7 @@ All workflows use:
 ### Bun CLI Tests
 
 ```bash
-cd cli-bun
+cd cli
 npm install
 npm run build
 npm run test:unit
@@ -215,12 +215,12 @@ Check the path filters in `on.push.paths` - workflows only run when specified pa
 ### Test Failures
 
 1. Check the workflow run logs in GitHub Actions tab
-2. Run tests locally to reproduce: `cd cli-bun && npm test`
+2. Run tests locally to reproduce: `cd cli && npm test`
 3. Fix failing tests and push again
 
 ### Release Workflow Issues
 
-1. Verify tag format matches pattern: `spec-v1.2.3` or `cli-bun-v1.2.3`
+1. Verify tag format matches pattern: `spec-v1.2.3` or `cli-v1.2.3`
 2. Ensure VERSION file matches tag version
 3. Check that all tests pass before tagging
 4. Verify secrets are configured: `NPM_TOKEN` for npm publishing
@@ -252,6 +252,6 @@ For migration guidance, see [Migration from Python CLI](../migration-from-python
 ## Additional Resources
 
 - [CI/CD Integration Guide](./ci-cd-integration.md) - Using DR CLI in your own pipelines
-- [Bun CLI Documentation](../cli-bun/README.md)
+- [Bun CLI Documentation](../cli/README.md)
 - [Specification Documentation](../spec/README.md)
 - [GitHub Actions Documentation](https://docs.github.com/en/actions)

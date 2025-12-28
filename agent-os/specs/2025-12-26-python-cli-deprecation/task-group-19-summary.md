@@ -34,7 +34,7 @@ Task Group 19 completes Phase 4 of the Python CLI Deprecation project by perform
 - **Updated References:**
   - `spec/README.md` - Changed from `pip install documentation-robotics` to `npm install -g @documentation-robotics/cli`
   - Updated CLI version badge from v0.7.2 to v0.1.0
-  - Changed CLI link from `../cli/` to `../cli-bun/`
+  - Changed CLI link from `../cli/` to `../cli/`
 
 **Verification:**
 
@@ -48,7 +48,7 @@ Task Group 19 completes Phase 4 of the Python CLI Deprecation project by perform
 **Actions Taken:**
 
 - Created fresh test directory: `/tmp/bun-cli-test`
-- Built Bun CLI: `npm run build` in cli-bun/
+- Built Bun CLI: `npm run build` in cli/
 - Tested CLI from built distribution: `node dist/cli.js`
 
 **Commands Tested:**
@@ -269,7 +269,7 @@ All remaining references are intentional and fall into these categories:
 2. `/Users/austinsand/workspace/documentation_robotics/spec/README.md` (updated)
    - CLI version badge updated
    - Installation instructions updated
-   - Links updated to cli-bun/
+   - Links updated to cli/
 
 ## Repository State
 
@@ -285,7 +285,7 @@ All remaining references are intentional and fall into these categories:
 - `CLAUDE.md` - No Python references
 - `CONTRIBUTING.md` - TypeScript workflow
 - `spec/README.md` - Bun CLI installation
-- `cli-bun/README.md` - Primary CLI positioning
+- `cli/README.md` - Primary CLI positioning
 - `docs/` - Various documentation updates
 - `integrations/` - All updated to Bun CLI
 

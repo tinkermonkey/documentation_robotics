@@ -19,7 +19,7 @@ Total Tasks: 48 tasks across 5 major phases
     - Document command arguments, flags, and options for each
     - Identify command categories: core, AI integration, deprecated
   - [x] 1.2 Map Python commands to Bun equivalents
-    - Cross-reference with Bun CLI commands in `cli-bun/src/commands/`
+    - Cross-reference with Bun CLI commands in `cli/src/commands/`
     - Document mapping: `add.py` → `add.ts`, `remove.py` → `delete.ts`, etc.
     - Flag any naming differences or behavioral variations
   - [x] 1.3 Identify missing Bun implementations
@@ -48,7 +48,7 @@ Total Tasks: 48 tasks across 5 major phases
 **Estimated Effort:** 8-12 hours
 
 - [x] 2.0 Enhance command compatibility tests
-  - [x] 2.1 Review existing command tests in `cli-bun/tests/compatibility/commands.test.ts`
+  - [x] 2.1 Review existing command tests in `cli/tests/compatibility/commands.test.ts`
     - Analyze current test coverage (~20 scenarios)
     - Identify gaps in command testing
     - Document commands lacking test coverage
@@ -79,7 +79,7 @@ Total Tasks: 48 tasks across 5 major phases
     - Path resolution (relative vs. absolute paths)
     - Model directory not initialized
   - [x] 2.8 Run enhanced command compatibility tests
-    - Execute: `npm run test:compatibility` in `cli-bun/`
+    - Execute: `npm run test:compatibility` in `cli/`
     - Verify all command tests pass
     - Document any failures with detailed analysis
 
@@ -104,7 +104,7 @@ Total Tasks: 48 tasks across 5 major phases
 **Estimated Effort:** 6-8 hours
 
 - [x] 3.0 Enhance validator compatibility tests
-  - [x] 3.1 Review existing validation tests in `cli-bun/tests/compatibility/validation.test.ts`
+  - [x] 3.1 Review existing validation tests in `cli/tests/compatibility/validation.test.ts`
     - Analyze current schema, naming, reference validation tests
     - Identify missing validation scenarios
   - [x] 3.2 Add schema validation tests for all 12 layers
@@ -145,7 +145,7 @@ Total Tasks: 48 tasks across 5 major phases
 **Estimated Effort:** 6-8 hours
 
 - [x] 4.0 Enhance export format compatibility tests
-  - [x] 4.1 Review existing export tests in `cli-bun/tests/compatibility/export.test.ts`
+  - [x] 4.1 Review existing export tests in `cli/tests/compatibility/export.test.ts`
     - Analyze current export format test coverage
     - Identify missing export format tests
   - [x] 4.2 Add ArchiMate XML export tests
@@ -203,7 +203,7 @@ Total Tasks: 48 tasks across 5 major phases
     - Read `docs/api-spec.yaml` (OpenAPI 3.0 spec)
     - Read `docs/visualization-api-annotations-chat.md` (additional API behavior)
     - Document all API endpoints and expected responses
-  - [x] 5.2 Review existing API tests in `cli-bun/tests/compatibility/api.test.ts`
+  - [x] 5.2 Review existing API tests in `cli/tests/compatibility/api.test.ts`
     - Analyze current API endpoint test coverage
     - Identify missing endpoint tests
   - [x] 5.3 Add tests for `/api/model` endpoint
@@ -246,7 +246,7 @@ Total Tasks: 48 tasks across 5 major phases
 - Server-based tests (Tasks 5.3-5.7) are marked as describe.skip() and can be enabled for full compatibility validation when both CLIs are available
 - Non-server tests (Task 5.8) validate API-compatible data structures using CLI commands without requiring running servers
 - API specification compliance documented in test suite showing implemented vs. specified endpoints
-- Test file location: /Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/api.test.ts
+- Test file location: /Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/api.test.ts
 - Key findings documented:
   - Bun CLI implements: /api/model, /api/layers/:name, /api/elements/:id, /ws endpoints
   - Annotations implemented with different route structure: /api/elements/:id/annotations (vs. spec's /api/annotations)
@@ -315,9 +315,9 @@ Total Tasks: 48 tasks across 5 major phases
 - Detailed compatibility report and summary generated
 - **REMAINING WORK:** Integrate command adapters into test suite (2-3 hours), execute tests (1 hour), finalize report (1 hour)
 - Files created:
-  - `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts` (28 tests)
-  - `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/command-adapters.ts` (adapter layer)
-  - `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files-diagnostic.test.ts` (diagnostic tools)
+  - `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts` (28 tests)
+  - `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/command-adapters.ts` (adapter layer)
+  - `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files-diagnostic.test.ts` (diagnostic tools)
   - `/Users/austinsand/workspace/documentation_robotics/agent-os/specs/2025-12-26-python-cli-deprecation/model-file-compatibility-report.md`
   - `/Users/austinsand/workspace/documentation_robotics/agent-os/specs/2025-12-26-python-cli-deprecation/task-group-6-summary.md`
 
@@ -342,7 +342,7 @@ Total Tasks: 48 tasks across 5 major phases
   - [x] 7.4 Create test execution guide
     - Document how to run compatibility tests
     - Provide troubleshooting steps for common failures
-    - Save to `cli-bun/tests/compatibility/README.md`
+    - Save to `cli/tests/compatibility/README.md`
   - [x] 7.5 Update command parity checklist with test results
     - Mark each command as "Tested" or "Not Tested"
     - Document any commands that failed compatibility tests
@@ -486,13 +486,13 @@ Total Tasks: 48 tasks across 5 major phases
 
 - [x] 11.0 Update CLI-specific documentation
   - [x] 11.1 Update Bun CLI README
-    - Edit `cli-bun/README.md`
+    - Edit `cli/README.md`
     - Update introduction to position as "primary and only CLI"
     - Remove any language comparing to Python CLI or positioning as "alternative"
     - Emphasize stability and production-readiness
     - Update installation instructions to be primary path
   - [x] 11.2 Update CLI development documentation
-    - Review all files in `cli-bun/docs/` (if any)
+    - Review all files in `cli/docs/` (if any)
     - Remove references to Python CLI or compatibility
     - Update architecture docs to reflect sole implementation status
   - [x] 11.3 Create migration guide document
@@ -696,11 +696,11 @@ Total Tasks: 48 tasks across 5 major phases
   - [x] 16.3 Update workflow names and descriptions
     - Rename `cli-tests.yml` workflow to "Bun CLI Tests"
     - Update workflow descriptions to reflect Bun CLI only
-    - Update release workflow to use `cli-bun-v*` tag pattern
+    - Update release workflow to use `cli-v*` tag pattern
   - [x] 16.4 Test CI/CD workflows
     - Workflows updated and ready for testing
     - Will be verified when changes are pushed to repository
-    - Bun CLI tests configured to run on `cli-bun/**` path changes
+    - Bun CLI tests configured to run on `cli/**` path changes
     - Spec validation workflow unchanged (manual trigger only)
   - [x] 16.5 Update CI/CD documentation
     - Created `docs/ci-cd-workflows.md` documenting all active workflows
@@ -720,7 +720,7 @@ Total Tasks: 48 tasks across 5 major phases
 - Successfully replaced Python CLI tests workflow with Bun CLI tests
 - Removed Python CLI release job from release.yml, added Bun CLI release job
 - Updated workflow names: "CLI Tests" → "Bun CLI Tests"
-- Updated tag patterns: `cli-v*.*.*` → `cli-bun-v*.*.*`
+- Updated tag patterns: `cli-v*.*.*` → `cli-v*.*.*`
 - Created comprehensive CI/CD workflows documentation in `docs/ci-cd-workflows.md`:
   - Documents all 3 active workflows (Bun CLI Tests, Spec Validation, Release)
   - Lists removed Python workflows with deprecation context
@@ -851,7 +851,7 @@ Total Tasks: 48 tasks across 5 major phases
     - Review migration guide
     - Confirm all information needed for users is present
   - [x] 19.4 Run Bun CLI test suite
-    - Run: `cd cli-bun && npm run test`
+    - Run: `cd cli && npm run test`
     - Verify all tests pass
     - Run: `npm run test:compatibility`
     - Verify compatibility tests still pass (now testing only Bun CLI behavior)
@@ -946,7 +946,7 @@ Recommended implementation sequence:
 
 **Compatibility Testing:**
 
-- Run `npm run test:compatibility` in `cli-bun/` after completing Task Groups 2-6
+- Run `npm run test:compatibility` in `cli/` after completing Task Groups 2-6
 - Execute category-specific tests: commands, validation, export, API, model files
 - Verify 100% pass rate before proceeding to Phase 2
 

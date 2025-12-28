@@ -5,12 +5,12 @@ on:
   push:
     branches: [main, develop]
     paths:
-      - "cli-bun/**"
+      - "cli/**"
       - ".github/workflows/cli-tests.yml"
   pull_request:
     branches: [main, develop]
     paths:
-      - "cli-bun/**"
+      - "cli/**"
 
 jobs:
   test:
@@ -31,22 +31,22 @@ jobs:
           echo "$HOME/.bun/bin" >> $GITHUB_PATH
 
       - name: Install dependencies
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm install
 
       - name: Build CLI
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm run build
 
       - name: Run linting
-        working-directory: ./cli-bun
+        working-directory: ./cli
         continue-on-error: true
         run: npm run lint || echo "Linting not configured"
 
       - name: Run unit tests
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm run test:unit
 
       - name: Run integration tests
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm run test:integration

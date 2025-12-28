@@ -1,0 +1,1253 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
+  "title": "Data Model Layer Layer Schema",
+  "description": "Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.",
+  "layerMetadata": {
+    "layerId": "07-data-model-layer",
+    "layerName": "Data Model Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": ["JSONSchema", "SchemaDefinition"],
+        "targetTypes": ["SchemaDefinition", "SchemaProperty"],
+        "examples": [
+          {
+            "source": "JSONSchema",
+            "target": "SchemaDefinition",
+            "description": "Schema document composes reusable definitions",
+            "layer": "07-data-model"
+          },
+          {
+            "source": "SchemaDefinition",
+            "target": "SchemaProperty",
+            "description": "Schema definition composes its properties",
+            "layer": "07-data-model"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": ["JSONSchema"],
+        "targetTypes": ["DataGovernance", "DataQualityMetrics"],
+        "examples": [
+          {
+            "source": "JSONSchema",
+            "target": "DataGovernance",
+            "description": "Schema aggregates governance metadata",
+            "layer": "07-data-model"
+          },
+          {
+            "source": "JSONSchema",
+            "target": "DataQualityMetrics",
+            "description": "Schema aggregates quality metrics configuration",
+            "layer": "07-data-model"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "realization",
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Value",
+            "description": "Goal realizes value for stakeholders",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Outcome",
+            "target": "Goal",
+            "description": "Outcome realizes achievement of goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "ApplicationService",
+            "target": "BusinessService",
+            "description": "Application service realizes business service capability"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessObject",
+            "description": "Business process accesses business object data"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "Schema",
+            "description": "Data object references JSON schema"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "governed-by-principles",
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Principle",
+            "description": "REST API governed by RESTful design principles"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "constrainedby",
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Constraint",
+            "description": "API operation constrained by rate limit"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "maps-to",
+        "sourceTypes": ["DataObject"],
+        "targetTypes": ["DatabaseTable"],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "DatabaseTable",
+            "description": "User data object maps to users table"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "derivedfrom",
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
+        "examples": [
+          {
+            "source": "TotalPrice",
+            "target": "Quantity, UnitPrice",
+            "description": "Total price derives from quantity times unit price"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "archimate-ref",
+        "predicate": "archimate-ref",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "04-application",
+        "targetTypes": ["Element"],
+        "sourceTypes": ["JSONSchema", "x-security Extension"],
+        "fieldPath": "x-archimate-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (Element.id reference to ApplicationService)",
+        "examples": []
+      },
+      {
+        "id": "business-object-ref",
+        "predicate": "business-object-ref",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "02-business",
+        "targetTypes": ["BusinessObject"],
+        "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
+        "fieldPath": "x-business-object-ref",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (BusinessObject.id reference, optional)",
+        "examples": []
+      },
+      {
+        "id": "data-apm-data-quality-metrics",
+        "predicate": "apm-data-quality-metrics",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "07-data-model",
+        "targetTypes": ["DataQualityMetric"],
+        "sourceTypes": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-apm-data-quality-metrics",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DataQualityMetrics (optional)",
+        "examples": []
+      },
+      {
+        "id": "data-governance",
+        "predicate": "data-governance",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "07-data-model",
+        "targetTypes": ["Governance"],
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
+        "fieldPath": "x-data-governance",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "medium",
+        "required": false,
+        "description": "DataGovernance (optional)",
+        "examples": []
+      },
+      {
+        "id": "database",
+        "predicate": "database",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "07-data-model",
+        "targetTypes": ["Database"],
+        "sourceTypes": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ],
+        "fieldPath": "x-database",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "DatabaseMapping (optional)",
+        "examples": []
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      }
+    ],
+    "incoming": [
+      {
+        "id": "data-apm-data-quality-metrics",
+        "predicate": "referenced-by",
+        "inversePredicate": "apm-data-quality-metrics",
+        "sourceLayer": "07-data-model",
+        "sourceTypes": [
+          "JSONSchema",
+          "x-apm-data-quality-metrics Extension",
+          "x-security Extension"
+        ],
+        "targetTypes": ["DataQualityMetric"],
+        "fieldPath": "x-apm-data-quality-metrics",
+        "cardinality": "single",
+        "description": "Inverse of: DataQualityMetrics (optional)"
+      },
+      {
+        "id": "data-governance",
+        "predicate": "referenced-by",
+        "inversePredicate": "data-governance",
+        "sourceLayer": "07-data-model",
+        "sourceTypes": ["JSONSchema", "x-data-governance Extension", "x-security Extension"],
+        "targetTypes": ["Governance"],
+        "fieldPath": "x-data-governance",
+        "cardinality": "single",
+        "description": "Inverse of: DataGovernance (optional)"
+      },
+      {
+        "id": "data-governance-owner",
+        "predicate": "referenced-by",
+        "inversePredicate": "governance-owner",
+        "sourceLayer": "02-business",
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["GovernanceOwner"],
+        "fieldPath": "data.governance-owner",
+        "cardinality": "single",
+        "description": "Inverse of: BusinessObject ownership by BusinessActor"
+      },
+      {
+        "id": "data-retention",
+        "predicate": "referenced-by",
+        "inversePredicate": "retention",
+        "sourceLayer": "04-application",
+        "sourceTypes": ["Data Properties", "DataObject"],
+        "targetTypes": ["Retention"],
+        "fieldPath": "data.retention",
+        "cardinality": "single",
+        "description": "Inverse of: Links to Retention in target layer"
+      },
+      {
+        "id": "database",
+        "predicate": "referenced-by",
+        "inversePredicate": "database",
+        "sourceLayer": "07-data-model",
+        "sourceTypes": [
+          "JSONSchema",
+          "SchemaProperty",
+          "x-database Extension",
+          "x-security Extension"
+        ],
+        "targetTypes": ["Database"],
+        "fieldPath": "x-database",
+        "cardinality": "single",
+        "description": "Inverse of: DatabaseMapping (optional)"
+      },
+      {
+        "id": "database-column",
+        "predicate": "referenced-by",
+        "inversePredicate": "database-column",
+        "sourceLayer": "06-api",
+        "sourceTypes": ["Schema"],
+        "targetTypes": ["Column"],
+        "fieldPath": "x-database-column",
+        "cardinality": "single",
+        "description": "Inverse of: string"
+      },
+      {
+        "id": "database-table",
+        "predicate": "referenced-by",
+        "inversePredicate": "database-table",
+        "sourceLayer": "06-api",
+        "sourceTypes": ["Schema", "SecurityScheme"],
+        "targetTypes": ["Table"],
+        "fieldPath": "x-database-table",
+        "cardinality": "single",
+        "description": "Inverse of: string"
+      }
+    ]
+  },
+  "type": "object",
+  "properties": {
+    "json-schemas": {
+      "type": "array",
+      "description": "Collection of JSONSchema entities",
+      "items": {
+        "$ref": "#/definitions/JSONSchema"
+      }
+    },
+    "json-types": {
+      "type": "array",
+      "description": "Collection of JSONType entities",
+      "items": {
+        "$ref": "#/definitions/JSONType"
+      }
+    },
+    "string-schemas": {
+      "type": "array",
+      "description": "Collection of StringSchema entities",
+      "items": {
+        "$ref": "#/definitions/StringSchema"
+      }
+    },
+    "numeric-schemas": {
+      "type": "array",
+      "description": "Collection of NumericSchema entities",
+      "items": {
+        "$ref": "#/definitions/NumericSchema"
+      }
+    },
+    "array-schemas": {
+      "type": "array",
+      "description": "Collection of ArraySchema entities",
+      "items": {
+        "$ref": "#/definitions/ArraySchema"
+      }
+    },
+    "object-schemas": {
+      "type": "array",
+      "description": "Collection of ObjectSchema entities",
+      "items": {
+        "$ref": "#/definitions/ObjectSchema"
+      }
+    },
+    "schema-compositions": {
+      "type": "array",
+      "description": "Collection of SchemaComposition entities",
+      "items": {
+        "$ref": "#/definitions/SchemaComposition"
+      }
+    },
+    "references": {
+      "type": "array",
+      "description": "Collection of Reference entities",
+      "items": {
+        "$ref": "#/definitions/Reference"
+      }
+    },
+    "schema-definitions": {
+      "type": "array",
+      "description": "Collection of SchemaDefinition entities",
+      "items": {
+        "$ref": "#/definitions/SchemaDefinition"
+      }
+    },
+    "schema-properties": {
+      "type": "array",
+      "description": "Collection of SchemaProperty entities",
+      "items": {
+        "$ref": "#/definitions/SchemaProperty"
+      }
+    },
+    "data-governances": {
+      "type": "array",
+      "description": "Collection of DataGovernance entities",
+      "items": {
+        "$ref": "#/definitions/DataGovernance"
+      }
+    },
+    "data-quality-metricses": {
+      "type": "array",
+      "description": "Collection of DataQualityMetrics entities",
+      "items": {
+        "$ref": "#/definitions/DataQualityMetrics"
+      }
+    },
+    "database-mappings": {
+      "type": "array",
+      "description": "Collection of DatabaseMapping entities",
+      "items": {
+        "$ref": "#/definitions/DatabaseMapping"
+      }
+    }
+  },
+  "definitions": {
+    "string": {
+      "type": "string",
+      "enum": ["string", "number", "integer", "boolean", "object", "array", "null"]
+    },
+    "StringFormat": {
+      "type": "string",
+      "enum": [
+        "date-time",
+        "date",
+        "time",
+        "email",
+        "idn-email",
+        "hostname",
+        "idn-hostname",
+        "ipv4",
+        "ipv6",
+        "uri",
+        "uri-reference",
+        "iri",
+        "iri-reference",
+        "json-pointer",
+        "relative-json-pointer",
+        "regex",
+        "uuid",
+        "phone",
+        "credit-card"
+      ]
+    },
+    "DataClassificationLevel": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted", "secret"]
+    },
+    "SQLType": {
+      "type": "string",
+      "enum": [
+        "VARCHAR",
+        "CHAR",
+        "TEXT",
+        "CLOB",
+        "INTEGER",
+        "SMALLINT",
+        "BIGINT",
+        "SERIAL",
+        "BIGSERIAL",
+        "DECIMAL",
+        "NUMERIC",
+        "FLOAT",
+        "DOUBLE",
+        "BOOLEAN",
+        "DATE",
+        "TIME",
+        "TIMESTAMP",
+        "TIMESTAMPTZ",
+        "INTERVAL",
+        "JSON",
+        "JSONB",
+        "UUID",
+        "BYTEA",
+        "BLOB",
+        "ARRAY"
+      ]
+    },
+    "ReferentialAction": {
+      "type": "string",
+      "enum": ["CASCADE", "SET_NULL", "SET_DEFAULT", "RESTRICT", "NO_ACTION"]
+    },
+    "IndexType": {
+      "type": "string",
+      "enum": ["BTREE", "HASH", "GIN", "GIST", "BRIN"]
+    },
+    "ConstraintType": {
+      "type": "string",
+      "enum": ["PRIMARY_KEY", "UNIQUE", "FOREIGN_KEY", "CHECK", "NOT_NULL", "EXCLUSION"]
+    },
+    "PartitionStrategy": {
+      "type": "string",
+      "enum": ["RANGE", "LIST", "HASH"]
+    },
+    "UIComponent": {
+      "type": "string",
+      "enum": [
+        "text-input",
+        "textarea",
+        "number-input",
+        "email-input",
+        "password-input",
+        "date-picker",
+        "datetime-picker",
+        "select",
+        "multi-select",
+        "autocomplete",
+        "checkbox",
+        "radio-group",
+        "toggle",
+        "slider",
+        "file-upload",
+        "rich-text-editor",
+        "color-picker"
+      ]
+    },
+    "SecurityClassification": {
+      "type": "string",
+      "enum": ["public", "internal", "confidential", "restricted"]
+    },
+    "MaskingStrategy": {
+      "type": "string",
+      "enum": ["none", "partial", "full", "hash"]
+    },
+    "JSONSchema": {
+      "type": "object",
+      "description": "Root schema document",
+      "required": ["id", "name", "$schema", "$id", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "$schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "$id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "definitions": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "x-source-reference": {
+          "$ref": "common/source-references.schema.json#/definitions/SourceReference",
+          "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+        }
+      }
+    },
+    "JSONType": {
+      "type": "object",
+      "description": "Core JSON data types",
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "$ref": "#/definitions/string"
+        }
+      }
+    },
+    "StringSchema": {
+      "type": "object",
+      "description": "StringSchema validation rules",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minLength": {
+          "type": "integer"
+        },
+        "maxLength": {
+          "type": "integer"
+        },
+        "pattern": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "$ref": "#/definitions/StringFormat"
+        }
+      }
+    },
+    "NumericSchema": {
+      "type": "object",
+      "description": "NumericSchema validation rules",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minimum": {
+          "type": "number"
+        },
+        "maximum": {
+          "type": "number"
+        },
+        "exclusiveMinimum": {
+          "type": "number"
+        },
+        "exclusiveMaximum": {
+          "type": "number"
+        },
+        "multipleOf": {
+          "type": "number"
+        }
+      }
+    },
+    "ArraySchema": {
+      "type": "object",
+      "description": "ArraySchema validation rules",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "items": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minItems": {
+          "type": "integer"
+        },
+        "maxItems": {
+          "type": "integer"
+        },
+        "uniqueItems": {
+          "type": "boolean"
+        },
+        "contains": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "ObjectSchema": {
+      "type": "object",
+      "description": "ObjectSchema validation rules",
+      "required": ["type"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required": {
+          "type": "string",
+          "minLength": 1
+        },
+        "additionalProperties": {
+          "type": "string",
+          "minLength": 1
+        },
+        "minProperties": {
+          "type": "integer"
+        },
+        "maxProperties": {
+          "type": "integer"
+        },
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SchemaComposition": {
+      "type": "object",
+      "description": "Combining multiple schemas",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "Reference": {
+      "type": "object",
+      "description": "Reference to another schema",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "SchemaDefinition": {
+      "type": "object",
+      "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
+      "required": ["id", "name", "title", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        },
+        "items": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "SchemaProperty": {
+      "type": "object",
+      "description": "Defines a single property within a schema, including its type, constraints, validation rules, and documentation. The fundamental building block of data model structure.",
+      "required": ["id", "name", "type", "title", "format", "default", "enum", "const", "examples"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "format": {
+          "type": "string",
+          "minLength": 1
+        },
+        "default": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enum": {
+          "type": "string",
+          "minLength": 1
+        },
+        "const": {
+          "type": "string",
+          "minLength": 1
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "writeOnly": {
+          "type": "boolean"
+        },
+        "deprecated": {
+          "type": "boolean"
+        },
+        "examples": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DataGovernance": {
+      "type": "object",
+      "description": "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "DataQualityMetrics": {
+      "type": "object",
+      "description": "Defines measurable quality attributes for data elements such as completeness, accuracy, consistency, and timeliness. Enables data quality monitoring and SLA enforcement.",
+      "required": ["id", "name", "schemaRef"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schemaRef": {
+          "type": "string",
+          "minLength": 1
+        },
+        "monitoringEnabled": {
+          "type": "boolean"
+        }
+      }
+    },
+    "DatabaseMapping": {
+      "type": "object",
+      "description": "Specifies how a logical data model entity maps to physical database storage, including table names, column mappings, and storage optimizations. Bridges logical and physical data layers.",
+      "required": ["id", "name", "table", "schema", "catalog", "engine"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "catalog": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-business-object-ref": {
+      "type": "object",
+      "description": "Reference to BusinessObject this schema implements",
+      "required": ["value"],
+      "properties": {
+        "value": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-data-governance": {
+      "type": "object",
+      "description": "Data model governance metadata (root-level)",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "governedBy": {
+          "type": "object"
+        }
+      }
+    },
+    "x-apm-data-quality-metrics": {
+      "type": "object",
+      "description": "Links schema to data quality metrics in APM/Observability Layer",
+      "required": [
+        "id",
+        "name",
+        "completenessMetrics",
+        "accuracyMetrics",
+        "consistencyMetrics",
+        "freshnessMetrics",
+        "uniquenessMetrics",
+        "integrityMetrics"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "completenessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "accuracyMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "consistencyMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "freshnessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "uniquenessMetrics": {
+          "type": "string",
+          "minLength": 1
+        },
+        "integrityMetrics": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-database": {
+      "type": "object",
+      "description": "Database mapping information",
+      "required": ["id", "name", "table", "schema", "engine"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "table": {
+          "type": "string",
+          "minLength": 1
+        },
+        "schema": {
+          "type": "string",
+          "minLength": 1
+        },
+        "engine": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-ui": {
+      "type": "object",
+      "description": "UI rendering hints",
+      "required": [
+        "id",
+        "name",
+        "component",
+        "label",
+        "placeholder",
+        "helpText",
+        "order",
+        "readOnly",
+        "hidden",
+        "group"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "component": {
+          "$ref": "#/definitions/UIComponent"
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1
+        },
+        "placeholder": {
+          "type": "string",
+          "minLength": 1
+        },
+        "helpText": {
+          "type": "string",
+          "minLength": 1
+        },
+        "order": {
+          "type": "integer"
+        },
+        "readOnly": {
+          "type": "boolean"
+        },
+        "hidden": {
+          "type": "boolean"
+        },
+        "group": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "x-security": {
+      "type": "object",
+      "description": "Security and privacy metadata",
+      "required": [
+        "id",
+        "name",
+        "pii",
+        "encrypted",
+        "classification",
+        "retention",
+        "masking",
+        "redaction"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pii": {
+          "type": "boolean"
+        },
+        "encrypted": {
+          "type": "boolean"
+        },
+        "classification": {
+          "$ref": "#/definitions/SecurityClassification"
+        },
+        "retention": {
+          "type": "string",
+          "minLength": 1
+        },
+        "masking": {
+          "$ref": "#/definitions/MaskingStrategy"
+        },
+        "redaction": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}

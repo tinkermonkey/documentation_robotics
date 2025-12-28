@@ -2,7 +2,7 @@
 
 ## Overview
 
-Enhanced the validation compatibility test suite in `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/validation.test.ts` to comprehensively test all 4 validator types across both Python and Bun CLIs.
+Enhanced the validation compatibility test suite in `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/validation.test.ts` to comprehensively test all 4 validator types across both Python and Bun CLIs.
 
 ## Task Group 3: Compatibility Test Suite Enhancement - Validators
 
@@ -10,7 +10,7 @@ Enhanced the validation compatibility test suite in `/Users/austinsand/workspace
 **Date:** 2025-12-26
 **Files Modified:**
 
-- `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/validation.test.ts`
+- `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/validation.test.ts`
 
 ## Test Suite Enhancement Summary
 
@@ -207,7 +207,7 @@ To run the enhanced validation tests, you need:
 1. **Bun CLI** installed and built:
 
    ```bash
-   cd cli-bun
+   cd cli
    npm install
    npm run build
    ```
@@ -224,7 +224,7 @@ To run the enhanced validation tests, you need:
 ### Running Tests
 
 ```bash
-cd cli-bun
+cd cli
 bun test tests/compatibility/validation.test.ts
 ```
 
@@ -232,7 +232,7 @@ bun test tests/compatibility/validation.test.ts
 
 ### Schema Validator Tests
 
-**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/src/validators/schema-validator.ts`
+**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli/src/validators/schema-validator.ts`
 
 Tests validate:
 
@@ -244,7 +244,7 @@ Tests validate:
 
 ### Naming Validator Tests
 
-**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/src/validators/naming-validator.ts`
+**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli/src/validators/naming-validator.ts`
 
 Tests validate:
 
@@ -255,7 +255,7 @@ Tests validate:
 
 ### Reference Validator Tests
 
-**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/src/validators/reference-validator.ts`
+**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli/src/validators/reference-validator.ts`
 
 Tests validate:
 
@@ -266,7 +266,7 @@ Tests validate:
 
 ### Semantic Validator Tests
 
-**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/src/validators/semantic-validator.ts`
+**Implementation:** `/Users/austinsand/workspace/documentation_robotics/cli/src/validators/semantic-validator.ts`
 
 Tests validate:
 

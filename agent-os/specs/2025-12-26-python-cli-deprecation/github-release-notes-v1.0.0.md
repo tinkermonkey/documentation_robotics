@@ -301,7 +301,7 @@ dr --version
 ## Quick Links
 
 - [Migration Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/migration-from-python-cli.md)
-- [Bun CLI Documentation](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli-bun/README.md)
+- [Bun CLI Documentation](https://github.com/tinkermonkey/documentation_robotics/blob/main/cli/README.md)
 - [CI/CD Integration Guide](https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/ci-cd-integration.md)
 - [Deprecation Timeline](https://github.com/tinkermonkey/documentation_robotics/blob/main/agent-os/specs/2025-12-26-python-cli-deprecation/deprecation-timeline.md)
 - [Readiness Report](https://github.com/tinkermonkey/documentation_robotics/blob/main/agent-os/specs/2025-12-26-python-cli-deprecation/readiness-report.md)

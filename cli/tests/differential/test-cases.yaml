@@ -1,0 +1,151 @@
+# Differential Test Cases
+#
+# This file defines test cases that compare Python CLI scripts
+# with TypeScript CLI commands to ensure behavioral equivalence.
+
+# Common paths (adjust if needed)
+python_project_root: &python_root /Users/austinsand/workspace/documentation_robotics
+typescript_cli_root: &ts_root /Users/austinsand/workspace/documentation_robotics/cli
+model_path: &model /Users/austinsand/workspace/documentation_robotics/spec
+reference_model: &ref_model /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation
+
+test_cases:
+  # Basic validation tests - start with exit code comparison
+  - name: "Validate all - exit code"
+    description: "Run full validation and check both succeed or both fail"
+    python:
+      command: "sh"
+      args:
+        [
+          "-c",
+          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --all --format json",
+        ]
+      cwd: *python_root
+      timeout: 60000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
+      cwd: *ts_root
+      timeout: 60000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false
+
+  - name: "Validate markdown - exit code"
+    description: "Validate markdown structure - check exit codes"
+    python:
+      command: "sh"
+      args:
+        [
+          "-c",
+          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --markdown --format json",
+        ]
+      cwd: *python_root
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false
+
+  - name: "Validate relationships - exit code"
+    description: "Validate relationships - check exit codes"
+    python:
+      command: "sh"
+      args:
+        [
+          "-c",
+          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --relationships --format json",
+        ]
+      cwd: *python_root
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false
+
+  - name: "Validate with strict mode"
+    description: "Validate with strict mode enabled - check exit codes"
+    python:
+      command: "sh"
+      args:
+        [
+          "-c",
+          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --all --strict",
+        ]
+      cwd: *python_root
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "validate", "--strict", "--model", *ref_model]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false
+
+  # Report generation tests
+  - name: "Generate GraphML export"
+    description: "Export model as GraphML"
+    python:
+      command: "python"
+      args: ["scripts/generate_reports.py", "--graphml", "--output", "/tmp/python-graphml"]
+      cwd: *python_root
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "src/cli.ts",
+          "export",
+          "graphml",
+          "--output",
+          "/tmp/ts-graphml.graphml",
+          "--model",
+          *ref_model,
+        ]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false
+
+  - name: "Export to ArchiMate"
+    description: "Export model as ArchiMate XML"
+    python:
+      command: "python"
+      args: ["scripts/generate_reports.py", "--graphml", "--output", "/tmp/python-archimate"]
+      cwd: *python_root
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "src/cli.ts",
+          "export",
+          "archimate",
+          "--output",
+          "/tmp/ts-archimate.xml",
+          "--model",
+          *ref_model,
+        ]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: false

@@ -1,0 +1,69 @@
+{
+  "spec_version": "0.6.0",
+  "source": "local",
+  "created_at": "2025-12-20T15:07:28.734798+00:00",
+  "created_by": "prepare_build.py",
+  "warning": "DO NOT EDIT - These files are generated from spec releases",
+  "files": {
+    ".manifest.json": {
+      "sha256": "ab39fe641a591cbf157f3f5608e272520f40ebe395cc44f5599d866f98cf7be6",
+      "size": 2320
+    },
+    "01-motivation-layer.schema.json": {
+      "sha256": "18c1ee6b4d4318f9ef3fd6c29b9450667cc44d032b532a2937dce9e2d6938719",
+      "size": 32670
+    },
+    "02-business-layer.schema.json": {
+      "sha256": "b5afc8e8d82ed76d24c01acff4565f51ba269f3452cb09822d0fe362c216b5ed",
+      "size": 43394
+    },
+    "03-security-layer.schema.json": {
+      "sha256": "fa6f4211461dfdbd703a62b2b7b0d3210c667af2d7716d4c52ecbc80e11f561c",
+      "size": 65007
+    },
+    "04-application-layer.schema.json": {
+      "sha256": "89b3df3073834da8a001050c3c1caadfc2b23410262b7c1725a27abeb41a86db",
+      "size": 45466
+    },
+    "05-technology-layer.schema.json": {
+      "sha256": "3c4c15ae899a831d62720d3d732ba5d284ff9618f5f2f4aa377d91211e634c15",
+      "size": 47803
+    },
+    "06-api-layer.schema.json": {
+      "sha256": "9a38daa22b281f9a7c85792aeb169226855b6938f943377d9d7104230a3e2068",
+      "size": 53824
+    },
+    "07-data-model-layer.schema.json": {
+      "sha256": "43781193cd8bfb9cd087fc988ad8988a0125ae6a317b6ed3e6edfb30fb0f12fc",
+      "size": 37250
+    },
+    "08-datastore-layer.schema.json": {
+      "sha256": "6675accce3d004eb2929c4b8abd36a205b3fe532fa23998f0cb8a79d372be16d",
+      "size": 27553
+    },
+    "09-ux-layer.schema.json": {
+      "sha256": "e165f619b93866ada5bc93fa58c9cc01a2b0e1ff491da5cf1ebd7480f57cacc3",
+      "size": 42686
+    },
+    "10-navigation-layer.schema.json": {
+      "sha256": "c4f547fe94e486b17ec5e28f48af2ae8fcc0626e8879cd92d4a2f6ca2b9f1072",
+      "size": 24317
+    },
+    "11-apm-observability-layer.schema.json": {
+      "sha256": "9437ad25d77abe96df3353b1399c870130309b0c6b805660e5a43e140e6ea81a",
+      "size": 43283
+    },
+    "12-testing-layer.schema.json": {
+      "sha256": "0e875c5bb67162b74fe6ef6259c419fe41717b75bbcbb10ef801076a3653c495",
+      "size": 32141
+    },
+    "relationship-catalog.json": {
+      "sha256": "30dc16a30aef25ddccb1bb1c13eaab8f5237314bd267c476e6a44ecd089b8905",
+      "size": 41426
+    },
+    "relationship-type.schema.json": {
+      "sha256": "323360bde2abd1c56eb86c2f038215705b2518bfba9aa48e2c8e6dd4376f4c7a",
+      "size": 6198
+    }
+  }
+}

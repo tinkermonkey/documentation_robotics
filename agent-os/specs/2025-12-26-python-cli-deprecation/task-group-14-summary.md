@@ -57,7 +57,7 @@ grep -r "python" --include="*.md" /Users/austinsand/workspace/documentation_robo
 - ✅ README.md - All internal links working
 - ✅ CLAUDE.md - All internal links working
 - ✅ CONTRIBUTING.md - All internal links working
-- ✅ cli-bun/README.md - All internal links working
+- ✅ cli/README.md - All internal links working
 - ✅ docs/migration-from-python-cli.md - All internal links working
 - ✅ docs/ci-cd-integration.md - All internal links working
 - ✅ All spec examples - All cross-references working
@@ -82,7 +82,7 @@ grep -r "python" --include="*.md" /Users/austinsand/workspace/documentation_robo
    - Fix Applied: Updated to proper format
    - Test Result: ✅ Works correctly
 
-3. **cli-bun/README.md examples**
+3. **cli/README.md examples**
    - Status: ✅ PASS
    - No issues found
 

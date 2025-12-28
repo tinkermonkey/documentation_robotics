@@ -76,12 +76,12 @@ find /Users/austinsand/workspace/documentation_robotics -maxdepth 1 -type f \
 **Added TypeScript/JavaScript Linting Hooks:**
 
 - `eslint` - TypeScript/JavaScript linter with auto-fix
-  - Entry: `cd cli-bun && npm run lint -- --fix`
-  - Runs on `^cli-bun/.*\.(ts|js)$` files
+  - Entry: `cd cli && npm run lint -- --fix`
+  - Runs on `^cli/.*\.(ts|js)$` files
 - `typescript-check` - TypeScript type checking
-  - Entry: `cd cli-bun && npm run type-check`
+  - Entry: `cd cli && npm run type-check`
   - Informational only (not blocking)
-  - Runs on `^cli-bun/src/.*\.ts$` files
+  - Runs on `^cli/src/.*\.ts$` files
 
 **Updated Prettier Configuration:**
 

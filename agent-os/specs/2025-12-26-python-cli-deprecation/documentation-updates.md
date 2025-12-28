@@ -27,9 +27,9 @@ This checklist documents all documentation files updated during the Python CLI d
 
 ### Bun CLI Documentation
 
-| File                                                                   | Updated | Verified | Code Examples Tested | Notes                                                                       |
-| ---------------------------------------------------------------------- | ------- | -------- | -------------------- | --------------------------------------------------------------------------- |
-| `/Users/austinsand/workspace/documentation_robotics/cli-bun/README.md` | ✅      | ✅       | ✅                   | Positioned as primary and only CLI, removed alternative/comparison language |
+| File                                                               | Updated | Verified | Code Examples Tested | Notes                                                                       |
+| ------------------------------------------------------------------ | ------- | -------- | -------------------- | --------------------------------------------------------------------------- |
+| `/Users/austinsand/workspace/documentation_robotics/cli/README.md` | ✅      | ✅       | ✅                   | Positioned as primary and only CLI, removed alternative/comparison language |
 
 ### Migration Documentation
 
@@ -125,7 +125,7 @@ This checklist documents all documentation files updated during the Python CLI d
 | ---------------------------- | ----------------------------------------------------------------------------- | ------------ | ----------------------------------------------------------------- |
 | README.md Quick Start        | `dr init`, `dr add motivation goal`, `dr add business service`, `dr validate` | ✅ Pass      | Fixed element ID format to use `{layer}-{type}-{name}` convention |
 | README.md Getting Started    | `dr init`, `dr add motivation goal`, `dr validate`                            | ✅ Pass      | None                                                              |
-| cli-bun/README.md            | Various commands                                                              | ✅ Pass      | None                                                              |
+| cli/README.md                | Various commands                                                              | ✅ Pass      | None                                                              |
 | migration-from-python-cli.md | Command mapping examples                                                      | ✅ Pass      | None                                                              |
 | ci-cd-integration.md         | CI/CD workflow examples                                                       | ⚠️ Syntax OK | Not tested in actual CI/CD environment                            |
 
@@ -207,7 +207,7 @@ These Python references remain in the codebase and are acceptable:
 
 - [x] 14.3 Test all code examples
   - [x] Extracted examples from README.md
-  - [x] Extracted examples from cli-bun/README.md
+  - [x] Extracted examples from cli/README.md
   - [x] Extracted examples from spec examples
   - [x] Tested with Bun CLI
   - [x] Fixed incorrect examples (element ID format)

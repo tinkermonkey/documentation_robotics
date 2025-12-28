@@ -5,7 +5,7 @@ A comprehensive toolkit for managing federated data models for modeling large so
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
 [![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](spec/)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](cli-bun/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 ## Overview
@@ -60,7 +60,7 @@ See [UX Layer Specification](spec/layers/09-ux-layer.md) for complete architectu
 - 🔄 **Path Tracing** - Find and visualize paths between any two elements across layers
 - 🚀 **CI/CD Ready** - Strict mode for treating warnings as errors in automated pipelines
 
-See [Link Management Guide](cli-bun/docs/user-guide/link-management.md) for complete documentation.
+See [Link Management Guide](cli/docs/user-guide/link-management.md) for complete documentation.
 
 **Managed Upgrades (CLI v0.1.0)**
 
@@ -75,7 +75,7 @@ See `dr migrate --help` for usage details.
 ## Quick Links
 
 - **[Read the Specification](spec/)** - Complete specification with all 12 layers
-- **[Use the CLI Tool](cli-bun/)** - Install and use the `dr` command
+- **[Use the CLI Tool](cli/)** - Install and use the `dr` command
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Release Process](RELEASE_PROCESS.md)** - How releases work
 - **[Migrating from Python CLI](docs/migration-from-python-cli.md)** - Migration guide for Python CLI users
@@ -108,7 +108,7 @@ The Documentation Robotics specification defines a standards-based approach to m
 
 ### 2. The CLI Tool (`dr`)
 
-**Location:** [`cli-bun/`](cli-bun/)
+**Location:** [`cli/`](cli/)
 **Version:** 0.1.0
 **Status:** Production-ready
 
@@ -163,7 +163,7 @@ dr export archimate --output model.xml
 - Node.js 18 or higher
 - npm (Node package manager)
 
-[→ CLI Documentation](cli-bun/) | [→ CLI User Guide](cli-bun/docs/user-guide/)
+[→ CLI Documentation](cli/) | [→ CLI User Guide](cli/docs/user-guide/)
 
 ### Migrating from Python CLI
 
@@ -204,7 +204,7 @@ documentation_robotics/
 │   ├── test-fixtures/           # Test data for validators
 │   └── reference/               # Reference materials
 │
-├── cli-bun/                     # TYPESCRIPT/BUN CLI IMPLEMENTATION (v0.1.0)
+├── cli/                         # TYPESCRIPT/BUN CLI IMPLEMENTATION (v0.1.0)
 │   ├── src/                     # TypeScript source code
 │   │   ├── commands/            # 23+ command implementations
 │   │   ├── core/                # Domain models
@@ -285,7 +285,7 @@ Want to use this for modeling your project?
 4. **Learn More**
    - Browse [spec/examples/](spec/examples/)
    - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-   - Review [cli-bun/docs/user-guide/](cli-bun/docs/user-guide/) for implementation guides
+   - Review [cli/docs/user-guide/](cli/docs/user-guide/) for implementation guides
 
 Evaluating this approach?
 
@@ -300,7 +300,7 @@ We welcome contributions! See:
 
 - [CONTRIBUTING.md](CONTRIBUTING.md) - General contribution guidelines
 - [spec/CONTRIBUTING.md](spec/CONTRIBUTING.md) - Specification contributions
-- [cli-bun/README.md#development](cli-bun/README.md#development) - CLI development
+- [cli/README.md#development](cli/README.md#development) - CLI development
 
 **Ways to Contribute:**
 

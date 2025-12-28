@@ -1,0 +1,221 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://documentation-robotics.org/schemas/relationship-type.schema.json",
+  "title": "Relationship Type Schema",
+  "description": "JSON Schema for validating relationship type metadata in the relationship catalog",
+  "version": "2.0.0",
+
+  "definitions": {
+    "semantics": {
+      "type": "object",
+      "description": "Semantic properties of the relationship",
+      "properties": {
+        "directionality": {
+          "type": "string",
+          "enum": ["unidirectional", "bidirectional"],
+          "description": "Whether the relationship supports navigation in both directions"
+        },
+        "transitivity": {
+          "type": "boolean",
+          "description": "Whether the relationship is transitive (if A→B and B→C, then A→C)"
+        },
+        "symmetry": {
+          "type": "boolean",
+          "description": "Whether the relationship is symmetric (if A→B then B→A)"
+        }
+      },
+      "required": ["directionality", "transitivity", "symmetry"],
+      "additionalProperties": false
+    },
+
+    "example": {
+      "type": "object",
+      "description": "Example usage of the relationship",
+      "properties": {
+        "source": {
+          "type": "string",
+          "description": "Source element type"
+        },
+        "sourceLayer": {
+          "type": "string",
+          "pattern": "^\\d{2}-.+$",
+          "description": "Source layer (e.g., '02-business')"
+        },
+        "target": {
+          "type": "string",
+          "description": "Target element type"
+        },
+        "targetLayer": {
+          "type": "string",
+          "pattern": "^\\d{2}-.+$",
+          "description": "Target layer (e.g., '01-motivation')"
+        },
+        "value": {
+          "type": "string",
+          "description": "Example value (ID, reference, etc.)"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of the example"
+        }
+      },
+      "required": ["source", "target", "description"],
+      "additionalProperties": false
+    },
+
+    "relationshipType": {
+      "type": "object",
+      "description": "Definition of a single relationship type",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Unique identifier for the relationship (kebab-case)"
+        },
+        "predicate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Forward direction predicate (kebab-case verb phrase)"
+        },
+        "inversePredicate": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9-]*$",
+          "description": "Inverse direction predicate (kebab-case passive phrase)"
+        },
+        "category": {
+          "type": "string",
+          "enum": [
+            "structural",
+            "behavioral",
+            "dependency",
+            "traceability",
+            "governance",
+            "apm",
+            "security",
+            "ux",
+            "data"
+          ],
+          "description": "Relationship category"
+        },
+        "archimateAlignment": {
+          "type": ["string", "null"],
+          "enum": [
+            "Composition",
+            "Aggregation",
+            "Specialization",
+            "Realization",
+            "Assignment",
+            "Triggering",
+            "Flow",
+            "Serving",
+            "Access",
+            "Influence",
+            null
+          ],
+          "description": "Corresponding ArchiMate 3.2 relationship type, if any"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 10,
+          "description": "Clear, concise description of the relationship semantics"
+        },
+        "semantics": {
+          "$ref": "#/definitions/semantics"
+        },
+        "applicableLayers": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^\\d{2}$"
+          },
+          "minItems": 1,
+          "description": "Layer IDs where this relationship can be used (e.g., ['01', '02'])"
+        },
+        "fieldPaths": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "^([a-z][a-zA-Z0-9]*\\.[a-z][a-z0-9-]*|x-[a-z][a-z0-9-]*)$"
+          },
+          "description": "Property paths that encode this relationship (e.g., 'motivation.supports-goals')"
+        },
+        "examples": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/example"
+          },
+          "minItems": 1,
+          "description": "Example usages of this relationship"
+        }
+      },
+      "required": [
+        "id",
+        "predicate",
+        "inversePredicate",
+        "category",
+        "description",
+        "semantics",
+        "applicableLayers",
+        "examples"
+      ],
+      "additionalProperties": false
+    }
+  },
+
+  "type": "object",
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "format": "uri"
+    },
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
+    },
+    "generatedBy": {
+      "type": "string"
+    },
+    "lastUpdated": {
+      "type": "string",
+      "format": "date"
+    },
+    "relationshipTypes": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/relationshipType"
+      },
+      "minItems": 1
+    },
+    "metadata": {
+      "type": "object",
+      "properties": {
+        "totalRelationships": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "categoryCounts": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "archimateAligned": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "documentationRoboticsExtensions": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    }
+  },
+  "required": ["$schema", "title", "description", "version", "relationshipTypes"]
+}

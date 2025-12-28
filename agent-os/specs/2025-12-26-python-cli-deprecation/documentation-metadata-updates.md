@@ -258,7 +258,7 @@ This document tracks updates to project documentation metadata to reflect the Py
 
 #### 12. CLI-Specific Documentation
 
-**File:** `cli-bun/README.md`
+**File:** `cli/README.md`
 **Status:** UPDATED (Phase 3, Task Group 11)
 
 **Changes Applied:**

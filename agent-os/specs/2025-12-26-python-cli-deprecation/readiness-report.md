@@ -323,7 +323,7 @@ The visualization API tests validate that both CLIs serve compatible visualizati
 
 ### Criterion 1: All Compatibility Tests Passing
 
-**Requirement:** All compatibility tests in `cli-bun/tests/compatibility/` must pass.
+**Requirement:** All compatibility tests in `cli/tests/compatibility/` must pass.
 
 **Status:** ✅ **MET** (with context)
 
@@ -865,10 +865,10 @@ The Bun CLI is ready for production use and can safely replace the Python CLI. A
 ### Appendix A: Related Documentation
 
 - [Command Parity Checklist](./command-parity-checklist.md)
-- [Test Execution Guide](../../cli-bun/tests/compatibility/README.md)
+- [Test Execution Guide](../../cli/tests/compatibility/README.md)
 - [API Specification](../../docs/api-spec.yaml)
 - [Visualization API Documentation](../../docs/visualization-api-annotations-chat.md)
-- [Bun CLI README](../../cli-bun/README.md)
+- [Bun CLI README](../../cli/README.md)
 - [CLAUDE.md](../../CLAUDE.md)
 
 ### Appendix B: Test Execution Logs
@@ -912,7 +912,7 @@ Ran 300 tests across 22 files. [715ms]
 
 **Compatibility Tests:**
 
-- `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/`
+- `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/`
   - `commands.test.ts` (100 tests)
   - `validation.test.ts` (40 tests)
   - `export.test.ts` (24 tests)
@@ -926,7 +926,7 @@ Ran 300 tests across 22 files. [715ms]
 
 **Unit Tests:**
 
-- `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/unit/` (22 files, 300 tests)
+- `/Users/austinsand/workspace/documentation_robotics/cli/tests/unit/` (22 files, 300 tests)
 
 ### Appendix D: Compatibility Test Infrastructure
 

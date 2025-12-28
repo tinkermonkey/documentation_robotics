@@ -3,7 +3,7 @@
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
 [![Specification](https://img.shields.io/badge/Specification-v0.6.0-blue)](.)
-[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli-bun/)
+[![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
 **Version:** 0.6.0
@@ -20,7 +20,7 @@ This directory contains the complete Documentation Robotics Specification, a sta
 - **[Cross-Layer Reference Registry](core/06-cross-layer-reference-registry.md)** - Complete link catalog (NEW in v0.2.0)
 - **[Implement a Tool](conformance/conformance-levels.md)** - Conformance requirements
 - **[Browse Examples](examples/)** - Practical patterns
-- **[Use the CLI](../cli-bun/)** - Reference implementation
+- **[Use the CLI](../cli/)** - Reference implementation
 - **[Contribute](CONTRIBUTING.md)** - How to contribute
 - **[Governance](GOVERNANCE.md)** - Change process
 

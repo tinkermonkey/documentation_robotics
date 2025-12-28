@@ -184,7 +184,7 @@ All deprecation communications include:
 
 - Git history (Python CLI code remains in history)
 - `spec/` directory (unchanged)
-- `cli-bun/` directory (sole CLI implementation)
+- `cli/` directory (sole CLI implementation)
 - Migration documentation (for historical reference)
 
 ## Rollback Plan

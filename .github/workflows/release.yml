@@ -4,7 +4,7 @@ on:
   push:
     tags:
       - "v*.*.*"
-      - "cli-bun-v*.*.*"
+      - "cli-v*.*.*"
       - "spec-v*.*.*"
 
 jobs:
@@ -82,9 +82,9 @@ jobs:
           draft: false
           prerelease: false
 
-  release-bun-cli:
-    name: Release Bun CLI
-    if: startsWith(github.ref, 'refs/tags/cli-bun-v')
+  release-cli:
+    name: Release CLI
+    if: startsWith(github.ref, 'refs/tags/cli-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,24 +101,24 @@ jobs:
       - name: Extract version
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/cli-bun-v}
+          VERSION=${GITHUB_REF#refs/tags/cli-v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Releasing Bun CLI v$VERSION"
+          echo "Releasing CLI v$VERSION"
 
       - name: Install dependencies
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm install
 
       - name: Build package
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm run build
 
       - name: Run tests
-        working-directory: ./cli-bun
+        working-directory: ./cli
         run: npm test
 
       - name: Publish to npm
-        working-directory: ./cli-bun
+        working-directory: ./cli
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public
@@ -126,14 +126,14 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: Bun CLI v${{ steps.version.outputs.version }}
+          name: CLI v${{ steps.version.outputs.version }}
           body: |
-            Bun CLI release v${{ steps.version.outputs.version }}
+            CLI release v${{ steps.version.outputs.version }}
 
             Install: `npm install -g @documentation-robotics/cli@${{ steps.version.outputs.version }}`
 
-            See [Bun CLI CHANGELOG](cli-bun/CHANGELOG.md) for details.
+            See [CLI CHANGELOG](cli/CHANGELOG.md) for details.
           files: |
-            cli-bun/dist/*
+            cli/dist/*
           draft: false
           prerelease: false

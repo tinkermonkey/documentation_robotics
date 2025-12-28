@@ -6,7 +6,7 @@
 
 **Components:**
 
-1. **CLI Tool - Bun (`cli-bun/`)** - TypeScript/Bun implementation (v0.1.0, ~8x faster)
+1. **CLI Tool (`cli/`)** - TypeScript/Bun implementation (v0.1.0, ~8x faster)
 2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
 **Current Versions:** Bun CLI v0.1.0, Spec v0.6.0
@@ -21,7 +21,7 @@ documentation_robotics/
 │   ├── schemas/                 # JSON Schema definitions
 │   └── [CHANGELOG, guides, examples, test-fixtures]
 │
-└── cli-bun/                     # TYPESCRIPT/BUN CLI (v0.1.0)
+└── cli/                         # TYPESCRIPT/BUN CLI (v0.1.0)
     ├── src/
     │   ├── cli.ts              # CLI entry point (Commander.js)
     │   ├── commands/           # 23+ command implementations
@@ -45,11 +45,11 @@ documentation_robotics/
 
 ## Quick Reference
 
-### Bun CLI Setup
+### CLI Setup
 
 ```bash
 # Install from source for development
-cd cli-bun
+cd cli
 npm install
 npm run build
 
@@ -86,10 +86,10 @@ Run `pre-commit run --all-files` from the repo root before committing to ensure 
 
 ### 1. Spec vs. CLI Separation
 
-- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli-bun/package.json`)
+- **Two separate version numbers**: Spec (`spec/VERSION`) and CLI (`cli/package.json`)
 - **Schema synchronization**: Schema changes require updating BOTH:
   - `spec/schemas/{layer}.schema.json`
-  - `cli-bun/src/schemas/bundled/{layer}.schema.json`
+  - `cli/src/schemas/bundled/{layer}.schema.json`
 - **Layer spec changes**: Must update both `spec/layers/{layer}.md` AND corresponding CLI validators/code
 
 ### 2. When to Ask First
@@ -110,7 +110,7 @@ Run `pre-commit run --all-files` from the repo root before committing to ensure 
 - CLI version can be ahead of spec version
 - CLI must remain compatible with current spec version
 - Breaking spec changes require spec version bump
-- Check `spec/CHANGELOG.md` and `cli-bun/CHANGELOG.md` for version history
+- Check `spec/CHANGELOG.md` and `cli/CHANGELOG.md` for version history
 
 ### 4. Element Naming Convention
 
@@ -216,7 +216,7 @@ Federated architecture model spanning 12 interconnected layers:
 1. **ASK FIRST** - Layer changes affect spec
 2. Update `spec/layers/{layer}.md`
 3. Update `spec/schemas/{layer}.schema.json`
-4. Copy schema to `cli-bun/src/schemas/bundled/`
+4. Copy schema to `cli/src/schemas/bundled/`
 5. Update validators if needed
 6. Add export support if applicable
 7. Update tests
@@ -336,6 +336,6 @@ dr <command> --help          # Show command-specific help
 
 - Main README: `/README.md`
 - Specification: `/spec/` (especially `spec/layers/` and `spec/CHANGELOG.md`)
-- CLI README: `/cli-bun/README.md`
-- CLI design docs: `/cli-bun/docs/`
+- CLI README: `/cli/README.md`
+- CLI design docs: `/cli/docs/`
 - Release command: `/dr-release-prep` for version management

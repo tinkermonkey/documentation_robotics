@@ -12,7 +12,7 @@ Task Group 6 has made substantial progress in establishing model file structure 
 
 ### 1. Comprehensive Test Suite Created ✓
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts`
 
 **Coverage:**
 
@@ -38,7 +38,7 @@ Task Group 6 has made substantial progress in establishing model file structure 
 
 ### 2. Command Adapter Layer Implemented ✓
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/command-adapters.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/command-adapters.ts`
 
 **Functions:**
 
@@ -64,7 +64,7 @@ initCommand('bun', 'TestModel') => ['init', '--name', 'TestModel']
 
 ### 3. Semantic Comparison Infrastructure ✓
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts`
 
 **Features:**
 
@@ -77,7 +77,7 @@ initCommand('bun', 'TestModel') => ['init', '--name', 'TestModel']
 
 ### 4. Diagnostic Tools Created ✓
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files-diagnostic.test.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files-diagnostic.test.ts`
 
 **Purpose:**
 
@@ -217,9 +217,9 @@ await harness.runBun(initCommand("bun", name), bunDir);
 
 ## Files Created
 
-1. `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts` - Main test suite (1043 lines, 28 tests)
-2. `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/command-adapters.ts` - Command adaptation layer (260 lines)
-3. `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files-diagnostic.test.ts` - Diagnostic tools (130 lines)
+1. `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts` - Main test suite (1043 lines, 28 tests)
+2. `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/command-adapters.ts` - Command adaptation layer (260 lines)
+3. `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files-diagnostic.test.ts` - Diagnostic tools (130 lines)
 4. `/Users/austinsand/workspace/documentation_robotics/agent-os/specs/2025-12-26-python-cli-deprecation/model-file-compatibility-report.md` - Compatibility report
 
 ## Recommendations

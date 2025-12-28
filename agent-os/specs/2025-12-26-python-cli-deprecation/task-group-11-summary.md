@@ -10,7 +10,7 @@ Updated all CLI-specific documentation to position the Bun CLI as the sole, prod
 
 ### 11.1 Update Bun CLI README ✅
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/README.md`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/README.md`
 
 **Changes Made:**
 
@@ -27,11 +27,11 @@ Updated all CLI-specific documentation to position the Bun CLI as the sole, prod
 
 ### 11.2 Update CLI Development Documentation ✅
 
-**Status:** No CLI-specific development docs exist in `cli-bun/docs/`
+**Status:** No CLI-specific development docs exist in `cli/docs/`
 
 **Verification:**
 
-- Searched for `cli-bun/docs/` directory - does not exist
+- Searched for `cli/docs/` directory - does not exist
 - Only `node_modules/bun-types/docs` exists (external dependency)
 - No action required for this subtask
 
@@ -158,7 +158,7 @@ The Python CLI has been deprecated as of version 0.8.0. If you're currently usin
   - Clear deprecation timeline
 
 - ✅ **CLI development docs updated**
-  - No development docs exist in `cli-bun/docs/` - verified
+  - No development docs exist in `cli/docs/` - verified
 
 ## Files Created
 
@@ -166,7 +166,7 @@ The Python CLI has been deprecated as of version 0.8.0. If you're currently usin
 
 ## Files Updated
 
-1. `/Users/austinsand/workspace/documentation_robotics/cli-bun/README.md`
+1. `/Users/austinsand/workspace/documentation_robotics/cli/README.md`
 2. `/Users/austinsand/workspace/documentation_robotics/README.md`
 3. `/Users/austinsand/workspace/documentation_robotics/agent-os/specs/2025-12-26-python-cli-deprecation/tasks.md`
 
@@ -209,7 +209,7 @@ Following tasks remain in the Python CLI deprecation specification:
 
 ## Notes
 
-- No CLI-specific development documentation existed in `cli-bun/docs/`, so Task 11.2 required no action
+- No CLI-specific development documentation existed in `cli/docs/`, so Task 11.2 required no action
 - Migration guide is comprehensive and ready for immediate use
 - All documentation changes maintain consistent tone and messaging
 - Deprecation timeline is realistic (1 month) given alpha project status

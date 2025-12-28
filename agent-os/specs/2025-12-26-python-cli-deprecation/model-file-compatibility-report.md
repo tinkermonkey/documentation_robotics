@@ -231,12 +231,12 @@ All test failures stem from the command interface difference, specifically the `
 1. **Implement Command Adapters**: Create abstraction layer for CLI-specific syntax
    - Priority: HIGH
    - Effort: 2-4 hours
-   - Files: `cli-bun/tests/compatibility/command-adapters.ts`
+   - Files: `cli/tests/compatibility/command-adapters.ts`
 
 2. **Update Test Suite**: Modify tests to use command adapters
    - Priority: HIGH
    - Effort: 2-3 hours
-   - Files: `cli-bun/tests/compatibility/model-files.test.ts`
+   - Files: `cli/tests/compatibility/model-files.test.ts`
 
 3. **Execute Full Test Suite**: Run all 28 compatibility tests
    - Priority: HIGH

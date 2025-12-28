@@ -16,8 +16,8 @@ The goal is to validate feature parity, create migration tooling, and safely rem
 
 ### First Round Questions
 
-**Q1:** I assume the feature parity validation should include automated comparison testing that runs the same commands in both CLIs and compares outputs byte-for-byte or semantically. Is that correct, or should we rely on the existing compatibility test suite in `cli-bun/tests/compatibility/`?
-**Answer:** Build on top of the existing compatibility test suite in `cli-bun/tests/compatibility/` and build it out to be reliable.
+**Q1:** I assume the feature parity validation should include automated comparison testing that runs the same commands in both CLIs and compares outputs byte-for-byte or semantically. Is that correct, or should we rely on the existing compatibility test suite in `cli/tests/compatibility/`?
+**Answer:** Build on top of the existing compatibility test suite in `cli/tests/compatibility/` and build it out to be reliable.
 
 **Q2:** For the migration tooling, I'm thinking we should create a script that detects if users have the Python CLI installed (via `pip list`), warns them about deprecation, and provides automated installation of the Bun CLI. Should we also create a helper command like `dr migrate-from-python` that runs as part of the Bun CLI, or keep it as a standalone migration script?
 **Answer:** No migration tooling necessary since both the Bun and Python CLI work on the same set of files and will be installed independently through their respective package management systems.
@@ -34,8 +34,8 @@ The goal is to validate feature parity, create migration tooling, and safely rem
 **Q6:** For documentation updates, I'm thinking we should archive Python-specific docs in a `legacy/` folder rather than delete them entirely, in case users need reference for older installations. Should we keep one "legacy Python CLI" page with basic info and migration link, or completely remove Python references?
 **Answer:** Completely remove the Python references. The git history can serve as a record where needed.
 
-**Q7:** I assume the "safe removal" from the codebase means deleting the `cli/` directory and all Python-related CI/CD workflows (pytest jobs, Python test actions), but keeping the specification (`spec/`) and Bun CLI (`cli-bun/`) intact. Should we also remove Python-related GitHub issue templates and documentation?
-**Answer:** "Safe removal" means deleting the `cli/` directory and Python-related CI/CD workflows (pytest jobs, Python test actions), while keeping `spec/` and `cli-bun/` intact, and removing the Python-related GitHub issue templates from the documentation and code.
+**Q7:** I assume the "safe removal" from the codebase means deleting the `cli/` directory and all Python-related CI/CD workflows (pytest jobs, Python test actions), but keeping the specification (`spec/`) and Bun CLI (`cli/`) intact. Should we also remove Python-related GitHub issue templates and documentation?
+**Answer:** "Safe removal" means deleting the `cli/` directory and Python-related CI/CD workflows (pytest jobs, Python test actions), while keeping `spec/` and `cli/` intact, and removing the Python-related GitHub issue templates from the documentation and code.
 
 **Q8:** What should we explicitly NOT include in this phase? For example, should we exclude building an automated code migration tool for users who have custom scripts importing the Python CLI as a library, or creating a Python wrapper that delegates to the Bun CLI via subprocess?
 **Answer:** Do not include any migration tooling or backwards compatibility functionalities. The Bun CLI is the only CLI that is supported now and all efforts should go into making it reliable for the mission of the software. No effort should be put into backwards compatibility.
@@ -67,7 +67,7 @@ The goal is to validate feature parity, create migration tooling, and safely rem
 
 **Similar Features Identified:**
 
-- Existing compatibility test suite: `cli-bun/tests/compatibility/` - This should be enhanced and made more reliable
+- Existing compatibility test suite: `cli/tests/compatibility/` - This should be enhanced and made more reliable
 - Visualization API specifications: `docs/api-spec.yaml` and `docs/visualization-api-annotations-chat.md` - These define the compatibility requirements for the visualization server
 - Python CLI commands: `cli/src/documentation_robotics/commands/` - All commands should be replicated in Bun CLI
 - Python CLI validators: `cli/src/documentation_robotics/validators/` - Validation behavior should match in Bun CLI
@@ -98,7 +98,7 @@ No visual assets provided.
 
 **Phase 1: Feature Parity Validation**
 
-- Enhance existing compatibility test suite in `cli-bun/tests/compatibility/`
+- Enhance existing compatibility test suite in `cli/tests/compatibility/`
 - Create checklist of all commands that must produce identical model file edits
 - Validate model file structure compatibility between Python and Bun CLIs
 - Validate visualization server compatibility per `docs/api-spec.yaml` and `docs/visualization-api-annotations-chat.md`
@@ -130,12 +130,12 @@ No visual assets provided.
 - Remove Python-related CI/CD workflows (pytest jobs, Python test actions)
 - Remove Python-related GitHub issue templates
 - Remove Python-related PR templates
-- Keep `spec/` and `cli-bun/` directories intact
+- Keep `spec/` and `cli/` directories intact
 - Verify no broken links or references remain in documentation
 
 ### Reusability Opportunities
 
-- Existing compatibility test infrastructure in `cli-bun/tests/compatibility/` can be extended
+- Existing compatibility test infrastructure in `cli/tests/compatibility/` can be extended
 - Visualization API specifications already document compatibility requirements
 - Existing documentation structure can be reused, just updating CLI references from Python to Bun
 

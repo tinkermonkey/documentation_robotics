@@ -231,7 +231,7 @@ Please ensure Documentation Robotics is installed:
 npm install -g @documentation-robotics/cli
 
 Or from source:
-cd cli-bun && npm install && npm run build && npm install -g .
+cd cli && npm install && npm run build && npm install -g .
 ```
 
 ## Important Notes

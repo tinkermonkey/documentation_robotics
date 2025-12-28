@@ -55,7 +55,7 @@ This directory contains verification artifacts for **Task Group 6: Model File St
 
 ### Test Infrastructure (3 files, 1,433 lines)
 
-Located in `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/`:
+Located in `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/`:
 
 1. **model-files.test.ts**
    - 1,043 lines
@@ -146,7 +146,7 @@ source ../.venv/bin/activate
 pip install -e .
 
 # Ensure Bun CLI is built
-cd /Users/austinsand/workspace/documentation_robotics/cli-bun
+cd /Users/austinsand/workspace/documentation_robotics/cli
 npm install
 npm run build
 ```
@@ -154,7 +154,7 @@ npm run build
 ### Running Tests (After Adapter Integration)
 
 ```bash
-cd /Users/austinsand/workspace/documentation_robotics/cli-bun
+cd /Users/austinsand/workspace/documentation_robotics/cli
 
 # Set Python CLI path
 export DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr
@@ -180,7 +180,7 @@ bun test tests/compatibility/model-files-diagnostic.test.ts
 
 ### 1. Integrate Command Adapters
 
-Edit `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts`:
+Edit `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts`:
 
 ```typescript
 // Add import at top of file

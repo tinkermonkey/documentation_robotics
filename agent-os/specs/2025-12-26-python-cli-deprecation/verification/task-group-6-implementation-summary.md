@@ -13,7 +13,7 @@ Task Group 6 focused on validating that Python and Bun CLIs produce identical mo
 
 ### 1. Comprehensive Test Suite ✅
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts`
 
 **Statistics:**
 
@@ -46,7 +46,7 @@ Task Group 6 focused on validating that Python and Bun CLIs produce identical mo
 
 ### 2. Command Adapter Layer ✅
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/command-adapters.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/command-adapters.ts`
 
 **Statistics:**
 
@@ -89,7 +89,7 @@ const bunArgs = initCommand("bun", "TestModel");
 
 ### 3. Diagnostic Tools ✅
 
-**File:** `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files-diagnostic.test.ts`
+**File:** `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files-diagnostic.test.ts`
 
 **Statistics:**
 
@@ -282,7 +282,7 @@ await harness.runBun(
 
 ```bash
 # Run tests
-cd /Users/austinsand/workspace/documentation_robotics/cli-bun
+cd /Users/austinsand/workspace/documentation_robotics/cli
 DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr \
   bun test tests/compatibility/model-files.test.ts
 
@@ -312,19 +312,19 @@ DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr \
 ### Test Infrastructure (3 files, 1,433 total lines)
 
 1. **model-files.test.ts** - Main test suite
-   - Path: `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files.test.ts`
+   - Path: `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files.test.ts`
    - Lines: 1,043
    - Tests: 28
    - Status: ✅ Complete, needs adapter integration
 
 2. **command-adapters.ts** - Command adaptation layer
-   - Path: `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/command-adapters.ts`
+   - Path: `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/command-adapters.ts`
    - Lines: 260
    - Functions: 14
    - Status: ✅ Complete and ready to use
 
 3. **model-files-diagnostic.test.ts** - Diagnostic tools
-   - Path: `/Users/austinsand/workspace/documentation_robotics/cli-bun/tests/compatibility/model-files-diagnostic.test.ts`
+   - Path: `/Users/austinsand/workspace/documentation_robotics/cli/tests/compatibility/model-files-diagnostic.test.ts`
    - Lines: 130
    - Tests: 2
    - Status: ✅ Complete

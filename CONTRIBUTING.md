@@ -43,8 +43,8 @@ For specification contributions (new layers, entities, changes):
 
 For CLI improvements (features, bug fixes):
 
-- See [cli-bun/README.md#development](cli-bun/README.md#development)
-- Run tests: `cd cli-bun && npm run test`
+- See [cli/README.md#development](cli/README.md#development)
+- Run tests: `cd cli && npm run test`
 - Use "CLI" issue templates
 
 ## Quick Start
@@ -64,7 +64,7 @@ pip install pre-commit
 pre-commit install
 
 # For CLI development
-cd cli-bun
+cd cli
 npm install
 npm run build
 cd ..
@@ -96,7 +96,7 @@ git commit -m "your message"
 pre-commit run --all-files
 
 # For CLI changes, also run tests
-cd cli-bun
+cd cli
 npm run test
 ```
 
@@ -133,13 +133,13 @@ git commit -m "spec: add new entity to motivation layer"
 
 ```bash
 # 1. Make changes
-vim cli-bun/src/commands/new-command.ts
+vim cli/src/commands/new-command.ts
 
 # 2. Add tests
-vim cli-bun/tests/unit/new-command.test.ts
+vim cli/tests/unit/new-command.test.ts
 
 # 3. Run tests
-cd cli-bun
+cd cli
 npm run test
 npm run format
 
@@ -154,7 +154,7 @@ For building and packaging the CLI:
 
 ```bash
 # Build package
-cd cli-bun
+cd cli
 npm run build
 
 # Test locally
@@ -165,7 +165,7 @@ dr --help
 For development builds:
 
 ```bash
-cd cli-bun
+cd cli
 npm install
 npm run build
 npm link
@@ -212,7 +212,7 @@ Pre-commit hooks enforce these automatically.
 ### CLI
 
 ```bash
-cd cli-bun
+cd cli
 
 # Run all tests
 npm run test

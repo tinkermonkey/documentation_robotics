@@ -1,0 +1,1328 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://example.com/schemas/04-application-layer.schema.json",
+  "title": "Application Layer Layer Schema",
+  "description": "Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.",
+  "layerMetadata": {
+    "layerId": "04-application-layer",
+    "layerName": "Application Layer",
+    "intraLayerRelationshipSupport": true,
+    "crossLayerRelationshipSupport": true,
+    "relationshipCatalogVersion": "2.1.0"
+  },
+  "intraLayerRelationships": {
+    "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
+    "allowed": [
+      {
+        "relationshipTypeId": "composition",
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
+        "examples": [
+          {
+            "source": "BusinessCollaboration",
+            "target": "BusinessRole",
+            "description": "Business collaboration composes business roles that participate in it"
+          },
+          {
+            "source": "TestCoverageModel",
+            "target": "TestCoverageTarget",
+            "description": "Coverage model composes targets defining what needs testing",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "OutcomeCategory",
+            "description": "Coverage target composes expected outcome categories",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "aggregation",
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Goal",
+            "description": "High-level goal aggregates sub-goals",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "InputPartitionSelection",
+            "target": "PartitionValue",
+            "description": "Partition selection aggregates multiple partition values to cover",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "ContextVariation",
+            "description": "Requirement aggregates selected contexts for testing",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "specialization",
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
+        "examples": [
+          {
+            "source": "PremiumAccount",
+            "target": "Account",
+            "description": "Premium account specializes the general account concept"
+          },
+          {
+            "source": "Schema",
+            "target": "Schema",
+            "description": "API schema specializes another via allOf/oneOf/anyOf composition",
+            "layer": "06-api"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "realization",
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
+        "examples": [
+          {
+            "source": "Goal",
+            "target": "Value",
+            "description": "Goal realizes value for stakeholders",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Outcome",
+            "target": "Goal",
+            "description": "Outcome realizes achievement of goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "ApplicationService",
+            "target": "BusinessService",
+            "description": "Application service realizes business service capability"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "assignment",
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
+        "examples": [
+          {
+            "source": "BusinessActor",
+            "target": "BusinessRole",
+            "description": "Business actor assigned to business role"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "association",
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
+        "examples": [
+          {
+            "source": "Stakeholder",
+            "target": "Driver",
+            "description": "Stakeholder has concern represented by driver",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Stakeholder",
+            "target": "Goal",
+            "description": "Stakeholder has interest in goal",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Requirement",
+            "target": "Constraint",
+            "description": "Requirement is limited by constraint",
+            "layer": "01-motivation"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "influence",
+        "sourceTypes": ["Assessment", "Driver"],
+        "targetTypes": ["Assessment", "Goal"],
+        "examples": [
+          {
+            "source": "Driver",
+            "target": "Assessment",
+            "description": "Driver creates need for assessment",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Driver",
+            "target": "Goal",
+            "description": "Driver motivates goal definition",
+            "layer": "01-motivation"
+          },
+          {
+            "source": "Assessment",
+            "target": "Goal",
+            "description": "Assessment informs goal setting",
+            "layer": "01-motivation"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "triggering",
+        "sourceTypes": ["BusinessEvent", "CoverageGap", "PartitionDependency"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "PartitionValue"],
+        "examples": [
+          {
+            "source": "BusinessEvent",
+            "target": "BusinessProcess",
+            "description": "Business event triggers business process execution"
+          },
+          {
+            "source": "PartitionDependency",
+            "target": "PartitionValue",
+            "description": "Dependency condition triggers inclusion/exclusion of partition values",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageGap",
+            "target": "CoverageRequirement",
+            "description": "Identified gap triggers need for additional coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "flow",
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessProcess",
+            "description": "One business process flows to the next in sequence"
+          },
+          {
+            "source": "TestCoverageTarget",
+            "target": "CoverageRequirement",
+            "description": "Target flows to requirements that specify its coverage",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCaseSketch",
+            "description": "Requirement flows to sketches that implement it",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "serving",
+        "sourceTypes": ["BusinessService", "ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["BusinessActor", "TestCoverageTarget"],
+        "examples": [
+          {
+            "source": "BusinessService",
+            "target": "BusinessActor",
+            "description": "Business service serves business actor"
+          },
+          {
+            "source": "InputSpacePartition",
+            "target": "TestCoverageTarget",
+            "description": "Partition serves target by defining testable input space",
+            "layer": "12-testing"
+          },
+          {
+            "source": "ContextVariation",
+            "target": "TestCoverageTarget",
+            "description": "Context serves target by defining execution environments",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "access",
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
+        "examples": [
+          {
+            "source": "BusinessProcess",
+            "target": "BusinessObject",
+            "description": "Business process accesses business object data"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "InputSelection",
+            "description": "Test sketch accesses input selections for test execution",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "InputPartitionSelection",
+            "description": "Requirement accesses partition selections for coverage",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "uses",
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
+        "examples": [
+          {
+            "source": "ApplicationComponent",
+            "target": "TechnologyService",
+            "description": "Application component uses technology service"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "reference",
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
+        "examples": [
+          {
+            "source": "DataObject",
+            "target": "Schema",
+            "description": "Data object references JSON schema"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "CoverageRequirement",
+            "description": "Test case sketch references coverage requirement it satisfies",
+            "layer": "12-testing"
+          },
+          {
+            "source": "CoverageRequirement",
+            "target": "TestCoverageTarget",
+            "description": "Coverage requirement references target it covers",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "depends-on",
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "DataObject",
+            "description": "Application service depends on data object"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "ContextVariation",
+            "description": "Test sketch depends on context for execution environment",
+            "layer": "12-testing"
+          },
+          {
+            "source": "TestCaseSketch",
+            "target": "OutcomeCategory",
+            "description": "Test sketch depends on expected outcome category",
+            "layer": "12-testing"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "supports-goals",
+        "sourceTypes": ["BusinessService", "Operation"],
+        "targetTypes": ["Goal"],
+        "examples": [
+          {
+            "source": "BusinessService",
+            "sourceLayer": "02-business",
+            "target": "Goal",
+            "targetLayer": "01-motivation",
+            "value": "goal-revenue-growth",
+            "description": "Payment service supports revenue growth goal"
+          },
+          {
+            "source": "Operation",
+            "sourceLayer": "06-api",
+            "target": "Goal",
+            "targetLayer": "01-motivation",
+            "value": "goal-customer-satisfaction",
+            "description": "GET /products operation supports customer satisfaction goal"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "fulfills-requirements",
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
+        "examples": [
+          {
+            "source": "ApplicationService",
+            "target": "Requirement",
+            "description": "OAuth service fulfills authentication requirement"
+          },
+          {
+            "source": "Operation",
+            "sourceLayer": "06-api",
+            "target": "Requirement",
+            "targetLayer": "01-motivation",
+            "value": "req-product-creation-capability",
+            "description": "POST /products operation fulfills product creation requirement"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "governed-by-principles",
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Principle",
+            "description": "REST API governed by RESTful design principles"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "constrainedby",
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "Constraint",
+            "description": "API operation constrained by rate limit"
+          }
+        ]
+      },
+      {
+        "relationshipTypeId": "traces",
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["DistributedTrace"],
+        "examples": [
+          {
+            "source": "APIOperation",
+            "target": "DistributedTrace",
+            "description": "API operation participates in distributed trace"
+          }
+        ]
+      }
+    ]
+  },
+  "crossLayerRelationships": {
+    "$comment": "Relationships to/from entities in other layers",
+    "outgoing": [
+      {
+        "id": "apm-sla-target-availability",
+        "predicate": "sla-target-availability",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": ["SlaTargetAvailability"],
+        "sourceTypes": ["ApplicationService"],
+        "fieldPath": "apm.sla-target-availability",
+        "cardinality": "single",
+        "format": "percentage",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"99.95%\", \"99.99%\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "container-platform",
+            "elementName": "container-platform",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.95%",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-availability",
+            "value": "99.99%",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-sla-target-latency",
+        "predicate": "sla-target-latency",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": ["SlaTargetLatency"],
+        "sourceTypes": ["ApplicationService"],
+        "fieldPath": "apm.sla-target-latency",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "string (e.g., \"200ms\", \"500ms\", optional)",
+        "examples": [
+          {
+            "elementType": "TechnologyService",
+            "elementId": "database-service",
+            "elementName": "database-service",
+            "fieldPath": "apm.sla-target-latency",
+            "value": "10ms",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "apm-traced",
+        "predicate": "traced",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "11-apm",
+        "targetTypes": ["Traced"],
+        "sourceTypes": ["ApplicationService", "Data Properties"],
+        "fieldPath": "apm.traced",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to Traced in target layer",
+        "examples": [
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "apm.traced",
+            "value": "true",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "business-apm-business-metrics",
+        "predicate": "business-metrics",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "02-business",
+        "targetTypes": ["BusinessMetric"],
+        "sourceTypes": ["ApplicationService"],
+        "fieldPath": "apm.business-metrics",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "comma-separated business metric IDs this service tracks",
+        "examples": [
+          {
+            "elementType": "BusinessProcess",
+            "elementId": "order-process",
+            "elementName": "Order Fulfillment Process",
+            "fieldPath": "apm.business-metrics",
+            "value": "metric-order-fulfillment-time,metric-order-success-rate",
+            "layer": "02-business"
+          }
+        ]
+      },
+      {
+        "id": "data-retention",
+        "predicate": "retention",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "07-data-model",
+        "targetTypes": ["Retention"],
+        "sourceTypes": ["Data Properties", "DataObject"],
+        "fieldPath": "data.retention",
+        "cardinality": "single",
+        "format": "duration",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to Retention in target layer",
+        "examples": [
+          {
+            "elementType": "DataObject",
+            "elementId": "product-data",
+            "elementName": "product-data",
+            "fieldPath": "data.retention",
+            "value": "7years",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-delivers-value",
+        "predicate": "delivers-value",
+        "inversePredicate": "delivered-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["DeliversValue"],
+        "sourceTypes": ["ApplicationService"],
+        "fieldPath": "motivation.delivers-value",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "medium",
+        "required": false,
+        "description": "BusinessService delivers Value",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.delivers-value",
+            "value": "value-customer-convenience,value-operational-efficiency",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.delivers-value",
+            "value": "value-customer-convenience",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-fulfills-requirements",
+        "predicate": "fulfills-requirements",
+        "inversePredicate": "fulfilled-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["FulfillsRequirement"],
+        "sourceTypes": ["ApplicationFunction"],
+        "fieldPath": "motivation.fulfills-requirements",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "comma-separated Requirement IDs this function fulfills",
+        "examples": [
+          {
+            "elementType": "Node",
+            "elementId": "k8s-cluster",
+            "elementName": "k8s-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-horizontal-scaling,req-99-95-availability",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Node",
+            "elementId": "postgres-cluster",
+            "elementName": "postgres-cluster",
+            "fieldPath": "motivation.fulfills-requirements",
+            "value": "req-acid-compliance,req-replication",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "motivation-governed-by-principles",
+        "predicate": "governed-by-principles",
+        "inversePredicate": "governs",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["ApplicationFunction", "ApplicationService"],
+        "fieldPath": "motivation.governed-by-principles",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService governed by Principles",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-customer-first,principle-automation",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.governed-by-principles",
+            "value": "principle-api-first,principle-cloud-native",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "motivation-supports-goals",
+        "predicate": "supports-goals",
+        "inversePredicate": "supported-by",
+        "targetLayer": "01-motivation",
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["ApplicationService"],
+        "fieldPath": "motivation.supports-goals",
+        "cardinality": "array",
+        "format": "reference",
+        "strength": "high",
+        "required": false,
+        "description": "BusinessService supports Goals",
+        "examples": [
+          {
+            "elementType": "BusinessService",
+            "elementId": "order-service",
+            "elementName": "Order Processing Service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-customer-satisfaction,goal-revenue-growth",
+            "layer": "02-business"
+          },
+          {
+            "elementType": "ApplicationService",
+            "elementId": "product-service",
+            "elementName": "product-service",
+            "fieldPath": "motivation.supports-goals",
+            "value": "goal-product-catalog-accuracy,goal-customer-satisfaction",
+            "layer": "04-application"
+          }
+        ]
+      },
+      {
+        "id": "security-classification",
+        "predicate": "classification",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
+        "fieldPath": "security.classification",
+        "cardinality": "single",
+        "format": "string",
+        "strength": "low",
+        "required": false,
+        "description": "Links to Classification in target layer",
+        "examples": [
+          {
+            "elementType": "Artifact",
+            "elementId": "product-db",
+            "elementName": "product-db",
+            "fieldPath": "security.classification",
+            "value": "internal",
+            "layer": "05-technology"
+          },
+          {
+            "elementType": "Artifact",
+            "elementId": "customer-db",
+            "elementName": "customer-db",
+            "fieldPath": "security.classification",
+            "value": "restricted",
+            "layer": "05-technology"
+          }
+        ]
+      },
+      {
+        "id": "security-data-pii",
+        "predicate": "pii",
+        "inversePredicate": "referenced-by",
+        "targetLayer": "03-security",
+        "targetTypes": ["Pii"],
+        "sourceTypes": ["Data Properties", "DataObject"],
+        "fieldPath": "data.pii",
+        "cardinality": "single",
+        "format": "boolean",
+        "strength": "medium",
+        "required": false,
+        "description": "Links to Pii in target layer",
+        "examples": [
+          {
+            "elementType": "DataObject",
+            "elementId": "product-data",
+            "elementName": "product-data",
+            "fieldPath": "data.pii",
+            "value": "false",
+            "layer": "04-application"
+          }
+        ]
+      }
+    ],
+    "incoming": [
+      {
+        "id": "archimate-application-master-data-source",
+        "predicate": "referenced-by",
+        "inversePredicate": "master-data-source",
+        "sourceLayer": "02-business",
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["MasterDataSource"],
+        "fieldPath": "application.master-data-source",
+        "cardinality": "single",
+        "description": "Inverse of: BusinessObject master data source from DataObject"
+      },
+      {
+        "id": "archimate-application-process-steps",
+        "predicate": "referenced-by",
+        "inversePredicate": "process-steps",
+        "sourceLayer": "02-business",
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["ProcessStep"],
+        "fieldPath": "application.process-steps",
+        "cardinality": "array",
+        "description": "Inverse of: which specific ApplicationProcess steps realize this business process"
+      },
+      {
+        "id": "archimate-application-realized-by-process",
+        "predicate": "referenced-by",
+        "inversePredicate": "realized-by-process",
+        "sourceLayer": "02-business",
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["RealizedByProces"],
+        "fieldPath": "application.realized-by-process",
+        "cardinality": "single",
+        "description": "Inverse of: ApplicationService - **BusinessProcess** automated by ApplicationProcess"
+      },
+      {
+        "id": "archimate-application-represented-by-dataobject",
+        "predicate": "referenced-by",
+        "inversePredicate": "represented-by-dataobject",
+        "sourceLayer": "02-business",
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["RepresentedByDataobject"],
+        "fieldPath": "application.represented-by-dataobject",
+        "cardinality": "single",
+        "description": "Inverse of: BusinessObject represented in DataObject"
+      },
+      {
+        "id": "archimate-ref",
+        "predicate": "referenced-by",
+        "inversePredicate": "archimate-ref",
+        "sourceLayer": "06-api",
+        "sourceTypes": ["OpenAPIDocument", "Operation", "SecurityScheme"],
+        "targetTypes": ["Element"],
+        "fieldPath": "x-archimate-ref",
+        "cardinality": "single",
+        "description": "Inverse of: string (Element.id reference to ApplicationService)"
+      },
+      {
+        "id": "archimate-ref",
+        "predicate": "referenced-by",
+        "inversePredicate": "archimate-ref",
+        "sourceLayer": "07-data-model",
+        "sourceTypes": ["JSONSchema", "x-security Extension"],
+        "targetTypes": ["Element"],
+        "fieldPath": "x-archimate-ref",
+        "cardinality": "single",
+        "description": "Inverse of: string (Element.id reference to ApplicationService)"
+      }
+    ]
+  },
+  "type": "object",
+  "properties": {
+    "application-components": {
+      "type": "array",
+      "description": "Collection of ApplicationComponent entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationComponent"
+      }
+    },
+    "application-collaborations": {
+      "type": "array",
+      "description": "Collection of ApplicationCollaboration entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationCollaboration"
+      }
+    },
+    "application-interfaces": {
+      "type": "array",
+      "description": "Collection of ApplicationInterface entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationInterface"
+      }
+    },
+    "application-functions": {
+      "type": "array",
+      "description": "Collection of ApplicationFunction entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationFunction"
+      }
+    },
+    "application-interactions": {
+      "type": "array",
+      "description": "Collection of ApplicationInteraction entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationInteraction"
+      }
+    },
+    "application-processes": {
+      "type": "array",
+      "description": "Collection of ApplicationProcess entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationProcess"
+      }
+    },
+    "application-events": {
+      "type": "array",
+      "description": "Collection of ApplicationEvent entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationEvent"
+      }
+    },
+    "application-services": {
+      "type": "array",
+      "description": "Collection of ApplicationService entities",
+      "items": {
+        "$ref": "#/definitions/ApplicationService"
+      }
+    },
+    "data-objects": {
+      "type": "array",
+      "description": "Collection of DataObject entities",
+      "items": {
+        "$ref": "#/definitions/DataObject"
+      }
+    }
+  },
+  "definitions": {
+    "ComponentType": {
+      "type": "string",
+      "enum": ["frontend", "backend", "mobile", "desktop", "service"]
+    },
+    "InterfaceProtocol": {
+      "type": "string",
+      "enum": ["REST", "GraphQL", "SOAP", "gRPC", "WebSocket", "Message Queue"]
+    },
+    "InteractionPattern": {
+      "type": "string",
+      "enum": ["request-response", "publish-subscribe", "async-messaging", "streaming"]
+    },
+    "ApplicationEventType": {
+      "type": "string",
+      "enum": ["domain-event", "integration-event", "system-event", "audit-event"]
+    },
+    "ServiceType": {
+      "type": "string",
+      "enum": ["synchronous", "asynchronous", "batch", "streaming"]
+    },
+    "ApplicationComponent": {
+      "type": "object",
+      "description": "Modular, deployable, and replaceable part of a system",
+      "required": ["id", "name", "type"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "$ref": "#/definitions/ComponentType"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "implementation": {
+              "type": "object",
+              "properties": {
+                "framework": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "spec": {
+              "type": "object",
+              "properties": {
+                "ux": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference",
+              "properties": {
+                "reference": {
+                  "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ApplicationCollaboration": {
+      "type": "object",
+      "description": "Aggregate of application components working together",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "components": {
+          "type": "array",
+          "description": "Contains relationship",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "ApplicationInterface": {
+      "type": "object",
+      "description": "Point of access where application service is available",
+      "required": ["id", "name", "protocol"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "protocol": {
+          "$ref": "#/definitions/InterfaceProtocol"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "spec": {
+              "type": "object",
+              "properties": {
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "interface": {
+              "type": "object",
+              "properties": {
+                "endpoint": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ApplicationFunction": {
+      "type": "object",
+      "description": "Automated behavior performed by application component",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "function": {
+              "type": "object",
+              "properties": {
+                "async": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "idempotent": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "fulfills-requirements": {
+                  "type": "string",
+                  "description": "optional, comma-separated Requirement IDs this function fulfills"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ApplicationInteraction": {
+      "type": "object",
+      "description": "Unit of collective application behavior",
+      "required": ["id", "name", "pattern"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "pattern": {
+          "$ref": "#/definitions/InteractionPattern"
+        }
+      }
+    },
+    "ApplicationProcess": {
+      "type": "object",
+      "description": "Sequence of application behaviors",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "process": {
+              "type": "object",
+              "properties": {
+                "orchestration": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "saga": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ApplicationEvent": {
+      "type": "object",
+      "description": "Application state change notification",
+      "required": ["id", "name", "eventType"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "eventType": {
+          "$ref": "#/definitions/ApplicationEventType"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "event": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "topic": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "ApplicationService": {
+      "type": "object",
+      "description": "Service that exposes application functionality",
+      "required": ["id", "name", "serviceType"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "serviceType": {
+          "$ref": "#/definitions/ServiceType"
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "spec": {
+              "type": "object",
+              "properties": {
+                "openapi": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "service": {
+              "type": "object",
+              "properties": {
+                "version": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "deprecated": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "apm": {
+              "type": "object",
+              "properties": {
+                "traced": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "business-metrics": {
+                  "type": "string",
+                  "description": "optional, comma-separated business metric IDs this service tracks"
+                },
+                "sla-target-latency": {
+                  "type": "string",
+                  "description": "optional, target response time"
+                },
+                "sla-target-availability": {
+                  "type": "string",
+                  "description": "optional, target uptime percentage"
+                }
+              }
+            },
+            "motivation": {
+              "type": "object",
+              "properties": {
+                "supports-goals": {
+                  "type": "string",
+                  "description": "optional, comma-separated Goal IDs"
+                },
+                "delivers-value": {
+                  "type": "string",
+                  "description": "optional, comma-separated Value IDs"
+                },
+                "governed-by-principles": {
+                  "type": "string",
+                  "description": "optional, comma-separated Principle IDs"
+                }
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference",
+              "properties": {
+                "reference": {
+                  "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "DataObject": {
+      "type": "object",
+      "description": "Data structured for automated processing",
+      "required": ["id", "name"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "format": "uuid",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "documentation": {
+          "type": "string",
+          "minLength": 1
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "spec": {
+              "type": "object",
+              "properties": {
+                "schema": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "database": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "data": {
+              "type": "object",
+              "properties": {
+                "pii": {
+                  "type": "string",
+                  "description": "optional"
+                },
+                "retention": {
+                  "type": "string",
+                  "description": "optional"
+                }
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference",
+              "properties": {
+                "reference": {
+                  "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -85,7 +85,7 @@ pip uninstall documentation-robotics
 ### Migration Resources
 
 - **Migration Guide:** [docs/migration-from-python-cli.md](https://github.com/tinkermonkey/documentation_robotics/blob/main/docs/migration-from-python-cli.md) _(to be created)_
-- **Bun CLI Documentation:** [cli-bun/README.md](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli-bun/README.md)
+- **Bun CLI Documentation:** [cli/README.md](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli/README.md)
 - **Command Parity Checklist:** Complete mapping of all commands from Python to Bun
 - **Compatibility Test Results:** 543 tests passing, 100% parity validated
 
@@ -207,7 +207,7 @@ Thank you to everyone who has used and contributed to the Python CLI over its li
 
 ## Related Links
 
-- **Bun CLI Repository:** [cli-bun/](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli-bun)
+- **Bun CLI Repository:** [cli/](https://github.com/tinkermonkey/documentation_robotics/tree/main/cli)
 - **Specification:** [spec/](https://github.com/tinkermonkey/documentation_robotics/tree/main/spec)
 - **Main Repository:** [Documentation Robotics](https://github.com/tinkermonkey/documentation_robotics)
 - **PyPI Package:** [documentation-robotics](https://pypi.org/project/documentation-robotics/)

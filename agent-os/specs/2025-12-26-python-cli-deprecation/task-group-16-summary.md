@@ -65,13 +65,13 @@ Successfully removed all Python CLI-related CI/CD workflows and replaced them wi
 
 - Workflow name: `CLI Tests` → `Bun CLI Tests`
 - Job name: `Test Python ${{ matrix.python-version }}` → `Test Bun CLI`
-- Trigger paths: `cli/**` → `cli-bun/**`
+- Trigger paths: `cli/**` → `cli/**`
 - Removed Python version matrix strategy
 
 **release.yml:**
 
 - Job name: `release-cli` → `release-bun-cli`
-- Tag pattern: `cli-v*.*.*` → `cli-bun-v*.*.*`
+- Tag pattern: `cli-v*.*.*` → `cli-v*.*.*`
 - Release title: `CLI v$VERSION` → `Bun CLI v$VERSION`
 - Installation instructions updated for npm
 
@@ -82,7 +82,7 @@ Successfully removed all Python CLI-related CI/CD workflows and replaced them wi
 **Testing Plan:**
 
 - Workflows will be verified when changes are pushed to repository
-- Bun CLI tests configured to run on `cli-bun/**` path changes
+- Bun CLI tests configured to run on `cli/**` path changes
 - Spec validation workflow unchanged (manual trigger only)
 - Test coverage includes:
   - Unit tests (`npm run test:unit`)
@@ -91,7 +91,7 @@ Successfully removed all Python CLI-related CI/CD workflows and replaced them wi
 
 **Expected Behavior:**
 
-- Push to `cli-bun/` triggers Bun CLI test workflow
+- Push to `cli/` triggers Bun CLI test workflow
 - Spec validation remains manual trigger only
 - No Python test jobs execute
 - Bun CLI tests run successfully
@@ -155,7 +155,7 @@ Successfully removed all Python CLI-related CI/CD workflows and replaced them wi
 - Added Bun CLI release job (54 lines)
 - Net reduction: 16 lines
 - Changes:
-  - Tag pattern updated (`cli-v*` → `cli-bun-v*`)
+  - Tag pattern updated (`cli-v*` → `cli-v*`)
   - PyPI publish removed
   - npm publish added
   - Node.js setup with registry authentication
@@ -230,14 +230,14 @@ The following task groups are now ready for implementation:
 
 Once changes are pushed to the repository:
 
-1. Verify Bun CLI tests workflow triggers on `cli-bun/**` changes
+1. Verify Bun CLI tests workflow triggers on `cli/**` changes
 2. Verify no Python test jobs execute
 3. Verify workflow run logs show:
    - Node.js setup
    - Bun installation
    - TypeScript build
    - Bun test execution
-4. Verify release workflow triggers correctly for `cli-bun-v*` tags
+4. Verify release workflow triggers correctly for `cli-v*` tags
 
 ## References
 

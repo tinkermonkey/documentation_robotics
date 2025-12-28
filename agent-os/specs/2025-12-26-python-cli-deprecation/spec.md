@@ -13,7 +13,7 @@ Validate complete feature parity between Bun and Python CLIs, deprecate the Pyth
 
 **Feature Parity Validation via Enhanced Compatibility Tests**
 
-- Extend existing compatibility test suite in `cli-bun/tests/compatibility/` to achieve comprehensive coverage
+- Extend existing compatibility test suite in `cli/tests/compatibility/` to achieve comprehensive coverage
 - Create command-by-command checklist documenting that Bun CLI produces identical model file edits as Python CLI
 - Validate model file structure compatibility (highest priority) across all 12 layers
 - Validate visualization server API compatibility against `docs/api-spec.yaml` and `docs/visualization-api-annotations-chat.md`
@@ -44,7 +44,7 @@ Validate complete feature parity between Bun and Python CLIs, deprecate the Pyth
 - Update main repository README (`/Users/austinsand/workspace/documentation_robotics/README.md`) to reference only Bun CLI
 - Update CLAUDE.md (`/Users/austinsand/workspace/documentation_robotics/CLAUDE.md`) to remove all Python CLI references and update "Quick Reference" section
 - Update all spec examples in `spec/examples/` directories (microservices, minimal, e-commerce, reference-implementation)
-- Update CLI-specific README (`cli-bun/README.md`) to position as primary and only CLI
+- Update CLI-specific README (`cli/README.md`) to position as primary and only CLI
 - Update all tutorials and guides in `/docs/guides/` with Bun CLI syntax
 - Update integration documentation in `integrations/claude_code/` and `integrations/github_copilot/` folders (all agents, commands, and skills)
 - Create CI/CD integration guide showing Bun CLI usage in GitHub Actions, GitLab CI, CircleCI, and Jenkins
@@ -58,13 +58,13 @@ Validate complete feature parity between Bun and Python CLIs, deprecate the Pyth
 - Remove deprecated GitHub issue templates: `.github/ISSUE_TEMPLATE/bug-report-cli.md`, `.github/ISSUE_TEMPLATE/bug-report-spec.md`, `.github/ISSUE_TEMPLATE/feature-request-cli.md`, `.github/ISSUE_TEMPLATE/feature-request-spec.md`
 - Remove Python-related PR templates if they exist
 - Keep `spec/` directory entirely intact (no changes to specification)
-- Keep `cli-bun/` directory intact as the sole CLI implementation
+- Keep `cli/` directory intact as the sole CLI implementation
 - Verify no broken links remain in documentation after removal
 - Update root `.gitignore` to remove Python-specific entries (`.venv/`, `*.pyc`, `__pycache__/`)
 
 **Readiness Criteria and Success Metrics**
 
-- All compatibility tests in `cli-bun/tests/compatibility/` passing (commands, validation, export, API, edge-cases)
+- All compatibility tests in `cli/tests/compatibility/` passing (commands, validation, export, API, edge-cases)
 - Command checklist shows 100% parity for all essential commands
 - Model file structure changes are byte-for-byte identical for equivalent operations
 - Visualization server API responses match specification for both CLIs
@@ -75,7 +75,7 @@ Validate complete feature parity between Bun and Python CLIs, deprecate the Pyth
 
 **Testing Strategy**
 
-- Run full compatibility test suite: `npm run test:compatibility` in `cli-bun/`
+- Run full compatibility test suite: `npm run test:compatibility` in `cli/`
 - Execute command-specific compatibility tests: commands, validation, export, API, edge-cases
 - Manual testing of missing commands (`annotate`, `find`, `links`) to determine if implementation needed
 - Test model file edits produced by identical commands in both CLIs and verify byte-for-byte match
@@ -89,7 +89,7 @@ No visual assets provided for this specification.
 
 ## Existing Code to Leverage
 
-**Compatibility Test Suite (`cli-bun/tests/compatibility/`)**
+**Compatibility Test Suite (`cli/tests/compatibility/`)**
 
 - Harness infrastructure (`harness.ts`) already provides dual CLI execution and output comparison
 - Command tests (`commands.test.ts`) validate CLI command output equivalence across 20+ scenarios

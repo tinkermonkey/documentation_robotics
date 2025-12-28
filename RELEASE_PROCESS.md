@@ -6,8 +6,8 @@ This document describes the correct release workflow for both the Specification 
 
 **IMPORTANT**: The following files should NEVER be manually edited:
 
-- `cli-bun/src/schemas/bundled/*.json` - Copied from `spec/schemas/`
-- `cli-bun/src/schemas/bundled/common/*.json` - Copied from `spec/schemas/common/`
+- `cli/src/schemas/bundled/*.json` - Copied from `spec/schemas/`
+- `cli/src/schemas/bundled/common/*.json` - Copied from `spec/schemas/common/`
 
 These files are bundled into the CLI build from the authoritative spec sources. Manual edits will be overwritten and may cause version inconsistencies.
 
@@ -15,10 +15,10 @@ These files are bundled into the CLI build from the authoritative spec sources. 
 
 There are two independent release types:
 
-| Release Type  | Tag Format           | Example          | Artifacts                  |
-| ------------- | -------------------- | ---------------- | -------------------------- |
-| Specification | `spec-v{version}`    | `spec-v0.6.0`    | `schemas-{version}.tar.gz` |
-| CLI (Bun)     | `cli-bun-v{version}` | `cli-bun-v0.1.0` | npm package                |
+| Release Type  | Tag Format        | Example       | Artifacts                  |
+| ------------- | ----------------- | ------------- | -------------------------- |
+| Specification | `spec-v{version}` | `spec-v0.6.0` | `schemas-{version}.tar.gz` |
+| CLI           | `cli-v{version}`  | `cli-v0.1.0`  | npm package                |
 
 ## Correct Release Workflow
 
@@ -56,26 +56,26 @@ When releasing a new CLI version:
 ```
 1. If schema changes are needed:
    a. Create spec release first (see above)
-   b. Copy updated schemas to cli-bun/src/schemas/bundled/
+   b. Copy updated schemas to cli/src/schemas/bundled/
 
-2. Update cli-bun/package.json version
+2. Update cli/package.json version
    └── "version": "0.1.0"  # Increment for CLI release
 
-3. Update cli-bun/CHANGELOG.md with release notes
+3. Update cli/CHANGELOG.md with release notes
 
 4. Test the build locally
-   cd cli-bun
+   cd cli
    npm install
    npm run build
    npm run test
 
 5. Commit changes
-   git add cli-bun/
+   git add cli/
    git commit -m "CLI release v0.1.0"
 
 6. Create and push CLI release tag
-   git tag cli-bun-v0.1.0
-   git push origin cli-bun-v0.1.0
+   git tag cli-v0.1.0
+   git push origin cli-v0.1.0
 
 7. GitHub Actions builds and publishes to npm
 ```
@@ -85,7 +85,7 @@ When releasing a new CLI version:
 ```
 CLI Version → Spec Version (bundled schemas)
     │
-    └── Schemas copied from spec/schemas/ to cli-bun/src/schemas/bundled/
+    └── Schemas copied from spec/schemas/ to cli/src/schemas/bundled/
             │
             └── spec-v{SPEC_VERSION} release should exist for compatibility
 ```
@@ -100,7 +100,7 @@ CLI Version → Spec Version (bundled schemas)
 
 ```bash
 # NEVER DO THIS
-vim cli-bun/src/schemas/bundled/09-ux-layer.schema.json
+vim cli/src/schemas/bundled/09-ux-layer.schema.json
 ```
 
 **Correct**:
@@ -114,10 +114,10 @@ git tag spec-v0.6.1
 git push origin spec-v0.6.1
 
 # Copy to CLI bundled schemas
-cp spec/schemas/09-ux-layer.schema.json cli-bun/src/schemas/bundled/
+cp spec/schemas/09-ux-layer.schema.json cli/src/schemas/bundled/
 
 # Build and test
-cd cli-bun
+cd cli
 npm run build
 npm run test
 ```
@@ -132,8 +132,8 @@ vim spec/schemas/09-ux-layer.schema.json
 git commit -m "Fix schema"
 
 # CLI release without spec release
-cp spec/schemas/09-ux-layer.schema.json cli-bun/src/schemas/bundled/
-git tag cli-bun-v0.1.1  # Bad: spec not released
+cp spec/schemas/09-ux-layer.schema.json cli/src/schemas/bundled/
+git tag cli-v0.1.1  # Bad: spec not released
 ```
 
 **Correct**:
@@ -148,12 +148,12 @@ git push origin spec-v0.6.1
 # Wait for GitHub Action to complete
 
 # Then: Update CLI with new schemas
-cp spec/schemas/09-ux-layer.schema.json cli-bun/src/schemas/bundled/
+cp spec/schemas/09-ux-layer.schema.json cli/src/schemas/bundled/
 npm run build
 npm run test
 git commit -m "Update bundled schemas to v0.6.1"
-git tag cli-bun-v0.1.1
-git push origin cli-bun-v0.1.1
+git tag cli-v0.1.1
+git push origin cli-v0.1.1
 ```
 
 ### 3. Version Mismatches
@@ -165,7 +165,7 @@ The CLI can be released independently of spec changes, but when schema changes a
 cat spec/VERSION
 
 # Check CLI version
-cat cli-bun/package.json | grep version
+cat cli/package.json | grep version
 
 # Document which spec version the CLI bundles in CHANGELOG
 ```
@@ -182,7 +182,7 @@ for file in spec/schemas/*.json; do
 done
 
 # Run schema validation tests
-cd cli-bun && npm run test
+cd cli && npm run test
 
 # Check VERSION file
 cat spec/VERSION
@@ -195,7 +195,7 @@ cat spec/VERSION
 curl -s https://api.github.com/repos/tinkermonkey/documentation_robotics/releases/tags/spec-v0.6.0 | jq '.tag_name'
 
 # Full build test
-cd cli-bun
+cd cli
 npm install
 npm run build
 npm run test
@@ -220,28 +220,28 @@ If bundled schemas were accidentally modified:
 
 ```bash
 # 1. Restore bundled schemas from spec source
-cp spec/schemas/*.json cli-bun/src/schemas/bundled/
-cp spec/schemas/common/*.json cli-bun/src/schemas/bundled/common/
+cp spec/schemas/*.json cli/src/schemas/bundled/
+cp spec/schemas/common/*.json cli/src/schemas/bundled/common/
 
 # 2. Verify the fix
-cd cli-bun
+cd cli
 npm run build
 npm run test
 
 # 3. Commit the fix
-git add cli-bun/src/schemas/bundled/
+git add cli/src/schemas/bundled/
 git commit -m "Fix: Restore bundled schemas from spec source"
 ```
 
 ## File Reference
 
-| File                                  | Purpose                          | Edit Directly? |
-| ------------------------------------- | -------------------------------- | -------------- |
-| `spec/schemas/*.json`                 | Authoritative schema definitions | Yes            |
-| `spec/VERSION`                        | Spec version number              | Yes            |
-| `cli-bun/package.json`                | CLI version and dependencies     | Yes            |
-| `cli-bun/src/schemas/bundled/`        | Bundled schemas for CLI          | **NO**         |
-| `cli-bun/src/schemas/bundled/common/` | Bundled common schemas           | **NO**         |
+| File                              | Purpose                          | Edit Directly? |
+| --------------------------------- | -------------------------------- | -------------- |
+| `spec/schemas/*.json`             | Authoritative schema definitions | Yes            |
+| `spec/VERSION`                    | Spec version number              | Yes            |
+| `cli/package.json`                | CLI version and dependencies     | Yes            |
+| `cli/src/schemas/bundled/`        | Bundled schemas for CLI          | **NO**         |
+| `cli/src/schemas/bundled/common/` | Bundled common schemas           | **NO**         |
 
 ## Troubleshooting
 
@@ -264,11 +264,11 @@ The bundled schemas don't match the spec source:
 
 ```bash
 # Re-copy from spec source
-cp spec/schemas/*.json cli-bun/src/schemas/bundled/
-cp spec/schemas/common/*.json cli-bun/src/schemas/bundled/common/
+cp spec/schemas/*.json cli/src/schemas/bundled/
+cp spec/schemas/common/*.json cli/src/schemas/bundled/common/
 
 # Rebuild
-cd cli-bun
+cd cli
 npm run build
 npm run test
 ```
@@ -279,7 +279,7 @@ If the build fails after updating schemas:
 
 ```bash
 # Clean and rebuild
-cd cli-bun
+cd cli
 rm -rf dist node_modules
 npm install
 npm run build
@@ -315,6 +315,6 @@ The repository includes a `/dr-release-prep` command for Claude Code that automa
 
 - [BUILDING.md](BUILDING.md) - Build process details (deprecated for Python CLI)
 - [CONTRIBUTING.md](CONTRIBUTING.md) - Contribution guidelines
-- [cli-bun/CHANGELOG.md](cli-bun/CHANGELOG.md) - CLI release history
+- [cli/CHANGELOG.md](cli/CHANGELOG.md) - CLI release history
 - [spec/CHANGELOG.md](spec/CHANGELOG.md) - Spec release history
-- [cli-bun/README.md](cli-bun/README.md) - CLI installation and usage
+- [cli/README.md](cli/README.md) - CLI installation and usage

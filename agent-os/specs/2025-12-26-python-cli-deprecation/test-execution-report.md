@@ -27,7 +27,7 @@ The enhanced compatibility test suite has been successfully implemented with com
 
 **Original test coverage analyzed:**
 
-- ~20 test scenarios in `cli-bun/tests/compatibility/commands.test.ts`
+- ~20 test scenarios in `cli/tests/compatibility/commands.test.ts`
 - Commands tested: init (3 tests), element add (4 tests), element list (2 tests), element show (2 tests), element search (5 tests), help (3 tests), error handling (3 tests)
 - **Gaps identified:** Missing tests for update, delete, relationship, trace, project, changeset, migrate, upgrade, validate, conformance, export, visualize, chat commands
 - **Edge cases missing:** Unicode handling, path resolution, empty values, special characters, long strings
@@ -180,7 +180,7 @@ The enhanced compatibility test suite has been successfully implemented with com
 **Test Execution Results:**
 
 ```bash
-cd /Users/austinsand/workspace/documentation_robotics/cli-bun
+cd /Users/austinsand/workspace/documentation_robotics/cli
 DR_PYTHON_CLI=/Users/austinsand/workspace/documentation_robotics/.venv/bin/dr bun test tests/compatibility/commands.test.ts
 ```
 

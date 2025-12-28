@@ -33,7 +33,7 @@ npm install -g @documentation-robotics/cli
 
 ```bash
 git clone https://github.com/your-org/documentation_robotics.git
-cd documentation_robotics/cli-bun
+cd documentation_robotics/cli
 npm install
 npm run build
 npm install -g .
@@ -802,7 +802,7 @@ See complete working examples in `docs/examples/ci-cd/`:
 
 ## Additional Resources
 
-- [DR CLI Documentation](https://github.com/your-org/documentation_robotics/tree/main/cli-bun)
+- [DR CLI Documentation](https://github.com/your-org/documentation_robotics/tree/main/cli)
 - [Migration from Python CLI](../migration-from-python-cli.md)
 - [DR Specification](../spec/README.md)
 - [Troubleshooting Guide](../docs/troubleshooting.md)

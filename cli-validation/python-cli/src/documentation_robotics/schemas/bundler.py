@@ -1,0 +1,403 @@
+"""
+Schema bundling and management for Documentation Robotics CLI.
+
+This module handles:
+- Bundled schema paths (schemas packaged with the CLI)
+- Copying schemas to new projects
+- Fetching schemas from GitHub releases for updates
+"""
+
+import json
+import logging
+import shutil
+import urllib.error
+import urllib.request
+from pathlib import Path
+from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
+
+# Layer schema filenames
+LAYER_SCHEMAS = [
+    "01-motivation-layer.schema.json",
+    "02-business-layer.schema.json",
+    "03-security-layer.schema.json",
+    "04-application-layer.schema.json",
+    "05-technology-layer.schema.json",
+    "06-api-layer.schema.json",
+    "07-data-model-layer.schema.json",
+    "08-datastore-layer.schema.json",
+    "09-ux-layer.schema.json",
+    "10-navigation-layer.schema.json",
+    "11-apm-observability-layer.schema.json",
+    "12-testing-layer.schema.json",
+]
+
+# Bundled metadata files (stored in bundled/ directory alongside schemas)
+BUNDLED_METADATA = [
+    ".manifest.json",
+]
+
+# Relationship catalog files (stored in bundled/ directory)
+RELATIONSHIP_CATALOG_FILES = [
+    "relationship-catalog.json",
+    "relationship-type.schema.json",
+]
+
+# Common schema files (stored in bundled/common/ subdirectory)
+COMMON_SCHEMA_FILES = [
+    "common/predicates.schema.json",
+    "common/relationships.schema.json",
+    "common/layer-extensions.schema.json",
+]
+
+# Additional files to copy (stored in parent schemas/ directory, not bundled/)
+ADDITIONAL_FILES = [
+    "link-registry.json",
+]
+
+# GitHub repository information
+GITHUB_REPO = "anthropics/claude-code"  # This should be updated to the actual repo
+GITHUB_API_BASE = "https://api.github.com"
+
+
+def get_bundled_schemas_dir() -> Path:
+    """
+    Get the path to bundled schemas directory.
+
+    Returns:
+        Path to the bundled schemas directory
+    """
+    return Path(__file__).parent / "bundled"
+
+
+def get_bundled_schema_path(schema_filename: str) -> Path:
+    """
+    Get the path to a specific bundled schema file.
+
+    Args:
+        schema_filename: Name of the schema file (e.g., "01-motivation-layer.schema.json")
+
+    Returns:
+        Path to the schema file
+
+    Raises:
+        FileNotFoundError: If the schema file doesn't exist
+    """
+    schema_path = get_bundled_schemas_dir() / schema_filename
+
+    if not schema_path.exists():
+        raise FileNotFoundError(
+            f"Schema file not found: {schema_filename}\n" f"Expected at: {schema_path}"
+        )
+
+    return schema_path
+
+
+def get_relationship_catalog_path() -> Path:
+    """
+    Get the path to the bundled relationship catalog file.
+
+    Returns:
+        Path to relationship-catalog.json
+
+    Raises:
+        FileNotFoundError: If the catalog file doesn't exist
+    """
+    catalog_path = get_bundled_schemas_dir() / "relationship-catalog.json"
+
+    if not catalog_path.exists():
+        raise FileNotFoundError(
+            f"Relationship catalog not found at: {catalog_path}\n"
+            "This may indicate a corrupted installation."
+        )
+
+    return catalog_path
+
+
+def load_relationship_catalog() -> Dict:
+    """
+    Load the bundled relationship catalog.
+
+    Returns:
+        Parsed relationship catalog data
+
+    Raises:
+        FileNotFoundError: If the catalog file doesn't exist
+        json.JSONDecodeError: If the catalog file is invalid JSON
+    """
+    catalog_path = get_relationship_catalog_path()
+
+    with open(catalog_path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def copy_schemas_to_project(project_schemas_dir: Path) -> int:
+    """
+    Copy bundled schemas to a project's .dr/schemas directory.
+
+    The CLI owns the .dr/ directory and manages it authoritatively.
+    This function always:
+    - Overwrites existing files to ensure they match the CLI version
+    - Cleans obsolete files that aren't in the current bundle
+    - Ensures .dr/schemas/ exactly matches the bundled schemas
+
+    Args:
+        project_schemas_dir: Path to the project's schemas directory
+
+    Returns:
+        Number of files copied
+
+    Raises:
+        FileNotFoundError: If bundled schemas directory doesn't exist
+    """
+    bundled_dir = get_bundled_schemas_dir()
+
+    if not bundled_dir.exists():
+        raise FileNotFoundError(
+            f"Bundled schemas directory not found: {bundled_dir}\n"
+            "This may indicate a corrupted installation."
+        )
+
+    # Create project schemas directory if it doesn't exist
+    project_schemas_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clean obsolete files - CLI owns this directory
+    expected_files = set(
+        LAYER_SCHEMAS
+        + BUNDLED_METADATA
+        + ADDITIONAL_FILES
+        + RELATIONSHIP_CATALOG_FILES
+        + COMMON_SCHEMA_FILES
+    )
+    for existing_file in project_schemas_dir.glob("*"):
+        # Only clean .json files (leave other files alone just in case)
+        if existing_file.is_file() and existing_file.name not in expected_files:
+            if existing_file.suffix == ".json":
+                logger.info(f"Removing obsolete file: {existing_file.name}")
+                existing_file.unlink()
+
+    copied_count = 0
+
+    # Copy all layer schemas - always overwrite
+    for schema_filename in LAYER_SCHEMAS:
+        source_path = bundled_dir / schema_filename
+        dest_path = project_schemas_dir / schema_filename
+
+        if not source_path.exists():
+            logger.warning(f"Bundled schema missing: {schema_filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied schema: {schema_filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy schema {schema_filename}: {e}")
+
+    # Copy bundled metadata files - always overwrite
+    for metadata_filename in BUNDLED_METADATA:
+        source_path = bundled_dir / metadata_filename
+        dest_path = project_schemas_dir / metadata_filename
+
+        if not source_path.exists():
+            logger.warning(f"Bundled metadata missing: {metadata_filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied metadata: {metadata_filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy metadata {metadata_filename}: {e}")
+
+    # Copy additional files (from parent schemas directory) - always overwrite
+    schemas_parent_dir = bundled_dir.parent
+    for filename in ADDITIONAL_FILES:
+        source_path = schemas_parent_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        if not source_path.exists():
+            logger.warning(f"Additional file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied additional file: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy additional file {filename}: {e}")
+
+    # Copy relationship catalog files - always overwrite
+    for filename in RELATIONSHIP_CATALOG_FILES:
+        source_path = bundled_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        if not source_path.exists():
+            logger.warning(f"Relationship catalog file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied relationship catalog: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy relationship catalog {filename}: {e}")
+
+    # Copy common schema files - always overwrite
+    # Create common subdirectory if needed
+    common_dest_dir = project_schemas_dir / "common"
+    common_dest_dir.mkdir(parents=True, exist_ok=True)
+
+    for filename in COMMON_SCHEMA_FILES:
+        source_path = bundled_dir / filename
+        dest_path = project_schemas_dir / filename
+
+        # Ensure parent directory exists for this file
+        dest_path.parent.mkdir(parents=True, exist_ok=True)
+
+        if not source_path.exists():
+            logger.warning(f"Common schema file missing: {filename}")
+            continue
+
+        try:
+            shutil.copy2(source_path, dest_path)
+            copied_count += 1
+            logger.info(f"Copied common schema: {filename}")
+        except Exception as e:
+            logger.error(f"Failed to copy common schema {filename}: {e}")
+
+    return copied_count
+
+
+def fetch_schemas_from_release(
+    version: str, output_dir: Path, overwrite: bool = False
+) -> Dict[str, bool]:
+    """
+    Fetch schemas from a specific GitHub release.
+
+    This function downloads schema files from a GitHub release and saves them
+    to the specified directory. Useful for updating to a new spec version.
+
+    Args:
+        version: Spec version to fetch (e.g., "0.1.0")
+        output_dir: Directory to save schemas to
+        overwrite: Whether to overwrite existing schemas
+
+    Returns:
+        Dictionary mapping schema filenames to success status
+
+    Raises:
+        urllib.error.HTTPError: If the release doesn't exist or network error
+        ValueError: If the version format is invalid
+    """
+    # Validate version format (basic check)
+    if not version or not version[0].isdigit():
+        raise ValueError(f"Invalid version format: {version}")
+
+    output_dir.mkdir(parents=True, exist_ok=True)
+    results = {}
+
+    # GitHub releases API URL
+    # Format: https://github.com/{owner}/{repo}/releases/download/v{version}/{file}
+    base_url = f"https://github.com/{GITHUB_REPO}/releases/download/v{version}"
+
+    for schema_filename in LAYER_SCHEMAS:
+        dest_path = output_dir / schema_filename
+
+        # Skip if exists and not overwriting
+        if dest_path.exists() and not overwrite:
+            logger.debug(f"Schema already exists, skipping: {schema_filename}")
+            results[schema_filename] = True
+            continue
+
+        schema_url = f"{base_url}/{schema_filename}"
+
+        try:
+            logger.info(f"Fetching {schema_filename} from {schema_url}")
+
+            # Download schema
+            with urllib.request.urlopen(schema_url) as response:
+                schema_content = response.read()
+
+            # Validate JSON
+            try:
+                json.loads(schema_content)
+            except json.JSONDecodeError as e:
+                logger.error(f"Invalid JSON in {schema_filename}: {e}")
+                results[schema_filename] = False
+                continue
+
+            # Save to file
+            dest_path.write_bytes(schema_content)
+            logger.info(f"Successfully downloaded: {schema_filename}")
+            results[schema_filename] = True
+
+        except urllib.error.HTTPError as e:
+            logger.error(f"HTTP error downloading {schema_filename}: {e.code} {e.reason}")
+            results[schema_filename] = False
+        except urllib.error.URLError as e:
+            logger.error(f"URL error downloading {schema_filename}: {e.reason}")
+            results[schema_filename] = False
+        except Exception as e:
+            logger.error(f"Unexpected error downloading {schema_filename}: {e}")
+            results[schema_filename] = False
+
+    return results
+
+
+def list_available_releases() -> List[str]:
+    """
+    List available spec releases from GitHub.
+
+    Returns:
+        List of available version tags
+
+    Raises:
+        urllib.error.HTTPError: If API request fails
+    """
+    releases_url = f"{GITHUB_API_BASE}/repos/{GITHUB_REPO}/releases"
+
+    try:
+        with urllib.request.urlopen(releases_url) as response:
+            releases_data = json.loads(response.read())
+
+        # Extract version tags (remove 'v' prefix if present)
+        versions = [
+            release["tag_name"].lstrip("v")
+            for release in releases_data
+            if not release.get("draft", False)
+        ]
+
+        return versions
+
+    except urllib.error.HTTPError as e:
+        logger.error(f"Failed to fetch releases: {e.code} {e.reason}")
+        raise
+    except Exception as e:
+        logger.error(f"Unexpected error fetching releases: {e}")
+        raise
+
+
+def get_schema_version(schema_path: Path) -> Optional[str]:
+    """
+    Extract version information from a schema file.
+
+    Args:
+        schema_path: Path to the schema file
+
+    Returns:
+        Schema version if found, None otherwise
+    """
+    try:
+        with open(schema_path, "r") as f:
+            schema = json.load(f)
+
+        # Look for version in common places
+        version = schema.get("version") or schema.get("$version")
+
+        return version
+
+    except Exception as e:
+        logger.error(f"Failed to read schema version from {schema_path}: {e}")
+        return None

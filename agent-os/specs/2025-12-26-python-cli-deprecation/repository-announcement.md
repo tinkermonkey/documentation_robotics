@@ -146,7 +146,7 @@ The Python CLI removal was preceded by rigorous validation:
 
 The repository now contains:
 
-- **Bun CLI Only** (`cli-bun/`) - Sole CLI implementation
+- **Bun CLI Only** (`cli/`) - Sole CLI implementation
 - **Specification** (`spec/`) - Unchanged, remains version-agnostic
 - **Documentation** (`docs/`) - Fully migrated to Bun CLI
 - **Examples** (`spec/examples/`) - Updated with Bun CLI commands
@@ -260,7 +260,7 @@ The removal of the Python CLI marks an important milestone for the Documentation
 ## Quick Links
 
 - [Migration Guide](../../../docs/migration-from-python-cli.md)
-- [Bun CLI Installation](../../../cli-bun/README.md#installation)
+- [Bun CLI Installation](../../../cli/README.md#installation)
 - [CI/CD Integration Guide](../../../docs/ci-cd-integration.md)
 - [Deprecation Timeline](deprecation-timeline.md)
 - [Command Parity Checklist](command-parity-checklist.md)

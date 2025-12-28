@@ -286,7 +286,7 @@ pip install -e cli/
 
 ```bash
 # No virtual environment needed
-cd cli-bun
+cd cli
 
 # Install dependencies
 npm install
@@ -454,7 +454,7 @@ If you used `annotate`, `find`, or `links` commands:
 
 If you encounter issues during migration:
 
-- **Documentation**: [Bun CLI User Guide](../cli-bun/docs/user-guide/)
+- **Documentation**: [Bun CLI User Guide](../cli/docs/user-guide/)
 - **Issues**: [GitHub Issues](https://github.com/tinkermonkey/documentation_robotics/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
 - **CLI Help**: Run `dr --help` or `dr <command> --help` for command-specific help

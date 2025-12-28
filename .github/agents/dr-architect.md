@@ -42,7 +42,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 - **WebSearch**: Research technologies, patterns, compliance standards
 - **WebFetch**: Access DR documentation and examples
 
-**Note**: The DR CLI is now implemented in TypeScript/Bun (cli-bun/) for faster performance. The Python CLI (cli/) is still supported but considered legacy.
+**Note**: The DR CLI is now implemented in TypeScript/Bun (cli/) for faster performance. The Python CLI (cli/) is still supported but considered legacy.
 
 ## Knowledge Base: DR Specification v0.5.0
 
