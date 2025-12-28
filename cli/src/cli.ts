@@ -22,7 +22,7 @@ import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
 import { traceCommand } from './commands/trace.js';
-import { projectCommand } from './commands/project.js';
+import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
 import { chatCommand } from './commands/chat.js';
 import { migrateCommand } from './commands/migrate.js';
@@ -284,24 +284,50 @@ Examples:
   });
 
 program
-  .command('project <elementId> <targetLayer>')
-  .description('Project dependencies to a target layer')
-  .option('--reverse', 'Perform reverse projection (impact analysis)')
-  .option('--max-depth <num>', 'Maximum projection depth (default: 10)')
-  .option('--reachability', 'Show reachability analysis')
+  .command('project <elementId> <targetLayers>')
+  .description('Project an element to other layers using projection rules')
+  .option('--rule <name>', 'Specific projection rule to use')
+  .option('--dry-run', 'Show what would be created without saving')
+  .option('--force', 'Overwrite existing elements')
+  .option('--model <path>', 'Path to model directory')
   .addHelpText(
     'after',
     `
 Examples:
-  $ dr project api-endpoint-create-customer business
-  $ dr project business-service-order motivation --reverse
-  $ dr project application-component-api data-model --reachability`
+  $ dr project application.service.api-service "api,data-model"
+  $ dr project business.process.order-fulfillment application --dry-run
+  $ dr project api.endpoint.create-order data-model --rule api-to-data`
   )
-  .action(async (elementId, targetLayer, options) => {
-    await projectCommand(elementId, targetLayer, {
-      reverse: options.reverse,
-      maxDepth: options.maxDepth ? parseInt(options.maxDepth) : undefined,
-      showReachability: options.reachability,
+  .action(async (elementId, targetLayers, options) => {
+    await projectCommand(elementId, targetLayers, {
+      rule: options.rule,
+      dryRun: options.dryRun,
+      force: options.force,
+      model: options.model,
+    });
+  });
+
+program
+  .command('project-all')
+  .description('Project all applicable elements based on rules')
+  .option('--from <layer>', 'Source layer filter')
+  .option('--to <layer>', 'Target layer filter')
+  .option('--dry-run', 'Show what would be created without saving')
+  .option('--model <path>', 'Path to model directory')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ dr project-all --from application --to api
+  $ dr project-all --to data-model --dry-run
+  $ dr project-all`
+  )
+  .action(async (options) => {
+    await projectAllCommand({
+      from: options.from,
+      to: options.to,
+      dryRun: options.dryRun,
+      model: options.model,
     });
   });
 

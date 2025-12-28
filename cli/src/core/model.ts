@@ -1,6 +1,7 @@
 import { Layer } from "./layer.js"
 import { Manifest } from "./manifest.js"
 import { Element } from "./element.js";
+import { ProjectionEngine } from "./projection-engine.js";
 import { ensureDir } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { resolveModelRoot } from "../utils/model-path.js";
@@ -19,6 +20,7 @@ export class Model {
   layers: Map<string, Layer>
   lazyLoad: boolean
   private loadedLayers: Set<string>
+  private projectionEngine?: ProjectionEngine
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath
@@ -36,6 +38,29 @@ export class Model {
       await this.loadLayer(name)
     }
     return this.layers.get(name)
+  }
+
+  /**
+   * Get an element by ID across all layers
+   */
+  getElementById(id: string): Element | undefined {
+    for (const layer of this.layers.values()) {
+      const element = layer.elements.get(id);
+      if (element) {
+        return element;
+      }
+    }
+    return undefined;
+  }
+
+  /**
+   * Get projection engine (lazily initialized)
+   */
+  getProjectionEngine(): ProjectionEngine {
+    if (!this.projectionEngine) {
+      this.projectionEngine = new ProjectionEngine(this);
+    }
+    return this.projectionEngine;
   }
 
   /**
@@ -279,6 +304,14 @@ export class Model {
     }
 
     layer.markClean()
+  }
+
+  /**
+   * Save model (saves all dirty layers and manifest)
+   */
+  async save(): Promise<void> {
+    await this.saveDirtyLayers();
+    await this.saveManifest();
   }
 
   /**
