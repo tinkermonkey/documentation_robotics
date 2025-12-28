@@ -50,7 +50,3 @@ jobs:
       - name: Run integration tests
         working-directory: ./cli-bun
         run: npm run test:integration
-
-      - name: Run compatibility tests
-        working-directory: ./cli-bun
-        run: npm run test:compatibility

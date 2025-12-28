@@ -9,6 +9,11 @@ import type { Layer } from '../core/layer.js';
 import { fileURLToPath } from 'url';
 import path from 'path';
 import { readFile } from '../utils/file-io.js';
+import { startSpan, endSpan } from '../telemetry/index.js';
+
+// Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 /**
  * Validator for JSON Schema compliance
@@ -117,36 +122,55 @@ export class SchemaValidator {
    * Validate a layer against its schema
    */
   async validateLayer(layer: Layer): Promise<ValidationResult> {
-    const result = new ValidationResult();
+    const span = isTelemetryEnabled ? startSpan('schema.validate', {
+      'schema.layer': layer.name,
+    }) : null;
 
-    // Ensure schemas are loaded
-    await this.ensureSchemasLoaded();
+    try {
+      const result = new ValidationResult();
 
-    const validate = this.compiledSchemas.get(layer.name);
+      // Ensure schemas are loaded
+      await this.ensureSchemasLoaded();
 
-    if (!validate) {
-      result.addError({
-        layer: layer.name,
-        message: `No schema found for layer ${layer.name}`,
-      });
-      return result;
-    }
+      const validate = this.compiledSchemas.get(layer.name);
 
-    const layerData = layer.toJSON();
-    const valid = validate(layerData);
-
-    if (!valid && validate.errors) {
-      for (const error of validate.errors) {
+      if (!validate) {
         result.addError({
           layer: layer.name,
-          message: `Schema validation failed: ${this.formatAjvError(error)}`,
-          location: error.instancePath || '/',
-          fixSuggestion: this.generateFixSuggestion(error),
+          message: `No schema found for layer ${layer.name}`,
         });
-      }
-    }
 
-    return result;
+        if (isTelemetryEnabled && span) {
+          span.setAttribute('schema.valid', false);
+          span.setAttribute('schema.error_count', result.errors.length);
+        }
+
+        return result;
+      }
+
+      const layerData = layer.toJSON();
+      const valid = validate(layerData);
+
+      if (!valid && validate.errors) {
+        for (const error of validate.errors) {
+          result.addError({
+            layer: layer.name,
+            message: `Schema validation failed: ${this.formatAjvError(error)}`,
+            location: error.instancePath || '/',
+            fixSuggestion: this.generateFixSuggestion(error),
+          });
+        }
+      }
+
+      if (isTelemetryEnabled && span) {
+        span.setAttribute('schema.valid', valid);
+        span.setAttribute('schema.error_count', validate.errors?.length || 0);
+      }
+
+      return result;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**
