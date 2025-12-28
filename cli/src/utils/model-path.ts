@@ -23,10 +23,10 @@ export async function resolveModelRoot(opts?: {
   // If a model directory is provided
   candidates.push(path.join(input, 'manifest.yaml'))
 
-  // TS default layout: <root>/model/manifest.yaml
+  // TypeScript layout: <root>/model/manifest.yaml
   candidates.push(path.join(input, 'model', 'manifest.yaml'))
 
-  // Python layout: <root>/documentation-robotics/model/manifest.yaml
+  // Python/TypeScript unified layout: <root>/documentation-robotics/model/manifest.yaml
   candidates.push(path.join(input, 'documentation-robotics', 'model', 'manifest.yaml'))
 
   // Optional override via env var (highest priority)
@@ -45,9 +45,17 @@ export async function resolveModelRoot(opts?: {
       await fs.access(manifestPath)
       const normalized = path.normalize(manifestPath)
       // rootPath is the parent of the model directory
-      const rootPath = normalized.endsWith(path.join('documentation-robotics', 'model', 'manifest.yaml'))
-        ? path.dirname(path.dirname(path.dirname(normalized)))
-        : path.dirname(path.dirname(normalized))
+      let rootPath: string
+      if (normalized.endsWith(path.join('documentation-robotics', 'model', 'manifest.yaml'))) {
+        // <root>/documentation-robotics/model/manifest.yaml -> <root>
+        rootPath = path.dirname(path.dirname(path.dirname(normalized)))
+      } else if (normalized.endsWith(path.join('model', 'manifest.yaml'))) {
+        // <root>/model/manifest.yaml -> <root>
+        rootPath = path.dirname(path.dirname(normalized))
+      } else {
+        // <root>/manifest.yaml -> <root>
+        rootPath = path.dirname(normalized)
+      }
       return { rootPath, manifestPath: normalized }
     } catch {
       // continue searching
@@ -55,6 +63,6 @@ export async function resolveModelRoot(opts?: {
   }
 
   throw new Error(
-    'Model not found. Provide --model <path> (directory containing model/manifest.yaml) or set DR_MODEL_PATH.'
+    'Model not found. Provide --model <path> (directory containing documentation-robotics/model/manifest.yaml) or set DR_MODEL_PATH.'
   )
 }

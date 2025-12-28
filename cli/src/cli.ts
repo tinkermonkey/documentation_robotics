@@ -192,13 +192,23 @@ program
   .option('--layers <layers...>', 'Specific layers to validate')
   .option('--strict', 'Treat warnings as errors')
   .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
+  .option('--all', 'Run all validations (default behavior)')
+  .option('--markdown', 'Validate markdown structure')
+  .option('--schemas', 'Validate JSON schemas')
+  .option('--schema', 'Validate JSON schemas (alias for --schemas)')
+  .option('--relationships', 'Validate relationships')
+  .option('--structure', 'Validate documentation structure')
+  .option('--naming', 'Validate naming conventions')
+  .option('--references', 'Validate cross-layer references')
   .addHelpText(
     'after',
     `
 Examples:
   $ dr validate
-  $ dr validate --layers business api
-  $ dr validate --strict`
+  $ dr validate --all --strict
+  $ dr validate --schemas
+  $ dr validate --relationships
+  $ dr validate --layers business api`
   )
   .action(validateCommand);
 

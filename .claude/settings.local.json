@@ -108,7 +108,12 @@
       "Bash(git -C /Users/austinsand/workspace/documentation_robotics log --oneline --all --decorate -10)",
       "Bash(test:*)",
       "Bash(npm run test:integration:*)",
-      "Bash(npm run lint)"
+      "Bash(npm run lint)",
+      "Bash(do echo \"=== $cmd ===\")",
+      "Bash(bun run:*)",
+      "Bash(timeout 60 npm run test:*)",
+      "WebFetch(domain:hono.dev)",
+      "WebFetch(domain:bun.com)"
     ]
   },
   "enableAllProjectMcpServers": true,

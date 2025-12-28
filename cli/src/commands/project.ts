@@ -4,7 +4,7 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { fileExists } from '../utils/file-io.js';
+import { resolveModelRoot } from '../utils/model-path.js';
 
 export async function projectCommand(
   elementId: string,
@@ -17,13 +17,11 @@ export async function projectCommand(
   } = {}
 ): Promise<void> {
   try {
-    const rootPath = options.model || process.cwd();
-
-    // Check if model exists
-    if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-      console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-      process.exit(1);
-    }
+    // Resolve model path (supports multiple layouts)
+    const { rootPath } = await resolveModelRoot({
+      modelPath: options.model,
+      cwd: process.cwd()
+    });
 
     // Load model
     const model = await Model.load(rootPath, { lazyLoad: false });
@@ -165,13 +163,11 @@ export async function projectAllCommand(options: {
   model?: string;
 } = {}): Promise<void> {
   try {
-    const rootPath = options.model || process.cwd();
-
-    // Check if model exists
-    if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-      console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-      process.exit(1);
-    }
+    // Resolve model path (supports multiple layouts)
+    const { rootPath } = await resolveModelRoot({
+      modelPath: options.model,
+      cwd: process.cwd()
+    });
 
     // Load model
     const model = await Model.load(rootPath, { lazyLoad: false });

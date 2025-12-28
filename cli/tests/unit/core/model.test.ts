@@ -103,8 +103,10 @@ describe("Model", () => {
     expect(await fileExists(manifestPath)).toBe(true);
 
     const content = await readFile(manifestPath);
-    expect(content).toContain("name: Test Model");
-    expect(content).toContain("version: '1.0.0'");
+    // Check for name (may be quoted or unquoted in YAML)
+    expect(content).toMatch(/name:\s+['"]?Test Model['"]?/);
+    // Check for version (may be quoted or unquoted in YAML)
+    expect(content).toMatch(/version:\s+['"]?1\.0\.0['"]?/);
   });
 
   it("should save layer to disk", async () => {
@@ -117,7 +119,7 @@ describe("Model", () => {
 
     const element = new Element({
       id: "motivation-goal-test",
-      type: "Goal",
+      type: "goal",
       name: "Test Goal",
       description: "A test goal",
     });
@@ -127,7 +129,8 @@ describe("Model", () => {
 
     await model.saveLayer("motivation");
 
-    const layerPath = `${testDir}/.dr/layers/motivation.json`;
+    // Layer should be saved to model/01_motivation/goals.yaml
+    const layerPath = `${testDir}/model/01_motivation/goals.yaml`;
     expect(await fileExists(layerPath)).toBe(true);
   });
 

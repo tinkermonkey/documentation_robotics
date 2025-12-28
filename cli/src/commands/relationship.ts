@@ -5,7 +5,7 @@
 import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { fileExists } from '../utils/file-io.js';
+import { resolveModelRoot } from '../utils/model-path.js';
 import { findElementLayer } from '../utils/element-utils.js';
 
 export function relationshipCommands(program: Command): void {
@@ -24,12 +24,8 @@ Examples:
     )
     .action(async (source, target, options) => {
       try {
-        const rootPath = process.cwd();
-
-        if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-          console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-          process.exit(1);
-        }
+        // Resolve model path (supports multiple layouts)
+        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
         const model = await Model.load(rootPath, { lazyLoad: false });
 
@@ -109,12 +105,8 @@ Examples:
     )
     .action(async (source, target, options) => {
       try {
-        const rootPath = process.cwd();
-
-        if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-          console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-          process.exit(1);
-        }
+        // Resolve model path (supports multiple layouts)
+        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
         const model = await Model.load(rootPath, { lazyLoad: false });
 
@@ -194,12 +186,8 @@ Examples:
     )
     .action(async (id, options) => {
       try {
-        const rootPath = process.cwd();
-
-        if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-          console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-          process.exit(1);
-        }
+        // Resolve model path (supports multiple layouts)
+        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
         const model = await Model.load(rootPath, { lazyLoad: false });
         const layerName = await findElementLayer(model, id);
@@ -291,12 +279,8 @@ Examples:
     )
     .action(async (source, target) => {
       try {
-        const rootPath = process.cwd();
-
-        if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-          console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-          process.exit(1);
-        }
+        // Resolve model path (supports multiple layouts)
+        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
         const model = await Model.load(rootPath, { lazyLoad: false });
         const sourceLayerName = await findElementLayer(model, source);

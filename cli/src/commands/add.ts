@@ -6,9 +6,8 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
-import { fileExists } from '../utils/file-io.js';
+import { resolveModelRoot } from '../utils/model-path.js';
 import {
-  ModelNotFoundError,
   InvalidJSONError,
   CLIError,
   handleError,
@@ -30,12 +29,8 @@ export async function addCommand(
   options: AddOptions
 ): Promise<void> {
   try {
-    const rootPath = process.cwd();
-
-    // Check if model exists
-    if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-      throw new ModelNotFoundError(rootPath);
-    }
+    // Resolve model path (supports multiple layouts)
+    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
     // Load model
     const model = await Model.load(rootPath, { lazyLoad: false });

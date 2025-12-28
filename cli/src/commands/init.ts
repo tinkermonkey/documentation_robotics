@@ -21,7 +21,8 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   try {
     const rootPath = process.cwd();
-    const modelPath = `${rootPath}/model`;
+    // Use Python CLI structure: documentation-robotics/model/
+    const modelPath = `${rootPath}/documentation-robotics/model`;
     const manifestPath = `${modelPath}/manifest.yaml`;
 
     // Check if model already exists
@@ -65,7 +66,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
         : '');
 
     // Initialize model
-    logDebug(`Creating model directory at ${rootPath}/model`);
+    logDebug(`Creating model directory at ${rootPath}/documentation-robotics/model`);
     const model = await Model.init(
       rootPath,
       {
@@ -82,7 +83,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
     logVerbose(`Model saved with:
   - Version: 0.1.0
   - Spec Version: 0.6.0
-  - Location: ${rootPath}/model`);
+  - Location: ${rootPath}/documentation-robotics/model`);
 
     outro(ansis.green(`✓ Model initialized: ${ansis.bold(model.manifest.name)}`));
   } catch (error) {

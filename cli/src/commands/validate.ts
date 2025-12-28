@@ -12,6 +12,15 @@ export interface ValidateOptions {
   verbose?: boolean;
   debug?: boolean;
   model?: string;
+  // Python CLI compatibility options
+  all?: boolean;
+  markdown?: boolean;
+  schemas?: boolean;
+  schema?: boolean;  // Alias for schemas
+  relationships?: boolean;
+  structure?: boolean;
+  naming?: boolean;
+  references?: boolean;
 }
 
 export async function validateCommand(options: ValidateOptions): Promise<void> {

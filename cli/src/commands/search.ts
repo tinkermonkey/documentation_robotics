@@ -4,7 +4,7 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { fileExists } from '../utils/file-io.js';
+import { resolveModelRoot } from '../utils/model-path.js';
 
 export interface SearchOptions {
   layer?: string;
@@ -16,13 +16,8 @@ export interface SearchOptions {
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
   try {
-    const rootPath = process.cwd();
-
-    // Check if model exists
-    if (!(await fileExists(`${rootPath}/model/manifest.yaml`))) {
-      console.error(ansis.red('Error: No model found. Run "dr init" first.'));
-      process.exit(1);
-    }
+    // Resolve model path (supports multiple layouts)
+    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
 
     // Load model
     const model = await Model.load(rootPath, { lazyLoad: false });

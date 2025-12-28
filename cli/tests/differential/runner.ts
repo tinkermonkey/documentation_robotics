@@ -35,14 +35,15 @@ export interface CommandResult {
 
 /**
  * A test case comparing Python and TypeScript CLI outputs
+ * For TypeScript-only tests, python can be omitted
  */
 export interface TestCase {
   /** Name of the test case */
   name: string;
   /** Description of what's being tested */
   description?: string;
-  /** Python command to run */
-  python: CliCommand;
+  /** Python command to run (optional for TypeScript-only tests) */
+  python?: CliCommand;
   /** TypeScript command to run */
   typescript: CliCommand;
   /** How to compare the outputs */
@@ -104,11 +105,27 @@ export async function executeCommand(cmd: CliCommand): Promise<CommandResult> {
 
 /**
  * Execute both Python and TypeScript commands for a test case
+ * For TypeScript-only tests, python result will have exit code 0
  */
 export async function executeTestCase(testCase: TestCase): Promise<{
   python: CommandResult;
   typescript: CommandResult;
 }> {
+  // For TypeScript-only tests, create a dummy python result
+  if (!testCase.python) {
+    const typescriptResult = await executeCommand(testCase.typescript);
+    return {
+      python: {
+        exitCode: 0,
+        stdout: '',
+        stderr: '',
+        executionTime: 0,
+        success: true
+      },
+      typescript: typescriptResult
+    };
+  }
+
   // Execute in parallel for speed
   const [pythonResult, typescriptResult] = await Promise.all([
     executeCommand(testCase.python),

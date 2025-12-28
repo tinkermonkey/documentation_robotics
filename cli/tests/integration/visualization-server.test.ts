@@ -12,61 +12,63 @@ import { sleep } from '../helpers.ts';
 
 // Test fixture setup
 async function createTestModel(rootPath: string): Promise<Model> {
-  mkdirSync(join(rootPath, '.dr', 'layers'), { recursive: true });
-
-  const manifest = {
-    name: 'Integration Test Model',
-    version: '0.1.0',
-    description: 'Integration Test',
-    author: 'Test Suite',
-    specVersion: '0.6.0',
-    created: new Date().toISOString(),
-  };
-
-  writeFileSync(
-    join(rootPath, '.dr', 'manifest.json'),
-    JSON.stringify(manifest, null, 2)
+  // Use init to create the model with the correct structure
+  const model = await Model.init(
+    rootPath,
+    {
+      name: 'Integration Test Model',
+      version: '0.1.0',
+      description: 'Integration Test',
+      author: 'Test Suite',
+      specVersion: '0.6.0',
+      created: new Date().toISOString(),
+    },
+    { lazyLoad: false }
   );
 
-  const motivationLayer = {
-    elements: [
-      {
-        id: 'motivation-goal-integration-test',
-        type: 'goal',
-        name: 'Integration Test Goal',
-        description: 'Goal for integration testing',
-      },
-      {
-        id: 'motivation-requirement-integration-test',
-        type: 'requirement',
-        name: 'Integration Test Requirement',
-        description: 'Requirement for integration testing',
-      },
-    ],
-  };
+  // Add test elements to layers
+  const { Layer } = await import('../../src/core/layer.js');
+  const { Element } = await import('../../src/core/element.js');
 
-  writeFileSync(
-    join(rootPath, '.dr', 'layers', 'motivation.json'),
-    JSON.stringify(motivationLayer, null, 2)
-  );
+  // Add motivation layer elements
+  let motivationLayer = await model.getLayer('motivation');
+  if (!motivationLayer) {
+    motivationLayer = new Layer('motivation');
+    model.addLayer(motivationLayer);
+  }
 
-  const applicationLayer = {
-    elements: [
-      {
-        id: 'application-service-integration-test',
-        type: 'service',
-        name: 'Integration Test Service',
-        description: 'Service for integration testing',
-      },
-    ],
-  };
+  motivationLayer.addElement(new Element({
+    id: 'motivation-goal-integration-test',
+    type: 'goal',
+    name: 'Integration Test Goal',
+    description: 'Goal for integration testing',
+  }));
 
-  writeFileSync(
-    join(rootPath, '.dr', 'layers', 'application.json'),
-    JSON.stringify(applicationLayer, null, 2)
-  );
+  motivationLayer.addElement(new Element({
+    id: 'motivation-requirement-integration-test',
+    type: 'requirement',
+    name: 'Integration Test Requirement',
+    description: 'Requirement for integration testing',
+  }));
 
-  return Model.load(rootPath, { lazyLoad: false });
+  // Add application layer elements
+  let applicationLayer = await model.getLayer('application');
+  if (!applicationLayer) {
+    applicationLayer = new Layer('application');
+    model.addLayer(applicationLayer);
+  }
+
+  applicationLayer.addElement(new Element({
+    id: 'application-service-integration-test',
+    type: 'service',
+    name: 'Integration Test Service',
+    description: 'Service for integration testing',
+  }));
+
+  // Save the model
+  await model.save();
+
+  return model;
 }
 
 describe('VisualizationServer Integration Tests', () => {

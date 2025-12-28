@@ -46,13 +46,19 @@ describe('Differential Testing: Python CLI vs TypeScript CLI', () => {
 
       // Execute both commands
       console.log('Executing commands...');
-      console.log(`  Python:     ${formatCommand(testCase.python)}`);
+      if (testCase.python) {
+        console.log(`  Python:     ${formatCommand(testCase.python)}`);
+      } else {
+        console.log(`  Python:     (TypeScript-only test)`);
+      }
       console.log(`  TypeScript: ${formatCommand(testCase.typescript)}`);
 
       const results = await executeTestCase(testCase);
 
       // Display execution results
-      console.log('\n' + formatCommandResult(results.python, 'Python CLI'));
+      if (testCase.python) {
+        console.log('\n' + formatCommandResult(results.python, 'Python CLI'));
+      }
       console.log('\n' + formatCommandResult(results.typescript, 'TypeScript CLI'));
 
       // Compare outputs

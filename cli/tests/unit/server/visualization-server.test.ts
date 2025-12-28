@@ -10,37 +10,46 @@ import { join } from 'path';
 import { mkdirSync, rmSync, writeFileSync } from 'fs';
 
 // Test fixture setup
-function createTestModel(rootPath: string): Promise<Model> {
-  mkdirSync(join(rootPath, '.dr', 'layers'), { recursive: true });
+async function createTestModel(rootPath: string): Promise<Model> {
+  // Create model directory structure (new YAML format)
+  mkdirSync(join(rootPath, 'model', '01_motivation'), { recursive: true });
 
-  const manifest = {
-    name: 'Test Model',
-    version: '0.1.0',
-    description: 'Test Description',
-    author: 'Test Author',
-    specVersion: '0.6.0',
-    created: new Date().toISOString(),
-  };
+  // Create manifest.yaml
+  const manifestYaml = `version: '0.1.0'
+schema: documentation-robotics-v1
+cli_version: 0.1.0
+created: ${new Date().toISOString()}
+updated: ${new Date().toISOString()}
+project:
+  name: Test Model
+  description: Test Description
+  version: '0.1.0'
+documentation: .dr/README.md
+layers:
+  motivation:
+    order: 1
+    name: Motivation
+    path: model/01_motivation/
+    schema: .dr/schemas/01-motivation-layer.schema.json
+    enabled: true
+`;
 
   writeFileSync(
-    join(rootPath, '.dr', 'manifest.json'),
-    JSON.stringify(manifest, null, 2)
+    join(rootPath, 'model', 'manifest.yaml'),
+    manifestYaml
   );
 
-  const motivationLayer = {
-    elements: [
-      {
-        id: 'motivation-goal-test-goal',
-        type: 'goal',
-        name: 'Test Goal',
-        description: 'A test goal',
-      },
-    ],
-  };
+  // Create motivation layer YAML file
+  const motivationYaml = `test-goal:
+  id: motivation-goal-test-goal
+  name: Test Goal
+  type: goal
+  documentation: A test goal
+`;
 
   writeFileSync(
-    join(rootPath, '.dr', 'layers', 'motivation.json'),
-    JSON.stringify(motivationLayer, null, 2)
+    join(rootPath, 'model', '01_motivation', 'goals.yaml'),
+    motivationYaml
   );
 
   return Model.load(rootPath, { lazyLoad: false });

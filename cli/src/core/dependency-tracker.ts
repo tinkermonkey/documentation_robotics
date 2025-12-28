@@ -1,5 +1,6 @@
 import Graph from 'graphology';
 import { ReferenceRegistry } from './reference-registry.js';
+import { Model } from './model.js';
 
 /**
  * Direction to trace dependencies (matches Python CLI TraceDirection enum)
@@ -30,10 +31,29 @@ export interface DependencyPath {
  * Matches Python CLI behavior from dependency_tracker.py
  */
 export class DependencyTracker {
-  private registry: ReferenceRegistry;
+  private registry?: ReferenceRegistry;
+  private graph: Graph;
+  private model?: Model;
 
-  constructor(registry: ReferenceRegistry) {
-    this.registry = registry;
+  constructor(registryOrGraph: ReferenceRegistry | Graph, model?: Model) {
+    if (registryOrGraph instanceof Graph) {
+      this.graph = registryOrGraph;
+    } else {
+      this.registry = registryOrGraph;
+      this.graph = registryOrGraph.getDependencyGraph();
+    }
+    this.model = model;
+  }
+
+  /**
+   * Get dependency graph
+   */
+  private getGraph(): Graph {
+    if (this.registry) {
+      // Rebuild from registry each time to reflect new references
+      this.graph = this.registry.getDependencyGraph();
+    }
+    return this.graph;
   }
 
   /**
@@ -49,7 +69,7 @@ export class DependencyTracker {
     direction: TraceDirection = TraceDirection.BOTH,
     maxDepth: number | null = null
   ): string[] {
-    const graph = this.registry.getDependencyGraph();
+    const graph = this.getGraph();
 
     if (!graph.hasNode(elementId)) {
       return [];
@@ -221,7 +241,7 @@ export class DependencyTracker {
     targetId: string,
     maxPaths: number = 10
   ): DependencyPath[] {
-    const graph = this.registry.getDependencyGraph();
+    const graph = this.getGraph();
 
     if (!graph.hasNode(sourceId) || !graph.hasNode(targetId)) {
       return [];
@@ -298,7 +318,7 @@ export class DependencyTracker {
    * @returns Array of [elementId, connectionCount] tuples, sorted by count descending
    */
   getHubElements(threshold: number = 10): [string, number][] {
-    const graph = this.registry.getDependencyGraph();
+    const graph = this.getGraph();
     const hubs: [string, number][] = [];
 
     for (const node of graph.nodes()) {
@@ -312,5 +332,253 @@ export class DependencyTracker {
     hubs.sort((a, b) => b[1] - a[1]);
 
     return hubs;
+  }
+
+  /**
+   * Get direct dependents (incoming edges)
+   */
+  getDependents(elementId: string): string[] {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return [];
+    return graph.inNeighbors(elementId);
+  }
+
+  /**
+   * Get direct dependencies (outgoing edges)
+   */
+  getDependencies(elementId: string): string[] {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return [];
+    return graph.outNeighbors(elementId);
+  }
+
+  /**
+   * Get all elements that transitively depend on the given element (ancestors)
+   */
+  getTransitiveDependents(elementId: string): string[] {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return [];
+    return Array.from(this._getAncestors(graph, elementId));
+  }
+
+  /**
+   * Get all elements this element transitively depends on (descendants)
+   */
+  getTransitiveDependencies(elementId: string): string[] {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return [];
+    return Array.from(this._getDescendants(graph, elementId));
+  }
+
+  /**
+   * Detect cycles in the dependency graph
+   */
+  detectCycles(): string[][] {
+    const graph = this.getGraph();
+    const visited = new Set<string>();
+    const stack = new Set<string>();
+    const path: string[] = [];
+    const cycleMap = new Map<string, string[]>();
+
+    const canonicalKey = (cycle: string[]): string => {
+      // Normalize cycle representation to avoid duplicates
+      const unique = Array.from(new Set(cycle));
+      unique.sort();
+      return unique.join('|');
+    };
+
+    const dfs = (node: string) => {
+      visited.add(node);
+      stack.add(node);
+      path.push(node);
+
+      for (const neighbor of graph.outNeighbors(node)) {
+        if (!visited.has(neighbor)) {
+          dfs(neighbor);
+        } else if (stack.has(neighbor)) {
+          // Found a cycle, capture the slice from neighbor to current
+          const idx = path.indexOf(neighbor);
+          if (idx !== -1) {
+            const cycle = path.slice(idx);
+            const key = canonicalKey(cycle);
+            if (!cycleMap.has(key)) {
+              cycleMap.set(key, [...cycle]);
+            }
+          }
+        }
+      }
+
+      stack.delete(node);
+      path.pop();
+    };
+
+    for (const node of graph.nodes()) {
+      if (!visited.has(node)) {
+        dfs(node);
+      }
+    }
+
+    return Array.from(cycleMap.values());
+  }
+
+  /**
+   * Calculate basic graph metrics
+   */
+  getMetrics(): { nodeCount: number; edgeCount: number; cycleCount: number; connectedComponents: number } {
+    const graph = this.getGraph();
+
+    const nodeCount = graph.order;
+    const edgeCount = graph.size;
+    const cycleCount = this.detectCycles().length;
+
+    // Count weakly connected components
+    const visited = new Set<string>();
+    let connectedComponents = 0;
+
+    const bfs = (start: string) => {
+      const queue = [start];
+      visited.add(start);
+
+      while (queue.length > 0) {
+        const node = queue.shift()!;
+        const neighbors = new Set<string>([
+          ...graph.outNeighbors(node),
+          ...graph.inNeighbors(node)
+        ]);
+
+        for (const neighbor of neighbors) {
+          if (!visited.has(neighbor)) {
+            visited.add(neighbor);
+            queue.push(neighbor);
+          }
+        }
+      }
+    };
+
+    for (const node of graph.nodes()) {
+      if (!visited.has(node)) {
+        connectedComponents += 1;
+        bfs(node);
+      }
+    }
+
+    return { nodeCount, edgeCount, cycleCount, connectedComponents };
+  }
+
+  /**
+   * Find elements with no incoming edges
+   */
+  findSourceElements(): string[] {
+    const graph = this.getGraph();
+    const sources: string[] = [];
+
+    for (const node of graph.nodes()) {
+      if (graph.inNeighbors(node).length === 0) {
+        sources.push(node);
+      }
+    }
+
+    return sources;
+  }
+
+  /**
+   * Find elements with no outgoing edges
+   */
+  findSinkElements(): string[] {
+    const graph = this.getGraph();
+    const sinks: string[] = [];
+
+    for (const node of graph.nodes()) {
+      if (graph.outNeighbors(node).length === 0) {
+        sinks.push(node);
+      }
+    }
+
+    return sinks;
+  }
+
+  /**
+   * Calculate how many elements would be impacted if this element changed
+   * (all ancestors/predecessors excluding the element itself)
+   */
+  getImpactRadius(elementId: string): number {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return 0;
+    const impacted = this._getAncestors(graph, elementId);
+    return impacted.size;
+  }
+
+  /**
+   * Get longest dependency chain depth from this element (outgoing edges)
+   */
+  getDependencyDepth(elementId: string): number {
+    const graph = this.getGraph();
+    if (!graph.hasNode(elementId)) return -1;
+
+    const memo = new Map<string, number>();
+    const stack = new Set<string>();
+
+    const dfsDepth = (node: string): number => {
+      if (memo.has(node)) return memo.get(node)!;
+      if (stack.has(node)) return 0; // break cycles
+
+      stack.add(node);
+      let maxDepth = 0;
+
+      for (const neighbor of graph.outNeighbors(node)) {
+        const neighborDepth = dfsDepth(neighbor);
+        maxDepth = Math.max(maxDepth, 1 + neighborDepth);
+      }
+
+      stack.delete(node);
+      memo.set(node, maxDepth);
+      return maxDepth;
+    };
+
+    return dfsDepth(elementId);
+  }
+
+  /**
+   * Group dependencies by layer (requires model)
+   */
+  getDependencyLayers(elementId: string): Record<string, string[]> {
+    if (!this.model) return {};
+
+    const byLayer: Record<string, string[]> = {};
+    const dependencies = this.traceDependencies(elementId, TraceDirection.BOTH);
+
+    for (const depId of dependencies) {
+      const element = this.model.getElementById(depId);
+      if (!element || !element.layer) continue;
+
+      if (!byLayer[element.layer]) {
+        byLayer[element.layer] = [];
+      }
+      byLayer[element.layer].push(depId);
+    }
+
+    return byLayer;
+  }
+
+  /**
+   * Find elements with no references (requires model)
+   */
+  getOrphanedElements(): any[] {
+    if (!this.model) return [];
+
+    const graph = this.getGraph();
+    const orphaned: any[] = [];
+
+    for (const layer of this.model.layers.values()) {
+      for (const element of layer.elements.values()) {
+        if (!graph.hasNode(element.id)) {
+          orphaned.push(element);
+        } else if (graph.degree(element.id) === 0) {
+          orphaned.push(element);
+        }
+      }
+    }
+
+    return orphaned;
   }
 }
