@@ -29,6 +29,7 @@ import { migrateCommand } from './commands/migrate.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
 import { changesetCommands } from './commands/changeset.js';
+import { versionCommand } from './commands/version.js';
 import type { Span } from '@opentelemetry/api';
 import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
 
@@ -41,10 +42,16 @@ const program = new Command();
 // Will be set in preAction hook and ended in process exit handler
 let rootSpan: Span | null = null;
 
+// Handle --version and -V flags early, before commander processes them
+if (process.argv.includes('--version') || process.argv.includes('-V')) {
+  const { versionCommand } = await import('./commands/version.js');
+  await versionCommand();
+  process.exit(0);
+}
+
 program
   .name('dr')
   .description('Documentation Robotics CLI - Architecture Model Management')
-  .version('0.1.0')
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
   .hook('preAction', (thisCommand) => {
@@ -354,6 +361,19 @@ Examples:
       dryRun: options.dryRun,
       force: options.force,
     });
+  });
+
+program
+  .command('version')
+  .description('Show CLI and embedded spec version information')
+  .addHelpText(
+    'after',
+    `
+Examples:
+  $ dr version`
+  )
+  .action(async () => {
+    await versionCommand();
   });
 
 program

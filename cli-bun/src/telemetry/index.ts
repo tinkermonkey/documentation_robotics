@@ -39,9 +39,14 @@ export function initTelemetry(): void {
   if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
+    // Using require() here is intentional for dead code elimination
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { NodeSDK } = require('@opentelemetry/sdk-node');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { trace } = require('@opentelemetry/api');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { ResilientOTLPExporter } = require('./resilient-exporter');
 
     // Create resilient exporter with circuit-breaker pattern

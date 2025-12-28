@@ -32,7 +32,8 @@ export class ResilientOTLPExporter implements SpanExporter {
       timeoutMillis?: number;
     }
   ) {
-    // Dynamically require to support tree-shaking when TELEMETRY_ENABLED is false
+    // Using require() is intentional for tree-shaking when TELEMETRY_ENABLED is false
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { OTLPTraceExporter: ExporterClass } = require('@opentelemetry/exporter-trace-otlp-http');
 
     this.delegate = new ExporterClass({
@@ -52,18 +53,18 @@ export class ResilientOTLPExporter implements SpanExporter {
     }
 
     this.delegate.export(spans, (result: ExportResult) => {
-      if (result.code === ExportResultCode.FAILED) {
-        // Set 30-second backoff window after first failure
-        this.retryAfter = Date.now() + 30000;
-        // Report success to SDK so it doesn't queue/retry internally
-        // The backoff mechanism prevents further export attempts
-        resultCallback({ code: ExportResultCode.SUCCESS });
-      } else {
-        // Clear backoff on successful export
-        this.retryAfter = 0;
-        resultCallback(result);
-      }
-    });
+        if (result.code === ExportResultCode.FAILED) {
+          // Set 30-second backoff window after first failure
+          this.retryAfter = Date.now() + 30000;
+          // Report success to SDK so it doesn't queue/retry internally
+          // The backoff mechanism prevents further export attempts
+          resultCallback({ code: ExportResultCode.SUCCESS });
+        } else {
+          // Clear backoff on successful export
+          this.retryAfter = 0;
+          resultCallback(result);
+        }
+      });
   }
 
   async forceFlush(): Promise<void> {
