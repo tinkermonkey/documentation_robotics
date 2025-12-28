@@ -12,7 +12,7 @@ Layer Files:
     stored in layer-specific directories
   schema: model
   format: yaml
-  pattern: '*.yaml'
+  pattern: "*.yaml"
   path: model/{layer_number}_{layer_name}/
   id: datastore.table.layer-files
 Configuration File:

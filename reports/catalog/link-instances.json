@@ -9,9 +9,7 @@
     "security-process-security-controls": {
       "link_type_name": "Process Security Controls",
       "total_instances": 2,
-      "layers_used": [
-        "02"
-      ],
+      "layers_used": ["02"],
       "unique_values": [
         "control-id-1,control-id-2",
         "control-order-approval,control-payment-verification"
@@ -34,13 +32,8 @@
     "security-process-separation-of-duty": {
       "link_type_name": "Process Separation Of Duty",
       "total_instances": 2,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["true", "true|false"],
       "instances": [
         {
           "field_path": "process.separation-of-duty",
@@ -59,10 +52,7 @@
     "business-apm-business-metrics": {
       "link_type_name": "Apm Business Metrics",
       "total_instances": 4,
-      "layers_used": [
-        "02",
-        "04"
-      ],
+      "layers_used": ["02", "04"],
       "unique_values": [
         "metric-id-1,metric-id-2",
         "metric-order-fulfillment-time,metric-order-success-rate",
@@ -98,12 +88,8 @@
     "archimate-application-realized-by-process": {
       "link_type_name": "Application Realized By Process",
       "total_instances": 1,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "app-process-id"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["app-process-id"],
       "instances": [
         {
           "field_path": "application.realized-by-process",
@@ -116,12 +102,8 @@
     "archimate-application-process-steps": {
       "link_type_name": "Application Process Steps",
       "total_instances": 1,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "step-1,step-2"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["step-1,step-2"],
       "instances": [
         {
           "field_path": "application.process-steps",
@@ -134,10 +116,7 @@
     "motivation-delivers-value": {
       "link_type_name": "Delivers Value",
       "total_instances": 5,
-      "layers_used": [
-        "02",
-        "04"
-      ],
+      "layers_used": ["02", "04"],
       "unique_values": [
         "value-customer-convenience",
         "value-customer-convenience,value-operational-efficiency",
@@ -179,18 +158,7 @@
     "motivation-supports-goals": {
       "link_type_name": "Supports Goals",
       "total_instances": 17,
-      "layers_used": [
-        "02",
-        "04",
-        "05",
-        "06",
-        "07",
-        "08",
-        "09",
-        "10",
-        "11",
-        "12"
-      ],
+      "layers_used": ["02", "04", "05", "06", "07", "08", "09", "10", "11", "12"],
       "unique_values": [
         "goal-customer-satisfaction",
         "goal-customer-satisfaction,goal-revenue-growth",
@@ -309,19 +277,7 @@
     "motivation-governed-by-principles": {
       "link_type_name": "Governed By Principles",
       "total_instances": 36,
-      "layers_used": [
-        "02",
-        "03",
-        "04",
-        "05",
-        "06",
-        "07",
-        "08",
-        "09",
-        "10",
-        "11",
-        "12"
-      ],
+      "layers_used": ["02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"],
       "unique_values": [
         "principle-api-first",
         "principle-api-first,principle-cloud-native",
@@ -568,13 +524,8 @@
     "data-governance-owner": {
       "link_type_name": "Governance Owner",
       "total_instances": 2,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "business-actor-id",
-        "sales-rep"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["business-actor-id", "sales-rep"],
       "instances": [
         {
           "field_path": "data.governance-owner",
@@ -593,12 +544,8 @@
     "archimate-application-represented-by-dataobject": {
       "link_type_name": "Application Represented By Dataobject",
       "total_instances": 1,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "data-object-id"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["data-object-id"],
       "instances": [
         {
           "field_path": "application.represented-by-dataobject",
@@ -611,12 +558,8 @@
     "archimate-application-master-data-source": {
       "link_type_name": "Application Master Data Source",
       "total_instances": 1,
-      "layers_used": [
-        "02"
-      ],
-      "unique_values": [
-        "data-object-id"
-      ],
+      "layers_used": ["02"],
+      "unique_values": ["data-object-id"],
       "instances": [
         {
           "field_path": "application.master-data-source",
@@ -629,10 +572,7 @@
     "motivation-fulfills-requirements": {
       "link_type_name": "Fulfills Requirements",
       "total_instances": 18,
-      "layers_used": [
-        "04",
-        "05"
-      ],
+      "layers_used": ["04", "05"],
       "unique_values": [
         "req-acid-compliance,req-replication",
         "req-acid-compliance,req-replication,req-backup-recovery",
@@ -764,13 +704,8 @@
     "apm-traced": {
       "link_type_name": "Traced",
       "total_instances": 3,
-      "layers_used": [
-        "04"
-      ],
-      "unique_values": [
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["04"],
+      "unique_values": ["true", "true|false"],
       "instances": [
         {
           "field_path": "apm.traced",
@@ -795,16 +730,8 @@
     "apm-sla-target-latency": {
       "link_type_name": "Sla Target Latency",
       "total_instances": 4,
-      "layers_used": [
-        "04",
-        "05"
-      ],
-      "unique_values": [
-        "10ms",
-        "200ms",
-        "200ms|500ms|1000ms",
-        "5ms|10ms|50ms"
-      ],
+      "layers_used": ["04", "05"],
+      "unique_values": ["10ms", "200ms", "200ms|500ms|1000ms", "5ms|10ms|50ms"],
       "instances": [
         {
           "field_path": "apm.sla-target-latency",
@@ -835,15 +762,8 @@
     "apm-sla-target-availability": {
       "link_type_name": "Sla Target Availability",
       "total_instances": 7,
-      "layers_used": [
-        "04",
-        "05"
-      ],
-      "unique_values": [
-        "99.9%|99.95%|99.99%",
-        "99.95%",
-        "99.99%"
-      ],
+      "layers_used": ["04", "05"],
+      "unique_values": ["99.9%|99.95%|99.99%", "99.95%", "99.99%"],
       "instances": [
         {
           "field_path": "apm.sla-target-availability",
@@ -892,14 +812,8 @@
     "security-data-pii": {
       "link_type_name": "Data Pii",
       "total_instances": 3,
-      "layers_used": [
-        "04"
-      ],
-      "unique_values": [
-        "false",
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["04"],
+      "unique_values": ["false", "true", "true|false"],
       "instances": [
         {
           "field_path": "data.pii",
@@ -924,13 +838,8 @@
     "data-retention": {
       "link_type_name": "Retention",
       "total_instances": 4,
-      "layers_used": [
-        "04"
-      ],
-      "unique_values": [
-        "61320h",
-        "90days|1year|7years"
-      ],
+      "layers_used": ["04"],
+      "unique_values": ["61320h", "90days|1year|7years"],
       "instances": [
         {
           "field_path": "data.retention",
@@ -961,9 +870,7 @@
     "motivation-constrained-by": {
       "link_type_name": "Constrained By",
       "total_instances": 20,
-      "layers_used": [
-        "05"
-      ],
+      "layers_used": ["05"],
       "unique_values": [
         "constraint-amqp-protocol-required",
         "constraint-aws-infrastructure,constraint-budget-500k",
@@ -1104,13 +1011,8 @@
     "apm-health-monitored": {
       "link_type_name": "Health Monitored",
       "total_instances": 5,
-      "layers_used": [
-        "05"
-      ],
-      "unique_values": [
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["05"],
+      "unique_values": ["true", "true|false"],
       "instances": [
         {
           "field_path": "apm.health-monitored",
@@ -1147,13 +1049,8 @@
     "apm-health-check-endpoint": {
       "link_type_name": "Health Check Endpoint",
       "total_instances": 3,
-      "layers_used": [
-        "05"
-      ],
-      "unique_values": [
-        "/healthz",
-        "/health|/readiness"
-      ],
+      "layers_used": ["05"],
+      "unique_values": ["/healthz", "/health|/readiness"],
       "instances": [
         {
           "field_path": "apm.health-check-endpoint",
@@ -1178,13 +1075,8 @@
     "security-encryption-required": {
       "link_type_name": "Encryption Required",
       "total_instances": 6,
-      "layers_used": [
-        "05"
-      ],
-      "unique_values": [
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["05"],
+      "unique_values": ["true", "true|false"],
       "instances": [
         {
           "field_path": "security.encryption-required",
@@ -1227,14 +1119,8 @@
     "security-encryption-type": {
       "link_type_name": "Encryption Type",
       "total_instances": 5,
-      "layers_used": [
-        "05"
-      ],
-      "unique_values": [
-        "at-rest",
-        "at-rest|in-transit|both|end-to-end",
-        "both"
-      ],
+      "layers_used": ["05"],
+      "unique_values": ["at-rest", "at-rest|in-transit|both|end-to-end", "both"],
       "instances": [
         {
           "field_path": "security.encryption-type",
@@ -1271,16 +1157,7 @@
     "security-classification": {
       "link_type_name": "Classification",
       "total_instances": 14,
-      "layers_used": [
-        "05",
-        "06",
-        "07",
-        "08",
-        "09",
-        "10",
-        "11",
-        "12"
-      ],
+      "layers_used": ["05", "06", "07", "08", "09", "10", "11", "12"],
       "unique_values": [
         "confidential",
         "internal",
@@ -1377,13 +1254,8 @@
     "security-pii": {
       "link_type_name": "Pii",
       "total_instances": 3,
-      "layers_used": [
-        "05"
-      ],
-      "unique_values": [
-        "true",
-        "true|false"
-      ],
+      "layers_used": ["05"],
+      "unique_values": ["true", "true|false"],
       "instances": [
         {
           "field_path": "security.pii",

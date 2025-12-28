@@ -1,12 +1,11 @@
 name: Release
 
-# Keep enabled for releases, but releases should only happen after pre-commit validation
 on:
   push:
     tags:
-      - 'v*.*.*'
-      - 'cli-v*.*.*'
-      - 'spec-v*.*.*'
+      - "v*.*.*"
+      - "cli-bun-v*.*.*"
+      - "spec-v*.*.*"
 
 jobs:
   release-spec:
@@ -83,9 +82,9 @@ jobs:
           draft: false
           prerelease: false
 
-  release-cli:
-    name: Release CLI
-    if: startsWith(github.ref, 'refs/tags/cli-v')
+  release-bun-cli:
+    name: Release Bun CLI
+    if: startsWith(github.ref, 'refs/tags/cli-bun-v')
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -93,63 +92,48 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.11'
+          node-version: "18"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Extract version
         id: version
         run: |
-          VERSION=${GITHUB_REF#refs/tags/cli-v}
+          VERSION=${GITHUB_REF#refs/tags/cli-bun-v}
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Releasing CLI v$VERSION"
+          echo "Releasing Bun CLI v$VERSION"
 
-      - name: Install build dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install build twine
-
-      - name: Install CLI for prepare_build script
-        working-directory: ./cli
-        run: |
-          pip install -e .
-
-      - name: Prepare build (fetch schemas from GitHub release)
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          python scripts/prepare_build.py --verbose
-
-      - name: Bundle viewer
-        working-directory: ./cli
-        run: |
-          python ../scripts/bundle_viewer.py
+      - name: Install dependencies
+        working-directory: ./cli-bun
+        run: npm install
 
       - name: Build package
-        working-directory: ./cli
-        run: |
-          python -m build
+        working-directory: ./cli-bun
+        run: npm run build
 
-      - name: Publish to PyPI
-        working-directory: ./cli
+      - name: Run tests
+        working-directory: ./cli-bun
+        run: npm test
+
+      - name: Publish to npm
+        working-directory: ./cli-bun
         env:
-          TWINE_USERNAME: __token__
-          TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
-        run: |
-          twine upload dist/*
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
         with:
-          name: CLI v${{ steps.version.outputs.version }}
+          name: Bun CLI v${{ steps.version.outputs.version }}
           body: |
-            CLI release v${{ steps.version.outputs.version }}
+            Bun CLI release v${{ steps.version.outputs.version }}
 
-            Install: `pip install documentation-robotics==${{ steps.version.outputs.version }}`
+            Install: `npm install -g @documentation-robotics/cli@${{ steps.version.outputs.version }}`
 
-            See [CLI CHANGELOG](cli/CHANGELOG.md) for details.
+            See [Bun CLI CHANGELOG](cli-bun/CHANGELOG.md) for details.
           files: |
-            cli/dist/*
+            cli-bun/dist/*
           draft: false
           prerelease: false

@@ -69,20 +69,20 @@ Otherwise, ask the user for:
 Execute the `dr init` command:
 
 ```bash
-dr init "<project-name>" [--with-examples] [--template <template>]
+dr init --name "<project-name>" [--with-examples] [--template <template>]
 ```
 
 Examples:
 
 ```bash
 # Basic initialization
-dr init "My Project"
+dr init --name "My Project"
 
 # With examples
-dr init "My Project" --with-examples
+dr init --name "My Project" --with-examples
 
 # Minimal structure
-dr init "My Project" --template minimal
+dr init --name "My Project" --template minimal
 ```
 
 ### Step 4: Verify Initialization
@@ -90,9 +90,9 @@ dr init "My Project" --template minimal
 Check that the model was created successfully:
 
 ```bash
-ls -la documentation-robotics/
-ls -la documentation-robotics/model/manifest.yaml
-cat documentation-robotics/model/manifest.yaml
+ls -la .dr/
+ls -la .dr/manifest.json
+cat .dr/manifest.json
 ```
 
 Show the user:
@@ -132,7 +132,7 @@ Display a helpful summary:
 ✓ Documentation Robotics model initialized successfully!
 
 Project: <project-name>
-Location: ./documentation-robotics/model/
+Location: ./.dr/
 
 Next steps:
 1. Add your first element:
@@ -162,7 +162,7 @@ Next steps:
 **You should:**
 
 1. Check no model exists
-2. Run: `dr init "E-Commerce Platform"`
+2. Run: `dr init --name "E-Commerce Platform"`
 3. Verify creation
 4. Ask about Claude integration
 5. Show next steps
@@ -178,7 +178,7 @@ Next steps:
 3. User responds: "Payment Gateway"
 4. Ask: "Include example elements? (yes/no)"
 5. User responds: "no"
-6. Run: `dr init "Payment Gateway"`
+6. Run: `dr init --name "Payment Gateway"`
 7. Verify creation
 8. Ask about Claude integration
 9. Show next steps
@@ -194,7 +194,7 @@ Next steps:
 3. Show current model info:
 
    ```bash
-   cat documentation-robotics/model/manifest.yaml | grep -E "name|version"
+   cat .dr/manifest.json | grep -E "name|version"
    dr validate
    ```
 
@@ -228,7 +228,10 @@ Please provide a valid project name.
 Error: DR CLI not found
 
 Please ensure Documentation Robotics is installed:
-pip install documentation-robotics
+npm install -g @documentation-robotics/cli
+
+Or from source:
+cd cli-bun && npm install && npm run build && npm install -g .
 ```
 
 ## Important Notes

@@ -15,14 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "Goal",
-          "Requirement"
-        ],
-        "targetTypes": [
-          "Goal",
-          "Requirement"
-        ],
+        "sourceTypes": ["Goal", "Requirement"],
+        "targetTypes": ["Goal", "Requirement"],
         "examples": [
           {
             "source": "Goal",
@@ -40,14 +34,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -64,14 +52,8 @@
       },
       {
         "relationshipTypeId": "realization",
-        "sourceTypes": [
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["Goal", "Outcome"],
+        "targetTypes": ["Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -89,21 +71,8 @@
       },
       {
         "relationshipTypeId": "association",
-        "sourceTypes": [
-          "Meaning",
-          "Outcome",
-          "Requirement",
-          "Stakeholder",
-          "Value"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal",
-          "Outcome",
-          "Stakeholder",
-          "Value"
-        ],
+        "sourceTypes": ["Meaning", "Outcome", "Requirement", "Stakeholder", "Value"],
+        "targetTypes": ["Constraint", "Driver", "Goal", "Outcome", "Stakeholder", "Value"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -127,19 +96,8 @@
       },
       {
         "relationshipTypeId": "influence",
-        "sourceTypes": [
-          "Assessment",
-          "Constraint",
-          "Driver",
-          "Goal",
-          "Principle"
-        ],
-        "targetTypes": [
-          "Assessment",
-          "Goal",
-          "Principle",
-          "Requirement"
-        ],
+        "sourceTypes": ["Assessment", "Constraint", "Driver", "Goal", "Principle"],
+        "targetTypes": ["Assessment", "Goal", "Principle", "Requirement"],
         "examples": [
           {
             "source": "Driver",
@@ -179,9 +137,7 @@
           "SystemSoftware",
           "TechnologyService"
         ],
-        "targetTypes": [
-          "ConstrainedBy"
-        ],
+        "targetTypes": ["ConstrainedBy"],
         "fieldPath": "motivation.constrained-by",
         "cardinality": "array",
         "description": "Inverse of: string[] (Constraint IDs for regulatory/compliance, optional)"
@@ -191,13 +147,8 @@
         "predicate": "constrains",
         "inversePredicate": "constrained-by",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "ConstrainedBy"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["ConstrainedBy"],
         "fieldPath": "motivation.constrained-by",
         "cardinality": "array",
         "description": "Inverse of: string[] (Constraint IDs for regulatory/compliance, optional)"
@@ -207,12 +158,8 @@
         "predicate": "delivered-by",
         "inversePredicate": "delivers-value",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "DeliversValue"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["DeliversValue"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "description": "Inverse of: BusinessService delivers Value"
@@ -222,12 +169,8 @@
         "predicate": "delivered-by",
         "inversePredicate": "delivers-value",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "DeliversValue"
-        ],
+        "sourceTypes": ["ApplicationService"],
+        "targetTypes": ["DeliversValue"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "description": "Inverse of: BusinessService delivers Value"
@@ -237,12 +180,8 @@
         "predicate": "fulfilled-by",
         "inversePredicate": "fulfills-requirements",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationFunction"
-        ],
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
+        "sourceTypes": ["ApplicationFunction"],
+        "targetTypes": ["FulfillsRequirement"],
         "fieldPath": "motivation.fulfills-requirements",
         "cardinality": "array",
         "description": "Inverse of: comma-separated Requirement IDs this function fulfills"
@@ -252,14 +191,8 @@
         "predicate": "fulfilled-by",
         "inversePredicate": "fulfills-requirements",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "CommunicationNetwork",
-          "Node",
-          "SystemSoftware"
-        ],
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
+        "sourceTypes": ["CommunicationNetwork", "Node", "SystemSoftware"],
+        "targetTypes": ["FulfillsRequirement"],
         "fieldPath": "motivation.fulfills-requirements",
         "cardinality": "array",
         "description": "Inverse of: comma-separated Requirement IDs this function fulfills"
@@ -269,13 +202,8 @@
         "predicate": "fulfilled-by",
         "inversePredicate": "fulfills-requirements",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["FulfillsRequirement"],
         "fieldPath": "motivation.fulfills-requirements",
         "cardinality": "array",
         "description": "Inverse of: comma-separated Requirement IDs this function fulfills"
@@ -285,12 +213,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -300,12 +224,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "03-security",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -315,13 +235,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationFunction",
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["ApplicationFunction", "ApplicationService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -331,15 +246,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "CommunicationNetwork",
-          "Node",
-          "SystemSoftware",
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["CommunicationNetwork", "Node", "SystemSoftware", "TechnologyService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -349,14 +257,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "OpenAPIDocument",
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["OpenAPIDocument", "Operation", "SecurityScheme"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -366,12 +268,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -381,12 +279,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "08-datastore",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -396,12 +290,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "09-ux",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -411,12 +301,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "10-navigation",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -426,12 +312,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "11-apm-observability",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -441,12 +323,8 @@
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
         "sourceLayer": "12-testing",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "description": "Inverse of: BusinessService governed by Principles"
@@ -456,12 +334,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -471,12 +345,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "03-security",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -486,12 +356,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["ApplicationService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -501,12 +367,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "TechnologyService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["TechnologyService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -516,13 +378,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -532,12 +389,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -547,12 +400,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "08-datastore",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -562,12 +411,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "09-ux",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -577,12 +422,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "10-navigation",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -592,12 +433,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "11-apm-observability",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -607,12 +444,8 @@
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
         "sourceLayer": "12-testing",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "SupportsGoal"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "description": "Inverse of: BusinessService supports Goals"
@@ -695,105 +528,44 @@
   "definitions": {
     "StakeholderType": {
       "type": "string",
-      "enum": [
-        "internal",
-        "external",
-        "customer",
-        "partner",
-        "regulator"
-      ]
+      "enum": ["internal", "external", "customer", "partner", "regulator"]
     },
     "DriverCategory": {
       "type": "string",
-      "enum": [
-        "market",
-        "regulatory",
-        "technology",
-        "competitive",
-        "operational",
-        "strategic"
-      ]
+      "enum": ["market", "regulatory", "technology", "competitive", "operational", "strategic"]
     },
     "AssessmentType": {
       "type": "string",
-      "enum": [
-        "strength",
-        "weakness",
-        "opportunity",
-        "threat",
-        "risk",
-        "gap"
-      ]
+      "enum": ["strength", "weakness", "opportunity", "threat", "risk", "gap"]
     },
     "Priority": {
       "type": "string",
-      "enum": [
-        "critical",
-        "high",
-        "medium",
-        "low"
-      ]
+      "enum": ["critical", "high", "medium", "low"]
     },
     "OutcomeStatus": {
       "type": "string",
-      "enum": [
-        "planned",
-        "in-progress",
-        "achieved",
-        "not-achieved"
-      ]
+      "enum": ["planned", "in-progress", "achieved", "not-achieved"]
     },
     "PrincipleCategory": {
       "type": "string",
-      "enum": [
-        "business",
-        "data",
-        "application",
-        "technology",
-        "security",
-        "integration"
-      ]
+      "enum": ["business", "data", "application", "technology", "security", "integration"]
     },
     "RequirementType": {
       "type": "string",
-      "enum": [
-        "functional",
-        "non-functional",
-        "business",
-        "technical",
-        "compliance",
-        "user"
-      ]
+      "enum": ["functional", "non-functional", "business", "technical", "compliance", "user"]
     },
     "ConstraintType": {
       "type": "string",
-      "enum": [
-        "budget",
-        "time",
-        "technology",
-        "regulatory",
-        "organizational",
-        "resource"
-      ]
+      "enum": ["budget", "time", "technology", "regulatory", "organizational", "resource"]
     },
     "ValueType": {
       "type": "string",
-      "enum": [
-        "financial",
-        "customer",
-        "operational",
-        "strategic",
-        "social"
-      ]
+      "enum": ["financial", "customer", "operational", "strategic", "social"]
     },
     "Stakeholder": {
       "type": "object",
       "description": "Individual, team, or organization with interest in the outcome",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -816,11 +588,7 @@
     "Driver": {
       "type": "object",
       "description": "External or internal condition that motivates an organization",
-      "required": [
-        "id",
-        "name",
-        "category"
-      ],
+      "required": ["id", "name", "category"],
       "properties": {
         "id": {
           "type": "string",
@@ -843,11 +611,7 @@
     "Assessment": {
       "type": "object",
       "description": "Outcome of analysis of the state of affairs",
-      "required": [
-        "id",
-        "name",
-        "assessmentType"
-      ],
+      "required": ["id", "name", "assessmentType"],
       "properties": {
         "id": {
           "type": "string",
@@ -870,11 +634,7 @@
     "Goal": {
       "type": "object",
       "description": "High-level statement of intent, direction, or desired end state",
-      "required": [
-        "id",
-        "name",
-        "priority"
-      ],
+      "required": ["id", "name", "priority"],
       "properties": {
         "id": {
           "type": "string",
@@ -920,11 +680,7 @@
     "Outcome": {
       "type": "object",
       "description": "End result that has been achieved",
-      "required": [
-        "id",
-        "name",
-        "status"
-      ],
+      "required": ["id", "name", "status"],
       "properties": {
         "id": {
           "type": "string",
@@ -966,11 +722,7 @@
     "Principle": {
       "type": "object",
       "description": "Normative property of all systems in a given context",
-      "required": [
-        "id",
-        "name",
-        "category"
-      ],
+      "required": ["id", "name", "category"],
       "properties": {
         "id": {
           "type": "string",
@@ -1012,12 +764,7 @@
     "Requirement": {
       "type": "object",
       "description": "Statement of need that must be realized",
-      "required": [
-        "id",
-        "name",
-        "requirementType",
-        "priority"
-      ],
+      "required": ["id", "name", "requirementType", "priority"],
       "properties": {
         "id": {
           "type": "string",
@@ -1078,11 +825,7 @@
     "Constraint": {
       "type": "object",
       "description": "Restriction on the way in which a system is realized",
-      "required": [
-        "id",
-        "name",
-        "constraintType"
-      ],
+      "required": ["id", "name", "constraintType"],
       "properties": {
         "id": {
           "type": "string",
@@ -1136,10 +879,7 @@
     "Meaning": {
       "type": "object",
       "description": "Knowledge or expertise present in a representation",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1159,11 +899,7 @@
     "Value": {
       "type": "object",
       "description": "Relative worth, utility, or importance of something",
-      "required": [
-        "id",
-        "name",
-        "valueType"
-      ],
+      "required": ["id", "name", "valueType"],
       "properties": {
         "id": {
           "type": "string",

@@ -1,7 +1,7 @@
 {
-  "name": "@doc-robotics/cli-bun",
+  "name": "@documentation-robotics/cli",
   "version": "0.1.0",
-  "description": "Bun CLI for Documentation Robotics",
+  "description": "CLI for Documentation Robotics",
   "type": "module",
   "main": "dist/cli.js",
   "bin": {
@@ -12,6 +12,8 @@
     "build:debug": "tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",
     "copy-schemas": "cp -r src/schemas dist/",
     "dev": "node dist/cli.js",
+    "lint": "tsc --noEmit",
+    "type-check": "tsc --noEmit",
     "test": "bun test tests/**/*.test.ts",
     "test:unit": "bun test tests/unit/**/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",

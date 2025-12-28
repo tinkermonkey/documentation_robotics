@@ -15,16 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "BusinessCollaboration",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessRole",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessCollaboration",
@@ -47,16 +39,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "Goal",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "Goal",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
         "examples": [
           {
             "source": "Goal",
@@ -80,14 +64,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -104,16 +82,8 @@
       },
       {
         "relationshipTypeId": "realization",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -136,12 +106,8 @@
       },
       {
         "relationshipTypeId": "assignment",
-        "sourceTypes": [
-          "BusinessActor"
-        ],
-        "targetTypes": [
-          "BusinessRole"
-        ],
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
         "examples": [
           {
             "source": "BusinessActor",
@@ -152,15 +118,8 @@
       },
       {
         "relationshipTypeId": "association",
-        "sourceTypes": [
-          "Requirement",
-          "Stakeholder"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal"
-        ],
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -184,14 +143,8 @@
       },
       {
         "relationshipTypeId": "influence",
-        "sourceTypes": [
-          "Assessment",
-          "Driver"
-        ],
-        "targetTypes": [
-          "Assessment",
-          "Goal"
-        ],
+        "sourceTypes": ["Assessment", "Driver"],
+        "targetTypes": ["Assessment", "Goal"],
         "examples": [
           {
             "source": "Driver",
@@ -215,16 +168,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "BusinessEvent",
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["BusinessEvent", "CoverageGap", "PartitionDependency"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "BusinessEvent",
@@ -247,16 +192,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -279,15 +216,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "BusinessService",
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "BusinessActor",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessService", "ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["BusinessActor", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessService",
@@ -310,16 +240,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -342,12 +264,8 @@
       },
       {
         "relationshipTypeId": "uses",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -358,13 +276,8 @@
       },
       {
         "relationshipTypeId": "supports-goals",
-        "sourceTypes": [
-          "BusinessService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Goal"
-        ],
+        "sourceTypes": ["BusinessService", "Operation"],
+        "targetTypes": ["Goal"],
         "examples": [
           {
             "source": "BusinessService",
@@ -386,13 +299,8 @@
       },
       {
         "relationshipTypeId": "fulfills-requirements",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -411,12 +319,8 @@
       },
       {
         "relationshipTypeId": "delivers-value",
-        "sourceTypes": [
-          "BusinessService"
-        ],
-        "targetTypes": [
-          "Value"
-        ],
+        "sourceTypes": ["BusinessService"],
+        "targetTypes": ["Value"],
         "examples": [
           {
             "source": "BusinessService",
@@ -427,12 +331,8 @@
       },
       {
         "relationshipTypeId": "governed-by-principles",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -451,12 +351,8 @@
         "predicate": "master-data-source",
         "inversePredicate": "referenced-by",
         "targetLayer": "04-application",
-        "targetTypes": [
-          "MasterDataSource"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["MasterDataSource"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "application.master-data-source",
         "cardinality": "single",
         "format": "string",
@@ -470,12 +366,8 @@
         "predicate": "process-steps",
         "inversePredicate": "referenced-by",
         "targetLayer": "04-application",
-        "targetTypes": [
-          "ProcessStep"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["ProcessStep"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "application.process-steps",
         "cardinality": "array",
         "format": "reference",
@@ -489,12 +381,8 @@
         "predicate": "realized-by-process",
         "inversePredicate": "referenced-by",
         "targetLayer": "04-application",
-        "targetTypes": [
-          "RealizedByProces"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["RealizedByProces"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "application.realized-by-process",
         "cardinality": "single",
         "format": "reference",
@@ -508,12 +396,8 @@
         "predicate": "represented-by-dataobject",
         "inversePredicate": "referenced-by",
         "targetLayer": "04-application",
-        "targetTypes": [
-          "RepresentedByDataobject"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["RepresentedByDataobject"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "application.represented-by-dataobject",
         "cardinality": "single",
         "format": "string",
@@ -527,12 +411,8 @@
         "predicate": "business-metrics",
         "inversePredicate": "referenced-by",
         "targetLayer": "02-business",
-        "targetTypes": [
-          "BusinessMetric"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["BusinessMetric"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "format": "reference",
@@ -555,12 +435,8 @@
         "predicate": "governance-owner",
         "inversePredicate": "referenced-by",
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "GovernanceOwner"
-        ],
-        "sourceTypes": [
-          "BusinessObject"
-        ],
+        "targetTypes": ["GovernanceOwner"],
+        "sourceTypes": ["BusinessObject"],
         "fieldPath": "data.governance-owner",
         "cardinality": "single",
         "format": "reference",
@@ -583,12 +459,8 @@
         "predicate": "delivers-value",
         "inversePredicate": "delivered-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "DeliversValue"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["DeliversValue"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "format": "reference",
@@ -619,12 +491,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -655,12 +523,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -691,12 +555,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -727,12 +587,8 @@
         "predicate": "security-controls",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "SecurityControl"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["SecurityControl"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "process.security-controls",
         "cardinality": "array",
         "format": "string",
@@ -755,12 +611,8 @@
         "predicate": "separation-of-duty",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "SeparationOfDuty"
-        ],
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
+        "targetTypes": ["SeparationOfDuty"],
+        "sourceTypes": ["BusinessProcess"],
         "fieldPath": "process.separation-of-duty",
         "cardinality": "single",
         "format": "boolean",
@@ -785,12 +637,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-metrics",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
-        "targetTypes": [
-          "BusinessMetric"
-        ],
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["BusinessMetric"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -800,12 +648,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-metrics",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "ApplicationService"
-        ],
-        "targetTypes": [
-          "BusinessMetric"
-        ],
+        "sourceTypes": ["ApplicationService"],
+        "targetTypes": ["BusinessMetric"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -815,13 +659,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-metrics",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "BusinessMetric"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["BusinessMetric"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "description": "Inverse of: comma-separated business metric IDs this service tracks"
@@ -831,13 +670,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-interface-ref",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "BusinessInterface"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["BusinessInterface"],
         "fieldPath": "x-business-interface-ref",
         "cardinality": "single",
         "description": "Inverse of: string (BusinessInterface.id, optional)"
@@ -847,14 +681,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-object-ref",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "JSONSchema",
-          "x-business-object-ref Extension",
-          "x-security Extension"
-        ],
-        "targetTypes": [
-          "BusinessObject"
-        ],
+        "sourceTypes": ["JSONSchema", "x-business-object-ref Extension", "x-security Extension"],
+        "targetTypes": ["BusinessObject"],
         "fieldPath": "x-business-object-ref",
         "cardinality": "single",
         "description": "Inverse of: string (BusinessObject.id reference, optional)"
@@ -864,13 +692,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "business-service-ref",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "BusinessService"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["BusinessService"],
         "fieldPath": "x-business-service-ref",
         "cardinality": "single",
         "description": "Inverse of: string (BusinessService.id, optional)"
@@ -974,28 +797,16 @@
   "definitions": {
     "EventType": {
       "type": "string",
-      "enum": [
-        "time-driven",
-        "state-change",
-        "external"
-      ]
+      "enum": ["time-driven", "state-change", "external"]
     },
     "RepresentationFormat": {
       "type": "string",
-      "enum": [
-        "document",
-        "report",
-        "form",
-        "message"
-      ]
+      "enum": ["document", "report", "form", "message"]
     },
     "BusinessActor": {
       "type": "object",
       "description": "An organizational entity capable of performing behavior",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1015,10 +826,7 @@
     "BusinessRole": {
       "type": "object",
       "description": "The responsibility for performing specific behavior",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1038,10 +846,7 @@
     "BusinessCollaboration": {
       "type": "object",
       "description": "Aggregate of business roles working together",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1080,10 +885,7 @@
     "BusinessInterface": {
       "type": "object",
       "description": "Point of access where business service is available",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1122,10 +924,7 @@
     "BusinessProcess": {
       "type": "object",
       "description": "Sequence of business behaviors achieving a result",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1198,10 +997,7 @@
     "BusinessFunction": {
       "type": "object",
       "description": "Collection of business behavior based on criteria",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1221,10 +1017,7 @@
     "BusinessInteraction": {
       "type": "object",
       "description": "Unit of collective behavior by collaboration",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1244,11 +1037,7 @@
     "BusinessEvent": {
       "type": "object",
       "description": "Something that happens and influences behavior",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1290,10 +1079,7 @@
     "BusinessService": {
       "type": "object",
       "description": "Service that fulfills a business need",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1349,10 +1135,7 @@
     "BusinessObject": {
       "type": "object",
       "description": "Concept used within business domain",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1413,10 +1196,7 @@
     "Contract": {
       "type": "object",
       "description": "Formal specification of agreement",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1455,11 +1235,7 @@
     "Representation": {
       "type": "object",
       "description": "Perceptible form of business object",
-      "required": [
-        "id",
-        "name",
-        "format"
-      ],
+      "required": ["id", "name", "format"],
       "properties": {
         "id": {
           "type": "string",
@@ -1482,10 +1258,7 @@
     "Product": {
       "type": "object",
       "description": "Coherent collection of services with a value",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",

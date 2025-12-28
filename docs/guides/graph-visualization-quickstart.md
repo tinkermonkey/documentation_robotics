@@ -5,8 +5,9 @@ This guide shows you how to visualize the Documentation Robotics specification a
 ## TL;DR - Get Started in 2 Minutes
 
 ```bash
-# 1. Generate GraphML file
-python scripts/tools/export_graphml.py
+# 1. Generate GraphML file using the Bun CLI
+cd /Users/austinsand/workspace/documentation_robotics
+dr export graphml --output reports/visualization/spec-ontology.graphml
 
 # 2. Download yEd (free graph editor)
 # Visit: https://www.yworks.com/products/yed/download
@@ -49,9 +50,9 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 
 **Steps**:
 
-1. Generate GraphML: `python scripts/tools/export_graphml.py`
+1. Generate GraphML: `dr export graphml --output spec-ontology.graphml`
 2. Open yEd
-3. File → Open → `reports/visualization/spec-ontology.graphml`
+3. File → Open → `spec-ontology.graphml`
 4. Layout → Hierarchical (or Organic, or Circular)
 5. Edit → Properties → Style nodes by type
 
@@ -69,9 +70,9 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 
 **Steps**:
 
-1. Generate full export: `python scripts/tools/export_graphml.py --include-entities`
+1. Generate full export: `dr export graphml --include-entities --output spec-ontology-full.graphml`
 2. Open Gephi
-3. File → Open → `reports/visualization/spec-ontology-full.graphml`
+3. File → Open → `spec-ontology-full.graphml`
 4. Choose "Directed Graph"
 5. Layout → Force Atlas 2 → Run
 6. Statistics → Average Degree, Modularity, PageRank
@@ -91,7 +92,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 
 **Steps**:
 
-1. Generate GraphML: `python scripts/tools/export_graphml.py`
+1. Generate GraphML: `dr export graphml --output spec-ontology.graphml`
 2. Open Cytoscape
 3. File → Import → Network from File → `spec-ontology.graphml`
 4. Layout → Prefuse Force Directed Layout
@@ -185,7 +186,7 @@ You now have an interactive visualization of all 12 layers, 38 link types, and 3
 ### Standard Export (Recommended)
 
 ```bash
-python scripts/tools/export_graphml.py
+dr export graphml --output spec-ontology.graphml
 ```
 
 - **Size**: ~47 KB
@@ -195,7 +196,7 @@ python scripts/tools/export_graphml.py
 ### Full Export (With Entities)
 
 ```bash
-python scripts/tools/export_graphml.py --include-entities
+dr export graphml --include-entities --output spec-ontology-full.graphml
 ```
 
 - **Size**: ~200+ KB
@@ -205,7 +206,7 @@ python scripts/tools/export_graphml.py --include-entities
 ### Minimal Export (Layers Only)
 
 ```bash
-python scripts/tools/export_graphml.py --minimal
+dr export graphml --minimal --output spec-ontology-minimal.graphml
 ```
 
 - **Size**: ~10 KB
@@ -270,9 +271,8 @@ Use these colors in your visualization tool:
 
 ### File won't open
 
-- Check file exists: `ls -lh reports/visualization/spec-ontology.graphml`
-- Validate XML: `xmllint reports/visualization/spec-ontology.graphml`
-- Try regenerating: `python scripts/tools/export_graphml.py --force`
+- Check file exists: `ls -lh spec-ontology.graphml`
+- Try regenerating: `dr export graphml --output spec-ontology.graphml --force`
 
 ### Graph is too large
 
@@ -302,11 +302,7 @@ After visualization:
 
 ### Custom Exports
 
-Edit `scripts/tools/export_graphml.py` to:
-
-- Add custom node/edge attributes
-- Filter by specific criteria
-- Include additional metadata
+The Bun CLI supports various GraphML export options. Use `dr export graphml --help` to see all available options.
 
 ### Integration with CI/CD
 
@@ -315,13 +311,13 @@ Generate fresh visualizations on every schema change:
 ```yaml
 # .github/workflows/visualize.yml
 - name: Generate GraphML
-  run: python scripts/tools/export_graphml.py
+  run: dr export graphml --output spec-ontology.graphml
 
 - name: Upload artifact
   uses: actions/upload-artifact@v3
   with:
     name: ontology-visualization
-    path: reports/visualization/spec-ontology.graphml
+    path: spec-ontology.graphml
 ```
 
 ### Diff Visualization
@@ -330,13 +326,13 @@ Compare two versions:
 
 ```bash
 # Export current state
-python scripts/tools/export_graphml.py --output current.graphml
+dr export graphml --output current.graphml
 
 # Checkout old version
 git checkout main~10
 
 # Export old state
-python scripts/tools/export_graphml.py --output old.graphml
+dr export graphml --output old.graphml
 
 # Compare in Gephi
 # File → Open → old.graphml
@@ -346,4 +342,4 @@ python scripts/tools/export_graphml.py --output old.graphml
 
 ## Questions?
 
-See the detailed README: `reports/visualization/README.md`
+See the CLI help: `dr export graphml --help`

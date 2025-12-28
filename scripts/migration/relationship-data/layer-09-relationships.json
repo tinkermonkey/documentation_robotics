@@ -9,14 +9,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -37,16 +31,8 @@
         "inversePredicate": "flows-from",
         "category": "behavioral",
         "description": "Sequential or data flow between behaviors",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -73,12 +59,8 @@
         "inversePredicate": "used-by",
         "category": "dependency",
         "description": "Element depends on another for functionality",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -93,16 +75,8 @@
         "inversePredicate": "referenced-by",
         "category": "dependency",
         "description": "Pointer reference without functional dependency",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -129,15 +103,8 @@
         "inversePredicate": "dependency-of",
         "category": "dependency",
         "description": "Element requires another to function",
-        "sourceTypes": [
-          "ApplicationService",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "DataObject",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -164,12 +131,8 @@
         "inversePredicate": "rendered-by",
         "category": "ux",
         "description": "UI rendering relationships",
-        "sourceTypes": [
-          "UIComponent"
-        ],
-        "targetTypes": [
-          "UIView"
-        ],
+        "sourceTypes": ["UIComponent"],
+        "targetTypes": ["UIView"],
         "examples": [
           {
             "source": "UIComponent",
@@ -184,12 +147,8 @@
         "inversePredicate": "bound-by",
         "category": "ux",
         "description": "Data binding relationships",
-        "sourceTypes": [
-          "UIComponent"
-        ],
-        "targetTypes": [
-          "DataObject"
-        ],
+        "sourceTypes": ["UIComponent"],
+        "targetTypes": ["DataObject"],
         "examples": [
           {
             "source": "UIComponent",
@@ -204,12 +163,8 @@
         "inversePredicate": "navigated-from",
         "category": "ux",
         "description": "Navigation flows",
-        "sourceTypes": [
-          "UIView"
-        ],
-        "targetTypes": [
-          "UIView"
-        ],
+        "sourceTypes": ["UIView"],
+        "targetTypes": ["UIView"],
         "examples": [
           {
             "source": "UIView",
@@ -229,12 +184,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -265,12 +216,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "BusinessService"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["BusinessService"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -301,12 +248,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",

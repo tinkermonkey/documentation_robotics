@@ -61,10 +61,10 @@ This compiles TypeScript to JavaScript and copies schema files to the `dist/` di
 **Expected output:**
 
 ```
-> @doc-robotics/cli-bun@0.1.0 build
+> @documentation-robotics/cli@0.1.0 build
 > tsc && npm run copy-schemas
 
-> @doc-robotics/cli-bun@0.1.0 copy-schemas
+> @documentation-robotics/cli@0.1.0 copy-schemas
 > cp -r src/schemas dist/
 ```
 
@@ -106,7 +106,7 @@ dr --help
 **To uninstall:**
 
 ```bash
-npm uninstall -g @doc-robotics/cli-bun
+npm uninstall -g @documentation-robotics/cli
 ```
 
 ## Testing Workflows
@@ -476,7 +476,7 @@ npm run build
 ### Uninstall Global CLI
 
 ```bash
-npm uninstall -g @doc-robotics/cli-bun
+npm uninstall -g @documentation-robotics/cli
 ```
 
 ## CI/CD Simulation
@@ -600,7 +600,7 @@ npm run test:compatibility     # Cross-CLI tests
 
 # Installation
 npm install -g .               # Install globally
-npm uninstall -g @doc-robotics/cli-bun  # Uninstall
+npm uninstall -g @documentation-robotics/cli  # Uninstall
 
 # Debugging
 node --inspect dist/cli.js     # Debug mode
