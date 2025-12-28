@@ -279,9 +279,7 @@ export class ProjectionEngine {
             target,
             default: m.default,
             required: m.required ?? false,
-            transform: m.transform
-              ? { type: m.transform, value: m.transform_value }
-              : undefined,
+            transform: m.transform,
           });
         }
       }
