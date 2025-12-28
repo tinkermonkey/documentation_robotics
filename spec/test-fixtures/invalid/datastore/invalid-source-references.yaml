@@ -11,7 +11,7 @@ tables:
     name: "invalid_provenance_table"
     schema: "public"
     x-source-reference:
-      provenance: "automated"  # Should be: extracted, manual, inferred, or generated
+      provenance: "automated" # Should be: extracted, manual, inferred, or generated
       locations:
         - file: "migrations/001_test.sql"
 
@@ -29,7 +29,7 @@ tables:
     schema: "public"
     x-source-reference:
       provenance: "extracted"
-      locations: []  # Array must not be empty
+      locations: [] # Array must not be empty
 
 columns:
   # Invalid commit SHA - mixed case
@@ -43,7 +43,7 @@ columns:
         - file: "migrations/002_test.sql"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "AbCdEf1234567890AbCdEf1234567890AbCdEf12"  # Must be lowercase hex
+        commit: "AbCdEf1234567890AbCdEf1234567890AbCdEf12" # Must be lowercase hex
 
   # Invalid provenance - empty string
   - id: "ds-col-invalid-002"
@@ -51,7 +51,7 @@ columns:
     dataType: "INTEGER"
     nullable: true
     x-source-reference:
-      provenance: ""  # Cannot be empty
+      provenance: "" # Cannot be empty
       locations:
         - file: "migrations/003_test.sql"
 
@@ -63,7 +63,7 @@ columns:
     x-source-reference:
       provenance: "manual"
       locations:
-        - symbol: "test_column"  # Missing required 'file' field
+        - symbol: "test_column" # Missing required 'file' field
 
 functions:
   # Invalid commit SHA - contains spaces
@@ -78,7 +78,7 @@ functions:
           symbol: "test_func"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "abcd ef12 3456 7890 abcd ef12 3456 7890 abcd ef12"  # Contains spaces
+        commit: "abcd ef12 3456 7890 abcd ef12 3456 7890 abcd ef12" # Contains spaces
 
   # Invalid commit SHA - special characters
   - id: "ds-func-invalid-002"
@@ -91,7 +91,7 @@ functions:
         - file: "functions/test2.sql"
       repository:
         url: "https://github.com/example/repo.git"
-        commit: "abcdef1234567890abcdef1234567890abcdef!@"  # Contains special chars
+        commit: "abcdef1234567890abcdef1234567890abcdef!@" # Contains special chars
 
   # Invalid: locations array with all items missing file field
   - id: "ds-func-invalid-003"
@@ -101,8 +101,8 @@ functions:
     x-source-reference:
       provenance: "inferred"
       locations:
-        - symbol: "func1"  # Missing required 'file' field
-        - symbol: "func2"  # Missing required 'file' field
+        - symbol: "func1" # Missing required 'file' field
+        - symbol: "func2" # Missing required 'file' field
 
   # Invalid: repository URL without commit
   - id: "ds-func-invalid-004"

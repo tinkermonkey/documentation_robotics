@@ -1,7 +1,7 @@
 version: 0.1.1
 schema: documentation-robotics-v1
-created: '2025-11-22T22:40:59.781170Z'
-updated: '2025-11-22T23:24:11.386273Z'
+created: "2025-11-22T22:40:59.781170Z"
+updated: "2025-11-22T23:24:11.386273Z"
 project:
   name: Documentation Robotics CLI
   description: Architecture model of the Documentation Robotics CLI tool itself, demonstrating
@@ -109,11 +109,11 @@ statistics:
   total_elements: 102
   total_relationships: 0
   completeness: 0.0
-  last_validation: '2025-11-22T23:24:11.386112Z'
+  last_validation: "2025-11-22T23:24:11.386112Z"
   validation_status: passed
 conventions:
-  id_format: '{layer}.{type}.{kebab-case-name}'
+  id_format: "{layer}.{type}.{kebab-case-name}"
   file_naming:
-    api: '{service-name}-api.yaml'
-    schema: '{entity-name}.schema.json'
-    ux: '{screen-name}.ux.yaml'
+    api: "{service-name}-api.yaml"
+    schema: "{entity-name}.schema.json"
+    ux: "{screen-name}.ux.yaml"

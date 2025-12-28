@@ -1,5 +1,5 @@
 # Pre-commit hooks for Documentation Robotics
-# Install: pip install pre-commit && pre-commit install
+# Install: npm install -g pre-commit && pre-commit install
 # Run manually: pre-commit run --all-files
 
 repos:
@@ -12,7 +12,7 @@ repos:
       - id: end-of-file-fixer
         exclude: ^spec/test-fixtures/
       - id: check-yaml
-        args: [--unsafe]  # Allow custom YAML tags
+        args: [--unsafe] # Allow custom YAML tags
         exclude: ^spec/test-fixtures/invalid/
       - id: check-json
         exclude: ^spec/test-fixtures/invalid/
@@ -28,9 +28,9 @@ repos:
     rev: v4.0.0-alpha.8
     hooks:
       - id: prettier
-        types_or: [markdown]
+        types_or: [markdown, yaml, json]
         args: [--write, --prose-wrap=preserve]
-        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli/CHANGELOG\.md)
+        exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md|cli-bun/CHANGELOG\.md)
 
   # Markdown linting
   - repo: https://github.com/igorshubovych/markdownlint-cli
@@ -40,36 +40,22 @@ repos:
         args: [--fix, --config, .markdownlintrc]
         exclude: ^(CHANGELOG\.md|spec/CHANGELOG\.md)
 
-  # Python formatting and linting (for CLI)
-  - repo: https://github.com/psf/black
-    rev: 24.1.1
-    hooks:
-      - id: black
-        files: ^cli/
-        args: [--line-length=100, --target-version=py310]
-
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.1.15
-    hooks:
-      - id: ruff
-        files: ^cli/
-        args: [--fix]
-
-      # Also run ruff in check mode (no auto-fix) to catch remaining issues
-      - id: ruff
-        name: ruff-check
-        files: ^cli/
-
-  # Python type checking (for CLI) - runs like CI but doesn't block (informational only)
+  # TypeScript/JavaScript linting (for Bun CLI)
   - repo: local
     hooks:
-      - id: mypy-check
-        name: mypy (type checking - informational)
-        entry: bash -c 'source .venv/bin/activate && cd cli && mypy src/documentation_robotics/ || echo "⚠️  Type checking found issues (not blocking)"'
+      - id: eslint
+        name: TypeScript Linting
+        entry: bash -c 'cd cli-bun && npm run lint'
         language: system
+        files: ^cli-bun/.*\.(ts|js)$
         pass_filenames: false
-        files: ^cli/src/
-        types: [python]
+
+      - id: typescript-check
+        name: TypeScript type checking
+        entry: bash -c 'cd cli-bun && npm run type-check || echo "⚠️  Type checking found issues (not blocking)"'
+        language: system
+        files: ^cli-bun/src/.*\.ts$
+        pass_filenames: false
 
   # JSON Schema validation
   - repo: https://github.com/python-jsonschema/check-jsonschema
@@ -80,7 +66,7 @@ repos:
         files: ^spec/schemas/.*\.schema\.json$
         args: [--schemafile, "https://json-schema.org/draft-07/schema"]
 
-  # Markdown validation and schema generation
+  # Spec validation (requires Python virtual environment)
   - repo: local
     hooks:
       - id: validate-markdown-specs
@@ -105,25 +91,13 @@ repos:
         files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
         pass_filenames: false
 
-  # Spell checking (optional - can be enabled later)
-  # - repo: https://github.com/codespell-project/codespell
-  #   rev: v2.2.6
-  #   hooks:
-  #     - id: codespell
-  #       args: [--ignore-words=.codespell-ignore]
-
 # Exclude patterns
 exclude: |
   (?x)^(
     \.git/|
-    \.venv/|
-    venv/|
-    __pycache__/|
-    \.pytest_cache/|
-    \.mypy_cache/|
     node_modules/|
     dist/|
     build/|
-    \.egg-info/|
-    coverage/
+    coverage/|
+    \.dr/
   )

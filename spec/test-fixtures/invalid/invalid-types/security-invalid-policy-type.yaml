@@ -8,7 +8,7 @@ security-model:
     - id: security.policy.invalid-type
       name: Invalid Policy Type
       description: This policy has an invalid type
-      type: invalid-type  # Should be 'access-control', 'authorization', 'audit', etc.
+      type: invalid-type # Should be 'access-control', 'authorization', 'audit', etc.
       scope: global
       rules:
         - condition: user.isAuthenticated()

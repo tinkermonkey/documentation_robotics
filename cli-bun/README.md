@@ -1,10 +1,10 @@
-# Documentation Robotics CLI - Bun Implementation
+# Documentation Robotics CLI
 
 TypeScript-based CLI for managing federated architecture data models across 12 interconnected layers.
 
 ## Overview
 
-This is the Bun implementation of the Documentation Robotics CLI. It provides a parallel implementation to the existing Python CLI while maintaining full compatibility with the shared specification and model structure.
+This is the Documentation Robotics CLI - a production-ready command-line tool for creating, managing, and exporting comprehensive architecture models that span business requirements through technical implementation.
 
 ## Foundation
 
@@ -76,10 +76,10 @@ cli-bun/
 
 ```bash
 # Install the CLI globally
-npm install -g @doc-robotics/cli-bun
+npm install -g @documentation-robotics/cli
 
 # Or install locally in your project
-npm install @doc-robotics/cli-bun
+npm install @documentation-robotics/cli
 
 # Run CLI
 dr --version
@@ -120,10 +120,10 @@ node dist/cli.js --help
 
 ```bash
 # Using npm
-npm install -g @doc-robotics/cli-bun
+npm install -g @documentation-robotics/cli
 
 # Using bun
-bun add -g @doc-robotics/cli-bun
+bun add -g @documentation-robotics/cli
 
 # Verify installation
 dr --version
@@ -133,12 +133,12 @@ dr --version
 
 ```bash
 # Install as a dev dependency
-npm install --save-dev @doc-robotics/cli-bun
+npm install --save-dev @documentation-robotics/cli
 
 # Or add to package.json and run npm install
 {
   "devDependencies": {
-    "@doc-robotics/cli-bun": "^0.1.0"
+    "@documentation-robotics/cli": "^0.1.0"
   }
 }
 
@@ -199,7 +199,7 @@ dr visualize --no-browser
 
 ```bash
 # If "dr" is not found after global installation
-npm install -g @doc-robotics/cli-bun
+npm install -g @documentation-robotics/cli
 
 # Check npm global location
 npm config get prefix
@@ -579,16 +579,8 @@ These schemas are loaded at build time and do not require filesystem access at r
 ## Related Resources
 
 - Specification: `/workspace/spec/`
-- Python CLI: `/workspace/cli/`
 - Design Discussion: [GitHub Discussion #68](https://github.com/tinkermonkey/documentation_robotics/discussions/68)
-
-## Architecture Alignment
-
-This implementation follows the parallel-stack architecture:
-
-- **Shared**: Specification (`/spec/`), test fixtures, schemas
-- **Separate**: Implementations (`/cli/` Python, `/cli-bun/` Bun)
-- **Compatible**: Identical data structures, `.dr/` directory format, element ID conventions
+- Migration Guide: [Migrating from Python CLI](../docs/migration-from-python-cli.md)
 
 ## License
 

@@ -70,7 +70,7 @@ export async function upgradeCommand(): Promise<void> {
           `CLI update available: ${currentCliVersion} → ${latestCliVersion}`
         )
       );
-      console.log(ansis.dim('  Run: bun add @doc-robotics/cli-bun@latest\n'));
+      console.log(ansis.dim('  Run: npm install -g @documentation-robotics/cli@latest\n'));
     } else {
       console.log(ansis.green(`✓ CLI is up to date (v${currentCliVersion})\n`));
     }

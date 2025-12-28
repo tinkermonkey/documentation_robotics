@@ -9,6 +9,6 @@ metadata:
   expectedMessage: "Field 'id' must be of type string"
 
 data:
-  id: 12345  # Should be string, not number
+  id: 12345 # Should be string, not number
   name: "Improve Customer Satisfaction"
   type: "Goal"

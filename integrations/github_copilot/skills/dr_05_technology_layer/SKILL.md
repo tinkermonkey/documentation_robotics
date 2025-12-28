@@ -350,7 +350,7 @@ dr add technology node "web-server-01" \
 
 # Serverless function
 dr add technology node "order-processor-lambda" \
-  --properties type=serverless-function,provider=aws,runtime=python3.11,memory=512 \
+  --properties type=serverless-function,provider=aws,runtime=node.11,memory=512 \
   --description "Lambda function for order processing"
 
 # Database cluster

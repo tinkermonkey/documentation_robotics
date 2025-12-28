@@ -15,16 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "BusinessCollaboration",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessRole",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessCollaboration",
@@ -47,16 +39,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "Goal",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "Goal",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
         "examples": [
           {
             "source": "Goal",
@@ -80,14 +64,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -104,16 +82,8 @@
       },
       {
         "relationshipTypeId": "realization",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -136,12 +106,8 @@
       },
       {
         "relationshipTypeId": "assignment",
-        "sourceTypes": [
-          "BusinessActor"
-        ],
-        "targetTypes": [
-          "BusinessRole"
-        ],
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
         "examples": [
           {
             "source": "BusinessActor",
@@ -152,15 +118,8 @@
       },
       {
         "relationshipTypeId": "association",
-        "sourceTypes": [
-          "Requirement",
-          "Stakeholder"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal"
-        ],
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -184,14 +143,8 @@
       },
       {
         "relationshipTypeId": "influence",
-        "sourceTypes": [
-          "Assessment",
-          "Driver"
-        ],
-        "targetTypes": [
-          "Assessment",
-          "Goal"
-        ],
+        "sourceTypes": ["Assessment", "Driver"],
+        "targetTypes": ["Assessment", "Goal"],
         "examples": [
           {
             "source": "Driver",
@@ -215,16 +168,8 @@
       },
       {
         "relationshipTypeId": "triggering",
-        "sourceTypes": [
-          "BusinessEvent",
-          "CoverageGap",
-          "PartitionDependency"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["BusinessEvent", "CoverageGap", "PartitionDependency"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "PartitionValue"],
         "examples": [
           {
             "source": "BusinessEvent",
@@ -247,16 +192,8 @@
       },
       {
         "relationshipTypeId": "flow",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCoverageTarget"],
+        "targetTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -279,15 +216,8 @@
       },
       {
         "relationshipTypeId": "serving",
-        "sourceTypes": [
-          "BusinessService",
-          "ContextVariation",
-          "InputSpacePartition"
-        ],
-        "targetTypes": [
-          "BusinessActor",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessService", "ContextVariation", "InputSpacePartition"],
+        "targetTypes": ["BusinessActor", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessService",
@@ -310,16 +240,8 @@
       },
       {
         "relationshipTypeId": "access",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -342,12 +264,8 @@
       },
       {
         "relationshipTypeId": "uses",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -358,16 +276,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -390,15 +300,8 @@
       },
       {
         "relationshipTypeId": "depends-on",
-        "sourceTypes": [
-          "ApplicationService",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "DataObject",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -421,13 +324,8 @@
       },
       {
         "relationshipTypeId": "supports-goals",
-        "sourceTypes": [
-          "BusinessService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Goal"
-        ],
+        "sourceTypes": ["BusinessService", "Operation"],
+        "targetTypes": ["Goal"],
         "examples": [
           {
             "source": "BusinessService",
@@ -449,13 +347,8 @@
       },
       {
         "relationshipTypeId": "fulfills-requirements",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -474,12 +367,8 @@
       },
       {
         "relationshipTypeId": "governed-by-principles",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -490,12 +379,8 @@
       },
       {
         "relationshipTypeId": "constrainedby",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -506,12 +391,8 @@
       },
       {
         "relationshipTypeId": "traces",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "DistributedTrace"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["DistributedTrace"],
         "examples": [
           {
             "source": "APIOperation",
@@ -530,12 +411,8 @@
         "predicate": "sla-target-availability",
         "inversePredicate": "referenced-by",
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "SlaTargetAvailability"
-        ],
-        "sourceTypes": [
-          "ApplicationService"
-        ],
+        "targetTypes": ["SlaTargetAvailability"],
+        "sourceTypes": ["ApplicationService"],
         "fieldPath": "apm.sla-target-availability",
         "cardinality": "single",
         "format": "percentage",
@@ -566,12 +443,8 @@
         "predicate": "sla-target-latency",
         "inversePredicate": "referenced-by",
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "SlaTargetLatency"
-        ],
-        "sourceTypes": [
-          "ApplicationService"
-        ],
+        "targetTypes": ["SlaTargetLatency"],
+        "sourceTypes": ["ApplicationService"],
         "fieldPath": "apm.sla-target-latency",
         "cardinality": "single",
         "format": "duration",
@@ -594,13 +467,8 @@
         "predicate": "traced",
         "inversePredicate": "referenced-by",
         "targetLayer": "11-apm",
-        "targetTypes": [
-          "Traced"
-        ],
-        "sourceTypes": [
-          "ApplicationService",
-          "Data Properties"
-        ],
+        "targetTypes": ["Traced"],
+        "sourceTypes": ["ApplicationService", "Data Properties"],
         "fieldPath": "apm.traced",
         "cardinality": "single",
         "format": "boolean",
@@ -623,12 +491,8 @@
         "predicate": "business-metrics",
         "inversePredicate": "referenced-by",
         "targetLayer": "02-business",
-        "targetTypes": [
-          "BusinessMetric"
-        ],
-        "sourceTypes": [
-          "ApplicationService"
-        ],
+        "targetTypes": ["BusinessMetric"],
+        "sourceTypes": ["ApplicationService"],
         "fieldPath": "apm.business-metrics",
         "cardinality": "array",
         "format": "reference",
@@ -651,13 +515,8 @@
         "predicate": "retention",
         "inversePredicate": "referenced-by",
         "targetLayer": "07-data-model",
-        "targetTypes": [
-          "Retention"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Retention"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.retention",
         "cardinality": "single",
         "format": "duration",
@@ -680,12 +539,8 @@
         "predicate": "delivers-value",
         "inversePredicate": "delivered-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "DeliversValue"
-        ],
-        "sourceTypes": [
-          "ApplicationService"
-        ],
+        "targetTypes": ["DeliversValue"],
+        "sourceTypes": ["ApplicationService"],
         "fieldPath": "motivation.delivers-value",
         "cardinality": "array",
         "format": "reference",
@@ -716,12 +571,8 @@
         "predicate": "fulfills-requirements",
         "inversePredicate": "fulfilled-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "FulfillsRequirement"
-        ],
-        "sourceTypes": [
-          "ApplicationFunction"
-        ],
+        "targetTypes": ["FulfillsRequirement"],
+        "sourceTypes": ["ApplicationFunction"],
         "fieldPath": "motivation.fulfills-requirements",
         "cardinality": "array",
         "format": "reference",
@@ -752,13 +603,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "ApplicationFunction",
-          "ApplicationService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["ApplicationFunction", "ApplicationService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -789,12 +635,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "ApplicationService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["ApplicationService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -825,12 +667,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -861,13 +699,8 @@
         "predicate": "pii",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Pii"
-        ],
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
+        "targetTypes": ["Pii"],
+        "sourceTypes": ["Data Properties", "DataObject"],
         "fieldPath": "data.pii",
         "cardinality": "single",
         "format": "boolean",
@@ -892,12 +725,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "master-data-source",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessObject"
-        ],
-        "targetTypes": [
-          "MasterDataSource"
-        ],
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["MasterDataSource"],
         "fieldPath": "application.master-data-source",
         "cardinality": "single",
         "description": "Inverse of: BusinessObject master data source from DataObject"
@@ -907,12 +736,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "process-steps",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
-        "targetTypes": [
-          "ProcessStep"
-        ],
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["ProcessStep"],
         "fieldPath": "application.process-steps",
         "cardinality": "array",
         "description": "Inverse of: which specific ApplicationProcess steps realize this business process"
@@ -922,12 +747,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "realized-by-process",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
-        "targetTypes": [
-          "RealizedByProces"
-        ],
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["RealizedByProces"],
         "fieldPath": "application.realized-by-process",
         "cardinality": "single",
         "description": "Inverse of: ApplicationService - **BusinessProcess** automated by ApplicationProcess"
@@ -937,12 +758,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "represented-by-dataobject",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessObject"
-        ],
-        "targetTypes": [
-          "RepresentedByDataobject"
-        ],
+        "sourceTypes": ["BusinessObject"],
+        "targetTypes": ["RepresentedByDataobject"],
         "fieldPath": "application.represented-by-dataobject",
         "cardinality": "single",
         "description": "Inverse of: BusinessObject represented in DataObject"
@@ -952,14 +769,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "archimate-ref",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "OpenAPIDocument",
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Element"
-        ],
+        "sourceTypes": ["OpenAPIDocument", "Operation", "SecurityScheme"],
+        "targetTypes": ["Element"],
         "fieldPath": "x-archimate-ref",
         "cardinality": "single",
         "description": "Inverse of: string (Element.id reference to ApplicationService)"
@@ -969,13 +780,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "archimate-ref",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "JSONSchema",
-          "x-security Extension"
-        ],
-        "targetTypes": [
-          "Element"
-        ],
+        "sourceTypes": ["JSONSchema", "x-security Extension"],
+        "targetTypes": ["Element"],
         "fieldPath": "x-archimate-ref",
         "cardinality": "single",
         "description": "Inverse of: string (Element.id reference to ApplicationService)"
@@ -1051,60 +857,28 @@
   "definitions": {
     "ComponentType": {
       "type": "string",
-      "enum": [
-        "frontend",
-        "backend",
-        "mobile",
-        "desktop",
-        "service"
-      ]
+      "enum": ["frontend", "backend", "mobile", "desktop", "service"]
     },
     "InterfaceProtocol": {
       "type": "string",
-      "enum": [
-        "REST",
-        "GraphQL",
-        "SOAP",
-        "gRPC",
-        "WebSocket",
-        "Message Queue"
-      ]
+      "enum": ["REST", "GraphQL", "SOAP", "gRPC", "WebSocket", "Message Queue"]
     },
     "InteractionPattern": {
       "type": "string",
-      "enum": [
-        "request-response",
-        "publish-subscribe",
-        "async-messaging",
-        "streaming"
-      ]
+      "enum": ["request-response", "publish-subscribe", "async-messaging", "streaming"]
     },
     "ApplicationEventType": {
       "type": "string",
-      "enum": [
-        "domain-event",
-        "integration-event",
-        "system-event",
-        "audit-event"
-      ]
+      "enum": ["domain-event", "integration-event", "system-event", "audit-event"]
     },
     "ServiceType": {
       "type": "string",
-      "enum": [
-        "synchronous",
-        "asynchronous",
-        "batch",
-        "streaming"
-      ]
+      "enum": ["synchronous", "asynchronous", "batch", "streaming"]
     },
     "ApplicationComponent": {
       "type": "object",
       "description": "Modular, deployable, and replaceable part of a system",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1164,10 +938,7 @@
     "ApplicationCollaboration": {
       "type": "object",
       "description": "Aggregate of application components working together",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1194,11 +965,7 @@
     "ApplicationInterface": {
       "type": "object",
       "description": "Point of access where application service is available",
-      "required": [
-        "id",
-        "name",
-        "protocol"
-      ],
+      "required": ["id", "name", "protocol"],
       "properties": {
         "id": {
           "type": "string",
@@ -1245,10 +1012,7 @@
     "ApplicationFunction": {
       "type": "object",
       "description": "Automated behavior performed by application component",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1300,11 +1064,7 @@
     "ApplicationInteraction": {
       "type": "object",
       "description": "Unit of collective application behavior",
-      "required": [
-        "id",
-        "name",
-        "pattern"
-      ],
+      "required": ["id", "name", "pattern"],
       "properties": {
         "id": {
           "type": "string",
@@ -1327,10 +1087,7 @@
     "ApplicationProcess": {
       "type": "object",
       "description": "Sequence of application behaviors",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1369,11 +1126,7 @@
     "ApplicationEvent": {
       "type": "object",
       "description": "Application state change notification",
-      "required": [
-        "id",
-        "name",
-        "eventType"
-      ],
+      "required": ["id", "name", "eventType"],
       "properties": {
         "id": {
           "type": "string",
@@ -1415,11 +1168,7 @@
     "ApplicationService": {
       "type": "object",
       "description": "Service that exposes application functionality",
-      "required": [
-        "id",
-        "name",
-        "serviceType"
-      ],
+      "required": ["id", "name", "serviceType"],
       "properties": {
         "id": {
           "type": "string",
@@ -1517,10 +1266,7 @@
     "DataObject": {
       "type": "object",
       "description": "Data structured for automated processing",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",

@@ -9,16 +9,8 @@
         "inversePredicate": "composed-of",
         "category": "structural",
         "description": "Whole-part relationship where the part cannot exist without the whole",
-        "sourceTypes": [
-          "Components",
-          "OpenAPIDocument",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Paths",
-          "Responses",
-          "Schema"
-        ],
+        "sourceTypes": ["Components", "OpenAPIDocument", "Operation"],
+        "targetTypes": ["Paths", "Responses", "Schema"],
         "examples": [
           {
             "source": "OpenAPIDocument",
@@ -46,15 +38,8 @@
         "inversePredicate": "aggregated-by",
         "category": "structural",
         "description": "Whole-part relationship where the part can exist independently",
-        "sourceTypes": [
-          "OpenAPIDocument",
-          "Operation"
-        ],
-        "targetTypes": [
-          "SecurityRequirement",
-          "Server",
-          "Tag"
-        ],
+        "sourceTypes": ["OpenAPIDocument", "Operation"],
+        "targetTypes": ["SecurityRequirement", "Server", "Tag"],
         "examples": [
           {
             "source": "OpenAPIDocument",
@@ -82,12 +67,8 @@
         "inversePredicate": "generalized-by",
         "category": "structural",
         "description": "Type-subtype relationship (inheritance)",
-        "sourceTypes": [
-          "Schema"
-        ],
-        "targetTypes": [
-          "Schema"
-        ],
+        "sourceTypes": ["Schema"],
+        "targetTypes": ["Schema"],
         "examples": [
           {
             "source": "Schema",
@@ -103,16 +84,8 @@
         "inversePredicate": "realized-by",
         "category": "structural",
         "description": "Implementation element realizes abstract element",
-        "sourceTypes": [
-          "ApplicationService",
-          "Goal",
-          "Outcome"
-        ],
-        "targetTypes": [
-          "BusinessService",
-          "Goal",
-          "Value"
-        ],
+        "sourceTypes": ["ApplicationService", "Goal", "Outcome"],
+        "targetTypes": ["BusinessService", "Goal", "Value"],
         "examples": [
           {
             "source": "Goal",
@@ -139,13 +112,8 @@
         "inversePredicate": "associated-with",
         "category": "structural",
         "description": "Generic relationship indicating elements are related or connected",
-        "sourceTypes": [
-          "Contact",
-          "License"
-        ],
-        "targetTypes": [
-          "OpenAPIDocument"
-        ],
+        "sourceTypes": ["Contact", "License"],
+        "targetTypes": ["OpenAPIDocument"],
         "examples": [
           {
             "source": "Contact",
@@ -167,12 +135,8 @@
         "inversePredicate": "triggered-by",
         "category": "behavioral",
         "description": "Event or behavior triggers another behavior",
-        "sourceTypes": [
-          "Operation"
-        ],
-        "targetTypes": [
-          "Callback"
-        ],
+        "sourceTypes": ["Operation"],
+        "targetTypes": ["Callback"],
         "examples": [
           {
             "source": "Operation",
@@ -188,12 +152,8 @@
         "inversePredicate": "served-by",
         "category": "behavioral",
         "description": "Service available to consumer",
-        "sourceTypes": [
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Operation"
-        ],
+        "sourceTypes": ["SecurityScheme"],
+        "targetTypes": ["Operation"],
         "examples": [
           {
             "source": "SecurityScheme",
@@ -209,16 +169,8 @@
         "inversePredicate": "accessed-by",
         "category": "behavioral",
         "description": "Behavior accesses passive element (data/artifact)",
-        "sourceTypes": [
-          "BusinessProcess",
-          "CoverageRequirement",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "BusinessObject",
-          "InputPartitionSelection",
-          "InputSelection"
-        ],
+        "sourceTypes": ["BusinessProcess", "CoverageRequirement", "TestCaseSketch"],
+        "targetTypes": ["BusinessObject", "InputPartitionSelection", "InputSelection"],
         "examples": [
           {
             "source": "BusinessProcess",
@@ -245,17 +197,8 @@
         "inversePredicate": "referenced-by",
         "category": "dependency",
         "description": "Pointer reference without functional dependency",
-        "sourceTypes": [
-          "Link",
-          "Operation",
-          "Parameter",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Operation",
-          "Schema",
-          "Tag"
-        ],
+        "sourceTypes": ["Link", "Operation", "Parameter", "Schema"],
+        "targetTypes": ["Operation", "Schema", "Tag"],
         "examples": [
           {
             "source": "Schema",
@@ -283,15 +226,8 @@
         "inversePredicate": "dependency-of",
         "category": "dependency",
         "description": "Element requires another to function",
-        "sourceTypes": [
-          "ApplicationService",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "DataObject",
-          "OutcomeCategory"
-        ],
+        "sourceTypes": ["ApplicationService", "TestCaseSketch"],
+        "targetTypes": ["ContextVariation", "DataObject", "OutcomeCategory"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -318,13 +254,8 @@
         "inversePredicate": "supported-by",
         "category": "traceability",
         "description": "Implementation contributes to achieving goal",
-        "sourceTypes": [
-          "BusinessService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Goal"
-        ],
+        "sourceTypes": ["BusinessService", "Operation"],
+        "targetTypes": ["Goal"],
         "examples": [
           {
             "source": "BusinessService",
@@ -350,13 +281,8 @@
         "inversePredicate": "fulfilled-by",
         "category": "traceability",
         "description": "Implementation satisfies requirement",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -379,12 +305,8 @@
         "inversePredicate": "governs",
         "category": "governance",
         "description": "Element follows architectural principle",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Principle"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Principle"],
         "examples": [
           {
             "source": "APIOperation",
@@ -399,12 +321,8 @@
         "inversePredicate": "constrains",
         "category": "governance",
         "description": "Element limited by constraint",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -419,12 +337,8 @@
         "inversePredicate": "traced-by",
         "category": "apm",
         "description": "Distributed tracing relationships",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "DistributedTrace"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["DistributedTrace"],
         "examples": [
           {
             "source": "APIOperation",
@@ -444,13 +358,8 @@
           "predicate": "apm-criticality",
           "inversePredicate": "referenced-by",
           "targetLayer": "11-apm",
-          "targetTypes": [
-            "Criticality"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["Criticality"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-apm-criticality",
           "cardinality": "single",
           "format": "duration",
@@ -464,13 +373,8 @@
           "predicate": "sla-target-availability",
           "inversePredicate": "referenced-by",
           "targetLayer": "11-apm",
-          "targetTypes": [
-            "SlaTargetAvailability"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["SlaTargetAvailability"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "apm.sla-target-availability",
           "cardinality": "single",
           "format": "percentage",
@@ -501,13 +405,8 @@
           "predicate": "sla-target-latency",
           "inversePredicate": "referenced-by",
           "targetLayer": "11-apm",
-          "targetTypes": [
-            "SlaTargetLatency"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["SlaTargetLatency"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "apm.sla-target-latency",
           "cardinality": "single",
           "format": "duration",
@@ -530,13 +429,8 @@
           "predicate": "apm-trace",
           "inversePredicate": "referenced-by",
           "targetLayer": "11-apm",
-          "targetTypes": [
-            "Trace"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["Trace"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-apm-trace",
           "cardinality": "single",
           "format": "string",
@@ -550,14 +444,8 @@
           "predicate": "archimate-ref",
           "inversePredicate": "referenced-by",
           "targetLayer": "04-application",
-          "targetTypes": [
-            "Element"
-          ],
-          "sourceTypes": [
-            "OpenAPIDocument",
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["Element"],
+          "sourceTypes": ["OpenAPIDocument", "Operation", "SecurityScheme"],
           "fieldPath": "x-archimate-ref",
           "cardinality": "single",
           "format": "duration",
@@ -571,13 +459,8 @@
           "predicate": "business-metrics",
           "inversePredicate": "referenced-by",
           "targetLayer": "02-business",
-          "targetTypes": [
-            "BusinessMetric"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["BusinessMetric"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "apm.business-metrics",
           "cardinality": "array",
           "format": "reference",
@@ -600,13 +483,8 @@
           "predicate": "business-interface-ref",
           "inversePredicate": "referenced-by",
           "targetLayer": "02-business",
-          "targetTypes": [
-            "BusinessInterface"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["BusinessInterface"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-business-interface-ref",
           "cardinality": "single",
           "format": "duration",
@@ -620,13 +498,8 @@
           "predicate": "business-service-ref",
           "inversePredicate": "referenced-by",
           "targetLayer": "02-business",
-          "targetTypes": [
-            "BusinessService"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["BusinessService"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-business-service-ref",
           "cardinality": "single",
           "format": "duration",
@@ -640,12 +513,8 @@
           "predicate": "database-column",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "Column"
-          ],
-          "sourceTypes": [
-            "Schema"
-          ],
+          "targetTypes": ["Column"],
+          "sourceTypes": ["Schema"],
           "fieldPath": "x-database-column",
           "cardinality": "single",
           "format": "duration",
@@ -659,13 +528,8 @@
           "predicate": "database-table",
           "inversePredicate": "referenced-by",
           "targetLayer": "07-data-model",
-          "targetTypes": [
-            "Table"
-          ],
-          "sourceTypes": [
-            "Schema",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["Table"],
+          "sourceTypes": ["Schema", "SecurityScheme"],
           "fieldPath": "x-database-table",
           "cardinality": "single",
           "format": "duration",
@@ -679,13 +543,8 @@
           "predicate": "constrained-by",
           "inversePredicate": "constrains",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "ConstrainedBy"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["ConstrainedBy"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "motivation.constrained-by",
           "cardinality": "array",
           "format": "reference",
@@ -716,13 +575,8 @@
           "predicate": "fulfills-requirements",
           "inversePredicate": "fulfilled-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "FulfillsRequirement"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["FulfillsRequirement"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "motivation.fulfills-requirements",
           "cardinality": "array",
           "format": "reference",
@@ -753,14 +607,8 @@
           "predicate": "governed-by-principles",
           "inversePredicate": "governs",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "GovernedByPrinciple"
-          ],
-          "sourceTypes": [
-            "OpenAPIDocument",
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["GovernedByPrinciple"],
+          "sourceTypes": ["OpenAPIDocument", "Operation", "SecurityScheme"],
           "fieldPath": "motivation.governed-by-principles",
           "cardinality": "array",
           "format": "reference",
@@ -791,13 +639,8 @@
           "predicate": "supports-goals",
           "inversePredicate": "supported-by",
           "targetLayer": "01-motivation",
-          "targetTypes": [
-            "SupportsGoal"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["SupportsGoal"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "motivation.supports-goals",
           "cardinality": "array",
           "format": "reference",
@@ -828,12 +671,8 @@
           "predicate": "classification",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Classification"
-          ],
-          "sourceTypes": [
-            "Artifact"
-          ],
+          "targetTypes": ["Classification"],
+          "sourceTypes": ["Artifact"],
           "fieldPath": "security.classification",
           "cardinality": "single",
           "format": "string",
@@ -864,12 +703,8 @@
           "predicate": "encrypted",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Encrypted"
-          ],
-          "sourceTypes": [
-            "Schema"
-          ],
+          "targetTypes": ["Encrypted"],
+          "sourceTypes": ["Schema"],
           "fieldPath": "x-encrypted",
           "cardinality": "single",
           "format": "string",
@@ -883,12 +718,8 @@
           "predicate": "pii",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Pii"
-          ],
-          "sourceTypes": [
-            "Schema"
-          ],
+          "targetTypes": ["Pii"],
+          "sourceTypes": ["Schema"],
           "fieldPath": "security.pii",
           "cardinality": "single",
           "format": "boolean",
@@ -911,13 +742,8 @@
           "predicate": "required-permissions",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "Permission"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["Permission"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-required-permissions",
           "cardinality": "array",
           "format": "duration",
@@ -931,13 +757,8 @@
           "predicate": "security-resource",
           "inversePredicate": "referenced-by",
           "targetLayer": "03-security",
-          "targetTypes": [
-            "SecureResource"
-          ],
-          "sourceTypes": [
-            "Operation",
-            "SecurityScheme"
-          ],
+          "targetTypes": ["SecureResource"],
+          "sourceTypes": ["Operation", "SecurityScheme"],
           "fieldPath": "x-security-resource",
           "cardinality": "single",
           "format": "duration",

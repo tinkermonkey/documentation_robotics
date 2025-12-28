@@ -15,16 +15,8 @@
     "allowed": [
       {
         "relationshipTypeId": "composition",
-        "sourceTypes": [
-          "BusinessCollaboration",
-          "TestCoverageModel",
-          "TestCoverageTarget"
-        ],
-        "targetTypes": [
-          "BusinessRole",
-          "OutcomeCategory",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["BusinessCollaboration", "TestCoverageModel", "TestCoverageTarget"],
+        "targetTypes": ["BusinessRole", "OutcomeCategory", "TestCoverageTarget"],
         "examples": [
           {
             "source": "BusinessCollaboration",
@@ -47,16 +39,8 @@
       },
       {
         "relationshipTypeId": "aggregation",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "Goal",
-          "InputPartitionSelection"
-        ],
-        "targetTypes": [
-          "ContextVariation",
-          "Goal",
-          "PartitionValue"
-        ],
+        "sourceTypes": ["CoverageRequirement", "Goal", "InputPartitionSelection"],
+        "targetTypes": ["ContextVariation", "Goal", "PartitionValue"],
         "examples": [
           {
             "source": "Goal",
@@ -80,14 +64,8 @@
       },
       {
         "relationshipTypeId": "specialization",
-        "sourceTypes": [
-          "PremiumAccount",
-          "Schema"
-        ],
-        "targetTypes": [
-          "Account",
-          "Schema"
-        ],
+        "sourceTypes": ["PremiumAccount", "Schema"],
+        "targetTypes": ["Account", "Schema"],
         "examples": [
           {
             "source": "PremiumAccount",
@@ -104,12 +82,8 @@
       },
       {
         "relationshipTypeId": "assignment",
-        "sourceTypes": [
-          "BusinessActor"
-        ],
-        "targetTypes": [
-          "BusinessRole"
-        ],
+        "sourceTypes": ["BusinessActor"],
+        "targetTypes": ["BusinessRole"],
         "examples": [
           {
             "source": "BusinessActor",
@@ -120,15 +94,8 @@
       },
       {
         "relationshipTypeId": "association",
-        "sourceTypes": [
-          "Requirement",
-          "Stakeholder"
-        ],
-        "targetTypes": [
-          "Constraint",
-          "Driver",
-          "Goal"
-        ],
+        "sourceTypes": ["Requirement", "Stakeholder"],
+        "targetTypes": ["Constraint", "Driver", "Goal"],
         "examples": [
           {
             "source": "Stakeholder",
@@ -152,12 +119,8 @@
       },
       {
         "relationshipTypeId": "uses",
-        "sourceTypes": [
-          "ApplicationComponent"
-        ],
-        "targetTypes": [
-          "TechnologyService"
-        ],
+        "sourceTypes": ["ApplicationComponent"],
+        "targetTypes": ["TechnologyService"],
         "examples": [
           {
             "source": "ApplicationComponent",
@@ -168,16 +131,8 @@
       },
       {
         "relationshipTypeId": "reference",
-        "sourceTypes": [
-          "CoverageRequirement",
-          "DataObject",
-          "TestCaseSketch"
-        ],
-        "targetTypes": [
-          "CoverageRequirement",
-          "Schema",
-          "TestCoverageTarget"
-        ],
+        "sourceTypes": ["CoverageRequirement", "DataObject", "TestCaseSketch"],
+        "targetTypes": ["CoverageRequirement", "Schema", "TestCoverageTarget"],
         "examples": [
           {
             "source": "DataObject",
@@ -200,13 +155,8 @@
       },
       {
         "relationshipTypeId": "fulfills-requirements",
-        "sourceTypes": [
-          "ApplicationService",
-          "Operation"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["ApplicationService", "Operation"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "ApplicationService",
@@ -225,12 +175,8 @@
       },
       {
         "relationshipTypeId": "constrainedby",
-        "sourceTypes": [
-          "APIOperation"
-        ],
-        "targetTypes": [
-          "Constraint"
-        ],
+        "sourceTypes": ["APIOperation"],
+        "targetTypes": ["Constraint"],
         "examples": [
           {
             "source": "APIOperation",
@@ -241,12 +187,8 @@
       },
       {
         "relationshipTypeId": "enforces-requirement",
-        "sourceTypes": [
-          "NavigationGuard"
-        ],
-        "targetTypes": [
-          "Requirement"
-        ],
+        "sourceTypes": ["NavigationGuard"],
+        "targetTypes": ["Requirement"],
         "examples": [
           {
             "source": "NavigationGuard",
@@ -257,12 +199,8 @@
       },
       {
         "relationshipTypeId": "protects",
-        "sourceTypes": [
-          "SecurityControl"
-        ],
-        "targetTypes": [
-          "ApplicationService"
-        ],
+        "sourceTypes": ["SecurityControl"],
+        "targetTypes": ["ApplicationService"],
         "examples": [
           {
             "source": "SecurityControl",
@@ -273,12 +211,8 @@
       },
       {
         "relationshipTypeId": "authenticates",
-        "sourceTypes": [
-          "AuthenticationService"
-        ],
-        "targetTypes": [
-          "User"
-        ],
+        "sourceTypes": ["AuthenticationService"],
+        "targetTypes": ["User"],
         "examples": [
           {
             "source": "AuthenticationService",
@@ -289,12 +223,8 @@
       },
       {
         "relationshipTypeId": "authorization",
-        "sourceTypes": [
-          "Role"
-        ],
-        "targetTypes": [
-          "Operation"
-        ],
+        "sourceTypes": ["Role"],
+        "targetTypes": ["Operation"],
         "examples": [
           {
             "source": "Role",
@@ -305,12 +235,8 @@
       },
       {
         "relationshipTypeId": "derivedfrom",
-        "sourceTypes": [
-          "TotalPrice"
-        ],
-        "targetTypes": [
-          "Quantity, UnitPrice"
-        ],
+        "sourceTypes": ["TotalPrice"],
+        "targetTypes": ["Quantity, UnitPrice"],
         "examples": [
           {
             "source": "TotalPrice",
@@ -329,12 +255,8 @@
         "predicate": "governed-by-principles",
         "inversePredicate": "governs",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "GovernedByPrinciple"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["GovernedByPrinciple"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.governed-by-principles",
         "cardinality": "array",
         "format": "reference",
@@ -365,12 +287,8 @@
         "predicate": "supports-goals",
         "inversePredicate": "supported-by",
         "targetLayer": "01-motivation",
-        "targetTypes": [
-          "SupportsGoal"
-        ],
-        "sourceTypes": [
-          "BusinessService"
-        ],
+        "targetTypes": ["SupportsGoal"],
+        "sourceTypes": ["BusinessService"],
         "fieldPath": "motivation.supports-goals",
         "cardinality": "array",
         "format": "reference",
@@ -401,12 +319,8 @@
         "predicate": "classification",
         "inversePredicate": "referenced-by",
         "targetLayer": "03-security",
-        "targetTypes": [
-          "Classification"
-        ],
-        "sourceTypes": [
-          "Artifact"
-        ],
+        "targetTypes": ["Classification"],
+        "sourceTypes": ["Artifact"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "format": "string",
@@ -439,12 +353,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -454,12 +364,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "03-security",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -469,12 +375,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -484,12 +386,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -499,12 +397,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -514,12 +408,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "07-data-model",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -529,12 +419,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "08-datastore",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -544,12 +430,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "09-ux",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -559,12 +441,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "10-navigation",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -574,12 +452,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "11-apm-observability",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -589,12 +463,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "classification",
         "sourceLayer": "12-testing",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Classification"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Classification"],
         "fieldPath": "security.classification",
         "cardinality": "single",
         "description": "Inverse of: Links to Classification in target layer"
@@ -604,13 +474,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "pii",
         "sourceLayer": "04-application",
-        "sourceTypes": [
-          "Data Properties",
-          "DataObject"
-        ],
-        "targetTypes": [
-          "Pii"
-        ],
+        "sourceTypes": ["Data Properties", "DataObject"],
+        "targetTypes": ["Pii"],
         "fieldPath": "data.pii",
         "cardinality": "single",
         "description": "Inverse of: Links to Pii in target layer"
@@ -620,12 +485,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "encrypted",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Schema"
-        ],
-        "targetTypes": [
-          "Encrypted"
-        ],
+        "sourceTypes": ["Schema"],
+        "targetTypes": ["Encrypted"],
         "fieldPath": "x-encrypted",
         "cardinality": "single",
         "description": "Inverse of: boolean"
@@ -635,12 +496,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "encryption-required",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "EncryptionRequired"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["EncryptionRequired"],
         "fieldPath": "security.encryption-required",
         "cardinality": "single",
         "description": "Inverse of: Links to EncryptionRequired in target layer"
@@ -650,12 +507,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "encryption-type",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "EncryptionType"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["EncryptionType"],
         "fieldPath": "security.encryption-type",
         "cardinality": "single",
         "description": "Inverse of: Links to EncryptionType in target layer"
@@ -665,12 +518,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "pii",
         "sourceLayer": "05-technology",
-        "sourceTypes": [
-          "Artifact"
-        ],
-        "targetTypes": [
-          "Pii"
-        ],
+        "sourceTypes": ["Artifact"],
+        "targetTypes": ["Pii"],
         "fieldPath": "security.pii",
         "cardinality": "single",
         "description": "Inverse of: contains personally identifiable information"
@@ -680,12 +529,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "pii",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Schema"
-        ],
-        "targetTypes": [
-          "Pii"
-        ],
+        "sourceTypes": ["Schema"],
+        "targetTypes": ["Pii"],
         "fieldPath": "security.pii",
         "cardinality": "single",
         "description": "Inverse of: contains personally identifiable information"
@@ -695,12 +540,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "security-controls",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
-        "targetTypes": [
-          "SecurityControl"
-        ],
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["SecurityControl"],
         "fieldPath": "process.security-controls",
         "cardinality": "array",
         "description": "Inverse of: security control references"
@@ -710,12 +551,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "separation-of-duty",
         "sourceLayer": "02-business",
-        "sourceTypes": [
-          "BusinessProcess"
-        ],
-        "targetTypes": [
-          "SeparationOfDuty"
-        ],
+        "sourceTypes": ["BusinessProcess"],
+        "targetTypes": ["SeparationOfDuty"],
         "fieldPath": "process.separation-of-duty",
         "cardinality": "single",
         "description": "Inverse of: Links to SeparationOfDuty in target layer"
@@ -725,13 +562,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "required-permissions",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "Permission"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["Permission"],
         "fieldPath": "x-required-permissions",
         "cardinality": "array",
         "description": "Inverse of: string[] (Permission.name[], optional)"
@@ -741,13 +573,8 @@
         "predicate": "referenced-by",
         "inversePredicate": "security-resource",
         "sourceLayer": "06-api",
-        "sourceTypes": [
-          "Operation",
-          "SecurityScheme"
-        ],
-        "targetTypes": [
-          "SecureResource"
-        ],
+        "sourceTypes": ["Operation", "SecurityScheme"],
+        "targetTypes": ["SecureResource"],
         "fieldPath": "x-security-resource",
         "cardinality": "single",
         "description": "Inverse of: string (SecureResource.resource, optional)"
@@ -998,34 +825,15 @@
   "definitions": {
     "AuthProvider": {
       "type": "string",
-      "enum": [
-        "oauth2",
-        "openid-connect",
-        "saml",
-        "jwt",
-        "session",
-        "api-key",
-        "certificate"
-      ]
+      "enum": ["oauth2", "openid-connect", "saml", "jwt", "session", "api-key", "certificate"]
     },
     "PermissionScope": {
       "type": "string",
-      "enum": [
-        "global",
-        "resource",
-        "attribute",
-        "owner"
-      ]
+      "enum": ["global", "resource", "attribute", "owner"]
     },
     "ResourceType": {
       "type": "string",
-      "enum": [
-        "api",
-        "screen",
-        "data",
-        "file",
-        "service"
-      ]
+      "enum": ["api", "screen", "data", "file", "service"]
     },
     "ConditionOperator": {
       "type": "string",
@@ -1049,41 +857,19 @@
     },
     "DataSource": {
       "type": "string",
-      "enum": [
-        "constant",
-        "user-attribute",
-        "resource-field",
-        "context",
-        "computed"
-      ]
+      "enum": ["constant", "user-attribute", "resource-field", "context", "computed"]
     },
     "MaskingStrategy": {
       "type": "string",
-      "enum": [
-        "none",
-        "partial",
-        "full",
-        "hash",
-        "redact"
-      ]
+      "enum": ["none", "partial", "full", "hash", "redact"]
     },
     "PolicyTarget": {
       "type": "string",
-      "enum": [
-        "all",
-        "api",
-        "data",
-        "screen"
-      ]
+      "enum": ["all", "api", "data", "screen"]
     },
     "PolicyEffect": {
       "type": "string",
-      "enum": [
-        "allow",
-        "deny",
-        "audit",
-        "warn"
-      ]
+      "enum": ["allow", "deny", "audit", "warn"]
     },
     "ActionType": {
       "type": "string",
@@ -1104,94 +890,43 @@
     },
     "ClassificationLevel": {
       "type": "string",
-      "enum": [
-        "public",
-        "internal",
-        "confidential",
-        "restricted"
-      ]
+      "enum": ["public", "internal", "confidential", "restricted"]
     },
     "EncryptionRequirement": {
       "type": "string",
-      "enum": [
-        "none",
-        "in-transit",
-        "at-rest",
-        "both",
-        "end-to-end"
-      ]
+      "enum": ["none", "in-transit", "at-rest", "both", "end-to-end"]
     },
     "AccessControlLevel": {
       "type": "string",
-      "enum": [
-        "open",
-        "authenticated",
-        "role-based",
-        "attribute-based"
-      ]
+      "enum": ["open", "authenticated", "role-based", "attribute-based"]
     },
     "AuditLevel": {
       "type": "string",
-      "enum": [
-        "none",
-        "minimal",
-        "standard",
-        "comprehensive"
-      ]
+      "enum": ["none", "minimal", "standard", "comprehensive"]
     },
     "ActorType": {
       "type": "string",
-      "enum": [
-        "role",
-        "agent",
-        "organization",
-        "system"
-      ]
+      "enum": ["role", "agent", "organization", "system"]
     },
     "TrustLevel": {
       "type": "string",
-      "enum": [
-        "none",
-        "low",
-        "medium",
-        "high",
-        "full"
-      ]
+      "enum": ["none", "low", "medium", "high", "full"]
     },
     "Criticality": {
       "type": "string",
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ]
+      "enum": ["low", "medium", "high", "critical"]
     },
     "DelegationType": {
       "type": "string",
-      "enum": [
-        "execution",
-        "permission",
-        "approval"
-      ]
+      "enum": ["execution", "permission", "approval"]
     },
     "VerificationLevel": {
       "type": "string",
-      "enum": [
-        "none",
-        "manual",
-        "automated",
-        "continuous"
-      ]
+      "enum": ["none", "manual", "automated", "continuous"]
     },
     "RequirementLevel": {
       "type": "string",
-      "enum": [
-        "none",
-        "optional",
-        "required",
-        "mandatory"
-      ]
+      "enum": ["none", "optional", "required", "mandatory"]
     },
     "EvidenceType": {
       "type": "string",
@@ -1209,96 +944,43 @@
     },
     "EvidenceStrength": {
       "type": "string",
-      "enum": [
-        "weak",
-        "moderate",
-        "strong",
-        "cryptographic"
-      ]
+      "enum": ["weak", "moderate", "strong", "cryptographic"]
     },
     "Likelihood": {
       "type": "string",
-      "enum": [
-        "very-low",
-        "low",
-        "medium",
-        "high",
-        "very-high"
-      ]
+      "enum": ["very-low", "low", "medium", "high", "very-high"]
     },
     "Impact": {
       "type": "string",
-      "enum": [
-        "negligible",
-        "low",
-        "medium",
-        "high",
-        "critical"
-      ]
+      "enum": ["negligible", "low", "medium", "high", "critical"]
     },
     "Effectiveness": {
       "type": "string",
-      "enum": [
-        "low",
-        "medium",
-        "high",
-        "very-high"
-      ]
+      "enum": ["low", "medium", "high", "very-high"]
     },
     "RateLimitScope": {
       "type": "string",
-      "enum": [
-        "global",
-        "user",
-        "ip",
-        "api-key",
-        "tenant"
-      ]
+      "enum": ["global", "user", "ip", "api-key", "tenant"]
     },
     "RateLimitAction": {
       "type": "string",
-      "enum": [
-        "reject",
-        "queue",
-        "throttle",
-        "degrade"
-      ]
+      "enum": ["reject", "queue", "throttle", "degrade"]
     },
     "StorageClass": {
       "type": "string",
-      "enum": [
-        "hot",
-        "warm",
-        "cold",
-        "archive"
-      ]
+      "enum": ["hot", "warm", "cold", "archive"]
     },
     "DestinationType": {
       "type": "string",
-      "enum": [
-        "database",
-        "log-service",
-        "siem",
-        "file"
-      ]
+      "enum": ["database", "log-service", "siem", "file"]
     },
     "EvaluationType": {
       "type": "string",
-      "enum": [
-        "synchronous",
-        "asynchronous",
-        "cached"
-      ]
+      "enum": ["synchronous", "asynchronous", "cached"]
     },
     "DeletionMethod": {
       "type": "string",
-      "enum": [
-        "soft",
-        "hard",
-        "cryptographic",
-        "overwrite",
-        "physical"
-      ]
+      "enum": ["soft", "hard", "cryptographic", "overwrite", "physical"]
     },
     "ValidationRuleType": {
       "type": "string",
@@ -1318,21 +1000,12 @@
     },
     "ValidationSeverity": {
       "type": "string",
-      "enum": [
-        "error",
-        "warning",
-        "info"
-      ]
+      "enum": ["error", "warning", "info"]
     },
     "SecurityModel": {
       "type": "object",
       "description": "Complete security model for application",
-      "required": [
-        "id",
-        "name",
-        "version",
-        "application"
-      ],
+      "required": ["id", "name", "version", "application"],
       "properties": {
         "id": {
           "type": "string",
@@ -1447,12 +1120,7 @@
     "AuthenticationConfig": {
       "type": "object",
       "description": "Authentication configuration",
-      "required": [
-        "id",
-        "name",
-        "provider",
-        "sessionTimeout"
-      ],
+      "required": ["id", "name", "provider", "sessionTimeout"],
       "properties": {
         "id": {
           "type": "string",
@@ -1481,11 +1149,7 @@
     "PasswordPolicy": {
       "type": "object",
       "description": "Password requirements",
-      "required": [
-        "id",
-        "name",
-        "expiryDays"
-      ],
+      "required": ["id", "name", "expiryDays"],
       "properties": {
         "id": {
           "type": "string",
@@ -1531,13 +1195,7 @@
     "Role": {
       "type": "object",
       "description": "User role definition",
-      "required": [
-        "id",
-        "name",
-        "displayName",
-        "level",
-        "inheritsFrom"
-      ],
+      "required": ["id", "name", "displayName", "level", "inheritsFrom"],
       "properties": {
         "id": {
           "type": "string",
@@ -1575,13 +1233,7 @@
     "Permission": {
       "type": "object",
       "description": "Permission definition",
-      "required": [
-        "name",
-        "id",
-        "scope",
-        "resource",
-        "action"
-      ],
+      "required": ["name", "id", "scope", "resource", "action"],
       "properties": {
         "name": {
           "type": "string",
@@ -1612,12 +1264,7 @@
     "SecureResource": {
       "type": "object",
       "description": "Protected resource definition",
-      "required": [
-        "resource",
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["resource", "id", "name", "type"],
       "properties": {
         "resource": {
           "type": "string",
@@ -1658,11 +1305,7 @@
     "ResourceOperation": {
       "type": "object",
       "description": "Operation on a resource",
-      "required": [
-        "id",
-        "name",
-        "operation"
-      ],
+      "required": ["id", "name", "operation"],
       "properties": {
         "id": {
           "type": "string",
@@ -1707,15 +1350,7 @@
     "AccessCondition": {
       "type": "object",
       "description": "Conditional access rule",
-      "required": [
-        "id",
-        "name",
-        "field",
-        "operator",
-        "value",
-        "message",
-        "source"
-      ],
+      "required": ["id", "name", "field", "operator", "value", "message", "source"],
       "properties": {
         "id": {
           "type": "string",
@@ -1749,11 +1384,7 @@
     "FieldAccessControl": {
       "type": "object",
       "description": "Field-level access control",
-      "required": [
-        "id",
-        "name",
-        "field"
-      ],
+      "required": ["id", "name", "field"],
       "properties": {
         "id": {
           "type": "string",
@@ -1777,12 +1408,7 @@
     "SecurityPolicy": {
       "type": "object",
       "description": "Declarative security policy",
-      "required": [
-        "id",
-        "name",
-        "priority",
-        "target"
-      ],
+      "required": ["id", "name", "priority", "target"],
       "properties": {
         "id": {
           "type": "string",
@@ -1818,12 +1444,7 @@
     "PolicyRule": {
       "type": "object",
       "description": "Individual policy rule",
-      "required": [
-        "id",
-        "name",
-        "condition",
-        "effect"
-      ],
+      "required": ["id", "name", "condition", "effect"],
       "properties": {
         "id": {
           "type": "string",
@@ -1857,12 +1478,7 @@
     "PolicyAction": {
       "type": "object",
       "description": "Action to take when policy rule matches",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "parameters"
-      ],
+      "required": ["id", "name", "type", "parameters"],
       "properties": {
         "id": {
           "type": "string",
@@ -1884,10 +1500,7 @@
     "DataClassification": {
       "type": "object",
       "description": "Data classification and protection policies",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -1914,11 +1527,7 @@
     "Classification": {
       "type": "object",
       "description": "A single classification level defining data sensitivity and protection requirements",
-      "required": [
-        "level",
-        "label",
-        "description"
-      ],
+      "required": ["level", "label", "description"],
       "properties": {
         "level": {
           "$ref": "#/definitions/ClassificationLevel"
@@ -1936,11 +1545,7 @@
     "Actor": {
       "type": "object",
       "description": "Actor in the system (beyond roles)",
-      "required": [
-        "id",
-        "name",
-        "type"
-      ],
+      "required": ["id", "name", "type"],
       "properties": {
         "id": {
           "type": "string",
@@ -1980,11 +1585,7 @@
     "ActorObjective": {
       "type": "object",
       "description": "Security-related objective or goal of an actor",
-      "required": [
-        "id",
-        "name",
-        "description"
-      ],
+      "required": ["id", "name", "description"],
       "properties": {
         "id": {
           "type": "string",
@@ -2007,14 +1608,7 @@
     "ActorDependency": {
       "type": "object",
       "description": "Dependency between actors",
-      "required": [
-        "id",
-        "name",
-        "dependee",
-        "resource",
-        "objective",
-        "criticality"
-      ],
+      "required": ["id", "name", "dependee", "resource", "objective", "criticality"],
       "properties": {
         "id": {
           "type": "string",
@@ -2045,11 +1639,7 @@
     "InformationEntity": {
       "type": "object",
       "description": "Information asset with fine-grained rights",
-      "required": [
-        "id",
-        "name",
-        "classification"
-      ],
+      "required": ["id", "name", "classification"],
       "properties": {
         "id": {
           "type": "string",
@@ -2079,12 +1669,7 @@
     "InformationRight": {
       "type": "object",
       "description": "Fine-grained information access rights",
-      "required": [
-        "id",
-        "name",
-        "actor",
-        "constraint"
-      ],
+      "required": ["id", "name", "actor", "constraint"],
       "properties": {
         "id": {
           "type": "string",
@@ -2108,13 +1693,7 @@
     "Delegation": {
       "type": "object",
       "description": "Explicit delegation of permissions or goals",
-      "required": [
-        "id",
-        "name",
-        "delegator",
-        "delegatee",
-        "delegationType"
-      ],
+      "required": ["id", "name", "delegator", "delegatee", "delegationType"],
       "properties": {
         "id": {
           "type": "string",
@@ -2145,10 +1724,7 @@
     "SecurityConstraints": {
       "type": "object",
       "description": "Security patterns and constraints",
-      "required": [
-        "id",
-        "name"
-      ],
+      "required": ["id", "name"],
       "properties": {
         "id": {
           "type": "string",
@@ -2189,10 +1765,7 @@
     "SeparationOfDuty": {
       "type": "object",
       "description": "Different actors must perform related tasks",
-      "required": [
-        "name",
-        "message"
-      ],
+      "required": ["name", "message"],
       "properties": {
         "name": {
           "type": "string",
@@ -2232,10 +1805,7 @@
     "BindingOfDuty": {
       "type": "object",
       "description": "Same actor must complete related tasks",
-      "required": [
-        "name",
-        "message"
-      ],
+      "required": ["name", "message"],
       "properties": {
         "name": {
           "type": "string",
@@ -2268,13 +1838,7 @@
     "NeedToKnow": {
       "type": "object",
       "description": "Information access based on objective/purpose requirements",
-      "required": [
-        "name",
-        "resource",
-        "objective",
-        "message",
-        "justificationRequired"
-      ],
+      "required": ["name", "resource", "objective", "message", "justificationRequired"],
       "properties": {
         "name": {
           "type": "string",
@@ -2300,15 +1864,7 @@
     "SocialDependency": {
       "type": "object",
       "description": "Dependencies and trust between actors",
-      "required": [
-        "id",
-        "name",
-        "depender",
-        "dependee",
-        "resource",
-        "objective",
-        "criticality"
-      ],
+      "required": ["id", "name", "depender", "dependee", "resource", "objective", "criticality"],
       "properties": {
         "id": {
           "type": "string",
@@ -2384,12 +1940,7 @@
     "Evidence": {
       "type": "object",
       "description": "Evidence required for accountability",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "source"
-      ],
+      "required": ["id", "name", "type", "source"],
       "properties": {
         "id": {
           "type": "string",
@@ -2415,14 +1966,7 @@
     "Threat": {
       "type": "object",
       "description": "Security threat and countermeasures",
-      "required": [
-        "id",
-        "name",
-        "description",
-        "threatens",
-        "likelihood",
-        "impact"
-      ],
+      "required": ["id", "name", "description", "threatens", "likelihood", "impact"],
       "properties": {
         "id": {
           "type": "string",
@@ -2459,12 +2003,7 @@
     "Countermeasure": {
       "type": "object",
       "description": "Security countermeasure for a threat",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "description"
-      ],
+      "required": ["id", "name", "type", "description"],
       "properties": {
         "id": {
           "type": "string",
@@ -2494,13 +2033,7 @@
     "RateLimit": {
       "type": "object",
       "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
-      "required": [
-        "id",
-        "name",
-        "requests",
-        "window",
-        "keyBy"
-      ],
+      "required": ["id", "name", "requests", "window", "keyBy"],
       "properties": {
         "id": {
           "type": "string",
@@ -2530,12 +2063,7 @@
     "AuditConfig": {
       "type": "object",
       "description": "Configuration for security audit logging, specifying what events to capture, retention periods, storage destinations, and compliance requirements. Enables security monitoring and forensic analysis.",
-      "required": [
-        "id",
-        "name",
-        "level",
-        "sanitizeFields"
-      ],
+      "required": ["id", "name", "level", "sanitizeFields"],
       "properties": {
         "id": {
           "type": "string",
@@ -2567,11 +2095,7 @@
     "Condition": {
       "type": "object",
       "description": "A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource state.",
-      "required": [
-        "id",
-        "name",
-        "expression"
-      ],
+      "required": ["id", "name", "expression"],
       "properties": {
         "id": {
           "type": "string",
@@ -2598,11 +2122,7 @@
     "RetentionPolicy": {
       "type": "object",
       "description": "Defines how long security-related data (audit logs, access records, encryption keys) must be retained, archival strategies, and secure deletion procedures. Ensures compliance with regulatory requirements.",
-      "required": [
-        "id",
-        "name",
-        "period"
-      ],
+      "required": ["id", "name", "period"],
       "properties": {
         "id": {
           "type": "string",
@@ -2626,13 +2146,7 @@
     "ValidationRule": {
       "type": "object",
       "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
-      "required": [
-        "id",
-        "name",
-        "type",
-        "value",
-        "message"
-      ],
+      "required": ["id", "name", "type", "value", "message"],
       "properties": {
         "id": {
           "type": "string",

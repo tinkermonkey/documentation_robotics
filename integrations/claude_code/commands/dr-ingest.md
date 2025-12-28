@@ -102,7 +102,7 @@ Detected:
 ✓ Framework: FastAPI (found fastapi imports)
 ✓ API: 8 route files detected
 ✓ Database: SQLAlchemy models found (12 files)
-✓ Tests: pytest structure detected
+✓ Tests: npm test structure detected
 
 Estimated extraction:
 - Business services: ~5
