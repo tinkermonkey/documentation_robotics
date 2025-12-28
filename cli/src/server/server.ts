@@ -4,7 +4,7 @@
  */
 
 import { Hono } from 'hono';
-import { upgradeWebSocket } from 'hono/bun';
+import { upgradeWebSocket, websocket } from 'hono/bun';
 import { cors } from 'hono/cors';
 import { serve } from 'bun';
 import { Model } from '../core/model.js';
@@ -86,6 +86,7 @@ export interface VisualizationServerOptions {
 export class VisualizationServer {
   private app: Hono;
   private model: Model;
+  private _server?: ReturnType<typeof serve>;
   private clients: Set<HonoWSContext> = new Set();
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
@@ -535,7 +536,19 @@ export class VisualizationServer {
 
         onMessage: async (message, ws) => {
           try {
-            const msgStr = typeof message === 'string' ? message : String(message);
+            // Extract the actual message data
+            // In Hono/Bun, message is a MessageEvent with a data property
+            const rawData = (message as any).data ?? message;
+
+            // Handle different message types (string, Buffer, ArrayBuffer)
+            let msgStr: string;
+            if (typeof rawData === 'string') {
+              msgStr = rawData;
+            } else if (rawData instanceof Buffer || rawData instanceof Uint8Array) {
+              msgStr = new TextDecoder().decode(rawData);
+            } else {
+              msgStr = String(rawData);
+            }
             const data = JSON.parse(msgStr) as WSMessage;
 
             // Check if it's a JSON-RPC message
@@ -1702,9 +1715,10 @@ export class VisualizationServer {
   async start(port: number = 8080): Promise<void> {
     this.setupFileWatcher();
 
-    serve({
+    this._server = serve({
       port,
       fetch: this.app.fetch,
+      websocket,  // Add WebSocket handler from hono/bun
     });
 
     console.log(
@@ -1730,8 +1744,24 @@ export class VisualizationServer {
    * Stop the server
    */
   stop(): void {
+    // Close all WebSocket connections
+    for (const client of this.clients) {
+      try {
+        client.close();
+      } catch (error) {
+        // Ignore errors on close
+      }
+    }
+    this.clients.clear();
+
+    // Stop file watcher
     if (this.watcher) {
       this.watcher.close?.();
+    }
+
+    // Stop the server
+    if (this._server) {
+      this._server.stop();
     }
   }
 }
