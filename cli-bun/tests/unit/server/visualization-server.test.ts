@@ -144,17 +144,17 @@ describe('VisualizationServer', () => {
     });
   });
 
-  describe('broadcastAnnotation', () => {
+  describe('broadcastMessage', () => {
     it('should handle broadcasting with no clients', async () => {
-      const annotation = {
+      const message = {
+        type: 'annotation.added',
+        annotationId: 'test-annotation-id',
         elementId: 'motivation-goal-test-goal',
-        author: 'Test Author',
-        text: 'Test annotation',
         timestamp: new Date().toISOString(),
       };
 
       // Should not throw
-      await server['broadcastAnnotation'](annotation);
+      await server['broadcastMessage'](message);
     });
 
     it('should add annotation to map', async () => {
