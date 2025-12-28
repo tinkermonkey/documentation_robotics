@@ -39,7 +39,7 @@ async function waitForServer(url: string, timeout: number = STARTUP_TIMEOUT): Pr
  */
 async function startServer(cwd: string, port: number): Promise<any> {
   const process = Bun.spawn({
-    cmd: ['bun', CLI_PATH, 'visualize', '--port', String(port), '--no-browser'],
+    cmd: ['bun', CLI_PATH, 'visualize', '--port', String(port), '--no-browser', '--no-auth'],
     cwd,
     stdio: ['ignore', 'pipe', 'pipe'], // Capture output
   });
@@ -377,7 +377,7 @@ describe('Visualization Server API Endpoints', () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data.status).toBe('healthy');
+      expect(data.status).toBe('ok');
     });
   });
 
