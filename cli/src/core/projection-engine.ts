@@ -1,65 +1,236 @@
+/**
+ * Projection Engine - Python CLI Compatible Implementation
+ *
+ * Automatically creates elements across layers based on projection rules
+ * with property transformations, conditional logic, and template rendering.
+ *
+ * Spec: cli-validation/projection-engine-spec.md
+ */
+
+import { readFile } from 'fs/promises';
+import { parse as parseYAML } from 'yaml';
 import { Model } from './model.js';
+import { Element } from './element.js';
 import { ReferenceRegistry } from './reference-registry.js';
-import type { Element } from '../types/index.js';
 
 /**
- * Projection rule for cross-layer dependency traversal
+ * Transform types for property mapping
  */
-export interface ProjectionRule {
-  sourceLayer: string;
-  targetLayer: string;
-  predicate?: string; // Optional predicate filter
+export type TransformType =
+  | 'uppercase'
+  | 'lowercase'
+  | 'kebab'
+  | 'snake'
+  | 'pascal'
+  | 'prefix'
+  | 'suffix'
+  | 'template';
+
+/**
+ * Condition operators for filtering
+ */
+export type ConditionOperator =
+  | 'exists'
+  | 'equals'
+  | 'not_equals'
+  | 'contains'
+  | 'matches'
+  | 'gt'
+  | 'lt'
+  | 'in';
+
+/**
+ * Property transformation configuration
+ */
+export interface PropertyTransform {
+  type: TransformType;
+  value?: string; // For prefix/suffix/template
 }
 
 /**
- * Projection engine - projects dependencies across layers following defined rules
+ * Condition for filtering source elements
+ */
+export interface ProjectionCondition {
+  field: string;
+  operator: ConditionOperator;
+  value?: any;
+  pattern?: string; // For regex matching
+}
+
+/**
+ * Property mapping from source to target
+ */
+export interface PropertyMapping {
+  source: string;
+  target: string;
+  default?: any;
+  required?: boolean;
+  transform?: PropertyTransform;
+}
+
+/**
+ * Projection rule definition
+ */
+export interface ProjectionRule {
+  name: string;
+  from_layer: string;
+  from_type: string;
+  to_layer: string;
+  to_type: string;
+  name_template: string;
+  property_mappings: PropertyMapping[];
+  conditions?: ProjectionCondition[];
+  template_file?: string;
+  create_bidirectional?: boolean;
+}
+
+/**
+ * Helper class for property transformations
+ */
+export class PropertyTransformer {
+  constructor(private config: PropertyTransform) {}
+
+  apply(value: any): any {
+    if (value === null || value === undefined) return null;
+
+    const strValue = String(value);
+
+    switch (this.config.type) {
+      case 'uppercase':
+        return strValue.toUpperCase();
+
+      case 'lowercase':
+        return strValue.toLowerCase();
+
+      case 'kebab':
+        return toKebabCase(strValue);
+
+      case 'snake':
+        return toSnakeCase(strValue);
+
+      case 'pascal':
+        return toPascalCase(strValue);
+
+      case 'prefix':
+        return `${this.config.value}${strValue}`;
+
+      case 'suffix':
+        return `${strValue}${this.config.value}`;
+
+      case 'template':
+        return this.config.value?.replace('{value}', strValue) ?? strValue;
+
+      default:
+        return value;
+    }
+  }
+}
+
+/**
+ * Helper class for condition evaluation
+ */
+export class ConditionEvaluator {
+  constructor(private config: ProjectionCondition) {}
+
+  evaluate(element: any): boolean {
+    const fieldValue = getNestedProperty(element, this.config.field);
+
+    switch (this.config.operator) {
+      case 'exists':
+        return fieldValue !== null && fieldValue !== undefined;
+
+      case 'equals':
+        return fieldValue === this.config.value;
+
+      case 'not_equals':
+        return fieldValue !== this.config.value;
+
+      case 'contains':
+        return fieldValue
+          ? String(fieldValue).includes(String(this.config.value))
+          : false;
+
+      case 'matches':
+        return fieldValue && this.config.pattern
+          ? new RegExp(this.config.pattern).test(String(fieldValue))
+          : false;
+
+      case 'gt':
+        return fieldValue > this.config.value;
+
+      case 'lt':
+        return fieldValue < this.config.value;
+
+      case 'in':
+        return Array.isArray(this.config.value)
+          ? this.config.value.includes(fieldValue)
+          : false;
+
+      default:
+        return false;
+    }
+  }
+}
+
+/**
+ * Projection Engine - Creates elements across layers based on rules
  */
 export class ProjectionEngine {
   private rules: ProjectionRule[] = [];
-  private static readonly MAX_RECURSION_DEPTH = 20;
+  private registry?: ReferenceRegistry;
 
-  /**
-   * Extract the layer number from a layer name (e.g., "01-motivation" -> "01")
-   */
-  private getLayerNumber(layerName: string): string {
-    const match = layerName.match(/^(\d+)/);
-    return match ? match[1] : layerName;
-  }
-
-
-  /**
-   * Find which layer contains the given element
-   */
-  private async findElementLayer(
-    model: Model,
-    elementId: string
-  ): Promise<string | undefined> {
-    for (const [layerName, layer] of model.layers) {
-      if (layer.getElement(elementId)) {
-        return layerName;
-      }
+  constructor(private model: Model, rulesPath?: string) {
+    if (rulesPath) {
+      this.loadRulesSync(rulesPath);
     }
-    return undefined;
   }
 
   /**
-   * Add a projection rule
+   * Set reference registry for element registration
+   */
+  setRegistry(registry: ReferenceRegistry): void {
+    this.registry = registry;
+  }
+
+  /**
+   * Load projection rules from YAML file
+   */
+  async loadRules(path: string): Promise<void> {
+    try {
+      const content = await readFile(path, 'utf-8');
+      const data = parseYAML(content);
+
+      if (!data.projections || !Array.isArray(data.projections)) {
+        throw new Error('Invalid projection rules file: missing projections array');
+      }
+
+      this.rules = data.projections.map((proj: any) =>
+        this.parseProjectionRule(proj)
+      );
+    } catch (error) {
+      throw new Error(
+        `Failed to load projection rules from ${path}: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Synchronous version for constructor
+   */
+  private loadRulesSync(_path: string): void {
+    // For now, rules must be loaded async via loadRules()
+    // This is a placeholder for backward compatibility
+  }
+
+  /**
+   * Add a projection rule programmatically
    */
   addRule(rule: ProjectionRule): void {
     this.rules.push(rule);
   }
 
   /**
-   * Remove a projection rule
-   */
-  removeRule(sourceLayer: string, targetLayer: string): void {
-    this.rules = this.rules.filter(
-      r => !(r.sourceLayer === sourceLayer && r.targetLayer === targetLayer)
-    );
-  }
-
-  /**
-   * Get all rules
+   * Get all loaded rules
    */
   getRules(): ProjectionRule[] {
     return [...this.rules];
@@ -73,216 +244,366 @@ export class ProjectionEngine {
   }
 
   /**
-   * Project dependencies from source element to target layer
-   * Follows references according to projection rules
+   * Parse YAML projection definition into ProjectionRule
    */
-  async project(
-    model: Model,
-    sourceElementId: string,
-    targetLayer: string
-  ): Promise<Element[]> {
-    const results: Element[] = [];
-    const visited = new Set<string>();
+  private parseProjectionRule(data: any): ProjectionRule {
+    // Split from/to into layer.type
+    const [from_layer, from_type] = data.from.split('.');
+    const [to_layer, to_type] = data.to.split('.');
 
-    const traverse = async (elementId: string, currentDepth: number = 0): Promise<void> => {
-      // Prevent infinite recursion and circular dependencies
-      if (visited.has(elementId) || currentDepth > ProjectionEngine.MAX_RECURSION_DEPTH) {
-        return;
-      }
-      visited.add(elementId);
+    // Get first rule definition (simplified - Python CLI could support multiple)
+    const ruleData = Array.isArray(data.rules) ? data.rules[0] : data.rules;
 
-      // Find which layer contains this element
-      const currentLayer = await this.findElementLayer(model, elementId);
-      if (!currentLayer) {
-        return;
-      }
+    // Parse conditions
+    const conditions: ProjectionCondition[] = (data.conditions || []).map(
+      (c: any) => ({
+        field: c.field,
+        operator: c.operator,
+        value: c.value,
+        pattern: c.pattern,
+      })
+    );
 
-      const layer = await model.getLayer(currentLayer);
-      if (!layer) {
-        return;
-      }
-
-      const element = layer.getElement(elementId);
-      if (!element) {
-        return;
-      }
-
-      // Check if we've reached target layer
-      if (currentLayer === targetLayer) {
-        // Avoid adding duplicates
-        if (!results.find(e => e.id === element.id)) {
-          results.push(element);
+    // Parse property mappings
+    const property_mappings: PropertyMapping[] = [];
+    if (ruleData.properties) {
+      for (const [target, mapping] of Object.entries(ruleData.properties)) {
+        if (typeof mapping === 'string') {
+          // Simple format: { target: source }
+          property_mappings.push({ source: mapping as string, target });
+        } else if (typeof mapping === 'object') {
+          // Advanced format with transform
+          const m = mapping as any;
+          property_mappings.push({
+            source: m.source,
+            target,
+            default: m.default,
+            required: m.required ?? false,
+            transform: m.transform
+              ? { type: m.transform, value: m.transform_value }
+              : undefined,
+          });
         }
-        return;
-      }
-
-      // Follow references according to projection rules
-      if (element.references) {
-        for (const ref of element.references) {
-          // Find which layer contains the referenced element
-          const refLayer = await this.findElementLayer(model, ref.target);
-          if (!refLayer) {
-            continue;
-          }
-
-          // Find matching projection rule (compare by layer number)
-          const currentLayerNum = this.getLayerNumber(currentLayer);
-          const refLayerNum = this.getLayerNumber(refLayer);
-          const matchingRule = this.rules.find(
-            r => r.sourceLayer === currentLayerNum && r.targetLayer === refLayerNum
-          );
-
-          if (matchingRule) {
-            await traverse(ref.target, currentDepth + 1);
-          }
-        }
-      }
-    };
-
-    await traverse(sourceElementId);
-    return results;
-  }
-
-  /**
-   * Project dependencies in reverse (find what projects back to source)
-   * Useful for impact analysis
-   */
-  async projectReverse(
-    model: Model,
-    targetElementId: string,
-    sourceLayer: string
-  ): Promise<Element[]> {
-    const results: Element[] = [];
-    const visited = new Set<string>();
-
-    // Build reference registry for efficient lookups
-    const registry = new ReferenceRegistry();
-    for (const layer of model.layers.values()) {
-      for (const element of layer.listElements()) {
-        registry.registerElement(element);
       }
     }
 
-    const traverse = async (elementId: string, currentDepth: number = 0): Promise<void> => {
-      if (visited.has(elementId) || currentDepth > ProjectionEngine.MAX_RECURSION_DEPTH) {
-        return;
-      }
-      visited.add(elementId);
-
-      // Find which layer contains this element
-      const currentLayer = await this.findElementLayer(model, elementId);
-      if (!currentLayer) {
-        return;
-      }
-
-      const layer = await model.getLayer(currentLayer);
-      if (!layer) {
-        return;
-      }
-
-      const element = layer.getElement(elementId);
-      if (!element) {
-        return;
-      }
-
-      // Check if we've reached source layer
-      if (currentLayer === sourceLayer) {
-        if (!results.find(e => e.id === element.id)) {
-          results.push(element);
-        }
-        return;
-      }
-
-      // Use reference registry to find all elements that reference this one (O(1) lookup)
-      const referencesTo = registry.getReferencesTo(elementId);
-      for (const ref of referencesTo) {
-        // Find which layer contains the referencing element
-        const referencingLayer = await this.findElementLayer(model, ref.source);
-        if (!referencingLayer) {
-          continue;
-        }
-
-        // Check if there's a projection rule back to source (compare by layer number)
-        const referencingLayerNum = this.getLayerNumber(referencingLayer);
-        const currentLayerNum = this.getLayerNumber(currentLayer);
-        const hasReverseRule = this.rules.some(
-          r => r.sourceLayer === referencingLayerNum && r.targetLayer === currentLayerNum
-        );
-
-        if (hasReverseRule) {
-          await traverse(ref.source, currentDepth + 1);
-        }
-      }
+    return {
+      name: data.name,
+      from_layer,
+      from_type,
+      to_layer,
+      to_type,
+      name_template: ruleData.name_template,
+      property_mappings,
+      conditions,
+      template_file: ruleData.template,
+      create_bidirectional: ruleData.create_bidirectional ?? true,
     };
-
-    await traverse(targetElementId);
-    return results;
   }
 
   /**
-   * Get all elements reachable from source through projection rules
-   * @param model The architecture model
-   * @param sourceElementId The source element ID
-   * @param maxDepth Maximum traversal depth (visited at depth <= maxDepth)
-   * @returns Map of element IDs to their depth from source
+   * Find rules applicable to a source element
    */
-  async getReachable(
-    model: Model,
-    sourceElementId: string,
-    maxDepth: number = 10
-  ): Promise<Map<string, number>> {
-    const reachable = new Map<string, number>();
-    const visited = new Set<string>();
+  findApplicableRules(
+    source: Element,
+    targetLayer?: string
+  ): ProjectionRule[] {
+    return this.rules.filter((rule) => {
+      // Check layer match
+      if (rule.from_layer !== source.layer) return false;
 
-    const traverse = async (elementId: string, depth: number): Promise<void> => {
-      if (visited.has(elementId) || depth > maxDepth) {
-        return;
-      }
-      visited.add(elementId);
+      // Check type match (if specified)
+      if (rule.from_type && rule.from_type !== source.type) return false;
 
-      if (!reachable.has(elementId)) {
-        reachable.set(elementId, depth);
-      }
+      // Check target layer filter (if specified)
+      if (targetLayer && rule.to_layer !== targetLayer) return false;
 
-      // Find which layer contains this element
-      const currentLayer = await this.findElementLayer(model, elementId);
-      if (!currentLayer) {
-        return;
-      }
-
-      const layer = await model.getLayer(currentLayer);
-      if (!layer) {
-        return;
-      }
-
-      const element = layer.getElement(elementId);
-      if (!element || !element.references) {
-        return;
-      }
-
-      for (const ref of element.references) {
-        // Find which layer contains the referenced element
-        const refLayer = await this.findElementLayer(model, ref.target);
-        if (!refLayer) {
-          continue;
+      // Evaluate all conditions (ALL must be true)
+      if (rule.conditions) {
+        for (const condition of rule.conditions) {
+          const evaluator = new ConditionEvaluator(condition);
+          if (!evaluator.evaluate(source)) {
+            return false;
+          }
         }
+      }
 
-        // Check if there's a rule allowing this transition (compare by layer number)
-        const currentLayerNum = this.getLayerNumber(currentLayer);
-        const refLayerNum = this.getLayerNumber(refLayer);
-        const hasRule = this.rules.some(
-          r => r.sourceLayer === currentLayerNum && r.targetLayer === refLayerNum
+      return true;
+    });
+  }
+
+  /**
+   * Project a single element to target layer
+   */
+  async projectElement(
+    source: Element,
+    targetLayer: string,
+    rule?: ProjectionRule,
+    dryRun: boolean = false
+  ): Promise<Element> {
+    // Find rule if not provided
+    if (!rule) {
+      const applicableRules = this.findApplicableRules(source, targetLayer);
+      if (applicableRules.length === 0) {
+        throw new Error(
+          `No applicable projection rule found for element ${source.id} to layer ${targetLayer}`
         );
-
-        if (hasRule) {
-          await traverse(ref.target, depth + 1);
-        }
       }
+      rule = applicableRules[0];
+    }
+
+    // Build projected element
+    const projected = this.buildProjectedElement(source, rule);
+
+    // If not dry run, add to model
+    if (!dryRun) {
+      const layer = await this.model.getLayer(rule.to_layer);
+      if (!layer) {
+        throw new Error(`Target layer ${rule.to_layer} not found`);
+      }
+
+      // Add element to layer
+      layer.addElement(projected);
+
+      // Register with reference registry if available
+      if (this.registry) {
+        this.registry.registerElement(projected);
+      }
+    }
+
+    return projected;
+  }
+
+  /**
+   * Build projected element from source and rule
+   */
+  private buildProjectedElement(
+    source: Element,
+    rule: ProjectionRule
+  ): Element {
+    // Render element name
+    const name = this.renderTemplate(rule.name_template, source);
+
+    // Generate element ID
+    const id = generateElementId(rule.to_layer, rule.to_type, name);
+
+    // Initialize element data
+    const data: any = {
+      id,
+      name,
+      type: rule.to_type,
+      layer: rule.to_layer,
     };
 
-    await traverse(sourceElementId, 0);
-    // Remove the source element from reachable
-    reachable.delete(sourceElementId);
-    return reachable;
+    // Map properties
+    for (const mapping of rule.property_mappings) {
+      let value: any;
+
+      // Get source value
+      if (mapping.source.includes('{') || mapping.source.includes('{{')) {
+        // Template string
+        value = this.renderTemplate(mapping.source, source);
+      } else {
+        // Direct property or nested property
+        value = this.getSourceValue(source, mapping.source);
+      }
+
+      // Use default if null
+      if (value === null || value === undefined) {
+        if (mapping.required) {
+          throw new Error(
+            `Required property ${mapping.target} is missing from source ${source.id}`
+          );
+        }
+        value = mapping.default;
+      }
+
+      // Apply transformation if specified
+      if (mapping.transform && value !== null && value !== undefined) {
+        const transformer = new PropertyTransformer(mapping.transform);
+        value = transformer.apply(value);
+      }
+
+      // Set target property
+      if (value !== null && value !== undefined) {
+        setNestedProperty(data, mapping.target, value);
+      }
+    }
+
+    // Add bidirectional reference if enabled
+    if (rule.create_bidirectional !== false) {
+      if (!data.properties) data.properties = {};
+      data.properties.realizes = source.id;
+    }
+
+    // Create Element instance
+    return new Element(data);
   }
+
+  /**
+   * Get value from source element (supports dot notation)
+   */
+  private getSourceValue(source: Element, path: string): any {
+    // Check for direct element properties
+    if (path === 'id') return source.id;
+    if (path === 'name') return source.name;
+    if (path === 'type') return source.type;
+    if (path === 'layer') return source.layer;
+    if (path === 'description') return source.description;
+
+    // Check nested properties
+    return getNestedProperty(source, path);
+  }
+
+  /**
+   * Render template string with source element data
+   */
+  private renderTemplate(template: string, source: Element): string {
+    // Build context
+    const context: any = {
+      id: source.id,
+      name: source.name,
+      type: source.type,
+      layer: source.layer,
+      description: source.description,
+      properties: (source as any).properties || {},
+      name_pascal: toPascalCase(source.name),
+      name_kebab: toKebabCase(source.name),
+      name_snake: toSnakeCase(source.name),
+    };
+
+    // Simple template replacement for {source.xxx}
+    let result = template;
+    const regex = /\{source\.(\w+)\}/g;
+    result = result.replace(regex, (match, prop) => {
+      return context[prop] !== undefined ? String(context[prop]) : match;
+    });
+
+    return result;
+  }
+
+  /**
+   * Project all elements that match rules
+   */
+  async projectAll(
+    fromLayer?: string,
+    toLayer?: string,
+    dryRun: boolean = false
+  ): Promise<Element[]> {
+    const projected: Element[] = [];
+
+    // Get source elements
+    const layers = fromLayer
+      ? [await this.model.getLayer(fromLayer)]
+      : Array.from(this.model.layers.values());
+
+    for (const layer of layers) {
+      if (!layer) continue;
+
+      for (const element of layer.listElements()) {
+        // Find applicable rules
+        const applicableRules = this.findApplicableRules(
+          element,
+          toLayer
+        );
+
+        // Project with each applicable rule
+        for (const rule of applicableRules) {
+          try {
+            const projectedElement = await this.projectElement(
+              element,
+              rule.to_layer,
+              rule,
+              dryRun
+            );
+            projected.push(projectedElement);
+          } catch (error) {
+            // Log warning and continue
+            console.warn(
+              `Warning: Failed to project ${element.id} with rule ${rule.name}: ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
+        }
+      }
+    }
+
+    return projected;
+  }
+}
+
+/**
+ * Helper: Get nested property from object
+ */
+function getNestedProperty(obj: any, path: string): any {
+  const parts = path.split('.');
+  let current = obj;
+
+  for (const part of parts) {
+    if (current && typeof current === 'object') {
+      current = current[part];
+    } else {
+      return undefined;
+    }
+  }
+
+  return current;
+}
+
+/**
+ * Helper: Set nested property on object
+ */
+function setNestedProperty(obj: any, path: string, value: any): void {
+  const parts = path.split('.');
+  let current = obj;
+
+  for (let i = 0; i < parts.length - 1; i++) {
+    const part = parts[i];
+    if (!current[part] || typeof current[part] !== 'object') {
+      current[part] = {};
+    }
+    current = current[part];
+  }
+
+  current[parts[parts.length - 1]] = value;
+}
+
+/**
+ * Helper: Convert to kebab-case
+ */
+function toKebabCase(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, '-')
+    .replace(/_/g, '-');
+}
+
+/**
+ * Helper: Convert to snake_case
+ */
+function toSnakeCase(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/\s+/g, '_')
+    .replace(/-/g, '_');
+}
+
+/**
+ * Helper: Convert to PascalCase
+ */
+function toPascalCase(text: string): string {
+  const words = text
+    .replace(/-/g, ' ')
+    .replace(/_/g, ' ')
+    .split(/\s+/);
+  return words
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
+    .join('');
+}
+
+/**
+ * Helper: Generate element ID
+ */
+function generateElementId(layer: string, type: string, name: string): string {
+  const kebabName = toKebabCase(name);
+  return `${layer}.${type}.${kebabName}`;
 }
