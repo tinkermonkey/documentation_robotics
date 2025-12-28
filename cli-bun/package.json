@@ -18,10 +18,7 @@
     "test:unit": "bun test tests/unit/**/*.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",
     "test:validators": "bun test tests/unit/validators/**/*.test.ts",
-    "test:compatibility": "bun test tests/compatibility/**/*.test.ts",
-    "test:compatibility:commands": "bun test tests/compatibility/commands.test.ts",
-    "test:compatibility:validation": "bun test tests/compatibility/validation.test.ts",
-    "test:compatibility:edge-cases": "bun test tests/compatibility/edge-cases.test.ts",
+    "test:compatibility": "bun test tests/compatibility",
     "test:all": "bun test tests/**/*.test.ts"
   },
   "keywords": [
