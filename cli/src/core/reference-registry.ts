@@ -141,9 +141,84 @@ export class ReferenceRegistry {
           }
         }
       }
+
+      // Scan nested properties for *Ref/*Reference properties
+      const nestedRefs = this.scanNestedReferences(element.id, element.properties);
+      for (const ref of nestedRefs) {
+        this.addReference(ref);
+      }
+    }
+  }
+
+  /**
+   * Recursively scan nested structures for reference properties
+   * Matches Python CLI behavior: looks for properties ending in "Ref" or "Reference"
+   */
+  private scanNestedReferences(
+    sourceId: string,
+    data: any,
+    path: string = ''
+  ): Reference[] {
+    const references: Reference[] = [];
+
+    if (!data || typeof data !== 'object') {
+      return references;
     }
 
-    // TODO: Scan nested properties for *Ref/*Reference properties like Python CLI
+    // Handle arrays
+    if (Array.isArray(data)) {
+      for (let i = 0; i < data.length; i++) {
+        const itemPath = path ? `${path}[${i}]` : `[${i}]`;
+        references.push(...this.scanNestedReferences(sourceId, data[i], itemPath));
+      }
+      return references;
+    }
+
+    // Scan object properties
+    for (const [key, value] of Object.entries(data)) {
+      const currentPath = path ? `${path}.${key}` : key;
+
+      // Skip if this is a top-level known reference property (already handled)
+      if (!path && ReferenceRegistry.KNOWN_REF_PROPERTIES.has(key)) {
+        continue;
+      }
+
+      // Check if property name ends with "Ref" or "Reference"
+      if (key.endsWith('Ref') || key.endsWith('Reference')) {
+        // Handle string value
+        if (typeof value === 'string') {
+          references.push({
+            source: sourceId,
+            target: value,
+            type: key,
+            description: `Nested reference at ${currentPath}`,
+          });
+        }
+        // Handle array of strings
+        else if (Array.isArray(value)) {
+          for (const target of value) {
+            if (typeof target === 'string') {
+              references.push({
+                source: sourceId,
+                target: target,
+                type: key,
+                description: `Nested reference at ${currentPath}`,
+              });
+            }
+          }
+        }
+      }
+      // Recurse into nested objects
+      else if (value && typeof value === 'object' && !Array.isArray(value)) {
+        references.push(...this.scanNestedReferences(sourceId, value, currentPath));
+      }
+      // Recurse into arrays
+      else if (Array.isArray(value)) {
+        references.push(...this.scanNestedReferences(sourceId, value, currentPath));
+      }
+    }
+
+    return references;
   }
 
   /**
