@@ -1,0 +1,47 @@
+FastAPI:
+  name: FastAPI
+  description: Modern Python web framework for building APIs
+  version: latest
+  type: framework
+  softwareType: middleware
+  id: fastapi
+SQLite:
+  name: SQLite
+  description: Lightweight embedded SQL database
+  version: "3"
+  type: database
+  softwareType: database
+  id: sqlite
+React:
+  name: React
+  description: JavaScript library for building user interfaces
+  version: "18"
+  type: framework
+  softwareType: middleware
+  id: react
+Vite:
+  name: Vite
+  description: Frontend build tool and development server
+  type: build-tool
+  softwareType: middleware
+  id: vite
+Flowbite React:
+  name: Flowbite React
+  description: React component library built on Tailwind CSS
+  type: ui-library
+  softwareType: middleware
+  id: flowbite-react
+Python:
+  name: Python
+  description: Python runtime environment
+  version: "3.11"
+  type: runtime
+  softwareType: middleware
+  id: python
+Node.js:
+  name: Node.js
+  description: JavaScript runtime environment
+  version: "18"
+  type: runtime
+  softwareType: middleware
+  id: nodejs

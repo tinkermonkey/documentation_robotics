@@ -1,0 +1,48 @@
+List Todos:
+  name: List Todos
+  description: GET /todos - Retrieve all todo items
+  summary: Retrieve all todo items
+  method: GET
+  path: /todos
+  status: "200"
+  operationId: listTodos
+  tags: todos
+  id: list-todos
+  x-application-service: todo-api-service
+  x-archimate-ref: todo-api-service
+Create Todo:
+  name: Create Todo
+  description: POST /todos - Create a new todo item
+  summary: Create a new todo item
+  method: POST
+  path: /todos
+  status: "201"
+  operationId: createTodo
+  tags: todos
+  id: create-todo
+  x-application-service: todo-api-service
+  x-archimate-ref: todo-api-service
+Update Todo:
+  name: Update Todo
+  description: PUT /todos/{todo_id} - Update an existing todo item
+  summary: Update an existing todo
+  method: PUT
+  path: /todos/{todo_id}
+  status: "200"
+  operationId: updateTodo
+  tags: todos
+  id: update-todo
+  x-application-service: todo-api-service
+  x-archimate-ref: todo-api-service
+Delete Todo:
+  name: Delete Todo
+  description: DELETE /todos/{todo_id} - Delete a todo item
+  summary: Delete a todo item
+  method: DELETE
+  path: /todos/{todo_id}
+  status: "204"
+  operationId: deleteTodo
+  tags: todos
+  id: delete-todo
+  x-application-service: todo-api-service
+  x-archimate-ref: todo-api-service

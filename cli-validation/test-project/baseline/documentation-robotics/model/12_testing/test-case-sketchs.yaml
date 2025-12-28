@@ -1,0 +1,28 @@
+Test Create Todo:
+  name: Test Create Todo
+  description: Test creating a new todo item
+  type: functional
+  priority: high
+  status: planned
+  id: test-create-todo
+Test List Todos:
+  name: Test List Todos
+  description: Test retrieving all todos
+  type: functional
+  priority: high
+  status: planned
+  id: test-list-todos
+Test Update Todo:
+  name: Test Update Todo
+  description: Test updating an existing todo
+  type: functional
+  priority: medium
+  status: planned
+  id: test-update-todo
+Test Delete Todo:
+  name: Test Delete Todo
+  description: Test deleting a todo
+  type: functional
+  priority: medium
+  status: planned
+  id: test-delete-todo

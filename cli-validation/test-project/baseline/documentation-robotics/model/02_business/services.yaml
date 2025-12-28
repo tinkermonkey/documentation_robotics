@@ -1,0 +1,7 @@
+Task Management Service:
+  name: Task Management Service
+  description: Business service for managing personal tasks and to-do items
+  criticality: high
+  id: task-management
+  motivation:
+    supports-goals: manage-tasks
