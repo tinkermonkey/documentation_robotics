@@ -96,27 +96,21 @@ export class Model {
         }
       }
 
-      // FALLBACK: Auto-discover by scanning directories with naming convention
+      // FALLBACK: Auto-discover by scanning directory with naming convention
       if (!layerPath) {
-        const possibleDirs = [
-          `${this.rootPath}/model`,
-          `${this.rootPath}/documentation-robotics/model`
-        ]
+        const modelDir = `${this.rootPath}/documentation-robotics/model`
 
-        for (const modelDir of possibleDirs) {
-          try {
-            const entries = await fs.readdir(modelDir, { withFileTypes: true })
-            const layerDir = entries.find(e =>
-              e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, '') === name
-            )
+        try {
+          const entries = await fs.readdir(modelDir, { withFileTypes: true })
+          const layerDir = entries.find(e =>
+            e.isDirectory() && e.name.match(/^\d{2}_/) && e.name.replace(/^\d{2}_/, '') === name
+          )
 
-            if (layerDir) {
-              layerPath = `${modelDir}/${layerDir.name}`
-              break
-            }
-          } catch {
-            continue
+          if (layerDir) {
+            layerPath = `${modelDir}/${layerDir.name}`
           }
+        } catch {
+          // Model directory doesn't exist or can't be read
         }
       }
 
@@ -231,44 +225,54 @@ export class Model {
 
     // If manifest path not found, try discovery by scanning directory
     if (!layerPath) {
-      const possibleDirs = [
-        `${this.rootPath}/model`,
-        `${this.rootPath}/documentation-robotics/model`
-      ]
+      const modelDir = `${this.rootPath}/documentation-robotics/model`
 
-      for (const modelDir of possibleDirs) {
-        try {
-          const entries = await fs.readdir(modelDir, { withFileTypes: true })
-          const layerDir = entries.find(e =>
-            e.isDirectory() && e.name.match(/^\d{2}_/) &&
-            e.name.replace(/^\d{2}_/, '') === name
-          )
+      try {
+        const entries = await fs.readdir(modelDir, { withFileTypes: true })
+        const layerDir = entries.find(e =>
+          e.isDirectory() && e.name.match(/^\d{2}_/) &&
+          e.name.replace(/^\d{2}_/, '') === name
+        )
 
-          if (layerDir) {
-            layerPath = `${modelDir}/${layerDir.name}`
-            break
-          }
-        } catch {
-          continue
+        if (layerDir) {
+          layerPath = `${modelDir}/${layerDir.name}`
         }
+      } catch {
+        // Model directory doesn't exist or can't be read
       }
     }
 
     // If still not found, create using default format
     if (!layerPath) {
       // Find the order number for this layer
+      // Handle layer names with or without numeric prefix (e.g., "motivation" or "01-motivation")
+      const layerNameWithoutPrefix = name.replace(/^\d{2}-/, '')
       const layerOrder = [
         'motivation', 'business', 'security', 'application', 'technology',
         'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
       ]
-      const index = layerOrder.indexOf(name)
+      const index = layerOrder.indexOf(layerNameWithoutPrefix)
       if (index >= 0) {
         const orderNum = String(index + 1).padStart(2, '0')
-        layerPath = `${this.rootPath}/model/${orderNum}_${name}`
+        // Use Python CLI structure
+        layerPath = `${this.rootPath}/documentation-robotics/model/${orderNum}_${layerNameWithoutPrefix}`
         await ensureDir(layerPath)
       } else {
         throw new Error(`Unknown layer ${name} and no path configured in manifest`)
       }
+    }
+
+    // Delete all existing YAML files in the layer directory to ensure
+    // we don't keep stale files after element deletion
+    try {
+      const existingFiles = await fs.readdir(layerPath)
+      for (const file of existingFiles) {
+        if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+          await fs.unlink(`${layerPath}/${file}`)
+        }
+      }
+    } catch (err) {
+      // Directory might not exist yet, that's okay
     }
 
     // Group elements by type
@@ -296,6 +300,7 @@ export class Model {
           type: element.type,
           ...(element.description && { documentation: element.description }),
           ...(Object.keys(element.properties || {}).length > 0 && { properties: element.properties }),
+          ...(element.references && element.references.length > 0 && { references: element.references }),
           ...(element.relationships && element.relationships.length > 0 && { relationships: element.relationships }),
         }
       }
@@ -345,14 +350,14 @@ export class Model {
   }
 
   /**
-   * Save the manifest to disk (legacy format: model/manifest.yaml)
+   * Save the manifest to disk (Python CLI format: documentation-robotics/model/manifest.yaml)
    * Preserves Python CLI metadata fields for compatibility
    */
   async saveManifest(): Promise<void> {
     this.manifest.updateModified()
     const yaml = await import('yaml')
     const fs = await import('fs/promises')
-    const manifestPath = `${this.rootPath}/model/manifest.yaml`
+    const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`
 
     // Convert to legacy YAML format, preserving Python CLI fields
     const yamlData: any = {
@@ -386,7 +391,7 @@ export class Model {
         yamlData.layers[layerName] = {
           order: i + 1,
           name: layerName.charAt(0).toUpperCase() + layerName.slice(1).replace('-', ' '),
-          path: `model/${orderNum}_${layerName}/`,
+          path: `documentation-robotics/model/${orderNum}_${layerName}/`,
           schema: `.dr/schemas/${orderNum}-${layerName}-layer.schema.json`,
           enabled: true,
           ...(layer && { elements: this.getLayerElementCounts(layer) }),
@@ -423,7 +428,7 @@ export class Model {
       yamlData.upgrade_history = this.manifest.upgrade_history
     }
 
-    await ensureDir(`${this.rootPath}/model`)
+    await ensureDir(`${this.rootPath}/documentation-robotics/model`)
     await fs.writeFile(manifestPath, yaml.stringify(yamlData), 'utf-8')
   }
 
@@ -549,8 +554,8 @@ export class Model {
     manifestData: ManifestData,
     options: ModelOptions = {}
   ): Promise<Model> {
-    // Create model directory and layer directories
-    await ensureDir(`${rootPath}/model`);
+    // Create model directory using Python CLI structure: documentation-robotics/model/
+    await ensureDir(`${rootPath}/documentation-robotics/model`);
 
     const layerOrder = [
       'motivation', 'business', 'security', 'application', 'technology',
@@ -560,7 +565,7 @@ export class Model {
     for (let i = 0; i < layerOrder.length; i++) {
       const orderNum = String(i + 1).padStart(2, '0');
       const layerName = layerOrder[i];
-      await ensureDir(`${rootPath}/model/${orderNum}_${layerName}`);
+      await ensureDir(`${rootPath}/documentation-robotics/model/${orderNum}_${layerName}`);
     }
 
     const manifest = new Manifest(manifestData);

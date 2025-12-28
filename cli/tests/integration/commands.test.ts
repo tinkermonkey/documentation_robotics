@@ -55,22 +55,22 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify model directory was created (legacy format)
-      expect(await fileExists(`${TEMP_DIR}/model/manifest.yaml`)).toBe(true);
+      // Verify model directory was created (Python CLI format)
+      expect(await fileExists(`${TEMP_DIR}/documentation-robotics/model/manifest.yaml`)).toBe(true);
 
       // Verify layer directories were created
       for (let i = 1; i <= 12; i++) {
         const layerNum = String(i).padStart(2, '0');
         const layers = ['motivation', 'business', 'security', 'application', 'technology',
                        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'];
-        const layerDir = `${TEMP_DIR}/model/${layerNum}_${layers[i-1]}`;
+        const layerDir = `${TEMP_DIR}/documentation-robotics/model/${layerNum}_${layers[i-1]}`;
         expect(await fileExists(layerDir)).toBe(true);
       }
 
       // Verify manifest contents (YAML format)
       const yaml = await import('yaml');
       const fs = await import('fs/promises');
-      const manifestContent = await fs.readFile(`${TEMP_DIR}/model/manifest.yaml`, 'utf-8');
+      const manifestContent = await fs.readFile(`${TEMP_DIR}/documentation-robotics/model/manifest.yaml`, 'utf-8');
       const manifest = yaml.parse(manifestContent);
       expect(manifest.project.name).toBe('Test Model');
     });

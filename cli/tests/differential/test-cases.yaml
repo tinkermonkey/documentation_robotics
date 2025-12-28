@@ -1,107 +1,66 @@
-# Differential Test Cases
+# Comprehensive Differential Test Cases
+# Comparing Python CLI (dr) with TypeScript CLI (dr)
 #
-# This file defines test cases that compare Python CLI scripts
-# with TypeScript CLI commands to ensure behavioral equivalence.
+# Test Strategy:
+# 1. Compare commands that exist in both CLIs
+# 2. Use same test model for consistency
+# 3. Compare exit codes and output where possible
 
-# Common paths (adjust if needed)
-python_project_root: &python_root /Users/austinsand/workspace/documentation_robotics
+# Common paths
+python_cli: &python_cli /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr
 typescript_cli_root: &ts_root /Users/austinsand/workspace/documentation_robotics/cli
-model_path: &model /Users/austinsand/workspace/documentation_robotics/spec
-reference_model: &ref_model /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation
+# Use Python CLI-compatible baseline model (has documentation-robotics/ subdirectory)
+baseline_model: &baseline_model /Users/austinsand/workspace/documentation_robotics/cli-validation/test-project/baseline
+temp_test_dir: &temp_dir /tmp/dr-differential-test
 
 test_cases:
-  # Basic validation tests - start with exit code comparison
-  - name: "Validate all - exit code"
-    description: "Run full validation and check both succeed or both fail"
+  # ============================================================================
+  # VALIDATION TESTS
+  # ============================================================================
+
+  - name: "Validate - default (all validations)"
+    description: "Run complete model validation"
     python:
-      command: "sh"
-      args:
-        [
-          "-c",
-          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --all --format json",
-        ]
-      cwd: *python_root
+      command: *python_cli
+      args: ["validate"]
+      cwd: *baseline_model
       timeout: 60000
     typescript:
       command: "bun"
-      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
+      args: ["run", "src/cli.ts", "validate", "--model", *baseline_model]
       cwd: *ts_root
       timeout: 60000
     comparison:
       type: "exit-code"
     skip: false
-    expectedToFail: false
+    expectedToFail: true
 
-  - name: "Validate markdown - exit code"
-    description: "Validate markdown structure - check exit codes"
+  - name: "Validate - with strict mode"
+    description: "Validate with warnings as errors"
     python:
-      command: "sh"
-      args:
-        [
-          "-c",
-          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --markdown --format json",
-        ]
-      cwd: *python_root
+      command: *python_cli
+      args: ["validate", "--strict"]
+      cwd: *baseline_model
       timeout: 30000
     typescript:
       command: "bun"
-      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
+      args: ["run", "src/cli.ts", "validate", "--strict", "--model", *baseline_model]
       cwd: *ts_root
       timeout: 30000
     comparison:
       type: "exit-code"
     skip: false
-    expectedToFail: false
 
-  - name: "Validate relationships - exit code"
-    description: "Validate relationships - check exit codes"
-    python:
-      command: "sh"
-      args:
-        [
-          "-c",
-          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --relationships --format json",
-        ]
-      cwd: *python_root
-      timeout: 30000
-    typescript:
-      command: "bun"
-      args: ["run", "src/cli.ts", "validate", "--model", *ref_model]
-      cwd: *ts_root
-      timeout: 30000
-    comparison:
-      type: "exit-code"
-    skip: false
-    expectedToFail: false
+  # ============================================================================
+  # EXPORT TESTS
+  # ============================================================================
 
-  - name: "Validate with strict mode"
-    description: "Validate with strict mode enabled - check exit codes"
-    python:
-      command: "sh"
-      args:
-        [
-          "-c",
-          "cd /Users/austinsand/workspace/documentation_robotics/spec/examples/reference-implementation && python /Users/austinsand/workspace/documentation_robotics/scripts/validate.py --all --strict",
-        ]
-      cwd: *python_root
-      timeout: 30000
-    typescript:
-      command: "bun"
-      args: ["run", "src/cli.ts", "validate", "--strict", "--model", *ref_model]
-      cwd: *ts_root
-      timeout: 30000
-    comparison:
-      type: "exit-code"
-    skip: false
-    expectedToFail: false
-
-  # Report generation tests
-  - name: "Generate GraphML export"
+  - name: "Export - GraphML format"
     description: "Export model as GraphML"
     python:
-      command: "python"
-      args: ["scripts/generate_reports.py", "--graphml", "--output", "/tmp/python-graphml"]
-      cwd: *python_root
+      command: *python_cli
+      args: ["export", "--format", "graphml", "--output", "/tmp/python-export.graphml"]
+      cwd: *baseline_model
       timeout: 30000
     typescript:
       command: "bun"
@@ -112,23 +71,39 @@ test_cases:
           "export",
           "graphml",
           "--output",
-          "/tmp/ts-graphml.graphml",
+          "/tmp/ts-export.graphml",
           "--model",
-          *ref_model,
+          *baseline_model,
         ]
       cwd: *ts_root
       timeout: 30000
     comparison:
       type: "exit-code"
     skip: false
-    expectedToFail: false
 
-  - name: "Export to ArchiMate"
-    description: "Export model as ArchiMate XML"
+  # Note: Python CLI doesn't support JSON export format
+  # - name: "Export - JSON format"
+  #   description: "Export complete model as JSON"
+  #   python:
+  #     command: "dr"
+  #     args: ["export", "--format", "json", "--output", "/tmp/python-export.json"]
+  #     cwd: *baseline_model
+  #     timeout: 30000
+  #   typescript:
+  #     command: "bun"
+  #     args: ["run", "src/cli.ts", "export", "json", "--output", "/tmp/ts-export.json", "--model", *baseline_model]
+  #     cwd: *ts_root
+  #     timeout: 30000
+  #   comparison:
+  #     type: "exit-code"
+  #   skip: false
+
+  - name: "Export - Markdown format"
+    description: "Export model documentation as Markdown"
     python:
-      command: "python"
-      args: ["scripts/generate_reports.py", "--graphml", "--output", "/tmp/python-archimate"]
-      cwd: *python_root
+      command: *python_cli
+      args: ["export", "--format", "markdown", "--output", "/tmp/python-export"]
+      cwd: *baseline_model
       timeout: 30000
     typescript:
       command: "bun"
@@ -137,15 +112,278 @@ test_cases:
           "run",
           "src/cli.ts",
           "export",
-          "archimate",
+          "markdown",
           "--output",
-          "/tmp/ts-archimate.xml",
+          "/tmp/ts-export.md",
           "--model",
-          *ref_model,
+          *baseline_model,
         ]
       cwd: *ts_root
       timeout: 30000
     comparison:
       type: "exit-code"
     skip: false
-    expectedToFail: false
+
+  # ============================================================================
+  # LIST/SEARCH TESTS
+  # ============================================================================
+
+  - name: "List - business layer elements"
+    description: "List all elements in business layer"
+    python:
+      command: *python_cli
+      args: ["list", "business"]
+      cwd: *baseline_model
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "list", "business", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 10000
+    comparison:
+      type: "exit-code"
+    skip: false
+
+  - name: "List - motivation layer elements"
+    description: "List all elements in motivation layer"
+    python:
+      command: *python_cli
+      args: ["list", "motivation"]
+      cwd: *baseline_model
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "list", "motivation", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 10000
+    comparison:
+      type: "exit-code"
+    skip: false
+
+  - name: "Search - by keyword"
+    description: "Search for elements containing 'visualization'"
+    python:
+      command: *python_cli
+      args: ["search", "visualization"]
+      cwd: *baseline_model
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "search", "visualization", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 10000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  # ============================================================================
+  # SHOW/FIND TESTS (different command names)
+  # ============================================================================
+
+  - name: "Show/Find - specific element"
+    description: "Display details of specific element (find vs show)"
+    python:
+      command: *python_cli
+      args: ["find", "business.service.model-data-management"]
+      cwd: *baseline_model
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "src/cli.ts",
+          "show",
+          "business.service.model-data-management",
+          "--model",
+          *baseline_model,
+        ]
+      cwd: *ts_root
+      timeout: 10000
+    comparison:
+      type: "exit-code"
+    skip: false
+
+  # ============================================================================
+  # TRACE TESTS
+  # ============================================================================
+
+  - name: "Trace - element dependencies"
+    description: "Trace dependencies for specific element"
+    python:
+      command: *python_cli
+      args: ["trace", "business.service.model-data-management"]
+      cwd: *baseline_model
+      timeout: 15000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "src/cli.ts",
+          "trace",
+          "business.service.model-data-management",
+          "--model",
+          *baseline_model,
+        ]
+      cwd: *ts_root
+      timeout: 15000
+    comparison:
+      type: "exit-code"
+    skip: false
+
+  - name: "Trace - with depth limit"
+    description: "Trace dependencies with maximum depth of 2"
+    python:
+      command: *python_cli
+      args: ["trace", "business.service.model-data-management", "--depth", "2"]
+      cwd: *baseline_model
+      timeout: 15000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "src/cli.ts",
+          "trace",
+          "business.service.model-data-management",
+          "--depth",
+          "2",
+          "--model",
+          *baseline_model,
+        ]
+      cwd: *ts_root
+      timeout: 15000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  # ============================================================================
+  # CONFORMANCE TESTS
+  # ============================================================================
+
+  - name: "Conformance - check all layers"
+    description: "Check model conformance to layer specifications"
+    python:
+      command: *python_cli
+      args: ["conformance"]
+      cwd: *baseline_model
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "conformance", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  - name: "Conformance - specific layer"
+    description: "Check conformance for business layer only"
+    python:
+      command: *python_cli
+      args: ["conformance", "--layer", "business"]
+      cwd: *baseline_model
+      timeout: 30000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "conformance", "--layer", "business", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 30000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  # ============================================================================
+  # VERSION/INFO TESTS
+  # ============================================================================
+
+  - name: "Version - show CLI version"
+    description: "Display CLI version information"
+    python:
+      command: *python_cli
+      args: ["version"]
+      cwd: *baseline_model
+      timeout: 5000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "version"]
+      cwd: *ts_root
+      timeout: 5000
+    comparison:
+      type: "exit-code"
+    skip: false
+
+  # ============================================================================
+  # ERROR HANDLING TESTS
+  # ============================================================================
+
+  - name: "Error - invalid model path"
+    description: "Should fail gracefully with invalid model path"
+    python:
+      command: *python_cli
+      args: ["validate"]
+      cwd: /tmp/nonexistent-model
+      timeout: 5000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "validate", "--model", "/tmp/nonexistent-model"]
+      cwd: *ts_root
+      timeout: 5000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  - name: "Error - invalid element ID in show/find"
+    description: "Should fail when element doesn't exist"
+    python:
+      command: *python_cli
+      args: ["find", "nonexistent.element.id"]
+      cwd: *baseline_model
+      timeout: 5000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "show", "nonexistent.element.id", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 5000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  - name: "Error - invalid layer name in list"
+    description: "Should fail with invalid layer name"
+    python:
+      command: *python_cli
+      args: ["list", "invalid-layer-name"]
+      cwd: *baseline_model
+      timeout: 5000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "list", "invalid-layer-name", "--model", *baseline_model]
+      cwd: *ts_root
+      timeout: 5000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+
+  # ============================================================================
+  # NOTE: The following commands exist but are harder to test differentially
+  # because they modify state or require interactive input:
+  # - init (creates new model)
+  # - add (modifies model)
+  # - update (modifies model)
+  # - remove/delete (modifies model)
+  # - migrate (modifies files)
+  # - changeset (requires git)
+  # - visualize (starts server, requires port availability)
+  # - project/project-all (requires projection rules)
+  #
+  # These should be tested in integration tests with test models
+  # ============================================================================
