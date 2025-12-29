@@ -5,8 +5,9 @@
  * compares filesystem state, and generates reports.
  */
 
-import { readFile } from 'node:fs/promises';
+import { readFile, writeFile, mkdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { dirname } from 'node:path';
 import { glob } from 'glob';
 import YAML from 'yaml';
 
@@ -33,6 +34,11 @@ interface TestRunnerConfig {
   tsDir: string;
   testCaseDir: string;
 }
+
+/**
+ * Path to model directory within baseline (for easier updates if structure changes)
+ */
+const MODEL_DIR = 'documentation-robotics/model';
 
 /**
  * Load all test suites from YAML files
@@ -63,7 +69,7 @@ async function loadTestSuites(testCaseDir: string): Promise<TestSuite[]> {
 
 /**
  * Validate a single step's expectations
- * For Phase 4, we focus on TypeScript CLI validation
+ * Validates exit codes, output content, and filesystem changes
  */
 function validateStep(
   step: PipelineStep,
@@ -109,6 +115,14 @@ function validateStep(
     }
   }
 
+  // Map filesystem changes to proper types
+  const typedChanges = tsChanges.map((c) => ({
+    path: c.path,
+    type: c.type === 'added' || c.type === 'deleted' || c.type === 'modified'
+      ? c.type as 'added' | 'deleted' | 'modified'
+      : 'modified' as const,
+  }));
+
   return {
     command: step.command,
     pythonOutput: {
@@ -120,7 +134,7 @@ function validateStep(
     tsOutput,
     filesystemDiff: {
       python: [],
-      ts: tsChanges.map((c) => ({ path: c.path, type: c.type as any })),
+      ts: typedChanges,
     },
     passed: failures.length === 0,
     failures,
@@ -258,7 +272,7 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
  */
 async function runTestSuite(): Promise<void> {
   console.log('='.repeat(70));
-  console.log('CLI Compatibility Test Suite - Phase 4: Test Pipeline Execution');
+  console.log('CLI Compatibility Test Suite - Test Pipeline Execution');
   console.log('='.repeat(70));
   console.log('');
 
@@ -272,7 +286,7 @@ async function runTestSuite(): Promise<void> {
     // Create test runner config
     const testConfig: TestRunnerConfig = {
       tsCLI: config.tsCLI,
-      tsDir: join(paths.tsPath, 'documentation-robotics/model'),
+      tsDir: join(paths.tsPath, MODEL_DIR),
       testCaseDir: join(process.cwd(), 'test-cases'),
     };
 
@@ -306,14 +320,23 @@ async function runTestSuite(): Promise<void> {
     console.log(formatConsoleReport(summary));
     console.log('='.repeat(70));
 
-    // Write JUnit report
+    // Write JUnit report to file for CI/CD integration
     const junitReport = formatJunitReport(summary);
-    console.log('\nJUnit report generated (for CI/CD integration)');
+    const junitPath = join(process.cwd(), 'test-results', 'junit.xml');
+    await mkdir(dirname(junitPath), { recursive: true });
+    await writeFile(junitPath, junitReport, 'utf-8');
+    console.log(`\n✓ JUnit report written to: ${junitPath}`);
 
     // Exit with appropriate code
     process.exit(summary.failedSuites > 0 ? 1 : 0);
   } catch (error) {
-    console.error('Test suite failed:', error instanceof Error ? error.message : String(error));
+    const errorMsg = error instanceof Error ? error.message : String(error);
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error('\n❌ Test suite failed:');
+    console.error(`   ${errorMsg}`);
+    if (errorStack && process.env.DEBUG) {
+      console.error(`\nStack trace:\n${errorStack}`);
+    }
     process.exit(1);
   }
 }

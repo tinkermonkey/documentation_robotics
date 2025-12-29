@@ -1,5 +1,8 @@
-manage-tasks:
-  id: manage-tasks
+Manage Personal Tasks:
   name: Manage Personal Tasks
-  type: goal
-  documentation: Enable users to efficiently create, track, and complete personal tasks
+  description: Enable users to efficiently create, track, and complete personal tasks
+  criticality: high
+  priority: high
+  status: active
+  stakeholder: end-user
+  id: manage-tasks

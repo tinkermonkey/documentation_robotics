@@ -23,12 +23,10 @@ function escapeXml(str: string): string {
  */
 function formatStepAsTestCase(
   step: StepResult,
-  suiteIdx: number,
-  pipelineIdx: number,
   stepIdx: number
 ): string {
   const testName = `Step_${stepIdx + 1}: ${step.command}`;
-  const duration = (step.pythonOutput.duration + step.tsOutput.duration) / 2000; // Convert to seconds
+  const duration = step.tsOutput.duration / 1000; // Convert to seconds
 
   let xml = `    <testcase name="${escapeXml(testName)}" time="${duration}">\n`;
 
@@ -48,9 +46,7 @@ function formatStepAsTestCase(
  * Format a single pipeline as a JUnit test suite
  */
 function formatPipelineAsTestSuite(
-  pipeline: PipelineResult,
-  suiteIdx: number,
-  pipelineIdx: number
+  pipeline: PipelineResult
 ): string {
   const suiteName = pipeline.name;
   const duration = pipeline.totalDuration / 1000; // Convert to seconds
@@ -60,7 +56,7 @@ function formatPipelineAsTestSuite(
   let xml = `  <testsuite name="${escapeXml(suiteName)}" tests="${tests}" failures="${failures}" time="${duration}">\n`;
 
   for (let i = 0; i < pipeline.steps.length; i++) {
-    xml += formatStepAsTestCase(pipeline.steps[i], suiteIdx, pipelineIdx, i);
+    xml += formatStepAsTestCase(pipeline.steps[i], i);
   }
 
   xml += `  </testsuite>\n`;
@@ -71,7 +67,7 @@ function formatPipelineAsTestSuite(
 /**
  * Format a single suite as a JUnit test suite container
  */
-function formatSuiteAsTestSuite(suite: SuiteResult, suiteIdx: number): string {
+function formatSuiteAsTestSuite(suite: SuiteResult): string {
   const suiteName = `${suite.name} [${suite.priority}]`;
   const duration = suite.totalDuration / 1000; // Convert to seconds
   const failures = suite.pipelines.filter((p) => !p.passed).length;
@@ -80,7 +76,7 @@ function formatSuiteAsTestSuite(suite: SuiteResult, suiteIdx: number): string {
   let xml = `  <testsuite name="${escapeXml(suiteName)}" tests="${tests}" failures="${failures}" time="${duration}">\n`;
 
   for (let i = 0; i < suite.pipelines.length; i++) {
-    xml += formatPipelineAsTestSuite(suite.pipelines[i], suiteIdx, i);
+    xml += formatPipelineAsTestSuite(suite.pipelines[i]);
   }
 
   xml += `  </testsuite>\n`;
@@ -100,7 +96,7 @@ export function formatJunitReport(summary: TestRunSummary): string {
   xml += `<testsuites name="CLI Compatibility Tests" tests="${tests}" failures="${failures}" time="${duration}">\n`;
 
   for (let i = 0; i < summary.results.length; i++) {
-    xml += formatSuiteAsTestSuite(summary.results[i], i);
+    xml += formatSuiteAsTestSuite(summary.results[i]);
   }
 
   xml += '</testsuites>\n';
