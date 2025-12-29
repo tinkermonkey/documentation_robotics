@@ -5,7 +5,7 @@
  * and detailed failure information.
  */
 
-import { TestRunSummary, SuiteResult, PipelineResult, StepResult, Pipeline, PipelineStep } from '../pipeline';
+import { TestRunSummary, SuiteResult, PipelineResult, StepResult } from '../pipeline';
 import { BaseReporter } from './reporter';
 
 /**
@@ -20,6 +20,16 @@ const COLORS = {
   yellow: '\x1b[33m',
   cyan: '\x1b[36m',
 };
+
+/**
+ * Maximum characters to display from stdout before truncation
+ */
+const MAX_STDOUT_DISPLAY = 200;
+
+/**
+ * Maximum number of file changes to show before truncation
+ */
+const MAX_FILES_SHOWN = 5;
 
 /**
  * Format text with color
@@ -48,18 +58,18 @@ function formatStepResult(step: StepResult, indent: string = '', verbose: boolea
   if (verbose && !step.passed) {
     output += `${indent}  ${colorize('Exit Code:', COLORS.dim)} ${step.tsOutput.exitCode}\n`;
     if (step.tsOutput.stdout) {
-      const stdout = step.tsOutput.stdout.substring(0, 200);
+      const stdout = step.tsOutput.stdout.substring(0, MAX_STDOUT_DISPLAY);
       output += `${indent}  ${colorize('Stdout:', COLORS.dim)} ${stdout}${
-        step.tsOutput.stdout.length > 200 ? '...' : ''
+        step.tsOutput.stdout.length > MAX_STDOUT_DISPLAY ? '...' : ''
       }\n`;
     }
     if (step.filesystemDiff.ts.length > 0) {
       output += `${indent}  ${colorize('Files Changed:', COLORS.dim)} ${step.filesystemDiff.ts.length}\n`;
-      for (const change of step.filesystemDiff.ts.slice(0, 5)) {
+      for (const change of step.filesystemDiff.ts.slice(0, MAX_FILES_SHOWN)) {
         output += `${indent}    ${change.type[0].toUpperCase()} ${change.path}\n`;
       }
-      if (step.filesystemDiff.ts.length > 5) {
-        output += `${indent}    ... and ${step.filesystemDiff.ts.length - 5} more\n`;
+      if (step.filesystemDiff.ts.length > MAX_FILES_SHOWN) {
+        output += `${indent}    ... and ${step.filesystemDiff.ts.length - MAX_FILES_SHOWN} more\n`;
       }
     }
   }
@@ -122,12 +132,13 @@ export class ConsoleReporter extends BaseReporter {
     this.verbose = verbose;
   }
 
-  override onSuiteStart(): void {
+  override onSuiteStart(suite: any): void {
     // Visual separator between suites
+    super.onSuiteStart(suite);
     console.log(colorize('▶', COLORS.cyan) + ` Suite: ${this.currentSuite}`);
   }
 
-  override onPipelineStart(pipeline: Pipeline): void {
+  override onPipelineStart(pipeline: any): void {
     this.currentPipelineName = pipeline.name;
     console.log(`  ${colorize('▸', COLORS.cyan)} ${pipeline.name}`);
   }
@@ -151,7 +162,7 @@ export class ConsoleReporter extends BaseReporter {
     process.stdout.write('\n');
   }
 
-  override onSuiteComplete(_suite: any, result: SuiteResult): void {
+  override onSuiteComplete(suite: any, result: SuiteResult): void {
     const status = result.passed ? colorize('✓', COLORS.green) : colorize('✗', COLORS.red);
     console.log(
       `\n${status} ${result.name} completed in ${colorize(`${result.totalDuration}ms`, COLORS.dim)}`

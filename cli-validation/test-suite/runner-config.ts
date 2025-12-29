@@ -11,9 +11,9 @@ import { parseArgs } from 'node:util';
  */
 export interface RunnerOptions {
   /**
-   * Reporter format: 'console', 'junit', or 'json'
+   * Reporter format: 'console' or 'junit'
    */
-  reporter: 'console' | 'junit' | 'json';
+  reporter: 'console' | 'junit';
 
   /**
    * Stop test suite on first failure
@@ -41,11 +41,6 @@ export interface RunnerOptions {
   outputFile?: string;
 
   /**
-   * Maximum number of concurrent pipelines
-   */
-  concurrency?: number;
-
-  /**
    * Show help information
    */
   help?: boolean;
@@ -55,13 +50,13 @@ export interface RunnerOptions {
  * Parse command-line arguments into RunnerOptions
  */
 export function parseRunnerArgs(): RunnerOptions {
-  const { values, positionals } = parseArgs({
+  const { values } = parseArgs({
     options: {
       reporter: {
         type: 'string',
         short: 'r',
         default: 'console',
-        description: 'Reporter format (console, junit, json)',
+        description: 'Reporter format (console, junit)',
       },
       'fast-fail': {
         type: 'boolean',
@@ -90,11 +85,6 @@ export function parseRunnerArgs(): RunnerOptions {
         short: 'o',
         description: 'Output file for report',
       },
-      concurrency: {
-        type: 'string',
-        short: 'c',
-        description: 'Max concurrent pipelines',
-      },
       help: {
         type: 'boolean',
         short: 'h',
@@ -112,7 +102,7 @@ export function parseRunnerArgs(): RunnerOptions {
 
   // Validate reporter
   const reporter = (values.reporter || 'console') as string;
-  if (!['console', 'junit', 'json'].includes(reporter)) {
+  if (!['console', 'junit'].includes(reporter)) {
     console.error(`Invalid reporter: ${reporter}`);
     process.exit(1);
   }
@@ -127,24 +117,13 @@ export function parseRunnerArgs(): RunnerOptions {
     priority = values.priority as 'high' | 'medium' | 'low';
   }
 
-  // Parse concurrency
-  let concurrency = 1;
-  if (values.concurrency) {
-    concurrency = parseInt(values.concurrency, 10);
-    if (isNaN(concurrency) || concurrency < 1) {
-      console.error('Concurrency must be a positive integer');
-      process.exit(1);
-    }
-  }
-
   return {
-    reporter: reporter as 'console' | 'junit' | 'json',
+    reporter: reporter as 'console' | 'junit',
     fastFail: values['fast-fail'] === true || false,
     verbose: values.verbose === true || false,
     priority,
     testCase: values['test-case'] as string | undefined,
     outputFile: values.output as string | undefined,
-    concurrency,
     help: false,
   };
 }
@@ -160,13 +139,12 @@ Usage:
   npm run test:compatibility [options]
 
 Options:
-  -r, --reporter <format>  Reporter format: console, junit, json (default: console)
+  -r, --reporter <format>  Reporter format: console, junit (default: console)
   -f, --fast-fail          Stop on first failure (default: false)
   -v, --verbose            Verbose output (default: false)
   -p, --priority <level>   Filter by priority: high, medium, low
   -t, --test-case <name>   Run specific test suite (substring match)
   -o, --output <file>      Write report to file
-  -c, --concurrency <num>  Max concurrent pipelines (default: 1)
   -h, --help               Show this help message
 
 Examples:

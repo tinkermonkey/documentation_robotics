@@ -1,5 +1,5 @@
 /**
- * Main Test Pipeline Orchestrator
+ * Test Suite Execution Engine
  *
  * Loads YAML test cases, executes pipelines against the TypeScript CLI,
  * compares filesystem state, and generates reports.
@@ -276,10 +276,6 @@ function createReporter(options: RunnerOptions): Reporter {
   switch (options.reporter) {
     case 'junit':
       return new JUnitReporter();
-    case 'json':
-      // JSON reporter uses same structure as console but formats as JSON
-      // For now, fall through to console
-      return new ConsoleReporter(options.verbose);
     case 'console':
     default:
       return new ConsoleReporter(options.verbose);
@@ -380,7 +376,7 @@ async function runTestSuite(): Promise<void> {
     if (options.reporter !== 'junit') {
       const junitReporter = new JUnitReporter();
       const junitReport = junitReporter.generateReport(summary);
-      const junitPath = join(process.cwd(), 'test-results', 'junit.xml');
+      const junitPath = join(process.cwd(), 'results', 'junit.xml');
       await mkdir(dirname(junitPath), { recursive: true });
       await writeFile(junitPath, junitReport, 'utf-8');
       console.log(`✓ JUnit report written to: ${junitPath}`);
