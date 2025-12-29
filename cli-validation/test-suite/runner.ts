@@ -58,8 +58,8 @@ async function executeCommand(
  * Phase 1 establishes infrastructure; actual tests are in Phase 3
  */
 async function runPlaceholderTests(
-  _config: CLIConfig,
-  _paths: TestPaths
+  config: CLIConfig,
+  paths: TestPaths
 ): Promise<TestResult[]> {
   const results: TestResult[] = [];
 
@@ -68,10 +68,10 @@ async function runPlaceholderTests(
   try {
     // Verify baseline directory exists
     const { stdout: ls1 } = await execAsync(
-      `ls -la "${_paths.pythonPath}/documentation-robotics/model/"`
+      `ls -la "${paths.pythonPath}/documentation-robotics/model/"`
     );
     const { stdout: ls2 } = await execAsync(
-      `ls -la "${_paths.tsPath}/documentation-robotics/model/"`
+      `ls -la "${paths.tsPath}/documentation-robotics/model/"`
     );
 
     if (
@@ -99,8 +99,8 @@ async function runPlaceholderTests(
   const startTime2 = Date.now();
   try {
     const result = await executeCommand(
-      `${_config.pythonCLI} --version`,
-      _paths.pythonPath
+      `${config.pythonCLI} --version`,
+      paths.pythonPath
     );
     if (result.exitCode === 0 || result.stdout.includes("version")) {
       results.push({
@@ -126,8 +126,8 @@ async function runPlaceholderTests(
   const startTime3 = Date.now();
   try {
     const result = await executeCommand(
-      `${_config.tsCLI} version`,
-      _paths.tsPath
+      `${config.tsCLI} version`,
+      paths.tsPath
     );
     if (
       result.exitCode === 0 ||
@@ -210,30 +210,16 @@ async function main(): Promise<void> {
   console.log("");
 
   try {
-    // Get configuration and paths without full validation (allow partial setup)
-    const config = (await import("./setup")).getCLIConfig();
-    const paths = (await import("./setup")).getTestPaths();
+    // Initialize test environment with validation
+    const { config, paths } = await initializeTestEnvironment();
 
     console.log("Test configuration:");
     console.log(`  Python CLI: ${config.pythonCLI}`);
     console.log(`  TypeScript CLI: ${config.tsCLI}`);
     console.log(`  Baseline: ${paths.baselinePath}`);
     console.log("");
-
-    // Setup test environment with graceful fallback
-    try {
-      await (await import("./setup")).setupTestEnvironment(paths);
-      console.log("✓ Test environment initialized with fresh baseline copies");
-      console.log("");
-    } catch (error) {
-      console.warn(
-        `⚠ Warning: Test environment setup incomplete: ${error instanceof Error ? error.message : String(error)}`
-      );
-      console.warn(
-        "Continuing with placeholder tests - full compatibility tests require proper setup"
-      );
-      console.log("");
-    }
+    console.log("✓ Test environment initialized with fresh baseline copies");
+    console.log("");
 
     // Run placeholder tests (Phase 1)
     const startTime = Date.now();

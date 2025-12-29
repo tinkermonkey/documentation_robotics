@@ -5,7 +5,7 @@
  * Implements clean-room pattern: fresh copies of baseline for each test run.
  */
 
-import { cp, rm, access } from "node:fs/promises";
+import { cp, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
@@ -123,17 +123,9 @@ export async function validateCLIBinaries(config: CLIConfig): Promise<void> {
  * Implements clean-room pattern by deleting old test directories
  */
 export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
-  try {
-    await rm(paths.pythonPath, { recursive: true, force: true });
-  } catch (error) {
-    // Ignore cleanup errors
-  }
-
-  try {
-    await rm(paths.tsPath, { recursive: true, force: true });
-  } catch (error) {
-    // Ignore cleanup errors
-  }
+  // rm with force: true ignores missing directories
+  await rm(paths.pythonPath, { recursive: true, force: true });
+  await rm(paths.tsPath, { recursive: true, force: true });
 }
 
 /**
