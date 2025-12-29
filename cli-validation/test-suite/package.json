@@ -4,7 +4,15 @@
   "type": "module",
   "scripts": {
     "test": "node --import tsx runner.ts",
-    "test:compatibility": "node --import tsx runner.ts"
+    "test:compatibility": "node --import tsx runner.ts",
+    "test:compatibility:fast": "node --import tsx runner.ts --priority=high --fast-fail --verbose",
+    "test:compatibility:ci": "node --import tsx runner.ts --reporter=junit --output=test-results/junit.xml",
+    "test:compatibility:verbose": "node --import tsx runner.ts --verbose",
+    "test:compatibility:high": "node --import tsx runner.ts --priority=high",
+    "test:compatibility:medium": "node --import tsx runner.ts --priority=medium",
+    "test:compatibility:low": "node --import tsx runner.ts --priority=low",
+    "test:unit": "bun test tests/",
+    "test:all": "bun test tests/ && npm run test:compatibility"
   },
   "dependencies": {
     "glob": "^10.4.5",

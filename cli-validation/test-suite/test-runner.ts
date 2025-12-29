@@ -23,8 +23,10 @@ import {
   SuiteResult,
   TestRunSummary,
 } from './pipeline';
-import { formatConsoleReport } from './reporters/console-reporter';
-import { formatJunitReport } from './reporters/junit-reporter';
+import { ConsoleReporter, formatConsoleReport } from './reporters/console-reporter';
+import { JUnitReporter, formatJunitReport } from './reporters/junit-reporter';
+import { Reporter } from './reporters/reporter';
+import { parseRunnerArgs, RunnerOptions, matchesFilters } from './runner-config';
 
 /**
  * Main test runner configuration
@@ -268,12 +270,39 @@ function generateSummary(results: SuiteResult[]): TestRunSummary {
 }
 
 /**
+ * Create appropriate reporter instance based on options
+ */
+function createReporter(options: RunnerOptions): Reporter {
+  switch (options.reporter) {
+    case 'junit':
+      return new JUnitReporter();
+    case 'json':
+      // JSON reporter uses same structure as console but formats as JSON
+      // For now, fall through to console
+      return new ConsoleReporter(options.verbose);
+    case 'console':
+    default:
+      return new ConsoleReporter(options.verbose);
+  }
+}
+
+/**
  * Main test runner entry point
  */
 async function runTestSuite(): Promise<void> {
+  // Parse command-line arguments
+  const options = parseRunnerArgs();
+
   console.log('='.repeat(70));
   console.log('CLI Compatibility Test Suite - Test Pipeline Execution');
   console.log('='.repeat(70));
+
+  // Print configuration
+  console.log(`Reporter: ${options.reporter}`);
+  if (options.fastFail) console.log('Fast-fail mode: enabled');
+  if (options.verbose) console.log('Verbose output: enabled');
+  if (options.priority) console.log(`Priority filter: ${options.priority}`);
+  if (options.testCase) console.log(`Test case filter: ${options.testCase}`);
   console.log('');
 
   try {
@@ -292,40 +321,70 @@ async function runTestSuite(): Promise<void> {
 
     // Load test suites
     console.log('Loading test cases...');
-    const testSuites = await loadTestSuites(testConfig.testCaseDir);
+    let testSuites = await loadTestSuites(testConfig.testCaseDir);
     console.log(`✓ Loaded ${testSuites.length} test suites`);
+
+    // Apply filters
+    testSuites = testSuites.filter((suite) =>
+      matchesFilters(suite.name, suite.priority, options)
+    );
+    console.log(`✓ Filtered to ${testSuites.length} test suites`);
     console.log('');
 
     if (testSuites.length === 0) {
-      console.log('No test cases found. Test infrastructure is ready.');
-      console.log('Please add test case YAML files to test-cases/ directory.');
+      console.log('No test cases matched your filters.');
       process.exit(0);
     }
+
+    // Create reporter instance
+    const reporter = createReporter(options);
 
     // Execute test suites
     const startTime = Date.now();
     const results: SuiteResult[] = [];
 
     for (const suite of testSuites) {
-      results.push(await executeSuite(suite, testConfig));
+      reporter.onSuiteStart(suite);
+      const suiteResult = await executeSuite(suite, testConfig);
+      results.push(suiteResult);
+      reporter.onSuiteComplete(suite, suiteResult);
+
+      // Fast-fail mode: stop on first failure
+      if (options.fastFail && !suiteResult.passed) {
+        console.error('\n' + '✗'.repeat(70));
+        console.error('Fast-fail mode enabled, stopping test suite');
+        console.error('✗'.repeat(70));
+        break;
+      }
     }
 
     // Generate summary
     const summary = generateSummary(results);
     summary.totalDuration = Date.now() - startTime;
 
-    // Display results
-    console.log('');
-    console.log('='.repeat(70));
-    console.log(formatConsoleReport(summary));
-    console.log('='.repeat(70));
+    // Generate report using reporter
+    const report = reporter.generateReport(summary);
 
-    // Write JUnit report to file for CI/CD integration
-    const junitReport = formatJunitReport(summary);
-    const junitPath = join(process.cwd(), 'test-results', 'junit.xml');
-    await mkdir(dirname(junitPath), { recursive: true });
-    await writeFile(junitPath, junitReport, 'utf-8');
-    console.log(`\n✓ JUnit report written to: ${junitPath}`);
+    // Output report
+    if (options.outputFile) {
+      // Write to file
+      await mkdir(dirname(options.outputFile), { recursive: true });
+      await writeFile(options.outputFile, report, 'utf-8');
+      console.log(`\n✓ Report written to: ${options.outputFile}`);
+    } else {
+      // Write to stdout
+      console.log(report);
+    }
+
+    // Always write JUnit report to file for CI/CD integration
+    if (options.reporter !== 'junit') {
+      const junitReporter = new JUnitReporter();
+      const junitReport = junitReporter.generateReport(summary);
+      const junitPath = join(process.cwd(), 'test-results', 'junit.xml');
+      await mkdir(dirname(junitPath), { recursive: true });
+      await writeFile(junitPath, junitReport, 'utf-8');
+      console.log(`✓ JUnit report written to: ${junitPath}`);
+    }
 
     // Exit with appropriate code
     process.exit(summary.failedSuites > 0 ? 1 : 0);
