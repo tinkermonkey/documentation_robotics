@@ -65,7 +65,7 @@ pipelines:
           - 02_business/services.yaml
         expect_exit_code: 0
 
-      - command: "relationship add changeset-service-001 serves changeset-service-002"
+      - command: "relationship add changeset-service-001 changeset-service-002 --predicate serves"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
