@@ -1,0 +1,82 @@
+name: "Model Validation"
+description: "Test validation, list, search, and info operations"
+priority: high
+
+pipelines:
+  - name: "Validate model state"
+    steps:
+      - command: "validate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "validation"
+
+      - command: "info"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "model"
+          - "elements"
+
+  - name: "List operations across layers"
+    steps:
+      - command: "list motivation"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "list business"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "list application"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "list technology"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "list api"
+        files_to_compare: []
+        expect_exit_code: 0
+
+  - name: "Search functionality"
+    steps:
+      - command: "search goal"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "search service"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "search component"
+        files_to_compare: []
+        expect_exit_code: 0
+
+  - name: "Element inspection"
+    steps:
+      - command: "add motivation goal inspect-test-goal --name 'Test Goal for Inspection' --description 'Goal to inspect'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "show inspect-test-goal"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "inspect-test-goal"
+          - "Test Goal for Inspection"
+
+      - command: "delete inspect-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+  - name: "Model conformance check"
+    steps:
+      - command: "conformance"
+        files_to_compare: []
+        expect_exit_code: 0

@@ -7,6 +7,7 @@
     "test:compatibility": "node --import tsx runner.ts"
   },
   "dependencies": {
+    "glob": "^10.4.5",
     "yaml": "^2.8.2"
   },
   "devDependencies": {

@@ -52,7 +52,7 @@ export function getCLIConfig(): CLIConfig {
     pythonCLI: process.env.DR_PYTHON_CLI || join(workspaceRoot, ".venv/bin/dr"),
     tsCLI:
       process.env.DR_TS_CLI ||
-      `node ${join(workspaceRoot, "cli-bun/dist/cli.js")}`,
+      `node ${join(workspaceRoot, "cli/dist/cli.js")}`,
   };
 }
 
@@ -102,17 +102,22 @@ export async function validateCLIBinary(cliPath: string): Promise<void> {
 
 /**
  * Validate that both CLI binaries exist and are executable
- * @throws Error if either CLI is invalid
+ * For now, we skip Python CLI validation if not available and focus on TypeScript CLI
+ * @throws Error if TypeScript CLI is invalid
  */
 export async function validateCLIBinaries(config: CLIConfig): Promise<void> {
+  // Try to validate Python CLI, but don't fail if it's not available
   try {
     await validateCLIBinary(config.pythonCLI);
+    console.log('✓ Python CLI available');
   } catch (error) {
-    throw new Error(`Python CLI validation failed: ${String(error)}`);
+    console.warn(`⚠ Python CLI not available: ${String(error)}`);
   }
 
+  // TypeScript CLI is required
   try {
     await validateCLIBinary(config.tsCLI);
+    console.log('✓ TypeScript CLI available');
   } catch (error) {
     throw new Error(`TypeScript CLI validation failed: ${String(error)}`);
   }

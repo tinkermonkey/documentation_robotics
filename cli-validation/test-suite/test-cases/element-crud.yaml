@@ -1,0 +1,118 @@
+name: "Element CRUD Operations"
+description: "Test add, update, delete operations for elements across layers"
+priority: high
+
+pipelines:
+  - name: "Add and update motivation goal"
+    steps:
+      - command: "add motivation goal test-goal --name 'Test Strategic Goal' --description 'Test goal for verification'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+          - "test-goal"
+
+      - command: "update test-goal --name 'Updated Strategic Goal'"
+        files_to_compare:
+          - 01_motivation/goals.yaml
+          - manifest.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
+      - command: "delete test-goal --force"
+        files_to_compare:
+          - 01_motivation/goals.yaml
+          - manifest.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deleted"
+          - "test-goal"
+
+  - name: "Add business service and delete"
+    steps:
+      - command: "add business service test-service --name 'Test Business Service' --description 'Temporary test service'"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+          - "test-service"
+
+      - command: "delete test-service --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deleted"
+
+  - name: "Add application component lifecycle"
+    steps:
+      - command: "add application component test-component --name 'Test Component' --description 'Test application component'"
+        files_to_compare:
+          - manifest.yaml
+          - 04_application/components.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+          - "test-component"
+
+      - command: "show test-component"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "test-component"
+          - "Test Component"
+
+      - command: "update test-component --name 'Updated Component'"
+        files_to_compare:
+          - 04_application/components.yaml
+        expect_exit_code: 0
+
+      - command: "delete test-component --force"
+        files_to_compare:
+          - manifest.yaml
+          - 04_application/components.yaml
+        expect_exit_code: 0
+
+  - name: "Add technology platform"
+    steps:
+      - command: "add technology platform test-platform --name 'Test Platform' --description 'Test infrastructure platform'"
+        files_to_compare:
+          - manifest.yaml
+          - 05_technology/platforms.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+          - "test-platform"
+
+      - command: "delete test-platform --force"
+        files_to_compare:
+          - manifest.yaml
+          - 05_technology/platforms.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deleted"
+
+  - name: "Add API endpoint"
+    steps:
+      - command: "add api endpoint test-endpoint --name 'Test Endpoint' --description 'GET /api/test' --method GET --path /api/test"
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/endpoints.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+          - "test-endpoint"
+
+      - command: "delete test-endpoint --force"
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/endpoints.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deleted"

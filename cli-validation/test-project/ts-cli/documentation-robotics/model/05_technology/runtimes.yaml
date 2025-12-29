@@ -1,0 +1,10 @@
+python:
+  id: python
+  name: Python
+  type: runtime
+  documentation: Python runtime environment
+nodejs:
+  id: nodejs
+  name: Node.js
+  type: runtime
+  documentation: JavaScript runtime environment

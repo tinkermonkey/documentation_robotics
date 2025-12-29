@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<graphml xmlns="http://graphml.graphdrawing.org/xmlns"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://graphml.graphdrawing.org/xmlns/1.0/graphml.xsd"
+         edgedefault="directed">
+  <key id="node_description" for="node" attr.name="description" attr.type="string"/>
+  <key id="node_layer" for="node" attr.name="layer" attr.type="string"/>
+  <key id="node_type" for="node" attr.name="type" attr.type="string"/>
+  <key id="edge_type" for="edge" attr.name="type" attr.type="string"/>
+  <graph id="model" edgedefault="directed">
+    <data key="name">test-project</data>
+    <node id="task-crud">
+      <data key="name">Task CRUD Operations</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Users must be able to create, read, update, and delete tasks</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Task CRUD Operations</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="data-persistence">
+      <data key="name">Data Persistence</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Tasks must be stored persistently and survive application restarts</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Data Persistence</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="manage-tasks">
+      <data key="name">Manage Personal Tasks</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">goal</data>
+      <data key="node_description">Enable users to efficiently create, track, and complete personal tasks</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Manage Personal Tasks</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="multi-rel-goal">
+      <data key="name">Multi Relationship Goal</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">goal</data>
+      <data key="node_description">Test multiple relationship types</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Multi Relationship Goal</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="user-centric-design">
+      <data key="name">User-Centric Design</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">principle</data>
+      <data key="node_description">Design the interface to be intuitive and easy to use</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>User-Centric Design</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="lightweight-stack">
+      <data key="name">Lightweight Technology Stack</data>
+      <data key="node_layer">motivation</data>
+      <data key="node_type">technical</data>
+      <data key="node_description">Use minimal dependencies and simple deployment</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE4E1" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Lightweight Technology Stack</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="end-user">
+      <data key="name">End User</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">actor</data>
+      <data key="node_description">Individual using the application to manage personal tasks</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>End User</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="create-task-process">
+      <data key="name">Create Task Process</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">process</data>
+      <data key="node_description">Business process for creating a new task item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Create Task Process</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="complete-task-process">
+      <data key="name">Complete Task Process</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">process</data>
+      <data key="node_description">Business process for marking a task as complete</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Complete Task Process</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="task-management">
+      <data key="name">Task Management Service</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">service</data>
+      <data key="node_description">Business service for managing personal tasks and to-do items</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Task Management Service</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="multi-rel-service">
+      <data key="name">Multi Relationship Service</data>
+      <data key="node_layer">business</data>
+      <data key="node_type">service</data>
+      <data key="node_description">Test multiple relationship types</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6F3FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Multi Relationship Service</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="authenticated-user">
+      <data key="name">Authenticated User</data>
+      <data key="node_layer">security</data>
+      <data key="node_type">role</data>
+      <data key="node_description">User accessing the todo application</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6E6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Authenticated User</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="public-access">
+      <data key="name">Public Access Policy</data>
+      <data key="node_layer">security</data>
+      <data key="node_type">security-policy</data>
+      <data key="node_description">No authentication required - application is publicly accessible</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFE6E6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Public Access Policy</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-handler">
+      <data key="name">Todo Handler</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">component</data>
+      <data key="node_description">Application component handling todo CRUD operations</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo Handler</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="database-connection">
+      <data key="name">Database Connection</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">component</data>
+      <data key="node_description">SQLite database connection management component</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Database Connection</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="react-app">
+      <data key="name">React Application</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">component</data>
+      <data key="node_description">Frontend React application for todo management UI</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>React Application</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="multi-rel-component">
+      <data key="name">Multi Relationship Component</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">component</data>
+      <data key="node_description">Test multiple relationship types</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Multi Relationship Component</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-api-service">
+      <data key="name">Todo API Service</data>
+      <data key="node_layer">application</data>
+      <data key="node_type">service</data>
+      <data key="node_description">FastAPI application service providing REST API for todo operations</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#E6FFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo API Service</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="fastapi">
+      <data key="name">FastAPI</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">framework</data>
+      <data key="node_description">Modern Python web framework for building APIs</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>FastAPI</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="sqlite">
+      <data key="name">SQLite</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">database</data>
+      <data key="node_description">Lightweight embedded SQL database</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>SQLite</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="react">
+      <data key="name">React</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">framework</data>
+      <data key="node_description">JavaScript library for building user interfaces</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>React</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="vite">
+      <data key="name">Vite</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">build-tool</data>
+      <data key="node_description">Frontend build tool and development server</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Vite</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="flowbite-react">
+      <data key="name">Flowbite React</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">ui-library</data>
+      <data key="node_description">React component library built on Tailwind CSS</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Flowbite React</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="python">
+      <data key="name">Python</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">runtime</data>
+      <data key="node_description">Python runtime environment</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Python</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="nodejs">
+      <data key="name">Node.js</data>
+      <data key="node_layer">technology</data>
+      <data key="node_type">runtime</data>
+      <data key="node_description">JavaScript runtime environment</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFFFE6" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Node.js</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="list-todos">
+      <data key="name">List Todos</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">GET /todos - Retrieve all todo items</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>List Todos</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="create-todo">
+      <data key="name">Create Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">POST /todos - Create a new todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Create Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="update-todo">
+      <data key="name">Update Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">PUT /todos/{todo_id} - Update an existing todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Update Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="delete-todo">
+      <data key="name">Delete Todo</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">operation</data>
+      <data key="node_description">DELETE /todos/{todo_id} - Delete a todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Delete Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-in-schema">
+      <data key="name">TodoIn Schema</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">object</data>
+      <data key="node_description">Request schema for creating/updating todos</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>TodoIn Schema</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-schema">
+      <data key="name">Todo Schema</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">object</data>
+      <data key="node_description">Response schema for todo items with ID</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo Schema</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-list-schema">
+      <data key="name">Todo List Schema</data>
+      <data key="node_layer">api</data>
+      <data key="node_type">array</data>
+      <data key="node_description">Response schema for list of todos</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#F0E6FF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo List Schema</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="text-input">
+      <data key="name">Text Input</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">form-field</data>
+      <data key="node_description">Flowbite text input component</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Text Input</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="button">
+      <data key="name">Button</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">custom</data>
+      <data key="node_description">Flowbite button component</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Button</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="list-group">
+      <data key="name">List Group</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">list</data>
+      <data key="node_description">Flowbite list group component</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>List Group</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="spinner">
+      <data key="name">Spinner</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">custom</data>
+      <data key="node_description">Flowbite loading spinner component</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Spinner</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="fetch-todos-action">
+      <data key="name">Fetch Todos Action</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">state-action</data>
+      <data key="node_description">Action to fetch all todos from API</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Fetch Todos Action</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="add-todo-action">
+      <data key="name">Add Todo Action</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">state-action</data>
+      <data key="node_description">Action to create a new todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Add Todo Action</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="toggle-todo-action">
+      <data key="name">Toggle Todo Action</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">state-action</data>
+      <data key="node_description">Action to toggle todo completion status</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Toggle Todo Action</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="delete-todo-action">
+      <data key="name">Delete Todo Action</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">state-action</data>
+      <data key="node_description">Action to delete a todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Delete Todo Action</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-app">
+      <data key="name">Todo Application</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">ux-application</data>
+      <data key="node_description">React-based todo management application</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo Application</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="main-view">
+      <data key="name">Main View</data>
+      <data key="node_layer">ux</data>
+      <data key="node_type">dashboard</data>
+      <data key="node_description">Primary view displaying todo list and input</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Main View</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="main-route">
+      <data key="name">Main Route</data>
+      <data key="node_layer">navigation</data>
+      <data key="node_type">experience</data>
+      <data key="node_description">Root route displaying todo application</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#CCFFCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Main Route</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api-todos-route">
+      <data key="name">API Todos Route</data>
+      <data key="node_layer">navigation</data>
+      <data key="node_type">experience</data>
+      <data key="node_description">Backend API route for todos endpoint</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#CCFFCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>API Todos Route</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="api-todo-detail-route">
+      <data key="name">API Todo Detail Route</data>
+      <data key="node_layer">navigation</data>
+      <data key="node_type">experience</data>
+      <data key="node_description">Backend API route for individual todo operations</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#CCFFCC" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>API Todo Detail Route</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="title-input-partition">
+      <data key="name">Title Input Partition</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">input-space-partition</data>
+      <data key="node_description">Partition for todo title input validation</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Title Input Partition</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="done-input-partition">
+      <data key="name">Done Input Partition</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">input-space-partition</data>
+      <data key="node_description">Partition for todo done status values</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Done Input Partition</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="test-create-todo">
+      <data key="name">Test Create Todo</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Test creating a new todo item</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Test Create Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="test-list-todos">
+      <data key="name">Test List Todos</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Test retrieving all todos</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Test List Todos</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="test-update-todo">
+      <data key="name">Test Update Todo</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Test updating an existing todo</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Test Update Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="test-delete-todo">
+      <data key="name">Test Delete Todo</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">functional</data>
+      <data key="node_description">Test deleting a todo</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Test Delete Todo</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+    <node id="todo-api-coverage">
+      <data key="name">Todo API Coverage Model</data>
+      <data key="node_layer">testing</data>
+      <data key="node_type">test-coverage-model</data>
+      <data key="node_description">Test coverage model for todo API operations</data>
+      <graphics x="0" y="0" w="150" h="50" fill="#FFCCFF" type="rectangle"/>
+      <data key="d6">
+        <y:ShapeNode>
+          <y:NodeLabel>Todo API Coverage Model</y:NodeLabel>
+        </y:ShapeNode>
+      </data>
+    </node>
+  </graph>
+</graphml>

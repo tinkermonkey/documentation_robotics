@@ -1,0 +1,40 @@
+name: "Export Operations"
+description: "Test export functionality for different formats"
+priority: medium
+
+pipelines:
+  - name: "Export to PlantUML"
+    steps:
+      - command: "export plantuml --output test-export.puml"
+        files_to_compare:
+          - test-export.puml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to Markdown"
+    steps:
+      - command: "export markdown --output test-export.md"
+        files_to_compare:
+          - test-export.md
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to GraphML"
+    steps:
+      - command: "export graphml --output test-export.graphml"
+        files_to_compare:
+          - test-export.graphml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to JSON"
+    steps:
+      - command: "export json --output test-export.json"
+        files_to_compare:
+          - test-export.json
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"

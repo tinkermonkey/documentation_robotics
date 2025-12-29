@@ -1,0 +1,5 @@
+vite:
+  id: vite
+  name: Vite
+  type: build-tool
+  documentation: Frontend build tool and development server
