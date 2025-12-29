@@ -1,0 +1,5 @@
+main-view:
+  id: main-view
+  name: Main View
+  type: dashboard
+  documentation: Primary view displaying todo list and input

@@ -1,40 +1,76 @@
 name: "Export Operations"
-description: "Test export functionality for different formats"
+description: "Test export functionality for all supported formats"
 priority: medium
 
 pipelines:
-  - name: "Export to PlantUML"
+  - name: "Export to PlantUML diagram"
     steps:
-      - command: "export plantuml --output test-export.puml"
+      - command: "export plantuml --output export-test.puml"
         files_to_compare:
-          - test-export.puml
+          - export-test.puml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
 
-  - name: "Export to Markdown"
+  - name: "Export to Markdown documentation"
     steps:
-      - command: "export markdown --output test-export.md"
+      - command: "export markdown --output export-test.md"
         files_to_compare:
-          - test-export.md
+          - export-test.md
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
 
-  - name: "Export to GraphML"
+  - name: "Export to GraphML format"
     steps:
-      - command: "export graphml --output test-export.graphml"
+      - command: "export graphml --output export-test.graphml"
         files_to_compare:
-          - test-export.graphml
+          - export-test.graphml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
 
-  - name: "Export to JSON"
+  - name: "Export to OpenAPI specification"
     steps:
-      - command: "export json --output test-export.json"
+      - command: "export openapi --output export-api.json"
         files_to_compare:
-          - test-export.json
+          - export-api.json
         expect_exit_code: 0
         expect_stdout_contains:
           - "Exported"
+
+  - name: "Export to JSON Schema"
+    steps:
+      - command: "export jsonschema --output export-schema.json"
+        files_to_compare:
+          - export-schema.json
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+
+  - name: "Export to ArchiMate XML"
+    steps:
+      - command: "export archimate --output export-model.xml"
+        files_to_compare:
+          - export-model.xml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Exported"
+        timeout: 60000
+
+  - name: "Export multiple formats in sequence"
+    steps:
+      - command: "export plantuml --output multi-export-test.puml"
+        files_to_compare:
+          - multi-export-test.puml
+        expect_exit_code: 0
+
+      - command: "export markdown --output multi-export-test.md"
+        files_to_compare:
+          - multi-export-test.md
+        expect_exit_code: 0
+
+      - command: "export graphml --output multi-export-test.graphml"
+        files_to_compare:
+          - multi-export-test.graphml
+        expect_exit_code: 0

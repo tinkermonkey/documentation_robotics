@@ -1,0 +1,5 @@
+todos-pkey-constraint:
+  id: todos-pkey-constraint
+  name: Todos Primary Key
+  type: PRIMARY_KEY
+  documentation: Primary key constraint for todos table

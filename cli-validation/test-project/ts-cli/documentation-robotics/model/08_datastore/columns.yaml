@@ -1,23 +1,25 @@
-ID Column:
-  name: ID Column
-  description: Primary key auto-increment ID
-  type: INTEGER
-  dataType: INTEGER
-  primaryKey: true
-  auto_increment: "true"
-  id: todos-id-column
-Title Column:
-  name: Title Column
-  description: Todo item title text
-  type: TEXT
-  dataType: TEXT
-  nullable: false
-  id: todos-title-column
-Done Column:
-  name: Done Column
-  description: Todo completion status integer (0/1)
-  type: INTEGER
-  dataType: INTEGER
-  nullable: false
-  default: "0"
-  id: todos-done-column
+rel-test-column:
+  id: rel-test-column
+  name: test_column
+  type: column
+  documentation: Column for relationship test
+multi-rel-col-1:
+  id: multi-rel-col-1
+  name: column_1
+  type: column
+  documentation: First column
+multi-rel-col-2:
+  id: multi-rel-col-2
+  name: column_2
+  type: column
+  documentation: Second column
+trace-test-column:
+  id: trace-test-column
+  name: trace_col
+  type: column
+  documentation: Column for tracing
+rel-cmd-column:
+  id: rel-cmd-column
+  name: rel_col
+  type: column
+  documentation: Column for relationship command test

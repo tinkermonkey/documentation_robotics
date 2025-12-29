@@ -1,0 +1,10 @@
+fastapi:
+  id: fastapi
+  name: FastAPI
+  type: framework
+  documentation: Modern Python web framework for building APIs
+react:
+  id: react
+  name: React
+  type: framework
+  documentation: JavaScript library for building user interfaces

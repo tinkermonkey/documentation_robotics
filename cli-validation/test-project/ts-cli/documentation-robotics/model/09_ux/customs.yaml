@@ -1,0 +1,10 @@
+button:
+  id: button
+  name: Button
+  type: custom
+  documentation: Flowbite button component
+spinner:
+  id: spinner
+  name: Spinner
+  type: custom
+  documentation: Flowbite loading spinner component

@@ -5,100 +5,110 @@ priority: high
 pipelines:
   - name: "Create and delete relationships"
     steps:
-      - command: "relationship list"
-        files_to_compare: []
-        expect_exit_code: 0
-        expect_stdout_contains:
-          - "relationship"
-
-      - command: "add motivation goal relationship-test-goal --name 'Test Goal for Relations' --description 'Goal for testing relationships'"
+      - command: "add motivation goal rel-base-goal --name 'Baseline Goal' --description 'Goal for relationships'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
-      - command: "add business service relationship-test-service --name 'Test Service for Relations' --description 'Service for testing relationships'"
-        files_to_compare:
-          - manifest.yaml
-          - 02_business/services.yaml
+      - command: "relationship list rel-base-goal"
+        files_to_compare: []
         expect_exit_code: 0
 
-      - command: "relationship add relationship-test-goal realizes relationship-test-service"
+      - command: "add datastore table rel-test-table --name 'test_table' --description 'Table for relationship test'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+      - command: "add datastore column rel-test-column --name 'test_column' --description 'Column for relationship test'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add rel-test-table rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
-          - "relationship"
 
-      - command: "relationship delete relationship-test-goal realizes relationship-test-service"
+      - command: "relationship delete rel-test-table rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
-          - "relationship"
 
-      - command: "delete relationship-test-goal --force"
+      - command: "delete rel-test-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete rel-test-column --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0
+
+      - command: "delete rel-base-goal --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
-        expect_exit_code: 0
-
-      - command: "delete relationship-test-service --force"
-        files_to_compare:
-          - manifest.yaml
-          - 02_business/services.yaml
         expect_exit_code: 0
 
   - name: "Multiple relationship types"
     steps:
-      - command: "add motivation goal multi-rel-goal --name 'Multi Relationship Goal' --description 'Test multiple relationship types'"
+      - command: "add datastore table multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 01_motivation/goals.yaml
+          - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add business service multi-rel-service --name 'Multi Relationship Service' --description 'Test multiple relationship types'"
+      - command: "add datastore column multi-rel-col-1 --name 'column_1' --description 'First column'"
         files_to_compare:
           - manifest.yaml
-          - 02_business/services.yaml
+          - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "add application component multi-rel-component --name 'Multi Relationship Component' --description 'Test multiple relationship types'"
+      - command: "add datastore column multi-rel-col-2 --name 'column_2' --description 'Second column'"
         files_to_compare:
           - manifest.yaml
-          - 04_application/components.yaml
+          - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "relationship add multi-rel-goal realizes multi-rel-service"
+      - command: "relationship add multi-rel-table multi-rel-col-1 --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship add multi-rel-service implements multi-rel-component"
+      - command: "relationship add multi-rel-table multi-rel-col-2 --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship list"
+      - command: "relationship list multi-rel-table"
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "delete multi-rel-goal --force"
+      - command: "delete multi-rel-table --force"
         files_to_compare:
           - manifest.yaml
+          - 08_datastore/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete multi-rel-service --force"
+      - command: "delete multi-rel-col-1 --force"
         files_to_compare:
           - manifest.yaml
-          - relationships.yaml
+          - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "delete multi-rel-component --force"
+      - command: "delete multi-rel-col-2 --force"
         files_to_compare:
           - manifest.yaml
-          - 04_application/components.yaml
+          - 08_datastore/columns.yaml
         expect_exit_code: 0

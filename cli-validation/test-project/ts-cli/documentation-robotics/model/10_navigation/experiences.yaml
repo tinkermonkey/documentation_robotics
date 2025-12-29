@@ -1,0 +1,15 @@
+main-route:
+  id: main-route
+  name: Main Route
+  type: experience
+  documentation: Root route displaying todo application
+api-todos-route:
+  id: api-todos-route
+  name: API Todos Route
+  type: experience
+  documentation: Backend API route for todos endpoint
+api-todo-detail-route:
+  id: api-todo-detail-route
+  name: API Todo Detail Route
+  type: experience
+  documentation: Backend API route for individual todo operations

@@ -1,8 +1,10 @@
-Create Task Process:
-  name: Create Task Process
-  description: Business process for creating a new task item
+create-task-process:
   id: create-task-process
-Complete Task Process:
-  name: Complete Task Process
-  description: Business process for marking a task as complete
+  name: Create Task Process
+  type: process
+  documentation: Business process for creating a new task item
+complete-task-process:
   id: complete-task-process
+  name: Complete Task Process
+  type: process
+  documentation: Business process for marking a task as complete

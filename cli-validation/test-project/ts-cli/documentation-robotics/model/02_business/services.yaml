@@ -1,7 +1,10 @@
-Task Management Service:
-  name: Task Management Service
-  description: Business service for managing personal tasks and to-do items
-  criticality: high
+task-management:
   id: task-management
-  motivation:
-    supports-goals: manage-tasks
+  name: Task Management Service
+  type: service
+  documentation: Business service for managing personal tasks and to-do items
+changeset-service-001:
+  id: changeset-service-001
+  name: Service from Changeset
+  type: service
+  documentation: Business service in changeset

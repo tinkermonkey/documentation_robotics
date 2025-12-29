@@ -1,0 +1,5 @@
+list-group:
+  id: list-group
+  name: List Group
+  type: list
+  documentation: Flowbite list group component

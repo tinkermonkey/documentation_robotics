@@ -1,8 +1,15 @@
-Manage Personal Tasks:
-  name: Manage Personal Tasks
-  description: Enable users to efficiently create, track, and complete personal tasks
-  criticality: high
-  priority: high
-  status: active
-  stakeholder: end-user
+manage-tasks:
   id: manage-tasks
+  name: Manage Personal Tasks
+  type: goal
+  documentation: Enable users to efficiently create, track, and complete personal tasks
+rel-base-goal:
+  id: rel-base-goal
+  name: Baseline Goal
+  type: goal
+  documentation: Goal for relationships
+changeset-goal-001:
+  id: changeset-goal-001
+  name: Changeset Test Goal
+  type: goal
+  documentation: Goal created within changeset

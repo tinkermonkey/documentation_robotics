@@ -1,9 +1,9 @@
-version: 0.1.0
+version: 1.0.0
 schema: documentation-robotics-v1
-cli_version: 0.7.3
+cli_version: 1.0.0
 spec_version: 0.6.0
-created: "2025-12-28T15:00:20.908085Z"
-updated: "2025-12-28T22:08:58.973598Z"
+created: 2025-12-28T15:00:20.908085Z
+updated: 2025-12-29T12:39:39.684Z
 project:
   name: test-project
   description: Architecture model for test-project
@@ -17,10 +17,10 @@ layers:
     schema: .dr/schemas/01-motivation-layer.schema.json
     enabled: true
     elements:
+      technical: 1
       goal: 1
       principle: 1
-      requirement: 2
-      constraint: 1
+      functional: 2
   business:
     order: 2
     name: Business
@@ -28,9 +28,9 @@ layers:
     schema: .dr/schemas/02-business-layer.schema.json
     enabled: true
     elements:
-      service: 1
-      process: 2
       actor: 1
+      process: 2
+      service: 1
   security:
     order: 3
     name: Security
@@ -38,7 +38,7 @@ layers:
     schema: .dr/schemas/03-security-layer.schema.json
     enabled: true
     elements:
-      actor: 1
+      role: 1
       security-policy: 1
   application:
     order: 4
@@ -47,8 +47,8 @@ layers:
     schema: .dr/schemas/04-application-layer.schema.json
     enabled: true
     elements:
-      service: 1
       component: 3
+      service: 1
   technology:
     order: 5
     name: Technology
@@ -56,7 +56,11 @@ layers:
     schema: .dr/schemas/05-technology-layer.schema.json
     enabled: true
     elements:
-      system-software: 7
+      framework: 2
+      database: 1
+      build-tool: 1
+      ui-library: 1
+      runtime: 2
   api:
     order: 6
     name: API
@@ -65,7 +69,9 @@ layers:
     enabled: true
     elements:
       operation: 4
-      schema: 3
+      object: 2
+      array: 1
+      endpoint: 1
   data_model:
     order: 7
     name: Data Model
@@ -73,8 +79,10 @@ layers:
     schema: .dr/schemas/07-data-model-layer.schema.json
     enabled: true
     elements:
-      object-schema: 2
-      schema-property: 3
+      object: 2
+      integer: 1
+      string: 1
+      boolean: 1
   datastore:
     order: 8
     name: Data Store
@@ -82,9 +90,11 @@ layers:
     schema: .dr/schemas/08-datastore-layer.schema.json
     enabled: true
     elements:
-      database: 1
+      INTEGER: 2
+      TEXT: 1
+      PRIMARY_KEY: 1
+      SQLite: 1
       table: 1
-      column: 3
   ux:
     order: 9
     name: UX
@@ -92,10 +102,12 @@ layers:
     schema: .dr/schemas/09-ux-layer.schema.json
     enabled: true
     elements:
-      ux-application: 1
-      view: 1
-      library-component: 4
+      form-field: 1
+      custom: 2
+      list: 1
       state-action: 4
+      ux-application: 1
+      dashboard: 1
   navigation:
     order: 10
     name: Navigation
@@ -103,7 +115,7 @@ layers:
     schema: .dr/schemas/10-navigation-layer.schema.json
     enabled: true
     elements:
-      route: 3
+      experience: 3
   apm:
     order: 11
     name: APM/Observability
@@ -118,18 +130,18 @@ layers:
     schema: .dr/schemas/12-testing-layer.schema.json
     enabled: true
     elements:
-      test-coverage-model: 1
-      test-case-sketch: 4
       input-space-partition: 2
+      functional: 4
+      test-coverage-model: 1
+statistics:
+  total_elements: 61
+  total_relationships: 0
+  completeness: 0
+  last_validation: 2025-12-28T22:08:58.973590Z
+  validation_status: failed
 cross_references:
   total: 0
   by_type: {}
-statistics:
-  total_elements: 59
-  total_relationships: 0
-  completeness: 0.0
-  last_validation: "2025-12-28T22:08:58.973590Z"
-  validation_status: failed
 conventions:
   id_format: "{layer}.{type}.{kebab-case-name}"
   file_naming:
@@ -139,5 +151,4 @@ conventions:
 upgrade_history:
   - from_version: 0.7.1
     to_version: 0.7.3
-    upgraded_at: "2025-12-28T18:11:23.317461Z"
-upgraded_at: "2025-12-28T18:11:23.346588Z"
+    upgraded_at: 2025-12-28T18:11:23.317461Z

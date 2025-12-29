@@ -1,7 +1,5 @@
-Public Access Policy:
-  name: Public Access Policy
-  description: No authentication required - application is publicly accessible
-  enforcement: none
-  priority: 2
-  target: all
+public-access:
   id: public-access
+  name: Public Access Policy
+  type: security-policy
+  documentation: No authentication required - application is publicly accessible

@@ -1,0 +1,7 @@
+test-ep:
+  id: test-ep
+  name: Test
+  type: endpoint
+  properties:
+    method: GET
+    path: /test

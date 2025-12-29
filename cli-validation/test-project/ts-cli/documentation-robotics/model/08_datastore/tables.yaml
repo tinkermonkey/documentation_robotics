@@ -1,11 +1,41 @@
-Todos Table:
-  name: Todos Table
-  description: Database table storing todo items
-  schema: public
+todos-table:
   id: todos-table
-  columns:
-    - todos-id-column
-    - todos-title-column
-    - todos-done-column
-  constraints:
-    - todos-pkey-constraint
+  name: Todos Table
+  type: table
+  documentation: Database table storing todo items
+rel-test-table:
+  id: rel-test-table
+  name: test_table
+  type: table
+  documentation: Table for relationship test
+  relationships:
+    - source: rel-test-table
+      target: rel-test-column
+      predicate: composes
+multi-rel-table:
+  id: multi-rel-table
+  name: multi_table
+  type: table
+  documentation: Table for multi-relationship test
+  relationships:
+    - source: multi-rel-table
+      target: multi-rel-col-1
+      predicate: composes
+trace-test-table:
+  id: trace-test-table
+  name: trace_table
+  type: table
+  documentation: Table for tracing
+  relationships:
+    - source: trace-test-table
+      target: trace-test-column
+      predicate: composes
+rel-cmd-table:
+  id: rel-cmd-table
+  name: rel_table
+  type: table
+  documentation: Table for relationship command test
+  relationships:
+    - source: rel-cmd-table
+      target: rel-cmd-column
+      predicate: composes

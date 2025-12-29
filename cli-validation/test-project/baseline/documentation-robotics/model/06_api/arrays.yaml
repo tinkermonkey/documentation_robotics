@@ -1,0 +1,5 @@
+todo-list-schema:
+  id: todo-list-schema
+  name: Todo List Schema
+  type: array
+  documentation: Response schema for list of todos

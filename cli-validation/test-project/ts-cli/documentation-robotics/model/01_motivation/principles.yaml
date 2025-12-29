@@ -1,6 +1,5 @@
-User-Centric Design:
-  name: User-Centric Design
-  description: Design the interface to be intuitive and easy to use
-  priority: high
-  category: application
+user-centric-design:
   id: user-centric-design
+  name: User-Centric Design
+  type: principle
+  documentation: Design the interface to be intuitive and easy to use

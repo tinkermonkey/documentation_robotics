@@ -1,0 +1,21 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "test-project",
+    "version": "1.0.0",
+    "description": "Architecture model for test-project"
+  },
+  "paths": {
+    "/test": {
+      "get": {
+        "summary": "Test",
+        "operationId": "test-ep",
+        "responses": {
+          "200": {
+            "description": "Successful response"
+          }
+        }
+      }
+    }
+  }
+}

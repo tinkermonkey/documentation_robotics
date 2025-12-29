@@ -1,0 +1,5 @@
+flowbite-react:
+  id: flowbite-react
+  name: Flowbite React
+  type: ui-library
+  documentation: React component library built on Tailwind CSS

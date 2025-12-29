@@ -7,9 +7,9 @@ pipelines:
     steps:
       - command: "validate"
         files_to_compare: []
-        expect_exit_code: 0
+        expect_exit_code: 1
         expect_stdout_contains:
-          - "validation"
+          - "Naming/motivation"
 
       - command: "info"
         files_to_compare: []

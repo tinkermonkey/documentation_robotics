@@ -1,0 +1,10 @@
+task-crud:
+  id: task-crud
+  name: Task CRUD Operations
+  type: functional
+  documentation: Users must be able to create, read, update, and delete tasks
+data-persistence:
+  id: data-persistence
+  name: Data Persistence
+  type: functional
+  documentation: Tasks must be stored persistently and survive application restarts
