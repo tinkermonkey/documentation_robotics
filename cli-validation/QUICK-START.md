@@ -100,13 +100,12 @@ npm run test:compatibility -- \
 ### All Flags
 
 ```bash
--r, --reporter <format>  # console, junit, json (default: console)
+-r, --reporter <format>  # console, junit (default: console)
 -f, --fast-fail          # Stop on first failure
 -v, --verbose            # Show detailed output
 -p, --priority <level>   # Filter by priority: high, medium, low
 -t, --test-case <name>   # Run specific test (substring match)
 -o, --output <file>      # Write report to file
--c, --concurrency <num>  # Max concurrent pipelines
 -h, --help               # Show help message
 ```
 
@@ -238,7 +237,7 @@ npm run test:compatibility -- --fast-fail
 
 ## Next Steps
 
-1. **Read Full Documentation**: See `PHASE-6-REPORTING.md`
+1. **Read Full Documentation**: Review `reporters/` directory for implementation details
 2. **Explore Test Cases**: Check `test-cases/` directory
 3. **Review Implementation**: Look at `reporters/` directory
 4. **Check Results**: View output in console or JUnit XML
@@ -253,4 +252,4 @@ npm run test:compatibility -- --fast-fail
 - Use **fast-fail** to find the first issue quickly
 - Use **JUnit output** in CI/CD pipelines
 
-For more details, see `PHASE-6-REPORTING.md`.
+For more details, review the reporters in the `reporters/` directory.
