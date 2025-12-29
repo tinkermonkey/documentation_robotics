@@ -1,0 +1,16 @@
+{
+  "name": "@documentation-robotics/cli-validation-suite",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "test": "node --import tsx runner.ts",
+    "test:compatibility": "node --import tsx runner.ts"
+  },
+  "dependencies": {
+    "yaml": "^2.8.2"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.7.2"
+  }
+}

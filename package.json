@@ -1,1 +1,9 @@
-{}
+{
+  "name": "documentation-robotics",
+  "version": "0.6.0",
+  "type": "module",
+  "description": "Documentation Robotics - Federated Architecture Modeling",
+  "scripts": {
+    "test:fs-compatibility": "cd cli-validation/test-suite && npm run test:compatibility"
+  }
+}
