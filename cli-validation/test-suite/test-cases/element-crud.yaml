@@ -30,7 +30,7 @@ pipelines:
           - "Deleted"
           - "test-goal"
 
-  - name: "Add business service and delete"
+  - name: "Add business service with update"
     steps:
       - command: "add business service test-service --name 'Test Business Service' --description 'Temporary test service'"
         files_to_compare:
@@ -40,6 +40,13 @@ pipelines:
         expect_stdout_contains:
           - "Added"
           - "test-service"
+
+      - command: "update test-service --name 'Updated Business Service'"
+        files_to_compare:
+          - 02_business/services.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
 
       - command: "delete test-service --force"
         files_to_compare:
@@ -78,7 +85,7 @@ pipelines:
           - 04_application/components.yaml
         expect_exit_code: 0
 
-  - name: "Add technology platform"
+  - name: "Add technology platform with update"
     steps:
       - command: "add technology platform test-platform --name 'Test Platform' --description 'Test infrastructure platform'"
         files_to_compare:
@@ -89,6 +96,13 @@ pipelines:
           - "Added"
           - "test-platform"
 
+      - command: "update test-platform --name 'Updated Platform'"
+        files_to_compare:
+          - 05_technology/platforms.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-platform --force"
         files_to_compare:
           - manifest.yaml
@@ -97,7 +111,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add security role"
+  - name: "Add security role with update"
     steps:
       - command: "add security role test-role --name 'Test Security Role' --description 'Test security role'"
         files_to_compare:
@@ -107,6 +121,12 @@ pipelines:
           - "Added"
           - "test-role"
 
+      - command: "update test-role --name 'Updated Security Role'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-role --force"
         files_to_compare:
           - manifest.yaml
@@ -114,7 +134,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add API endpoint"
+  - name: "Add API endpoint with update"
     steps:
       - command: "add api endpoint test-endpoint --name 'Test Endpoint' --description 'GET /api/test' --properties '{\"method\":\"GET\",\"path\":\"/api/test\"}'"
         files_to_compare:
@@ -125,6 +145,13 @@ pipelines:
           - "Added"
           - "test-endpoint"
 
+      - command: "update test-endpoint --name 'Updated Endpoint'"
+        files_to_compare:
+          - 06_api/endpoints.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-endpoint --force"
         files_to_compare:
           - manifest.yaml
@@ -133,7 +160,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add data model entity"
+  - name: "Add data model entity with update"
     steps:
       - command: "add data_model entity test-entity --name 'TestEntity' --description 'Test entity'"
         files_to_compare:
@@ -143,6 +170,12 @@ pipelines:
           - "Added"
           - "test-entity"
 
+      - command: "update test-entity --name 'UpdatedEntity'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-entity --force"
         files_to_compare:
           - manifest.yaml
@@ -150,7 +183,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add datastore table"
+  - name: "Add datastore table with update"
     steps:
       - command: "add datastore table test-table --name 'test_table' --description 'Test table'"
         files_to_compare:
@@ -161,6 +194,13 @@ pipelines:
           - "Added"
           - "test-table"
 
+      - command: "update test-table --name 'updated_table'"
+        files_to_compare:
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-table --force"
         files_to_compare:
           - manifest.yaml
@@ -169,7 +209,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add UX view"
+  - name: "Add UX view with update"
     steps:
       - command: "add ux view test-view --name 'Test View' --description 'Test user interface view'"
         files_to_compare:
@@ -180,6 +220,13 @@ pipelines:
           - "Added"
           - "test-view"
 
+      - command: "update test-view --name 'Updated View'"
+        files_to_compare:
+          - 09_ux/views.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-view --force"
         files_to_compare:
           - manifest.yaml
@@ -188,7 +235,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add navigation route"
+  - name: "Add navigation route with update"
     steps:
       - command: "add navigation route test-route --name 'Test Route' --description 'Test navigation route' --properties '{\"path\":\"/test\"}'"
         files_to_compare:
@@ -199,6 +246,13 @@ pipelines:
           - "Added"
           - "test-route"
 
+      - command: "update test-route --name 'Updated Route'"
+        files_to_compare:
+          - 10_navigation/routes.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-route --force"
         files_to_compare:
           - manifest.yaml
@@ -207,7 +261,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add APM metric"
+  - name: "Add APM metric with update"
     steps:
       - command: "add apm metric test-metric --name 'Test Metric' --description 'Test observability metric'"
         files_to_compare:
@@ -218,6 +272,13 @@ pipelines:
           - "Added"
           - "test-metric"
 
+      - command: "update test-metric --name 'Updated Metric'"
+        files_to_compare:
+          - 11_apm/metrics.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
+
       - command: "delete test-metric --force"
         files_to_compare:
           - manifest.yaml
@@ -226,7 +287,7 @@ pipelines:
         expect_stdout_contains:
           - "Deleted"
 
-  - name: "Add testing test case"
+  - name: "Add testing test case with update"
     steps:
       - command: "add testing test_case test-case --name 'Test Case' --description 'Test case for verification'"
         files_to_compare:
@@ -235,6 +296,12 @@ pipelines:
         expect_stdout_contains:
           - "Added"
           - "test-case"
+
+      - command: "update test-case --name 'Updated Test Case'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Updated"
 
       - command: "delete test-case --force"
         files_to_compare:

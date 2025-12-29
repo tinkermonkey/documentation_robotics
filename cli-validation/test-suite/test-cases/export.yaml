@@ -1,5 +1,5 @@
 name: "Export Operations"
-description: "Test export functionality for all supported formats"
+description: "Test export functionality for supported formats (ArchiMate, OpenAPI, JSON Schema, PlantUML, Markdown, GraphML)"
 priority: medium
 
 pipelines:

@@ -1,6 +1,6 @@
-name: "Model Validation"
-description: "Test validation, list, search, and info operations"
-priority: high
+name: "Validation Workflows"
+description: "Test validation operations including error scenarios and constraint violations"
+priority: medium
 
 pipelines:
   - name: "Validate model state"
@@ -80,3 +80,81 @@ pipelines:
       - command: "conformance"
         files_to_compare: []
         expect_exit_code: 0
+
+  - name: "Invalid element ID format"
+    description: "Verify validation of element naming conventions"
+    steps:
+      - command: "add motivation goal invalid_id_with_underscore --name 'Invalid ID' --description 'Testing invalid ID format'"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "Invalid element ID"
+
+  - name: "Duplicate element creation"
+    description: "Verify error when attempting to create duplicate element"
+    steps:
+      - command: "add motivation goal dup-test-goal --name 'Duplicate Test' --description 'First goal'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "add motivation goal dup-test-goal --name 'Duplicate Test 2' --description 'Second goal with same ID'"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "already exists"
+
+      - command: "delete dup-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+  - name: "Missing required properties"
+    description: "Verify validation of required element properties"
+    steps:
+      - command: "add api endpoint invalid-endpoint --description 'Missing required name' --properties '{\"method\":\"GET\",\"path\":\"/test\"}'"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "name"
+
+  - name: "Reference to non-existent element"
+    description: "Verify validation when referencing non-existent elements"
+    steps:
+      - command: "add datastore table ref-test-table --name 'test_table' --description 'Table for reference test'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add ref-test-table nonexistent-element --predicate composes"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "not found"
+
+      - command: "delete ref-test-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+  - name: "Invalid layer name"
+    description: "Verify validation of layer names in commands"
+    steps:
+      - command: "add invalid_layer goal test-goal --name 'Test' --description 'Test'"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "Unknown layer"
+
+  - name: "Delete non-existent element"
+    description: "Verify error when deleting non-existent element"
+    steps:
+      - command: "delete nonexistent-element-id --force"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "not found"

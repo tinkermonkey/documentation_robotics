@@ -112,3 +112,36 @@ pipelines:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
+
+  - name: "Negative test: Cross-layer relationships not supported"
+    description: "Verify that cross-layer relationships (higher→lower) are properly rejected or handled by the CLI"
+    steps:
+      - command: "add motivation goal cross-layer-goal --name 'Cross Layer Goal' --description 'Goal for cross-layer test'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "add business service cross-layer-service --name 'Cross Layer Service' --description 'Service for cross-layer test'"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add cross-layer-goal cross-layer-service --predicate realizes"
+        files_to_compare: []
+        expect_exit_code: 1
+        expect_stderr_contains:
+          - "cannot add cross-layer relationship"
+
+      - command: "delete cross-layer-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "delete cross-layer-service --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0

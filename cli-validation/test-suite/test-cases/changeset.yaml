@@ -59,13 +59,13 @@ pipelines:
           - 02_business/services.yaml
         expect_exit_code: 0
 
-      - command: "add application component changeset-component-001 --name 'Component from Changeset' --description 'Application component in changeset'"
+      - command: "add business service changeset-service-002 --name 'Related Service' --description 'Another business service for relationship'"
         files_to_compare:
           - manifest.yaml
-          - 04_application/components.yaml
+          - 02_business/services.yaml
         expect_exit_code: 0
 
-      - command: "relationship add changeset-service-001 implements changeset-component-001"
+      - command: "relationship add changeset-service-001 serves changeset-service-002"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
@@ -82,10 +82,10 @@ pipelines:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete changeset-component-001 --force"
+      - command: "delete changeset-service-002 --force"
         files_to_compare:
           - manifest.yaml
-          - 04_application/components.yaml
+          - 02_business/services.yaml
         expect_exit_code: 0
 
   - name: "Changeset with element deletion"
