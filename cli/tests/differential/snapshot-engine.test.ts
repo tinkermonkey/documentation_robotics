@@ -1,6 +1,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import {
   captureSnapshot,
+  captureSnapshotWithContent,
   diffSnapshots,
   generateUnifiedDiff,
   formatChange,
@@ -30,30 +31,6 @@ async function cleanupDir(dir: string): Promise<void> {
   } catch {
     // Ignore cleanup errors
   }
-}
-
-/**
- * Helper: Create a snapshot entry with content
- */
-function createFileSnapshot(content: string, mtime: number = Date.now()): FileSnapshot {
-  return {
-    exists: true,
-    hash: createHash('sha256').update(content).digest('hex'),
-    mtime,
-    size: content.length,
-    content,
-  };
-}
-
-/**
- * Helper: Create a snapshot with manual entries and content
- */
-function createSnapshotWithContent(files: Record<string, string>): FilesystemSnapshot {
-  const fileMap = new Map<string, FileSnapshot>();
-  for (const [path, content] of Object.entries(files)) {
-    fileMap.set(path, createFileSnapshot(content));
-  }
-  return { files: fileMap };
 }
 
 describe('Snapshot Engine', () => {
@@ -284,10 +261,19 @@ describe('Snapshot Engine', () => {
       const beforeContent = 'line1\nline2\nline3\n';
       const afterContent = 'line1\nmodified line2\nline3\nline4\n';
 
-      const before = createSnapshotWithContent({ 'file.txt': beforeContent });
-      const after = createSnapshotWithContent({ 'file.txt': afterContent });
+      // Create before state with content captured
+      const beforeDir = join(testDir, 'before');
+      await mkdir(beforeDir, { recursive: true });
+      await writeFile(join(beforeDir, 'file.txt'), beforeContent);
+      const before = await captureSnapshotWithContent(beforeDir);
 
-      const changes = await diffSnapshots(before, after, testDir, { generateDiffs: true });
+      // Create after state with content captured
+      const afterDir = join(testDir, 'after');
+      await mkdir(afterDir, { recursive: true });
+      await writeFile(join(afterDir, 'file.txt'), afterContent);
+      const after = await captureSnapshotWithContent(afterDir);
+
+      const changes = await diffSnapshots(before, after, afterDir, { generateDiffs: true });
 
       expect(changes.length).toBe(1);
       expect(changes[0].diff).toBeDefined();

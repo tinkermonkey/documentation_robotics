@@ -99,6 +99,8 @@ async function walkDirectory(
  *
  * Walks the directory tree and records file metadata (hash, mtime, size) for
  * efficient change detection. File content is not loaded unless needed for diff generation.
+ * Use `captureSnapshotWithContent()` if you need content for diff generation after the
+ * filesystem has changed.
  *
  * @param directory - Directory to snapshot
  * @returns FilesystemSnapshot with file state information
@@ -107,7 +109,45 @@ export async function captureSnapshot(
   directory: string
 ): Promise<FilesystemSnapshot> {
   const files = new Map<string, FileSnapshot>();
-  await walkDirectory(directory, directory, files);
+  await walkDirectory(directory, directory, files, false);
+  return { files };
+}
+
+/**
+ * Capture filesystem snapshot with file content stored
+ *
+ * Same as captureSnapshot() but also stores file content in each snapshot.
+ * This is necessary when you need to generate diffs after the filesystem has changed,
+ * since the content won't be available by re-reading from disk.
+ *
+ * Optional filtering can be applied to only capture content for specific paths,
+ * reducing memory usage for large models.
+ *
+ * @param directory - Directory to snapshot
+ * @param filterPaths - Optional paths to filter (e.g., ['01_motivation/', 'manifest.json'])
+ * @returns FilesystemSnapshot with content stored in file snapshots
+ */
+export async function captureSnapshotWithContent(
+  directory: string,
+  filterPaths?: string[]
+): Promise<FilesystemSnapshot> {
+  const files = new Map<string, FileSnapshot>();
+  const unFilteredFiles = new Map<string, FileSnapshot>();
+
+  // Capture with content
+  await walkDirectory(directory, directory, unFilteredFiles, true);
+
+  // Apply filtering if specified
+  if (filterPaths) {
+    for (const [path, snapshot] of unFilteredFiles) {
+      if (matchesFilters(path, filterPaths)) {
+        files.set(path, snapshot);
+      }
+    }
+  } else {
+    return { files: unFilteredFiles };
+  }
+
   return { files };
 }
 
@@ -141,9 +181,6 @@ export function generateUnifiedDiff(
   beforeContent: string,
   afterContent: string
 ): string {
-  const beforeLines = beforeContent.split('\n');
-  const afterLines = afterContent.split('\n');
-
   // Use diffLines to get structured diffs
   const diffs = diffLines(beforeContent, afterContent);
 
@@ -153,7 +190,6 @@ export function generateUnifiedDiff(
 
   let beforeLineNum = 1;
   let afterLineNum = 1;
-  let hunkStart = false;
   let hunkBeforeStart = 1;
   let hunkAfterStart = 1;
   let beforeHunkLines = 0;
@@ -238,8 +274,6 @@ export function generateUnifiedDiff(
 
     if (hunkLines.length > 0) {
       // Add hunk header
-      const beforeEnd = hunk.beforeStart + hunkBeforeCount - 1;
-      const afterEnd = hunk.afterStart + hunkAfterCount - 1;
       result += `@@ -${hunk.beforeStart},${hunkBeforeCount} +${hunk.afterStart},${hunkAfterCount} @@\n`;
       result += hunkLines.join('\n') + '\n';
     }
@@ -253,18 +287,23 @@ export function generateUnifiedDiff(
  *
  * Detects added, deleted, and modified files by comparing hashes.
  * Modified files are identified by differing hashes.
- * Content is taken from snapshots if available, otherwise read from disk.
+ *
+ * For diff generation, content must be stored in the snapshots (use `captureSnapshotWithContent()`).
+ * If content is not in snapshots and diff generation is requested, it will attempt to read from
+ * the afterDir. This may produce incorrect diffs if the filesystem has been modified since the
+ * snapshot was captured. To ensure correct diffs for modified files, always capture content using
+ * `captureSnapshotWithContent()`.
  *
  * @param before - Snapshot before changes
  * @param after - Snapshot after changes
- * @param directory - Directory path (used for loading content when generating diffs if not in snapshot)
+ * @param afterDir - Directory path for the "after" state (used for fallback content reading)
  * @param options - Diff options (include unchanged, generate diffs, filter paths)
  * @returns Array of FileChange objects
  */
 export async function diffSnapshots(
   before: FilesystemSnapshot,
   after: FilesystemSnapshot,
-  directory: string,
+  afterDir: string,
   options: DiffOptions = {}
 ): Promise<FileChange[]> {
   const changes: FileChange[] = [];
@@ -307,21 +346,34 @@ export async function diffSnapshots(
       // Generate diff if requested
       if (options.generateDiffs) {
         try {
-          // Try to use content from snapshots first, fall back to disk if needed
+          // Try to use content from snapshots first
           let beforeContent = beforeFile.content;
           let afterContent = afterFile.content;
 
           // If content wasn't captured in the snapshot, try reading from disk
           if (!beforeContent) {
-            beforeContent = await readFile(join(directory, path), 'utf-8').catch(() => '');
+            try {
+              beforeContent = await readFile(join(afterDir, path), 'utf-8');
+            } catch (error) {
+              // Content not available; continue without it
+            }
           }
           if (!afterContent) {
-            afterContent = await readFile(join(directory, path), 'utf-8').catch(() => '');
+            try {
+              afterContent = await readFile(join(afterDir, path), 'utf-8');
+            } catch (error) {
+              // Content not available; continue without it
+            }
           }
 
-          change.diff = generateUnifiedDiff(path, beforeContent || '', afterContent || '');
-        } catch {
-          // If we can't read the file, skip diff generation
+          if (beforeContent && afterContent) {
+            change.diff = generateUnifiedDiff(path, beforeContent, afterContent);
+          }
+        } catch (error) {
+          // Log warning but continue processing other files
+          console.warn(
+            `Warning: Could not generate diff for ${path}: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       }
 
