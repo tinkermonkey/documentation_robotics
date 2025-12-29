@@ -1,20 +1,15 @@
-todo-handler:
-  id: todo-handler
+Todo Handler:
   name: Todo Handler
-  type: component
-  documentation: Application component handling todo CRUD operations
-database-connection:
-  id: database-connection
+  description: Application component handling todo CRUD operations
+  deployedTo: fastapi
+  id: todo-handler
+Database Connection:
   name: Database Connection
-  type: component
-  documentation: SQLite database connection management component
-react-app:
-  id: react-app
+  description: SQLite database connection management component
+  deployedTo: sqlite
+  id: database-connection
+React Application:
   name: React Application
-  type: component
-  documentation: Frontend React application for todo management UI
-multi-rel-component:
-  id: multi-rel-component
-  name: Multi Relationship Component
-  type: component
-  documentation: Test multiple relationship types
+  description: Frontend React application for todo management UI
+  deployedTo: react
+  id: react-app
