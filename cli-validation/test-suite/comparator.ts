@@ -104,9 +104,9 @@ async function walkDirectory(dirPath: string, rootPath: string = dirPath): Promi
           files.push(relativePath);
         }
       }
-    } catch (error) {
-      // Skip inaccessible directories
-      console.warn(`Warning: Could not read directory ${currentPath}`);
+    } catch {
+      // Skip inaccessible directories silently
+      // This is expected for some system directories (permissions, etc.)
     }
   }
 
@@ -170,9 +170,9 @@ export async function captureSnapshot(directory: string): Promise<FilesystemSnap
         mtime: fileStats.mtimeMs,
         size: fileStats.size,
       });
-    } catch (error) {
+    } catch {
       // Skip files that cannot be read (permissions, encoding, etc)
-      console.warn(`Warning: Could not read file ${relativePath}: ${error}`);
+      // This is expected for some files in the snapshot directory
     }
   }
 
@@ -307,26 +307,47 @@ export function formatComparisonResult(result: ComparisonResult): string {
 }
 
 /**
- * Compare two directories after applying CLI commands
- * Convenience function that captures before/after snapshots and compares them
+ * Compare two directories after applying an operation
+ * Captures snapshots before and after a callback function executes,
+ * then compares them to detect filesystem changes
  *
  * @param directory Directory to monitor
+ * @param operation Async function that performs the operation to monitor
  * @returns Object with before snapshot, after snapshot, and comparison result
+ *
+ * @example
+ * ```typescript
+ * const result = await captureAndCompare(
+ *   '/path/to/directory',
+ *   async () => {
+ *     await executeCommand('dr add business service my-service');
+ *   }
+ * );
+ * console.log(result.result.changes);
+ * ```
  *
  * @remarks
  * Use this to validate that a command produced expected filesystem changes.
  * Normalization is automatically applied before comparison.
  */
 export async function captureAndCompare(
-  directory: string
+  directory: string,
+  operation: () => Promise<void>
 ): Promise<{
   before: FilesystemSnapshot;
   after: FilesystemSnapshot;
   result: ComparisonResult;
 }> {
+  // Capture initial state
   const before = await captureSnapshot(directory);
+
+  // Execute the operation that may modify the filesystem
+  await operation();
+
+  // Capture final state
   const after = await captureSnapshot(directory);
 
+  // Compare snapshots
   const result = compareSnapshots(before, after);
 
   return { before, after, result };

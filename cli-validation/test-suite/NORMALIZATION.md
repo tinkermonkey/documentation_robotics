@@ -1,6 +1,6 @@
 # Content Normalization Pipeline
 
-Phase 3: Normalization pipeline for deterministic CLI compatibility testing
+Normalization pipeline for deterministic CLI compatibility testing
 
 ## Overview
 

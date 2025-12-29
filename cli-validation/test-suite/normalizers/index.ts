@@ -34,15 +34,6 @@ export enum FileType {
 type Normalizer = (content: string, fileType: FileType) => string;
 
 /**
- * Universal normalizers applied to all file types
- * Applied in order before format-specific normalizers
- */
-const UNIVERSAL_NORMALIZERS: Normalizer[] = [
-  (_content, _fileType) => _content, // Timestamp removal handled separately
-  (_content, _fileType) => _content, // Path canonicalization handled separately
-];
-
-/**
  * Format-specific normalizers applied based on file type
  */
 const FORMAT_NORMALIZERS: Record<FileType, Normalizer[]> = {
