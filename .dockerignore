@@ -2,7 +2,7 @@
 .git/
 .github/
 
-# Exclude build artifacts
+# Exclude Python build artifacts
 __pycache__/
 *.pyc
 *.pyo
@@ -12,7 +12,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -26,17 +25,29 @@ wheels/
 .installed.cfg
 *.egg
 
-# Exclude virtual environment
+# Exclude Python virtual environments
 .venv/
 venv/
 ENV/
 env/
+
+# Exclude Node.js/Bun dependencies
+node_modules/
+cli/node_modules/
+cli-bun/node_modules/
+
+# Exclude build output directories
+dist/
+cli/dist/
+cli-bun/dist/
 
 # Exclude test artifacts
 .pytest_cache/
 .coverage
 htmlcov/
 .tox/
+.mypy_cache/
+.ruff_cache/
 
 # Exclude IDE files
 .vscode/
@@ -57,3 +68,8 @@ documentation/.DS_Store
 # Exclude temporary files
 *.tmp
 .DS_Store
+
+# Exclude reports and analysis files
+reports/
+.repair_cycle.log
+.claude/
