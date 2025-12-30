@@ -2,6 +2,11 @@
 .git/
 .github/
 
+# Exclude node_modules (installed in build or at runtime)
+node_modules/
+cli/node_modules/
+cli-bun/node_modules/
+
 # Exclude build artifacts
 __pycache__/
 *.pyc
