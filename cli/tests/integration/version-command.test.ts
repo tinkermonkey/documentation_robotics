@@ -4,52 +4,22 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm } from 'fs/promises';
+import { createTempWorkdir, runDr } from '../helpers/cli-runner.js';
 import { readJSON } from '../../src/utils/file-io.js';
 
-const TEMP_DIR = '/tmp/dr-version-command-test';
-
-/**
- * Helper to run dr commands using Bun
- */
-async function runDr(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  try {
-    const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
-    const result = await Bun.spawnSync({
-      cmd: ['bun', 'run', cliPath, ...args],
-      cwd: TEMP_DIR,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    const stdout = result.stdout?.toString() || '';
-    const stderr = result.stderr?.toString() || '';
-
-    return { exitCode: result.exitCode, stdout, stderr };
-  } catch (error) {
-    return { exitCode: 1, stdout: '', stderr: String(error) };
-  }
-}
+let tempDir: { path: string; cleanup: () => Promise<void> };
 
 describe('version command', () => {
   beforeEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
-    await mkdir(TEMP_DIR, { recursive: true });
+    tempDir = await createTempWorkdir();
   });
 
   afterEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
+    await tempDir.cleanup();
   });
 
   it('should display CLI version with --version flag', async () => {
-    const result = await runDr('--version');
+    const result = await runDr(['--version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should contain version number in format X.Y.Z
@@ -57,14 +27,14 @@ describe('version command', () => {
   });
 
   it('should display CLI version with version command', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Documentation Robotics CLI');
   });
 
   it('should display both CLI and spec versions', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('CLI Version');
@@ -72,7 +42,7 @@ describe('version command', () => {
   });
 
   it('should display version numbers in proper format', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Check for version pattern X.Y.Z
@@ -80,7 +50,7 @@ describe('version command', () => {
   });
 
   it('version matches CLI package.json', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
 
@@ -94,7 +64,7 @@ describe('version command', () => {
 
   it('should not require a model to exist', async () => {
     // Run version command in a directory with no model
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Documentation Robotics CLI');
@@ -102,10 +72,10 @@ describe('version command', () => {
 
   it('should display version when model exists', async () => {
     // Create a model first
-    await runDr('init', '--name', 'Version Test Model');
+    await runDr(['init', '--name', 'Version Test Model'], { cwd: tempDir.path });
 
     // Now run version command
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('CLI Version');
@@ -113,14 +83,14 @@ describe('version command', () => {
   });
 
   it('--version flag should work from temp directory', async () => {
-    const result = await runDr('--version');
+    const result = await runDr(['--version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toMatch(/\d+\.\d+\.\d+/);
   });
 
   it('should output spec version when available', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should show spec version (likely 0.6.0 based on bundled spec)
@@ -128,8 +98,8 @@ describe('version command', () => {
   });
 
   it('version command should be idempotent', async () => {
-    const result1 = await runDr('version');
-    const result2 = await runDr('version');
+    const result1 = await runDr(['version'], { cwd: tempDir.path });
+    const result2 = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result1.exitCode).toBe(0);
     expect(result2.exitCode).toBe(0);
@@ -138,7 +108,7 @@ describe('version command', () => {
   });
 
   it('should show version with proper formatting', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Check for expected header
@@ -148,7 +118,7 @@ describe('version command', () => {
   });
 
   it('should display complete version information', async () => {
-    const result = await runDr('version');
+    const result = await runDr(['version'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should have multiple lines of output

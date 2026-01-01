@@ -4,64 +4,33 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm } from 'fs/promises';
-import { Model } from '../../src/core/model.js';
+import { createTempWorkdir, runDr } from '../helpers/cli-runner.js';
 
-const TEMP_DIR = '/tmp/dr-info-command-test';
-
-/**
- * Helper to run dr commands using Bun
- */
-async function runDr(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  try {
-    const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
-    const result = await Bun.spawnSync({
-      cmd: ['bun', 'run', cliPath, ...args],
-      cwd: TEMP_DIR,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    const stdout = result.stdout?.toString() || '';
-    const stderr = result.stderr?.toString() || '';
-
-    return { exitCode: result.exitCode, stdout, stderr };
-  } catch (error) {
-    return { exitCode: 1, stdout: '', stderr: String(error) };
-  }
-}
+let tempDir: { path: string; cleanup: () => Promise<void> };
 
 describe('info command', () => {
   beforeEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
-    await mkdir(TEMP_DIR, { recursive: true });
+    tempDir = await createTempWorkdir();
   });
 
   afterEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
+    await tempDir.cleanup();
   });
 
   it('should display model information with no options', async () => {
     // Initialize a model
-    await runDr('init', '--name', 'Test Info Model');
+    await runDr(['init', '--name', 'Test Info Model'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Test Info Model');
   });
 
   it('should display information for all 12 layers', async () => {
-    await runDr('init', '--name', 'Twelve Layer Model');
+    await runDr(['init', '--name', 'Twelve Layer Model'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Layers');
@@ -70,20 +39,20 @@ describe('info command', () => {
 
   it('should display layer information with --layer option', async () => {
     // Initialize model and add an element to API layer
-    await runDr('init', '--name', 'Layer Info Model');
+    await runDr(['init', '--name', 'Layer Info Model'], { cwd: tempDir.path });
     await runDr(
-      'add', 'api', 'endpoint', 'api-endpoint-test-1',
-      '--name', 'GET /users'
+      ['add', 'api', 'endpoint', 'api-endpoint-test-1', '--name', 'GET /users'],
+      { cwd: tempDir.path }
     );
 
-    const result = await runDr('info', '--layer', 'api');
+    const result = await runDr(['info', '--layer', 'api'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('api');
   });
 
   it('should display information for each of the 12 layers', async () => {
-    await runDr('init', '--name', 'All Layers Test');
+    await runDr(['init', '--name', 'All Layers Test'], { cwd: tempDir.path });
 
     const layers = [
       'motivation',
@@ -101,7 +70,7 @@ describe('info command', () => {
     ];
 
     // First verify that info command lists all layers
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
     expect(result.exitCode).toBe(0);
 
     // Verify that each layer name appears in the summary
@@ -111,23 +80,23 @@ describe('info command', () => {
   });
 
   it('should fail with error for invalid layer name', async () => {
-    await runDr('init', '--name', 'Error Test Model');
+    await runDr(['init', '--name', 'Error Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr('info', '--layer', 'invalid-layer');
+    const result = await runDr(['info', '--layer', 'invalid-layer'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(1);
     expect(result.stdout + result.stderr).toContain('not found');
   });
 
   it('should display element counts for each layer', async () => {
-    await runDr('init', '--name', 'Element Count Test');
+    await runDr(['init', '--name', 'Element Count Test'], { cwd: tempDir.path });
 
     // Add 3 elements to API layer
-    await runDr('add', 'api', 'endpoint', 'api-endpoint-test-1', '--name', 'Endpoint 1');
-    await runDr('add', 'api', 'endpoint', 'api-endpoint-test-2', '--name', 'Endpoint 2');
-    await runDr('add', 'api', 'endpoint', 'api-endpoint-test-3', '--name', 'Endpoint 3');
+    await runDr(['add', 'api', 'endpoint', 'api-endpoint-test-1', '--name', 'Endpoint 1'], { cwd: tempDir.path });
+    await runDr(['add', 'api', 'endpoint', 'api-endpoint-test-2', '--name', 'Endpoint 2'], { cwd: tempDir.path });
+    await runDr(['add', 'api', 'endpoint', 'api-endpoint-test-3', '--name', 'Endpoint 3'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // The output should show element counts
@@ -135,13 +104,13 @@ describe('info command', () => {
   });
 
   it('should show element counts with --layer and no --verbose', async () => {
-    await runDr('init', '--name', 'Element Count Test');
+    await runDr(['init', '--name', 'Element Count Test'], { cwd: tempDir.path });
 
     // Add 2 elements to motivation layer
-    await runDr('add', 'motivation', 'goal', 'motivation-goal-test-1', '--name', 'Goal 1');
-    await runDr('add', 'motivation', 'requirement', 'motivation-requirement-test-1', '--name', 'Requirement 1');
+    await runDr(['add', 'motivation', 'goal', 'motivation-goal-test-1', '--name', 'Goal 1'], { cwd: tempDir.path });
+    await runDr(['add', 'motivation', 'requirement', 'motivation-requirement-test-1', '--name', 'Requirement 1'], { cwd: tempDir.path });
 
-    const result = await runDr('info', '--layer', 'motivation');
+    const result = await runDr(['info', '--layer', 'motivation'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should show element count
@@ -149,22 +118,22 @@ describe('info command', () => {
   });
 
   it('should show element type breakdown with --verbose option', async () => {
-    await runDr('init', '--name', 'Verbose Test');
+    await runDr(['init', '--name', 'Verbose Test'], { cwd: tempDir.path });
 
     // Add multiple types to motivation layer
-    await runDr('add', 'motivation', 'goal', 'motivation-goal-test-1', '--name', 'Goal 1');
-    await runDr('add', 'motivation', 'goal', 'motivation-goal-test-2', '--name', 'Goal 2');
-    await runDr('add', 'motivation', 'requirement', 'motivation-requirement-test-1', '--name', 'Requirement 1');
+    await runDr(['add', 'motivation', 'goal', 'motivation-goal-test-1', '--name', 'Goal 1'], { cwd: tempDir.path });
+    await runDr(['add', 'motivation', 'goal', 'motivation-goal-test-2', '--name', 'Goal 2'], { cwd: tempDir.path });
+    await runDr(['add', 'motivation', 'requirement', 'motivation-requirement-test-1', '--name', 'Requirement 1'], { cwd: tempDir.path });
 
-    const result = await runDr('info', '--layer', 'motivation', '--verbose');
+    const result = await runDr(['info', '--layer', 'motivation', '--verbose'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
   });
 
   it('should display manifest fields correctly', async () => {
-    await runDr('init', '--name', 'Manifest Test Model');
+    await runDr(['init', '--name', 'Manifest Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Manifest Test Model');
@@ -172,14 +141,14 @@ describe('info command', () => {
   });
 
   it('should handle model with multiple element types per layer', async () => {
-    await runDr('init', '--name', 'Multiple Types Test');
+    await runDr(['init', '--name', 'Multiple Types Test'], { cwd: tempDir.path });
 
     // Add multiple types to business layer
-    await runDr('add', 'business', 'business-service', 'business-service-test-1', '--name', 'Service');
-    await runDr('add', 'business', 'business-process', 'business-process-test-1', '--name', 'Process');
-    await runDr('add', 'business', 'business-actor', 'business-actor-test-1', '--name', 'Actor');
+    await runDr(['add', 'business', 'business-service', 'business-service-test-1', '--name', 'Service'], { cwd: tempDir.path });
+    await runDr(['add', 'business', 'business-process', 'business-process-test-1', '--name', 'Process'], { cwd: tempDir.path });
+    await runDr(['add', 'business', 'business-actor', 'business-actor-test-1', '--name', 'Actor'], { cwd: tempDir.path });
 
-    const result = await runDr('info', '--layer', 'business');
+    const result = await runDr(['info', '--layer', 'business'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should show 3 elements
@@ -187,24 +156,24 @@ describe('info command', () => {
   });
 
   it('should show layers with no elements', async () => {
-    await runDr('init', '--name', 'Empty Model');
+    await runDr(['init', '--name', 'Empty Model'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Empty Model');
   });
 
   it('should fail gracefully when model directory does not exist', async () => {
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(1);
   });
 
   it('should display created and modified timestamps', async () => {
-    await runDr('init', '--name', 'Timestamp Test');
+    await runDr(['init', '--name', 'Timestamp Test'], { cwd: tempDir.path });
 
-    const result = await runDr('info');
+    const result = await runDr(['info'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     expect(result.stdout).toContain('Created');
