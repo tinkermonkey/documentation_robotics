@@ -333,10 +333,10 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(TEMP_DIR);
-      const layer = await model.getLayer('motivation');
-      const element = layer!.getElement('motivation-goal-1');
-      expect(element!.relationships.length).toBe(1);
-      expect(element!.relationships[0].predicate).toBe('depends-on');
+      await model.loadRelationships();
+      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
+      expect(relationships.length).toBe(1);
+      expect(relationships[0].predicate).toBe('depends-on');
     });
 
     it('should fail to add cross-layer relationship', async () => {
@@ -375,8 +375,9 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(TEMP_DIR);
-      const element = (await model.getLayer('motivation'))!.getElement('motivation-goal-1');
-      expect(element!.relationships.length).toBe(0);
+      await model.loadRelationships();
+      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
+      expect(relationships.length).toBe(0);
     });
   });
 });
