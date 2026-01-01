@@ -114,7 +114,7 @@ pipelines:
   - name: "Missing required properties"
     description: "Verify validation of required element properties"
     steps:
-      - command: "add api endpoint invalid-endpoint --description 'Missing required name' --properties '{\"method\":\"GET\",\"path\":\"/test\"}'"
+      - command: 'add api endpoint invalid-endpoint --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:

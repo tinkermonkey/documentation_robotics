@@ -3,7 +3,7 @@ schema: documentation-robotics-v1
 cli_version: 1.0.0
 spec_version: 0.6.0
 created: 2025-12-28T15:00:20.908085Z
-updated: 2025-12-29T12:44:59.707Z
+updated: 2026-01-01T12:19:10.553Z
 project:
   name: test-project
   description: Architecture model for test-project
@@ -18,7 +18,7 @@ layers:
     enabled: true
     elements:
       functional: 2
-      goal: 3
+      goal: 1
       principle: 1
       technical: 1
   business:
@@ -30,7 +30,7 @@ layers:
     elements:
       actor: 1
       process: 2
-      service: 2
+      service: 1
   security:
     order: 3
     name: Security
@@ -47,7 +47,7 @@ layers:
     schema: .dr/schemas/04-application-layer.schema.json
     enabled: true
     elements:
-      component: 4
+      component: 3
       service: 1
   technology:
     order: 5
@@ -94,8 +94,7 @@ layers:
       PRIMARY_KEY: 1
       SQLite: 1
       TEXT: 1
-      column: 5
-      table: 5
+      table: 1
   ux:
     order: 9
     name: UX
@@ -135,7 +134,7 @@ layers:
       input-space-partition: 2
       test-coverage-model: 1
 statistics:
-  total_elements: 74
+  total_elements: 61
   total_relationships: 0
   completeness: 0
   last_validation: 2025-12-28T22:08:58.973590Z

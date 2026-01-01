@@ -3,8 +3,3 @@ task-management:
   name: Task Management Service
   type: service
   documentation: Business service for managing personal tasks and to-do items
-changeset-service-001:
-  id: changeset-service-001
-  name: Service from Changeset
-  type: service
-  documentation: Business service in changeset

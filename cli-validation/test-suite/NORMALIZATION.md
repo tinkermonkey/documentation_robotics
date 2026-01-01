@@ -32,6 +32,7 @@ Normalized Content (ready for comparison)
 ```
 
 This ordering is critical:
+
 - Timestamps are removed first (least destructive)
 - Whitespace is trimmed last (most destructive)
 - Format-specific normalizers work on already-cleaned content
@@ -49,12 +50,14 @@ const ISO8601_PATTERN = /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\
 ```
 
 **Supported Formats**:
+
 - `2025-12-29T10:30:45Z` (UTC)
 - `2025-12-29T10:30:45.123456Z` (With milliseconds)
 - `2025-12-29T10:30:45+02:00` (With timezone offset)
 - `2025-12-29T10:30:45.123456-05:00` (With milliseconds and offset)
 
 **Example**:
+
 ```yaml
 # Before
 updated_at: 2025-12-29T10:30:45.123456Z
@@ -72,6 +75,7 @@ created: <TIMESTAMP>
 Converts Windows-style backslashes to Unix-style forward slashes.
 
 **Example**:
+
 ```text
 # Before
 path: C:\Users\test\model\file.yaml
@@ -89,6 +93,7 @@ reference: D:/Projects/project/src/
 Parses YAML, recursively sorts all object keys alphabetically, and re-serializes with consistent formatting.
 
 **Features**:
+
 - Alphabetical key sorting at all nesting levels
 - Preserves array order and semantics
 - Preserves data types (strings, numbers, booleans, nulls)
@@ -96,6 +101,7 @@ Parses YAML, recursively sorts all object keys alphabetically, and re-serializes
 - Deterministic output (no random ordering)
 
 **Example**:
+
 ```yaml
 # Before
 zebra: value
@@ -119,12 +125,14 @@ zebra: value
 Parses JSON, recursively sorts all object keys, and pretty-prints with 2-space indentation.
 
 **Features**:
+
 - Alphabetical key sorting at all nesting levels
 - Preserves array order
 - Pretty-printing with consistent 2-space indentation
 - Graceful fallback: returns original content if parsing fails
 
 **Example**:
+
 ```json
 // Before
 {"zebra":"value","apple":"value"}
@@ -143,6 +151,7 @@ Parses JSON, recursively sorts all object keys, and pretty-prints with 2-space i
 Removes trailing whitespace from each line and trailing newlines at end of file.
 
 **Example**:
+
 ```text
 # Before
 line1:
@@ -159,21 +168,22 @@ line3
 
 The pipeline automatically detects file type from the extension:
 
-| Pattern | Type |
-|---------|------|
-| `.yaml`, `.yml` | YAML |
-| `.json` | JSON |
-| `.md`, `.txt`, `.xml`, `.html` | Text (basic normalization only) |
-| Other | Unknown (basic normalization only) |
+| Pattern                        | Type                               |
+| ------------------------------ | ---------------------------------- |
+| `.yaml`, `.yml`                | YAML                               |
+| `.json`                        | JSON                               |
+| `.md`, `.txt`, `.xml`, `.html` | Text (basic normalization only)    |
+| Other                          | Unknown (basic normalization only) |
 
 **Code**:
+
 ```typescript
 export function detectFileType(filePath: string): FileType {
   const lowerPath = filePath.toLowerCase();
-  if (lowerPath.endsWith('.yaml') || lowerPath.endsWith('.yml')) {
+  if (lowerPath.endsWith(".yaml") || lowerPath.endsWith(".yml")) {
     return FileType.YAML;
   }
-  if (lowerPath.endsWith('.json')) {
+  if (lowerPath.endsWith(".json")) {
     return FileType.JSON;
   }
   // ... more patterns
@@ -192,7 +202,7 @@ function hashContent(content: string, filePath: string): string {
   const normalized = normalize(content, fileType);
 
   // Generate SHA-256 hash of normalized content
-  return createHash('sha256').update(normalized).digest('hex');
+  return createHash("sha256").update(normalized).digest("hex");
 }
 ```
 
@@ -203,7 +213,7 @@ This ensures that only true behavioral differences (after normalization) are det
 All normalizers are **idempotent**: applying normalization twice produces the same result as applying it once.
 
 ```typescript
-const content = 'zebra: value\napple: value';
+const content = "zebra: value\napple: value";
 const norm1 = normalize(content, FileType.YAML);
 const norm2 = normalize(norm1, FileType.YAML);
 assertEqual(norm1, norm2); // ✓ Always passes
@@ -216,7 +226,7 @@ This is critical for reliable comparison logic.
 ### Basic Normalization
 
 ```typescript
-import { normalize, detectFileType } from './normalizers/index';
+import { normalize, detectFileType } from "./normalizers/index";
 
 const content = `
 updated: 2025-12-29T10:30:45Z
@@ -225,16 +235,16 @@ apple: value
 
 `;
 
-const normalized = normalize(content, detectFileType('manifest.yaml'));
+const normalized = normalize(content, detectFileType("manifest.yaml"));
 // Result: Timestamps removed, keys sorted, whitespace trimmed
 ```
 
 ### Automatic File Type Detection
 
 ```typescript
-import { normalizeContent } from './normalizers/index';
+import { normalizeContent } from "./normalizers/index";
 
-const normalized = normalizeContent(content, 'model/manifest.yaml');
+const normalized = normalizeContent(content, "model/manifest.yaml");
 // Automatically detects YAML and applies appropriate normalizers
 ```
 
@@ -246,8 +256,8 @@ import {
   canonicalizePaths,
   normalizeYAML,
   normalizeJSON,
-  trimWhitespace
-} from './normalizers/index';
+  trimWhitespace,
+} from "./normalizers/index";
 
 // Apply specific normalizers in custom order
 const step1 = stripTimestamps(content);
@@ -259,15 +269,15 @@ const step3 = normalizeYAML(step2);
 ### With Filesystem Snapshots
 
 ```typescript
-import { captureSnapshot, compareSnapshots } from './comparator';
+import { captureSnapshot, compareSnapshots } from "./comparator";
 
 // Capture before state
-const before = await captureSnapshot('/path/to/directory');
+const before = await captureSnapshot("/path/to/directory");
 
 // Run command that modifies files
 
 // Capture after state
-const after = await captureSnapshot('/path/to/directory');
+const after = await captureSnapshot("/path/to/directory");
 
 // Compare (normalization automatically applied to content hashes)
 const result = compareSnapshots(before, after);
@@ -288,6 +298,7 @@ if (!result.identical) {
 ### Why Apply Normalizers Before Hashing?
 
 The comparator applies normalization before generating content hashes. This ensures:
+
 - Only true behavioral differences are captured
 - Two CLIs producing "same content, different formatting" pass comparison
 - Files are marked as "unchanged" if only cosmetic differences exist
@@ -300,6 +311,7 @@ The comparator applies normalization before generating content hashes. This ensu
 4. **trimWhitespace last** - Most destructive; modifies all whitespace globally
 
 This order prevents edge cases like:
+
 - YAML keys containing ISO-8601 strings being incorrectly replaced
 - Path normalization affecting quoted YAML strings
 
@@ -313,12 +325,13 @@ export function normalizeYAML(content: string): string {
     const data = YAML.parse(content);
     // ... normalize ...
   } catch (_error) {
-    return content;  // ← Return original if parsing fails
+    return content; // ← Return original if parsing fails
   }
 }
 ```
 
 This allows the pipeline to handle:
+
 - Malformed YAML/JSON (returns original)
 - Mixed file types
 - Unknown content
@@ -328,6 +341,7 @@ This allows the pipeline to handle:
 Comprehensive unit tests verify:
 
 ### Normalizer Tests (`normalizers.test.ts`)
+
 - Timestamp stripping in all ISO-8601 formats
 - Path normalization (Windows, Unix, mixed)
 - YAML/JSON key sorting (nested, arrays)
@@ -336,6 +350,7 @@ Comprehensive unit tests verify:
 - Edge cases (empty files, malformed content)
 
 ### Comparator Tests (`comparator.test.ts`)
+
 - Snapshot comparison (identical, added, deleted, modified)
 - Change detection (correct type classification)
 - Summary statistics (correct counting)
@@ -343,6 +358,7 @@ Comprehensive unit tests verify:
 - Edge cases (large file counts, special characters)
 
 **Run Tests**:
+
 ```bash
 # All normalizer tests
 node --import tsx normalizers.test.ts
@@ -357,18 +373,18 @@ node --import tsx comparator.test.ts
 
 Some files should skip certain normalizations:
 
-| File Type | Normalization |
-|-----------|---------------|
-| Binary files (`.png`, `.jpg`) | None (not read as text) |
-| Compiled archives (`.zip`, `.tar.gz`) | None (not read as text) |
+| File Type                                            | Normalization                        |
+| ---------------------------------------------------- | ------------------------------------ |
+| Binary files (`.png`, `.jpg`)                        | None (not read as text)              |
+| Compiled archives (`.zip`, `.tar.gz`)                | None (not read as text)              |
 | Already-normalized exports (`.xml`, `.openapi.json`) | May skip format-specific normalizers |
 
 Current implementation applies full normalization to all text files. Future phases could add exception handling:
 
 ```typescript
 const NORMALIZATION_EXCEPTIONS = new Map<string, Normalizer[]>([
-  ['*.xml', [stripTimestamps]],  // XML exports: only strip timestamps
-  ['*.png', []],                  // Binary files: skip entirely
+  ["*.xml", [stripTimestamps]], // XML exports: only strip timestamps
+  ["*.png", []], // Binary files: skip entirely
 ]);
 ```
 
@@ -383,6 +399,7 @@ The YAML normalizer uses `yaml@2.8.2` parser. Known limitations:
 ### JSON Precision
 
 JSON normalizer uses `JSON.stringify(null, 2)` which:
+
 - May lose numeric precision for very large numbers
 - Uses JavaScript number representation (not arbitrary precision)
 
