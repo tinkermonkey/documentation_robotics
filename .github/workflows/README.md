@@ -10,36 +10,35 @@
 
 ### Spec Validation (`spec-validation.yml`)
 
-**Status:** Disabled (manual trigger only)
+**Status:** Deprecated (consolidated into `cli-tests.yml`)
 **Purpose:** Validate specification files
 
-**Checks:**
+**Note:** Specification validation has been consolidated into the `cli-tests.yml` workflow's `spec-validation` job. This file is kept for reference only.
 
-- JSON Schema syntax
-- Markdown link validity
+**Consolidated Checks (now in cli-tests.yml):**
+
+- JSON Schema syntax (ajv-cli)
+- Markdown link validity (markdownlint-cli2)
+- Schema synchronization (spec/ vs cli/src/schemas/bundled/)
 - VERSION file format
 - CHANGELOG updates
-- Spell checking
 
-**Re-enable when:**
-
-- [ ] Pre-commit hooks are stable
-- [ ] All files pass local validation
-- [ ] Team is using hooks consistently
+See `.github/workflows/cli-tests.yml` for active specification validation.
 
 ### CLI Tests (`cli-tests.yml`)
 
 **Status:** Disabled (manual trigger only)
-**Purpose:** Test CLI tool
+**Purpose:** Test CLI tool and validate specifications
 
 **Checks:**
 
-- Python 3.9-3.12 compatibility
-- Linting (ruff, black)
-- Type checking (mypy)
-- Unit and integration tests
-- Conformance tests
-- Code coverage
+- TypeScript type checking
+- Unit and integration tests (Bun)
+- Compatibility tests
+- Code coverage (HTML and LCOV reports)
+- Specification validation (markdownlint on layer docs)
+- JSON Schema validation (syntax and cross-validation)
+- Schema synchronization (spec/ vs cli/src/schemas/bundled/)
 
 **Re-enable when:**
 
@@ -105,15 +104,17 @@ While CI is disabled, run validation locally:
 ```bash
 # Spec validation
 pre-commit run --all-files
-pre-commit run check-yaml --all-files
-pre-commit run check-jsonschema --all-files
 
 # CLI tests
 cd cli
-pytest
-black --check src/
-ruff check src/
-mypy src/
+bun test                          # Run all tests
+bun test --coverage              # Generate coverage reports
+bun run type-check               # TypeScript type checking
+npm run lint                      # Linting checks
+
+# Specification and schema validation
+dr validate --schemas             # Validate schema synchronization
+markdownlint spec/layers/*.md     # Validate markdown files
 ```
 
 ---
