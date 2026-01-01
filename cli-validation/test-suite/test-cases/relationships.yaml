@@ -34,6 +34,13 @@ pipelines:
         expect_stdout_contains:
           - "Added"
 
+      - command: "relationship add rel-test-table rel-test-column --predicate has-primary-key"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+
       - command: "relationship delete rel-test-table rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml

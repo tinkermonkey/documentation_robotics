@@ -12,6 +12,12 @@ pipelines:
           - "Created"
           - "test-changeset-001"
 
+      - command: "changeset activate test-changeset-001"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
       - command: "add motivation goal changeset-goal-001 --name 'Changeset Test Goal' --description 'Goal created within changeset'"
         files_to_compare:
           - manifest.yaml
@@ -19,6 +25,12 @@ pipelines:
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
 
       - command: "changeset apply test-changeset-001"
         files_to_compare:
@@ -41,17 +53,17 @@ pipelines:
         expect_stdout_contains:
           - "Reverted"
 
-      - command: "delete changeset-goal-001 --force"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goals.yaml
-        expect_exit_code: 0
-
   - name: "Changeset with multiple elements"
     steps:
       - command: "changeset create multi-element-changeset --description 'Changeset with multiple element changes'"
         files_to_compare: []
         expect_exit_code: 0
+
+      - command: "changeset activate multi-element-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
 
       - command: "add business service changeset-service-001 --name 'Service from Changeset' --description 'Business service in changeset'"
         files_to_compare:
@@ -69,6 +81,12 @@ pipelines:
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
 
       - command: "changeset apply multi-element-changeset"
         files_to_compare:
@@ -100,11 +118,23 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
+      - command: "changeset activate delete-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
       - command: "delete temp-goal-for-deletion --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
         expect_exit_code: 0
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
 
       - command: "changeset apply delete-changeset"
         files_to_compare:

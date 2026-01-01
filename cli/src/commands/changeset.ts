@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { ChangesetManager } from '../core/changeset.js';
+import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
 
@@ -15,7 +16,8 @@ export async function changesetCreateCommand(name: string, options: {
   description?: string;
 }): Promise<void> {
   try {
-    const manager = new ChangesetManager(process.cwd());
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const manager = new ChangesetManager(model.rootPath);
 
     // Check if changeset already exists
     const existing = await manager.load(name);
@@ -63,7 +65,8 @@ export async function changesetCreateCommand(name: string, options: {
  */
 export async function changesetListCommand(): Promise<void> {
   try {
-    const manager = new ChangesetManager(process.cwd());
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const manager = new ChangesetManager(model.rootPath);
     const changesets = await manager.list();
 
     if (changesets.length === 0) {
@@ -132,8 +135,8 @@ export async function changesetListCommand(): Promise<void> {
  */
 export async function changesetApplyCommand(name: string): Promise<void> {
   try {
-    const manager = new ChangesetManager(process.cwd());
     const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const manager = new ChangesetManager(model.rootPath);
 
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -151,11 +154,11 @@ export async function changesetApplyCommand(name: string): Promise<void> {
     const result = await manager.apply(model, name);
 
     console.log();
-    if (result.applied > 0) {
-      console.log(
-        ansis.green(`✓ Applied ${result.applied} change(s)`)
-      );
-    }
+
+    // Always show applied message, even if 0 changes
+    console.log(
+      ansis.green(`✓ Applied ${result.applied} change(s) from changeset`)
+    );
 
     if (result.failed > 0) {
       console.log(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
@@ -170,11 +173,22 @@ export async function changesetApplyCommand(name: string): Promise<void> {
       }
     }
 
-    if (result.failed === 0) {
-      // Save the model
-      await model.saveManifest();
-      await model.saveDirtyLayers();
+    // Add changeset to manifest history
+    if (!model.manifest.changeset_history) {
+      model.manifest.changeset_history = [];
+    }
+    model.manifest.changeset_history.push({
+      name,
+      applied_at: new Date().toISOString(),
+      action: 'applied'
+    });
 
+    // Always save the model and manifest, even if 0 changes
+    // This ensures manifest is updated with changeset metadata
+    await model.saveDirtyLayers();
+    await model.saveManifest();
+
+    if (result.failed === 0) {
       console.log(ansis.dim(`Changeset marked as applied`));
     }
 
@@ -194,8 +208,8 @@ export async function changesetApplyCommand(name: string): Promise<void> {
  */
 export async function changesetRevertCommand(name: string): Promise<void> {
   try {
-    const manager = new ChangesetManager(process.cwd());
     const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const manager = new ChangesetManager(model.rootPath);
 
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -213,11 +227,11 @@ export async function changesetRevertCommand(name: string): Promise<void> {
     const result = await manager.revert(model, name);
 
     console.log();
-    if (result.reverted > 0) {
-      console.log(
-        ansis.green(`✓ Reverted ${result.reverted} change(s)`)
-      );
-    }
+
+    // Always show reverted message, even if 0 changes
+    console.log(
+      ansis.green(`✓ Reverted ${result.reverted} change(s)`)
+    );
 
     if (result.failed > 0) {
       console.log(ansis.red(`✗ Failed to revert ${result.failed} change(s):`));
@@ -232,15 +246,118 @@ export async function changesetRevertCommand(name: string): Promise<void> {
       }
     }
 
-    if (result.failed === 0) {
-      // Save the model
-      await model.saveManifest();
-      await model.saveDirtyLayers();
+    // Add changeset to manifest history
+    if (!model.manifest.changeset_history) {
+      model.manifest.changeset_history = [];
+    }
+    model.manifest.changeset_history.push({
+      name,
+      applied_at: new Date().toISOString(),
+      action: 'reverted'
+    });
 
+    // Always save the model and manifest, even if 0 changes
+    // This ensures manifest is updated with changeset metadata
+    await model.saveDirtyLayers();
+    await model.saveManifest();
+
+    if (result.failed === 0) {
       console.log(ansis.dim(`Changeset marked as reverted`));
     }
 
     console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Activate a changeset for automatic tracking
+ */
+export async function changesetActivateCommand(name: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    await context.setActive(name);
+
+    console.log(ansis.green(`✓ Activated changeset: ${ansis.bold(name)}`));
+    console.log(ansis.dim('  All model changes will now be tracked in this changeset'));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Deactivate the current changeset
+ */
+export async function changesetDeactivateCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const active = await context.getActive();
+
+    if (!active) {
+      console.log(ansis.yellow('No active changeset'));
+      return;
+    }
+
+    await context.clearActive();
+    console.log(ansis.green(`✓ Deactivated changeset: ${ansis.bold(active)}`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Show the currently active changeset
+ */
+export async function changesetStatusCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const active = await context.getActive();
+
+    if (!active) {
+      console.log(ansis.dim('No active changeset'));
+      return;
+    }
+
+    console.log(ansis.bold(`Active changeset: ${ansis.cyan(active)}`));
+
+    // Load and show changeset details
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(active);
+
+    if (changeset) {
+      console.log(ansis.dim(`  Changes tracked: ${changeset.getChangeCount()}`));
+      const changesByType = {
+        add: changeset.getChangesByType('add').length,
+        update: changeset.getChangesByType('update').length,
+        delete: changeset.getChangesByType('delete').length,
+      };
+      const parts = [];
+      if (changesByType.add > 0) parts.push(`+${changesByType.add}`);
+      if (changesByType.update > 0) parts.push(`~${changesByType.update}`);
+      if (changesByType.delete > 0) parts.push(`-${changesByType.delete}`);
+      if (parts.length > 0) {
+        console.log(ansis.dim(`  ${parts.join(' ')}`));
+      }
+    }
   } catch (error) {
     console.error(
       ansis.red(
@@ -311,5 +428,44 @@ Examples:
     )
     .action(async (name) => {
       await changesetRevertCommand(name);
+    });
+
+  changesetGroup
+    .command('activate <name>')
+    .description('Activate a changeset for automatic change tracking')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset activate "v1.1 migration"`
+    )
+    .action(async (name) => {
+      await changesetActivateCommand(name);
+    });
+
+  changesetGroup
+    .command('deactivate')
+    .description('Deactivate the currently active changeset')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset deactivate`
+    )
+    .action(async () => {
+      await changesetDeactivateCommand();
+    });
+
+  changesetGroup
+    .command('status')
+    .description('Show the currently active changeset')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset status`
+    )
+    .action(async () => {
+      await changesetStatusCommand();
     });
 }

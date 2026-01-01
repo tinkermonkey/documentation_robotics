@@ -42,6 +42,25 @@ export async function addCommand(
       model.addLayer(layerObj);
     }
 
+    // Validate element ID format (should be kebab-case, no underscores)
+    if (id.includes('_')) {
+      throw new CLIError(
+        `Invalid element ID: "${id}". Element IDs must use kebab-case (hyphens) not underscores.`,
+        1,
+        ['Use hyphens (-) instead of underscores (_)', 'Example: my-element-name not my_element_name']
+      );
+    }
+
+    // Validate that name is explicitly provided
+    // Elements should have meaningful names, not default to ID
+    if (!options.name) {
+      throw new CLIError(
+        'Element name is required. Please specify --name option.',
+        1,
+        ['Provide a descriptive name using --name option', 'Example: --name "User Authentication Service"']
+      );
+    }
+
     // Parse properties if provided
     let properties: Record<string, unknown> = {};
     if (options.properties) {
@@ -72,6 +91,16 @@ export async function addCommand(
 
     // Add to layer
     layerObj.addElement(element);
+
+    // Track change in active changeset if present
+    const activeChangeset = model.getActiveChangesetContext();
+    await activeChangeset.trackChange(
+      'add',
+      id,
+      layer,
+      undefined,
+      element.toJSON() as unknown as Record<string, unknown>
+    );
 
     // Save
     await model.saveLayer(layer);
