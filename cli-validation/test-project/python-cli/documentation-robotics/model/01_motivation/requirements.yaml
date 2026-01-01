@@ -1,0 +1,14 @@
+Task CRUD Operations:
+  name: Task CRUD Operations
+  description: Users must be able to create, read, update, and delete tasks
+  type: functional
+  requirementType: functional
+  priority: high
+  id: task-crud
+Data Persistence:
+  name: Data Persistence
+  description: Tasks must be stored persistently and survive application restarts
+  type: functional
+  requirementType: functional
+  priority: high
+  id: data-persistence

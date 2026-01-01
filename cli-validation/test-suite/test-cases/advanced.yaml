@@ -1,0 +1,143 @@
+name: "Advanced Operations"
+description: "Test project, migrate, and other advanced functionality"
+priority: medium
+
+pipelines:
+  - name: "Projection operations"
+    steps:
+      - command: "add motivation goal project-test-goal --name 'Goal for Projection' --description 'Goal that will be projected'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "delete project-test-goal --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+  - name: "Trace dependencies for element"
+    steps:
+      - command: "add datastore table trace-test-table --name 'trace_table' --description 'Table for tracing'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+      - command: "add datastore column trace-test-column --name 'trace_col' --description 'Column for tracing'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add trace-test-table trace-test-column --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "trace trace-test-table"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "trace-test-table"
+
+      - command: "delete trace-test-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete trace-test-column --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0
+
+  - name: "Model information and statistics"
+    steps:
+      - command: "info"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "model"
+          - "motivation"
+
+      - command: "conformance"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "conformance"
+
+  - name: "Migrate model version"
+    steps:
+      - command: "migrate --check"
+        files_to_compare: []
+        expect_exit_code: 1
+
+      - command: "version"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "CLI Version"
+
+  - name: "Element operations via element command"
+    steps:
+      - command: "element add motivation goal element-cmd-test --name 'Element Command Test' --description 'Test via element command'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "element show element-cmd-test"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "element-cmd-test"
+
+      - command: "element delete element-cmd-test --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+  - name: "Relationship operations via relationship command"
+    steps:
+      - command: "add datastore table rel-cmd-table --name 'rel_table' --description 'Table for relationship command test'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+      - command: "add datastore column rel-cmd-column --name 'rel_col' --description 'Column for relationship command test'"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add rel-cmd-table rel-cmd-column --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "relationship show rel-cmd-table rel-cmd-column"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "relationship delete rel-cmd-table rel-cmd-column --predicate composes"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete rel-cmd-table --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/tables.yaml
+        expect_exit_code: 0
+
+      - command: "delete rel-cmd-column --force"
+        files_to_compare:
+          - manifest.yaml
+          - 08_datastore/columns.yaml
+        expect_exit_code: 0

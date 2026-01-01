@@ -99,7 +99,7 @@ describe("Model", () => {
 
     await model.saveManifest();
 
-    const manifestPath = `${testDir}/model/manifest.yaml`;
+    const manifestPath = `${testDir}/documentation-robotics/model/manifest.yaml`;
     expect(await fileExists(manifestPath)).toBe(true);
 
     const content = await readFile(manifestPath);
@@ -129,8 +129,8 @@ describe("Model", () => {
 
     await model.saveLayer("motivation");
 
-    // Layer should be saved to model/01_motivation/goals.yaml
-    const layerPath = `${testDir}/model/01_motivation/goals.yaml`;
+    // Layer should be saved to documentation-robotics/model/01_motivation/goals.yaml
+    const layerPath = `${testDir}/documentation-robotics/model/01_motivation/goals.yaml`;
     expect(await fileExists(layerPath)).toBe(true);
   });
 
@@ -243,7 +243,7 @@ describe("Model", () => {
     expect(model.rootPath).toBe(testDir);
     expect(model.manifest.name).toBe("Test Model");
 
-    const manifestPath = `${testDir}/model/manifest.yaml`;
+    const manifestPath = `${testDir}/documentation-robotics/model/manifest.yaml`;
     expect(await fileExists(manifestPath)).toBe(true);
   });
 

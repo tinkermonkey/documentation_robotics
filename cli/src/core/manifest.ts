@@ -25,6 +25,11 @@ export class Manifest {
   };
   conventions?: any;  // Python CLI conventions
   upgrade_history?: any[];  // Python CLI upgrade tracking
+  changeset_history?: Array<{
+    name: string;
+    applied_at: string;
+    action: 'applied' | 'reverted';
+  }>;  // Changeset application tracking
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -40,6 +45,7 @@ export class Manifest {
     this.cross_references = (data as any).cross_references;
     this.conventions = (data as any).conventions;
     this.upgrade_history = (data as any).upgrade_history;
+    this.changeset_history = (data as any).changeset_history || [];
   }
 
   /**
@@ -91,6 +97,10 @@ export class Manifest {
 
     if (this.upgrade_history) {
       result.upgrade_history = this.upgrade_history;
+    }
+
+    if (this.changeset_history && this.changeset_history.length > 0) {
+      result.changeset_history = this.changeset_history;
     }
 
     return result;

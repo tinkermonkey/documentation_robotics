@@ -1,0 +1,10 @@
+create-task-process:
+  id: create-task-process
+  name: Create Task Process
+  type: process
+  documentation: Business process for creating a new task item
+complete-task-process:
+  id: complete-task-process
+  name: Complete Task Process
+  type: process
+  documentation: Business process for marking a task as complete

@@ -33,6 +33,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const layer = (await model.getLayer(layerName))!;
     const element = layer.getElement(id)!;
 
+    // Capture before state for changeset tracking
+    const beforeState = element.toJSON();
+
     // Update fields
     let updated = false;
 
@@ -61,6 +64,16 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       console.log(ansis.yellow('No fields specified for update'));
       process.exit(0);
     }
+
+    // Track change in active changeset if present
+    const activeChangeset = model.getActiveChangesetContext();
+    await activeChangeset.trackChange(
+      'update',
+      id,
+      layerName,
+      beforeState as unknown as Record<string, unknown>,
+      element.toJSON() as unknown as Record<string, unknown>
+    );
 
     // Save
     await model.saveLayer(layerName);

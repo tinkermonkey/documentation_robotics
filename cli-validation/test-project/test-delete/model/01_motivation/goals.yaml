@@ -1,0 +1,8 @@
+Manage Personal Tasks:
+  name: Manage Personal Tasks
+  description: Enable users to efficiently create, track, and complete personal tasks
+  criticality: high
+  priority: high
+  status: active
+  stakeholder: end-user
+  id: manage-tasks

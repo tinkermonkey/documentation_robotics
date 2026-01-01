@@ -1,0 +1,27 @@
+version: "0.1.0"
+
+# Model paths
+paths:
+  model: "./documentation-robotics/model"
+  specs: "./documentation-robotics/specs"
+  templates: "./.dr/templates"
+  schemas: "./.dr/schemas"
+
+# Default behaviors
+defaults:
+  output_format: "yaml"
+  validation_mode: "standard"
+  auto_project: false
+  backup_before_update: true
+
+# Validation rules
+validation:
+  strict_naming: true
+  require_documentation: false
+  check_cross_refs: true
+  fail_on_warning: false
+
+# Logging
+logging:
+  level: "info"
+  file: ".dr/logs/dr.log"

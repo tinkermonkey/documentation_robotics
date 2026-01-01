@@ -69,3 +69,7 @@ dist/
 tools/graph-db/*.lbug/
 tools/graph-db/*.db
 lbug
+
+# Test suite artifacts (cli-validation)
+cli-validation/test-suite/node_modules/
+cli-validation/test-suite/dist/

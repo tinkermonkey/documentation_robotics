@@ -1,0 +1,20 @@
+fetch-todos-action:
+  id: fetch-todos-action
+  name: Fetch Todos Action
+  type: state-action
+  documentation: Action to fetch all todos from API
+add-todo-action:
+  id: add-todo-action
+  name: Add Todo Action
+  type: state-action
+  documentation: Action to create a new todo item
+toggle-todo-action:
+  id: toggle-todo-action
+  name: Toggle Todo Action
+  type: state-action
+  documentation: Action to toggle todo completion status
+delete-todo-action:
+  id: delete-todo-action
+  name: Delete Todo Action
+  type: state-action
+  documentation: Action to delete a todo item

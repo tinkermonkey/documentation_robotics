@@ -1,0 +1,142 @@
+name: "Changeset Operations"
+description: "Test changeset create, apply, and revert operations"
+priority: medium
+
+pipelines:
+  - name: "Changeset lifecycle: create, apply, revert"
+    steps:
+      - command: "changeset create test-changeset-001 --description 'Test changeset for element addition'"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Created"
+          - "test-changeset-001"
+
+      - command: "changeset activate test-changeset-001"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
+      - command: "add motivation goal changeset-goal-001 --name 'Changeset Test Goal' --description 'Goal created within changeset'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Added"
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
+
+      - command: "changeset apply test-changeset-001"
+        files_to_compare:
+          - manifest.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Applied"
+
+      - command: "changeset list"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "changeset"
+
+      - command: "changeset revert test-changeset-001"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Reverted"
+
+  - name: "Changeset with multiple elements"
+    steps:
+      - command: "changeset create multi-element-changeset --description 'Changeset with multiple element changes'"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "changeset activate multi-element-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
+      - command: "add business service changeset-service-001 --name 'Service from Changeset' --description 'Business service in changeset'"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+
+      - command: "add business service changeset-service-002 --name 'Related Service' --description 'Another business service for relationship'"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add changeset-service-001 changeset-service-002 --predicate serves"
+        files_to_compare:
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
+
+      - command: "changeset apply multi-element-changeset"
+        files_to_compare:
+          - manifest.yaml
+        expect_exit_code: 0
+
+      - command: "delete changeset-service-001 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+          - relationships.yaml
+        expect_exit_code: 0
+
+      - command: "delete changeset-service-002 --force"
+        files_to_compare:
+          - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+
+  - name: "Changeset with element deletion"
+    steps:
+      - command: "add motivation goal temp-goal-for-deletion --name 'Temporary Goal' --description 'Goal to be deleted in changeset'"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "changeset create delete-changeset --description 'Changeset for element deletion'"
+        files_to_compare: []
+        expect_exit_code: 0
+
+      - command: "changeset activate delete-changeset"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Activated"
+
+      - command: "delete temp-goal-for-deletion --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+
+      - command: "changeset deactivate"
+        files_to_compare: []
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "Deactivated"
+
+      - command: "changeset apply delete-changeset"
+        files_to_compare:
+          - manifest.yaml
+        expect_exit_code: 0

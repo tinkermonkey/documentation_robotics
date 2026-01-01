@@ -1,0 +1,10 @@
+title-input-partition:
+  id: title-input-partition
+  name: Title Input Partition
+  type: input-space-partition
+  documentation: Partition for todo title input validation
+done-input-partition:
+  id: done-input-partition
+  name: Done Input Partition
+  type: input-space-partition
+  documentation: Partition for todo done status values

@@ -44,6 +44,10 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     const layer = (await model.getLayer(layerName))!;
 
+    // Capture element state for changeset tracking before deletion
+    const element = layer.getElement(id)!;
+    const beforeState = element.toJSON();
+
     // Delete element
     const deleted = layer.deleteElement(id);
     if (!deleted) {
@@ -51,8 +55,27 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       process.exit(1);
     }
 
-    // Save
+    // Delete all relationships involving this element
+    model.relationships.deleteForElement(id);
+
+    // Track change in active changeset if present
+    const activeChangeset = model.getActiveChangesetContext();
+    await activeChangeset.trackChange(
+      'delete',
+      id,
+      layerName,
+      beforeState as unknown as Record<string, unknown>,
+      undefined
+    );
+
+    // Save layer and manifest
     await model.saveLayer(layerName);
+
+    // Only save relationships if they were modified
+    if (model.relationships.isDirty()) {
+      await model.saveRelationships();
+    }
+
     await model.saveManifest();
 
     console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));

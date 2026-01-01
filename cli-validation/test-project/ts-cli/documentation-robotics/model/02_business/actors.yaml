@@ -1,0 +1,5 @@
+end-user:
+  id: end-user
+  name: End User
+  type: actor
+  documentation: Individual using the application to manage personal tasks

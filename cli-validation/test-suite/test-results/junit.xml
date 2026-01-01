@@ -1,0 +1,274 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="CLI Compatibility Tests" tests="83" failures="15" time="16.489">
+  <testsuite name="Model Validation [high]" tests="5" failures="1" time="2.998">
+  <testsuite name="Validate model state" tests="2" failures="1" time="0.698">
+    <testcase name="Step_1: validate" time="0.438">
+    </testcase>
+    <testcase name="Step_2: info" time="0.156">
+      <failure message="stdout missing: &quot;elements&quot;">stdout missing: &quot;elements&quot;</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="List operations across layers" tests="5" failures="0" time="0.964">
+    <testcase name="Step_1: list motivation" time="0.153">
+    </testcase>
+    <testcase name="Step_2: list business" time="0.157">
+    </testcase>
+    <testcase name="Step_3: list application" time="0.156">
+    </testcase>
+    <testcase name="Step_4: list technology" time="0.159">
+    </testcase>
+    <testcase name="Step_5: list api" time="0.159">
+    </testcase>
+  </testsuite>
+  <testsuite name="Search functionality" tests="3" failures="0" time="0.568">
+    <testcase name="Step_1: search goal" time="0.159">
+    </testcase>
+    <testcase name="Step_2: search service" time="0.163">
+    </testcase>
+    <testcase name="Step_3: search component" time="0.155">
+    </testcase>
+  </testsuite>
+  <testsuite name="Element inspection" tests="3" failures="0" time="0.578">
+    <testcase name="Step_1: add motivation goal inspect-test-goal --name &apos;Test Goal for Inspection&apos; --description &apos;Goal to inspect&apos;" time="0.163">
+    </testcase>
+    <testcase name="Step_2: show inspect-test-goal" time="0.158">
+    </testcase>
+    <testcase name="Step_3: delete inspect-test-goal --force" time="0.161">
+    </testcase>
+  </testsuite>
+  <testsuite name="Model conformance check" tests="1" failures="0" time="0.19">
+    <testcase name="Step_1: conformance" time="0.157">
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Relationship Management [high]" tests="2" failures="2" time="1.804">
+  <testsuite name="Create and delete relationships" tests="5" failures="1" time="0.987">
+    <testcase name="Step_1: add motivation goal rel-base-goal --name &apos;Baseline Goal&apos; --description &apos;Goal for relationships&apos;" time="0.161">
+    </testcase>
+    <testcase name="Step_2: relationship list rel-base-goal" time="0.153">
+    </testcase>
+    <testcase name="Step_3: add datastore table rel-test-table --name &apos;test_table&apos; --description &apos;Table for relationship test&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_4: add datastore column rel-test-column --name &apos;test_column&apos; --description &apos;Column for relationship test&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_5: relationship add rel-test-table rel-test-column --predicate composes" time="0.164">
+      <failure message="Did not modify expected file: relationships.yaml">Did not modify expected file: relationships.yaml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Multiple relationship types" tests="4" failures="1" time="0.817">
+    <testcase name="Step_1: add datastore table multi-rel-table --name &apos;multi_table&apos; --description &apos;Table for multi-relationship test&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_2: add datastore column multi-rel-col-1 --name &apos;column_1&apos; --description &apos;First column&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_3: add datastore column multi-rel-col-2 --name &apos;column_2&apos; --description &apos;Second column&apos;" time="0.175">
+    </testcase>
+    <testcase name="Step_4: relationship add multi-rel-table multi-rel-col-1 --predicate composes" time="0.165">
+      <failure message="Did not modify expected file: relationships.yaml">Did not modify expected file: relationships.yaml</failure>
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Export Operations [medium]" tests="7" failures="7" time="1.375">
+  <testsuite name="Export to PlantUML diagram" tests="1" failures="1" time="0.195">
+    <testcase name="Step_1: export plantuml --output export-test.puml" time="0.156">
+      <failure message="Did not modify expected file: export-test.puml">Did not modify expected file: export-test.puml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export to Markdown documentation" tests="1" failures="1" time="0.195">
+    <testcase name="Step_1: export markdown --output export-test.md" time="0.155">
+      <failure message="Did not modify expected file: export-test.md">Did not modify expected file: export-test.md</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export to GraphML format" tests="1" failures="1" time="0.196">
+    <testcase name="Step_1: export graphml --output export-test.graphml" time="0.157">
+      <failure message="Did not modify expected file: export-test.graphml">Did not modify expected file: export-test.graphml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export to OpenAPI specification" tests="1" failures="1" time="0.199">
+    <testcase name="Step_1: export openapi --output export-api.json" time="0.16">
+      <failure message="Did not modify expected file: export-api.json">Did not modify expected file: export-api.json</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export to JSON Schema" tests="1" failures="1" time="0.201">
+    <testcase name="Step_1: export jsonschema --output export-schema.json" time="0.161">
+      <failure message="CLI exit code: expected 0, got 1
+stdout missing: &quot;Exported&quot;
+Did not modify expected file: export-schema.json">CLI exit code: expected 0, got 1
+stdout missing: &quot;Exported&quot;
+Did not modify expected file: export-schema.json</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export to ArchiMate XML" tests="1" failures="1" time="0.194">
+    <testcase name="Step_1: export archimate --output export-model.xml" time="0.156">
+      <failure message="Did not modify expected file: export-model.xml">Did not modify expected file: export-model.xml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Export multiple formats in sequence" tests="1" failures="1" time="0.195">
+    <testcase name="Step_1: export plantuml --output multi-export-test.puml" time="0.156">
+      <failure message="Did not modify expected file: multi-export-test.puml">Did not modify expected file: multi-export-test.puml</failure>
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Element CRUD Operations [high]" tests="12" failures="0" time="5.449">
+  <testsuite name="Add and update motivation goal" tests="3" failures="0" time="0.607">
+    <testcase name="Step_1: add motivation goal test-goal --name &apos;Test Strategic Goal&apos; --description &apos;Test goal for verification&apos;" time="0.162">
+    </testcase>
+    <testcase name="Step_2: update test-goal --name &apos;Updated Strategic Goal&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_3: delete test-goal --force" time="0.164">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add business service and delete" tests="2" failures="0" time="0.419">
+    <testcase name="Step_1: add business service test-service --name &apos;Test Business Service&apos; --description &apos;Temporary test service&apos;" time="0.175">
+    </testcase>
+    <testcase name="Step_2: delete test-service --force" time="0.163">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add application component lifecycle" tests="4" failures="0" time="0.799">
+    <testcase name="Step_1: add application component test-component --name &apos;Test Component&apos; --description &apos;Test application component&apos;" time="0.162">
+    </testcase>
+    <testcase name="Step_2: show test-component" time="0.155">
+    </testcase>
+    <testcase name="Step_3: update test-component --name &apos;Updated Component&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_4: delete test-component --force" time="0.163">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add technology platform" tests="2" failures="0" time="0.407">
+    <testcase name="Step_1: add technology platform test-platform --name &apos;Test Platform&apos; --description &apos;Test infrastructure platform&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_2: delete test-platform --force" time="0.165">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add security role" tests="2" failures="0" time="0.406">
+    <testcase name="Step_1: add security role test-role --name &apos;Test Security Role&apos; --description &apos;Test security role&apos;" time="0.162">
+    </testcase>
+    <testcase name="Step_2: delete test-role --force" time="0.167">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add API endpoint" tests="2" failures="0" time="0.398">
+    <testcase name="Step_1: add api endpoint test-endpoint --name &apos;Test Endpoint&apos; --description &apos;GET /api/test&apos; --properties &apos;{&quot;method&quot;:&quot;GET&quot;,&quot;path&quot;:&quot;/api/test&quot;}&apos;" time="0.163">
+    </testcase>
+    <testcase name="Step_2: delete test-endpoint --force" time="0.164">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add data model entity" tests="2" failures="0" time="0.41">
+    <testcase name="Step_1: add data_model entity test-entity --name &apos;TestEntity&apos; --description &apos;Test entity&apos;" time="0.166">
+    </testcase>
+    <testcase name="Step_2: delete test-entity --force" time="0.162">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add datastore table" tests="2" failures="0" time="0.404">
+    <testcase name="Step_1: add datastore table test-table --name &apos;test_table&apos; --description &apos;Test table&apos;" time="0.165">
+    </testcase>
+    <testcase name="Step_2: delete test-table --force" time="0.164">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add UX view" tests="2" failures="0" time="0.414">
+    <testcase name="Step_1: add ux view test-view --name &apos;Test View&apos; --description &apos;Test user interface view&apos;" time="0.168">
+    </testcase>
+    <testcase name="Step_2: delete test-view --force" time="0.167">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add navigation route" tests="2" failures="0" time="0.403">
+    <testcase name="Step_1: add navigation route test-route --name &apos;Test Route&apos; --description &apos;Test navigation route&apos; --properties &apos;{&quot;path&quot;:&quot;/test&quot;}&apos;" time="0.163">
+    </testcase>
+    <testcase name="Step_2: delete test-route --force" time="0.166">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add APM metric" tests="2" failures="0" time="0.396">
+    <testcase name="Step_1: add apm metric test-metric --name &apos;Test Metric&apos; --description &apos;Test observability metric&apos;" time="0.163">
+    </testcase>
+    <testcase name="Step_2: delete test-metric --force" time="0.161">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add testing test case" tests="2" failures="0" time="0.386">
+    <testcase name="Step_1: add testing test_case test-case --name &apos;Test Case&apos; --description &apos;Test case for verification&apos;" time="0.165">
+    </testcase>
+    <testcase name="Step_2: delete test-case --force" time="0.162">
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Changeset Operations [medium]" tests="3" failures="3" time="2.047">
+  <testsuite name="Changeset lifecycle: create, apply, revert" tests="3" failures="1" time="0.58">
+    <testcase name="Step_1: changeset create test-changeset-001 --description &apos;Test changeset for element addition&apos;" time="0.134">
+    </testcase>
+    <testcase name="Step_2: add motivation goal changeset-goal-001 --name &apos;Changeset Test Goal&apos; --description &apos;Goal created within changeset&apos;" time="0.163">
+    </testcase>
+    <testcase name="Step_3: changeset apply test-changeset-001" time="0.177">
+      <failure message="stdout missing: &quot;Applied&quot;
+Did not modify expected file: manifest.yaml">stdout missing: &quot;Applied&quot;
+Did not modify expected file: manifest.yaml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Changeset with multiple elements" tests="4" failures="1" time="0.711">
+    <testcase name="Step_1: changeset create multi-element-changeset --description &apos;Changeset with multiple element changes&apos;" time="0.124">
+    </testcase>
+    <testcase name="Step_2: add business service changeset-service-001 --name &apos;Service from Changeset&apos; --description &apos;Business service in changeset&apos;" time="0.167">
+    </testcase>
+    <testcase name="Step_3: add application component changeset-component-001 --name &apos;Component from Changeset&apos; --description &apos;Application component in changeset&apos;" time="0.173">
+    </testcase>
+    <testcase name="Step_4: relationship add changeset-service-001 implements changeset-component-001" time="0.121">
+      <failure message="CLI exit code: expected 0, got 1
+Did not modify expected file: relationships.yaml">CLI exit code: expected 0, got 1
+Did not modify expected file: relationships.yaml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Changeset with element deletion" tests="4" failures="1" time="0.756">
+    <testcase name="Step_1: add motivation goal temp-goal-for-deletion --name &apos;Temporary Goal&apos; --description &apos;Goal to be deleted in changeset&apos;" time="0.167">
+    </testcase>
+    <testcase name="Step_2: changeset create delete-changeset --description &apos;Changeset for element deletion&apos;" time="0.128">
+    </testcase>
+    <testcase name="Step_3: delete temp-goal-for-deletion --force" time="0.164">
+    </testcase>
+    <testcase name="Step_4: changeset apply delete-changeset" time="0.181">
+      <failure message="Did not modify expected file: manifest.yaml">Did not modify expected file: manifest.yaml</failure>
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Advanced Operations [medium]" tests="6" failures="2" time="2.815">
+  <testsuite name="Projection operations" tests="2" failures="0" time="0.385">
+    <testcase name="Step_1: add motivation goal project-test-goal --name &apos;Goal for Projection&apos; --description &apos;Goal that will be projected&apos;" time="0.165">
+    </testcase>
+    <testcase name="Step_2: delete project-test-goal --force" time="0.165">
+    </testcase>
+  </testsuite>
+  <testsuite name="Trace dependencies for element" tests="3" failures="1" time="0.575">
+    <testcase name="Step_1: add datastore table trace-test-table --name &apos;trace_table&apos; --description &apos;Table for tracing&apos;" time="0.165">
+    </testcase>
+    <testcase name="Step_2: add datastore column trace-test-column --name &apos;trace_col&apos; --description &apos;Column for tracing&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_3: relationship add trace-test-table trace-test-column --predicate composes" time="0.164">
+      <failure message="Did not modify expected file: relationships.yaml">Did not modify expected file: relationships.yaml</failure>
+    </testcase>
+  </testsuite>
+  <testsuite name="Model information and statistics" tests="2" failures="0" time="0.379">
+    <testcase name="Step_1: info" time="0.156">
+    </testcase>
+    <testcase name="Step_2: conformance" time="0.159">
+    </testcase>
+  </testsuite>
+  <testsuite name="Migrate model version" tests="2" failures="0" time="0.294">
+    <testcase name="Step_1: migrate --check" time="0.117">
+    </testcase>
+    <testcase name="Step_2: version" time="0.119">
+    </testcase>
+  </testsuite>
+  <testsuite name="Element operations via element command" tests="3" failures="0" time="0.572">
+    <testcase name="Step_1: element add motivation goal element-cmd-test --name &apos;Element Command Test&apos; --description &apos;Test via element command&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_2: element show element-cmd-test" time="0.159">
+    </testcase>
+    <testcase name="Step_3: element delete element-cmd-test --force" time="0.163">
+    </testcase>
+  </testsuite>
+  <testsuite name="Relationship operations via relationship command" tests="3" failures="1" time="0.61">
+    <testcase name="Step_1: add datastore table rel-cmd-table --name &apos;rel_table&apos; --description &apos;Table for relationship command test&apos;" time="0.164">
+    </testcase>
+    <testcase name="Step_2: add datastore column rel-cmd-column --name &apos;rel_col&apos; --description &apos;Column for relationship command test&apos;" time="0.166">
+    </testcase>
+    <testcase name="Step_3: relationship add rel-cmd-table rel-cmd-column --predicate composes" time="0.168">
+      <failure message="Did not modify expected file: relationships.yaml">Did not modify expected file: relationships.yaml</failure>
+    </testcase>
+  </testsuite>
+  </testsuite>
+</testsuites>

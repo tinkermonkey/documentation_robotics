@@ -1,0 +1,5 @@
+todo-database:
+  id: todo-database
+  name: Todo Database
+  type: SQLite
+  documentation: SQLite database for storing todo items

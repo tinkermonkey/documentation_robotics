@@ -1,0 +1,10 @@
+todos-id-column:
+  id: todos-id-column
+  name: ID Column
+  type: INTEGER
+  documentation: Primary key auto-increment ID
+todos-done-column:
+  id: todos-done-column
+  name: Done Column
+  type: INTEGER
+  documentation: Todo completion status integer (0/1)

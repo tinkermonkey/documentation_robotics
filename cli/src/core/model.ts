@@ -2,6 +2,8 @@ import { Layer } from "./layer.js"
 import { Manifest } from "./manifest.js"
 import { Element } from "./element.js";
 import { ProjectionEngine } from "./projection-engine.js";
+import { Relationships } from "./relationships.js";
+import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { resolveModelRoot } from "../utils/model-path.js";
@@ -18,14 +20,17 @@ export class Model {
   rootPath: string
   manifest: Manifest
   layers: Map<string, Layer>
+  relationships: Relationships
   lazyLoad: boolean
   private loadedLayers: Set<string>
   private projectionEngine?: ProjectionEngine
+  private activeChangesetContext?: ActiveChangesetContext
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath
     this.manifest = manifest
     this.layers = new Map()
+    this.relationships = new Relationships()
     this.lazyLoad = options.lazyLoad ?? false
     this.loadedLayers = new Set()
   }
@@ -61,6 +66,16 @@ export class Model {
       this.projectionEngine = new ProjectionEngine(this);
     }
     return this.projectionEngine;
+  }
+
+  /**
+   * Get active changeset context (lazily initialized)
+   */
+  getActiveChangesetContext(): ActiveChangesetContext {
+    if (!this.activeChangesetContext) {
+      this.activeChangesetContext = new ActiveChangesetContext(this.rootPath);
+    }
+    return this.activeChangesetContext;
   }
 
   /**
@@ -301,7 +316,7 @@ export class Model {
           ...(element.description && { documentation: element.description }),
           ...(Object.keys(element.properties || {}).length > 0 && { properties: element.properties }),
           ...(element.references && element.references.length > 0 && { references: element.references }),
-          ...(element.relationships && element.relationships.length > 0 && { relationships: element.relationships }),
+          // Relationships are now stored in centralized relationships.yaml, not inline
         }
       }
 
@@ -428,6 +443,10 @@ export class Model {
       yamlData.upgrade_history = this.manifest.upgrade_history
     }
 
+    if (this.manifest.changeset_history && this.manifest.changeset_history.length > 0) {
+      yamlData.changeset_history = this.manifest.changeset_history
+    }
+
     await ensureDir(`${this.rootPath}/documentation-robotics/model`)
     await fs.writeFile(manifestPath, yaml.stringify(yamlData), 'utf-8')
   }
@@ -438,6 +457,58 @@ export class Model {
       counts[element.type] = (counts[element.type] || 0) + 1
     }
     return counts
+  }
+
+  /**
+   * Load relationships from relationships.yaml
+   */
+  async loadRelationships(): Promise<void> {
+    const fs = await import('fs/promises')
+    const yaml = await import('yaml')
+    const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`
+
+    try {
+      const yamlContent = await fs.readFile(relationshipsPath, 'utf-8')
+      const data = yaml.parse(yamlContent)
+
+      if (Array.isArray(data)) {
+        this.relationships = Relationships.fromArray(data)
+      }
+    } catch (err) {
+      // If file doesn't exist, that's okay - start with empty relationships
+      if ((err as any).code !== 'ENOENT') {
+        // But if it's a different error, we should know about it
+        if (process.env.DEBUG) {
+          console.debug(`Warning: Failed to load relationships.yaml: ${err}`)
+        }
+      }
+    }
+  }
+
+  /**
+   * Save relationships to relationships.yaml
+   */
+  async saveRelationships(): Promise<void> {
+    const fs = await import('fs/promises')
+    const yaml = await import('yaml')
+    const relationshipsPath = `${this.rootPath}/documentation-robotics/model/relationships.yaml`
+
+    await ensureDir(`${this.rootPath}/documentation-robotics/model`)
+
+    const data = this.relationships.toArray()
+
+    // Add header comment with timestamp to ensure file always changes
+    // This matches Python CLI behavior
+    const timestamp = new Date().toISOString()
+    const header = `# Intra-layer relationships
+# Format: source_id -> predicate -> target_id
+# Last updated: ${timestamp}
+
+`
+    const yamlContent = header + yaml.stringify(data)
+
+    await fs.writeFile(relationshipsPath, yamlContent, 'utf-8')
+    this.relationships.markClean()
   }
 
   /**
@@ -526,6 +597,9 @@ export class Model {
           }
         }
       }
+
+      // Load relationships from relationships.yaml
+      await model.loadRelationships()
 
       // Count total entities across all layers
       let entityCount = 0

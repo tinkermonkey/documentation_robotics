@@ -1,0 +1,20 @@
+todo-handler:
+  id: todo-handler
+  name: Todo Handler
+  type: component
+  documentation: Application component handling todo CRUD operations
+database-connection:
+  id: database-connection
+  name: Database Connection
+  type: component
+  documentation: SQLite database connection management component
+react-app:
+  id: react-app
+  name: React Application
+  type: component
+  documentation: Frontend React application for todo management UI
+changeset-component-001:
+  id: changeset-component-001
+  name: Component from Changeset
+  type: component
+  documentation: Application component in changeset
