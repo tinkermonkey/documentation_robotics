@@ -10,74 +10,15 @@ import { VisualizationServer } from '../../src/server/server.js';
 import { Element } from '../../src/core/element.js';
 import { Layer } from '../../src/core/layer.js';
 import { portAllocator } from '../helpers/port-allocator.js';
+import { createTestModel } from '../helpers/test-model.js';
 import * as fs from 'fs/promises';
-
-const TEST_DIR = '/tmp/dr-viz-websocket-advanced-test';
-const TEST_MODEL_ROOT = `${TEST_DIR}/documentation-robotics`;
+import { tmpdir } from 'os';
 
 /**
- * Create a test model with multiple elements across layers
+ * Generate unique test directory using cross-platform temp directory
  */
-async function createTestModel(): Promise<Model> {
-  await fs.mkdir(`${TEST_MODEL_ROOT}/model`, { recursive: true });
-
-  const manifestData = {
-    name: 'WebSocket Advanced Test Model',
-    version: '0.1.0',
-    description: 'Model for advanced WebSocket testing',
-    specVersion: '0.6.0',
-    created: new Date().toISOString(),
-  };
-
-  const model = await Model.init(TEST_DIR, manifestData, { lazyLoad: false });
-
-  // Create motivation layer with multiple elements
-  const motivationLayer = new Layer('motivation');
-  motivationLayer.addElement(new Element({
-    id: 'motivation-goal-ws-1',
-    name: 'WebSocket Test Goal 1',
-    type: 'goal',
-    description: 'First goal for WebSocket testing',
-    properties: {},
-    relationships: [],
-    references: [],
-    layer: 'motivation'
-  }));
-
-  motivationLayer.addElement(new Element({
-    id: 'motivation-goal-ws-2',
-    name: 'WebSocket Test Goal 2',
-    type: 'goal',
-    description: 'Second goal for WebSocket testing',
-    properties: {},
-    relationships: [],
-    references: [],
-    layer: 'motivation'
-  }));
-
-  model.addLayer(motivationLayer);
-
-  // Create business layer
-  const businessLayer = new Layer('business');
-  businessLayer.addElement(new Element({
-    id: 'business-service-ws-1',
-    name: 'WebSocket Test Service',
-    type: 'service',
-    description: 'Service for WebSocket testing',
-    properties: {},
-    relationships: [],
-    references: ['motivation-goal-ws-1'],
-    layer: 'business'
-  }));
-
-  model.addLayer(businessLayer);
-
-  // Save layers
-  await model.saveLayer('motivation');
-  await model.saveLayer('business');
-  await model.saveManifest();
-
-  return model;
+function getTestDir(): string {
+  return `${tmpdir()}/dr-viz-websocket-${Date.now()}-${Math.random().toString(36).substring(7)}`;
 }
 
 /**
@@ -115,10 +56,12 @@ describe('WebSocket Connection Lifecycle', () => {
   let model: Model;
   let port: number;
   let wsUrl: string;
+  let testDir: string;
 
   beforeAll(async () => {
     port = await portAllocator.allocatePort();
-    model = await createTestModel();
+    testDir = getTestDir();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
     wsUrl = `ws://localhost:${port}/ws`;
@@ -127,7 +70,7 @@ describe('WebSocket Connection Lifecycle', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(port);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should accept WebSocket connections on /ws', async () => {
@@ -258,10 +201,12 @@ describe('WebSocket Real-time Event Streaming', () => {
   let port: number;
   let wsUrl: string;
   let baseUrl: string;
+  let testDir: string;
 
   beforeAll(async () => {
     port = await portAllocator.allocatePort();
-    model = await createTestModel();
+    testDir = getTestDir();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
     wsUrl = `ws://localhost:${port}/ws`;
@@ -271,7 +216,7 @@ describe('WebSocket Real-time Event Streaming', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(port);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should broadcast annotation create events to subscribed clients', async () => {
@@ -348,20 +293,6 @@ describe('WebSocket Real-time Event Streaming', () => {
         ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
       };
 
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-
-          if (message.type === 'annotation.updated') {
-            expect(message).toHaveProperty('annotationId');
-            ws.close();
-            resolve();
-          }
-        } catch (error) {
-          reject(error);
-        }
-      };
-
       ws.onerror = (error) => {
         reject(error);
       };
@@ -381,7 +312,16 @@ describe('WebSocket Real-time Event Streaming', () => {
         }
       }, 100);
 
-      setTimeout(() => reject(new Error('Update event timeout')), 8000);
+      // Use helper to wait for specific message type
+      try {
+        const message = await waitForMessage(ws, 'annotation.updated', 8000);
+        expect(message).toHaveProperty('annotationId');
+        ws.close();
+        resolve();
+      } catch (error) {
+        ws.close();
+        reject(error);
+      }
     });
   });
 
@@ -407,20 +347,6 @@ describe('WebSocket Real-time Event Streaming', () => {
         ws.send(JSON.stringify({ type: 'subscribe', topics: ['annotations'] }));
       };
 
-      ws.onmessage = (event) => {
-        try {
-          const message = JSON.parse(event.data);
-
-          if (message.type === 'annotation.deleted') {
-            expect(message).toHaveProperty('annotationId');
-            ws.close();
-            resolve();
-          }
-        } catch (error) {
-          reject(error);
-        }
-      };
-
       ws.onerror = (error) => {
         reject(error);
       };
@@ -435,7 +361,16 @@ describe('WebSocket Real-time Event Streaming', () => {
         }
       }, 100);
 
-      setTimeout(() => reject(new Error('Delete event timeout')), 8000);
+      // Use helper to wait for specific message type
+      try {
+        const message = await waitForMessage(ws, 'annotation.deleted', 8000);
+        expect(message).toHaveProperty('annotationId');
+        ws.close();
+        resolve();
+      } catch (error) {
+        ws.close();
+        reject(error);
+      }
     });
   });
 });
@@ -446,10 +381,12 @@ describe('WebSocket Concurrent Client Handling', () => {
   let port: number;
   let wsUrl: string;
   let baseUrl: string;
+  let testDir: string;
 
   beforeAll(async () => {
     port = await portAllocator.allocatePort();
-    model = await createTestModel();
+    testDir = getTestDir();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
     wsUrl = `ws://localhost:${port}/ws`;
@@ -459,7 +396,7 @@ describe('WebSocket Concurrent Client Handling', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(port);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should handle multiple concurrent WebSocket connections', async () => {
@@ -574,13 +511,10 @@ describe('WebSocket Concurrent Client Handling', () => {
         await new Promise(r => setTimeout(r, 500));
 
         // Verify all clients received the annotation event
-        let allReceived = false;
-        for (let i = 0; i < clientCount; i++) {
-          const hasEvent = receivedMessages[i].some(m => m.type === 'annotation.added');
-          if (!hasEvent) {
-            console.log(`Client ${i} missing annotation.added event`);
-          }
-        }
+        const allReceived = receivedMessages.every(msgs =>
+          msgs.some(m => m.type === 'annotation.added')
+        );
+        expect(allReceived).toBe(true);
 
         // Close connections
         clients.forEach(ws => ws.close());
@@ -595,15 +529,12 @@ describe('WebSocket Concurrent Client Handling', () => {
   });
 
   it('should handle client disconnections without affecting others', async () => {
-    const client1: WebSocket[] = [];
-    const client2: WebSocket[] = [];
     let client1Closed = false;
     let client2Open = false;
 
     return new Promise<void>(async (resolve, reject) => {
       // Client 1
       const ws1 = new WebSocket(wsUrl);
-      client1.push(ws1);
 
       ws1.onopen = () => {
         // Client 1 closes
@@ -616,7 +547,6 @@ describe('WebSocket Concurrent Client Handling', () => {
 
       // Client 2
       const ws2 = new WebSocket(wsUrl);
-      client2.push(ws2);
 
       ws2.onopen = () => {
         client2Open = true;
@@ -646,10 +576,12 @@ describe('WebSocket Subscription Management', () => {
   let model: Model;
   let port: number;
   let wsUrl: string;
+  let testDir: string;
 
   beforeAll(async () => {
     port = await portAllocator.allocatePort();
-    model = await createTestModel();
+    testDir = getTestDir();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(port);
     wsUrl = `ws://localhost:${port}/ws`;
@@ -658,7 +590,7 @@ describe('WebSocket Subscription Management', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(port);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should handle subscribe messages with topic list', async () => {
