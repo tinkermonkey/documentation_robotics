@@ -136,7 +136,7 @@ pipelines:
 
   - name: "Add API endpoint with update"
     steps:
-      - command: "add api endpoint test-endpoint --name 'Test Endpoint' --description 'GET /api/test' --properties '{\"method\":\"GET\",\"path\":\"/api/test\"}'"
+      - command: 'add api endpoint test-endpoint --name ''Test Endpoint'' --description ''GET /api/test'' --properties ''{"method":"GET","path":"/api/test"}'''
         files_to_compare:
           - manifest.yaml
           - 06_api/endpoints.yaml
@@ -237,7 +237,7 @@ pipelines:
 
   - name: "Add navigation route with update"
     steps:
-      - command: "add navigation route test-route --name 'Test Route' --description 'Test navigation route' --properties '{\"path\":\"/test\"}'"
+      - command: 'add navigation route test-route --name ''Test Route'' --description ''Test navigation route'' --properties ''{"path":"/test"}'''
         files_to_compare:
           - manifest.yaml
           - 10_navigation/routes.yaml

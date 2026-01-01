@@ -113,7 +113,21 @@
       "Bash(bun run:*)",
       "Bash(timeout 60 npm run test:*)",
       "WebFetch(domain:hono.dev)",
-      "WebFetch(domain:bun.com)"
+      "WebFetch(domain:bun.com)",
+      "Bash(npm run test:fs-compatibility:fast:*)",
+      "Bash(npm run test:fs-compatibility:verbose:*)",
+      "Bash(tee:*)",
+      "Bash(npm run test:fs-compatibility:*)",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js relationship add:*)",
+      "Bash(timeout 5 /home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js:*)",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js export plantuml:*)",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js info:*)",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js add api endpoint invalid-endpoint --description 'Missing required name' --properties '{\"\"method\"\":\"\"GET\"\",\"\"path\"\":\"\"/test\"\"}')",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js delete:*)",
+      "Bash(timeout 10 /home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js relationship delete:*)",
+      "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js export jsonschema:*)",
+      "Bash(npm run)",
+      "Bash(pre-commit:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

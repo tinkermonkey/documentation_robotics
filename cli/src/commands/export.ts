@@ -53,6 +53,12 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       mimeType: "application/json",
     });
 
+    // Register alias for jsonschema (without hyphen)
+    manager.register("jsonschema", new JsonSchemaExporter(), {
+      description: "JSON Schema Draft 7",
+      mimeType: "application/json",
+    });
+
     manager.register("plantuml", new PlantUMLExporter(), {
       description: "PlantUML diagram format",
       mimeType: "text/plain",
@@ -96,9 +102,11 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
 
     if (options.output) {
       // Write to file
+      // For relative paths, use current working directory instead of rootPath
+      // This allows tests to detect file creation in their working directory
       const outputPath = path.isAbsolute(options.output)
         ? options.output
-        : path.join(rootPath, options.output);
+        : path.join(process.cwd(), options.output);
 
       await writeFile(outputPath, result);
 

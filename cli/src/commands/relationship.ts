@@ -47,14 +47,11 @@ Examples:
         if (sourceLayerName !== targetLayerName) {
           console.error(
             ansis.red(
-              'Error: Relationships must be within the same layer'
+              'Error: cannot add cross-layer relationship. Relationships must be within the same layer.'
             )
           );
           process.exit(1);
         }
-
-        const layer = (await model.getLayer(sourceLayerName))!;
-        const sourceElement = layer.getElement(source)!;
 
         // Parse properties if provided
         let properties: Record<string, unknown> | undefined;
@@ -67,16 +64,18 @@ Examples:
           }
         }
 
-        // Add relationship
-        sourceElement.relationships.push({
+        // Add relationship to centralized relationships.yaml
+        model.relationships.add({
           source,
           target,
           predicate: options.predicate,
+          layer: sourceLayerName,
+          category: 'structural', // Default category
           properties,
         });
 
-        // Save
-        await model.saveLayer(sourceLayerName);
+        // Save relationships
+        await model.saveRelationships();
         await model.saveManifest();
 
         console.log(
@@ -117,23 +116,18 @@ Examples:
           process.exit(1);
         }
 
-        const layer = (await model.getLayer(sourceLayerName))!;
-        const sourceElement = layer.getElement(source)!;
-
         // Find relationships to delete
-        const toDelete = sourceElement.relationships.filter(
-          (rel) =>
-            rel.target === target &&
-            (!options.predicate || rel.predicate === options.predicate)
-        );
+        const toDelete = model.relationships.find(source, target, options.predicate);
 
         if (toDelete.length === 0) {
           console.error(ansis.red('Error: No matching relationships found'));
           process.exit(1);
         }
 
-        // Confirm deletion unless --force
-        if (!options.force) {
+        // Confirm deletion unless --force or non-interactive environment
+        // In non-interactive environments (CI, tests), skip confirmation
+        const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+        if (!options.force && isInteractive) {
           const { confirm } = await import('@clack/prompts');
           const confirmed = await confirm({
             message: `Delete ${toDelete.length} relationship(s)? This cannot be undone.`,
@@ -147,16 +141,10 @@ Examples:
         }
 
         // Delete relationships
-        sourceElement.relationships = sourceElement.relationships.filter(
-          (rel) =>
-            !(
-              rel.target === target &&
-              (!options.predicate || rel.predicate === options.predicate)
-            )
-        );
+        model.relationships.delete(source, target, options.predicate);
 
         // Save
-        await model.saveLayer(sourceLayerName);
+        await model.saveRelationships();
         await model.saveManifest();
 
         console.log(
@@ -197,24 +185,11 @@ Examples:
           process.exit(1);
         }
 
-        const layer = (await model.getLayer(layerName))!;
-        const element = layer.getElement(id)!;
-
-        // Collect outgoing relationships
-        let outgoing = element.relationships;
-
-        // Collect incoming relationships
-        let incoming: typeof element.relationships = [];
-        for (const other of layer.listElements()) {
-          if (other.id !== id) {
-            incoming.push(
-              ...other.relationships.filter((rel) => rel.target === id)
-            );
-          }
-        }
+        // Get relationships from centralized store
+        const { outgoing, incoming } = model.relationships.getForElement(id);
 
         // Filter by direction
-        let relationships: typeof element.relationships = [];
+        let relationships: typeof outgoing = [];
         if (options.direction === 'outgoing' || options.direction === 'all') {
           relationships.push(...outgoing);
         }
@@ -290,11 +265,8 @@ Examples:
           process.exit(1);
         }
 
-        const layer = (await model.getLayer(sourceLayerName))!;
-        const sourceElement = layer.getElement(source)!;
-
-        // Find relationships
-        const relationships = sourceElement.relationships.filter((rel) => rel.target === target);
+        // Find relationships from centralized store
+        const relationships = model.relationships.find(source, target);
 
         if (relationships.length === 0) {
           console.error(

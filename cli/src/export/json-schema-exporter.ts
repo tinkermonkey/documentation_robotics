@@ -6,10 +6,14 @@ import type { Exporter, ExportOptions } from "./types.js";
  */
 export class JsonSchemaExporter implements Exporter {
   name = "JSON Schema";
-  supportedLayers = ["data-model"];
+  supportedLayers = ["data-model", "data_model"];
 
   async export(model: Model, _options: ExportOptions = {}): Promise<string> {
-    const layer = await model.getLayer("data-model");
+    // Try both naming conventions for data model layer
+    let layer = await model.getLayer("data-model");
+    if (!layer) {
+      layer = await model.getLayer("data_model");
+    }
     if (!layer) {
       throw new Error("No Data Model layer found in model");
     }

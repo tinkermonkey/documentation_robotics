@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="CLI Compatibility Tests" tests="61" failures="0" time="12.732">
+  <testsuite name="Relationship Management [HIGH]" tests="3" failures="0" time="5.274">
+  <testsuite name="Create and delete relationships" tests="10" failures="0" time="2.182">
+    <testcase name="Create and delete relationships / Step 1" classname="CLI-Compatibility-Test" time="0.177">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 2" classname="CLI-Compatibility-Test" time="0.162">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 3" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 4" classname="CLI-Compatibility-Test" time="0.171">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 5" classname="CLI-Compatibility-Test" time="0.175">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 6" classname="CLI-Compatibility-Test" time="0.16">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 7" classname="CLI-Compatibility-Test" time="0.167">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 8" classname="CLI-Compatibility-Test" time="0.191">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 9" classname="CLI-Compatibility-Test" time="0.165">
+    </testcase>
+    <testcase name="Create and delete relationships / Step 10" classname="CLI-Compatibility-Test" time="0.2">
+    </testcase>
+  </testsuite>
+  <testsuite name="Multiple relationship types" tests="9" failures="0" time="2.099">
+    <testcase name="Multiple relationship types / Step 1" classname="CLI-Compatibility-Test" time="0.203">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 2" classname="CLI-Compatibility-Test" time="0.213">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 3" classname="CLI-Compatibility-Test" time="0.249">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 4" classname="CLI-Compatibility-Test" time="0.226">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 5" classname="CLI-Compatibility-Test" time="0.167">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 6" classname="CLI-Compatibility-Test" time="0.16">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 7" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 8" classname="CLI-Compatibility-Test" time="0.181">
+    </testcase>
+    <testcase name="Multiple relationship types / Step 9" classname="CLI-Compatibility-Test" time="0.174">
+    </testcase>
+  </testsuite>
+  <testsuite name="Negative test: Cross-layer relationships not supported" tests="5" failures="0" time="0.992">
+    <testcase name="Negative test: Cross-layer relationships not supported / Step 1" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Negative test: Cross-layer relationships not supported / Step 2" classname="CLI-Compatibility-Test" time="0.167">
+    </testcase>
+    <testcase name="Negative test: Cross-layer relationships not supported / Step 3" classname="CLI-Compatibility-Test" time="0.16">
+    </testcase>
+    <testcase name="Negative test: Cross-layer relationships not supported / Step 4" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+    <testcase name="Negative test: Cross-layer relationships not supported / Step 5" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+  </testsuite>
+  </testsuite>
+  <testsuite name="Element CRUD Operations [HIGH]" tests="12" failures="0" time="7.457">
+  <testsuite name="Add and update motivation goal" tests="3" failures="0" time="0.579">
+    <testcase name="Add and update motivation goal / Step 1" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+    <testcase name="Add and update motivation goal / Step 2" classname="CLI-Compatibility-Test" time="0.16">
+    </testcase>
+    <testcase name="Add and update motivation goal / Step 3" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add business service with update" tests="3" failures="0" time="0.588">
+    <testcase name="Add business service with update / Step 1" classname="CLI-Compatibility-Test" time="0.165">
+    </testcase>
+    <testcase name="Add business service with update / Step 2" classname="CLI-Compatibility-Test" time="0.164">
+    </testcase>
+    <testcase name="Add business service with update / Step 3" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add application component lifecycle" tests="4" failures="0" time="0.791">
+    <testcase name="Add application component lifecycle / Step 1" classname="CLI-Compatibility-Test" time="0.161">
+    </testcase>
+    <testcase name="Add application component lifecycle / Step 2" classname="CLI-Compatibility-Test" time="0.163">
+    </testcase>
+    <testcase name="Add application component lifecycle / Step 3" classname="CLI-Compatibility-Test" time="0.163">
+    </testcase>
+    <testcase name="Add application component lifecycle / Step 4" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add technology platform with update" tests="3" failures="0" time="0.602">
+    <testcase name="Add technology platform with update / Step 1" classname="CLI-Compatibility-Test" time="0.165">
+    </testcase>
+    <testcase name="Add technology platform with update / Step 2" classname="CLI-Compatibility-Test" time="0.176">
+    </testcase>
+    <testcase name="Add technology platform with update / Step 3" classname="CLI-Compatibility-Test" time="0.172">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add security role with update" tests="3" failures="0" time="0.604">
+    <testcase name="Add security role with update / Step 1" classname="CLI-Compatibility-Test" time="0.184">
+    </testcase>
+    <testcase name="Add security role with update / Step 2" classname="CLI-Compatibility-Test" time="0.167">
+    </testcase>
+    <testcase name="Add security role with update / Step 3" classname="CLI-Compatibility-Test" time="0.163">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add API endpoint with update" tests="3" failures="0" time="0.595">
+    <testcase name="Add API endpoint with update / Step 1" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Add API endpoint with update / Step 2" classname="CLI-Compatibility-Test" time="0.161">
+    </testcase>
+    <testcase name="Add API endpoint with update / Step 3" classname="CLI-Compatibility-Test" time="0.169">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add data model entity with update" tests="3" failures="0" time="0.584">
+    <testcase name="Add data model entity with update / Step 1" classname="CLI-Compatibility-Test" time="0.163">
+    </testcase>
+    <testcase name="Add data model entity with update / Step 2" classname="CLI-Compatibility-Test" time="0.163">
+    </testcase>
+    <testcase name="Add data model entity with update / Step 3" classname="CLI-Compatibility-Test" time="0.16">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add datastore table with update" tests="3" failures="0" time="0.597">
+    <testcase name="Add datastore table with update / Step 1" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Add datastore table with update / Step 2" classname="CLI-Compatibility-Test" time="0.164">
+    </testcase>
+    <testcase name="Add datastore table with update / Step 3" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add UX view with update" tests="3" failures="0" time="0.615">
+    <testcase name="Add UX view with update / Step 1" classname="CLI-Compatibility-Test" time="0.166">
+    </testcase>
+    <testcase name="Add UX view with update / Step 2" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Add UX view with update / Step 3" classname="CLI-Compatibility-Test" time="0.176">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add navigation route with update" tests="3" failures="0" time="0.612">
+    <testcase name="Add navigation route with update / Step 1" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+    <testcase name="Add navigation route with update / Step 2" classname="CLI-Compatibility-Test" time="0.161">
+    </testcase>
+    <testcase name="Add navigation route with update / Step 3" classname="CLI-Compatibility-Test" time="0.168">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add APM metric with update" tests="3" failures="0" time="0.668">
+    <testcase name="Add APM metric with update / Step 1" classname="CLI-Compatibility-Test" time="0.198">
+    </testcase>
+    <testcase name="Add APM metric with update / Step 2" classname="CLI-Compatibility-Test" time="0.175">
+    </testcase>
+    <testcase name="Add APM metric with update / Step 3" classname="CLI-Compatibility-Test" time="0.162">
+    </testcase>
+  </testsuite>
+  <testsuite name="Add testing test case with update" tests="3" failures="0" time="0.622">
+    <testcase name="Add testing test case with update / Step 1" classname="CLI-Compatibility-Test" time="0.172">
+    </testcase>
+    <testcase name="Add testing test case with update / Step 2" classname="CLI-Compatibility-Test" time="0.165">
+    </testcase>
+    <testcase name="Add testing test case with update / Step 3" classname="CLI-Compatibility-Test" time="0.174">
+    </testcase>
+  </testsuite>
+  </testsuite>
+</testsuites>

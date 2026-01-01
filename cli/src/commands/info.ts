@@ -80,7 +80,7 @@ export async function infoCommand(options: InfoOptions): Promise<void> {
           const paddedName = layerName.padEnd(idWidth);
           const paddedCount = String(count).padEnd(countWidth);
 
-          console.log(`${ansis.cyan(paddedName)} ${paddedCount} element(s)`);
+          console.log(`${ansis.cyan(paddedName)} ${paddedCount} elements`);
         }
       }
     } else {
