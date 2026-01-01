@@ -30,52 +30,32 @@ jobs:
             cli/package-lock.json
             cli-validation/test-suite/package-lock.json
 
-      - name: Setup Python
-        uses: actions/setup-python@v5
+      - name: Install Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          python-version: "3.11"
-          cache: "pip"
-
-      - name: Install Python CLI
-        run: |
-          python -m venv .venv
-          source .venv/bin/activate
-          pip install -e .
+          bun-version: latest
 
       - name: Build TypeScript CLI
+        working-directory: ./cli
         run: |
-          cd cli
           npm install
           npm run build
 
       - name: Install Test Suite Dependencies
-        run: |
-          cd cli-validation/test-suite
-          npm install
+        working-directory: ./cli-validation/test-suite
+        run: npm install
 
-      - name: Run Compatibility Tests (High Priority)
-        continue-on-error: true
+      - name: Run Compatibility Tests
+        working-directory: ./cli-validation/test-suite
         run: |
-          cd cli-validation/test-suite
-          DR_PYTHON_CLI=${{ github.workspace }}/.venv/bin/dr \
           DR_TS_CLI="node ${{ github.workspace }}/cli/dist/cli.js" \
-            npm run test:compatibility -- --priority=high --reporter=junit --output=results/high-priority.xml
-        id: high-priority-tests
-
-      - name: Run Compatibility Tests (All Tests)
-        continue-on-error: true
-        run: |
-          cd cli-validation/test-suite
-          DR_PYTHON_CLI=${{ github.workspace }}/.venv/bin/dr \
-          DR_TS_CLI="node ${{ github.workspace }}/cli/dist/cli.js" \
-            npm run test:compatibility -- --reporter=junit --output=results/junit.xml
-        id: all-tests
+            npm run test:compatibility
 
       - name: Upload Test Results
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-results
+          name: compatibility-test-results
           path: cli-validation/test-suite/results/
           retention-days: 7
 
@@ -83,71 +63,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: test-failure-artifacts
-          path: |
-            cli-validation/test-project/python-cli/
-            cli-validation/test-project/ts-cli/
+          name: compatibility-test-failure-artifacts
+          path: cli-validation/test-project/ts-cli/
           retention-days: 7
-
-      - name: Publish Test Results (High Priority)
-        if: always() && steps.high-priority-tests.outcome != 'skipped'
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: cli-validation/test-suite/results/high-priority.xml
-          check_name: CLI Compatibility Tests (High Priority)
-          comment_title: CLI Compatibility Test Results (High Priority)
-
-      - name: Publish Test Results (All Tests)
-        if: always() && steps.all-tests.outcome != 'skipped'
-        uses: EnricoMi/publish-unit-test-result-action@v2
-        with:
-          files: cli-validation/test-suite/results/junit.xml
-          check_name: CLI Compatibility Tests (All)
-          comment_title: CLI Compatibility Test Results
-
-      - name: Comment on PR with Results
-        if: github.event_name == 'pull_request' && always()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            const fs = require('fs');
-            const path = require('path');
-
-            // Try to read test results
-            const resultsPath = 'cli-validation/test-suite/results/junit.xml';
-            let comment = '## CLI Compatibility Test Results\n\n';
-
-            if (fs.existsSync(resultsPath)) {
-              const content = fs.readFileSync(resultsPath, 'utf-8');
-              // Parse basic statistics from XML
-              const testsMatch = content.match(/tests="(\d+)"/);
-              const failuresMatch = content.match(/failures="(\d+)"/);
-
-              if (testsMatch && failuresMatch) {
-                const tests = parseInt(testsMatch[1]);
-                const failures = parseInt(failuresMatch[1]);
-                const passed = tests - failures;
-                comment += `- **Total Tests:** ${tests}\n`;
-                comment += `- **Passed:** ${passed}\n`;
-                comment += `- **Failed:** ${failures}\n`;
-
-                if (failures === 0) {
-                  comment += '\n✅ All tests passed!';
-                } else {
-                  comment += '\n❌ Some tests failed. See artifacts for details.';
-                }
-              }
-            } else {
-              comment += 'Test results not found. Check workflow logs for details.';
-            }
-
-            github.rest.issues.createComment({
-              issue_number: context.issue.number,
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              body: comment
-            });
-
-      - name: Fail if Tests Failed
-        if: steps.all-tests.outcome == 'failure'
-        run: exit 1
