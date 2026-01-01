@@ -35,7 +35,7 @@ export async function createTempWorkdir(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
 }> {
-  const path = join(tmpdir(), `dr-cli-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const path = join(tmpdir(), `dr-cli-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   await mkdir(path, { recursive: true });
 

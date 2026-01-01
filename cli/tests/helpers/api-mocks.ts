@@ -110,14 +110,29 @@ export const mockClaudeErrorResponse = {
 };
 
 /**
+ * TypeScript interface for Anthropic API message parameters
+ */
+export interface AnthropicMessageParams {
+  model: string;
+  max_tokens: number;
+  messages: Array<{
+    role: 'user' | 'assistant';
+    content: string;
+  }>;
+  system?: string;
+  tools?: unknown;
+  temperature?: number;
+}
+
+/**
  * Create a mock function for the Anthropic client
  * Useful for stubbing the Claude SDK in unit tests
  */
 export function createMockAnthropicClient() {
   return {
     messages: {
-      create: async (params: any) => mockClaudeTextMessage,
-      stream: async function* (params: any) {
+      create: async (params: AnthropicMessageParams) => mockClaudeTextMessage,
+      stream: async function* (params: AnthropicMessageParams) {
         yield mockClaudeStreamingResponse;
         yield {
           type: 'content_block_delta',
@@ -136,12 +151,4 @@ export function createMockAnthropicClient() {
       },
     },
   };
-}
-
-/**
- * Reset API mock state (useful when multiple tests need different mocks)
- */
-export function resetApiMocks(): void {
-  // Clear any accumulated mock state if needed
-  // This is a placeholder for future expansion
 }

@@ -18,7 +18,6 @@ import { Element } from '../../src/core/element';
 import { Layer } from '../../src/core/layer';
 import { Manifest } from '../../src/core/manifest';
 import { portAllocator } from '../helpers/port-allocator.js';
-import * as path from 'path';
 import * as fs from 'fs/promises';
 
 const TEST_DIR = '/tmp/dr-viz-server-test';

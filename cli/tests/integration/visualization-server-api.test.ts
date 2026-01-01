@@ -106,19 +106,6 @@ async function addTestElements(dir: string): Promise<void> {
 }
 
 describe('Visualization Server API Endpoints', () => {
-  beforeAll(async () => {
-    // Build the CLI first
-    const buildResult = spawnSync({
-      cmd: ['npm', 'run', 'build'],
-      cwd: CLI_ROOT,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-
-    if (buildResult.exitCode !== 0) {
-      throw new Error('Failed to build CLI');
-    }
-  });
-
   beforeEach(async () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
     testPort = await portAllocator.allocatePort();

@@ -34,7 +34,7 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
   rootPath: string;
   cleanup: () => Promise<void>;
 }> {
-  const rootPath = join(tmpdir(), `dr-test-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`);
+  const rootPath = join(tmpdir(), `dr-test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   await mkdir(rootPath, { recursive: true });
 
