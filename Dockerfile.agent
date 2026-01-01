@@ -16,13 +16,28 @@ USER root
 # ============================================================================
 # Stage 2: Install Project-Specific Runtimes
 # ============================================================================
-# This project uses Python which is already in the base image
-# Install libxml2 and libxslt development headers for lxml
+# This project uses:
+# - Python for the validation CLI (cli-validation/python-cli/)
+# - Node.js/Bun for the main TypeScript CLI (cli/)
+
+# Install system dependencies for lxml and Node.js
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libxml2-dev \
     libxslt1-dev \
+    curl \
+    unzip \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Install Node.js 20 LTS
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && \
+    apt-get install -y nodejs && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Bun runtime globally (so orchestrator user can access it)
+ENV BUN_INSTALL=/usr/local
+RUN curl -fsSL https://bun.sh/install | bash
 
 # ============================================================================
 # Stage 3: Pre-install Dependencies (RECOMMENDED)
@@ -104,7 +119,12 @@ RUN claude --version && \
     git --version && \
     gh --version
 
-# Verify project-specific tools - core dependencies
+# Verify Node.js/Bun runtimes
+RUN node --version && \
+    npm --version && \
+    bun --version
+
+# Verify project-specific tools - core Python dependencies
 RUN python3 --version && \
     pip --version && \
     python3 -c "import click; import pydantic; import jsonschema; import networkx; print('Core dependencies available')"
