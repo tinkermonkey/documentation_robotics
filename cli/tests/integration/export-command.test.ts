@@ -316,4 +316,112 @@ describe("Export Command Integration Tests", () => {
     // Should include the realizes reference
     expect(result.includes("realizes")).toBe(true);
   });
+
+  it("should export archimate with --layers filter", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { ArchiMateExporter } = await import("@/export/archimate-exporter");
+    const exporter = new ArchiMateExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["motivation"],
+    });
+
+    expect(result).toBeDefined();
+    expect(result.includes("<?xml")).toBe(true);
+  });
+
+  it("should export openapi with layer filter", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { OpenAPIExporter } = await import("@/export/openapi-exporter");
+    const exporter = new OpenAPIExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["api"],
+    });
+
+    expect(result).toBeDefined();
+    const spec = JSON.parse(result);
+    expect(spec.paths).toBeDefined();
+    expect(spec.paths["/api/orders"]).toBeDefined();
+  });
+
+  it("should export plantuml with multiple layer filters", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { PlantUMLExporter } = await import("@/export/plantuml-exporter");
+    const exporter = new PlantUMLExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["motivation", "business", "api"],
+    });
+
+    expect(result).toBeDefined();
+    expect(result.includes("@startuml")).toBe(true);
+    expect(result.includes("@enduml")).toBe(true);
+  });
+
+  it("should exclude filtered-out layers in export", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { MarkdownExporter } = await import("@/export/markdown-exporter");
+    const exporter = new MarkdownExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["api"],
+    });
+
+    expect(result.includes("API")).toBe(true);
+    expect(result.includes("Data Model")).toBe(false);
+  });
+
+  it("should export graphml with filtered layers", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { GraphMLExporter } = await import("@/export/graphml-exporter");
+    const exporter = new GraphMLExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["motivation", "business"],
+    });
+
+    expect(result).toBeDefined();
+    expect(result.includes("<graphml")).toBe(true);
+    expect(result.includes("</graphml>")).toBe(true);
+  });
+
+  it("should handle export with empty layer filter", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { MarkdownExporter } = await import("@/export/markdown-exporter");
+    const exporter = new MarkdownExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: [],
+    });
+
+    expect(result).toBeDefined();
+  });
+
+  it("should handle export with non-existent layer in filter", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { MarkdownExporter } = await import("@/export/markdown-exporter");
+    const exporter = new MarkdownExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["non-existent-layer"],
+    });
+
+    expect(result).toBeDefined();
+  });
+
+  it("should export jsonschema format correctly", async () => {
+    const loadedModel = await Model.load(testDir);
+
+    const { JsonSchemaExporter } = await import("@/export/json-schema-exporter");
+    const exporter = new JsonSchemaExporter();
+    const result = await exporter.export(loadedModel, {
+      layers: ["data-model"],
+    });
+
+    expect(result).toBeDefined();
+    const schema = JSON.parse(result);
+    expect(schema.$schema).toBeDefined();
+    expect(schema.$schema.includes("json-schema.org")).toBe(true);
+  });
 });
