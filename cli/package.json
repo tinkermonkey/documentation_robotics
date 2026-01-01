@@ -19,7 +19,9 @@
     "test:integration": "bun test tests/integration/*.test.ts",
     "test:validators": "bun test tests/unit/validators/**/*.test.ts",
     "test:compatibility": "bun test tests/compatibility",
-    "test:all": "bun test tests/**/*.test.ts"
+    "test:all": "bun test tests/**/*.test.ts",
+    "test:coverage": "bun test --coverage tests/**/*.test.ts",
+    "test:coverage:html": "bun test --coverage --coverage-reporter=html tests/**/*.test.ts"
   },
   "keywords": [
     "architecture",

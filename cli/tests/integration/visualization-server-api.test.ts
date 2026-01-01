@@ -7,14 +7,15 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { mkdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { spawnSync } from 'bun';
+import { portAllocator } from '../helpers/port-allocator.js';
 
 const TEMP_DIR = '/tmp/dr-api-test';
-const TEST_PORT = 9999;
 const STARTUP_TIMEOUT = 10000;
 const CLI_ROOT = join(import.meta.dir, '../..');
 const CLI_PATH = join(CLI_ROOT, 'dist/cli.js');
 
 let testDir: string;
+let testPort: number;
 let serverProcess: any = null;
 
 /**
@@ -120,6 +121,7 @@ describe('Visualization Server API Endpoints', () => {
 
   beforeEach(async () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
+    testPort = await portAllocator.allocatePort();
     await mkdir(testDir, { recursive: true });
     await initializeTestModel(testDir);
     await addTestElements(testDir);
@@ -136,6 +138,9 @@ describe('Visualization Server API Endpoints', () => {
       serverProcess = null;
     }
 
+    // Release the allocated port
+    portAllocator.releasePort(testPort);
+
     // Cleanup test directory
     try {
       await rm(testDir, { recursive: true, force: true });
@@ -146,9 +151,9 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('GET /api/model', () => {
     it('should return complete model metadata', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const response = await fetch(`http://localhost:${testPort}/api/model`);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('application/json');
@@ -176,9 +181,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should include layer information with element counts', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const response = await fetch(`http://localhost:${testPort}/api/model`);
       const data = await response.json();
 
       // Check business layer
@@ -198,9 +203,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should include elements with all required fields', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const response = await fetch(`http://localhost:${testPort}/api/model`);
       const data = await response.json();
 
       const businessElements = data.layers.business.elements;
@@ -218,9 +223,9 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('GET /api/layers/:name', () => {
     it('should return specific layer data', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/layers/business`);
+      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
 
       expect(response.status).toBe(200);
 
@@ -232,7 +237,7 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should return all 12 standard layers', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
       const layers = [
         'motivation', 'business', 'security', 'application',
@@ -241,7 +246,7 @@ describe('Visualization Server API Endpoints', () => {
       ];
 
       for (const layerName of layers) {
-        const response = await fetch(`http://localhost:${TEST_PORT}/api/layers/${layerName}`);
+        const response = await fetch(`http://localhost:${testPort}/api/layers/${layerName}`);
 
         // Layer may be empty (404) or have data (200)
         expect([200, 404]).toContain(response.status);
@@ -255,9 +260,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should return 404 for non-existent layer', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/layers/non-existent-layer`);
+      const response = await fetch(`http://localhost:${testPort}/api/layers/non-existent-layer`);
 
       expect(response.status).toBe(404);
 
@@ -267,9 +272,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should include elements with all required fields', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/layers/business`);
+      const response = await fetch(`http://localhost:${testPort}/api/layers/business`);
       const data = await response.json();
 
       if (data.elements.length > 0) {
@@ -283,10 +288,10 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('GET /api/elements/:id', () => {
     it('should return element by ID', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
       // First, get the model to see what elements exist
-      const modelResponse = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
       const modelData = await modelResponse.json();
 
       // Find a business element
@@ -297,7 +302,7 @@ describe('Visualization Server API Endpoints', () => {
       }
 
       const element = businessElements[0];
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/elements/${element.id}`);
+      const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
 
       expect(response.status).toBe(200);
 
@@ -308,10 +313,10 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should return elements from different layers', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
       // Get all elements from the model
-      const modelResponse = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
       const modelData = await modelResponse.json();
 
       // Test elements from different layers
@@ -321,7 +326,7 @@ describe('Visualization Server API Endpoints', () => {
         const elements = modelData.layers[layerName]?.elements || [];
         if (elements.length > 0) {
           const element = elements[0];
-          const response = await fetch(`http://localhost:${TEST_PORT}/api/elements/${element.id}`);
+          const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
 
           expect(response.status).toBe(200);
 
@@ -333,9 +338,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should return 404 for non-existent element', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/elements/non-existent-element-id`);
+      const response = await fetch(`http://localhost:${testPort}/api/elements/non-existent-element-id`);
 
       expect(response.status).toBe(404);
 
@@ -345,10 +350,10 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should include relationships field when relationships exist', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
       // Get an element from the model
-      const modelResponse = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const modelResponse = await fetch(`http://localhost:${testPort}/api/model`);
       const modelData = await modelResponse.json();
 
       const businessElements = modelData.layers.business?.elements || [];
@@ -358,7 +363,7 @@ describe('Visualization Server API Endpoints', () => {
       }
 
       const element = businessElements[0];
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/elements/${element.id}`);
+      const response = await fetch(`http://localhost:${testPort}/api/elements/${element.id}`);
       const data = await response.json();
 
       // Relationships field is optional - only present if there are relationships
@@ -370,9 +375,9 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('GET /health', () => {
     it('should return healthy status', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/health`);
+      const response = await fetch(`http://localhost:${testPort}/health`);
 
       expect(response.status).toBe(200);
 
@@ -383,9 +388,9 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('GET /', () => {
     it('should return HTML viewer page', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/`);
+      const response = await fetch(`http://localhost:${testPort}/`);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toContain('text/html');
@@ -398,9 +403,9 @@ describe('Visualization Server API Endpoints', () => {
     });
 
     it('should include WebSocket connection code', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/`);
+      const response = await fetch(`http://localhost:${testPort}/`);
       const html = await response.text();
 
       expect(html).toContain('new WebSocket');
@@ -410,25 +415,25 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('Error Handling', () => {
     it('should return 404 for unknown routes', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/unknown-route`);
+      const response = await fetch(`http://localhost:${testPort}/api/unknown-route`);
 
       expect(response.status).toBe(404);
     });
 
     it('should handle malformed element IDs gracefully', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/elements/invalid%20id%20with%20spaces`);
+      const response = await fetch(`http://localhost:${testPort}/api/elements/invalid%20id%20with%20spaces`);
 
       expect(response.status).toBe(404);
     });
 
     it('should return consistent error format', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/layers/invalid-layer`);
+      const response = await fetch(`http://localhost:${testPort}/api/layers/invalid-layer`);
 
       expect(response.status).toBe(404);
 
@@ -440,9 +445,9 @@ describe('Visualization Server API Endpoints', () => {
 
   describe('CORS Headers', () => {
     it('should include CORS headers in API responses', async () => {
-      serverProcess = await startServer(testDir, TEST_PORT);
+      serverProcess = await startServer(testDir, testPort);
 
-      const response = await fetch(`http://localhost:${TEST_PORT}/api/model`);
+      const response = await fetch(`http://localhost:${testPort}/api/model`);
 
       expect(response.headers.has('access-control-allow-origin')).toBe(true);
     });

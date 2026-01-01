@@ -17,12 +17,13 @@ import { Model } from '../../src/core/model';
 import { Element } from '../../src/core/element';
 import { Layer } from '../../src/core/layer';
 import { Manifest } from '../../src/core/manifest';
+import { portAllocator } from '../helpers/port-allocator.js';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
-const TEST_PORT = 38081;
 const TEST_DIR = '/tmp/dr-viz-server-test';
 const TEST_MODEL_ROOT = `${TEST_DIR}/documentation-robotics`;
+let testPort: number;
 
 async function createTestModel(): Promise<Model> {
   // Create directory structure matching Python CLI
@@ -94,14 +95,16 @@ describe('Visualization Server - Model Loading', () => {
   let baseUrl: string;
 
   beforeAll(async () => {
+    testPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT);
-    baseUrl = `http://localhost:${TEST_PORT}`;
+    await server.start(testPort);
+    baseUrl = `http://localhost:${testPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(testPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
@@ -164,16 +167,19 @@ describe('Visualization Server - Annotations', () => {
   let model: Model;
   let baseUrl: string;
   let createdAnnotationId: string;
+  let annotationsPort: number;
 
   beforeAll(async () => {
+    annotationsPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT + 1);
-    baseUrl = `http://localhost:${TEST_PORT + 1}`;
+    await server.start(annotationsPort);
+    baseUrl = `http://localhost:${annotationsPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(annotationsPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
@@ -269,11 +275,13 @@ describe('Visualization Server - WebSocket', () => {
   let server: VisualizationServer;
   let model: Model;
   let ws: WebSocket;
+  let wsPort: number;
 
   beforeAll(async () => {
+    wsPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT + 2);
+    await server.start(wsPort);
   });
 
   afterAll(async () => {
@@ -281,12 +289,13 @@ describe('Visualization Server - WebSocket', () => {
       ws.close();
     }
     server.stop();
+    portAllocator.releasePort(wsPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
   it('should connect to WebSocket at /ws', async () => {
     return new Promise((resolve, reject) => {
-      ws = new WebSocket(`ws://localhost:${TEST_PORT + 2}/ws`);
+      ws = new WebSocket(`ws://localhost:${wsPort}/ws`);
 
       ws.onmessage = (event) => {
         const message = JSON.parse(event.data);
@@ -356,7 +365,7 @@ describe('Visualization Server - WebSocket', () => {
       };
 
       // Create annotation via HTTP
-      await fetch(`http://localhost:${TEST_PORT + 2}/api/annotations`, {
+      await fetch(`http://localhost:${wsPort}/api/annotations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -375,16 +384,19 @@ describe('Visualization Server - File Watching', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
+  let watchingPort: number;
 
   beforeAll(async () => {
+    watchingPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT + 3);
-    baseUrl = `http://localhost:${TEST_PORT + 3}`;
+    await server.start(watchingPort);
+    baseUrl = `http://localhost:${watchingPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(watchingPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
@@ -424,16 +436,19 @@ describe('Visualization Server - Changesets', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
+  let changesetsPort: number;
 
   beforeAll(async () => {
+    changesetsPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT + 4);
-    baseUrl = `http://localhost:${TEST_PORT + 4}`;
+    await server.start(changesetsPort);
+    baseUrl = `http://localhost:${changesetsPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(changesetsPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
@@ -453,20 +468,23 @@ describe('Visualization Server - Authentication', () => {
   let model: Model;
   let baseUrl: string;
   let authToken: string;
+  let authPort: number;
 
   beforeAll(async () => {
+    authPort = await portAllocator.allocatePort();
     model = await createTestModel();
     authToken = 'test-auth-token-123';
     server = new VisualizationServer(model, {
       authEnabled: true,
       authToken: authToken
     });
-    await server.start(TEST_PORT + 5);
-    baseUrl = `http://localhost:${TEST_PORT + 5}`;
+    await server.start(authPort);
+    baseUrl = `http://localhost:${authPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(authPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
@@ -508,16 +526,19 @@ describe('Visualization Server - Health and Status', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
+  let healthPort: number;
 
   beforeAll(async () => {
+    healthPort = await portAllocator.allocatePort();
     model = await createTestModel();
     server = new VisualizationServer(model, { authEnabled: false });
-    await server.start(TEST_PORT + 6);
-    baseUrl = `http://localhost:${TEST_PORT + 6}`;
+    await server.start(healthPort);
+    baseUrl = `http://localhost:${healthPort}`;
   });
 
   afterAll(async () => {
     server.stop();
+    portAllocator.releasePort(healthPort);
     await fs.rm(TEST_DIR, { recursive: true, force: true });
   });
 
