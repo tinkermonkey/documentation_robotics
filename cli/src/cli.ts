@@ -32,6 +32,7 @@ import { changesetCommands } from './commands/changeset.js';
 import { versionCommand } from './commands/version.js';
 import type { Span } from '@opentelemetry/api';
 import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
+import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -60,6 +61,7 @@ program
     // Initialize telemetry and create root span
     if (isTelemetryEnabled) {
       initTelemetry();
+      installConsoleInterceptor();
 
       const commandName = process.argv[2] || 'unknown';
       const args = process.argv.slice(3).join(' ');
