@@ -164,14 +164,24 @@ node dist/cli.js --help
 
 ### Configuration
 
-#### API Key Setup (for Chat Features)
+#### Claude Code CLI Setup (for Chat Features)
+
+Chat functionality requires **Claude Code CLI** to be installed and authenticated with your Anthropic account.
+
+**Install Claude Code:**
+
+1. Visit https://claude.ai/download
+2. Follow installation instructions for your platform
+3. Authenticate with your Anthropic account when prompted
+
+Verify installation:
 
 ```bash
-# Set Anthropic API key (for chat command)
-export ANTHROPIC_API_KEY="sk-xxx..."
+# Check Claude Code CLI is available
+which claude
 
-# Or add to .env file
-echo "ANTHROPIC_API_KEY=sk-xxx..." >> .env
+# Run without a model directory to test
+claude --version
 ```
 
 #### Visualization Server
@@ -237,7 +247,7 @@ docker-compose -f docker/docker-compose.telemetry.yml down
 | ------------- | ----------------- | ---------------------------------- |
 | Basic CLI     | Node.js 18+       | All commands work                  |
 | Visualization | Node.js 18+       | WebSocket support required         |
-| Chat          | ANTHROPIC_API_KEY | Requires Anthropic API access      |
+| Chat          | Claude Code CLI   | OAuth authentication via Claude Code |
 | Telemetry     | Docker Compose    | Optional, for local Jaeger tracing |
 | Performance   | Bun 1.3+          | Optional but recommended           |
 
@@ -400,18 +410,139 @@ dr visualize
 dr visualize --port 3000 --no-browser
 ```
 
-#### Use AI Chat
+#### Chat
+
+Interactive conversation with Claude about your architecture model.
+
+**Requirements**: Claude Code CLI must be installed and authenticated. The chat functionality uses your Claude Code OAuth token, not an API key.
+
+**Install Claude Code**:
+1. Visit https://claude.ai/download
+2. Follow installation instructions for your platform
+3. Authenticate with your Anthropic account
+
+**CLI Usage**:
 
 ```bash
-# Interactive chat with Claude about your architecture
 dr chat
-
-# Ask about dependencies
-# > What are the dependencies for the create-order endpoint?
-
-# Get architecture insights
-# > Show me the critical path in the business layer
 ```
+
+The chat command:
+- Launches an interactive conversation loop
+- Uses Claude Code CLI with restricted tools (Bash, Read)
+- Provides context about your model (manifest, layer statistics)
+- Streams responses in real-time
+- Exit with "exit", "quit", or "q"
+
+**Example**:
+
+```bash
+$ dr chat
+┌  Documentation Robotics Chat
+└  Powered by Claude Code - Ask about your architecture model
+
+You: What are the dependencies for the create-order endpoint?
+Claude: Let me check the model for you...
+[Using tool: Bash]
+[Tool result: Found dependencies...]
+
+You: Show me the critical path in the business layer
+Claude: I'll analyze the business layer relationships...
+
+You: exit
+└  Goodbye!
+```
+
+**WebSocket Chat** (via `dr visualize`):
+
+The visualization server provides WebSocket-based chat using JSON-RPC 2.0:
+
+**Request** (send message):
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "chat.send",
+  "params": {
+    "message": "What layers are in this model?"
+  },
+  "id": 1
+}
+```
+
+**Notifications** (streaming response):
+
+Text content chunk:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "chat.response.chunk",
+  "params": {
+    "conversation_id": "conv-1-12345",
+    "content": "This model has 12 layers...",
+    "is_final": false,
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  }
+}
+```
+
+Tool invocation notification:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "chat.tool.invoke",
+  "params": {
+    "conversation_id": "conv-1-12345",
+    "tool_name": "Bash",
+    "tool_input": { "command": "dr list api" },
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  }
+}
+```
+
+Tool result notification:
+```json
+{
+  "jsonrpc": "2.0",
+  "method": "chat.tool.result",
+  "params": {
+    "conversation_id": "conv-1-12345",
+    "result": "output from tool execution",
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  }
+}
+```
+
+**Completion response**:
+```json
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "conversation_id": "conv-1-12345",
+    "status": "complete",
+    "exit_code": 0,
+    "full_response": "Complete response text...",
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  },
+  "id": 1
+}
+```
+
+**Error response**:
+```json
+{
+  "jsonrpc": "2.0",
+  "error": {
+    "code": -32001,
+    "message": "Claude Code CLI not available"
+  },
+  "id": 1
+}
+```
+
+**Error Codes**:
+- `-32001`: Claude Code CLI not available (install Claude Code)
+- `-32002`: Invalid parameters
+- `-32603`: Internal error (process failure, timeout)
 
 #### Manage Changesets
 
