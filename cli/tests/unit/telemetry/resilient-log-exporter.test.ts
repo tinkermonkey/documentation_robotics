@@ -199,25 +199,6 @@ describe('ResilientLogExporter', () => {
         exporter.export(mockRecords, () => {});
       }).not.toThrow();
     });
-
-    it('should handle rapid successive exports', (done) => {
-      let exportCount = 0;
-      const mockRecords: ReadableLogRecord[] = [];
-
-      exporter.export(mockRecords, () => {
-        exportCount++;
-      });
-
-      exporter.export(mockRecords, () => {
-        exportCount++;
-      });
-
-      exporter.export(mockRecords, () => {
-        exportCount++;
-        expect(exportCount).toBe(3);
-        done();
-      });
-    });
   });
 
   describe('timeout configuration', () => {

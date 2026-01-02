@@ -48,16 +48,31 @@ export class ResilientLogExporter implements LogRecordExporter {
         // Return success to prevent SDK retries
         resultCallback({ code: ExportResultCode.SUCCESS });
       } else {
+        // Clear backoff on successful export
+        this.retryAfter = 0;
         resultCallback(result);
       }
     });
   }
 
-  async shutdown(): Promise<void> {
-    return this.delegate.shutdown();
+  async forceFlush(): Promise<void> {
+    // Circuit breaker open: skip flush to avoid wasting resources
+    if (Date.now() < this.retryAfter) {
+      return;
+    }
+
+    try {
+      await this.delegate.forceFlush?.();
+    } catch {
+      // Silently ignore flush failures - don't block shutdown
+    }
   }
 
-  async forceFlush(): Promise<void> {
-    return this.delegate.forceFlush();
+  async shutdown(): Promise<void> {
+    try {
+      await this.delegate.shutdown();
+    } catch {
+      // Silently ignore shutdown failures - don't let telemetry block process exit
+    }
   }
 }
