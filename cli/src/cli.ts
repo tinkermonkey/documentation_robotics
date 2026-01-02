@@ -438,16 +438,22 @@ program
   .command('conformance')
   .description('Check model conformance to layer specifications')
   .option('--layers <layers...>', 'Specific layers to check')
+  .option('--json', 'Output as JSON')
+  .option('--verbose', 'Verbose output')
   .addHelpText(
     'after',
     `
 Examples:
   $ dr conformance
-  $ dr conformance --layers business api application`
+  $ dr conformance --layers business api application
+  $ dr conformance --json
+  $ dr conformance --verbose`
   )
   .action(async (options) => {
     await conformanceCommand({
       layers: options.layers,
+      json: options.json,
+      verbose: options.verbose,
     });
   });
 

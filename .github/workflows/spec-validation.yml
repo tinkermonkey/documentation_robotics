@@ -1,7 +1,14 @@
 name: Specification Validation
 
-# DISABLED: Re-enable after pre-commit hooks are in place
-# See .pre-commit-config.yaml for local validation
+# DEPRECATED: Specification validation has been consolidated into cli-tests.yml
+# The spec-validation job in cli-tests.yml now handles:
+# - Markdown linting (markdownlint)
+# - JSON schema validation (ajv)
+# - Schema synchronization checks (dr validate --schemas)
+#
+# This workflow is kept for reference but is no longer used.
+# See .github/workflows/cli-tests.yml for active validation.
+
 on:
   workflow_dispatch: # Manual trigger only
   # push:

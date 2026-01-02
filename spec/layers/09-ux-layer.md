@@ -1049,7 +1049,7 @@ ActionComponent:
 
 #### ComponentConfig
 
-```
+```yaml
 ComponentConfig:
   description: "Type-specific configuration for components"
 

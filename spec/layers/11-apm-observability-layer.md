@@ -1055,7 +1055,7 @@ Attribute:
 
 ### Metric Types
 
-```
+```yaml
 MetricTypes:
   Counter:
     description: "Monotonically increasing value"
@@ -2158,16 +2158,16 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 ### Cross-Layer Integration Practices (NEW)
 
-11. **Requirements Validation**: Link SLA/NFR metrics to Requirements for compliance proof
-12. **Principle Governance**: Document which Principles govern observability decisions
-13. **Business Process Mining**: Track process-level metrics to enable end-to-end optimization
-14. **Data Quality First**: Implement data quality metrics for all critical schemas
-15. **Security Monitoring**: Link security metrics to Threats and Controls they monitor
-16. **Accountability Tracing**: Ensure audit logs reference AccountabilityRequirements
-17. **UX Performance**: Measure Core Web Vitals and link to UX components
-18. **Cost Attribution**: Use technology component references for FinOps cost allocation
-19. **Goal-Driven Metrics**: Every business metric should support at least one Goal
-20. **Upward Traceability**: Maintain upward references from implementation to motivation
+1. **Requirements Validation**: Link SLA/NFR metrics to Requirements for compliance proof
+2. **Principle Governance**: Document which Principles govern observability decisions
+3. **Business Process Mining**: Track process-level metrics to enable end-to-end optimization
+4. **Data Quality First**: Implement data quality metrics for all critical schemas
+5. **Security Monitoring**: Link security metrics to Threats and Controls they monitor
+6. **Accountability Tracing**: Ensure audit logs reference AccountabilityRequirements
+7. **UX Performance**: Measure Core Web Vitals and link to UX components
+8. **Cost Attribution**: Use technology component references for FinOps cost allocation
+9. **Goal-Driven Metrics**: Every business metric should support at least one Goal
+10. **Upward Traceability**: Maintain upward references from implementation to motivation
 
 ## Tooling Ecosystem
 

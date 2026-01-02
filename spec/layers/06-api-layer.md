@@ -1596,7 +1596,7 @@ The following XML example demonstrates intra-layer and cross-layer relationships
 
 **Example Traceability Chain**:
 
-```
+```text
 Goal (goal-customer-satisfaction)
    BusinessService (business-service-product-catalog)
      API Operation (GET /products)
@@ -1986,33 +1986,33 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 #### Business Layer Integration
 
-16. **Always Link to Business Services**: Every operation should have x-business-service-ref to show business value
-17. **Document Business Interface**: Use x-business-interface-ref to show which business channel exposes the operation
-18. **Consistent Service Mapping**: Related operations (CRUD on same resource) should reference the same business service
-19. **Business Impact Analysis**: Use business references to assess impact of API changes
+1. **Always Link to Business Services**: Every operation should have x-business-service-ref to show business value
+2. **Document Business Interface**: Use x-business-interface-ref to show which business channel exposes the operation
+3. **Consistent Service Mapping**: Related operations (CRUD on same resource) should reference the same business service
+4. **Business Impact Analysis**: Use business references to assess impact of API changes
 
 #### Motivation Layer Integration
 
-20. **Goal Alignment Required**: Critical operations must have x-supports-goals to justify their existence
-21. **Link to Requirements**: Use x-fulfills-requirements to show which requirements the operation satisfies
-22. **Declare Governing Principles**: Use x-governed-by-principles to document architectural decisions (API-first, REST conventions, etc.)
-23. **Document Constraints**: Operations with regulatory requirements (GDPR, HIPAA) must use x-constrained-by
-24. **Traceability Chain**: Ensure complete chain: Goal Requirement Operation Metric
+1. **Goal Alignment Required**: Critical operations must have x-supports-goals to justify their existence
+2. **Link to Requirements**: Use x-fulfills-requirements to show which requirements the operation satisfies
+3. **Declare Governing Principles**: Use x-governed-by-principles to document architectural decisions (API-first, REST conventions, etc.)
+4. **Document Constraints**: Operations with regulatory requirements (GDPR, HIPAA) must use x-constrained-by
+5. **Traceability Chain**: Ensure complete chain: Goal Requirement Operation Metric
 
 #### APM/Observability Integration
 
-25. **Define SLA Targets**: All production operations should have x-apm-sla-target-latency and x-apm-sla-target-availability
-26. **Different SLAs for Different Operations**: Read operations should be faster than write operations; search should be fastest
-27. **Link to Business Metrics**: Use x-apm-business-metrics to show which business KPIs the operation affects
-28. **Criticality Classification**: Use x-apm-criticality to prioritize monitoring (critical operations get tightest SLAs)
-29. **Enable Tracing**: Set x-apm-trace: true for all operations in production
+1. **Define SLA Targets**: All production operations should have x-apm-sla-target-latency and x-apm-sla-target-availability
+2. **Different SLAs for Different Operations**: Read operations should be faster than write operations; search should be fastest
+3. **Link to Business Metrics**: Use x-apm-business-metrics to show which business KPIs the operation affects
+4. **Criticality Classification**: Use x-apm-criticality to prioritize monitoring (critical operations get tightest SLAs)
+5. **Enable Tracing**: Set x-apm-trace: true for all operations in production
 
 #### Security Layer Integration
 
-30. **Explicit Permissions**: Use x-required-permissions to declare permissions beyond authentication
-31. **Link to Security Resources**: Use x-security-resource to reference detailed authorization rules
-32. **Security for All Authenticated Operations**: Any operation requiring authentication should declare x-required-permissions
-33. **Audit Trail for Sensitive Operations**: Delete and update operations should reference audit constraints
+1. **Explicit Permissions**: Use x-required-permissions to declare permissions beyond authentication
+2. **Link to Security Resources**: Use x-security-resource to reference detailed authorization rules
+3. **Security for All Authenticated Operations**: Any operation requiring authentication should declare x-required-permissions
+4. **Audit Trail for Sensitive Operations**: Delete and update operations should reference audit constraints
 
 ### Integration Examples
 

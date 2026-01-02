@@ -910,22 +910,22 @@ Links from entities in other layers to entities in this layer.
 
 ### Cross-Layer Reference Validation
 
-6. **Event References**: event.application-ref must reference valid ApplicationEvent ID
-7. **Constraint References**: contract.constraint-refs must reference valid Constraint IDs
-8. **API Operation References**: interface.api-operations must reference valid operationIds from OpenAPI specs
-9. **Security Control References**: process.security-controls must reference valid security controls
-10. **Security Actor References**: collaboration.security-actors must reference valid Actor IDs
-11. **Schema References**: spec.schema-id must reference valid JSON Schema identifier
-12. **Business Actor References**: data.governance-owner must reference valid BusinessActor ID
-13. **Motivation References**: motivation.\* properties must reference valid Goal/Value/Principle IDs
-14. **Metric References**: apm.business-metrics must reference valid metric definitions
+1. **Event References**: event.application-ref must reference valid ApplicationEvent ID
+2. **Constraint References**: contract.constraint-refs must reference valid Constraint IDs
+3. **API Operation References**: interface.api-operations must reference valid operationIds from OpenAPI specs
+4. **Security Control References**: process.security-controls must reference valid security controls
+5. **Security Actor References**: collaboration.security-actors must reference valid Actor IDs
+6. **Schema References**: spec.schema-id must reference valid JSON Schema identifier
+7. **Business Actor References**: data.governance-owner must reference valid BusinessActor ID
+8. **Motivation References**: motivation.\* properties must reference valid Goal/Value/Principle IDs
+9. **Metric References**: apm.business-metrics must reference valid metric definitions
 
 ### Property Format Validation
 
-15. **Comma-Separated Lists**: Multi-value properties should use comma-separated format (no spaces)
-16. **Boolean Values**: Boolean properties must be "true" or "false" (lowercase)
-17. **KPI Format**: process.kpi-target should use "key: value" pairs separated by commas
-18. **Topic Format**: event.topic should follow hierarchical format (e.g., "domain.entity.action")
+1. **Comma-Separated Lists**: Multi-value properties should use comma-separated format (no spaces)
+2. **Boolean Values**: Boolean properties must be "true" or "false" (lowercase)
+3. **KPI Format**: process.kpi-target should use "key: value" pairs separated by commas
+4. **Topic Format**: event.topic should follow hierarchical format (e.g., "domain.entity.action")
 
 ## Best Practices
 
@@ -939,27 +939,27 @@ Links from entities in other layers to entities in this layer.
 
 ### Cross-Layer Integration
 
-6. **Link Services to Goals** - Use motivation.supports-goals to show business alignment
-7. **Link Services to Value** - Use motivation.delivers-value to demonstrate stakeholder value
-8. **Connect Events to Applications** - Use event.application-ref to bridge business and technical events
-9. **Map Interfaces to APIs** - Use interface.api-operations for digital transformation
-10. **Trace Contracts to Constraints** - Use contract.constraint-refs for compliance traceability
+1. **Link Services to Goals** - Use motivation.supports-goals to show business alignment
+2. **Link Services to Value** - Use motivation.delivers-value to demonstrate stakeholder value
+3. **Connect Events to Applications** - Use event.application-ref to bridge business and technical events
+4. **Map Interfaces to APIs** - Use interface.api-operations for digital transformation
+5. **Trace Contracts to Constraints** - Use contract.constraint-refs for compliance traceability
 
 ### Security and Governance
 
-11. **Secure Business Processes** - Use process.security-controls to document security requirements
-12. **Enable Audit Trails** - Set process.audit-required for sensitive processes
-13. **Enforce Separation of Duty** - Use process.separation-of-duty for critical processes
-14. **Map Collaborations to Actors** - Use collaboration.security-actors for RBAC design
+1. **Secure Business Processes** - Use process.security-controls to document security requirements
+2. **Enable Audit Trails** - Set process.audit-required for sensitive processes
+3. **Enforce Separation of Duty** - Use process.separation-of-duty for critical processes
+4. **Map Collaborations to Actors** - Use collaboration.security-actors for RBAC design
 
 ### Data Governance
 
-15. **Link Objects to Schemas** - Use spec.schema-id for strong data governance
-16. **Assign Data Owners** - Use data.governance-owner to establish accountability
-17. **Document SLAs** - Add sla.\* properties to BusinessServices
-18. **Track Contract Metrics** - Use contract.sla-metrics for measurable commitments
+1. **Link Objects to Schemas** - Use spec.schema-id for strong data governance
+2. **Assign Data Owners** - Use data.governance-owner to establish accountability
+3. **Document SLAs** - Add sla.\* properties to BusinessServices
+4. **Track Contract Metrics** - Use contract.sla-metrics for measurable commitments
 
 ### Observability
 
-19. **Define Business Metrics** - Use apm.business-metrics to measure process performance
-20. **Set KPI Targets** - Use process.kpi-target to define success criteria
+1. **Define Business Metrics** - Use apm.business-metrics to measure process performance
+2. **Set KPI Targets** - Use process.kpi-target to define success criteria

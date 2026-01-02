@@ -85,11 +85,15 @@ interface ConformanceResult {
 
 export async function conformanceCommand(options: {
   layers?: string[];
+  json?: boolean;
+  verbose?: boolean;
 }): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
 
-    console.log(ansis.bold('\nChecking conformance to layer specifications...\n'));
+    if (!options.json) {
+      console.log(ansis.bold('\nChecking conformance to layer specifications...\n'));
+    }
 
     const results: Record<string, ConformanceResult> = {};
 
@@ -182,6 +186,21 @@ export async function conformanceCommand(options: {
       totalIssues += issues.length;
     }
 
+    // Output as JSON if requested
+    if (options.json) {
+      const jsonOutput = {
+        conformance: {
+          compliant: compliantLayers === Object.keys(results).length,
+          compliantLayers,
+          totalLayers: Object.keys(results).length,
+          totalIssues,
+          layers: results,
+        },
+      };
+      console.log(JSON.stringify(jsonOutput, null, 2));
+      return;
+    }
+
     // Display results
     console.log(ansis.dim('Layer conformance:'));
     console.log();
@@ -192,12 +211,14 @@ export async function conformanceCommand(options: {
       } else {
         console.log(ansis.red(`✗ ${layerName} - ${result.issues.length} issue(s)`));
 
-        for (const issue of result.issues) {
-          const prefix =
-            issue.severity === 'error'
-              ? ansis.red('[ERROR]')
-              : ansis.yellow('[WARNING]');
-          console.log(ansis.dim(`  ${prefix} ${issue.message}`));
+        if (options.verbose) {
+          for (const issue of result.issues) {
+            const prefix =
+              issue.severity === 'error'
+                ? ansis.red('[ERROR]')
+                : ansis.yellow('[WARNING]');
+            console.log(ansis.dim(`  ${prefix} ${issue.message}`));
+          }
         }
       }
 

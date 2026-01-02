@@ -6,11 +6,13 @@ on:
     branches: [main, develop]
     paths:
       - "cli/**"
+      - "spec/**"
       - ".github/workflows/cli-tests.yml"
   pull_request:
     branches: [main, develop]
     paths:
       - "cli/**"
+      - "spec/**"
 
 jobs:
   test:
@@ -18,17 +20,19 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
           node-version: "18"
+          cache: "npm"
+          cache-dependency-path: cli/package-lock.json
 
       - name: Install Bun
-        run: |
-          curl -fsSL https://bun.sh/install | bash
-          echo "$HOME/.bun/bin" >> $GITHUB_PATH
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
 
       - name: Install dependencies
         working-directory: ./cli
@@ -50,3 +54,72 @@ jobs:
       - name: Run integration tests
         working-directory: ./cli
         run: npm run test:integration
+
+      - name: Run tests with coverage
+        working-directory: ./cli
+        run: npm run test:coverage
+
+      - name: Generate HTML coverage report
+        working-directory: ./cli
+        run: npm run test:coverage:html
+        continue-on-error: true
+
+      - name: Upload coverage report to artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: cli/coverage/
+          retention-days: 30
+
+  spec-validation:
+    name: Validate Specification and Schemas
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install validation tools
+        run: |
+          npm install -g markdownlint-cli2 ajv-cli ajv-formats
+
+      - name: Validate layer specifications (Markdown)
+        run: |
+          markdownlint-cli2 "spec/layers/**/*.md" --config .markdownlint.json
+
+      - name: Validate schema files (JSON syntax)
+        run: |
+          # Validate common schemas first
+          for schema in spec/schemas/common/*.json; do
+            echo "Validating $schema"
+            ajv compile -s "$schema" --strict=false
+          done
+
+          # Validate layer schemas with references to common schemas
+          for schema in spec/schemas/*.json; do
+            echo "Validating $schema"
+            ajv compile -s "$schema" -r "spec/schemas/common/*.json" --strict=false
+          done
+
+      - name: Validate schema references
+        run: |
+          echo "Checking schema file integrity..."
+          for schema in spec/schemas/*.json; do
+            if ! jq empty "$schema" 2>/dev/null; then
+              echo "❌ Invalid JSON in $schema"
+              exit 1
+            fi
+            echo "✓ $schema"
+          done
+
+      - name: Cross-validate spec schemas with CLI bundled schemas
+        working-directory: ./cli
+        run: |
+          npm install
+          npm run build
+          node dist/cli.js validate --schemas

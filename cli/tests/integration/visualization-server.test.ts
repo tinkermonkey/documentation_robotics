@@ -10,7 +10,7 @@ import { join } from 'path';
 import { mkdirSync, rmSync, writeFileSync } from 'fs';
 import { sleep } from '../helpers.ts';
 
-// Test fixture setup
+// Test fixture setup - specific to this test suite's requirements
 async function createTestModel(rootPath: string): Promise<Model> {
   // Use init to create the model with the correct structure
   const model = await Model.init(

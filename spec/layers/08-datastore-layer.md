@@ -725,7 +725,7 @@ Function:
 
 ### x-apm-performance-metrics Extension
 
-```
+```yaml
 x-apm-performance-metrics:
   description: "Database performance metrics for table monitoring"
   type: string[] (Metric IDs from APM Layer, optional)
@@ -801,7 +801,7 @@ x-apm-performance-metrics:
 
 ### x-apm-data-quality-metrics Extension
 
-```
+```yaml
 x-apm-data-quality-metrics:
   description: "Database-level data quality metrics for integrity monitoring"
   type: string[] (Metric IDs from APM Layer, optional)
@@ -1088,7 +1088,7 @@ COMMENT ON VIEW vw_products_low_stock IS
 
 ### Migration Files
 
-```
+```yaml
 MigrationFile:
   description: "Database migration script"
   attributes:
@@ -1118,7 +1118,7 @@ MigrationFile:
 
 ### Migration Tools
 
-```
+```text
 Tools:
   - Flyway: Java-based migration tool
   - Liquibase: XML/YAML/SQL migrations
@@ -1376,31 +1376,31 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 ### Cross-Layer Integration Practices
 
-14. **Metadata Links**: Use COMMENT to link tables to other layers (schemas, architecture, governance)
-15. **Motivation References**: Link tables to Principles, Requirements, and Constraints that govern their design
-16. **Schema Alignment**: Maintain x-json-schema references to ensure database matches logical data model
-17. **Security Metadata**: Document PII, encryption, and retention requirements at table level
+1. **Metadata Links**: Use COMMENT to link tables to other layers (schemas, architecture, governance)
+2. **Motivation References**: Link tables to Principles, Requirements, and Constraints that govern their design
+3. **Schema Alignment**: Maintain x-json-schema references to ensure database matches logical data model
+4. **Security Metadata**: Document PII, encryption, and retention requirements at table level
 
 ### APM/Observability Integration Practices
 
-18. **Performance Monitoring**: Link tables to performance metrics using x-apm-performance-metrics
-19. **Critical Tables First**: Prioritize APM metric links for high-traffic and customer-facing tables
-20. **Quality Monitoring**: Link tables to data quality metrics using x-apm-data-quality-metrics
-21. **SLA Traceability**: Ensure performance metrics link back to business goals and SLA requirements
-22. **Comprehensive Metrics**: Include query performance, table growth, index health, and constraint violations
-23. **Alert Configuration**: Use metric references to configure proactive alerts before issues impact users
-24. **Capacity Planning**: Track table growth and query performance metrics for scaling decisions
-25. **Data Integrity**: Monitor constraint violations and referential integrity at the database layer
-26. **Anomaly Detection**: Track daily record counts to detect unexpected data changes
-27. **Complete Chain**: Maintain Goal → Requirement → Schema → Table → Metric → Outcome traceability
+1. **Performance Monitoring**: Link tables to performance metrics using x-apm-performance-metrics
+2. **Critical Tables First**: Prioritize APM metric links for high-traffic and customer-facing tables
+3. **Quality Monitoring**: Link tables to data quality metrics using x-apm-data-quality-metrics
+4. **SLA Traceability**: Ensure performance metrics link back to business goals and SLA requirements
+5. **Comprehensive Metrics**: Include query performance, table growth, index health, and constraint violations
+6. **Alert Configuration**: Use metric references to configure proactive alerts before issues impact users
+7. **Capacity Planning**: Track table growth and query performance metrics for scaling decisions
+8. **Data Integrity**: Monitor constraint violations and referential integrity at the database layer
+9. **Anomaly Detection**: Track daily record counts to detect unexpected data changes
+10. **Complete Chain**: Maintain Goal → Requirement → Schema → Table → Metric → Outcome traceability
 
 ### Metric Selection Guidelines
 
-28. **Transactional Tables**: Focus on query latency (p95, p99), write throughput, lock contention
-29. **Analytical Tables**: Focus on table growth, sequential scans, partition health, vacuum duration
-30. **Master Data Tables**: Focus on data quality (duplicates, nulls, referential integrity)
-31. **High-Traffic Tables**: Include connection pool metrics, cache hit rates, deadlock frequency
-32. **Compliance-Critical Tables**: Emphasize constraint violations, audit trail completeness, retention compliance
+1. **Transactional Tables**: Focus on query latency (p95, p99), write throughput, lock contention
+2. **Analytical Tables**: Focus on table growth, sequential scans, partition health, vacuum duration
+3. **Master Data Tables**: Focus on data quality (duplicates, nulls, referential integrity)
+4. **High-Traffic Tables**: Include connection pool metrics, cache hit rates, deadlock frequency
+5. **Compliance-Critical Tables**: Emphasize constraint violations, audit trail completeness, retention compliance
 
 ## Validation
 
@@ -1492,7 +1492,7 @@ Connection Pooling:
 
 **Example Traceability Chain**:
 
-```
+```yaml
 # Motivation Layer (01)
 Goal:
   id: "goal-fast-product-search"
@@ -1577,7 +1577,7 @@ Datastore Layer (08) - Physical Quality:
 
 **Example Use Cases**:
 
-```
+```yaml
 # Financial System - Constraint Monitoring
 Table: transactions
   x-apm-data-quality-metrics:
