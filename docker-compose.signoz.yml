@@ -1,0 +1,98 @@
+version: '3.8'
+
+services:
+  # OpenTelemetry Collector
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    container_name: otel-collector
+    command:
+      - "--config=/etc/otel-collector-config.yml"
+    volumes:
+      - ./otel-collector-config.yml:/etc/otel-collector-config.yml
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "13133:13133" # Health check
+    depends_on:
+      - signoz-db
+      - signoz-cache
+    environment:
+      - GOGC=80
+    networks:
+      - signoz
+
+  # PostgreSQL database
+  signoz-db:
+    image: postgres:14-alpine
+    container_name: signoz-db
+    environment:
+      POSTGRES_USER: signoz
+      POSTGRES_PASSWORD: signoz
+      POSTGRES_DB: signoz
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - signoz
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signoz"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis cache
+  signoz-cache:
+    image: redis:7-alpine
+    container_name: signoz-cache
+    networks:
+      - signoz
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SigNoz Query Service
+  signoz-query-service:
+    image: ghcr.io/signoz/query-service:latest
+    container_name: signoz-query
+    depends_on:
+      signoz-db:
+        condition: service_healthy
+      signoz-cache:
+        condition: service_healthy
+      otel-collector:
+        condition: service_started
+    environment:
+      - ClickHouseUrl=tcp://signoz-db:9000
+      - REDIS_ADDR=signoz-cache:6379
+      - TELEMETRY_ENABLED=true
+      - DEPLOYMENT_TYPE=docker-standalone
+    ports:
+      - "8080:8080" # Query service API
+    networks:
+      - signoz
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/api/v1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # SigNoz Frontend
+  signoz-frontend:
+    image: ghcr.io/signoz/frontend:latest
+    container_name: signoz-frontend
+    depends_on:
+      - signoz-query-service
+    environment:
+      - BACKEND_API_URL=http://localhost:8080
+    ports:
+      - "3301:3301" # SigNoz UI
+    networks:
+      - signoz
+
+volumes:
+  postgres-data:
+
+networks:
+  signoz:
+    driver: bridge

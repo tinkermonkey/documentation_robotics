@@ -196,50 +196,209 @@ dr visualize --no-browser
 
 #### Telemetry & Observability (Optional)
 
-The CLI supports OpenTelemetry instrumentation for tracing and observability during development. To view traces locally, use the provided Docker Compose configuration to run Jaeger.
+The CLI supports comprehensive OpenTelemetry instrumentation for tracing, logging, and observability during development and testing. Telemetry is completely optional and incurs **zero overhead in production builds** due to compile-time constant elimination.
 
-**Prerequisites:**
+##### Features
 
-- Docker and Docker Compose installed
+- **Command Tracing**: All CLI commands create root spans with command name, arguments, and working directory
+- **Validator Instrumentation**: Schema, naming, reference, and semantic validation stages produce nested spans
+- **Console Logging**: Console output (`console.log`, `console.error`, etc.) is automatically captured and correlated with traces
+- **Test Instrumentation**: Tests can emit spans with test file names, test case names, pass/fail status, and error details
+- **Project Context**: All telemetry includes your project name from the manifest for easy filtering
+- **Circuit-Breaker Protection**: Graceful degradation if the telemetry collector is unavailable—no user-facing errors or blocking
+- **Compile-Time Configuration**: Telemetry code is completely eliminated from production builds via dead-code elimination
 
-**Start Jaeger locally:**
+##### Setup
+
+###### Prerequisites
+
+- Docker and Docker Compose (for running SigNoz locally)
+- Node.js 18+
+
+###### Start SigNoz Stack
+
+Use the provided helper script to run a complete telemetry stack locally:
 
 ```bash
 # From the repository root
-docker-compose -f docker/docker-compose.telemetry.yml up -d
+./signoz-stack.sh start
 
-# Verify Jaeger is running
-curl http://localhost:16686/search
-
-# View Jaeger UI
-# Open http://localhost:16686 in your browser
+# Wait for services to initialize (~30 seconds)
+# Access SigNoz UI at http://localhost:3301
+# OTEL Collector is available at http://localhost:4318
 ```
 
-**Run CLI with telemetry enabled:**
+The stack includes:
+- **OTEL Collector** (HTTP receiver on port 4318)
+- **PostgreSQL** (trace storage)
+- **Redis** (caching)
+- **SigNoz Query Service** (trace API)
+- **SigNoz Frontend** (UI for visualization)
+
+###### Build and Run CLI with Telemetry
 
 ```bash
-# Build CLI with telemetry support
+# Build CLI with telemetry enabled
 npm run build:debug
 
-# Run commands - traces will be sent to localhost:4318 (OTLP HTTP)
+# Set telemetry endpoint (optional - defaults to localhost:4318)
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+
+# Run CLI commands - traces and logs will be sent to SigNoz
 node dist/cli.js validate
 node dist/cli.js list motivation
+node dist/cli.js add business service my-service --name "My Service"
 
-# View traces in Jaeger UI at http://localhost:16686
+# View traces and logs in SigNoz UI
+# http://localhost:3301
 ```
 
-**Stop Jaeger:**
+###### Verify Tracing
+
+In SigNoz UI (http://localhost:3301):
+
+1. **View Command Traces**:
+   - Navigate to "Traces" section
+   - Look for spans named `cli.execute`
+   - Expand to see nested validator spans (`validation.stage.schema`, `validation.stage.naming`, etc.)
+   - Each span shows command name, arguments, working directory, and project name
+
+2. **View Correlated Logs**:
+   - Click on a command span to view details
+   - Switch to "Logs" tab to see console output captured during command execution
+   - Logs include severity level (INFO, WARN, ERROR) and trace context (traceId, spanId)
+
+3. **Filter by Project**:
+   - Use the filter `dr.project.name = "YourProjectName"` to isolate telemetry for a specific project
+   - Useful when multiple projects share the same collector
+
+###### Test Instrumentation
+
+Tests can emit telemetry to verify logging behavior. Use the test instrumentation utilities:
+
+```typescript
+import { describe, test, beforeAll, afterAll } from 'bun:test';
+import {
+  startTestFileSpan,
+  endTestFileSpan,
+  instrumentTest,
+} from '../../src/telemetry/test-instrumentation.js';
+
+beforeAll(() => {
+  startTestFileSpan('tests/unit/my-feature.test.ts');
+});
+
+afterAll(() => {
+  endTestFileSpan();
+});
+
+describe('MyFeature', () => {
+  test(
+    'should validate input',
+    instrumentTest(
+      'should validate input',
+      async () => {
+        // Test logic here
+        expect(result).toBe(expected);
+      },
+      'MyFeature' // Suite name for organization
+    )
+  );
+});
+```
+
+Run tests with telemetry:
 
 ```bash
-docker-compose -f docker/docker-compose.telemetry.yml down
+npm run build:debug
+npm run test
+
+# View test spans in SigNoz UI with attributes:
+# - test.file: Path to test file
+# - test.name: Test case name
+# - test.suite: Describe block name
+# - test.status: 'pass', 'fail', or 'skip'
+# - test.error.message and test.error.stack (for failed tests)
 ```
 
-**Notes:**
+###### Stop SigNoz Stack
 
-- Telemetry is **compile-time configurable** - production builds have zero overhead
-- The CLI gracefully handles missing Jaeger (no blocking or errors)
-- Default telemetry collection endpoint: `http://localhost:4318` (OTLP HTTP)
-- Requires gRPC and HTTP OTLP collectors enabled in Jaeger (default in all-in-one image)
+```bash
+./signoz-stack.sh stop
+
+# To remove all data and start fresh:
+./signoz-stack.sh clean
+```
+
+##### Configuration
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | `http://localhost:4318` | OTLP collector endpoint (applies to both traces and logs) |
+| `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT` | Derived from OTLP_ENDPOINT | Override for logs endpoint specifically |
+| `DR_TELEMETRY` | Determined by build | Build-time flag (set via `npm run build:debug`) |
+
+##### Architecture
+
+The telemetry system consists of:
+
+1. **Resilient OTLP Exporter** - Exports traces with circuit-breaker pattern (30s backoff on failure)
+2. **Resilient Log Exporter** - Exports logs with same circuit-breaker protection
+3. **Console Interceptor** - Captures console output without modifying application code
+4. **Test Instrumentation** - Provides utilities for creating test spans with standard attributes
+5. **Resource Attributes** - Every trace and log includes:
+   - `service.name`: `dr-cli`
+   - `service.version`: CLI version from package.json
+   - `dr.project.name`: Project name from manifest (if available, else `unknown`)
+
+##### Troubleshooting
+
+###### Traces not appearing in SigNoz
+
+1. **Verify SigNoz is running:**
+   ```bash
+   curl http://localhost:13133  # OTEL Collector health check
+   curl http://localhost:3301   # SigNoz UI
+   ```
+
+2. **Check telemetry build:**
+   ```bash
+   # Verify build was done with DR_TELEMETRY=true
+   npm run build:debug
+   ```
+
+3. **Verify endpoint connectivity:**
+   ```bash
+   node dist/cli.js validate
+   # If SigNoz is unavailable, circuit-breaker activates silently after 500ms timeout
+   ```
+
+4. **Check resource attributes:**
+   - In SigNoz, search for traces with filter `service.name = "dr-cli"`
+   - Verify `dr.project.name` appears in span attributes
+
+###### "Circuit-breaker activated" messages
+
+These are internal debug messages and do not affect CLI execution. They appear when:
+- The OTLP collector is unreachable
+- Export timeout (500ms) is exceeded
+
+The CLI continues normally—no errors are shown to users.
+
+##### Production Deployment
+
+- **Development builds** (`npm run build:debug`): Includes full telemetry code (~50KB overhead)
+- **Production builds** (`npm run build`): Zero telemetry overhead via dead-code elimination
+- Telemetry code is completely removed from production bundles at compile time
+
+##### Notes
+
+- Telemetry is **entirely optional** and disabled in production builds
+- The CLI gracefully handles missing SigNoz (no blocking, no user-visible errors)
+- Traces and logs are sent asynchronously without blocking CLI commands
+- Default OTLP collection endpoint: `http://localhost:4318` (standard OpenTelemetry receiver)
+- Supported log severity levels: DEBUG, INFO, WARN, ERROR
+- Automatic trace-log correlation via traceId and spanId
 
 ### System Requirements
 
