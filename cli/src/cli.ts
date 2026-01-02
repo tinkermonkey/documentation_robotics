@@ -39,6 +39,11 @@ import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
+// Get CLI version from package.json
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const packageJson = require('../package.json');
+const cliVersion = packageJson.version;
+
 const program = new Command();
 
 // Global to hold root span across async boundaries
@@ -70,7 +75,7 @@ program
         'cli.command': commandName,
         'cli.args': args,
         'cli.cwd': process.cwd(),
-        'cli.version': '0.1.0',
+        'cli.version': cliVersion,
       });
     }
 

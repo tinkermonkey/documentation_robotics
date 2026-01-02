@@ -407,7 +407,7 @@ The CLI continues normally—no errors are shown to users.
 | Basic CLI     | Node.js 18+       | All commands work                  |
 | Visualization | Node.js 18+       | WebSocket support required         |
 | Chat          | Claude Code CLI   | OAuth authentication via Claude Code |
-| Telemetry     | Docker Compose    | Optional, for local Jaeger tracing |
+| Telemetry     | Docker Compose    | Optional, for local SigNoz/OTLP tracing |
 | Performance   | Bun 1.3+          | Optional but recommended           |
 
 ### Troubleshooting

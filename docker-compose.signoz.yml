@@ -14,27 +14,42 @@ services:
       - "4318:4318"   # OTLP HTTP receiver
       - "13133:13133" # Health check
     depends_on:
-      - signoz-db
-      - signoz-cache
+      signoz-db:
+        condition: service_healthy
+      signoz-cache:
+        condition: service_healthy
     environment:
       - GOGC=80
     networks:
       - signoz
 
-  # PostgreSQL database
-  signoz-db:
-    image: postgres:14-alpine
-    container_name: signoz-db
-    environment:
-      POSTGRES_USER: signoz
-      POSTGRES_PASSWORD: signoz
-      POSTGRES_DB: signoz
-    volumes:
-      - postgres-data:/var/lib/postgresql/data
+  # Zookeeper (required by ClickHouse for coordination)
+  signoz-zookeeper:
+    image: clickhouse/zookeeper:latest
+    container_name: signoz-zookeeper
     networks:
       - signoz
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U signoz"]
+      test: ["CMD", "echo", "ruok", "|", "nc", "localhost", "2181"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ClickHouse database (required by SigNoz for storing traces and logs)
+  signoz-db:
+    image: clickhouse/clickhouse-server:latest
+    container_name: signoz-db
+    environment:
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    depends_on:
+      - signoz-zookeeper
+    networks:
+      - signoz
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8123/ping"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -91,7 +106,7 @@ services:
       - signoz
 
 volumes:
-  postgres-data:
+  clickhouse-data:
 
 networks:
   signoz:

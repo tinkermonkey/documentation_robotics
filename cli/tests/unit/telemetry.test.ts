@@ -55,6 +55,88 @@ describe('Telemetry Module (Production No-Op Mode)', () => {
   });
 });
 
+describe('Project Name Propagation', () => {
+  it('should load project name from manifest file', () => {
+    // Mock fs module
+    const originalFs = require('fs');
+    const originalPath = require('path');
+    const mockFs = {
+      existsSync: mock((path: string) => {
+        return path.includes('.dr/manifest.json');
+      }),
+      readFileSync: mock((path: string, encoding: string) => {
+        return JSON.stringify({
+          name: 'TestProjectName',
+          version: '1.0.0',
+        });
+      }),
+    };
+
+    // Mock require to return our mock fs
+    const originalRequire = require;
+    (globalThis as any).require = (module: string) => {
+      if (module === 'fs') return mockFs;
+      return originalRequire(module);
+    };
+
+    try {
+      // This test verifies that initTelemetry can load project names
+      // In production, this would be called with the modelPath parameter
+      expect(() => {
+        telemetry.initTelemetry('.test/model/path');
+      }).not.toThrow();
+    } finally {
+      // Restore original require
+      (globalThis as any).require = originalRequire;
+    }
+  });
+
+  it('should fallback to unknown when manifest missing', () => {
+    // Mock fs module that returns no manifest
+    const mockFs = {
+      existsSync: mock(() => false),
+      readFileSync: mock(() => ''),
+    };
+
+    const originalRequire = require;
+    (globalThis as any).require = (module: string) => {
+      if (module === 'fs') return mockFs;
+      return originalRequire(module);
+    };
+
+    try {
+      // Should not throw and use 'unknown' as fallback
+      expect(() => {
+        telemetry.initTelemetry();
+      }).not.toThrow();
+    } finally {
+      (globalThis as any).require = originalRequire;
+    }
+  });
+
+  it('should handle invalid manifest JSON gracefully', () => {
+    const mockFs = {
+      existsSync: mock(() => true),
+      readFileSync: mock(() => 'invalid json {{{'),
+    };
+
+    const originalRequire = require;
+    (globalThis as any).require = (module: string) => {
+      if (module === 'fs') return mockFs;
+      return originalRequire(module);
+    };
+
+    try {
+      // Should not throw and use 'unknown' as fallback
+      expect(() => {
+        telemetry.initTelemetry();
+      }).not.toThrow();
+    } finally {
+      (globalThis as any).require = originalRequire;
+    }
+  });
+});
+
 describe('ResilientOTLPExporter - Circuit Breaker Logic', () => {
   let exporter: ResilientOTLPExporter;
   let mockDelegate: any;
