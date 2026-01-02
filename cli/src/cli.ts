@@ -33,6 +33,7 @@ import { versionCommand } from './commands/version.js';
 import type { Span } from '@opentelemetry/api';
 import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
 import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
+import { readJSON, fileExists } from './utils/file-io.js';
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -40,9 +41,27 @@ declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 // Get CLI version from package.json
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const packageJson = require('../package.json');
-const cliVersion = packageJson.version;
+async function getCliVersion(): Promise<string> {
+  const possiblePaths = [
+    `${process.cwd()}/package.json`,
+    `${import.meta.url.replace('file://', '').split('/src/')[0]}/package.json`,
+  ];
+
+  for (const path of possiblePaths) {
+    if (await fileExists(path)) {
+      try {
+        const data = await readJSON<{ version: string }>(path);
+        return data.version;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return '0.1.0';
+}
+
+const cliVersion = await getCliVersion();
 
 const program = new Command();
 
