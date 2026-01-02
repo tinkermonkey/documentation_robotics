@@ -19,7 +19,6 @@
 import {
   startTestFileSpan,
   endTestFileSpan,
-  instrumentTest,
   createTestCaseSpan,
   recordTestResult,
 } from '../../src/telemetry/test-instrumentation.js';
@@ -49,36 +48,6 @@ export function setupTestTelemetry(filePath: string) {
 }
 
 /**
- * Convenience wrapper for creating instrumented test functions.
- *
- * Combines createTestCaseSpan, test execution, and recordTestResult
- * into a single helper. Less flexible than instrumentTest but cleaner
- * for simple cases.
- *
- * ```typescript
- * test('should validate input', createInstrumentedTest(
- *   'should validate input',
- *   async () => {
- *     // test code
- *   },
- *   'ValidationTests'
- * ));
- * ```
- *
- * @param testName - The name of the test
- * @param testFn - The test function
- * @param suiteName - Optional describe block name
- * @returns Wrapped test function with instrumentation
- */
-export function createInstrumentedTest(
-  testName: string,
-  testFn: () => void | Promise<void>,
-  suiteName?: string
-): () => Promise<void> {
-  return instrumentTest(testName, testFn, suiteName);
-}
-
-/**
  * Manual span management helpers for advanced use cases.
  *
  * Use this when you need fine-grained control over span lifecycle
@@ -101,31 +70,4 @@ export function createInstrumentedTest(
 export const manualSpanManagement = {
   createTestCaseSpan,
   recordTestResult,
-};
-
-/**
- * Configuration for test instrumentation.
- *
- * This object can be used to pass consistent configuration across tests.
- */
-export const testInstrumentationConfig = {
-  /**
-   * Enable/disable test instrumentation globally.
-   *
-   * When false, all instrumentation becomes no-op.
-   * Default: controlled by TELEMETRY_ENABLED compile-time constant.
-   */
-  enabled: true,
-
-  /**
-   * Include stack traces in error attributes.
-   * Default: true
-   */
-  includeStackTraces: true,
-
-  /**
-   * Record error details in span exceptions.
-   * Default: true
-   */
-  recordExceptions: true,
 };

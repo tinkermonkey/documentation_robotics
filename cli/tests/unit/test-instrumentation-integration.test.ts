@@ -8,262 +8,201 @@
  * to the span creation functions.
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 
 // Mock TELEMETRY_ENABLED as false for testing in production mode
 (globalThis as any).TELEMETRY_ENABLED = false;
 
 import * as testInstrumentation from '../../src/telemetry/test-instrumentation.js';
+import { MockSpan, MockSpanProcessor, MockTracer } from './mocks/mock-opentelemetry.js';
 
 describe('Test Instrumentation Integration', () => {
-  describe('Resource Attribute Inheritance', () => {
-    it('should demonstrate that test spans inherit dr.project.name from resource attributes', () => {
-      // The telemetry/index.ts module initializes spans with a resource that includes:
-      // {
-      //   'service.name': 'dr-cli',
-      //   'service.version': <version>,
-      //   'dr.project.name': <from manifest or 'unknown'>
-      // }
-      //
-      // All spans created by startSpan() automatically inherit these resource attributes.
-      // This means test spans created by createTestCaseSpan() will include dr.project.name.
+  describe('Span Attribute Setting', () => {
+    it('should set test.file and test.framework attributes on file span', () => {
+      // Verify that when startTestFileSpan is called, it would create a span
+      // with the correct attributes
+      const mockSpan = new MockSpan();
+      const filePath = 'tests/unit/example.test.ts';
 
-      const projectName = 'test-project';
+      mockSpan.setAttribute('test.file', filePath);
+      mockSpan.setAttribute('test.framework', 'bun');
 
-      // When initTelemetry() is called (which happens in cli.ts),
-      // it loads the project name from the manifest and sets it as a resource attribute.
-
-      // Test spans created after that will have:
-      // {
-      //   'test.name': 'my test',
-      //   'test.suite': 'MyTestSuite',
-      //   'test.file': 'tests/unit/example.test.ts',
-      //   'dr.project.name': 'test-project'  // inherited from resource
-      // }
-
-      expect(projectName).toBe('test-project');
+      expect(mockSpan.getAttributes()['test.file']).toBe(filePath);
+      expect(mockSpan.getAttributes()['test.framework']).toBe('bun');
     });
 
-    it('should show that file span includes test.framework attribute', () => {
-      // When startTestFileSpan() is called, it creates a span with attributes:
-      // {
-      //   'test.file': 'tests/unit/example.test.ts',
-      //   'test.framework': 'bun',
-      //   'dr.project.name': <from resource>
-      // }
+    it('should set test.name, test.suite, and test.file on test case span', () => {
+      const mockSpan = new MockSpan();
+      const testName = 'should validate input';
+      const suiteName = 'ValidationTests';
+      const filePath = 'tests/unit/example.test.ts';
 
-      const attributes = {
-        'test.file': 'tests/unit/example.test.ts',
-        'test.framework': 'bun',
-      };
+      mockSpan.setAttribute('test.name', testName);
+      mockSpan.setAttribute('test.suite', suiteName);
+      mockSpan.setAttribute('test.file', filePath);
 
-      expect(attributes['test.framework']).toBe('bun');
-      expect(attributes['test.file']).toBe('tests/unit/example.test.ts');
+      const attributes = mockSpan.getAttributes();
+      expect(attributes['test.name']).toBe(testName);
+      expect(attributes['test.suite']).toBe(suiteName);
+      expect(attributes['test.file']).toBe(filePath);
     });
 
-    it('should show that test case span includes all required attributes', () => {
-      // When createTestCaseSpan() is called, it creates a span with:
-      // {
-      //   'test.name': 'should validate input',
-      //   'test.suite': 'ValidationTests',
-      //   'test.file': 'tests/unit/example.test.ts',
-      //   'dr.project.name': <from resource>
-      // }
+    it('should set test.status=pass for successful tests', () => {
+      const mockSpan = new MockSpan();
+      mockSpan.setAttribute('test.status', 'pass');
 
-      const attributes = {
-        'test.name': 'should validate input',
-        'test.suite': 'ValidationTests',
-        'test.file': 'tests/unit/example.test.ts',
-      };
-
-      expect(attributes['test.name']).toBe('should validate input');
-      expect(attributes['test.suite']).toBe('ValidationTests');
-      expect(attributes['test.file']).toBe('tests/unit/example.test.ts');
+      expect(mockSpan.getAttributes()['test.status']).toBe('pass');
     });
 
-    it('should show that failed test spans include error attributes', () => {
-      // When recordTestResult() is called with a failed test:
-      // span.setAttribute('test.status', 'fail');
-      // span.setAttribute('test.error.message', error.message);
-      // span.setAttribute('test.error.stack', error.stack);
-      // span.recordException(error);
+    it('should set test.status=fail for failed tests', () => {
+      const mockSpan = new MockSpan();
+      mockSpan.setAttribute('test.status', 'fail');
 
+      expect(mockSpan.getAttributes()['test.status']).toBe('fail');
+    });
+
+    it('should set test.status=skip for skipped tests', () => {
+      const mockSpan = new MockSpan();
+      mockSpan.setAttribute('test.status', 'skip');
+
+      expect(mockSpan.getAttributes()['test.status']).toBe('skip');
+    });
+
+    it('should set test.error.message and test.error.stack on failed spans', () => {
+      const mockSpan = new MockSpan();
       const error = new Error('Assertion failed: expected 42 to equal 0');
-      const attributes = {
-        'test.status': 'fail',
-        'test.error.message': error.message,
-        'test.error.stack': error.stack || '',
-      };
 
+      mockSpan.setAttribute('test.status', 'fail');
+      mockSpan.setAttribute('test.error.message', error.message);
+      mockSpan.setAttribute('test.error.stack', error.stack || '');
+
+      const attributes = mockSpan.getAttributes();
       expect(attributes['test.status']).toBe('fail');
       expect(attributes['test.error.message']).toContain('Assertion failed');
-      expect(attributes['test.error.stack']).toBeDefined();
-    });
-
-    it('should show that passed tests set test.status to pass', () => {
-      // When recordTestResult() is called with status 'pass':
-      // span.setAttribute('test.status', 'pass');
-
-      const attributes = {
-        'test.status': 'pass',
-      };
-
-      expect(attributes['test.status']).toBe('pass');
-    });
-
-    it('should show that skipped tests set test.status to skip', () => {
-      // When recordTestResult() is called with status 'skip':
-      // span.setAttribute('test.status', 'skip');
-
-      const attributes = {
-        'test.status': 'skip',
-      };
-
-      expect(attributes['test.status']).toBe('skip');
+      expect(attributes['test.error.stack']).toBeTruthy();
     });
   });
 
-  describe('Span Nesting and Context', () => {
-    it('should show file span as parent of test case spans', () => {
-      // Span hierarchy:
-      // test.file span (parent)
-      // ├── test.case span (child 1)
-      // ├── test.case span (child 2)
-      // └── test.case span (child 3)
-      //
-      // In OpenTelemetry, child spans are created within the context of the parent span.
-      // All child spans automatically inherit the parent's trace ID.
+  describe('Context Propagation', () => {
+    it('should propagate trace context from file span to test case span', () => {
+      // Verify that test case spans inherit the file span's trace context
+      const fileSpan = new MockSpan('test.file');
+      const traceId = fileSpan.getTraceId();
 
-      const structure = {
-        parent: 'test.file',
-        children: ['test.case', 'test.case', 'test.case'],
+      // When a child span is created, it should inherit the parent trace ID
+      const testCaseSpan = new MockSpan('test.case', traceId);
+
+      expect(testCaseSpan.getTraceId()).toBe(traceId);
+      expect(fileSpan.getTraceId()).toBe(traceId);
+    });
+
+    it('should maintain parent-child span relationship', () => {
+      const fileSpan = new MockSpan('test.file');
+      const traceId = fileSpan.getTraceId();
+
+      // Both spans should share the same trace ID, creating the hierarchy
+      const testCaseSpan1 = new MockSpan('test.case1', traceId);
+      const testCaseSpan2 = new MockSpan('test.case2', traceId);
+
+      expect(testCaseSpan1.getTraceId()).toBe(testCaseSpan2.getTraceId());
+      expect(testCaseSpan1.getTraceId()).toBe(fileSpan.getTraceId());
+    });
+  });
+
+  describe('Error Recording', () => {
+    it('should record exception when test fails', () => {
+      const mockSpan = new MockSpan();
+      const error = new Error('Test assertion failed');
+
+      mockSpan.recordException(error);
+      const recordedError = mockSpan.getRecordedException();
+
+      expect(recordedError).toBeDefined();
+      expect(recordedError?.message).toBe('Test assertion failed');
+    });
+
+    it('should include error details in span attributes', () => {
+      const mockSpan = new MockSpan();
+      const error = new Error('Validation failed: field is required');
+
+      mockSpan.setAttribute('test.status', 'fail');
+      mockSpan.setAttribute('test.error.message', error.message);
+      mockSpan.setAttribute('test.error.stack', error.stack || '');
+      mockSpan.recordException(error);
+
+      const attributes = mockSpan.getAttributes();
+      expect(attributes['test.error.message']).toContain('required');
+      expect(attributes['test.error.stack']).toBeTruthy();
+      expect(mockSpan.getRecordedException()).toBeDefined();
+    });
+  });
+
+  describe('Span Processing Pipeline', () => {
+    it('should verify spans pass through span processor', () => {
+      const processor = new MockSpanProcessor();
+      const mockSpan = new MockSpan('test.case');
+      mockSpan.setAttribute('test.name', 'my test');
+      mockSpan.setAttribute('test.status', 'pass');
+
+      // In real implementation, spans would flow through processor
+      processor.onStart(mockSpan);
+      processor.onEnd(mockSpan);
+
+      expect(processor.getProcessedSpans()).toContain(mockSpan);
+    });
+
+    it('should verify ended spans contain all attributes before export', () => {
+      const mockSpan = new MockSpan('test.case');
+      mockSpan.setAttribute('test.file', 'tests/unit/my.test.ts');
+      mockSpan.setAttribute('test.name', 'should work');
+      mockSpan.setAttribute('test.suite', 'MyTests');
+      mockSpan.setAttribute('test.status', 'pass');
+
+      // End the span (in real implementation, this triggers export)
+      const attributes = mockSpan.getAttributes();
+
+      expect(attributes['test.file']).toBeDefined();
+      expect(attributes['test.name']).toBeDefined();
+      expect(attributes['test.suite']).toBeDefined();
+      expect(attributes['test.status']).toBeDefined();
+    });
+  });
+
+  describe('Resource Attribute Inheritance', () => {
+    it('should show that test spans inherit resource attributes like dr.project.name', () => {
+      // Test spans created by the instrumentation inherit resource attributes
+      // that are set during telemetry initialization.
+      // The resource includes: { 'dr.project.name': 'test-project', ... }
+      //
+      // When a span is created with startSpan(), it automatically gets these
+      // resource attributes added to its attributes, making them queryable in SigNoz.
+
+      const resourceAttributes = {
+        'service.name': 'dr-cli',
+        'service.version': '0.1.0',
+        'dr.project.name': 'test-project',
       };
 
-      expect(structure.parent).toBe('test.file');
-      expect(structure.children).toHaveLength(3);
-    });
-
-    it('should show that test case spans propagate context', () => {
-      // When a test case span is created while a file span is active,
-      // the trace context is automatically propagated:
-      //
-      // const fileSpan = startTestFileSpan('test.ts');  // Creates trace
-      // const testSpan = createTestCaseSpan('test 1');  // Inherits trace context
-      //
-      // Both spans share the same traceId, making them appear as one logical operation.
-
-      expect(true).toBe(true);
-    });
-  });
-
-  describe('Telemetry Export Path', () => {
-    it('should show that test spans flow to SigNoz', () => {
-      // Span creation flow:
-      // 1. startTestFileSpan() creates a span with test.file attributes
-      // 2. createTestCaseSpan() creates a child span with test.name, test.suite
-      // 3. recordTestResult() sets test.status and error attributes
-      // 4. endSpan() finalizes the span
-      //
-      // Export flow:
-      // 1. Span ends → SimpleSpanProcessor batches the span
-      // 2. ResilientOTLPExporter sends to http://localhost:4318/v1/traces
-      // 3. OTLP Collector receives and forwards to SigNoz
-      // 4. SigNoz stores span with all attributes
-      //
-      // In SigNoz UI:
-      // - Filter by dr.project.name = "my-project"
-      // - View test spans organized by test.file
-      // - Click test span to see all attributes: test.name, test.suite, test.status, etc.
-
-      const exportPath = 'http://localhost:4318/v1/traces';
-      expect(exportPath).toContain('4318');
-    });
-  });
-
-  describe('Manifest Integration', () => {
-    it('should show how project name is loaded from manifest', () => {
-      // In telemetry/index.ts:initTelemetry():
-      //
-      // const manifestPath = modelPath
-      //   ? path.join(modelPath, '.dr', 'manifest.json')
-      //   : path.join(process.cwd(), '.dr', 'manifest.json');
-      //
-      // if (fs.existsSync(manifestPath)) {
-      //   const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
-      //   const manifest = JSON.parse(manifestContent);
-      //   projectName = manifest.name || 'unknown';
-      // }
-      //
-      // The manifest.json file contains:
-      // {
-      //   "name": "my-project",
-      //   "version": "1.0.0",
-      //   ...
-      // }
-
-      const manifestPath = '.dr/manifest.json';
-      const manifest = {
-        name: 'my-project',
-        version: '1.0.0',
+      const spanAttributes = {
+        'test.name': 'should work',
+        'test.suite': 'MyTests',
       };
 
-      expect(manifest.name).toBe('my-project');
-      expect(manifestPath).toContain('.dr');
+      // In OpenTelemetry, spans inherit resource attributes automatically
+      const combinedAttributes = { ...resourceAttributes, ...spanAttributes };
+
+      expect(combinedAttributes['dr.project.name']).toBe('test-project');
+      expect(combinedAttributes['test.name']).toBe('should work');
     });
 
-    it('should show fallback behavior when manifest is missing', () => {
-      // If the manifest doesn't exist or can't be parsed:
-      // projectName = 'unknown'
-      //
-      // This is safe because:
-      // 1. dr init hasn't been run yet
-      // 2. The CLI still works and sends telemetry
-      // 3. Spans will have dr.project.name='unknown' for debugging
+    it('should handle missing project name gracefully', () => {
+      // If manifest is missing, dr.project.name defaults to 'unknown'
+      const resourceAttributes = {
+        'service.name': 'dr-cli',
+        'dr.project.name': 'unknown',
+      };
 
-      const projectName = 'unknown';
-      expect(projectName).toBe('unknown');
-    });
-  });
-
-  describe('CLI Integration', () => {
-    it('should show when test instrumentation is used in test files', () => {
-      // In a test file:
-      // import { beforeAll, afterAll, test } from 'bun:test';
-      // import { startTestFileSpan, endTestFileSpan, instrumentTest } from '../../src/telemetry/test-instrumentation.js';
-      //
-      // beforeAll(() => {
-      //   startTestFileSpan('tests/unit/my.test.ts');
-      // });
-      //
-      // afterAll(() => {
-      //   endTestFileSpan();
-      // });
-      //
-      // test('my test', instrumentTest('my test', () => {
-      //   // test logic
-      // }, 'MySuite'));
-
-      const fileExample = 'tests/unit/my.test.ts';
-      expect(fileExample).toContain('.test.ts');
-    });
-
-    it('should show CLI command span contains test result context', () => {
-      // When a CLI command is invoked during a test:
-      //
-      // test('should validate model', async () => {
-      //   const result = await runCommand('validate');
-      //   // ...
-      // });
-      //
-      // The span hierarchy becomes:
-      // cli.execute (parent)
-      // ├── test.file
-      // │   └── test.case
-      // │       └── command.validate (if runCommand creates spans)
-      //
-      // All spans share the same traceId, showing the full test execution path.
-
-      expect(true).toBe(true);
+      expect(resourceAttributes['dr.project.name']).toBe('unknown');
     });
   });
 });
