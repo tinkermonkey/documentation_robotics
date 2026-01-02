@@ -127,9 +127,14 @@
       "Bash(timeout 10 /home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js relationship delete:*)",
       "Bash(/home/austinsand/workspace/orchestrator/documentation_robotics/cli/dist/cli.js export jsonschema:*)",
       "Bash(npm run)",
-      "Bash(pre-commit:*)"
+      "Bash(pre-commit:*)",
+      "Bash(npx markdownlint-cli2:*)",
+      "Bash(gh run list:*)",
+      "Bash(gh run watch:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["context7"]
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
 }

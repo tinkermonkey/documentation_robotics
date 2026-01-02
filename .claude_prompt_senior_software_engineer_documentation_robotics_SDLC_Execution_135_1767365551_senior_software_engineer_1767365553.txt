@@ -1,0 +1,1694 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 1 - Fix Server Chat Implementation
+
+**Description**:
+
+**Title**: Phase 1: Fix server chat subprocess invocation and JSON event streaming
+
+**Description**:
+Fix the `VisualizationServer` chat implementation to properly invoke Claude Code CLI with correct flags, pass messages via stdin, parse streaming JSON events, and translate to JSON-RPC 2.0 notifications.
+
+**Requirements**:
+- Launch Claude Code CLI as subprocess with flags: `--print`, `--dangerously-skip-permissions`, `--verbose`, `--system-prompt <context>`, `--tools "Bash,Read"`, `--output-format stream-json`
+- Pass user message via stdin (not as command argument)
+- Parse JSON events line-by-line from stdout
+- Translate events to JSON-RPC 2.0 notifications: `chat.response.chunk`, `chat.tool.invoke`, `chat.tool.result`
+- Send completion response with conversation ID and status
+- Build system prompt with DR model context (manifest, layer stats)
+
+**Design Guidance**:
+
+**File**: `cli/src/server/server.ts`
+
+**Add `buildSystemPrompt()` method** (private async method in `VisualizationServer` class):
+```typescript
+/**
+ * Build system prompt with DR model context for Claude Code CLI
+ */
+private async buildSystemPrompt(): Promise<string> {
+  const parts: string[] = [];
+
+  parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
+
+## Your Expertise
+
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 4) - HOW: components, services, interfaces, events
+5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
+7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
+8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
+9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
+10. Navigation (Layer 10) - FLOW: Multi-Modal routing
+11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
+12. Testing (Layer 12) - VERIFY: ISP Coverage Model
+
+## Your Tools
+
+You can use Bash to run DR CLI commands:
+- \`dr list <layer>\` - List elements in a layer
+- \`dr find <id>\` - Find element by ID
+- \`dr search <query>\` - Search for elements
+- \`dr trace <id>\` - Trace dependencies
+
+You can use Read to examine model files in the .dr directory.
+
+## Guidelines
+
+- Understand user intent through conversation
+- Use DR CLI tools to get current model information
+- Provide context from the model state
+- Be conversational and helpful`);
+
+  // Add model context
+  parts.push('\n## Current Model Context\n');
+  parts.push(`**Model**: ${this.model.manifest.name}`);
+  parts.push(`**Spec Version**: ${this.model.manifest.specVersion}`);
+  if (this.model.manifest.description) {
+    parts.push(`**Description**: ${this.model.manifest.description}`);
+  }
+
+  // Add layer statistics
+  parts.push('\n**Layer Statistics**:');
+  const layerNames = this.model.getLayerNames();
+  for (const layerName of layerNames) {
+    const layer = await this.model.getLayer(layerName);
+    if (layer) {
+      const count = layer.listElements().length;
+      if (count > 0) {
+        parts.push(`- ${layerName}: ${count} elements`);
+      }
+    }
+  }
+
+  return parts.join('\n');
+}
+```
+
+**Replace `launchClaudeCodeChat()` method** (around line 821):
+```typescript
+/**
+ * Launch Claude Code CLI with DR chat agent and stream responses
+ */
+private async launchClaudeCodeChat(
+  ws: HonoWSContext,
+  conversationId: string,
+  message: string,
+  requestId: string | number | undefined
+): Promise<void> {
+  try {
+    // Build system prompt with model context
+    const systemPrompt = await this.buildSystemPrompt();
+
+    // Launch claude with proper flags for streaming JSON output
+    const proc = Bun.spawn({
+      cmd: [
+        'claude',
+        '--print',
+        '--dangerously-skip-permissions',
+        '--verbose',
+        '--system-prompt', systemPrompt,
+        '--tools', 'Bash,Read',
+        '--output-format', 'stream-json',
+      ],
+      cwd: this.model.rootPath,
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    // Store active process
+    this.activeChatProcesses.set(conversationId, proc);
+
+    // Send user message via stdin (like Python prototype)
+    const writer = proc.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(message));
+    await writer.close();
+
+    // Stream stdout (JSON events)
+    const stdoutReader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+
+    const streamOutput = async () => {
+      let accumulatedText = '';
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await stdoutReader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+
+          // Process complete lines (JSON events)
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            try {
+              const event = JSON.parse(line);
+              
+              if (event.type === 'assistant') {
+                // Extract content blocks from assistant message
+                const content = event.message?.content || [];
+                for (const block of content) {
+                  if (block.type === 'text') {
+                    accumulatedText += block.text;
+                    // Send text chunk notification
+                    ws.send(JSON.stringify({
+                      jsonrpc: '2.0',
+                      method: 'chat.response.chunk',
+                      params: {
+                        conversation_id: conversationId,
+                        content: block.text,
+                        is_final: false,
+                        timestamp: new Date().toISOString(),
+                      },
+                    }));
+                  } else if (block.type === 'tool_use') {
+                    // Send tool invocation notification
+                    ws.send(JSON.stringify({
+                      jsonrpc: '2.0',
+                      method: 'chat.tool.invoke',
+                      params: {
+                        conversation_id: conversationId,
+                        tool_name: block.name,
+                        tool_input: block.input,
+                        timestamp: new Date().toISOString(),
+                      },
+                    }));
+                  }
+                }
+              } else if (event.type === 'result') {
+                // Tool result
+                ws.send(JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'chat.tool.result',
+                  params: {
+                    conversation_id: conversationId,
+                    result: event.result,
+                    timestamp: new Date().toISOString(),
+                  },
+                }));
+              }
+            } catch {
+              // Non-JSON line, send as raw text chunk
+              ws.send(JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'chat.response.chunk',
+                params: {
+                  conversation_id: conversationId,
+                  content: line + '\n',
+                  is_final: false,
+                  timestamp: new Date().toISOString(),
+                },
+              }));
+            }
+          }
+        }
+
+        // Process remaining buffer
+        if (buffer.trim()) {
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'chat.response.chunk',
+            params: {
+              conversation_id: conversationId,
+              content: buffer,
+              is_final: true,
+              timestamp: new Date().toISOString(),
+            },
+          }));
+        }
+
+        // Wait for process to complete
+        const exitCode = await proc.exited;
+
+        // Clean up
+        this.activeChatProcesses.delete(conversationId);
+
+        // Send completion response
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          result: {
+            conversation_id: conversationId,
+            status: exitCode === 0 ? 'complete' : 'error',
+            exit_code: exitCode,
+            full_response: accumulatedText,
+            timestamp: new Date().toISOString(),
+          },
+          id: requestId,
+        }));
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: `Chat failed: ${errorMsg}`,
+          },
+          id: requestId,
+        }));
+
+        this.activeChatProcesses.delete(conversationId);
+
+        try {
+          proc.kill();
+        } catch {
+          // Process may already be terminated
+        }
+      }
+    };
+
+    // Start streaming in background
+    streamOutput();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    ws.send(JSON.stringify({
+      jsonrpc: '2.0',
+      error: {
+        code: -32603,
+        message: `Failed to launch Claude Code: ${errorMsg}`,
+      },
+      id: requestId,
+    }));
+  }
+}
+```
+
+**Remove obsolete methods**: Delete `streamClaudeOutput()` and `parseClaudeEvent()` methods (lines 908-1073) as they are replaced by the inline streaming logic above.
+
+**JSON Event Format** (from Claude Code `--output-format stream-json`):
+```typescript
+// Assistant message with text
+{
+  "type": "assistant",
+  "message": {
+    "content": [
+      { "type": "text", "text": "Hello..." }
+    ]
+  }
+}
+
+// Assistant message with tool use
+{
+  "type": "assistant",
+  "message": {
+    "content": [
+      {
+        "type": "tool_use",
+        "name": "Bash",
+        "input": { "command": "dr list api" }
+      }
+    ]
+  }
+}
+
+// Tool result
+{
+  "type": "result",
+  "result": "..."
+}
+```
+
+**JSON-RPC 2.0 Notification Format**:
+```typescript
+// Text chunk
+{
+  "jsonrpc": "2.0",
+  "method": "chat.response.chunk",
+  "params": {
+    "conversation_id": "conv-1-12345",
+    "content": "text content",
+    "is_final": false,
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  }
+}
+
+// Tool invocation
+{
+  "jsonrpc": "2.0",
+  "method": "chat.tool.invoke",
+  "params": {
+    "conversation_id": "conv-1-12345",
+    "tool_name": "Bash",
+    "tool_input": { "command": "dr list api" },
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  }
+}
+
+// Completion
+{
+  "jsonrpc": "2.0",
+  "result": {
+    "conversation_id": "conv-1-12345",
+    "status": "complete",
+    "exit_code": 0,
+    "full_response": "accumulated text",
+    "timestamp": "2025-01-02T12:00:00.000Z"
+  },
+  "id": 1
+}
+```
+
+**Error Handling**:
+- Claude Code not found → error code `-32001` with message "Claude Code CLI not available"
+- Process error → error code `-32603` with error message
+- Process cleanup on cancellation via `activeChatProcesses.delete()` and `proc.kill()`
+
+**Acceptance Criteria**:
+- [ ] `buildSystemPrompt()` method generates context with all 12 layers, DR CLI tools, and model metadata (manifest name, spec version, layer stats)
+- [ ] `launchClaudeCodeChat()` spawns `claude` subprocess with flags: `--print`, `--dangerously-skip-permissions`, `--verbose`, `--system-prompt`, `--tools "Bash,Read"`, `--output-format stream-json`
+- [ ] User message is sent via stdin and stdin is closed
+- [ ] JSON events are parsed line-by-line from stdout
+- [ ] Text blocks from `assistant` events trigger `chat.response.chunk` notifications
+- [ ] Tool use blocks from `assistant` events trigger `chat.tool.invoke` notifications
+- [ ] Process completion sends final response with conversation ID, status, exit code, and full response
+- [ ] Process errors send JSON-RPC 2.0 error responses
+- [ ] Active processes are tracked in `activeChatProcesses` map and cleaned up on completion
+- [ ] Obsolete methods `streamClaudeOutput()` and `parseClaudeEvent()` are removed
+- [ ] Code is reviewed and approved
+
+**Dependencies**: None
+
+**Parent Issue**: #128
+
+**Discussion**: This work is detailed in discussion [129](https://github.com/tinkermonkey/documentation_robotics/discussions/129)
+
+
+## Previous Work and Feedback
+
+The following is the complete history of agent outputs and feedback for this issue.
+This includes outputs from ALL previous stages (design, testing, QA, etc.) and any
+user feedback. If this issue was returned from testing or QA, pay special attention
+to their feedback and address all issues they identified.
+
+## Output from Software Architect
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+## Executive Summary
+
+The current TypeScript CLI chat implementation uses **direct Anthropic SDK integration** (`@anthropic-ai/sdk`) within the CLI process itself. The required behavior, as demonstrated by the Python prototype, is to **launch Claude Code CLI as a subprocess**, leverage the user's OAuth token, invoke the `dr-chat` agent/skill, and stream all Claude Code events back over WebSocket to the client.
+
+**Current State:**
+- `cli/src/commands/chat.ts`: Direct Anthropic SDK call with custom tools - CLI-only mode
+- `cli/src/server/server.ts`: Has JSON-RPC 2.0 WebSocket chat handling, but invokes Claude Code CLI with `/dr-chat` skill (partially correct)
+
+**Target State (from Python prototype):**
+- Launch `claude --print --dangerously-skip-permissions --verbose --system-prompt "..." --tools "Bash,Read" --output-format stream-json` with user message via stdin
+- Parse streaming JSON events (`assistant`, `tool_use`, `text`, `error`)
+- Translate events to JSON-RPC 2.0 notifications (`chat.response.chunk`, `chat.tool.invoke`, `chat.complete`)
+- Stream all events over WebSocket to client
+
+---
+
+## System Architecture
+
+### Current Architecture (Incorrect)
+
+```
+┌─────────────────┐     ┌─────────────────────────────────────────┐
+│  CLI Command    │     │           VisualizationServer           │
+│  `dr chat`      │     │                                         │
+│                 │     │  ┌─────────────────────────────────────┐│
+│  ClaudeClient   │     │  │   WebSocket (JSON-RPC 2.0)          ││
+│  ↓              │     │  │                                     ││
+│  Anthropic SDK  │     │  │   chat.send → Bun.spawn claude      ││
+│  Direct API     │     │  │            /dr-chat <message>       ││
+└─────────────────┘     │  │                                     ││
+                        │  │   Missing: --output-format          ││
+                        │  │           stream-json parsing       ││
+                        │  └─────────────────────────────────────┘│
+                        └─────────────────────────────────────────┘
+```
+
+**Issues:**
+1. `cli/src/commands/chat.ts` uses direct Anthropic SDK - doesn't leverage Claude Code CLI
+2. Server's `launchClaudeCodeChat` spawns `claude /dr-chat <message>` but:
+   - Missing `--print --verbose --output-format stream-json` flags
+   - Missing `--system-prompt` with DR context
+   - Missing `--tools "Bash,Read"` restriction
+   - No stdin-based message passing
+   - Raw stdout parsing instead of JSON event handling
+
+### Target Architecture (Correct)
+
+```
+┌─────────────────┐     ┌─────────────────────────────────────────┐
+│  CLI Command    │     │           VisualizationServer           │
+│  `dr chat`      │     │                                         │
+│                 │     │  ┌─────────────────────────────────────┐│
+│  Should invoke  │     │  │   WebSocket (JSON-RPC 2.0)          ││
+│  server or      │     │  │                                     ││
+│  subprocess     │     │  │   chat.send →                       ││
+│  directly       │     │  │     Bun.spawn claude                ││
+└─────────────────┘     │  │       --print                       ││
+                        │  │       --dangerously-skip-permissions││
+                        │  │       --verbose                     ││
+                        │  │       --system-prompt <DR context>  ││
+                        │  │       --tools "Bash,Read"           ││
+                        │  │       --output-format stream-json   ││
+                        │  │     stdin ← user message            ││
+                        │  │     stdout → parse JSON events      ││
+                        │  │                                     ││
+                        │  │   Events:                           ││
+                        │  │     {type:"assistant"} → chunk      ││
+                        │  │     {type:"tool_use"} → tool.invoke ││
+                        │  │   → JSON-RPC 2.0 notifications → WS ││
+                        │  └─────────────────────────────────────┘│
+                        └─────────────────────────────────────────┘
+```
+
+---
+
+## Established Patterns
+
+### Python Prototype Pattern (`drbot_orchestrator.py:135-253`)
+
+The Python implementation demonstrates the correct subprocess IPC:
+
+```python
+proc = await asyncio.create_subprocess_exec(
+    "claude",
+    "--print",
+    "--dangerously-skip-permissions",
+    "--verbose",
+    "--system-prompt", system_prompt,
+    "--tools", "Bash,Read",
+    "--output-format", "stream-json",
+    stdin=asyncio.subprocess.PIPE,
+    stdout=asyncio.subprocess.PIPE,
+    stderr=asyncio.subprocess.PIPE,
+    cwd=str(self.model_path),
+)
+
+# Send user message via stdin
+proc.stdin.write(user_message.encode("utf-8"))
+await proc.stdin.drain()
+proc.stdin.close()
+
+# Stream JSON events
+async for line in proc.stdout:
+    event = json.loads(line.decode("utf-8").strip())
+    if event.get("type") == "assistant":
+        for block in event.get("message", {}).get("content", []):
+            if block.get("type") == "text":
+                yield {"type": "text_delta", "text": block.get("text")}
+            elif block.get("type") == "tool_use":
+                yield {"type": "tool_use", "name": block.get("name"), ...}
+```
+
+### JSON-RPC 2.0 Protocol (`chat_protocol.py`)
+
+Chat messages follow JSON-RPC 2.0:
+
+| Method | Type | Description |
+|--------|------|-------------|
+| `chat.send` | Request | User message, returns `conversation_id` |
+| `chat.response.chunk` | Notification | Streaming text content |
+| `chat.tool.invoke` | Notification | Tool invocation with name/input |
+| `chat.tool.result` | Notification | Tool execution result |
+| `chat.complete` | Response | Final response to request |
+| `chat.cancel` | Request | Cancel ongoing operation |
+| `chat.status` | Request | Check SDK availability |
+
+### System Prompt Pattern
+
+The Python prototype builds context-aware prompts:
+
+```typescript
+// Build system prompt with DR context
+const systemPrompt = buildSystemPrompt(modelContext, conversationHistory);
+
+// modelContext includes:
+// - manifest (name, specVersion)
+// - layer_stats (element counts per layer)
+// - recent_elements (recently modified element IDs)
+```
+
+---
+
+## Component Reuse
+
+### Existing Components to Leverage
+
+1. **`VisualizationServer`** (`cli/src/server/server.ts`)
+   - WebSocket infrastructure with JSON-RPC 2.0 handling
+   - Authentication middleware
+   - `handleJSONRPCMessage()` already routes `chat.*` methods
+   - `launchClaudeCodeChat()` needs correction, not replacement
+
+2. **`ModelContextProvider`** (`cli/src/ai/context-provider.ts`)
+   - Generates model context for system prompts
+   - Can be adapted for Claude Code CLI system prompt
+
+3. **`dr-chat.md`** (`.claude/commands/dr-chat.md`)
+   - Existing skill definition for Claude Code
+   - Provides DR expertise and tool guidance
+
+4. **Chat Protocol Types** (derive from Python `chat_protocol.py`)
+   - Message factories already defined
+   - Error codes defined (`ChatErrorCodes`)
+
+### Components NOT to Reuse
+
+1. **`ClaudeClient`** (`cli/src/ai/claude-client.ts`)
+   - Direct Anthropic SDK integration
+   - Not needed for Claude Code CLI subprocess approach
+
+2. **`chatCommand`** (`cli/src/commands/chat.ts`)
+   - Currently uses direct API, should delegate to subprocess or server
+
+---
+
+## Implementation Plan
+
+### Phase 1: Fix Server Chat Implementation
+
+**Files:** `cli/src/server/server.ts`
+
+1. **Fix `launchClaudeCodeChat()` method:**
+   - Add missing CLI flags: `--print`, `--verbose`, `--output-format stream-json`
+   - Add `--system-prompt` with DR model context
+   - Add `--tools "Bash,Read"` restriction
+   - Pass user message via stdin instead of command argument
+
+2. **Fix `streamClaudeOutput()` method:**
+   - Parse JSON events line-by-line
+   - Handle event types: `assistant`, `tool_use`, `error`
+   - Extract content blocks from `assistant` messages
+   - Map to JSON-RPC 2.0 notifications
+
+3. **Add context builder:**
+   - Extract model context (manifest, layer stats)
+   - Build system prompt similar to Python prototype
+
+### Phase 2: Fix CLI Chat Command
+
+**Files:** `cli/src/commands/chat.ts`
+
+1. **Option A: Direct Subprocess**
+   - Replace Anthropic SDK call with Claude Code CLI subprocess
+   - Mirror the server implementation for consistency
+
+2. **Option B: Server Delegation**
+   - CLI starts visualization server in background
+   - Connects via WebSocket for chat
+   - Provides unified experience
+
+**Recommendation:** Option A for simplicity and no server dependency.
+
+### Phase 3: Update Documentation
+
+**Files:** `cli/README.md`
+
+1. Update chat section to reflect:
+   - Claude Code CLI requirement (not just `ANTHROPIC_API_KEY`)
+   - OAuth authentication path
+   - WebSocket chat for visualization server
+
+### Phase 4: Add/Update Tests
+
+**Files:** `cli/tests/integration/` or `cli/tests/unit/`
+
+1. Test subprocess spawning with correct flags
+2. Test JSON event parsing
+3. Test JSON-RPC 2.0 message generation
+4. Test WebSocket streaming behavior
+
+---
+
+## Technical Details
+
+### Claude Code CLI Invocation
+
+```typescript
+const proc = Bun.spawn({
+  cmd: [
+    'claude',
+    '--print',
+    '--dangerously-skip-permissions',
+    '--verbose',
+    '--system-prompt', systemPrompt,
+    '--tools', 'Bash,Read',
+    '--output-format', 'stream-json',
+  ],
+  cwd: this.model.rootPath,
+  stdin: 'pipe',
+  stdout: 'pipe',
+  stderr: 'pipe',
+});
+
+// Send message via stdin
+const writer = proc.stdin.getWriter();
+await writer.write(new TextEncoder().encode(userMessage));
+await writer.close();
+```
+
+### JSON Event Parsing
+
+Claude Code with `--output-format stream-json` emits events like:
+
+```json
+{"type":"assistant","message":{"content":[{"type":"text","text":"Hello..."}]}}
+{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"dr list api"}}]}}
+```
+
+Parse and translate:
+
+```typescript
+const event = JSON.parse(line);
+if (event.type === 'assistant') {
+  for (const block of event.message?.content || []) {
+    if (block.type === 'text') {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'chat.response.chunk',
+        params: { conversation_id: convId, content: block.text, is_final: false }
+      }));
+    } else if (block.type === 'tool_use') {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        method: 'chat.tool.invoke',
+        params: { conversation_id: convId, tool_name: block.name, tool_input: block.input }
+      }));
+    }
+  }
+}
+```
+
+### Error Handling
+
+Follow Python prototype patterns:
+- `FileNotFoundError` → `-32001` SDK_UNAVAILABLE
+- Timeout → `-32603` Internal error with timeout message
+- Process cleanup on cancellation
+
+---
+
+## Security Considerations
+
+1. **`--dangerously-skip-permissions`**: Justified because:
+   - Subprocess runs with restricted tools (`Bash,Read` only)
+   - Subprocess is limited to model directory (`cwd`)
+   - No arbitrary file write permissions
+
+2. **Tool Restrictions**: `--tools "Bash,Read"` limits Claude Code to:
+   - Running `dr` commands
+   - Reading model files
+   - No write/edit/delete operations unless explicitly needed
+
+3. **Process Isolation**: Each chat session spawns isolated subprocess with proper cleanup on completion or cancellation.
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+**@tinkermonkey** (human feedback):
+Please ensure proper test coverage and that the end-to-end workflow is fully validated so there is proof this will work when end users use it. End to end testing can focus on the cli interface for now.
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+I'll implement the chat fix with proper test coverage and validate the end-to-end workflow. Let me start by examining the current implementation and then make the necessary changes.Let me also examine the Python prototype to understand the correct implementation pattern.Now I understand the full picture. Let me fix the server chat implementation first, then the CLI chat command.Now I have all the context needed. Let me implement the fixes:
+
+1. First, I'll fix the server's `launchClaudeCodeChat` method to properly invoke Claude Code CLI with the correct flags and stream-json parsing
+2. Then fix the CLI chat command to use the same subprocess approachThe filesystem is read-only. Let me check if this is expected.The filesystem is mounted read-only. Since I cannot make direct edits, I'll provide the complete implementation that you'll need to apply. Let me create a comprehensive summary of all the changes needed.The filesystem is read-only, so I cannot make direct edits. However, I can provide you with the complete implementation that needs to be applied. Here's the comprehensive fix:
+
+---
+
+## Chat Implementation Fix
+
+The filesystem is currently read-only, so I'll provide the complete implementation changes. There are **3 files** that need modification:
+
+### 1. `cli/src/server/server.ts` - Server Chat Implementation
+
+The key changes to `launchClaudeCodeChat()` method (around line 821):
+
+```typescript
+/**
+ * Build system prompt with DR model context for Claude Code CLI
+ */
+private async buildSystemPrompt(): Promise<string> {
+  const parts: string[] = [];
+
+  parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
+
+## Your Expertise
+
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 4) - HOW: components, services, interfaces, events
+5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
+7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
+8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
+9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
+10. Navigation (Layer 10) - FLOW: Multi-Modal routing
+11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
+12. Testing (Layer 12) - VERIFY: ISP Coverage Model
+
+## Your Tools
+
+You can use Bash to run DR CLI commands:
+- \`dr list <layer>\` - List elements in a layer
+- \`dr find <id>\` - Find element by ID
+- \`dr search <query>\` - Search for elements
+- \`dr trace <id>\` - Trace dependencies
+
+You can use Read to examine model files in the .dr directory.
+
+## Guidelines
+
+- Understand user intent through conversation
+- Use DR CLI tools to get current model information
+- Provide context from the model state
+- Be conversational and helpful`);
+
+  // Add model context
+  parts.push('\n## Current Model Context\n');
+  parts.push(`**Model**: ${this.model.manifest.name}`);
+  parts.push(`**Spec Version**: ${this.model.manifest.specVersion}`);
+  if (this.model.manifest.description) {
+    parts.push(`**Description**: ${this.model.manifest.description}`);
+  }
+
+  // Add layer statistics
+  parts.push('\n**Layer Statistics**:');
+  const layerNames = this.model.getLayerNames();
+  for (const layerName of layerNames) {
+    const layer = await this.model.getLayer(layerName);
+    if (layer) {
+      const count = layer.listElements().length;
+      if (count > 0) {
+        parts.push(`- ${layerName}: ${count} elements`);
+      }
+    }
+  }
+
+  return parts.join('\n');
+}
+
+/**
+ * Launch Claude Code CLI with DR chat agent and stream responses
+ */
+private async launchClaudeCodeChat(
+  ws: HonoWSContext,
+  conversationId: string,
+  message: string,
+  requestId: string | number | undefined
+): Promise<void> {
+  try {
+    // Build system prompt with model context
+    const systemPrompt = await this.buildSystemPrompt();
+
+    // Launch claude with proper flags for streaming JSON output
+    const proc = Bun.spawn({
+      cmd: [
+        'claude',
+        '--print',
+        '--dangerously-skip-permissions',
+        '--verbose',
+        '--system-prompt', systemPrompt,
+        '--tools', 'Bash,Read',
+        '--output-format', 'stream-json',
+      ],
+      cwd: this.model.rootPath,
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    // Store active process
+    this.activeChatProcesses.set(conversationId, proc);
+
+    // Send user message via stdin (like Python prototype)
+    const writer = proc.stdin.getWriter();
+    await writer.write(new TextEncoder().encode(message));
+    await writer.close();
+
+    // Stream stdout (JSON events)
+    const stdoutReader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+
+    const streamOutput = async () => {
+      let accumulatedText = '';
+      let buffer = '';
+
+      try {
+        while (true) {
+          const { done, value } = await stdoutReader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          buffer += chunk;
+
+          // Process complete lines (JSON events)
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (!line.trim()) continue;
+
+            try {
+              const event = JSON.parse(line);
+              
+              if (event.type === 'assistant') {
+                // Extract content blocks from assistant message
+                const content = event.message?.content || [];
+                for (const block of content) {
+                  if (block.type === 'text') {
+                    accumulatedText += block.text;
+                    // Send text chunk notification
+                    ws.send(JSON.stringify({
+                      jsonrpc: '2.0',
+                      method: 'chat.response.chunk',
+                      params: {
+                        conversation_id: conversationId,
+                        content: block.text,
+                        is_final: false,
+                        timestamp: new Date().toISOString(),
+                      },
+                    }));
+                  } else if (block.type === 'tool_use') {
+                    // Send tool invocation notification
+                    ws.send(JSON.stringify({
+                      jsonrpc: '2.0',
+                      method: 'chat.tool.invoke',
+                      params: {
+                        conversation_id: conversationId,
+                        tool_name: block.name,
+                        tool_input: block.input,
+                        timestamp: new Date().toISOString(),
+                      },
+                    }));
+                  }
+                }
+              } else if (event.type === 'result') {
+                // Tool result
+                ws.send(JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'chat.tool.result',
+                  params: {
+                    conversation_id: conversationId,
+                    result: event.result,
+                    timestamp: new Date().toISOString(),
+                  },
+                }));
+              }
+            } catch {
+              // Non-JSON line, send as raw text chunk
+              ws.send(JSON.stringify({
+                jsonrpc: '2.0',
+                method: 'chat.response.chunk',
+                params: {
+                  conversation_id: conversationId,
+                  content: line + '\n',
+                  is_final: false,
+                  timestamp: new Date().toISOString(),
+                },
+              }));
+            }
+          }
+        }
+
+        // Process remaining buffer
+        if (buffer.trim()) {
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            method: 'chat.response.chunk',
+            params: {
+              conversation_id: conversationId,
+              content: buffer,
+              is_final: true,
+              timestamp: new Date().toISOString(),
+            },
+          }));
+        }
+
+        // Wait for process to complete
+        const exitCode = await proc.exited;
+
+        // Clean up
+        this.activeChatProcesses.delete(conversationId);
+
+        // Send completion response
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          result: {
+            conversation_id: conversationId,
+            status: exitCode === 0 ? 'complete' : 'error',
+            exit_code: exitCode,
+            full_response: accumulatedText,
+            timestamp: new Date().toISOString(),
+          },
+          id: requestId,
+        }));
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : String(error);
+
+        ws.send(JSON.stringify({
+          jsonrpc: '2.0',
+          error: {
+            code: -32603,
+            message: `Chat failed: ${errorMsg}`,
+          },
+          id: requestId,
+        }));
+
+        this.activeChatProcesses.delete(conversationId);
+
+        try {
+          proc.kill();
+        } catch {
+          // Process may already be terminated
+        }
+      }
+    };
+
+    // Start streaming in background
+    streamOutput();
+  } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : String(error);
+
+    ws.send(JSON.stringify({
+      jsonrpc: '2.0',
+      error: {
+        code: -32603,
+        message: `Failed to launch Claude Code: ${errorMsg}`,
+      },
+      id: requestId,
+    }));
+  }
+}
+```
+
+Also remove the unused `streamClaudeOutput` and `parseClaudeEvent` methods (lines 908-1073).
+
+### 2. `cli/src/commands/chat.ts` - CLI Chat Command
+
+Replace the entire file with a subprocess-based implementation:
+
+```typescript
+/**
+ * Chat Command - Interactive chat with Claude about the architecture model
+ * Uses Claude Code CLI subprocess for OAuth-based authentication
+ */
+
+import ansis from 'ansis';
+import { text, intro, outro } from '@clack/prompts';
+import { Model } from '../core/model.js';
+import { spawn } from 'child_process';
+
+/**
+ * Build system prompt with DR model context
+ */
+async function buildSystemPrompt(model: Model): Promise<string> {
+  const parts: string[] = [];
+
+  parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
+
+## Your Expertise
+
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 4) - HOW: components, services, interfaces, events
+5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
+7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
+8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
+9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
+10. Navigation (Layer 10) - FLOW: Multi-Modal routing
+11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
+12. Testing (Layer 12) - VERIFY: ISP Coverage Model
+
+## Your Tools
+
+You can use Bash to run DR CLI commands:
+- \`dr list <layer>\` - List elements in a layer
+- \`dr find <id>\` - Find element by ID
+- \`dr search <query>\` - Search for elements
+- \`dr trace <id>\` - Trace dependencies
+
+You can use Read to examine model files in the .dr directory.
+
+## Guidelines
+
+- Understand user intent through conversation
+- Use DR CLI tools to get current model information
+- Provide context from the model state
+- Be conversational and helpful`);
+
+  // Add model context
+  parts.push('\n## Current Model Context\n');
+  parts.push(`**Model**: ${model.manifest.name}`);
+  parts.push(`**Spec Version**: ${model.manifest.specVersion}`);
+  if (model.manifest.description) {
+    parts.push(`**Description**: ${model.manifest.description}`);
+  }
+
+  // Add layer statistics
+  parts.push('\n**Layer Statistics**:');
+  const layerNames = model.getLayerNames();
+  for (const layerName of layerNames) {
+    const layer = await model.getLayer(layerName);
+    if (layer) {
+      const count = layer.listElements().length;
+      if (count > 0) {
+        parts.push(`- ${layerName}: ${count} elements`);
+      }
+    }
+  }
+
+  return parts.join('\n');
+}
+
+/**
+ * Check if Claude Code CLI is available
+ */
+async function checkClaudeAvailable(): Promise<boolean> {
+  return new Promise((resolve) => {
+    const proc = spawn('which', ['claude']);
+    proc.on('close', (code) => {
+      resolve(code === 0);
+    });
+    proc.on('error', () => {
+      resolve(false);
+    });
+  });
+}
+
+/**
+ * Send a message to Claude Code CLI and stream response
+ */
+async function sendMessage(
+  message: string,
+  systemPrompt: string,
+  modelPath: string
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const proc = spawn('claude', [
+      '--print',
+      '--dangerously-skip-permissions',
+      '--verbose',
+      '--system-prompt', systemPrompt,
+      '--tools', 'Bash,Read',
+      '--output-format', 'stream-json',
+    ], {
+      cwd: modelPath,
+      stdio: ['pipe', 'pipe', 'pipe'],
+    });
+
+    // Send message via stdin
+    proc.stdin.write(message);
+    proc.stdin.end();
+
+    // Stream stdout
+    let buffer = '';
+    proc.stdout.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      buffer += chunk;
+
+      // Process complete lines
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
+
+      for (const line of lines) {
+        if (!line.trim()) continue;
+
+        try {
+          const event = JSON.parse(line);
+          
+          if (event.type === 'assistant') {
+            const content = event.message?.content || [];
+            for (const block of content) {
+              if (block.type === 'text') {
+                process.stdout.write(block.text);
+              } else if (block.type === 'tool_use') {
+                process.stdout.write(ansis.dim(`\n[Using tool: ${block.name}]\n`));
+              }
+            }
+          }
+        } catch {
+          // Non-JSON line, print as-is
+          process.stdout.write(line);
+        }
+      }
+    });
+
+    // Print any remaining buffer
+    proc.stdout.on('end', () => {
+      if (buffer.trim()) {
+        process.stdout.write(buffer);
+      }
+    });
+
+    proc.stderr.on('data', (data: Buffer) => {
+      // Ignore stderr for now (verbose output)
+    });
+
+    proc.on('close', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Claude process exited with code ${code}`));
+      }
+    });
+
+    proc.on('error', (err) => {
+      reject(err);
+    });
+  });
+}
+
+/**
+ * Chat command implementation
+ * Launches an interactive conversation with Claude Code CLI
+ */
+export async function chatCommand(): Promise<void> {
+  try {
+    // Check if Claude Code CLI is available
+    const claudeAvailable = await checkClaudeAvailable();
+    if (!claudeAvailable) {
+      console.error(ansis.red('Error: Claude Code CLI not found.'));
+      console.error(ansis.dim('Install Claude Code to enable chat functionality.'));
+      console.error(ansis.dim('Visit: https://claude.ai/download'));
+      process.exit(1);
+    }
+
+    // Load the model
+    const model = await Model.load(process.cwd());
+    if (!model) {
+      console.error(ansis.red('Error: Could not load architecture model'));
+      process.exit(1);
+    }
+
+    // Build system prompt with model context
+    const systemPrompt = await buildSystemPrompt(model);
+
+    // Show intro
+    intro(ansis.bold(ansis.cyan('Documentation Robotics Chat')));
+    console.log(ansis.dim('Powered by Claude Code - Ask about your architecture model\n'));
+
+    // Start conversation loop
+    while (true) {
+      // Get user input
+      let userInput: string;
+      try {
+        userInput = (await text({
+          message: ansis.cyan('You:'),
+          placeholder: 'Ask about the architecture (or "exit" to quit)',
+        })) as string;
+      } catch (e) {
+        // Handle Ctrl+C or other input errors gracefully
+        console.log('');
+        outro(ansis.green('Goodbye!'));
+        break;
+      }
+
+      // Check for exit
+      if (
+        userInput.toLowerCase() === 'exit' ||
+        userInput.toLowerCase() === 'quit' ||
+        userInput.toLowerCase() === 'q'
+      ) {
+        console.log('');
+        outro(ansis.green('Goodbye!'));
+        break;
+      }
+
+      if (!userInput.trim()) {
+        continue;
+      }
+
+      try {
+        // Stream the response
+        process.stdout.write(ansis.cyan('Claude: '));
+        await sendMessage(userInput, systemPrompt, model.rootPath);
+        console.log('\n');
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        console.error(ansis.red(`Error: ${message}`));
+      }
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(ansis.red(`Error: ${message}`));
+    process.exit(1);
+  }
+}
+```
+
+### 3. Test Files
+
+Create `cli/tests/unit/chat.test.ts`:
+
+```typescript
+/**
+ * Unit tests for chat functionality
+ */
+
+import { describe, it, expect, mock, beforeEach, afterEach } from 'bun:test';
+import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
+
+// Mock child_process spawn
+const mockSpawn = mock(() => {
+  const proc = new EventEmitter() as any;
+  proc.stdin = {
+    write: mock(() => {}),
+    end: mock(() => {}),
+  };
+  proc.stdout = new EventEmitter();
+  proc.stderr = new EventEmitter();
+  return proc;
+});
+
+describe('Chat JSON Event Parsing', () => {
+  it('should parse assistant text events', () => {
+    const event = JSON.parse('{"type":"assistant","message":{"content":[{"type":"text","text":"Hello!"}]}}');
+    expect(event.type).toBe('assistant');
+    expect(event.message.content[0].type).toBe('text');
+    expect(event.message.content[0].text).toBe('Hello!');
+  });
+
+  it('should parse tool_use events', () => {
+    const event = JSON.parse('{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"dr list api"}}]}}');
+    expect(event.type).toBe('assistant');
+    expect(event.message.content[0].type).toBe('tool_use');
+    expect(event.message.content[0].name).toBe('Bash');
+    expect(event.message.content[0].input.command).toBe('dr list api');
+  });
+
+  it('should handle mixed content blocks', () => {
+    const event = JSON.parse('{"type":"assistant","message":{"content":[{"type":"text","text":"Let me check..."},{"type":"tool_use","name":"Bash","input":{"command":"dr list"}}]}}');
+    expect(event.message.content.length).toBe(2);
+    expect(event.message.content[0].type).toBe('text');
+    expect(event.message.content[1].type).toBe('tool_use');
+  });
+});
+
+describe('System Prompt Building', () => {
+  it('should include all 12 layers in prompt', () => {
+    const prompt = `You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
+
+## Your Expertise
+
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1)
+2. Business (Layer 2)
+3. Security (Layer 3)
+4. Application (Layer 4)
+5. Technology (Layer 5)
+6. API (Layer 6)
+7. Data Model (Layer 7)
+8. Datastore (Layer 8)
+9. UX (Layer 9)
+10. Navigation (Layer 10)
+11. APM (Layer 11)
+12. Testing (Layer 12)`;
+
+    expect(prompt).toContain('Motivation');
+    expect(prompt).toContain('Business');
+    expect(prompt).toContain('Security');
+    expect(prompt).toContain('Application');
+    expect(prompt).toContain('Technology');
+    expect(prompt).toContain('API');
+    expect(prompt).toContain('Data Model');
+    expect(prompt).toContain('Datastore');
+    expect(prompt).toContain('UX');
+    expect(prompt).toContain('Navigation');
+    expect(prompt).toContain('APM');
+    expect(prompt).toContain('Testing');
+  });
+
+  it('should include DR CLI tool documentation', () => {
+    const prompt = `## Your Tools
+
+You can use Bash to run DR CLI commands:
+- \`dr list <layer>\` - List elements in a layer
+- \`dr find <id>\` - Find element by ID
+- \`dr search <query>\` - Search for elements
+- \`dr trace <id>\` - Trace dependencies`;
+
+    expect(prompt).toContain('dr list');
+    expect(prompt).toContain('dr find');
+    expect(prompt).toContain('dr search');
+    expect(prompt).toContain('dr trace');
+  });
+});
+
+describe('Claude Code CLI Availability', () => {
+  it('should detect Claude Code CLI presence', async () => {
+    // This test requires claude to be installed
+    const result = Bun.spawnSync({
+      cmd: ['which', 'claude'],
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+    
+    // Just verify we can check - the result depends on environment
+    expect(typeof result.exitCode).toBe('number');
+  });
+});
+```
+
+Create `cli/tests/integration/chat-e2e.test.ts`:
+
+```typescript
+/**
+ * End-to-end tests for chat CLI workflow
+ */
+
+import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
+import { mkdtemp, rm, writeFile, mkdir } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
+
+describe('Chat E2E Tests', () => {
+  let testDir: string;
+  let claudeAvailable: boolean;
+
+  beforeAll(async () => {
+    // Create temp directory with DR model
+    testDir = await mkdtemp(join(tmpdir(), 'dr-chat-test-'));
+    
+    // Initialize DR model structure
+    const drDir = join(testDir, '.dr');
+    await mkdir(drDir, { recursive: true });
+    await mkdir(join(drDir, 'layers'), { recursive: true });
+
+    // Create manifest
+    await writeFile(join(drDir, 'manifest.json'), JSON.stringify({
+      name: 'Test Model',
+      specVersion: '0.6.0',
+      description: 'Test model for chat E2E tests',
+      version: '1.0.0',
+    }));
+
+    // Create a test layer
+    await writeFile(join(drDir, 'layers', 'api.json'), JSON.stringify({
+      layerMetadata: {
+        layer: 'api',
+        catalogVersion: '0.6.0',
+      },
+      elements: [
+        {
+          id: 'api-endpoint-get-users',
+          type: 'endpoint',
+          name: 'Get Users',
+          description: 'Retrieve all users',
+          properties: {
+            method: 'GET',
+            path: '/users',
+          },
+        },
+      ],
+    }));
+
+    // Check if Claude Code is available
+    const result = Bun.spawnSync({
+      cmd: ['which', 'claude'],
+      stdout: 'pipe',
+    });
+    claudeAvailable = result.exitCode === 0;
+  });
+
+  afterAll(async () => {
+    // Clean up
+    await rm(testDir, { recursive: true, force: true });
+  });
+
+  it('should check Claude Code CLI availability', () => {
+    // This test documents whether Claude is available
+    console.log(`Claude Code CLI available: ${claudeAvailable}`);
+    expect(typeof claudeAvailable).toBe('boolean');
+  });
+
+  it('should build proper Claude CLI command', () => {
+    const systemPrompt = 'Test prompt';
+    const expectedCmd = [
+      'claude',
+      '--print',
+      '--dangerously-skip-permissions',
+      '--verbose',
+      '--system-prompt', systemPrompt,
+      '--tools', 'Bash,Read',
+      '--output-format', 'stream-json',
+    ];
+
+    expect(expectedCmd).toContain('--print');
+    expect(expectedCmd).toContain('--dangerously-skip-permissions');
+    expect(expectedCmd).toContain('--output-format');
+    expect(expectedCmd).toContain('stream-json');
+    expect(expectedCmd).toContain('--tools');
+    expect(expectedCmd).toContain('Bash,Read');
+  });
+
+  it('should have valid test model structure', async () => {
+    const manifestPath = join(testDir, '.dr', 'manifest.json');
+    const manifestContent = await Bun.file(manifestPath).text();
+    const manifest = JSON.parse(manifestContent);
+
+    expect(manifest.name).toBe('Test Model');
+    expect(manifest.specVersion).toBe('0.6.0');
+  });
+
+  // Skip this test if Claude is not available
+  it.skipIf(!claudeAvailable)('should launch Claude Code CLI subprocess', async () => {
+    const systemPrompt = 'You are a test assistant.';
+    
+    const proc = Bun.spawn({
+      cmd: [
+        'claude',
+        '--print',
+        '--dangerously-skip-permissions',
+        '--verbose',
+        '--system-prompt', systemPrompt,
+        '--tools', 'Bash,Read',
+        '--output-format', 'stream-json',
+      ],
+      cwd: testDir,
+      stdin: 'pipe',
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    // Send a simple message
+    const writer = proc.stdin.getWriter();
+    await writer.write(new TextEncoder().encode('Say "test passed" and nothing else.'));
+    await writer.close();
+
+    // Read response with timeout
+    const reader = proc.stdout.getReader();
+    const decoder = new TextDecoder();
+    let output = '';
+    
+    const timeout = setTimeout(() => {
+      proc.kill();
+    }, 30000);
+
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        output += decoder.decode(value, { stream: true });
+        
+        // Check if we got a response
+        if (output.includes('test passed') || output.includes('"type":"assistant"')) {
+          break;
+        }
+      }
+    } finally {
+      clearTimeout(timeout);
+      try {
+        proc.kill();
+      } catch {
+        // Already terminated
+      }
+    }
+
+    // Verify we got JSON output
+    expect(output.length).toBeGreaterThan(0);
+    // The output should contain JSON events
+    expect(output).toMatch(/\{.*"type".*\}/);
+  });
+
+  it('should handle JSON event parsing', () => {
+    // Test parsing of various Claude Code CLI JSON events
+    const events = [
+      '{"type":"assistant","message":{"content":[{"type":"text","text":"Hello"}]}}',
+      '{"type":"assistant","message":{"content":[{"type":"tool_use","name":"Bash","input":{"command":"dr list"}}]}}',
+      '{"type":"result","subtype":"success"}',
+    ];
+
+    for (const eventStr of events) {
+      const event = JSON.parse(eventStr);
+      expect(event.type).toBeTruthy();
+    }
+  });
+
+  it('should generate model context for system prompt', async () => {
+    // Simulate context generation
+    const manifestPath = join(testDir, '.dr', 'manifest.json');
+    const manifest = JSON.parse(await Bun.file(manifestPath).text());
+
+    const layerPath = join(testDir, '.dr', 'layers', 'api.json');
+    const layer = JSON.parse(await Bun.file(layerPath).text());
+
+    const context = {
+      manifest: {
+        name: manifest.name,
+        specVersion: manifest.specVersion,
+      },
+      layer_stats: {
+        api: layer.elements.length,
+      },
+    };
+
+    expect(context.manifest.name).toBe('Test Model');
+    expect(context.layer_stats.api).toBe(1);
+  });
+});
+
+describe('WebSocket Chat Protocol', () => {
+  it('should format chat.send request correctly', () => {
+    const request = {
+      jsonrpc: '2.0',
+      method: 'chat.send',
+      params: {
+        message: 'What layers are in this model?',
+      },
+      id: 1,
+    };
+
+    expect(request.jsonrpc).toBe('2.0');
+    expect(request.method).toBe('chat.send');
+    expect(request.params.message).toBeTruthy();
+    expect(request.id).toBeDefined();
+  });
+
+  it('should format chat.response.chunk notification correctly', () => {
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'chat.response.chunk',
+      params: {
+        conversation_id: 'conv-1-12345',
+        content: 'This model has 12 layers...',
+        is_final: false,
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    expect(notification.jsonrpc).toBe('2.0');
+    expect(notification.method).toBe('chat.response.chunk');
+    expect(notification.params.conversation_id).toBeTruthy();
+    expect(notification.params.content).toBeTruthy();
+    // Notifications don't have 'id'
+    expect((notification as any).id).toBeUndefined();
+  });
+
+  it('should format chat.tool.invoke notification correctly', () => {
+    const notification = {
+      jsonrpc: '2.0',
+      method: 'chat.tool.invoke',
+      params: {
+        conversation_id: 'conv-1-12345',
+        tool_name: 'Bash',
+        tool_input: { command: 'dr list api' },
+        timestamp: new Date().toISOString(),
+      },
+    };
+
+    expect(notification.method).toBe('chat.tool.invoke');
+    expect(notification.params.tool_name).toBe('Bash');
+    expect(notification.params.tool_input.command).toBe('dr list api');
+  });
+
+  it('should format completion response correctly', () => {
+    const response = {
+      jsonrpc: '2.0',
+      result: {
+        conversation_id: 'conv-1-12345',
+        status: 'complete',
+        exit_code: 0,
+        full_response: 'Complete response text...',
+        timestamp: new Date().toISOString(),
+      },
+      id: 1,
+    };
+
+    expect(response.jsonrpc).toBe('2.0');
+    expect(response.result.status).toBe('complete');
+    expect(response.result.exit_code).toBe(0);
+    expect(response.id).toBe(1);
+  });
+
+  it('should format error response correctly', () => {
+    const errorResponse = {
+      jsonrpc: '2.0',
+      error: {
+        code: -32001,
+        message: 'Claude Code CLI not available',
+      },
+      id: 1,
+    };
+
+    expect(errorResponse.error.code).toBe(-32001);
+    expect(errorResponse.error.message).toContain('Claude Code');
+  });
+});
+```
+
+### Key Changes Summary
+
+1. **Server (`server.ts`)**:
+   - Added `buildSystemPrompt()` method to create context-aware prompts
+   - Fixed `launchClaudeCodeChat()` to use proper CLI flags: `--print`, `--dangerously-skip-permissions`, `--verbose`, `--system-prompt`, `--tools "Bash,Read"`, `--output-format stream-json`
+   - Send user message via stdin instead of command argument
+   - Parse JSON events line-by-line from stdout
+   - Translate events to JSON-RPC 2.0 notifications (`chat.response.chunk`, `chat.tool.invoke`)
+
+2. **CLI Command (`chat.ts`)**:
+   - Removed Anthropic SDK dependency
+   - Check for Claude Code CLI availability
+   - Use subprocess with same flags as server
+   - Stream JSON events and display formatted output
+
+3. **Tests**:
+   - Unit tests for JSON event parsing
+   - Unit tests for system prompt building
+   - E2E tests for CLI subprocess launching
+   - E2E tests for JSON-RPC 2.0 message formatting
+
+Would you like me to remount the filesystem as read-write so I can apply these changes directly?
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
+
+
