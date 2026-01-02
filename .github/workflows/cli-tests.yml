@@ -94,9 +94,16 @@ jobs:
 
       - name: Validate schema files (JSON syntax)
         run: |
-          for schema in spec/schemas/*.json; do
+          # Validate common schemas first
+          for schema in spec/schemas/common/*.json; do
             echo "Validating $schema"
             ajv compile -s "$schema" --strict=false
+          done
+
+          # Validate layer schemas with references to common schemas
+          for schema in spec/schemas/*.json; do
+            echo "Validating $schema"
+            ajv compile -s "$schema" -r "spec/schemas/common/*.json" --strict=false
           done
 
       - name: Validate schema references

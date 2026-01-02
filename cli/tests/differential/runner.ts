@@ -98,7 +98,20 @@ export async function executeCommand(cmd: CliCommand): Promise<CommandResult> {
 
     proc.on('error', (err) => {
       clearTimeout(timeoutId);
-      reject(err);
+      const executionTime = Date.now() - startTime;
+
+      // Handle command not found (e.g., Python CLI not installed)
+      if ((err as NodeJS.ErrnoException).code === 'ENOENT') {
+        resolve({
+          exitCode: 127, // Standard "command not found" exit code
+          stdout: '',
+          stderr: `Command not found: ${cmd.command}`,
+          executionTime,
+          success: false
+        });
+      } else {
+        reject(err);
+      }
     });
   });
 }
