@@ -12,6 +12,8 @@
 import type { Span } from '@opentelemetry/api';
 import type { NodeSDK } from '@opentelemetry/sdk-node';
 import type { Tracer } from '@opentelemetry/api';
+import type { LoggerProvider } from '@opentelemetry/sdk-logs';
+import type { Logger } from '@opentelemetry/api-logs';
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 // This ensures tests and non-bundled code don't crash
@@ -23,19 +25,28 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
 let sdk: NodeSDK | null = null;
 let tracer: Tracer | null = null;
 
+// Module-level state for logging
+// Only initialized when TELEMETRY_ENABLED is true
+let loggerProvider: LoggerProvider | null = null;
+let logger: Logger | null = null;
+
 /**
  * Initialize OpenTelemetry SDK. Must be called before creating spans.
  * No-op when TELEMETRY_ENABLED is false.
  *
- * Initializes NodeSDK with:
+ * Initializes both trace and log providers with:
  * - Service name: "dr-cli"
  * - Span processor: SimpleSpanProcessor (ensures synchronous export on shutdown)
- * - Exporter: ResilientOTLPExporter (circuit-breaker pattern for graceful failure)
+ * - Exporter: ResilientOTLPExporter for traces, ResilientLogExporter for logs
+ * - Circuit-breaker pattern for graceful failure
+ * - Project context from manifest (if available)
  *
- * The exporter targets http://localhost:4318/v1/traces by default,
- * configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
+ * Trace exporter targets http://localhost:4318/v1/traces by default.
+ * Log exporter targets http://localhost:4318/v1/logs by default.
+ * Both configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
+ * Log endpoint can be overridden via OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
  */
-export function initTelemetry(): void {
+export function initTelemetry(modelPath?: string): void {
   if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
@@ -48,9 +59,45 @@ export function initTelemetry(): void {
     const { trace } = require('@opentelemetry/api');
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const { ResilientOTLPExporter } = require('./resilient-exporter');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { LoggerProvider, SimpleLogRecordProcessor } = require('@opentelemetry/sdk-logs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ResilientLogExporter } = require('./resilient-log-exporter');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Resource } = require('@opentelemetry/resources');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const packageJson = require('../../package.json');
 
-    // Create resilient exporter with circuit-breaker pattern
-    const exporter = new ResilientOTLPExporter({
+    // Get CLI version from package.json
+    const cliVersion = packageJson.version;
+
+    // Attempt to load project name from manifest
+    let projectName = 'unknown';
+    try {
+      const path = require('path');
+      const fs = require('fs');
+      const manifestPath = modelPath
+        ? path.join(modelPath, '.dr', 'manifest.json')
+        : path.join(process.cwd(), '.dr', 'manifest.json');
+
+      if (fs.existsSync(manifestPath)) {
+        const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
+        const manifest = JSON.parse(manifestContent);
+        projectName = manifest.name || 'unknown';
+      }
+    } catch {
+      // No manifest found or unable to parse - use 'unknown'
+    }
+
+    // Create resource with service and project attributes
+    const resource = new Resource({
+      'service.name': process.env.OTEL_SERVICE_NAME || 'dr-cli',
+      'service.version': cliVersion,
+      'dr.project.name': projectName,
+    });
+
+    // Create resilient trace exporter with circuit-breaker pattern
+    const traceExporter = new ResilientOTLPExporter({
       url:
         process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
         'http://localhost:4318/v1/traces',
@@ -60,7 +107,8 @@ export function initTelemetry(): void {
     // Initialize NodeSDK with SimpleSpanProcessor for immediate export
     const nodeSdk = new NodeSDK({
       serviceName: 'dr-cli',
-      spanProcessor: new SimpleSpanProcessor(exporter),
+      spanProcessor: new SimpleSpanProcessor(traceExporter),
+      resource,
     });
 
     // Start the SDK
@@ -68,7 +116,28 @@ export function initTelemetry(): void {
     sdk = nodeSdk;
 
     // Get tracer instance for span creation
-    tracer = trace.getTracer('dr-cli');
+    tracer = trace.getTracer('dr-cli', cliVersion);
+
+    // Initialize log provider
+    const logEndpoint =
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ||
+      (process.env.OTEL_EXPORTER_OTLP_ENDPOINT
+        ? process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/v1\/traces$/, '/v1/logs')
+        : 'http://localhost:4318/v1/logs');
+
+    const logExporter = new ResilientLogExporter({
+      url: logEndpoint,
+      timeoutMillis: 500,
+    });
+
+    loggerProvider = new LoggerProvider({
+      resource,
+    });
+
+    loggerProvider!.addLogRecordProcessor(new SimpleLogRecordProcessor(logExporter));
+
+    // Get logger instance
+    logger = loggerProvider!.getLogger('dr-cli', cliVersion);
   }
 }
 
@@ -120,15 +189,60 @@ export function endSpan(span: Span | null): void {
 }
 
 /**
+ * Emit a log record with optional severity level and attributes.
+ *
+ * Automatically attaches traceId and spanId from the active span context (if present).
+ * Safe to call when telemetry is disabled (no-op).
+ *
+ * ```typescript
+ * if (TELEMETRY_ENABLED) {
+ *   const { SeverityNumber } = require('@opentelemetry/api-logs');
+ *   emitLog(SeverityNumber.INFO, 'Operation started', { operation: 'my-op' });
+ * }
+ * ```
+ */
+export function emitLog(
+  severity: number,
+  message: string,
+  attributes?: Record<string, any>
+): void {
+  if (!isTelemetryEnabled || !logger) return;
+
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { trace } = require('@opentelemetry/api');
+
+  const span = trace.getActiveSpan();
+  const context = span?.spanContext();
+
+  logger.emit({
+    severityNumber: severity,
+    body: message,
+    attributes: {
+      ...attributes,
+      ...(context && {
+        'trace.id': context.traceId,
+        'span.id': context.spanId,
+      }),
+    },
+  });
+}
+
+/**
  * Shutdown the OpenTelemetry SDK gracefully.
  * Should be called on process exit to ensure all pending spans are exported.
  *
  * Ignores shutdown failures to avoid blocking process exit.
  */
 export async function shutdownTelemetry(): Promise<void> {
-  if (isTelemetryEnabled && sdk) {
+  if (isTelemetryEnabled) {
     try {
-      await sdk.shutdown();
+      await sdk?.shutdown();
+    } catch {
+      // Silently ignore shutdown failures - don't block process exit
+    }
+
+    try {
+      await loggerProvider?.shutdown();
     } catch {
       // Silently ignore shutdown failures - don't block process exit
     }
