@@ -1688,29 +1688,29 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 ### NavigationFlow Best Practices (NEW)
 
-11. **Flow Scope**: Create one flow per business process or major user journey
-12. **Shared Context**: Use shared context for data that needs to persist across multiple experiences
-13. **Data Handoff**: Always use DataMapping for explicit data transfer between steps
-14. **Process Tracking**: Use ProcessTracking for flows that realize business processes
-15. **Compensation Strategy**: Define compensation actions for critical transactional steps
-16. **Error Paths**: Always define onFailure and onCancel paths for better error recovery
-17. **Resumability**: Enable resumable=true for long-running flows that users might abandon and return to
-18. **State Checkpoints**: Use stateCheckpoint=true for resumable flows to enable recovery
-19. **Analytics**: Add funnel metrics to measure conversion and identify drop-off points
-20. **Collaborative Steps**: Use collaboration settings for approval or multi-user workflows
-21. **Async Operations**: Define polling or webhook strategies for long-running operations
-22. **Context Scope**: Choose appropriate scope for context variables:
+1. **Flow Scope**: Create one flow per business process or major user journey
+2. **Shared Context**: Use shared context for data that needs to persist across multiple experiences
+3. **Data Handoff**: Always use DataMapping for explicit data transfer between steps
+4. **Process Tracking**: Use ProcessTracking for flows that realize business processes
+5. **Compensation Strategy**: Define compensation actions for critical transactional steps
+6. **Error Paths**: Always define onFailure and onCancel paths for better error recovery
+7. **Resumability**: Enable resumable=true for long-running flows that users might abandon and return to
+8. **State Checkpoints**: Use stateCheckpoint=true for resumable flows to enable recovery
+9. **Analytics**: Add funnel metrics to measure conversion and identify drop-off points
+10. **Collaborative Steps**: Use collaboration settings for approval or multi-user workflows
+11. **Async Operations**: Define polling or webhook strategies for long-running operations
+12. **Context Scope**: Choose appropriate scope for context variables:
     - `flow`: For workflow-specific data (shopping cart, form progress)
     - `session`: For session-wide data (user preferences for this session)
     - `user`: For persistent user data (saved preferences, history)
-23. **Context Persistence**: Match persistedIn to scope and durability needs:
+13. **Context Persistence**: Match persistedIn to scope and durability needs:
     - `memory`: Fast but lost on page refresh
     - `session-storage`: Persists across pages but lost when browser closes
     - `local-storage`: Persists across browser sessions
     - `server-session`: Server-side session, survives page refresh
     - `database`: Permanent storage for user-scoped data
-24. **Step Granularity**: Keep FlowSteps at experience-level granularity (not too fine-grained)
-25. **Flow Reuse**: Design flows to be reusable (e.g., quick-reorder reuses checkout flow)
+14. **Step Granularity**: Keep FlowSteps at experience-level granularity (not too fine-grained)
+15. **Flow Reuse**: Design flows to be reusable (e.g., quick-reorder reuses checkout flow)
 
 ## Code Generation
 

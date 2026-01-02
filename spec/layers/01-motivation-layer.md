@@ -895,7 +895,7 @@ Links from entities in other layers to entities in this layer.
 
 ### Goal Decomposition
 
-```
+```text
 Strategic Goal: "Become Market Leader"
    > Business Goal: "Increase Market Share to 30%"
         > Goal: "Launch 3 New Products"
@@ -907,7 +907,7 @@ Strategic Goal: "Become Market Leader"
 
 ### Requirements Hierarchy
 
-```
+```text
 Business Requirement: "Support Mobile Customers"
    > Functional Requirement: "iOS Application"
         > Technical Requirement: "Swift Development"
@@ -919,7 +919,7 @@ Business Requirement: "Support Mobile Customers"
 
 ### Principle Application
 
-```
+```text
 Principle: "Security by Design"
   Influences:
     - Requirement: "All data encrypted at rest"
@@ -993,7 +993,7 @@ The Motivation Layer serves as the foundation for security modeling by providing
 
 ### Requirements for Security Controls
 
-```
+```yaml
 # Motivation Requirement → Security Implementation
 Requirement:
   id: "req-dual-control-pricing"
@@ -1019,7 +1019,7 @@ Requirement:
 
 ### Constraints for Compliance Commitments
 
-```
+```yaml
 # Regulatory/Contractual commitments as Constraints
 Constraint:
   id: "gdpr-compliance"
@@ -1070,7 +1070,7 @@ Actor:
 
 ### Traceability Chain
 
-```
+```text
 Stakeholder → Goal → Assessment → Requirement → Security Implementation
      ↓          ↓         ↓            ↓                ↓
   Actor    realizes   Threat    mitigated by    Access Control

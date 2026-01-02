@@ -1813,45 +1813,45 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 #### Business Layer Integration
 
-10. **Link to Business Concepts**: Use x-business-object-ref to connect schemas to BusinessObject for domain-driven design traceability
-11. **Business Impact Analysis**: Maintain bidirectional links (BusinessObject.spec.schema-id + JSONSchema.x-business-object-ref)
-12. **Domain Modeling**: Every schema representing a business concept should reference its BusinessObject
+1. **Link to Business Concepts**: Use x-business-object-ref to connect schemas to BusinessObject for domain-driven design traceability
+2. **Business Impact Analysis**: Maintain bidirectional links (BusinessObject.spec.schema-id + JSONSchema.x-business-object-ref)
+3. **Domain Modeling**: Every schema representing a business concept should reference its BusinessObject
 
 #### Motivation Layer Integration
 
-13. **Data Governance**: Use x-data-governance.governedBy to document data architecture principles, requirements, and constraints
-14. **Separate Concerns**: Use x-security.governedBy for security/privacy, x-data-governance for architecture/design decisions
-15. **Document Principles**: Reference principles like "principle-canonical-data-model", "principle-event-sourcing"
-16. **Link Requirements**: Reference requirements like "req-master-data-management", "req-audit-trail"
-17. **Capture Constraints**: Reference constraints like "constraint-sox-compliance", "constraint-7year-retention"
+1. **Data Governance**: Use x-data-governance.governedBy to document data architecture principles, requirements, and constraints
+2. **Separate Concerns**: Use x-security.governedBy for security/privacy, x-data-governance for architecture/design decisions
+3. **Document Principles**: Reference principles like "principle-canonical-data-model", "principle-event-sourcing"
+4. **Link Requirements**: Reference requirements like "req-master-data-management", "req-audit-trail"
+5. **Capture Constraints**: Reference constraints like "constraint-sox-compliance", "constraint-7year-retention"
 
 #### APM/Observability Integration
 
-18. **Data Quality Metrics**: Use x-apm-data-quality-metrics to link schemas to data quality monitoring
-19. **Completeness Metrics**: Define metrics for required field completion rates
-20. **Accuracy Metrics**: Define metrics for data validation success rates
-21. **Freshness Metrics**: Define metrics for data staleness (especially for master data)
-22. **Integrity Metrics**: Define metrics for referential integrity (foreign keys)
-23. **Goal Alignment**: Ensure data quality metrics support business goals (e.g., "goal-customer-360-view")
+1. **Data Quality Metrics**: Use x-apm-data-quality-metrics to link schemas to data quality monitoring
+2. **Completeness Metrics**: Define metrics for required field completion rates
+3. **Accuracy Metrics**: Define metrics for data validation success rates
+4. **Freshness Metrics**: Define metrics for data staleness (especially for master data)
+5. **Integrity Metrics**: Define metrics for referential integrity (foreign keys)
+6. **Goal Alignment**: Ensure data quality metrics support business goals (e.g., "goal-customer-360-view")
 
 #### Security & UI Integration
 
-24. **Security Metadata**: Always include x-security for sensitive data
-25. **UI Rendering**: Use x-ui.group for logical grouping and x-ui.component for field types
-26. **Database Mapping**: Use x-database for persistence layer mapping
+1. **Security Metadata**: Always include x-security for sensitive data
+2. **UI Rendering**: Use x-ui.group for logical grouping and x-ui.component for field types
+3. **Database Mapping**: Use x-database for persistence layer mapping
 
 ### Data Quality Best Practices
 
-27. **Measure What Matters**: Focus on quality dimensions that impact business goals
-28. **Start with Critical Data**: Implement quality metrics for master data and high-value entities first
-29. **Progressive Enhancement**: Begin with completeness/accuracy, add consistency/freshness/integrity as you mature
-30. **Industry Standards**: Follow DAMA DMBOK data quality dimensions (completeness, accuracy, consistency, timeliness, uniqueness, integrity)
+1. **Measure What Matters**: Focus on quality dimensions that impact business goals
+2. **Start with Critical Data**: Implement quality metrics for master data and high-value entities first
+3. **Progressive Enhancement**: Begin with completeness/accuracy, add consistency/freshness/integrity as you mature
+4. **Industry Standards**: Follow DAMA DMBOK data quality dimensions (completeness, accuracy, consistency, timeliness, uniqueness, integrity)
 
 ### Traceability Best Practices
 
-31. **Complete Chain**: Maintain Goal → Requirement → Schema → Metric → Outcome traceability
-32. **Upward References**: Schemas reference their purpose (BusinessObject, Principles, Metrics) following the link philosophy
-33. **Bidirectional Queries**: Use upward references for maintenance, enable downward queries through tooling
+1. **Complete Chain**: Maintain Goal → Requirement → Schema → Metric → Outcome traceability
+2. **Upward References**: Schemas reference their purpose (BusinessObject, Principles, Metrics) following the link philosophy
+3. **Bidirectional Queries**: Use upward references for maintenance, enable downward queries through tooling
 
 ## Code Generation
 

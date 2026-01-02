@@ -1089,30 +1089,30 @@ Links from entities in other layers to entities in this layer.
 
 ### Motivation Layer Integration Validation
 
-7. **TechnologyService Governance**: TechnologyServices should have at least one of motivation.supports-goals OR motivation.governed-by-principles
-8. **Node Selection Rationale**: Nodes with specified provider should reference motivation.governed-by-principles (explains why that provider)
-9. **SystemSoftware License Alignment**: SystemSoftware.license should align with referenced motivation.constrained-by constraints (e.g., "opensource" license when constraint requires open-source)
-10. **Network Security Principles**: CommunicationNetworks should reference motivation.governed-by-principles for security architecture
-11. **Sensitive Artifact Classification**: Artifacts with security.pii=true should have security.classification and security.encryption-required
+1. **TechnologyService Governance**: TechnologyServices should have at least one of motivation.supports-goals OR motivation.governed-by-principles
+2. **Node Selection Rationale**: Nodes with specified provider should reference motivation.governed-by-principles (explains why that provider)
+3. **SystemSoftware License Alignment**: SystemSoftware.license should align with referenced motivation.constrained-by constraints (e.g., "opensource" license when constraint requires open-source)
+4. **Network Security Principles**: CommunicationNetworks should reference motivation.governed-by-principles for security architecture
+5. **Sensitive Artifact Classification**: Artifacts with security.pii=true should have security.classification and security.encryption-required
 
 ### Cross-Layer Reference Validation
 
-12. **Valid Motivation References**: All motivation.\* property values must reference valid IDs in Motivation Layer
-13. **Principle Consistency**: Referenced Principles should be categorized as "technology" or relevant category
-14. **Requirement Fulfillment**: Referenced Requirements should be technical or non-functional type
-15. **Constraint Applicability**: Referenced Constraints should be applicable to technology decisions (budget, time, technology, regulatory)
+1. **Valid Motivation References**: All motivation.\* property values must reference valid IDs in Motivation Layer
+2. **Principle Consistency**: Referenced Principles should be categorized as "technology" or relevant category
+3. **Requirement Fulfillment**: Referenced Requirements should be technical or non-functional type
+4. **Constraint Applicability**: Referenced Constraints should be applicable to technology decisions (budget, time, technology, regulatory)
 
 ### APM/Observability Integration Validation
 
-16. **SLA Target Consistency**: If apm.sla-target-availability is set, service.sla should also be defined
-17. **Health Monitoring Configuration**: If apm.health-monitored=true, apm.health-check-endpoint should be specified
-18. **SLA Format**: apm.sla-target-availability should be valid percentage (99.9%, 99.95%, 99.99%, etc.)
+1. **SLA Target Consistency**: If apm.sla-target-availability is set, service.sla should also be defined
+2. **Health Monitoring Configuration**: If apm.health-monitored=true, apm.health-check-endpoint should be specified
+3. **SLA Format**: apm.sla-target-availability should be valid percentage (99.9%, 99.95%, 99.99%, etc.)
 
 ### Security Integration Validation
 
-19. **Encryption Type Validity**: security.encryption-type should only be set if security.encryption-required=true
-20. **PII Encryption**: Artifacts with security.pii=true should have security.encryption-required=true
-21. **Classification Consistency**: security.classification should align with referenced constraint requirements
+1. **Encryption Type Validity**: security.encryption-type should only be set if security.encryption-required=true
+2. **PII Encryption**: Artifacts with security.pii=true should have security.encryption-required=true
+3. **Classification Consistency**: security.classification should align with referenced constraint requirements
 
 ## Best Practices
 
@@ -1129,34 +1129,34 @@ Links from entities in other layers to entities in this layer.
 
 ### Motivation Layer Integration Best Practices
 
-9. **Document Technology Rationale** - Use motivation.governed-by-principles to explain WHY specific technology was chosen
-10. **Link Infrastructure to Goals** - TechnologyServices should reference motivation.supports-goals to show how infrastructure enables business objectives
-11. **Capture Constraints** - Use motivation.constrained-by to document budget limits, vendor lock-in, license requirements, or regulatory restrictions
-12. **Trace Requirements** - Link Nodes and SystemSoftware to motivation.fulfills-requirements for technical and non-functional requirements
-13. **Principle-Driven Architecture** - Ensure technology choices align with documented architectural principles (e.g., "Cloud Native", "Open Source First")
-14. **ADR Integration** - Motivation references serve as lightweight Architecture Decision Records (ADRs)
+1. **Document Technology Rationale** - Use motivation.governed-by-principles to explain WHY specific technology was chosen
+2. **Link Infrastructure to Goals** - TechnologyServices should reference motivation.supports-goals to show how infrastructure enables business objectives
+3. **Capture Constraints** - Use motivation.constrained-by to document budget limits, vendor lock-in, license requirements, or regulatory restrictions
+4. **Trace Requirements** - Link Nodes and SystemSoftware to motivation.fulfills-requirements for technical and non-functional requirements
+5. **Principle-Driven Architecture** - Ensure technology choices align with documented architectural principles (e.g., "Cloud Native", "Open Source First")
+6. **ADR Integration** - Motivation references serve as lightweight Architecture Decision Records (ADRs)
 
 ### APM/Observability Best Practices
 
-15. **Define SLA Targets** - Specify apm.sla-target-availability and apm.sla-target-latency for all critical TechnologyServices
-16. **Enable Health Monitoring** - Set apm.health-monitored=true and provide apm.health-check-endpoint for production services
-17. **Align with Business Goals** - Ensure infrastructure SLAs support business goals referenced in motivation.supports-goals
-18. **Monitor What Matters** - Focus on SLAs that directly impact customer experience and business outcomes
+1. **Define SLA Targets** - Specify apm.sla-target-availability and apm.sla-target-latency for all critical TechnologyServices
+2. **Enable Health Monitoring** - Set apm.health-monitored=true and provide apm.health-check-endpoint for production services
+3. **Align with Business Goals** - Ensure infrastructure SLAs support business goals referenced in motivation.supports-goals
+4. **Monitor What Matters** - Focus on SLAs that directly impact customer experience and business outcomes
 
 ### Security Integration Best Practices
 
-19. **Classify All Artifacts** - Always set security.classification for Artifacts containing data
-20. **Encrypt Sensitive Data** - Set security.encryption-required=true for all confidential and restricted Artifacts
-21. **Mark PII** - Use security.pii=true to flag Artifacts containing personally identifiable information
-22. **Link to Compliance** - Use motivation.constrained-by to reference regulatory constraints (GDPR, HIPAA, SOX, etc.)
-23. **Network Segmentation Principles** - Document zero-trust and network segmentation principles for CommunicationNetworks
+1. **Classify All Artifacts** - Always set security.classification for Artifacts containing data
+2. **Encrypt Sensitive Data** - Set security.encryption-required=true for all confidential and restricted Artifacts
+3. **Mark PII** - Use security.pii=true to flag Artifacts containing personally identifiable information
+4. **Link to Compliance** - Use motivation.constrained-by to reference regulatory constraints (GDPR, HIPAA, SOX, etc.)
+5. **Network Segmentation Principles** - Document zero-trust and network segmentation principles for CommunicationNetworks
 
 ### Traceability Best Practices
 
-24. **Complete Chain** - Maintain traceability from business goals → principles → technology choices → infrastructure implementation
-25. **Bidirectional Navigation** - Use upward references in Technology Layer, enable downward queries through tooling
-26. **Consistent Naming** - Use consistent ID patterns across layers (e.g., "principle-cloud-native", "goal-system-reliability")
-27. **Documentation** - Technology choices become self-documenting when properly linked to motivations
+1. **Complete Chain** - Maintain traceability from business goals → principles → technology choices → infrastructure implementation
+2. **Bidirectional Navigation** - Use upward references in Technology Layer, enable downward queries through tooling
+3. **Consistent Naming** - Use consistent ID patterns across layers (e.g., "principle-cloud-native", "goal-system-reliability")
+4. **Documentation** - Technology choices become self-documenting when properly linked to motivations
 
 ## Rationale for Cross-Layer Integration
 

@@ -3093,16 +3093,16 @@ All entities must validate against the layer schema file in `spec/schemas/`.
 
 ### STS-ml Inspired Practices
 
-11. **Goal-Oriented Security**: Model actor goals to understand why access is needed
-12. **Information Flow Control**: Use fine-grained rights (produce, read, modify, distribute) not just CRUD
-13. **Explicit Delegation**: Model delegation chains with constraints rather than implicit role assignments
-14. **Security Patterns**: Explicitly define SoD, BoD, and need-to-know constraints
-15. **Trust Modeling**: Explicitly model trust levels for external actors and systems
-16. **Social Commitments**: Document regulatory and contractual security commitments
-17. **Accountability First**: Require non-repudiation and evidence for sensitive actions
-18. **Threat-Driven**: Link threats to security requirements to justify controls
-19. **Delegation Limits**: Set maxDelegationDepth to prevent excessive delegation chains
-20. **Purpose Declaration**: Require justification for accessing sensitive information
+1. **Goal-Oriented Security**: Model actor goals to understand why access is needed
+2. **Information Flow Control**: Use fine-grained rights (produce, read, modify, distribute) not just CRUD
+3. **Explicit Delegation**: Model delegation chains with constraints rather than implicit role assignments
+4. **Security Patterns**: Explicitly define SoD, BoD, and need-to-know constraints
+5. **Trust Modeling**: Explicitly model trust levels for external actors and systems
+6. **Social Commitments**: Document regulatory and contractual security commitments
+7. **Accountability First**: Require non-repudiation and evidence for sensitive actions
+8. **Threat-Driven**: Link threats to security requirements to justify controls
+9. **Delegation Limits**: Set maxDelegationDepth to prevent excessive delegation chains
+10. **Purpose Declaration**: Require justification for accessing sensitive information
 
 ### Layer Integration Approach
 
