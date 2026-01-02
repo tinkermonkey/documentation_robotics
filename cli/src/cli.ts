@@ -379,7 +379,7 @@ Examples:
   $ dr chat
 
 This launches an interactive chat interface where you can ask Claude questions
-about your architecture model. Requires ANTHROPIC_API_KEY to be set.`
+about your architecture model. Requires Claude Code CLI to be installed and authenticated.`
   )
   .action(async () => {
     await chatCommand();

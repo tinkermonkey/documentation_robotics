@@ -1,18 +1,24 @@
 /**
  * API Mocking Utilities for Tests
  * Provides infrastructure for mocking external API dependencies (Anthropic API, etc.)
+ *
+ * NOTE: These mocks are used for legacy SDK-based testing only.
+ * The `dr chat` command uses Claude Code CLI subprocess instead of direct SDK usage.
  */
 
 /**
  * Mock the Anthropic API key for testing
  * Returns an object with a restore function to revert to the original state
  *
+ * NOTE: This is for legacy SDK testing. The actual `dr chat` command uses Claude Code CLI
+ * with OAuth authentication, not API keys.
+ *
  * @returns Object with restore method to revert the mock
  */
 export function mockAnthropicAPI(): { restore: () => void } {
   const originalKey = process.env.ANTHROPIC_API_KEY;
 
-  // Set a mock API key for testing
+  // Set a mock API key for testing (legacy SDK integration only)
   process.env.ANTHROPIC_API_KEY = 'mock-api-key-for-testing-' + Date.now();
 
   return {

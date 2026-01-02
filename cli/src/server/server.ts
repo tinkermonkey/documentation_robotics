@@ -816,6 +816,71 @@ export class VisualizationServer {
   }
 
   /**
+   * Build system prompt with DR model context for Claude Code CLI
+   */
+  private async buildSystemPrompt(): Promise<string> {
+    const parts: string[] = [];
+
+    parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
+
+## Your Expertise
+
+You understand the **full 12-layer DR architecture**:
+1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
+2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
+3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
+4. Application (Layer 4) - HOW: components, services, interfaces, events
+5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
+6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
+7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
+8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
+9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
+10. Navigation (Layer 10) - FLOW: Multi-Modal routing
+11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
+12. Testing (Layer 12) - VERIFY: ISP Coverage Model
+
+## Your Tools
+
+You can use Bash to run DR CLI commands:
+- \`dr list <layer>\` - List elements in a layer
+- \`dr find <id>\` - Find element by ID
+- \`dr search <query>\` - Search for elements
+- \`dr trace <id>\` - Trace dependencies
+
+You can use Read to examine model files in the .dr directory.
+
+## Guidelines
+
+- Understand user intent through conversation
+- Use DR CLI tools to get current model information
+- Provide context from the model state
+- Be conversational and helpful`);
+
+    // Add model context
+    parts.push('\n## Current Model Context\n');
+    parts.push(`**Model**: ${this.model.manifest.name}`);
+    parts.push(`**Spec Version**: ${this.model.manifest.specVersion}`);
+    if (this.model.manifest.description) {
+      parts.push(`**Description**: ${this.model.manifest.description}`);
+    }
+
+    // Add layer statistics
+    parts.push('\n**Layer Statistics**:');
+    const layerNames = this.model.getLayerNames();
+    for (const layerName of layerNames) {
+      const layer = await this.model.getLayer(layerName);
+      if (layer) {
+        const count = layer.listElements().length;
+        if (count > 0) {
+          parts.push(`- ${layerName}: ${count} elements`);
+        }
+      }
+    }
+
+    return parts.join('\n');
+  }
+
+  /**
    * Launch Claude Code CLI with DR chat agent and stream responses
    */
   private async launchClaudeCodeChat(
@@ -825,45 +890,146 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     try {
-      // Launch claude with the dr-chat skill
-      const process = Bun.spawn({
-        cmd: ['claude', '/dr-chat', message],
+      // Build system prompt with model context
+      const systemPrompt = await this.buildSystemPrompt();
+
+      // Launch claude with proper flags for streaming JSON output
+      const proc = Bun.spawn({
+        cmd: [
+          'claude',
+          '--print',
+          '--dangerously-skip-permissions',
+          '--verbose',
+          '--system-prompt', systemPrompt,
+          '--tools', 'Bash,Read',
+          '--output-format', 'stream-json',
+        ],
         cwd: this.model.rootPath,
+        stdin: 'pipe',
         stdout: 'pipe',
         stderr: 'pipe',
       });
 
       // Store active process
-      this.activeChatProcesses.set(conversationId, process);
+      this.activeChatProcesses.set(conversationId, proc);
 
-      // Stream stdout and stderr concurrently
-      const stdoutReader = process.stdout.getReader();
-      const stderrReader = process.stderr.getReader();
+      // Send user message via stdin (like Python prototype)
+      proc.stdin?.write(new TextEncoder().encode(message));
+      proc.stdin?.end();
+
+      // Stream stdout (JSON events)
+      const stdoutReader = proc.stdout.getReader();
       const decoder = new TextDecoder();
 
       const streamOutput = async () => {
-        try {
-          // Stream both stdout and stderr
-          const streamPromises = [
-            this.streamClaudeOutput(stdoutReader, decoder, ws, conversationId, 'stdout'),
-            this.streamClaudeOutput(stderrReader, decoder, ws, conversationId, 'stderr'),
-          ];
+        let accumulatedText = '';
+        let buffer = '';
 
-          await Promise.all(streamPromises);
+        try {
+          while (true) {
+            const { done, value } = await stdoutReader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            buffer += chunk;
+
+            // Process complete lines (JSON events)
+            const lines = buffer.split('\n');
+            buffer = lines.pop() || '';
+
+            for (const line of lines) {
+              if (!line.trim()) continue;
+
+              try {
+                const event = JSON.parse(line);
+
+                if (event.type === 'assistant') {
+                  // Extract content blocks from assistant message
+                  const content = event.message?.content || [];
+                  for (const block of content) {
+                    if (block.type === 'text') {
+                      accumulatedText += block.text;
+                      // Send text chunk notification
+                      ws.send(JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'chat.response.chunk',
+                        params: {
+                          conversation_id: conversationId,
+                          content: block.text,
+                          is_final: false,
+                          timestamp: new Date().toISOString(),
+                        },
+                      }));
+                    } else if (block.type === 'tool_use') {
+                      // Send tool invocation notification
+                      ws.send(JSON.stringify({
+                        jsonrpc: '2.0',
+                        method: 'chat.tool.invoke',
+                        params: {
+                          conversation_id: conversationId,
+                          tool_name: block.name,
+                          tool_input: block.input,
+                          timestamp: new Date().toISOString(),
+                        },
+                      }));
+                    }
+                  }
+                } else if (event.type === 'result') {
+                  // Tool result
+                  ws.send(JSON.stringify({
+                    jsonrpc: '2.0',
+                    method: 'chat.tool.result',
+                    params: {
+                      conversation_id: conversationId,
+                      result: event.result,
+                      timestamp: new Date().toISOString(),
+                    },
+                  }));
+                }
+              } catch {
+                // Non-JSON line, send as raw text chunk
+                ws.send(JSON.stringify({
+                  jsonrpc: '2.0',
+                  method: 'chat.response.chunk',
+                  params: {
+                    conversation_id: conversationId,
+                    content: line + '\n',
+                    is_final: false,
+                    timestamp: new Date().toISOString(),
+                  },
+                }));
+              }
+            }
+          }
+
+          // Process remaining buffer
+          if (buffer.trim()) {
+            ws.send(JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'chat.response.chunk',
+              params: {
+                conversation_id: conversationId,
+                content: buffer,
+                is_final: true,
+                timestamp: new Date().toISOString(),
+              },
+            }));
+          }
 
           // Wait for process to complete
-          const exitCode = await process.exited;
+          const exitCode = await proc.exited;
 
           // Clean up
           this.activeChatProcesses.delete(conversationId);
 
-          // Send completion
+          // Send completion response
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             result: {
               conversation_id: conversationId,
               status: exitCode === 0 ? 'complete' : 'error',
               exit_code: exitCode,
+              full_response: accumulatedText,
               timestamp: new Date().toISOString(),
             },
             id: requestId,
@@ -871,7 +1037,6 @@ export class VisualizationServer {
         } catch (error) {
           const errorMsg = error instanceof Error ? error.message : String(error);
 
-          // Send error response
           ws.send(JSON.stringify({
             jsonrpc: '2.0',
             error: {
@@ -881,8 +1046,13 @@ export class VisualizationServer {
             id: requestId,
           }));
 
-          // Clean up
           this.activeChatProcesses.delete(conversationId);
+
+          try {
+            proc.kill();
+          } catch {
+            // Process may already be terminated
+          }
         }
       };
 
@@ -902,175 +1072,6 @@ export class VisualizationServer {
     }
   }
 
-  /**
-   * Stream Claude Code output and parse events
-   */
-  private async streamClaudeOutput(
-    reader: ReadableStreamDefaultReader<Uint8Array>,
-    decoder: TextDecoder,
-    ws: HonoWSContext,
-    conversationId: string,
-    streamType: 'stdout' | 'stderr'
-  ): Promise<void> {
-    let buffer = '';
-
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-
-        if (done) break;
-
-        const chunk = decoder.decode(value, { stream: true });
-        buffer += chunk;
-
-        // Process complete lines
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || ''; // Keep incomplete line in buffer
-
-        for (const line of lines) {
-          if (!line.trim()) continue;
-
-          // Try to parse as structured event
-          const event = this.parseClaudeEvent(line);
-
-          if (event) {
-            // Send structured event
-            ws.send(JSON.stringify({
-              jsonrpc: '2.0',
-              method: event.method,
-              params: {
-                conversation_id: conversationId,
-                ...event.params,
-                timestamp: new Date().toISOString(),
-              },
-            }));
-          } else {
-            // Send as text chunk
-            ws.send(JSON.stringify({
-              jsonrpc: '2.0',
-              method: 'chat.response.chunk',
-              params: {
-                conversation_id: conversationId,
-                content: line + '\n',
-                stream_type: streamType,
-                is_final: false,
-                timestamp: new Date().toISOString(),
-              },
-            }));
-          }
-        }
-      }
-
-      // Send any remaining buffer
-      if (buffer.trim()) {
-        ws.send(JSON.stringify({
-          jsonrpc: '2.0',
-          method: 'chat.response.chunk',
-          params: {
-            conversation_id: conversationId,
-            content: buffer,
-            stream_type: streamType,
-            is_final: true,
-            timestamp: new Date().toISOString(),
-          },
-        }));
-      }
-    } catch (error) {
-      if (process.env.DEBUG) {
-        console.error(`[Chat] Error streaming ${streamType}:`, error);
-      }
-    }
-  }
-
-  /**
-   * Parse Claude Code event from output line
-   */
-  private parseClaudeEvent(line: string): { method: string; params: any } | null {
-    try {
-      // Claude Code may emit JSON events for various actions
-      // Try to parse as JSON first
-      if (line.trim().startsWith('{')) {
-        const data = JSON.parse(line);
-
-        // Check for known event types
-        if (data.type === 'tool_use' || data.name) {
-          return {
-            method: 'chat.tool.invoke',
-            params: {
-              tool_name: data.name || data.tool,
-              tool_input: data.input || data.parameters,
-              status: data.status || 'executing',
-            },
-          };
-        }
-
-        if (data.type === 'thinking' || data.thinking) {
-          return {
-            method: 'chat.thinking',
-            params: {
-              content: data.content || data.thinking,
-            },
-          };
-        }
-
-        if (data.type === 'usage' || data.usage) {
-          return {
-            method: 'chat.usage',
-            params: {
-              input_tokens: data.usage?.input_tokens || data.input_tokens,
-              output_tokens: data.usage?.output_tokens || data.output_tokens,
-              total_tokens: data.usage?.total_tokens || data.total_tokens,
-            },
-          };
-        }
-
-        if (data.type === 'error' || data.error) {
-          return {
-            method: 'chat.error',
-            params: {
-              error: data.error || data.message,
-              code: data.code,
-            },
-          };
-        }
-
-        // Generic event
-        if (data.type) {
-          return {
-            method: `chat.event.${data.type}`,
-            params: data,
-          };
-        }
-      }
-
-      // Check for tool invocation patterns in text
-      const toolPattern = /(?:Using tool|Calling|Invoking):\s*([a-zA-Z_]+)/i;
-      const toolMatch = line.match(toolPattern);
-      if (toolMatch) {
-        return {
-          method: 'chat.tool.invoke',
-          params: {
-            tool_name: toolMatch[1],
-            status: 'executing',
-          },
-        };
-      }
-
-      // Check for thinking patterns
-      if (line.includes('<thinking>') || line.includes('Thinking:')) {
-        return {
-          method: 'chat.thinking',
-          params: {
-            content: line.replace(/<thinking>|Thinking:/gi, '').trim(),
-          },
-        };
-      }
-
-      return null;
-    } catch {
-      return null;
-    }
-  }
 
   /**
    * Setup file watcher for model changes
