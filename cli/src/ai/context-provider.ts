@@ -1,6 +1,9 @@
 /**
  * Model Context Provider
  * Generates context about the architecture model for Claude to use
+ *
+ * NOTE: This provider is used for both Claude Code CLI subprocess (commands/chat.ts)
+ * and legacy SDK-based chat (legacy use cases only). See claude-client.ts for details.
  */
 
 import { Model } from '../core/model.js';

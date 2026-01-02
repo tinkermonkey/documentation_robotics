@@ -1,6 +1,10 @@
 /**
  * Claude Client for Anthropic SDK Integration
  * Handles streaming message responses and conversation history management
+ *
+ * IMPORTANT: This is legacy SDK-based chat infrastructure maintained for programmatic usage.
+ * The `dr chat` CLI command uses Claude Code CLI subprocess instead (see commands/chat.ts).
+ * Use this class only for direct Anthropic SDK integration in other contexts.
  */
 
 import Anthropic from '@anthropic-ai/sdk';

@@ -1,6 +1,9 @@
 /**
  * Tool Definitions for Claude AI Integration
  * Defines tools for dr_list, dr_find, dr_search, and dr_trace
+ *
+ * NOTE: These tool definitions are used for legacy SDK-based chat only.
+ * The `dr chat` command uses Claude Code CLI subprocess with Bash and Read tools instead.
  */
 
 import { Model } from '../core/model.js';

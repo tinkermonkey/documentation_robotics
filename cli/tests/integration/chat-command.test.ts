@@ -1,5 +1,9 @@
 /**
  * Integration tests for Chat Command
+ *
+ * NOTE: These tests verify the legacy ClaudeClient and SDK-based chat infrastructure.
+ * The actual `dr chat` command uses Claude Code CLI subprocess (see src/commands/chat.ts).
+ * These tests are maintained for SDK usage in other programmatic contexts.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
