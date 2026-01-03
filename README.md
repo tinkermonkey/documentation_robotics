@@ -4,7 +4,7 @@ A comprehensive toolkit for managing federated data models for modeling large so
 
 [![CLI Tests](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml/badge.svg)](https://github.com/tinkermonkey/documentation_robotics/actions/workflows/cli-tests.yml)
 
-[![Specification](https://img.shields.io/badge/Specification-v0.5.0-blue)](spec/)
+[![Specification](https://img.shields.io/badge/Specification-v0.7.0-blue)](spec/)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
@@ -38,55 +38,20 @@ The vision is to be able to explore adding functionality to a system at any leve
 
 The CLI is a quick way for both humans and automated systems (CI/CD, AI agents, etc.) to manage these models in a collaborative manner. On top of the CLI, tools like sub-agents, custom commands, and other automation scripts can be built to further streamline the process of managing system models in a way that is not tied to a specific agentic ecosystem or vendor. We've started with a Claude Code integration to enable natural language interaction with the models, but the vision is to enable a wide variety of integrations and automation around this unified data model.
 
-### Recent Major Additions
-
-**UX Layer Three-Tier Architecture (Spec v0.5.0)**
-
-- 📚 **Component Library Support** - Reusable design system components with UXLibrary
-- 🏢 **Application Organization** - UXApplication groups experiences with shared theming
-- 📄 **Simplified Specs** - UXSpec reduced from ~300 to ~80 lines via component references
-- 🎨 **Design System Alignment** - Maps naturally to Figma/Storybook workflows
-- 🔄 **Pattern Templates** - Reusable state machines (CRUD, Wizard, Search) with extension points
-- 🎯 **Backward Compatible** - Existing flat UXSpecs continue to work
-
-See [UX Layer Specification](spec/layers/09-ux-layer.md) for complete architecture details.
-
-**Link Registry & Validation (Spec v0.4.0 / CLI v0.1.0)**
-
-- 📖 **Comprehensive Catalog** - 60+ cross-layer reference patterns across 9 categories
-- 🔍 **Automated Discovery** - Automatically detect and analyze all cross-layer links in your model
-- ✅ **Link Validation** - Verify existence, type compatibility, cardinality, and format of all references
-- 📊 **Interactive Documentation** - Generate searchable HTML documentation with Mermaid diagrams
-- 🔄 **Path Tracing** - Find and visualize paths between any two elements across layers
-- 🚀 **CI/CD Ready** - Strict mode for treating warnings as errors in automated pipelines
-
-See [Link Management Guide](cli/docs/user-guide/link-management.md) for complete documentation.
-
-**Managed Upgrades (CLI v0.1.0)**
-
-- 🔄 **Automated Migration** - Seamlessly migrate models between specification versions
-- 🔧 **Pattern Detection** - Automatically identify and fix non-standard reference patterns
-- 📋 **Dry-Run Preview** - See exactly what will change before applying migrations
-- ✏️ **Smart Fixes** - Correct naming conventions (camelCase → kebab-case) and cardinality mismatches
-- 📈 **Version Tracking** - Maintain upgrade history in your model's manifest
-
-See `dr migrate --help` for usage details.
-
 ## Quick Links
 
 - **[Read the Specification](spec/)** - Complete specification with all 12 layers
 - **[Use the CLI Tool](cli/)** - Install and use the `dr` command
+- **[Recent Updates](spec/CHANGELOG.md)** - See what's new in the specification
 - **[Contributing](CONTRIBUTING.md)** - How to contribute
 - **[Release Process](RELEASE_PROCESS.md)** - How releases work
-- **[Migrating from Python CLI](docs/migration-from-python-cli.md)** - Migration guide for Python CLI users
 
 ## Project Components
 
 ### 1. The Specification
 
 **Location:** [`spec/`](spec/)
-**Version:** 0.5.0 (Evolving)
-**Status:** Draft
+**Status:** Stable
 
 The Documentation Robotics specification defines a standards-based approach to modeling software across 12 interconnected layers.
 
@@ -96,7 +61,7 @@ The Documentation Robotics specification defines a standards-based approach to m
 - **Federated Approach** - ArchiMate spine + specialized standards
 - **12 Layers** - Motivation through APM/Observability
 - **Glue Layers** - 4 custom layer definitions (security, UX, navigation, testing)
-- **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards based exports
+- **Tool Ecosystem Access** - Compatible with hundreds of existing tools through standards-based exports
 
 **Quick Start:**
 
@@ -109,7 +74,6 @@ The Documentation Robotics specification defines a standards-based approach to m
 ### 2. The CLI Tool (`dr`)
 
 **Location:** [`cli/`](cli/)
-**Version:** 0.1.0
 **Status:** Production-ready
 
 A TypeScript/Bun-based command-line tool for managing project models conforming to the specification.
@@ -165,68 +129,34 @@ dr export archimate --output model.xml
 
 [→ CLI Documentation](cli/) | [→ CLI User Guide](cli/docs/user-guide/)
 
-### Migrating from Python CLI
-
-The Python CLI has been deprecated as of version 0.8.0. If you're currently using the Python CLI, please migrate to the Bun CLI for continued support and new features.
-
-**Key Benefits of Migrating:**
-
-- 8x faster performance (~200ms vs ~1-2s startup time)
-- Active development with new features and bug fixes
-- Full feature parity with Python CLI
-- Modern TypeScript/Node.js ecosystem
-
-**Your existing `.dr/` models work without modification** - just install the Bun CLI and continue working.
-
-[→ Complete Migration Guide](docs/migration-from-python-cli.md)
-
-**Deprecation Timeline:**
-
-- December 26, 2025: Python CLI v0.8.0 released with deprecation warnings
-- January 26, 2026: Python package removed from PyPI
-
 ## Repository Structure
 
 ```
 documentation_robotics/
 │
-├── spec/                        # THE SPECIFICATION
-│   ├── VERSION                  # Current spec version (0.6.0)
+├── spec/                        # SPECIFICATION
+│   ├── VERSION                  # Spec version (see badges above)
 │   ├── CHANGELOG.md             # Specification changelog
-│   ├── GOVERNANCE.md            # Governance model
-│   ├── CONTRIBUTING.md          # Contribution guidelines
-│   ├── core/                    # Core specification documents
 │   ├── layers/                  # 12 layer specifications
 │   ├── schemas/                 # JSON Schema definitions
-│   ├── conformance/             # Conformance requirements
+│   ├── core/                    # Core specification docs
 │   ├── guides/                  # Implementation guides
-│   ├── examples/                # Example models
-│   ├── test-fixtures/           # Test data for validators
-│   └── reference/               # Reference materials
+│   └── examples/                # Example models
 │
-├── cli/                         # TYPESCRIPT/BUN CLI IMPLEMENTATION (v0.1.0)
+├── cli/                         # TYPESCRIPT/BUN CLI
 │   ├── src/                     # TypeScript source code
-│   │   ├── commands/            # 23+ command implementations
+│   │   ├── commands/            # Command implementations
 │   │   ├── core/                # Domain models
 │   │   ├── validators/          # Validation pipeline
 │   │   ├── export/              # Export handlers
-│   │   ├── server/              # Visualization server
-│   │   ├── ai/                  # AI integration
-│   │   └── utils/               # Utilities
-│   ├── tests/                   # Test suite (unit, integration, compatibility)
-│   ├── dist/                    # Compiled JavaScript
-│   ├── package.json             # Node.js dependencies
-│   └── README.md                # CLI README
+│   │   └── server/              # Visualization server
+│   ├── tests/                   # Test suite
+│   └── README.md                # CLI documentation
 │
-├── tools/                       # PROJECT TOOLING
-│
-├── .github/                     # GitHub configuration
-│   └── workflows/               # CI/CD workflows
-│
+├── .github/workflows/           # CI/CD workflows
 ├── README.md                    # This file
 ├── CLAUDE.md                    # AI assistant instructions
-├── CONTRIBUTING.md              # Project contribution guidelines
-├── RELEASE_PROCESS.md           # Release process documentation
+├── CONTRIBUTING.md              # Contribution guidelines
 └── LICENSE                      # MIT License
 ```
 
@@ -262,37 +192,34 @@ This project maximizes use of existing standards:
 
 ## Getting Started
 
+### For Users
+
 Want to use this for modeling your project?
 
-1. **Understand the Approach**
-   - Read [spec/core/00-overview.md](spec/core/00-overview.md)
-   - Review [spec/core/01-federated-approach.md](spec/core/01-federated-approach.md)
-
-2. **Install the CLI**
-
+1. **Install the CLI**
    ```bash
    npm install -g @documentation-robotics/cli
    ```
 
-3. **Create Your First Model**
-
+2. **Create Your First Model**
    ```bash
    dr init --name "My Project"
    dr add motivation goal motivation-goal-first --name "My First Goal"
    dr validate
    ```
 
-4. **Learn More**
+3. **Learn More**
    - Browse [spec/examples/](spec/examples/)
    - Read [spec/guides/getting-started.md](spec/guides/getting-started.md)
-   - Review [cli/docs/user-guide/](cli/docs/user-guide/) for implementation guides
+   - Review [cli/docs/user-guide/](cli/docs/user-guide/)
+
+### For Evaluators
 
 Evaluating this approach?
 
 1. Read [spec/core/](spec/core/) for design decisions
 2. Review [spec/reference/standards-mapping.md](spec/reference/standards-mapping.md)
-3. Compare with existing approaches
-4. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
+3. Check [spec/GOVERNANCE.md](spec/GOVERNANCE.md) for governance model
 
 ## Contributing
 
@@ -311,19 +238,18 @@ We welcome contributions! See:
 - Create example models
 - Improve the CLI tool
 
-## Governance
+## Governance & Releases
 
-- **Specification:** See [spec/GOVERNANCE.md](spec/GOVERNANCE.md)
-- **Changes:** Follow governance process for changes
-- **Releases:** See [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
+- **Specification Governance:** See [spec/GOVERNANCE.md](spec/GOVERNANCE.md)
+- **Release Process:** See [RELEASE_PROCESS.md](RELEASE_PROCESS.md)
 - **Versioning:** Semantic Versioning 2.0.0
 
-## Versions
+## Current Versions
 
-| Component         | Current Version | Status           |
-| ----------------- | --------------- | ---------------- |
-| **Specification** | 0.5.0           | Stable           |
-| **CLI Tool**      | 0.1.0           | Production-ready |
+| Component         | Version | Status           |
+| ----------------- | ------- | ---------------- |
+| **Specification** | 0.7.0   | Stable           |
+| **CLI Tool**      | 0.1.0   | Production-ready |
 
 ## License
 
@@ -341,8 +267,8 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.5.0},
-  year = {2025},
+  version = {X.Y.Z},
+  year = {YYYY},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }
 ```

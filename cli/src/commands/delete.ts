@@ -7,6 +7,10 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { resolveModelRoot } from '../utils/model-path.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { startSpan, endSpan } from '../telemetry/index.js';
+
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 export interface DeleteOptions {
   force?: boolean;
@@ -15,6 +19,11 @@ export interface DeleteOptions {
 }
 
 export async function deleteCommand(id: string, options: DeleteOptions): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('element.delete', {
+    'element.id': id,
+    'element.force': !!options.force,
+  }) : null;
+
   try {
     // Resolve model path (supports multiple layouts)
     const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
@@ -78,13 +87,25 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
     await model.saveManifest();
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('layer.name', layerName);
+    }
+
     console.log(ansis.green(`✓ Deleted element ${ansis.bold(id)}`));
     if (options.verbose) {
       console.log(ansis.dim(`  Layer: ${layerName}`));
     }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: (error as Error).message });
+    }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
+  } finally {
+    if (isTelemetryEnabled) {
+      endSpan(span);
+    }
   }
 }

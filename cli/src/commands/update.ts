@@ -6,6 +6,10 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { resolveModelRoot } from '../utils/model-path.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { startSpan, endSpan } from '../telemetry/index.js';
+
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 export interface UpdateOptions {
   name?: string;
@@ -16,9 +20,19 @@ export interface UpdateOptions {
 }
 
 export async function updateCommand(id: string, options: UpdateOptions): Promise<void> {
+  const changedFields: string[] = [];
+  if (options.name) changedFields.push('name');
+  if (options.description) changedFields.push('description');
+  if (options.properties) changedFields.push('properties');
+
+  const span = isTelemetryEnabled ? startSpan('element.update', {
+    'element.id': id,
+    'element.changed_fields': changedFields.join(','),
+  }) : null;
+
   try {
     // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
+    const { rootPath} = await resolveModelRoot({ cwd: process.cwd() });
 
     // Load model
     const model = await Model.load(rootPath, { lazyLoad: false });
@@ -90,8 +104,16 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       }
     }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: (error as Error).message });
+    }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
+  } finally {
+    if (isTelemetryEnabled) {
+      endSpan(span);
+    }
   }
 }

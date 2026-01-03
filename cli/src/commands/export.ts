@@ -16,6 +16,10 @@ import {
 import { writeFile } from "../utils/file-io.js";
 import { resolveModelRoot } from "../utils/model-path.js";
 import * as path from "path";
+import { startSpan, endSpan } from "../telemetry/index.js";
+
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 export interface ExportOptions {
   format: string;
@@ -25,6 +29,12 @@ export interface ExportOptions {
 }
 
 export async function exportCommand(options: ExportOptions): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('export.execute', {
+    'export.format': options.format,
+    'export.layer_count': options.layers?.length || 0,
+    'export.has_output': !!options.output,
+  }) : null;
+
   try {
     // Resolve model root and manifest path
     const { rootPath } = await resolveModelRoot({
@@ -100,6 +110,10 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       outputPath: options.output,
     });
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('export.result_size', result.length);
+    }
+
     if (options.output) {
       // Write to file
       // For relative paths, use current working directory instead of rootPath
@@ -118,8 +132,16 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
       console.log(result);
     }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: (error as Error).message });
+    }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
+  } finally {
+    if (isTelemetryEnabled) {
+      endSpan(span);
+    }
   }
 }

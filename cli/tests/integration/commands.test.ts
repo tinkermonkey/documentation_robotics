@@ -4,49 +4,26 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm } from 'fs/promises';
 import { Model } from '../../src/core/model.js';
-import { fileExists, readJSON } from '../../src/utils/file-io.js';
+import { fileExists } from '../../src/utils/file-io.js';
+import { createTempWorkdir, runDr as runDrHelper } from '../helpers/cli-runner.js';
 
-const TEMP_DIR = '/tmp/dr-cli-test';
+let tempDir: { path: string; cleanup: () => Promise<void> };
 
 /**
- * Helper to run dr commands using Node.js
+ * Wrapper around the cli-runner helper
  */
 async function runDr(...args: string[]): Promise<{ exitCode: number; stdout: string; stderr: string }> {
-  try {
-    const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
-    const result = await Bun.spawnSync({
-      cmd: ['node', cliPath, ...args],
-      cwd: TEMP_DIR,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    const stdout = result.stdout?.toString() || '';
-    const stderr = result.stderr?.toString() || '';
-
-    return { exitCode: result.exitCode, stdout, stderr };
-  } catch (error) {
-    return { exitCode: 1, stdout: '', stderr: String(error) };
-  }
+  return runDrHelper(args, { cwd: tempDir.path });
 }
 
 describe('CLI Commands Integration Tests', () => {
   beforeEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
-    await mkdir(TEMP_DIR, { recursive: true });
+    tempDir = await createTempWorkdir();
   });
 
   afterEach(async () => {
-    try {
-      await rm(TEMP_DIR, { recursive: true, force: true });
-    } catch (e) {
-      // ignore
-    }
+    await tempDir.cleanup();
   });
 
   describe('init command', () => {
@@ -56,21 +33,21 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
 
       // Verify model directory was created (Python CLI format)
-      expect(await fileExists(`${TEMP_DIR}/documentation-robotics/model/manifest.yaml`)).toBe(true);
+      expect(await fileExists(`${tempDir.path}/documentation-robotics/model/manifest.yaml`)).toBe(true);
 
       // Verify layer directories were created
       for (let i = 1; i <= 12; i++) {
         const layerNum = String(i).padStart(2, '0');
         const layers = ['motivation', 'business', 'security', 'application', 'technology',
                        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'];
-        const layerDir = `${TEMP_DIR}/documentation-robotics/model/${layerNum}_${layers[i-1]}`;
+        const layerDir = `${tempDir.path}/documentation-robotics/model/${layerNum}_${layers[i-1]}`;
         expect(await fileExists(layerDir)).toBe(true);
       }
 
       // Verify manifest contents (YAML format)
       const yaml = await import('yaml');
       const fs = await import('fs/promises');
-      const manifestContent = await fs.readFile(`${TEMP_DIR}/documentation-robotics/model/manifest.yaml`, 'utf-8');
+      const manifestContent = await fs.readFile(`${tempDir.path}/documentation-robotics/model/manifest.yaml`, 'utf-8');
       const manifest = yaml.parse(manifestContent);
       expect(manifest.project.name).toBe('Test Model');
     });
@@ -137,7 +114,7 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
 
       // Verify element was created
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
       expect(layer).toBeDefined();
       const element = layer!.getElement('motivation-goal-test');
@@ -154,7 +131,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('data-model');
       const element = layer!.getElement('data-model-entity-user');
       expect(element!.properties.required).toBe(true);
@@ -188,7 +165,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('api');
       const element = layer!.getElement('api-endpoint-test');
       expect(element!.description).toBe('A test endpoint');
@@ -212,7 +189,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('api');
       const element = layer!.getElement('api-endpoint-create-user');
       expect(element!.properties.method).toBe('POST');
@@ -232,7 +209,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('business');
       const element = layer!.getElement('business-service-test');
       expect(element!.name).toBe('Test Service');
@@ -268,7 +245,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
       const element = layer!.getElement('motivation-goal-special');
       expect(element!.name).toContain('Priority');
@@ -287,7 +264,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
       const element = layer!.getElement('motivation-goal-test');
       expect(element!.name).toBe('Updated Name');
@@ -311,7 +288,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
       expect(layer!.getElement('motivation-goal-test')).toBeUndefined();
     });
@@ -519,7 +496,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       const element = (await model.getLayer('motivation'))!.getElement('motivation-goal-test');
       expect(element).toBeDefined();
     });
@@ -606,7 +583,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       await model.loadRelationships();
       const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
       expect(relationships.length).toBe(1);
@@ -649,7 +626,7 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const model = await Model.load(TEMP_DIR);
+      const model = await Model.load(tempDir.path);
       await model.loadRelationships();
       const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
       expect(relationships.length).toBe(0);

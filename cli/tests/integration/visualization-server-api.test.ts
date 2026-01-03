@@ -7,7 +7,7 @@ import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from
 import { mkdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { spawnSync } from 'bun';
-import { portAllocator } from '../helpers/port-allocator.js';
+import { portAllocator } from '../helpers.ts';
 
 const TEMP_DIR = '/tmp/dr-api-test';
 const STARTUP_TIMEOUT = 10000;
