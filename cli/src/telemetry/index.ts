@@ -41,8 +41,8 @@ let logger: Logger | null = null;
  * - Circuit-breaker pattern for graceful failure
  * - Project context from manifest (if available)
  *
- * Trace exporter targets http://localhost:4318/v1/traces by default.
- * Log exporter targets http://localhost:4318/v1/logs by default.
+ * Trace exporter targets http://localhost:4320/v1/traces by default.
+ * Log exporter targets http://localhost:4320/v1/logs by default.
  * Both configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
  * Log endpoint can be overridden via OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
  */
@@ -104,7 +104,7 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
     const traceExporter = new ResilientOTLPExporter({
       url:
         process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-        'http://localhost:4318/v1/traces',
+        'http://localhost:4320/v1/traces',
       timeoutMillis: 500,
     });
 
@@ -127,7 +127,7 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ||
       (process.env.OTEL_EXPORTER_OTLP_ENDPOINT
         ? process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/v1\/traces$/, '/v1/logs')
-        : 'http://localhost:4318/v1/logs');
+        : 'http://localhost:4320/v1/logs');
 
     const logExporter = new ResilientLogExporter({
       url: logEndpoint,

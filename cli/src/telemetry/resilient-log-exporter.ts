@@ -16,7 +16,7 @@ export class ResilientLogExporter implements LogRecordExporter {
   private readonly backoffMs = 30000; // 30 seconds
 
   constructor(config?: { url?: string; timeoutMillis?: number }) {
-    const url = config?.url || 'http://localhost:4318/v1/logs';
+    const url = config?.url || 'http://localhost:4320/v1/logs';
     const timeoutMillis = config?.timeoutMillis || 500;
 
     this.delegate = new OTLPLogExporter({

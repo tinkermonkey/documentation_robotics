@@ -23,9 +23,11 @@ processors:
 exporters:
   otlp:
     client:
-      endpoint: signoz-query-service:4317
+      endpoint: signoz-otel-collector:4317
       tls:
         insecure: true
+  logging:
+    verbosity: detailed
 
 extensions:
   health_check:
@@ -36,13 +38,13 @@ service:
     traces:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
     logs:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
     metrics:
       receivers: [otlp]
       processors: [memory_limiter, batch]
-      exporters: [otlp]
+      exporters: [otlp, logging]
   extensions: [health_check]

@@ -41,11 +41,13 @@ export class ResilientOTLPExporter implements SpanExporter {
     url?: string;
     timeoutMillis?: number;
   }): Promise<void> {
+    const url = config?.url || 'http://localhost:4320/v1/traces';
+
     const { OTLPTraceExporter: ExporterClass } = await import('@opentelemetry/exporter-trace-otlp-http');
 
     this.delegate = new ExporterClass({
       ...config,
-      url: config?.url || 'http://localhost:4318/v1/traces',
+      url,
       timeoutMillis: config?.timeoutMillis ?? 500, // Aggressive timeout for local dev
     });
   }
