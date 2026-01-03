@@ -197,12 +197,14 @@ If you want to fully verify the telemetry pipeline with SigNoz:
    - Docker and Docker Compose installed
    - At least 4GB free disk space
 
-2. **Start SigNoz**:
+2. **Start SigNoz** (using the example configuration):
    ```bash
    cd /workspace
-   ./signoz-stack.sh start
+   ./docs/otel_example/signoz-stack.sh start
    # Wait ~30 seconds for services to initialize
    ```
+
+   **Note:** This uses the example SigNoz stack in `docs/otel_example/`. You can also use your own OTEL collector.
 
 3. **Access SigNoz UI**:
    - Open http://localhost:3301 in your browser
@@ -230,9 +232,9 @@ If you want to fully verify the telemetry pipeline with SigNoz:
    - Switch to "Logs" tab
    - Console output should appear with correlation IDs
 
-8. **Stop SigNoz**:
+8. **Stop SigNoz** (if using the example stack):
    ```bash
-   ./signoz-stack.sh stop
+   ./docs/otel_example/signoz-stack.sh stop
    ```
 
 ## Architecture Overview

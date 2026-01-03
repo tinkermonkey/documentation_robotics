@@ -212,28 +212,29 @@ The CLI supports comprehensive OpenTelemetry instrumentation for tracing, loggin
 
 ###### Prerequisites
 
-- Docker and Docker Compose (for running SigNoz locally)
 - Node.js 18+
+- An OpenTelemetry collector (optional, for viewing traces/logs)
 
-###### Start SigNoz Stack
+###### Start an OTEL Collector (Optional)
 
-Use the provided helper script to run a complete telemetry stack locally:
+**Option 1: Use Your Own Collector**
+
+The CLI works with any OTLP-compatible collector (Jaeger, Zipkin, Grafana Tempo, Honeycomb, etc.).
+
+**Option 2: Use the Example SigNoz Stack**
+
+An example SigNoz configuration is provided in `docs/otel_example/`:
 
 ```bash
 # From the repository root
-./signoz-stack.sh start
+./docs/otel_example/signoz-stack.sh start
 
 # Wait for services to initialize (~30 seconds)
 # Access SigNoz UI at http://localhost:3301
 # OTEL Collector is available at http://localhost:4318
 ```
 
-The stack includes:
-- **OTEL Collector** (HTTP receiver on port 4318)
-- **PostgreSQL** (trace storage)
-- **Redis** (caching)
-- **SigNoz Query Service** (trace API)
-- **SigNoz Frontend** (UI for visualization)
+**⚠️ Note:** This is an example configuration only. See [`docs/otel_example/README.md`](../docs/otel_example/README.md) for details.
 
 ###### Build and Run CLI with Telemetry
 
@@ -321,13 +322,13 @@ npm run test
 # - test.error.message and test.error.stack (for failed tests)
 ```
 
-###### Stop SigNoz Stack
+###### Stop the Example Stack (if using)
 
 ```bash
-./signoz-stack.sh stop
+./docs/otel_example/signoz-stack.sh stop
 
 # To remove all data and start fresh:
-./signoz-stack.sh clean
+./docs/otel_example/signoz-stack.sh clean
 ```
 
 ##### Configuration
