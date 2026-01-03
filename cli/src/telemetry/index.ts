@@ -12,8 +12,7 @@
 import type { Span } from '@opentelemetry/api';
 import type { NodeSDK } from '@opentelemetry/sdk-node';
 import type { Tracer } from '@opentelemetry/api';
-import type { LoggerProvider } from '@opentelemetry/sdk-logs';
-import type { Logger } from '@opentelemetry/api-logs';
+import type { Logger as OTelLogger } from '@opentelemetry/api-logs';
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 // This ensures tests and non-bundled code don't crash
@@ -24,103 +23,105 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
 // Only initialized when TELEMETRY_ENABLED is true
 let sdk: NodeSDK | null = null;
 let tracer: Tracer | null = null;
-
-// Module-level state for logging
-// Only initialized when TELEMETRY_ENABLED is true
-let loggerProvider: LoggerProvider | null = null;
-let logger: Logger | null = null;
+let loggerProvider: any = null;  // LoggerProvider type
+let logger: OTelLogger | null = null;
 
 /**
  * Initialize OpenTelemetry SDK. Must be called before creating spans.
  * No-op when TELEMETRY_ENABLED is false.
  *
- * Initializes both trace and log providers with:
+ * Initializes both TracerProvider and LoggerProvider with:
  * - Service name: "dr-cli"
- * - Span processor: SimpleSpanProcessor (ensures synchronous export on shutdown)
- * - Exporter: ResilientOTLPExporter for traces, ResilientLogExporter for logs
- * - Circuit-breaker pattern for graceful failure
- * - Project context from manifest (if available)
+ * - Service version: from package.json
+ * - Project name: from model manifest (if available)
+ * - Processors: SimpleSpanProcessor and SimpleLogRecordProcessor
+ * - Exporters: ResilientOTLPExporter with circuit-breaker pattern
  *
- * Trace exporter targets http://localhost:4320/v1/traces by default.
- * Log exporter targets http://localhost:4320/v1/logs by default.
- * Both configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
- * Log endpoint can be overridden via OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
+ * The exporters target http://localhost:4318/v1/traces and /v1/logs by default,
+ * configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
+ * Log endpoint can be overridden with OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
  */
-export async function initTelemetry(modelPath?: string): Promise<void> {
+export function initTelemetry(): void {
   if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
-    const [
-      { NodeSDK },
-      { trace },
-      { ResilientOTLPExporter },
-      { LoggerProvider, BatchLogRecordProcessor },
-      { ResilientLogExporter },
-      { Resource },
-      packageJson
-    ] = await Promise.all([
-      import('@opentelemetry/sdk-node'),
-      import('@opentelemetry/api'),
-      import('./resilient-exporter.js'),
-      import('@opentelemetry/sdk-logs'),
-      import('./resilient-log-exporter.js'),
-      import('@opentelemetry/resources'),
-      import('../../package.json', { with: { type: 'json' } }).then(m => m.default)
-    ]);
+    // Using require() here is intentional for dead code elimination
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { NodeSDK } = require('@opentelemetry/sdk-node');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { SimpleLogRecordProcessor } = require('@opentelemetry/sdk-logs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { trace } = require('@opentelemetry/api');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { Resource } = require('@opentelemetry/resources');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { LoggerProvider } = require('@opentelemetry/sdk-logs');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ResilientOTLPExporter } = require('./resilient-exporter');
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { ResilientLogExporter } = require('./resilient-log-exporter');
 
-    // Get CLI version from package.json
-    const cliVersion = packageJson.version;
-
-    // Attempt to load project name from manifest
-    let projectName = 'unknown';
+    // Attempt to get CLI version from package.json
+    let cliVersion = '0.1.0';
     try {
-      const [{ default: path }, { default: fs }] = await Promise.all([
-        import('path'),
-        import('fs')
-      ]);
-      const manifestPath = modelPath
-        ? path.join(modelPath, '.dr', 'manifest.json')
-        : path.join(process.cwd(), '.dr', 'manifest.json');
-
-      if (fs.existsSync(manifestPath)) {
-        const manifestContent = fs.readFileSync(manifestPath, 'utf-8');
-        const manifest = JSON.parse(manifestContent);
-        projectName = manifest.name || 'unknown';
-      }
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const pkg = require('../../package.json');
+      cliVersion = pkg.version || '0.1.0';
     } catch {
-      // No manifest found or unable to parse - use 'unknown'
+      // Use default version if package.json not accessible
     }
 
-    // Create resource with service and project attributes
-    // Per SigNoz integration guide: include deployment.environment and service.namespace
+    // Attempt to load project name from model manifest
+    let projectName = 'unknown';
+    try {
+      // Try to load manifest synchronously - this is a best-effort operation
+      // If it fails, we just use 'unknown'
+      const fs = require('fs');
+      const yaml = require('yaml');
+
+      // Synchronously resolve model root and load manifest
+      const possiblePaths = [
+        `${process.cwd()}/documentation-robotics/model/manifest.yaml`,
+        `${process.cwd()}/model/manifest.yaml`,
+      ];
+
+      for (const manifestPath of possiblePaths) {
+        try {
+          if (fs.existsSync(manifestPath)) {
+            const content = fs.readFileSync(manifestPath, 'utf-8');
+            const data = yaml.parse(content);
+            projectName = data.project?.name || 'unknown';
+            break;
+          }
+        } catch {
+          // Continue to next path
+        }
+      }
+    } catch {
+      // No manifest found or error loading - use 'unknown'
+    }
+
+    // Create resource with service attributes
     const resource = new Resource({
       'service.name': process.env.OTEL_SERVICE_NAME || 'dr-cli',
       'service.version': cliVersion,
-      'deployment.environment': process.env.OTEL_DEPLOYMENT_ENVIRONMENT || process.env.NODE_ENV || 'development',
-      'service.namespace': 'documentation-robotics',
       'dr.project.name': projectName,
     });
 
-    // Create resilient trace exporter with circuit-breaker pattern
+    // Create trace exporter with circuit-breaker pattern
     const traceExporter = new ResilientOTLPExporter({
       url:
         process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-        'http://localhost:4320/v1/traces',
+        'http://localhost:4318/v1/traces',
       timeoutMillis: 500,
     });
 
-    // Initialize NodeSDK with BatchSpanProcessor for better performance
-    // Per SigNoz integration guide: use batch processors, not simple processors
-    const { BatchSpanProcessor } = await import('@opentelemetry/sdk-trace-base');
+    // Initialize NodeSDK with SimpleSpanProcessor for immediate export
     const nodeSdk = new NodeSDK({
-      serviceName: 'dr-cli',
-      spanProcessor: new BatchSpanProcessor(traceExporter, {
-        maxQueueSize: 512,
-        scheduledDelayMillis: 5000,
-        exportTimeoutMillis: 30000,
-        maxExportBatchSize: 512,
-      }),
       resource,
+      spanProcessor: new SimpleSpanProcessor(traceExporter),
     });
 
     // Start the SDK
@@ -130,33 +131,27 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
     // Get tracer instance for span creation
     tracer = trace.getTracer('dr-cli', cliVersion);
 
-    // Initialize log provider
+    // Create log exporter with circuit-breaker pattern
     const logEndpoint =
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ||
-      (process.env.OTEL_EXPORTER_OTLP_ENDPOINT
-        ? process.env.OTEL_EXPORTER_OTLP_ENDPOINT.replace(/\/v1\/traces$/, '/v1/logs')
-        : 'http://localhost:4320/v1/logs');
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.replace(/\/v1\/traces$/, '/v1/logs') ||
+      'http://localhost:4318/v1/logs';
 
     const logExporter = new ResilientLogExporter({
       url: logEndpoint,
       timeoutMillis: 500,
     });
 
+    // Initialize LoggerProvider
     loggerProvider = new LoggerProvider({
       resource,
     });
+    loggerProvider.addLogRecordProcessor(
+      new SimpleLogRecordProcessor(logExporter)
+    );
 
-    // Use BatchLogRecordProcessor for better performance
-    // Per SigNoz integration guide: batch processors instead of simple
-    loggerProvider!.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter, {
-      maxQueueSize: 512,
-      scheduledDelayMillis: 5000,
-      exportTimeoutMillis: 30000,
-      maxExportBatchSize: 512,
-    }));
-
-    // Get logger instance
-    logger = loggerProvider!.getLogger('dr-cli', cliVersion);
+    // Get logger instance for log emission
+    logger = loggerProvider.getLogger('dr-cli', cliVersion);
   }
 }
 
@@ -209,31 +204,65 @@ export function endSpan(span: Span | null): void {
 
 /**
  * Emit a log record with optional severity level and attributes.
- *
- * Automatically attaches traceId and spanId from the active span context (if present).
- * Safe to call when telemetry is disabled (no-op).
+ * Automatically correlates logs with active spans by attaching traceId and spanId.
+ * Returns without emitting if telemetry is disabled.
  *
  * ```typescript
- * if (TELEMETRY_ENABLED) {
- *   const { SeverityNumber } = require('@opentelemetry/api-logs');
- *   emitLog(SeverityNumber.INFO, 'Operation started', { operation: 'my-op' });
- * }
+ * import { SeverityNumber } from '@opentelemetry/api-logs';
+ * emitLog(SeverityNumber.INFO, 'User logged in', { 'user.id': '12345' });
  * ```
  */
-export async function emitLog(
+export function emitLog(
   severity: number,
   message: string,
   attributes?: Record<string, any>
-): Promise<void> {
-  if (!isTelemetryEnabled || !logger) return;
+): void {
+  if (!isTelemetryEnabled || !logger) {
+    return;
+  }
 
-  const { trace } = await import('@opentelemetry/api');
+  // Dynamic import of trace API for getting active span
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { trace } = require('@opentelemetry/api');
 
   const span = trace.getActiveSpan();
   const context = span?.spanContext();
 
+  // Map severity number to text representation
+  // Reference: https://opentelemetry.io/docs/reference/specification/logs/data-model/#severity_number
+  const severityMap: Record<number, string> = {
+    0: 'UNSPECIFIED',
+    1: 'TRACE',
+    2: 'TRACE2',
+    3: 'TRACE3',
+    4: 'TRACE4',
+    5: 'DEBUG',
+    6: 'DEBUG2',
+    7: 'DEBUG3',
+    8: 'DEBUG4',
+    9: 'INFO',
+    10: 'INFO2',
+    11: 'INFO3',
+    12: 'INFO4',
+    13: 'WARN',
+    14: 'WARN2',
+    15: 'WARN3',
+    16: 'WARN4',
+    17: 'ERROR',
+    18: 'ERROR2',
+    19: 'ERROR3',
+    20: 'ERROR4',
+    21: 'FATAL',
+    22: 'FATAL2',
+    23: 'FATAL3',
+    24: 'FATAL4',
+  };
+
+  const severityText = severityMap[severity] || 'UNSPECIFIED';
+
   logger.emit({
     severityNumber: severity,
+    severityText,
     body: message,
     attributes: {
       ...attributes,
@@ -247,7 +276,7 @@ export async function emitLog(
 
 /**
  * Shutdown the OpenTelemetry SDK gracefully.
- * Should be called on process exit to ensure all pending spans are exported.
+ * Should be called on process exit to ensure all pending spans and logs are exported.
  *
  * Ignores shutdown failures to avoid blocking process exit.
  */

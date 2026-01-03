@@ -1,51 +1,66 @@
-import { LogRecordExporter, ReadableLogRecord } from '@opentelemetry/sdk-logs';
-import { ExportResult, ExportResultCode } from '@opentelemetry/core';
-import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+/**
+ * Resilient OTLP log exporter with circuit-breaker pattern.
+ * Gracefully handles missing OTLP collectors by silently discarding log records
+ * instead of blocking CLI execution.
+ */
+
+import type {
+  LogRecordExporter,
+  ReadableLogRecord,
+} from '@opentelemetry/sdk-logs';
+import type { ExportResult } from '@opentelemetry/core';
+import { ExportResultCode } from '@opentelemetry/core';
+import type { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 
 /**
- * ResilientLogExporter implements the LogRecordExporter interface with circuit-breaker pattern.
+ * OTLP log exporter with circuit-breaker pattern for graceful failure.
+ * Silently discards log records when collector is unavailable instead of blocking.
  *
- * Features:
- * - 500ms timeout to prevent blocking CLI execution
- * - 30-second circuit-breaker backoff for resilience against missing OTLP collector
- * - Graceful degradation: failures don't block CLI or produce user-visible errors
+ * Circuit breaker behavior:
+ * - Initial state: Attempts export to configured OTLP endpoint
+ * - On failure: Sets 30-second backoff window, silently discards log records
+ * - Backoff expired: Retries export, resets on success or extends on failure
+ * - Timeout: 500ms aggressive timeout prevents blocking CLI execution
  */
 export class ResilientLogExporter implements LogRecordExporter {
   private delegate: OTLPLogExporter;
-  private retryAfter = 0; // Circuit-breaker timestamp
-  private readonly backoffMs = 30000; // 30 seconds
+  private retryAfter = 0;  // Circuit-breaker timestamp
 
-  constructor(config?: { url?: string; timeoutMillis?: number }) {
-    const url = config?.url || 'http://localhost:4320/v1/logs';
-    const timeoutMillis = config?.timeoutMillis || 500;
+  constructor(
+    config?: Record<string, unknown> & {
+      url?: string;
+      timeoutMillis?: number;
+    }
+  ) {
+    // Using require() is intentional for tree-shaking when TELEMETRY_ENABLED is false
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { OTLPLogExporter: ExporterClass } = require('@opentelemetry/exporter-logs-otlp-http');
 
-    this.delegate = new OTLPLogExporter({
-      url,
-      timeoutMillis,
+    this.delegate = new ExporterClass({
+      ...config,
+      url: config?.url || 'http://localhost:4318/v1/logs',
+      timeoutMillis: config?.timeoutMillis ?? 500,  // Aggressive timeout for local dev
     });
   }
 
-  /**
-   * Export log records with circuit-breaker protection.
-   *
-   * If the circuit-breaker is active (30s backoff after failure), silently
-   * discards records and returns success to prevent SDK retries.
-   */
   export(
     records: ReadableLogRecord[],
     resultCallback: (result: ExportResult) => void
   ): void {
-    // Circuit-breaker check
+    // Circuit breaker: skip export if recently failed.
+    // Boundary: when Date.now() === this.retryAfter, retry immediately (intended behavior).
     if (Date.now() < this.retryAfter) {
+      // Pretend success and silently discard log records
       resultCallback({ code: ExportResultCode.SUCCESS });
-      return; // Silently discard during backoff
+      return;
     }
 
-    this.delegate.export(records, (result) => {
+    this.delegate.export(records, (result: ExportResult) => {
       if (result.code === ExportResultCode.FAILED) {
-        // Activate circuit-breaker
-        this.retryAfter = Date.now() + this.backoffMs;
-        // Return success to prevent SDK retries
+        // Set 30-second backoff window after first failure
+        this.retryAfter = Date.now() + 30000;
+        // Report success to SDK so it doesn't queue/retry internally
+        // The backoff mechanism prevents further export attempts
         resultCallback({ code: ExportResultCode.SUCCESS });
       } else {
         // Clear backoff on successful export
