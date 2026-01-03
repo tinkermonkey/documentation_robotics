@@ -23,8 +23,9 @@ import type { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
  * - Timeout: 500ms aggressive timeout prevents blocking CLI execution
  */
 export class ResilientOTLPExporter implements SpanExporter {
-  private delegate: OTLPTraceExporter;
+  private delegate: OTLPTraceExporter | null = null;
   private retryAfter = 0;
+  private initPromise: Promise<void>;
 
   constructor(
     config?: Record<string, unknown> & {
@@ -32,9 +33,15 @@ export class ResilientOTLPExporter implements SpanExporter {
       timeoutMillis?: number;
     }
   ) {
-    // Using require() is intentional for tree-shaking when TELEMETRY_ENABLED is false
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { OTLPTraceExporter: ExporterClass } = require('@opentelemetry/exporter-trace-otlp-http');
+    // Initialize delegate asynchronously
+    this.initPromise = this.initDelegate(config);
+  }
+
+  private async initDelegate(config?: Record<string, unknown> & {
+    url?: string;
+    timeoutMillis?: number;
+  }): Promise<void> {
+    const { OTLPTraceExporter: ExporterClass } = await import('@opentelemetry/exporter-trace-otlp-http');
 
     this.delegate = new ExporterClass({
       ...config,
@@ -52,19 +59,30 @@ export class ResilientOTLPExporter implements SpanExporter {
       return;
     }
 
-    this.delegate.export(spans, (result: ExportResult) => {
-        if (result.code === ExportResultCode.FAILED) {
-          // Set 30-second backoff window after first failure
-          this.retryAfter = Date.now() + 30000;
-          // Report success to SDK so it doesn't queue/retry internally
-          // The backoff mechanism prevents further export attempts
-          resultCallback({ code: ExportResultCode.SUCCESS });
-        } else {
-          // Clear backoff on successful export
-          this.retryAfter = 0;
-          resultCallback(result);
-        }
-      });
+    // Wait for initialization before exporting
+    this.initPromise.then(() => {
+      if (!this.delegate) {
+        resultCallback({ code: ExportResultCode.SUCCESS });
+        return;
+      }
+
+      this.delegate.export(spans, (result: ExportResult) => {
+          if (result.code === ExportResultCode.FAILED) {
+            // Set 30-second backoff window after first failure
+            this.retryAfter = Date.now() + 30000;
+            // Report success to SDK so it doesn't queue/retry internally
+            // The backoff mechanism prevents further export attempts
+            resultCallback({ code: ExportResultCode.SUCCESS });
+          } else {
+            // Clear backoff on successful export
+            this.retryAfter = 0;
+            resultCallback(result);
+          }
+        });
+    }).catch(() => {
+      // Initialization failed - silently discard
+      resultCallback({ code: ExportResultCode.SUCCESS });
+    });
   }
 
   async forceFlush(): Promise<void> {
@@ -73,16 +91,18 @@ export class ResilientOTLPExporter implements SpanExporter {
       return;
     }
 
+    await this.initPromise;
     try {
-      await this.delegate.forceFlush?.();
+      await this.delegate?.forceFlush?.();
     } catch {
       // Silently ignore flush failures - don't block shutdown
     }
   }
 
   async shutdown(): Promise<void> {
+    await this.initPromise;
     try {
-      await this.delegate.shutdown();
+      await this.delegate?.shutdown();
     } catch {
       // Silently ignore shutdown failures - don't let telemetry block process exit
     }

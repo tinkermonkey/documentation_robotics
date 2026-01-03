@@ -74,13 +74,13 @@ function extractStackTrace(args: any[]): Record<string, string> {
  *
  * No-op when TELEMETRY_ENABLED is false.
  */
-export function installConsoleInterceptor(): void {
+export async function installConsoleInterceptor(): Promise<void> {
   if (!isTelemetryEnabled) return;
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { SeverityNumber } = require('@opentelemetry/api-logs');
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { emitLog } = require('./index.js');
+  const [{ SeverityNumber }, { emitLog }] = await Promise.all([
+    import('@opentelemetry/api-logs'),
+    import('./index.js')
+  ]);
 
   console.log = (...args: any[]): void => {
     emitLog(SeverityNumber.INFO, formatArgs(args));

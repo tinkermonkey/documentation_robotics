@@ -46,27 +46,29 @@ let logger: Logger | null = null;
  * Both configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
  * Log endpoint can be overridden via OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
  */
-export function initTelemetry(modelPath?: string): void {
+export async function initTelemetry(modelPath?: string): Promise<void> {
   if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
-    // Using require() here is intentional for dead code elimination
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { NodeSDK } = require('@opentelemetry/sdk-node');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { trace } = require('@opentelemetry/api');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { ResilientOTLPExporter } = require('./resilient-exporter');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { LoggerProvider, SimpleLogRecordProcessor } = require('@opentelemetry/sdk-logs');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { ResilientLogExporter } = require('./resilient-log-exporter');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Resource } = require('@opentelemetry/resources');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const packageJson = require('../../package.json');
+    const [
+      { NodeSDK },
+      { SimpleSpanProcessor },
+      { trace },
+      { ResilientOTLPExporter },
+      { LoggerProvider, SimpleLogRecordProcessor },
+      { ResilientLogExporter },
+      { Resource },
+      packageJson
+    ] = await Promise.all([
+      import('@opentelemetry/sdk-node'),
+      import('@opentelemetry/sdk-trace-base'),
+      import('@opentelemetry/api'),
+      import('./resilient-exporter.js'),
+      import('@opentelemetry/sdk-logs'),
+      import('./resilient-log-exporter.js'),
+      import('@opentelemetry/resources'),
+      import('../../package.json', { with: { type: 'json' } }).then(m => m.default)
+    ]);
 
     // Get CLI version from package.json
     const cliVersion = packageJson.version;
@@ -74,8 +76,10 @@ export function initTelemetry(modelPath?: string): void {
     // Attempt to load project name from manifest
     let projectName = 'unknown';
     try {
-      const path = require('path');
-      const fs = require('fs');
+      const [{ default: path }, { default: fs }] = await Promise.all([
+        import('path'),
+        import('fs')
+      ]);
       const manifestPath = modelPath
         ? path.join(modelPath, '.dr', 'manifest.json')
         : path.join(process.cwd(), '.dr', 'manifest.json');
@@ -201,15 +205,14 @@ export function endSpan(span: Span | null): void {
  * }
  * ```
  */
-export function emitLog(
+export async function emitLog(
   severity: number,
   message: string,
   attributes?: Record<string, any>
-): void {
+): Promise<void> {
   if (!isTelemetryEnabled || !logger) return;
 
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { trace } = require('@opentelemetry/api');
+  const { trace } = await import('@opentelemetry/api');
 
   const span = trace.getActiveSpan();
   const context = span?.spanContext();

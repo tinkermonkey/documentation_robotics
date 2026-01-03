@@ -81,11 +81,11 @@ program
   .description('Documentation Robotics CLI - Architecture Model Management')
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
-  .hook('preAction', (thisCommand) => {
+  .hook('preAction', async (thisCommand) => {
     // Initialize telemetry and create root span
     if (isTelemetryEnabled) {
-      initTelemetry();
-      installConsoleInterceptor();
+      await initTelemetry();
+      await installConsoleInterceptor();
 
       const commandName = process.argv[2] || 'unknown';
       const args = process.argv.slice(3).join(' ');
