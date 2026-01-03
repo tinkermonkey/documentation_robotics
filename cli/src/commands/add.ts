@@ -13,6 +13,11 @@ import {
   handleError,
   handleSuccess,
 } from '../utils/errors.js';
+import { startSpan, endSpan } from '../telemetry/index.js';
+
+// Telemetry flag check
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 export interface AddOptions {
   name?: string;
@@ -28,6 +33,12 @@ export async function addCommand(
   id: string,
   options: AddOptions
 ): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('element.add', {
+    'layer.name': layer,
+    'element.type': type,
+    'element.id': id,
+  }) : null;
+
   try {
     // Resolve model path (supports multiple layouts)
     const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
@@ -112,6 +123,14 @@ export async function addCommand(
       description: options.description || '(none)',
     });
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: (error as Error).message });
+    }
     handleError(error);
+  } finally {
+    if (isTelemetryEnabled) {
+      endSpan(span);
+    }
   }
 }
