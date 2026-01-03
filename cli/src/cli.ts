@@ -40,6 +40,7 @@ import { readJSON, fileExists } from './utils/file-io.js';
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
+
 // Get CLI version from package.json
 async function getCliVersion(): Promise<string> {
   const possiblePaths = [
@@ -90,6 +91,8 @@ program
       const commandName = process.argv[2] || 'unknown';
       const args = process.argv.slice(3).join(' ');
 
+      // Create root span - child spans will link to it via context.active()
+      // because startSpan() now respects the active context
       rootSpan = startSpan('cli.execute', {
         'cli.command': commandName,
         'cli.args': args,

@@ -159,6 +159,13 @@ export function initTelemetry(): void {
  * Create and start a new span with the given name and optional attributes.
  * Returns null when telemetry is disabled.
  *
+ * This function respects the active context - if there's an active span,
+ * the new span will be created as a child of it. This enables proper
+ * trace hierarchy.
+ *
+ * IMPORTANT: This function does NOT set the span as active in the context.
+ * For automatic context propagation, use `startActiveSpan()` instead.
+ *
  * Must be called within an `if (TELEMETRY_ENABLED)` guard in calling code:
  *
  * ```typescript
@@ -177,9 +184,69 @@ export function startSpan(
   attributes?: Record<string, any>
 ): Span | null {
   if (isTelemetryEnabled && tracer) {
-    return tracer.startSpan(name, { attributes });
+    // Dynamic import of context API
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { context } = require('@opentelemetry/api');
+
+    // Start span with current context to respect parent-child relationships
+    return tracer.startSpan(name, { attributes }, context.active());
   }
   return null;
+}
+
+/**
+ * Execute a function with an active span that properly propagates context.
+ * Child spans created within the callback will automatically be linked to this span.
+ *
+ * Returns the result of the callback function.
+ * Returns the callback result directly when telemetry is disabled.
+ *
+ * ```typescript
+ * const result = await startActiveSpan('operation', async (span) => {
+ *   // Child spans here will be properly linked
+ *   return doWork();
+ * }, { 'attr.key': 'value' });
+ * ```
+ */
+export async function startActiveSpan<T>(
+  name: string,
+  fn: (span: Span) => Promise<T>,
+  attributes?: Record<string, any>
+): Promise<T> {
+  if (!isTelemetryEnabled || !tracer) {
+    // Create a no-op span for the callback
+    const noopSpan = {
+      end: () => {},
+      setAttribute: () => noopSpan,
+      setAttributes: () => noopSpan,
+      addEvent: () => noopSpan,
+      setStatus: () => noopSpan,
+      updateName: () => noopSpan,
+      isRecording: () => false,
+      recordException: () => {},
+      spanContext: () => ({
+        traceId: '',
+        spanId: '',
+        traceFlags: 0,
+      }),
+    } as any;
+    return fn(noopSpan);
+  }
+
+  // Use tracer.startActiveSpan for proper context propagation
+  return new Promise<T>((resolve, reject) => {
+    tracer!.startActiveSpan(name, { attributes }, async (span) => {
+      try {
+        const result = await fn(span);
+        span.end();
+        resolve(result);
+      } catch (error) {
+        span.recordException(error as Error);
+        span.end();
+        reject(error);
+      }
+    });
+  });
 }
 
 /**
