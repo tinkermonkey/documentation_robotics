@@ -52,16 +52,14 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
     // These imports are completely eliminated from production builds
     const [
       { NodeSDK },
-      { SimpleSpanProcessor },
       { trace },
       { ResilientOTLPExporter },
-      { LoggerProvider, SimpleLogRecordProcessor },
+      { LoggerProvider, BatchLogRecordProcessor },
       { ResilientLogExporter },
       { Resource },
       packageJson
     ] = await Promise.all([
       import('@opentelemetry/sdk-node'),
-      import('@opentelemetry/sdk-trace-base'),
       import('@opentelemetry/api'),
       import('./resilient-exporter.js'),
       import('@opentelemetry/sdk-logs'),
@@ -94,9 +92,12 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
     }
 
     // Create resource with service and project attributes
+    // Per SigNoz integration guide: include deployment.environment and service.namespace
     const resource = new Resource({
       'service.name': process.env.OTEL_SERVICE_NAME || 'dr-cli',
       'service.version': cliVersion,
+      'deployment.environment': process.env.OTEL_DEPLOYMENT_ENVIRONMENT || process.env.NODE_ENV || 'development',
+      'service.namespace': 'documentation-robotics',
       'dr.project.name': projectName,
     });
 
@@ -108,10 +109,17 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
       timeoutMillis: 500,
     });
 
-    // Initialize NodeSDK with SimpleSpanProcessor for immediate export
+    // Initialize NodeSDK with BatchSpanProcessor for better performance
+    // Per SigNoz integration guide: use batch processors, not simple processors
+    const { BatchSpanProcessor } = await import('@opentelemetry/sdk-trace-base');
     const nodeSdk = new NodeSDK({
       serviceName: 'dr-cli',
-      spanProcessor: new SimpleSpanProcessor(traceExporter),
+      spanProcessor: new BatchSpanProcessor(traceExporter, {
+        maxQueueSize: 512,
+        scheduledDelayMillis: 5000,
+        exportTimeoutMillis: 30000,
+        maxExportBatchSize: 512,
+      }),
       resource,
     });
 
@@ -138,7 +146,14 @@ export async function initTelemetry(modelPath?: string): Promise<void> {
       resource,
     });
 
-    loggerProvider!.addLogRecordProcessor(new SimpleLogRecordProcessor(logExporter));
+    // Use BatchLogRecordProcessor for better performance
+    // Per SigNoz integration guide: batch processors instead of simple
+    loggerProvider!.addLogRecordProcessor(new BatchLogRecordProcessor(logExporter, {
+      maxQueueSize: 512,
+      scheduledDelayMillis: 5000,
+      exportTimeoutMillis: 30000,
+      maxExportBatchSize: 512,
+    }));
 
     // Get logger instance
     logger = loggerProvider!.getLogger('dr-cli', cliVersion);

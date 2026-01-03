@@ -17,6 +17,9 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
  * - http.status_code: HTTP response status code
  * - http.url: Full request URL
  * - http.user_agent: User agent string
+ *
+ * Also emits logs at request start and completion per SigNoz integration guide
+ * for request lifecycle tracking.
  */
 export async function telemetryMiddleware(c: Context, next: Next): Promise<void> {
   if (!isTelemetryEnabled) {
@@ -24,11 +27,13 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   }
 
   // Dynamic import for tree-shaking
-  const { startSpan, endSpan } = await import('../telemetry/index.js');
+  const { startSpan, endSpan, emitLog } = await import('../telemetry/index.js');
+  const { SeverityNumber } = await import('@opentelemetry/api-logs');
 
   const method = c.req.method;
   const path = c.req.path;
   const route = c.req.routePath || path; // Use route pattern if available
+  const requestStartTime = Date.now();
 
   // Create span for the HTTP request
   const span = startSpan('http.server.request', {
@@ -40,6 +45,13 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
     'http.scheme': new URL(c.req.url).protocol.replace(':', ''),
   });
 
+  // Log request received (per SigNoz integration guide: request lifecycle logging)
+  await emitLog(SeverityNumber.INFO, 'Request received', {
+    'http.method': method,
+    'http.route': route,
+    'http.target': path,
+  });
+
   try {
     // Process the request
     await next();
@@ -47,7 +59,10 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
     // Add response attributes after request is processed
     if (span && 'setAttribute' in span) {
       const statusCode = c.res.status;
+      const durationMs = Date.now() - requestStartTime;
+
       (span as any).setAttribute('http.status_code', statusCode);
+      (span as any).setAttribute('http.duration_ms', durationMs);
 
       // Set span status based on HTTP status code
       if (statusCode >= 500) {
@@ -57,6 +72,19 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
       } else {
         (span as any).setStatus({ code: 1 }); // OK
       }
+
+      // Log request completed (per SigNoz integration guide: request lifecycle logging)
+      await emitLog(
+        statusCode >= 400 ? SeverityNumber.ERROR : SeverityNumber.INFO,
+        'Request completed',
+        {
+          'http.method': method,
+          'http.route': route,
+          'http.target': path,
+          'http.status_code': statusCode,
+          'duration_ms': durationMs,
+        }
+      );
     }
   } catch (error) {
     // Record exception in span
