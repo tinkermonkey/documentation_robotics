@@ -4,7 +4,7 @@ import { Element } from "./element.js";
 import { ProjectionEngine } from "./projection-engine.js";
 import { Relationships } from "./relationships.js";
 import { ActiveChangesetContext } from "./active-changeset.js";
-import { ensureDir } from "../utils/file-io.js";
+import { ensureDir, writeFile } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { resolveModelRoot } from "../utils/model-path.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -320,7 +320,7 @@ export class Model {
         }
       }
 
-      await fs.writeFile(filePath, yaml.stringify(yamlData), 'utf-8')
+      await writeFile(filePath, yaml.stringify(yamlData))
     }
 
     layer.markClean()
@@ -371,7 +371,6 @@ export class Model {
   async saveManifest(): Promise<void> {
     this.manifest.updateModified()
     const yaml = await import('yaml')
-    const fs = await import('fs/promises')
     const manifestPath = `${this.rootPath}/documentation-robotics/model/manifest.yaml`
 
     // Convert to legacy YAML format, preserving Python CLI fields
@@ -448,7 +447,7 @@ export class Model {
     }
 
     await ensureDir(`${this.rootPath}/documentation-robotics/model`)
-    await fs.writeFile(manifestPath, yaml.stringify(yamlData), 'utf-8')
+    await writeFile(manifestPath, yaml.stringify(yamlData))
   }
 
   private getLayerElementCounts(layer: Layer): Record<string, number> {
