@@ -26,6 +26,10 @@ let tracer: Tracer | null = null;
 let loggerProvider: any = null;  // LoggerProvider type
 let logger: OTelLogger | null = null;
 
+// Cache OpenTelemetry API imports for synchronous access
+let cachedContext: any = null;
+let cachedTrace: any = null;
+
 /**
  * Initialize OpenTelemetry SDK. Must be called before creating spans.
  * No-op when TELEMETRY_ENABLED is false.
@@ -41,34 +45,40 @@ let logger: OTelLogger | null = null;
  * configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
  * Log endpoint can be overridden with OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
  */
-export function initTelemetry(): void {
+export async function initTelemetry(): Promise<void> {
   if (isTelemetryEnabled) {
     // Dynamic imports ensure tree-shaking when TELEMETRY_ENABLED is false
     // These imports are completely eliminated from production builds
-    // Using require() here is intentional for dead code elimination
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { NodeSDK } = require('@opentelemetry/sdk-node');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { SimpleSpanProcessor } = require('@opentelemetry/sdk-trace-base');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { SimpleLogRecordProcessor } = require('@opentelemetry/sdk-logs');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { trace } = require('@opentelemetry/api');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { Resource } = require('@opentelemetry/resources');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { LoggerProvider } = require('@opentelemetry/sdk-logs');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { ResilientOTLPExporter } = require('./resilient-exporter');
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { ResilientLogExporter } = require('./resilient-log-exporter');
+    const [
+      { NodeSDK },
+      { SimpleSpanProcessor },
+      { SimpleLogRecordProcessor },
+      otelApi,
+      { Resource },
+      { LoggerProvider },
+      { ResilientOTLPExporter },
+      { ResilientLogExporter },
+    ] = await Promise.all([
+      import('@opentelemetry/sdk-node'),
+      import('@opentelemetry/sdk-trace-base'),
+      import('@opentelemetry/sdk-logs'),
+      import('@opentelemetry/api'),
+      import('@opentelemetry/resources'),
+      import('@opentelemetry/sdk-logs'),
+      import('./resilient-exporter.js'),
+      import('./resilient-log-exporter.js'),
+    ]);
+
+    // Cache API imports for synchronous access in other functions
+    const { trace, context } = otelApi;
+    cachedTrace = trace;
+    cachedContext = context;
 
     // Attempt to get CLI version from package.json
     let cliVersion = '0.1.0';
     try {
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pkg = require('../../package.json');
-      cliVersion = pkg.version || '0.1.0';
+      const pkg = await import('../../package.json', { assert: { type: 'json' } });
+      cliVersion = pkg.default.version || '0.1.0';
     } catch {
       // Use default version if package.json not accessible
     }
@@ -76,12 +86,14 @@ export function initTelemetry(): void {
     // Attempt to load project name from model manifest
     let projectName = 'unknown';
     try {
-      // Try to load manifest synchronously - this is a best-effort operation
+      // Try to load manifest - this is a best-effort operation
       // If it fails, we just use 'unknown'
-      const fs = require('fs');
-      const yaml = require('yaml');
+      const [{ readFileSync, existsSync }, { parse }] = await Promise.all([
+        import('fs'),
+        import('yaml'),
+      ]);
 
-      // Synchronously resolve model root and load manifest
+      // Resolve model root and load manifest
       const possiblePaths = [
         `${process.cwd()}/documentation-robotics/model/manifest.yaml`,
         `${process.cwd()}/model/manifest.yaml`,
@@ -89,9 +101,9 @@ export function initTelemetry(): void {
 
       for (const manifestPath of possiblePaths) {
         try {
-          if (fs.existsSync(manifestPath)) {
-            const content = fs.readFileSync(manifestPath, 'utf-8');
-            const data = yaml.parse(content);
+          if (existsSync(manifestPath)) {
+            const content = readFileSync(manifestPath, 'utf-8');
+            const data = parse(content);
             projectName = data.project?.name || 'unknown';
             break;
           }
@@ -183,13 +195,9 @@ export function startSpan(
   name: string,
   attributes?: Record<string, any>
 ): Span | null {
-  if (isTelemetryEnabled && tracer) {
-    // Dynamic import of context API
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { context } = require('@opentelemetry/api');
-
+  if (isTelemetryEnabled && tracer && cachedContext) {
     // Start span with current context to respect parent-child relationships
-    return tracer.startSpan(name, { attributes }, context.active());
+    return tracer.startSpan(name, { attributes }, cachedContext.active());
   }
   return null;
 }
@@ -284,15 +292,11 @@ export function emitLog(
   message: string,
   attributes?: Record<string, any>
 ): void {
-  if (!isTelemetryEnabled || !logger) {
+  if (!isTelemetryEnabled || !logger || !cachedTrace) {
     return;
   }
 
-  // Dynamic import of trace API for getting active span
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { trace } = require('@opentelemetry/api');
-
-  const span = trace.getActiveSpan();
+  const span = cachedTrace.getActiveSpan();
   const context = span?.spanContext();
 
   // Map severity number to text representation
