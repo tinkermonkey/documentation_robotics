@@ -816,72 +816,7 @@ export class VisualizationServer {
   }
 
   /**
-   * Build system prompt with DR model context for Claude Code CLI
-   */
-  private async buildSystemPrompt(): Promise<string> {
-    const parts: string[] = [];
-
-    parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
-
-## Your Expertise
-
-You understand the **full 12-layer DR architecture**:
-1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
-2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
-3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
-4. Application (Layer 4) - HOW: components, services, interfaces, events
-5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
-6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
-7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
-8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
-9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
-10. Navigation (Layer 10) - FLOW: Multi-Modal routing
-11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
-12. Testing (Layer 12) - VERIFY: ISP Coverage Model
-
-## Your Tools
-
-You can use Bash to run DR CLI commands:
-- \`dr list <layer>\` - List elements in a layer
-- \`dr find <id>\` - Find element by ID
-- \`dr search <query>\` - Search for elements
-- \`dr trace <id>\` - Trace dependencies
-
-You can use Read to examine model files in the .dr directory.
-
-## Guidelines
-
-- Understand user intent through conversation
-- Use DR CLI tools to get current model information
-- Provide context from the model state
-- Be conversational and helpful`);
-
-    // Add model context
-    parts.push('\n## Current Model Context\n');
-    parts.push(`**Model**: ${this.model.manifest.name}`);
-    parts.push(`**Spec Version**: ${this.model.manifest.specVersion}`);
-    if (this.model.manifest.description) {
-      parts.push(`**Description**: ${this.model.manifest.description}`);
-    }
-
-    // Add layer statistics
-    parts.push('\n**Layer Statistics**:');
-    const layerNames = this.model.getLayerNames();
-    for (const layerName of layerNames) {
-      const layer = await this.model.getLayer(layerName);
-      if (layer) {
-        const count = layer.listElements().length;
-        if (count > 0) {
-          parts.push(`- ${layerName}: ${count} elements`);
-        }
-      }
-    }
-
-    return parts.join('\n');
-  }
-
-  /**
-   * Launch Claude Code CLI with DR chat agent and stream responses
+   * Launch Claude Code CLI with dr-architect agent and stream responses
    */
   private async launchClaudeCodeChat(
     ws: HonoWSContext,
@@ -890,18 +825,14 @@ You can use Read to examine model files in the .dr directory.
     requestId: string | number | undefined
   ): Promise<void> {
     try {
-      // Build system prompt with model context
-      const systemPrompt = await this.buildSystemPrompt();
-
-      // Launch claude with proper flags for streaming JSON output
+      // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = Bun.spawn({
         cmd: [
           'claude',
+          '--agent', 'dr-architect',
           '--print',
           '--dangerously-skip-permissions',
           '--verbose',
-          '--system-prompt', systemPrompt,
-          '--tools', 'Bash,Read',
           '--output-format', 'stream-json',
         ],
         cwd: this.model.rootPath,

@@ -82,24 +82,23 @@ describe('Chat E2E Tests', () => {
     expect(typeof claudeAvailable).toBe('boolean');
   });
 
-  it('should build proper Claude CLI command with all flags', () => {
-    const systemPrompt = 'Test prompt with model context';
+  it('should build proper Claude CLI command with dr-architect agent', () => {
     const expectedCmd = [
       'claude',
+      '--agent', 'dr-architect',
       '--print',
       '--dangerously-skip-permissions',
       '--verbose',
-      '--system-prompt', systemPrompt,
-      '--tools', 'Bash,Read',
       '--output-format', 'stream-json',
     ];
 
+    expect(expectedCmd).toContain('--agent');
+    expect(expectedCmd).toContain('dr-architect');
     expect(expectedCmd).toContain('--print');
     expect(expectedCmd).toContain('--dangerously-skip-permissions');
     expect(expectedCmd).toContain('--output-format');
     expect(expectedCmd).toContain('stream-json');
-    expect(expectedCmd).toContain('--tools');
-    expect(expectedCmd).toContain('Bash,Read');
+    // Agent defines its own tools, so --tools flag is not needed
   });
 
   it('should have valid test model structure', async () => {
@@ -122,8 +121,9 @@ describe('Chat E2E Tests', () => {
     expect(apiLayer.elements[0].id).toBe('api-endpoint-get-users');
   });
 
-  it('should generate model context for system prompt', async () => {
-    // Simulate context generation
+  it('should have model context accessible via DR CLI for dr-architect agent', async () => {
+    // The dr-architect agent accesses model context through DR CLI tools
+    // Verify the model structure is properly set up for agent access
     const manifestPath = join(testDir, '.dr', 'manifest.json');
     const manifest = JSON.parse(await Bun.file(manifestPath).text());
 
@@ -133,20 +133,10 @@ describe('Chat E2E Tests', () => {
     const businessLayerPath = join(testDir, '.dr', 'layers', 'business.json');
     const businessLayer = JSON.parse(await Bun.file(businessLayerPath).text());
 
-    const context = {
-      manifest: {
-        name: manifest.name,
-        specVersion: manifest.specVersion,
-      },
-      layer_stats: {
-        api: apiLayer.elements.length,
-        business: businessLayer.elements.length,
-      },
-    };
-
-    expect(context.manifest.name).toBe('Test Model');
-    expect(context.layer_stats.api).toBe(1);
-    expect(context.layer_stats.business).toBe(1);
+    // Verify model files are accessible for agent to use via Bash/Read tools
+    expect(manifest.name).toBe('Test Model');
+    expect(apiLayer.elements.length).toBe(1);
+    expect(businessLayer.elements.length).toBe(1);
   });
 
   // Skip this test if Claude is not available
@@ -438,11 +428,10 @@ describe('Subprocess IPC', () => {
     // Message should not be in command args
     const cmd = [
       'claude',
+      '--agent', 'dr-architect',
       '--print',
       '--dangerously-skip-permissions',
       '--verbose',
-      '--system-prompt', 'context',
-      '--tools', 'Bash,Read',
       '--output-format', 'stream-json',
     ];
 

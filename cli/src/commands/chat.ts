@@ -1,76 +1,11 @@
 /**
  * Chat Command - Interactive chat with Claude about the architecture model
- * Uses Claude Code CLI subprocess for OAuth-based authentication
+ * Uses Claude Code CLI subprocess with dr-architect agent
  */
 
 import ansis from 'ansis';
 import { text, intro, outro } from '@clack/prompts';
 import { Model } from '../core/model.js';
-
-/**
- * Build system prompt with DR model context
- */
-async function buildSystemPrompt(model: Model): Promise<string> {
-  const parts: string[] = [];
-
-  parts.push(`You are DrBot, an expert conversational assistant for Documentation Robotics (DR) models.
-
-## Your Expertise
-
-You understand the **full 12-layer DR architecture**:
-1. Motivation (Layer 1) - WHY: goals, principles, requirements, constraints
-2. Business (Layer 2) - WHAT: capabilities, processes, services, actors
-3. Security (Layer 3) - WHO/PROTECTION: actors, roles, policies, threats
-4. Application (Layer 4) - HOW: components, services, interfaces, events
-5. Technology (Layer 5) - WITH: platforms, frameworks, infrastructure
-6. API (Layer 6) - CONTRACTS: OpenAPI 3.0.3 specs
-7. Data Model (Layer 7) - STRUCTURE: JSON Schema Draft 7
-8. Datastore (Layer 8) - PERSISTENCE: SQL DDL
-9. UX (Layer 9) - EXPERIENCE: Three-Tier Architecture
-10. Navigation (Layer 10) - FLOW: Multi-Modal routing
-11. APM (Layer 11) - OBSERVE: OpenTelemetry 1.0+
-12. Testing (Layer 12) - VERIFY: ISP Coverage Model
-
-## Your Tools
-
-You can use Bash to run DR CLI commands:
-- \`dr list <layer>\` - List elements in a layer
-- \`dr find <id>\` - Find element by ID
-- \`dr search <query>\` - Search for elements
-- \`dr trace <id>\` - Trace dependencies
-
-You can use Read to examine model files in the .dr directory.
-
-## Guidelines
-
-- Understand user intent through conversation
-- Use DR CLI tools to get current model information
-- Provide context from the model state
-- Be conversational and helpful`);
-
-  // Add model context
-  parts.push('\n## Current Model Context\n');
-  parts.push(`**Model**: ${model.manifest.name}`);
-  parts.push(`**Spec Version**: ${model.manifest.specVersion}`);
-  if (model.manifest.description) {
-    parts.push(`**Description**: ${model.manifest.description}`);
-  }
-
-  // Add layer statistics
-  parts.push('\n**Layer Statistics**:');
-  const layerNames = model.getLayerNames();
-  for (const layerName of layerNames) {
-    const layer = await model.getLayer(layerName);
-    if (layer) {
-      const count = layer.listElements().length;
-      if (count > 0) {
-        parts.push(`- ${layerName}: ${count} elements`);
-      }
-    }
-  }
-
-  return parts.join('\n');
-}
 
 /**
  * Check if Claude Code CLI is available
@@ -89,22 +24,20 @@ async function checkClaudeAvailable(): Promise<boolean> {
 }
 
 /**
- * Send a message to Claude Code CLI and stream response
+ * Send a message to Claude Code CLI and stream response using dr-architect agent
  */
 async function sendMessage(
   message: string,
-  systemPrompt: string,
   modelPath: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const proc = Bun.spawn({
       cmd: [
         'claude',
+        '--agent', 'dr-architect',
         '--print',
         '--dangerously-skip-permissions',
         '--verbose',
-        '--system-prompt', systemPrompt,
-        '--tools', 'Bash,Read',
         '--output-format', 'stream-json',
       ],
       cwd: modelPath,
@@ -195,19 +128,16 @@ export async function chatCommand(): Promise<void> {
       process.exit(1);
     }
 
-    // Load the model
+    // Load the model to verify it exists
     const model = await Model.load(process.cwd());
     if (!model) {
       console.error(ansis.red('Error: Could not load architecture model'));
       process.exit(1);
     }
 
-    // Build system prompt with model context
-    const systemPrompt = await buildSystemPrompt(model);
-
     // Show intro
     intro(ansis.bold(ansis.cyan('Documentation Robotics Chat')));
-    console.log(ansis.dim('Powered by Claude Code - Ask about your architecture model\n'));
+    console.log(ansis.dim('Powered by Claude Code dr-architect agent\n'));
 
     // Start conversation loop
     while (true) {
@@ -243,7 +173,7 @@ export async function chatCommand(): Promise<void> {
       try {
         // Stream the response
         process.stdout.write(ansis.cyan('Claude: '));
-        await sendMessage(userInput, systemPrompt, model.rootPath);
+        await sendMessage(userInput, model.rootPath);
         console.log('\n');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
