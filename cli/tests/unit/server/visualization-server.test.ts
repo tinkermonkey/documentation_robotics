@@ -11,8 +11,8 @@ import { mkdirSync, rmSync, writeFileSync } from 'fs';
 
 // Test fixture setup
 async function createTestModel(rootPath: string): Promise<Model> {
-  // Create model directory structure (new YAML format)
-  mkdirSync(join(rootPath, 'model', '01_motivation'), { recursive: true });
+  // Create model directory structure (new documentation-robotics format)
+  mkdirSync(join(rootPath, 'documentation-robotics', 'model', '01_motivation'), { recursive: true });
 
   // Create manifest.yaml
   const manifestYaml = `version: '0.1.0'
@@ -29,13 +29,13 @@ layers:
   motivation:
     order: 1
     name: Motivation
-    path: model/01_motivation/
+    path: documentation-robotics/model/01_motivation/
     schema: .dr/schemas/01-motivation-layer.schema.json
     enabled: true
 `;
 
   writeFileSync(
-    join(rootPath, 'model', 'manifest.yaml'),
+    join(rootPath, 'documentation-robotics', 'model', 'manifest.yaml'),
     manifestYaml
   );
 
@@ -48,7 +48,7 @@ layers:
 `;
 
   writeFileSync(
-    join(rootPath, 'model', '01_motivation', 'goals.yaml'),
+    join(rootPath, 'documentation-robotics', 'model', '01_motivation', 'goals.yaml'),
     motivationYaml
   );
 
