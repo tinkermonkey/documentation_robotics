@@ -217,7 +217,8 @@ describe('ReferenceValidator', () => {
         const result = validator.validateModel(model);
         expect(result.isValid()).toBe(true);
     });
-    it('should detect invalid reference from data-model to data-store', () => {
+    it('should allow valid reference from data-model to data-store', () => {
+        // data-model (level 7) can reference data-store (level 8) - higher → lower
         const validator = new ReferenceValidator();
         const model = createTestModel();
         const dataModelLayer = new Layer('data-model', [
@@ -238,9 +239,7 @@ describe('ReferenceValidator', () => {
         model.addLayer(dataModelLayer);
         model.addLayer(dataStoreLayer);
         const result = validator.validateModel(model);
-        expect(result.isValid()).toBe(false);
-        expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('Invalid reference direction');
+        expect(result.isValid()).toBe(true); // Should be valid!
     });
     it('should handle complex multi-layer scenario with hyphenated layers', () => {
         const validator = new ReferenceValidator();

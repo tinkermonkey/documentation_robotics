@@ -75,7 +75,7 @@ describe("Model", () => {
         });
         const model = new Model(testDir, manifest);
         await model.saveManifest();
-        const manifestPath = `${testDir}/.dr/manifest.yaml`;
+        const manifestPath = `${testDir}/documentation-robotics/model/manifest.yaml`;
         expect(await fileExists(manifestPath)).toBe(true);
         const content = await readFile(manifestPath);
         expect(content).toContain("name: Test Model");
@@ -96,7 +96,7 @@ describe("Model", () => {
         const layer = new Layer("motivation", [element]);
         model.addLayer(layer);
         await model.saveLayer("motivation");
-        const layerPath = `${testDir}/.dr/layers/motivation.json`;
+        const layerPath = `${testDir}/documentation-robotics/model/01_motivation/Goals.yaml`;
         expect(await fileExists(layerPath)).toBe(true);
     });
     it("should throw error when saving nonexistent layer", async () => {
@@ -184,7 +184,7 @@ describe("Model", () => {
         });
         expect(model.rootPath).toBe(testDir);
         expect(model.manifest.name).toBe("Test Model");
-        const manifestPath = `${testDir}/.dr/manifest.yaml`;
+        const manifestPath = `${testDir}/documentation-robotics/model/manifest.yaml`;
         expect(await fileExists(manifestPath)).toBe(true);
     });
     it("should load an existing model", async () => {

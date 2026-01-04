@@ -6,7 +6,6 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 import {
   InvalidJSONError,
   CLIError,
@@ -40,11 +39,8 @@ export async function addCommand(
   }) : null;
 
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load();
 
     // Get or create layer
     let layerObj = await model.getLayer(layer);

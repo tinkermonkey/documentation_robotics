@@ -6,8 +6,10 @@ import { Relationships } from "./relationships.js";
 import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
-import { resolveModelRoot } from "../utils/model-path.js";
+import { findProjectRoot } from "../utils/project-paths.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
+import path from 'node:path';
+import fs from 'node:fs/promises';
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined
@@ -511,25 +513,86 @@ export class Model {
   }
 
   /**
-   * Load a model from disk (supports both new and legacy formats)
-   * Uses resolveModelRoot to find manifest in multiple locations:
-   * - root/model/manifest.yaml (TypeScript layout)
-   * - root/documentation-robotics/model/manifest.yaml (Python layout)
-   * - Respects DR_MODEL_PATH environment variable
+   * Resolve model paths (private helper)
+   *
+   * @param startPath - Starting path for search
+   * @returns Project root and manifest path
    */
-  static async load(rootPath: string, options: ModelOptions = {}): Promise<Model> {
+  private static async resolveModelPaths(startPath?: string): Promise<{
+    projectRoot: string;
+    manifestPath: string;
+  }> {
+    const searchPath = startPath || process.cwd();
+
+    // Optional override via env var (highest priority)
+    if (process.env.DR_MODEL_PATH) {
+      const envPath = path.resolve(process.env.DR_MODEL_PATH);
+      let manifestPath: string;
+
+      if (envPath.endsWith('manifest.yaml')) {
+        manifestPath = envPath;
+      } else if (envPath.endsWith('model')) {
+        manifestPath = path.join(envPath, 'manifest.yaml');
+      } else {
+        manifestPath = path.join(envPath, 'documentation-robotics', 'model', 'manifest.yaml');
+      }
+
+      try {
+        await fs.access(manifestPath);
+        const projectRoot = path.dirname(path.dirname(path.dirname(manifestPath)));
+        return { projectRoot, manifestPath: path.normalize(manifestPath) };
+      } catch {
+        throw new Error(`Model not found at DR_MODEL_PATH: ${process.env.DR_MODEL_PATH}`);
+      }
+    }
+
+    // Use findProjectRoot to locate documentation_robotics/ folder
+    const projectRoot = await findProjectRoot(searchPath);
+
+    if (!projectRoot) {
+      throw new Error(
+        'No DR project found. Could not find documentation_robotics/ folder.\n' +
+        'Run "dr init" to create a new project, or navigate to a directory containing a DR project.'
+      );
+    }
+
+    const manifestPath = path.join(projectRoot, 'documentation-robotics', 'model', 'manifest.yaml');
+
+    try {
+      await fs.access(manifestPath);
+      return { projectRoot, manifestPath };
+    } catch {
+      throw new Error(
+        `Found documentation_robotics/ at ${projectRoot} but no model found. ` +
+        `Expected: ${manifestPath}\n` +
+        `Run "dr init" to create a model.`
+      );
+    }
+  }
+
+  /**
+   * Load a model from disk
+   *
+   * Expected structure:
+   * <project-root>/
+   * └── documentation_robotics/
+   *     └── model/
+   *         └── manifest.yaml
+   *
+   * @param startPath - Starting path for project search (defaults to process.cwd())
+   * @param options - Model loading options
+   * @returns Loaded Model instance
+   */
+  static async load(startPath?: string, options: ModelOptions = {}): Promise<Model> {
     const span = isTelemetryEnabled ? startSpan('model.load', {
-      'model.path': rootPath,
+      'model.path': startPath || process.cwd(),
       'model.type': 'dr-legacy',
     }) : null
 
     try {
-      // Use resolveModelRoot to find manifest (supports both layouts)
-      const { rootPath: resolvedRoot, manifestPath } = await resolveModelRoot({
-        modelPath: rootPath
-      })
+      // Resolve project root and manifest path
+      const { projectRoot, manifestPath } = await Model.resolveModelPaths(startPath);
 
-      const fs = await import('fs/promises')
       const yaml = await import('yaml')
 
       // Load manifest from resolved path
@@ -561,7 +624,7 @@ export class Model {
         upgrade_history: legacyData.upgrade_history || []
       }
       const manifest = new Manifest(manifestData)
-      const model = new Model(resolvedRoot, manifest, options)
+      const model = new Model(projectRoot, manifest, options)
 
       // Load all available layers if lazyLoad is false
       if (!options.lazyLoad) {

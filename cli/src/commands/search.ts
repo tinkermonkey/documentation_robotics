@@ -4,7 +4,6 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 
 export interface SearchOptions {
   layer?: string;
@@ -16,11 +15,8 @@ export interface SearchOptions {
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load();
 
     // Collect all matching elements
     const results: Array<{

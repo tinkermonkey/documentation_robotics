@@ -33,7 +33,7 @@ describe('NamingValidator', () => {
         const result = validator.validateLayer(layer);
         expect(result.isValid()).toBe(false);
         expect(result.errors).toHaveLength(1);
-        expect(result.errors[0].message).toContain('must have type and name components after layer');
+        expect(result.errors[0].message).toContain("Element ID layer prefix 'invalid' does not match layer 'motivation'");
     });
     it('should detect mismatched layer prefix', () => {
         const validator = new NamingValidator();

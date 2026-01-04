@@ -4,7 +4,6 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 
 export async function projectCommand(
   elementId: string,
@@ -17,14 +16,8 @@ export async function projectCommand(
   } = {}
 ): Promise<void> {
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({
-      modelPath: options.model,
-      cwd: process.cwd()
-    });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Get source element
     const source = model.getElementById(elementId);
@@ -163,14 +156,8 @@ export async function projectAllCommand(options: {
   model?: string;
 } = {}): Promise<void> {
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({
-      modelPath: options.model,
-      cwd: process.cwd()
-    });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Initialize projection engine
     const engine = model.getProjectionEngine();

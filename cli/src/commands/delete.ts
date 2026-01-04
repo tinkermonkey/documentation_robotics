@@ -5,7 +5,6 @@
 import { confirm } from '@clack/prompts';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
@@ -25,11 +24,8 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
   }) : null;
 
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load();
 
     // Find element
     const layerName = await findElementLayer(model, id);

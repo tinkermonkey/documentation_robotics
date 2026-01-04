@@ -21,8 +21,8 @@ describe('Python CLI Model Compatibility', () => {
 
   describe('Dual Path Resolution', () => {
     it('should load manifest from root/model/manifest.yaml', async () => {
-      // Create test structure: root/model/manifest.yaml
-      await mkdir(join(TEST_MODEL_DIR, 'simple', 'model'), { recursive: true });
+      // Create test structure: root/documentation-robotics/model/manifest.yaml
+      await mkdir(join(TEST_MODEL_DIR, 'simple', 'documentation-robotics', 'model'), { recursive: true });
 
       const manifest = {
         schema: 'documentation-robotics-v1',
@@ -39,7 +39,7 @@ describe('Python CLI Model Compatibility', () => {
           motivation: {
             order: 1,
             name: 'Motivation',
-            path: 'model/01_motivation/',
+            path: 'documentation-robotics/model/01_motivation/',
             schema: '.dr/schemas/01-motivation-layer.schema.json',
             enabled: true,
             elements: {}
@@ -48,7 +48,7 @@ describe('Python CLI Model Compatibility', () => {
       };
 
       await writeFile(
-        join(TEST_MODEL_DIR, 'simple', 'model', 'manifest.yaml'),
+        join(TEST_MODEL_DIR, 'simple', 'documentation-robotics', 'model', 'manifest.yaml'),
         JSON.stringify(manifest).replace(/"/g, "'").replace(/'/g, '"') // Quick YAML-ish format
       );
 
@@ -98,7 +98,7 @@ describe('Python CLI Model Compatibility', () => {
 
   describe('Manifest Metadata Preservation', () => {
     it('should preserve Python CLI metadata fields', async () => {
-      await mkdir(join(TEST_MODEL_DIR, 'metadata', 'model'), { recursive: true });
+      await mkdir(join(TEST_MODEL_DIR, 'metadata', 'documentation-robotics', 'model'), { recursive: true });
 
       const manifest = {
         schema: 'documentation-robotics-v1',
@@ -133,7 +133,7 @@ describe('Python CLI Model Compatibility', () => {
       };
 
       await writeFile(
-        join(TEST_MODEL_DIR, 'metadata', 'model', 'manifest.yaml'),
+        join(TEST_MODEL_DIR, 'metadata', 'documentation-robotics', 'model', 'manifest.yaml'),
         JSON.stringify(manifest).replace(/"/g, "'").replace(/'/g, '"')
       );
 

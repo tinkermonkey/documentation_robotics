@@ -15,12 +15,8 @@ export interface ListOptions {
 
 export async function listCommand(layer: string, options: ListOptions): Promise<void> {
   try {
-    const { rootPath } = await import('../utils/model-path.js').then(m =>
-      m.resolveModelRoot({ modelPath: options.model })
-    );
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Get layer
     const layerObj = await model.getLayer(layer);

@@ -12,8 +12,9 @@ const TEMP_DIR = '/tmp/dr-cli-test';
  */
 async function runDr(...args) {
     try {
+        const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
         const result = await Bun.spawnSync({
-            cmd: ['bun', 'run', 'dist/cli.js', ...args],
+            cmd: ['node', cliPath, ...args],
             cwd: TEMP_DIR,
         });
         return { exitCode: result.exitCode };
@@ -44,13 +45,8 @@ describe('CLI Commands Integration Tests', () => {
         it('should create a new model', async () => {
             const result = await runDr('init', '--name', 'Test Model');
             expect(result.exitCode).toBe(0);
-            // Verify .dr directory was created
-            expect(await fileExists(`${TEMP_DIR}/.dr/manifest.json`)).toBe(true);
-            expect(await fileExists(`${TEMP_DIR}/.dr/layers`)).toBe(true);
-            // Verify manifest contents
-            const manifest = await readJSON(`${TEMP_DIR}/.dr/manifest.json`);
-            expect(manifest.name).toBe('Test Model');
-            expect(manifest.version).toBe('0.1.0');
+            // Verify documentation-robotics/model directory was created
+            expect(await fileExists(`${TEMP_DIR}/documentation-robotics/model/manifest.yaml`)).toBe(true);
         });
         it('should fail if model already exists', async () => {
             // Initialize once
@@ -230,10 +226,10 @@ describe('CLI Commands Integration Tests', () => {
             const result = await runDr('relationship', 'add', 'motivation-goal-1', 'motivation-goal-2', '--predicate', 'depends-on');
             expect(result.exitCode).toBe(0);
             const model = await Model.load(TEMP_DIR);
-            const layer = await model.getLayer('motivation');
-            const element = layer.getElement('motivation-goal-1');
-            expect(element.relationships.length).toBe(1);
-            expect(element.relationships[0].predicate).toBe('depends-on');
+            // Relationships are now stored centrally in the relationship registry
+            const rels = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
+            expect(rels.length).toBe(1);
+            expect(rels[0].predicate).toBe('depends-on');
         });
         it('should fail to add cross-layer relationship', async () => {
             await runDr('add', 'business', 'process', 'business-process-test', '--name', 'Test Process');

@@ -18,12 +18,8 @@ export async function traceCommand(
   } = {}
 ): Promise<void> {
   try {
-    const { rootPath } = await import('../utils/model-path.js').then(m =>
-      m.resolveModelRoot({ modelPath: options.model })
-    );
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Find element
     const layerName = await findElementLayer(model, elementId);

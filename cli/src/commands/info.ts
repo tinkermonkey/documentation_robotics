@@ -4,7 +4,6 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 
 export interface InfoOptions {
   layer?: string;
@@ -14,11 +13,8 @@ export interface InfoOptions {
 
 export async function infoCommand(options: InfoOptions): Promise<void> {
   try {
-    // Resolve model path (supports multiple layouts)
-    const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load();
     const manifest = model.manifest;
 
     console.log('');

@@ -5,7 +5,6 @@
 import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { resolveModelRoot } from '../utils/model-path.js';
 import { findElementLayer } from '../utils/element-utils.js';
 
 export function relationshipCommands(program: Command): void {
@@ -24,10 +23,8 @@ Examples:
     )
     .action(async (source, target, options) => {
       try {
-        // Resolve model path (supports multiple layouts)
-        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
-        const model = await Model.load(rootPath, { lazyLoad: false });
+        // Load model
+        const model = await Model.load();
 
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
@@ -104,10 +101,8 @@ Examples:
     )
     .action(async (source, target, options) => {
       try {
-        // Resolve model path (supports multiple layouts)
-        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
-        const model = await Model.load(rootPath, { lazyLoad: false });
+        // Load model
+        const model = await Model.load();
 
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
@@ -174,10 +169,8 @@ Examples:
     )
     .action(async (id, options) => {
       try {
-        // Resolve model path (supports multiple layouts)
-        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
-        const model = await Model.load(rootPath, { lazyLoad: false });
+        // Load model
+        const model = await Model.load();
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
@@ -254,10 +247,8 @@ Examples:
     )
     .action(async (source, target) => {
       try {
-        // Resolve model path (supports multiple layouts)
-        const { rootPath } = await resolveModelRoot({ cwd: process.cwd() });
-
-        const model = await Model.load(rootPath, { lazyLoad: false });
+        // Load model
+        const model = await Model.load();
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {

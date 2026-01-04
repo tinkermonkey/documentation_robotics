@@ -14,7 +14,6 @@ import {
   MarkdownExporter,
 } from "../export/index.js";
 import { writeFile } from "../utils/file-io.js";
-import { resolveModelRoot } from "../utils/model-path.js";
 import * as path from "path";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
@@ -36,14 +35,8 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
   }) : null;
 
   try {
-    // Resolve model root and manifest path
-    const { rootPath } = await resolveModelRoot({
-      modelPath: options.model,
-      cwd: process.cwd()
-    });
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Initialize ExportManager and register all exporters
     const manager = new ExportManager();

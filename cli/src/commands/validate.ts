@@ -127,12 +127,8 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       return;
     }
 
-    const { rootPath } = await import('../utils/model-path.js').then(m =>
-      m.resolveModelRoot({ modelPath: options.model })
-    );
-
     // Load model
-    const model = await Model.load(rootPath, { lazyLoad: false });
+    const model = await Model.load(options.model);
 
     // Validate
     const validator = new Validator();
