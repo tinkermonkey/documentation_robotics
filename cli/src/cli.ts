@@ -25,7 +25,6 @@ import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
 import { chatCommand } from './commands/chat.js';
-import { migrateCommand } from './commands/migrate.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
 import { changesetCommands } from './commands/changeset.js';
@@ -392,28 +391,7 @@ about your architecture model. Requires Claude Code CLI to be installed and auth
   });
 
 // Advanced commands
-program
-  .command('migrate')
-  .description('Migrate the model to a different spec version')
-  .option('--to <version>', 'Target spec version')
-  .option('--dry-run', 'Preview changes without applying them')
-  .option('--force', 'Skip validation checks')
-  .addHelpText(
-    'after',
-    `
-Examples:
-  $ dr migrate --to 1.0.0
-  $ dr migrate --to 1.0.0 --dry-run
-  $ dr migrate --to 1.0.0 --force`
-  )
-  .action(async (options) => {
-    await migrateCommand({
-      to: options.to,
-      dryRun: options.dryRun,
-      force: options.force,
-    });
-  });
-
+// Note: migrate command has been merged into upgrade command
 program
   .command('version')
   .description('Show CLI and embedded spec version information')
@@ -429,15 +407,25 @@ Examples:
 
 program
   .command('upgrade')
-  .description('Check for available CLI and spec version upgrades')
+  .description('Upgrade spec reference and migrate model to latest versions')
+  .option('-y, --yes', 'Automatically upgrade without prompting')
+  .option('--dry-run', 'Show what would be upgraded without making changes')
+  .option('--force', 'Skip validation during migration')
   .addHelpText(
     'after',
     `
 Examples:
-  $ dr upgrade`
+  $ dr upgrade              # Scan, show plan, and prompt for upgrades
+  $ dr upgrade --dry-run    # Preview available upgrades
+  $ dr upgrade --yes        # Upgrade without prompting
+  $ dr upgrade --force      # Skip validation during migration`
   )
-  .action(async () => {
-    await upgradeCommand();
+  .action(async (options) => {
+    await upgradeCommand({
+      yes: options.yes,
+      dryRun: options.dryRun,
+      force: options.force,
+    });
   });
 
 program

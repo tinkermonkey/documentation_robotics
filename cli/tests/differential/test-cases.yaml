@@ -318,6 +318,24 @@ test_cases:
       type: "exit-code"
     skip: false
 
+  - name: "Upgrade - check for upgrades (dry-run)"
+    description: "Check for available upgrades without modifying files"
+    python:
+      command: *python_cli
+      args: ["update", "--dry-run"]
+      cwd: *baseline_model
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args: ["run", "src/cli.ts", "upgrade", "--dry-run"]
+      cwd: *ts_root
+      timeout: 10000
+    comparison:
+      type: "exit-code"
+    skip: false
+    expectedToFail: true
+    notes: "Python CLI uses 'update' command, TypeScript uses 'upgrade'. Output format may differ."
+
   # ============================================================================
   # ERROR HANDLING TESTS
   # ============================================================================

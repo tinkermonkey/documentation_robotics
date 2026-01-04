@@ -1,12 +1,15 @@
 /**
  * Upgrade Command - Manages spec reference and model upgrades
  *
- * Two-step process:
- * 1. Check and upgrade .dr/ (spec reference) if CLI has newer bundled version
- * 2. Check and upgrade model if .dr/ spec is newer than model spec
+ * Scans the filesystem to determine what needs upgrading:
+ * 1. .dr/ (spec reference) - if CLI has newer bundled version
+ * 2. Model data - if model spec version doesn't match spec reference
+ *
+ * Shows upgrade plan and prompts for confirmation before proceeding.
  */
 
 import ansis from 'ansis';
+import { confirm } from '@clack/prompts';
 import { findProjectRoot, getSpecReferencePath, getModelPath } from '../utils/project-paths.js';
 import {
   getCliBundledSpecVersion,
@@ -14,10 +17,26 @@ import {
   getModelSpecVersion,
 } from '../utils/spec-version.js';
 import { MigrationRegistry } from '../core/migration-registry.js';
+import { installSpecReference } from '../utils/spec-installer.js';
+import { Model } from '../core/model.js';
 
-export async function upgradeCommand(): Promise<void> {
+export interface UpgradeOptions {
+  yes?: boolean;
+  dryRun?: boolean;
+  force?: boolean;
+}
+
+interface UpgradeAction {
+  type: 'spec' | 'model';
+  description: string;
+  fromVersion?: string;
+  toVersion: string;
+  details?: string[];
+}
+
+export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
   try {
-    console.log(ansis.bold('\nChecking for available upgrades...\n'));
+    console.log(ansis.bold('\nScanning for available upgrades...\n'));
 
     // Find project root
     const projectRoot = await findProjectRoot();
@@ -28,40 +47,68 @@ export async function upgradeCommand(): Promise<void> {
     }
 
     const bundledSpecVersion = getCliBundledSpecVersion();
+    const actions: UpgradeAction[] = [];
 
-    // STEP 1: Check .dr/ (spec reference) upgrade
-    console.log(ansis.bold('Step 1: Checking spec reference (.dr/)...\n'));
+    // ============================================================================
+    // STEP 1: Check spec reference (.dr/ folder)
+    // ============================================================================
 
     const drPath = await getSpecReferencePath();
+    let currentSpecVersion: string | null = null;
+
     if (!drPath) {
-      console.log(ansis.yellow('⚠ No .dr/ folder found'));
-      console.log(ansis.dim(`  Run "dr init" to install spec reference (v${bundledSpecVersion})\n`));
+      actions.push({
+        type: 'spec',
+        description: 'Install spec reference',
+        toVersion: bundledSpecVersion,
+        details: [
+          'Create .dr/ folder',
+          'Install schema files',
+          `Set spec version to ${bundledSpecVersion}`,
+        ],
+      });
     } else {
       const installedSpecVersion = await getInstalledSpecVersion(drPath);
+      currentSpecVersion = installedSpecVersion;
 
       if (!installedSpecVersion) {
-        console.log(ansis.yellow('⚠ .dr/manifest.json not found or invalid'));
-        console.log(ansis.dim(`  Reinstall with: dr init --force\n`));
+        actions.push({
+          type: 'spec',
+          description: 'Reinstall spec reference (manifest missing)',
+          toVersion: bundledSpecVersion,
+          details: [
+            'Recreate .dr/manifest.json',
+            'Update schema files',
+            `Set spec version to ${bundledSpecVersion}`,
+          ],
+        });
       } else if (installedSpecVersion !== bundledSpecVersion) {
-        console.log(
-          ansis.yellow(
-            `Spec reference upgrade available: ${installedSpecVersion} → ${bundledSpecVersion}`
-          )
-        );
-        console.log(ansis.dim(`  .dr/ folder will be updated to v${bundledSpecVersion}`));
-        console.log(ansis.dim('  Run: dr upgrade spec\n'));
-      } else {
-        console.log(ansis.green(`✓ Spec reference is up to date (v${installedSpecVersion})\n`));
+        actions.push({
+          type: 'spec',
+          description: 'Upgrade spec reference',
+          fromVersion: installedSpecVersion,
+          toVersion: bundledSpecVersion,
+          details: [
+            'Update schema files',
+            'Update .dr/manifest.json',
+          ],
+        });
       }
     }
 
+    // ============================================================================
     // STEP 2: Check model upgrade
-    console.log(ansis.bold('Step 2: Checking model (documentation_robotics/model/)...\n'));
+    // ============================================================================
 
     const modelPath = await getModelPath();
     if (!modelPath) {
       console.log(ansis.yellow('⚠ No model found'));
       console.log(ansis.dim('  Run "dr init" to create a model\n'));
+
+      // If only spec needs upgrade, handle it
+      if (actions.length > 0) {
+        await handleUpgrade(projectRoot, actions, options);
+      }
       return;
     }
 
@@ -69,43 +116,185 @@ export async function upgradeCommand(): Promise<void> {
     if (!modelSpecVersion) {
       console.log(ansis.yellow('⚠ Model manifest.yaml not found or missing specVersion'));
       console.log(ansis.dim('  Check documentation_robotics/model/manifest.yaml\n'));
+
+      // If only spec needs upgrade, handle it
+      if (actions.length > 0) {
+        await handleUpgrade(projectRoot, actions, options);
+      }
       return;
     }
 
-    // Compare model spec to installed spec (or bundled if .dr/ doesn't exist)
-    const targetSpecVersion = drPath
-      ? (await getInstalledSpecVersion(drPath)) || bundledSpecVersion
-      : bundledSpecVersion;
+    // Determine target spec version for model
+    const targetSpecVersion = currentSpecVersion || bundledSpecVersion;
 
     if (modelSpecVersion !== targetSpecVersion) {
-      console.log(
-        ansis.yellow(
-          `Model upgrade available: ${modelSpecVersion} → ${targetSpecVersion}`
-        )
-      );
-      console.log(ansis.dim(`  Model will be migrated to spec v${targetSpecVersion}`));
-
-      // Show migration path
+      // Check if we have a migration path
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary(modelSpecVersion, targetSpecVersion);
 
-      if (summary.migrationsNeeded > 0) {
-        console.log(ansis.dim('\nMigration path:'));
-        for (const migration of summary.migrations) {
-          console.log(
-            ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`)
-          );
+      if (summary.migrationsNeeded === 0) {
+        console.log(
+          ansis.yellow(
+            `⚠ No migration path found from model v${modelSpecVersion} to v${targetSpecVersion}`
+          )
+        );
+        console.log(ansis.dim('\nAvailable migrations:'));
+        const allMigrations = registry.getMigrationSummary('0.5.0').migrations;
+        for (const migration of allMigrations) {
+          console.log(ansis.dim(`  • ${migration.from} → ${migration.to}: ${migration.description}`));
         }
+        console.log();
+        process.exit(1);
       }
 
-      console.log(ansis.dim(`\n  Run: dr migrate --to ${targetSpecVersion}\n`));
-    } else {
-      console.log(ansis.green(`✓ Model is up to date (v${modelSpecVersion})\n`));
+      const migrationDetails = summary.migrations.map(
+        (m) => `${m.from} → ${m.to}: ${m.description}`
+      );
+
+      actions.push({
+        type: 'model',
+        description: 'Migrate model data',
+        fromVersion: modelSpecVersion,
+        toVersion: targetSpecVersion,
+        details: migrationDetails,
+      });
     }
+
+    // ============================================================================
+    // STEP 3: Display upgrade plan and execute
+    // ============================================================================
+
+    if (actions.length === 0) {
+      console.log(ansis.green('✓ Everything is up to date!\n'));
+      console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
+      console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
+      return;
+    }
+
+    await handleUpgrade(projectRoot, actions, options);
   } catch (error) {
     console.error(
       ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
     );
     process.exit(1);
+  }
+}
+
+/**
+ * Handle the upgrade process
+ */
+async function handleUpgrade(
+  projectRoot: string,
+  actions: UpgradeAction[],
+  options: UpgradeOptions
+): Promise<void> {
+  // Display upgrade plan
+  console.log(ansis.bold('Upgrade Plan:\n'));
+
+  for (const action of actions) {
+    const versionChange = action.fromVersion
+      ? `${action.fromVersion} → ${action.toVersion}`
+      : `v${action.toVersion}`;
+
+    console.log(ansis.yellow(`${action.type === 'spec' ? '📦' : '🔄'} ${action.description}`));
+    console.log(ansis.dim(`   Version: ${versionChange}`));
+
+    if (action.details && action.details.length > 0) {
+      for (const detail of action.details) {
+        console.log(ansis.dim(`   • ${detail}`));
+      }
+    }
+    console.log();
+  }
+
+  // Handle dry-run mode
+  if (options.dryRun) {
+    console.log(ansis.yellow('[DRY RUN] No changes will be made\n'));
+    return;
+  }
+
+  // Prompt for confirmation unless --yes flag is set
+  let shouldProceed = options.yes;
+  if (!shouldProceed) {
+    const response = await confirm({
+      message: 'Proceed with upgrade?',
+    });
+    shouldProceed = response === true;
+  }
+
+  if (!shouldProceed) {
+    console.log(ansis.dim('\nUpgrade cancelled\n'));
+    return;
+  }
+
+  console.log(ansis.bold('\nExecuting upgrades...\n'));
+
+  // Execute actions in order: spec first, then model
+  for (const action of actions) {
+    if (action.type === 'spec') {
+      await executeSpecUpgrade(projectRoot, action);
+    } else if (action.type === 'model') {
+      await executeModelMigration(action, options);
+    }
+  }
+
+  console.log(ansis.green('\n✓ All upgrades completed successfully!\n'));
+}
+
+/**
+ * Execute spec reference upgrade
+ */
+async function executeSpecUpgrade(projectRoot: string, action: UpgradeAction): Promise<void> {
+  try {
+    console.log(ansis.dim(`Installing spec reference v${action.toVersion}...`));
+    await installSpecReference(projectRoot, true);
+    console.log(ansis.green(`✓ Spec reference upgraded to v${action.toVersion}`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error upgrading spec reference: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    throw error;
+  }
+}
+
+/**
+ * Execute model migration
+ */
+async function executeModelMigration(action: UpgradeAction, options: UpgradeOptions): Promise<void> {
+  try {
+    console.log(ansis.dim(`Migrating model from v${action.fromVersion} to v${action.toVersion}...`));
+
+    // Load the model
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+
+    // Apply migrations
+    const registry = new MigrationRegistry();
+    const result = await registry.applyMigrations(model, {
+      fromVersion: action.fromVersion!,
+      toVersion: action.toVersion,
+      dryRun: false,
+      validate: !options.force,
+    });
+
+    // Display migration results
+    for (const applied of result.applied) {
+      console.log(ansis.green(`  ✓ ${applied.from} → ${applied.to}: ${applied.description}`));
+      if (applied.changes?.filesModified) {
+        console.log(ansis.dim(`    Files modified: ${applied.changes.filesModified}`));
+      }
+    }
+
+    // Save changes
+    await model.saveManifest();
+    await model.saveDirtyLayers();
+
+    console.log(ansis.green(`✓ Model migrated to v${action.toVersion}`));
+  } catch (error) {
+    console.error(
+      ansis.red(`Error migrating model: ${error instanceof Error ? error.message : String(error)}`)
+    );
+    throw error;
   }
 }

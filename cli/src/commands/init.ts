@@ -7,6 +7,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
 import { logVerbose, logDebug } from '../utils/globals.js';
+import { installSpecReference } from '../utils/spec-installer.js';
 
 export interface InitOptions {
   name?: string;
@@ -84,6 +85,11 @@ export async function initCommand(options: InitOptions): Promise<void> {
   - Version: 0.1.0
   - Spec Version: 0.6.0
   - Location: ${rootPath}/documentation-robotics/model`);
+
+    // Install spec reference (.dr/ folder)
+    logDebug('Installing spec reference (.dr/ folder)...');
+    await installSpecReference(rootPath, false);
+    logVerbose('Spec reference installed');
 
     outro(ansis.green(`✓ Model initialized: ${ansis.bold(model.manifest.name)}`));
   } catch (error) {

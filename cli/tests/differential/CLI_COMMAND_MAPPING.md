@@ -2,33 +2,33 @@
 
 ## Command Comparison
 
-| Python CLI       | TypeScript CLI    | Status             | Notes                      |
-| ---------------- | ----------------- | ------------------ | -------------------------- |
-| `dr init`        | `dr init`         | ✅ Both            | Initialize new model       |
-| `dr add`         | `dr add`          | ✅ Both            | Add element to layer       |
-| `dr update`      | `dr update`       | ✅ Both            | Update existing element    |
-| `dr remove`      | `dr delete`       | ⚠️ Different name  | Delete element             |
-| `dr find`        | `dr show`         | ⚠️ Different name  | Display element details    |
-| `dr list`        | `dr list`         | ✅ Both            | List elements in layer     |
-| `dr search`      | `dr search`       | ✅ Both            | Search for elements        |
-| `dr validate`    | `dr validate`     | ✅ Both            | Validate model             |
-| `dr export`      | `dr export`       | ✅ Both            | Export to various formats  |
-| `dr trace`       | `dr trace`        | ✅ Both            | Trace dependencies         |
-| `dr project`     | `dr project`      | ✅ Both            | Project element to layers  |
-| `dr project-all` | `dr project-all`  | ✅ Both            | Project all elements       |
-| `dr conformance` | `dr conformance`  | ✅ Both            | Check conformance          |
-| `dr changeset`   | `dr changeset`    | ✅ Both            | Manage changesets          |
-| `dr migrate`     | `dr migrate`      | ✅ Both            | Migrate to new version     |
-| `dr upgrade`     | `dr upgrade`      | ✅ Both            | Upgrade project            |
-| `dr version`     | `dr version`      | ✅ Both            | Show version info          |
-| `dr visualize`   | `dr visualize`    | ✅ Both            | Start visualization server |
-| `dr links`       | -                 | ❌ Python only     | Query cross-layer links    |
-| `dr claude`      | -                 | ❌ Python only     | Claude Code integration    |
-| `dr copilot`     | -                 | ❌ Python only     | GitHub Copilot integration |
-| -                | `dr info`         | ❌ TypeScript only | Show model info            |
-| -                | `dr chat`         | ❌ TypeScript only | Interactive chat           |
-| -                | `dr element`      | ❌ TypeScript only | Element operations         |
-| -                | `dr relationship` | ❌ TypeScript only | Relationship operations    |
+| Python CLI       | TypeScript CLI    | Status             | Notes                                                                |
+| ---------------- | ----------------- | ------------------ | -------------------------------------------------------------------- |
+| `dr init`        | `dr init`         | ✅ Both            | Initialize new model                                                 |
+| `dr add`         | `dr add`          | ✅ Both            | Add element to layer                                                 |
+| `dr update`      | `dr update`       | ✅ Both            | Update existing element                                              |
+| `dr remove`      | `dr delete`       | ⚠️ Different name  | Delete element                                                       |
+| `dr find`        | `dr show`         | ⚠️ Different name  | Display element details                                              |
+| `dr list`        | `dr list`         | ✅ Both            | List elements in layer                                               |
+| `dr search`      | `dr search`       | ✅ Both            | Search for elements                                                  |
+| `dr validate`    | `dr validate`     | ✅ Both            | Validate model                                                       |
+| `dr export`      | `dr export`       | ✅ Both            | Export to various formats                                            |
+| `dr trace`       | `dr trace`        | ✅ Both            | Trace dependencies                                                   |
+| `dr project`     | `dr project`      | ✅ Both            | Project element to layers                                            |
+| `dr project-all` | `dr project-all`  | ✅ Both            | Project all elements                                                 |
+| `dr conformance` | `dr conformance`  | ✅ Both            | Check conformance                                                    |
+| `dr changeset`   | `dr changeset`    | ✅ Both            | Manage changesets                                                    |
+| `dr migrate`     | -                 | ❌ Python only     | Migrate to new version                                               |
+| `dr upgrade`     | `dr upgrade`      | ⚠️ Enhanced        | TypeScript: unified upgrade + migration; Python: spec reference only |
+| `dr version`     | `dr version`      | ✅ Both            | Show version info                                                    |
+| `dr visualize`   | `dr visualize`    | ✅ Both            | Start visualization server                                           |
+| `dr links`       | -                 | ❌ Python only     | Query cross-layer links                                              |
+| `dr claude`      | -                 | ❌ Python only     | Claude Code integration                                              |
+| `dr copilot`     | -                 | ❌ Python only     | GitHub Copilot integration                                           |
+| -                | `dr info`         | ❌ TypeScript only | Show model info                                                      |
+| -                | `dr chat`         | ❌ TypeScript only | Interactive chat                                                     |
+| -                | `dr element`      | ❌ TypeScript only | Element operations                                                   |
+| -                | `dr relationship` | ❌ TypeScript only | Relationship operations                                              |
 
 ## Commands for Differential Testing
 
@@ -53,9 +53,9 @@
 ### Lower Priority (Advanced Features)
 
 13. ✅ `visualize` - Visualization server
-14. ✅ `migrate` - Version migration
+14. ⚠️ `migrate` - Version migration (Python only; merged into TypeScript `upgrade`)
 15. ✅ `changeset` - Changeset management
-16. ✅ `upgrade` - Project upgrade
+16. ⚠️ `upgrade` - Project upgrade (TypeScript: unified upgrade + migration)
 17. ✅ `version` - Version info
 
 ## Server/API Testing

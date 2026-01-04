@@ -57,6 +57,25 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.6.0 to v0.7.0: Layer Schema Relationship Metadata
+    this.migrations.push({
+      fromVersion: '0.6.0',
+      toVersion: '0.7.0',
+      description: 'Layer Schema Relationship Metadata (Spec v0.7.0)',
+      apply: async () => {
+        // This migration updates layer schemas with relationship metadata sections
+        // - All 12 layer schemas now include layerMetadata, intraLayerRelationships, crossLayerRelationships
+        // - Deprecates link-registry.json (will be removed in v0.8.0)
+        // - Terminology change: "cross-layer links" → "cross-layer relationships"
+        // Fully backward compatible - existing models continue to work
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: 'Spec version updated to 0.7.0 (Layer schemas now include relationship metadata sections)',
+        };
+      },
+    });
   }
 
   /**
@@ -64,7 +83,7 @@ export class MigrationRegistry {
    */
   getLatestVersion(): string {
     if (this.migrations.length === 0) {
-      return '0.6.0';
+      return '0.7.0';
     }
 
     // Return the highest toVersion from all migrations
