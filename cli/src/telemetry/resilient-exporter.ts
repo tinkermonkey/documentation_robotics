@@ -1,6 +1,6 @@
 /**
  * Resilient OTLP exporter with circuit-breaker pattern.
- * Gracefully handles missing Jaeger collectors by silently discarding spans
+ * Gracefully handles missing OTLP collectors by silently discarding spans
  * instead of blocking CLI execution.
  */
 
@@ -10,7 +10,7 @@ import type {
 } from '@opentelemetry/sdk-trace-base';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
-import type { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 
 /**
  * OTLP exporter with circuit-breaker pattern for graceful failure.
@@ -20,11 +20,11 @@ import type { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http'
  * - Initial state: Attempts export to configured OTLP endpoint
  * - On failure: Sets 30-second backoff window, silently discards spans
  * - Backoff expired: Retries export, resets on success or extends on failure
- * - Timeout: 500ms aggressive timeout prevents blocking CLI execution
+ * - Timeout: 5000ms timeout to accommodate network latency
  */
 export class ResilientOTLPExporter implements SpanExporter {
   private delegate: OTLPTraceExporter;
-  private retryAfter = 0;
+  private retryAfter = 0;  // Circuit-breaker timestamp
 
   constructor(
     config?: Record<string, unknown> & {
@@ -32,14 +32,10 @@ export class ResilientOTLPExporter implements SpanExporter {
       timeoutMillis?: number;
     }
   ) {
-    // Using require() is intentional for tree-shaking when TELEMETRY_ENABLED is false
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { OTLPTraceExporter: ExporterClass } = require('@opentelemetry/exporter-trace-otlp-http');
-
-    this.delegate = new ExporterClass({
+    this.delegate = new OTLPTraceExporter({
       ...config,
       url: config?.url || 'http://localhost:4318/v1/traces',
-      timeoutMillis: config?.timeoutMillis ?? 500, // Aggressive timeout for local dev
+      timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
     });
   }
 

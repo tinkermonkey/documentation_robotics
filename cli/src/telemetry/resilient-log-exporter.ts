@@ -10,7 +10,7 @@ import type {
 } from '@opentelemetry/sdk-logs';
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
-import type { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
+import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 
 /**
  * OTLP log exporter with circuit-breaker pattern for graceful failure.
@@ -20,7 +20,7 @@ import type { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
  * - Initial state: Attempts export to configured OTLP endpoint
  * - On failure: Sets 30-second backoff window, silently discards log records
  * - Backoff expired: Retries export, resets on success or extends on failure
- * - Timeout: 500ms aggressive timeout prevents blocking CLI execution
+ * - Timeout: 5000ms timeout to accommodate network latency
  */
 export class ResilientLogExporter implements LogRecordExporter {
   private delegate: OTLPLogExporter;
@@ -32,14 +32,10 @@ export class ResilientLogExporter implements LogRecordExporter {
       timeoutMillis?: number;
     }
   ) {
-    // Using require() is intentional for tree-shaking when TELEMETRY_ENABLED is false
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { OTLPLogExporter: ExporterClass } = require('@opentelemetry/exporter-logs-otlp-http');
-
-    this.delegate = new ExporterClass({
+    this.delegate = new OTLPLogExporter({
       ...config,
       url: config?.url || 'http://localhost:4318/v1/logs',
-      timeoutMillis: config?.timeoutMillis ?? 500,  // Aggressive timeout for local dev
+      timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
     });
   }
 

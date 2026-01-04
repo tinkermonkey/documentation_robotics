@@ -30,19 +30,40 @@ import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
 import { changesetCommands } from './commands/changeset.js';
 import { versionCommand } from './commands/version.js';
-import type { Span } from '@opentelemetry/api';
-import { initTelemetry, startSpan, endSpan, shutdownTelemetry } from './telemetry/index.js';
+import { initTelemetry, startActiveSpan, shutdownTelemetry } from './telemetry/index.js';
+import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
+import { readJSON, fileExists } from './utils/file-io.js';
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
-const program = new Command();
 
-// Global to hold root span across async boundaries
-// Will be set in preAction hook and ended in process exit handler
-let rootSpan: Span | null = null;
+// Get CLI version from package.json
+async function getCliVersion(): Promise<string> {
+  const possiblePaths = [
+    `${process.cwd()}/package.json`,
+    `${import.meta.url.replace('file://', '').split('/src/')[0]}/package.json`,
+  ];
+
+  for (const path of possiblePaths) {
+    if (await fileExists(path)) {
+      try {
+        const data = await readJSON<{ version: string }>(path);
+        return data.version;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  return '0.1.0';
+}
+
+const cliVersion = await getCliVersion();
+
+const program = new Command();
 
 // Handle --version and -V flags early, before commander processes them
 if (process.argv.includes('--version') || process.argv.includes('-V')) {
@@ -56,23 +77,8 @@ program
   .description('Documentation Robotics CLI - Architecture Model Management')
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
-  .hook('preAction', (thisCommand) => {
-    // Initialize telemetry and create root span
-    if (isTelemetryEnabled) {
-      initTelemetry();
-
-      const commandName = process.argv[2] || 'unknown';
-      const args = process.argv.slice(3).join(' ');
-
-      rootSpan = startSpan('cli.execute', {
-        'cli.command': commandName,
-        'cli.args': args,
-        'cli.cwd': process.cwd(),
-        'cli.version': '0.1.0',
-      });
-    }
-
-    // Existing global state setup
+  .hook('preAction', async (thisCommand) => {
+    // Set up global state (verbose/debug flags)
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
@@ -460,75 +466,61 @@ Examples:
 // Changeset subcommands
 changesetCommands(program);
 
-// Graceful shutdown handler: Fires when event loop drains
-// This is the primary handler - allows async operations like exporting spans
-process.on('beforeExit', async () => {
-  if (isTelemetryEnabled && rootSpan) {
-    try {
-      endSpan(rootSpan);
+// Execute CLI with proper telemetry span wrapping
+// This creates a root span that all child spans will be linked to
+(async () => {
+  try {
+    if (isTelemetryEnabled) {
+      // Initialize telemetry before execution
+      await initTelemetry();
+      await installConsoleInterceptor();
+
+      const commandName = process.argv[2] || 'unknown';
+      const args = process.argv.slice(3).join(' ');
+
+      // Wrap entire CLI execution in active span for proper context propagation
+      await startActiveSpan(
+        'cli.execute',
+        async (span) => {
+          span.setAttributes({
+            'cli.command': commandName,
+            'cli.args': args,
+            'cli.cwd': process.cwd(),
+            'cli.version': cliVersion,
+          });
+
+          try {
+            // Execute command - all child spans will now link to this root span
+            await program.parseAsync(process.argv);
+
+            // Set success status
+            span.setStatus({ code: 0 }); // SpanStatusCode.OK
+          } catch (error) {
+            // Record exception and set error status
+            span.recordException(error as Error);
+            span.setStatus({
+              code: 2, // SpanStatusCode.ERROR
+              message: error instanceof Error ? error.message : String(error),
+            });
+            throw error;
+          }
+        },
+        {
+          'cli.command': commandName,
+          'cli.args': args,
+          'cli.cwd': process.cwd(),
+          'cli.version': cliVersion,
+        }
+      );
+
+      // Shutdown telemetry after execution completes
       await shutdownTelemetry();
-    } catch {
-      // Silently ignore shutdown errors - don't block process exit
+    } else {
+      // No telemetry - just parse normally
+      await program.parseAsync(process.argv);
     }
+  } catch (error) {
+    // Re-throw to preserve CLI exit behavior
+    throw error;
   }
-});
-
-// Fallback exit handler: Fires when process must exit immediately
-// Must be synchronous - async operations will NOT complete here
-process.on('exit', (code) => {
-  if (isTelemetryEnabled && rootSpan) {
-    try {
-      const span = rootSpan as Span;
-
-      // Record exit code if non-zero
-      if (code !== 0) {
-        span.setAttribute('cli.exit_code', code);
-      }
-
-      // Set final status based on exit code
-      const { SpanStatusCode } = require('@opentelemetry/api');
-      span.setStatus({
-        code: code === 0 ? SpanStatusCode.OK : SpanStatusCode.ERROR,
-      });
-
-      // End the root span (synchronous)
-      endSpan(span);
-    } catch {
-      // Silently ignore errors - don't block process exit
-    }
-  }
-});
-
-// Wrap program execution in try/catch for exception handling
-try {
-  program.parse();
-} catch (error) {
-  if (isTelemetryEnabled && rootSpan) {
-    try {
-      const { SpanStatusCode } = require('@opentelemetry/api');
-      const span = rootSpan as Span;
-
-      // Record exception details
-      span.setStatus({
-        code: SpanStatusCode.ERROR,
-        message: error instanceof Error ? error.message : String(error),
-      });
-
-      // Record full exception details with stack trace
-      span.recordException(error as Error);
-
-      // End the root span synchronously
-      endSpan(span);
-
-      // Attempt async shutdown but don't block on error propagation
-      shutdownTelemetry().catch(() => {
-        /* Ignore shutdown errors */
-      });
-    } catch {
-      /* Silently ignore */
-    }
-  }
-
-  // Re-throw the error to preserve CLI exit behavior
-  throw error;
-}
+})();

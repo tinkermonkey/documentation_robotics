@@ -9,6 +9,7 @@ import { cors } from 'hono/cors';
 import { serve } from 'bun';
 import { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
+import { telemetryMiddleware } from './telemetry-middleware.js';
 
 interface WSMessage {
   type: 'subscribe' | 'annotate' | 'ping';
@@ -107,6 +108,9 @@ export class VisualizationServer {
 
     // Add CORS middleware
     this.app.use('/*', cors());
+
+    // Add telemetry middleware to instrument all HTTP requests
+    this.app.use('/*', telemetryMiddleware);
 
     // Add authentication middleware (except for health endpoint and root)
     this.app.use('/api/*', async (c, next) => {
