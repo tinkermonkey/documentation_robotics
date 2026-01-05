@@ -121,7 +121,7 @@ describe('migrate command integration', () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary('0.5.0');
 
-      expect(summary.targetVersion).toBe('0.6.0');
+      expect(summary.targetVersion).toBe('0.7.0');
     });
   });
 
