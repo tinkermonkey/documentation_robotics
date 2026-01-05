@@ -72,8 +72,8 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
 
   // Check Claude integration
   const claudeManager = new ClaudeIntegrationManager();
-  if (await claudeManager.isInstalledPublic()) {
-    const claudeVersion = await claudeManager.loadVersionFilePublic();
+  if (await claudeManager.isInstalled()) {
+    const claudeVersion = await claudeManager.loadVersionFile();
     if (claudeVersion && claudeVersion.version !== cliVersion) {
       claudeOutdated = true;
       messages.push(
@@ -86,8 +86,8 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
 
   // Check Copilot integration
   const copilotManager = new CopilotIntegrationManager();
-  if (await copilotManager.isInstalledPublic()) {
-    const copilotVersion = await copilotManager.loadVersionFilePublic();
+  if (await copilotManager.isInstalled()) {
+    const copilotVersion = await copilotManager.loadVersionFile();
     if (copilotVersion && copilotVersion.version !== cliVersion) {
       copilotOutdated = true;
       messages.push(

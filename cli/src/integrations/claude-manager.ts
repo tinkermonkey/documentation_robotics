@@ -15,13 +15,11 @@
 import { BaseIntegrationManager } from './base-manager.js';
 import { ComponentConfig } from './types.js';
 import { findProjectRoot } from '../utils/project-paths.js';
-import { fileExists } from '../utils/file-io.js';
 import { confirm, spinner } from '@clack/prompts';
 import ansis from 'ansis';
-import { dirname, join } from 'node:path';
+import { join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
 
 /**
  * Claude Code Integration Manager
@@ -442,35 +440,6 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       process.exit(1);
     }
     return root;
-  }
-
-  /**
-   * Get the current CLI version
-   *
-   * @returns Version string (e.g., "0.1.0")
-   */
-  private async getCliVersion(): Promise<string> {
-    const possiblePaths = [
-      `${process.cwd()}/package.json`,
-      // From dist/integrations/claude-manager.js, go up to get dist/package.json
-      join(dirname(dirname(fileURLToPath(import.meta.url))), 'package.json'),
-    ];
-
-    for (const path of possiblePaths) {
-      if (await fileExists(path)) {
-        try {
-          const content = await import('node:fs/promises').then((fs) =>
-            fs.readFile(path, 'utf-8')
-          );
-          const pkg = JSON.parse(content);
-          return pkg.version || '0.1.0';
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    return '0.1.0';
   }
 
   /**
