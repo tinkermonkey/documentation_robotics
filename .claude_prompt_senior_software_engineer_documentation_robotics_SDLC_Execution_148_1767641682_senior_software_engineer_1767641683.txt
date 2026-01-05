@@ -1,0 +1,569 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 5: Update build system, documentation, and add comprehensive tests
+
+**Description**:
+Configure the build system to bundle integration files with the CLI package, correct the CLI command mapping documentation, and create comprehensive test coverage for all integration functionality. This ensures the integration commands work correctly in both development and production environments.
+
+## Requirements
+- FR4.1: CLI Command Mapping Update - Remove "Python only" designation from `dr claude` and `dr copilot`
+- FR5.1: Development Mode Path Resolution - Support running from source during development
+- FR5.2: Production Mode Path Resolution - Support running from installed npm package
+- Build system must copy integration files from `integrations/` to `dist/integrations/`
+- npm package must include bundled integration files
+
+## Design Guidance
+**Build Configuration** (`esbuild.config.js`):
+
+```javascript
+import * as esbuild from 'esbuild';
+import { copy } from 'esbuild-plugin-copy';
+
+await esbuild.build({
+  // ... existing configuration ...
+  plugins: [
+    // ... existing plugins ...
+    copy({
+      assets: [
+        {
+          from: ['../integrations/claude_code/**/*'],
+          to: ['./integrations/claude_code']
+        },
+        {
+          from: ['../integrations/github_copilot/**/*'],
+          to: ['./integrations/github_copilot']
+        }
+      ]
+    })
+  ]
+});
+```
+
+**Package Configuration** (`package.json`):
+
+```json
+{
+  "files": [
+    "dist/**/*",
+    "dist/integrations/**/*"
+  ]
+}
+```
+
+**Documentation Update** (`cli/tests/differential/CLI_COMMAND_MAPPING.md`):
+
+Find the section listing `dr claude` and `dr copilot` commands and update:
+
+```markdown
+| Command | Python CLI | TypeScript CLI | Notes |
+|---------|------------|----------------|-------|
+| `dr claude install` | ✅ | ✅ | Install Claude Code integration files |
+| `dr claude update` | ✅ | ✅ | Update Claude Code integration |
+| `dr claude remove` | ✅ | ✅ | Remove Claude Code integration |
+| `dr claude status` | ✅ | ✅ | Show integration status |
+| `dr claude list` | ✅ | ✅ | List available components |
+| `dr copilot install` | ✅ | ✅ | Install GitHub Copilot integration files |
+| `dr copilot update` | ✅ | ✅ | Update GitHub Copilot integration |
+| `dr copilot remove` | ✅ | ✅ | Remove GitHub Copilot integration |
+| `dr copilot status` | ✅ | ✅ | Show integration status |
+| `dr copilot list` | ✅ | ✅ | List available components |
+```
+
+Remove any "Python only" markers or notes indicating these commands are unavailable in the TypeScript CLI.
+
+**Test Structure**:
+
+Create comprehensive test coverage:
+
+1. **Unit Tests** (`tests/unit/integrations/`):
+   - `hash-utils.test.ts` - Test hash computation, directory hashing
+   - `base-manager.test.ts` - Test base manager methods with mocked filesystem
+   - `claude-manager.test.ts` - Test Claude manager specific logic
+   - `copilot-manager.test.ts` - Test Copilot manager specific logic
+
+2. **Integration Tests** (`tests/integration/`):
+   - `claude-integration.test.ts` - Test full `dr claude` command workflow
+   - `copilot-integration.test.ts` - Test full `dr copilot` command workflow
+   - `upgrade-integration.test.ts` - Test `dr upgrade` integration detection
+
+**Example Integration Test Pattern**:
+
+```typescript
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, rmSync } from 'fs';
+import { tmpdir } from 'os';
+import { join } from 'path';
+import { ClaudeIntegrationManager } from '../../src/integrations/claude-manager.js';
+
+describe('dr claude install', () => {
+  let tempDir: string;
+  
+  beforeEach(() => {
+    tempDir = mkdtempSync(join(tmpdir(), 'dr-test-'));
+    process.chdir(tempDir);
+  });
+  
+  afterEach(() => {
+    rmSync(tempDir, { recursive: true, force: true });
+  });
+  
+  it('should install all components', async () => {
+    const manager = new ClaudeIntegrationManager();
+    await manager.install({ force: true });
+    
+    // Verify directory structure
+    expect(existsSync('.claude/knowledge')).toBe(true);
+    expect(existsSync('.claude/commands')).toBe(true);
+    expect(existsSync('.claude/agents')).toBe(true);
+    expect(existsSync('.claude/skills')).toBe(true);
+    expect(existsSync('.claude/templates')).toBe(true);
+    
+    // Verify version file
+    const versionData = await manager.loadVersionFile();
+    expect(versionData).toBeTruthy();
+    expect(versionData?.version).toBe(packageJson.version);
+  });
+  
+  it('should install only specified component', async () => {
+    const manager = new ClaudeIntegrationManager();
+    await manager.install({ 
+      components: ['agents'],
+      force: true 
+    });
+    
+    expect(existsSync('.claude/agents')).toBe(true);
+    expect(existsSync('.claude/commands')).toBe(false);
+  });
+});
+```
+
+## Acceptance Criteria
+- [ ] `esbuild.config.js` copies `integrations/claude_code/` to `dist/integrations/claude_code/`
+- [ ] `esbuild.config.js` copies `integrations/github_copilot/` to `dist/integrations/github_copilot/`
+- [ ] `package.json` "files" array includes `dist/integrations/**/*`
+- [ ] Build produces `dist/integrations/` directory with all integration files
+- [ ] `cli/tests/differential/CLI_COMMAND_MAPPING.md` marks `dr claude` as available in both CLIs
+- [ ] `CLI_COMMAND_MAPPING.md` marks `dr copilot` as available in both CLIs
+- [ ] `CLI_COMMAND_MAPPING.md` removes "Python only" designation from both commands
+- [ ] Unit tests in `tests/unit/integrations/` cover hash utilities with >80% coverage
+- [ ] Unit tests cover base manager methods with mocked filesystem
+- [ ] Integration tests in `tests/integration/` verify full command workflows
+- [ ] Tests verify both development (source) and production (built) path resolution
+- [ ] Tests verify `dr claude install/update/remove/status/list` commands
+- [ ] Tests verify `dr copilot install/update/remove/status/list` commands
+- [ ] Tests verify `dr upgrade` integration detection
+- [ ] All tests pass in CI pipeline
+- [ ] Code is reviewed and approved
+
+## Dependencies
+Phase 2, Phase 3, Phase 4
+
+## Parent Issue
+Part of #140
+
+## Discussion
+This work is detailed in discussion [141](https://github.com/tinkermonkey/documentation_robotics/discussions/141)
+
+---
+
+
+## Previous Work and Feedback
+
+The following is the complete history of agent outputs and feedback for this issue.
+This includes outputs from ALL previous stages (design, testing, QA, etc.) and any
+user feedback. If this issue was returned from testing or QA, pay special attention
+to their feedback and address all issues they identified.
+
+## Output from Software Architect
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+## System Architecture
+
+### High-Level Architecture
+
+The implementation introduces an **integration management subsystem** to the TypeScript CLI, mirroring the Python CLI's existing `ClaudeIntegrationManager` and `CopilotIntegrationManager` patterns. This subsystem operates independently from the core model management functionality while integrating with the existing `upgrade` command flow.
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                        TypeScript CLI (cli.ts)                       │
+├─────────────────────────────────────────────────────────────────────┤
+│  Command Registration                                                │
+│  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐  │
+│  │   init   │ │  add     │ │ validate │ │ upgrade  │ │  ...     │  │
+│  └──────────┘ └──────────┘ └──────────┘ └────┬─────┘ └──────────┘  │
+│                                               │                      │
+│  ┌──────────┐ ┌──────────┐  ◄─────NEW───────┴─────────────────────  │
+│  │  claude  │ │  copilot │                                          │
+│  └────┬─────┘ └────┬─────┘                                          │
+├───────┼────────────┼────────────────────────────────────────────────┤
+│       ▼            ▼                                                 │
+│  ┌─────────────────────────────────────────────────────────────┐    │
+│  │              Integration Management Layer (NEW)              │    │
+│  │  ┌─────────────────────────────────────────────────────────┐│    │
+│  │  │  BaseIntegrationManager                                 ││    │
+│  │  │  - File copy/hash operations                            ││    │
+│  │  │  - Version file management (YAML)                       ││    │
+│  │  │  - Component configuration registry                     ││    │
+│  │  │  - Obsolete file detection                              ││    │
+│  │  └─────────────────────────────────────────────────────────┘│    │
+│  │       ▲                        ▲                            │    │
+│  │       │                        │                            │    │
+│  │  ┌────┴────────────┐    ┌─────┴───────────┐                │    │
+│  │  │ClaudeIntegration│    │CopilotIntegration│               │    │
+│  │  │Manager          │    │Manager           │               │    │
+│  │  │- 5 component    │    │- 2 component     │               │    │
+│  │  │  types          │    │  types           │               │    │
+│  │  │- .claude/ target│    │- .github/ target │               │    │
+│  │  └─────────────────┘    └──────────────────┘               │    │
+│  └─────────────────────────────────────────────────────────────┘    │
+├─────────────────────────────────────────────────────────────────────┤
+│  Existing Utilities                                                  │
+│  ┌──────────────────┐ ┌──────────────────┐ ┌──────────────────────┐ │
+│  │ project-paths.ts │ │ spec-version.ts  │ │    file-io.ts        │ │
+│  └──────────────────┘ └──────────────────┘ └──────────────────────┘ │
+└─────────────────────────────────────────────────────────────────────┘
+                                 │
+                                 ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                       Filesystem Structure                           │
+├─────────────────────────────────────────────────────────────────────┤
+│  integrations/claude_code/     → .claude/                           │
+│  ├── reference_sheets/         │  ├── knowledge/                    │
+│  ├── commands/                  │  ├── commands/                     │
+│  ├── agents/                    │  ├── agents/                       │
+│  ├── skills/                    │  ├── skills/                       │
+│  └── templates/                 │  ├── templates/                    │
+│                                 │  └── .dr-version (YAML)            │
+├─────────────────────────────────┼───────────────────────────────────┤
+│  integrations/github_copilot/  → .github/                           │
+│  ├── agents/                    │  ├── agents/                       │
+│  └── skills/                    │  ├── skills/                       │
+│                                 │  └── .dr-copilot-version (YAML)   │
+└─────────────────────────────────────────────────────────────────────┘
+```
+
+### Integration Points with Existing Codebase
+
+1. **CLI Registration** (`cli.ts:line ~88+`): Register `claude` and `copilot` command groups alongside existing commands
+2. **Upgrade Command** (`commands/upgrade.ts:line ~160+`): Add integration version checking after model migration logic
+3. **Project Paths** (`utils/project-paths.ts`): Leverage existing `findProjectRoot()` for locating target directories
+4. **File I/O** (`utils/file-io.ts`): Reuse existing `fileExists()`, `readJSON()` utilities
+
+## Scalability Design
+
+### File Operations Performance
+
+The implementation handles potentially hundreds of integration files (12 skill directories × multiple files each). Key considerations:
+
+1. **Parallel File Hashing**: When checking for updates, compute SHA256 hashes in parallel for installed vs. source files
+2. **Lazy Component Loading**: Only read component metadata when that component is explicitly requested
+3. **Early Exit Patterns**: Check version file first; skip full scan if versions match
+
+### Memory Footprint
+
+- Files are processed incrementally (copy one at a time) rather than loading entire directory trees into memory
+- Hash computation uses streaming to handle large files without memory pressure
+- Version tracking YAML files remain small (~1KB typical)
+
+## Established Patterns
+
+### Pattern 1: Manager Class Architecture (from Python CLI)
+
+The Python CLI establishes a clear pattern for integration managers at `cli-validation/python-cli/src/documentation_robotics/commands/claude.py:39-78`:
+
+```python
+class ClaudeIntegrationManager:
+    COMPONENTS = {
+        "reference_sheets": {
+            "source": "reference_sheets",
+            "target": KNOWLEDGE_DIR,
+            "description": "Reference documentation for agents",
+            "prefix": "dr-",
+            "type": "files",
+        },
+        # ... more components
+    }
+```
+
+The TypeScript implementation must preserve this component registry pattern with the same keys and structure.
+
+### Pattern 2: Version File Format (YAML)
+
+The Python CLI uses YAML for version tracking (`.dr-version`, `.dr-copilot-version`):
+
+```yaml
+version: "0.1.0"
+installed_at: "2024-01-04T10:30:00"
+components:
+  reference_sheets:
+    dr-layer-reference.md:
+      hash: "a1b2c3d4"
+      modified: false
+```
+
+The TypeScript implementation must produce compatible YAML using the `yaml` package (already in `package.json`).
+
+### Pattern 3: Command Group Structure (from existing CLI)
+
+Following the established pattern in `cli.ts:264-274`:
+
+```typescript
+// Element subcommands
+const elementGroup = program
+  .command('element')
+  .description('Element operations');
+elementCommands(elementGroup);
+```
+
+The `claude` and `copilot` commands should follow this pattern with subcommand registration functions.
+
+### Pattern 4: Source Path Resolution (Development vs Production)
+
+The Python CLI at lines 22-29 handles dual-mode path resolution:
+
+```python
+DEV_ROOT = Path(__file__).parents[4] / "integrations" / "claude_code"
+PKG_ROOT = Path(__file__).parent.parent / "claude_integration"
+
+if DEV_ROOT.exists():
+    INTEGRATION_ROOT = DEV_ROOT
+else:
+    INTEGRATION_ROOT = PKG_ROOT
+```
+
+The TypeScript implementation needs equivalent logic for both development (running from source) and production (npm package distribution).
+
+### Pattern 5: Interactive Prompts (from existing commands)
+
+The upgrade command at `commands/upgrade.ts:219-223` uses `@clack/prompts`:
+
+```typescript
+const response = await confirm({
+  message: 'Proceed with upgrade?',
+});
+```
+
+Integration commands must use the same prompt library for consistency.
+
+## Component Reuse
+
+### Existing Utilities to Leverage
+
+| Utility | Location | Usage |
+|---------|----------|-------|
+| `findProjectRoot()` | `utils/project-paths.ts:39` | Locate project root for target directories |
+| `fileExists()` | `utils/file-io.ts` | Check for existing files before operations |
+| `readJSON()` | `utils/file-io.ts` | Read manifest files |
+| `yaml` package | `package.json` dependencies | Parse/write version files |
+| `@clack/prompts` | `package.json` dependencies | Interactive confirmations |
+| `ansis` | `package.json` dependencies | Colored CLI output |
+| `commander` | `package.json` dependencies | Command registration |
+
+### New Modules Required
+
+| Module | Purpose |
+|--------|---------|
+| `src/integrations/base-manager.ts` | Abstract base class with shared logic |
+| `src/integrations/claude-manager.ts` | Claude Code integration manager |
+| `src/integrations/copilot-manager.ts` | GitHub Copilot integration manager |
+| `src/integrations/types.ts` | Shared interfaces and types |
+| `src/integrations/hash-utils.ts` | SHA256 hashing utilities |
+| `src/commands/claude.ts` | Claude command group and subcommands |
+| `src/commands/copilot.ts` | Copilot command group and subcommands |
+
+### Build System Updates
+
+The integration files at `integrations/claude_code/` and `integrations/github_copilot/` must be bundled with the CLI distribution. This requires updates to:
+
+1. **`esbuild.config.js`**: Copy integration directories to `dist/integrations/`
+2. **`package.json` "files"**: Include `dist/integrations/**` in npm package
+
+## Implementation Plan
+
+### Phase 1: Foundation Infrastructure
+
+**Step 1.1: Create Type Definitions**
+- Create `src/integrations/types.ts` with interfaces:
+  - `ComponentConfig` - matches Python COMPONENTS dict structure
+  - `VersionData` - version file YAML schema
+  - `FileChange` - for update detection
+  - `ObsoleteFile` - for cleanup detection
+
+**Step 1.2: Create Hash Utilities**
+- Create `src/integrations/hash-utils.ts`
+- Implement `computeFileHash(filePath: string): Promise<string>` using Node.js `crypto` module
+- Use SHA256, truncated to 8 characters (matching Python implementation)
+
+**Step 1.3: Create Base Integration Manager**
+- Create `src/integrations/base-manager.ts`
+- Implement abstract class with shared methods:
+  - `_isInstalled(): Promise<boolean>`
+  - `_loadVersionFile(): Promise<VersionData>`
+  - `_updateVersionFile(): Promise<void>`
+  - `_detectObsoleteFiles(): Promise<ObsoleteFile[]>`
+  - `_computeHash(filePath: string): Promise<string>`
+  - `_installComponent(component: string, force: boolean): Promise<number>`
+  - `_checkUpdates(component: string, versionData: VersionData): Promise<FileChange[]>`
+  - `_applyUpdate(update: FileChange, force: boolean): Promise<void>`
+
+### Phase 2: Claude Integration Command
+
+**Step 2.1: Implement ClaudeIntegrationManager**
+- Create `src/integrations/claude-manager.ts`
+- Extend base manager with Claude-specific configuration:
+  - 5 component types (reference_sheets, commands, agents, skills, templates)
+  - Target directory: `.claude/`
+  - Version file: `.claude/.dr-version`
+- Implement path resolution for dev vs. production environments
+
+**Step 2.2: Create Claude Command Module**
+- Create `src/commands/claude.ts`
+- Implement subcommands: `install`, `update`, `remove`, `status`, `list`
+- Use `commander` for command registration
+- Use `@clack/prompts` for interactive confirmations
+- Use `ansis` for colored output
+
+**Step 2.3: Register Claude Command**
+- Update `cli.ts` to import and register claude command group
+- Add help text examples
+
+### Phase 3: Copilot Integration Command
+
+**Step 3.1: Implement CopilotIntegrationManager**
+- Create `src/integrations/copilot-manager.ts`
+- Extend base manager with Copilot-specific configuration:
+  - 2 component types (agents, skills)
+  - Target directory: `.github/`
+  - Version file: `.github/.dr-copilot-version`
+
+**Step 3.2: Create Copilot Command Module**
+- Create `src/commands/copilot.ts`
+- Mirror claude command structure with copilot-specific options
+
+**Step 3.3: Register Copilot Command**
+- Update `cli.ts` to import and register copilot command group
+
+### Phase 4: Upgrade Command Enhancement
+
+**Step 4.1: Add Integration Version Checking**
+- Modify `commands/upgrade.ts`
+- After existing spec/model checks (around line 160), add:
+  - Check for `.claude/.dr-version` existence
+  - Compare installed version against CLI version
+  - Check for `.github/.dr-copilot-version` similarly
+
+**Step 4.2: Display Integration Status**
+- Add integration status to upgrade plan display
+- Show version mismatch with suggested command
+
+**Step 4.3: Add Upgrade Suggestions**
+- When outdated integrations detected, display actionable suggestions
+- Format: "Claude integration outdated: 0.0.9 → 0.1.0. Run `dr claude update`"
+
+### Phase 5: Documentation and Build Updates
+
+**Step 5.1: Update CLI_COMMAND_MAPPING.md**
+- Change `dr claude` from "❌ Python only" to "✅ Both"
+- Change `dr copilot` from "❌ Python only" to "✅ Both"
+- Add notes about command parity
+
+**Step 5.2: Update Build Configuration**
+- Modify `esbuild.config.js` to copy integration source files
+- Update package.json to include integrations in npm distribution
+
+**Step 5.3: Add Tests**
+- Create `tests/unit/integrations/` directory
+- Add unit tests for hash utilities
+- Add unit tests for base manager methods
+- Create `tests/integration/` tests for claude and copilot commands
+
+### Risk Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Path resolution differs between dev and npm install | Test both scenarios explicitly; use `import.meta.url` for reliable path resolution |
+| YAML format incompatibility with Python | Use same `yaml` package version patterns; add round-trip tests |
+| File permission issues on Unix vs Windows | Use `fs.chmod` for shell scripts; test on both platforms |
+| Large skill directories slow down operations | Implement streaming hash computation; show progress indicators |
+
+### Verification Criteria
+
+1. `dr claude install` copies files matching Python CLI behavior
+2. `dr claude status` produces output format consistent with Python CLI
+3. `dr upgrade` detects outdated integrations and suggests updates
+4. `CLI_COMMAND_MAPPING.md` accurately reflects both CLIs supporting these commands
+5. All existing tests continue to pass
+6. New integration tests provide >80% coverage of new code
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+**@tinkermonkey** (human feedback):
+One item that should be emphasized:
+- The cli build process should copy the integration definition files from their code location ( integrations/ ) and bundle them inside of the cli package so that they can be installed in projects that are using the cli.
+- The built cli must only use the integrations that are built into it, and it only uses them to install / update the integrations
+- These files are copied into the .claude and .github folders of the projects being documented along with the file with notes the installed version for each of these integrations so the upgrade command can know what version is installed
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+You've highlighted a critical architectural point that I want to make sure is crystal clear in the implementation approach.
+
+**The Build-Time Bundling Model**
+
+The integration files follow a **compile-time bundling** pattern, not runtime discovery:
+
+```
+Build Time                          Runtime (npm package)
+─────────────────────────────────────────────────────────────────
+integrations/                       dist/
+├── claude_code/        ──copy──►   ├── integrations/
+│   ├── reference_sheets/           │   ├── claude_code/
+│   ├── commands/                   │   │   └── (all files)
+│   ├── agents/                     │   └── github_copilot/
+│   └── skills/                     │       └── (all files)
+└── github_copilot/                 └── cli.js
+    ├── agents/
+    └── skills/
+```
+
+**Key Points:**
+
+1. **esbuild.config.js** must copy `integrations/` → `dist/integrations/` during build
+2. **package.json "files" array** must include `dist/integrations/**` for npm publish
+3. **Runtime path resolution** uses `import.meta.url` to find bundled integrations relative to the compiled CLI, never looking at the original source location
+4. **Target project structure** receives copies with version tracking:
+
+```
+target-project/
+├── .claude/
+│   ├── knowledge/           # copied from bundled reference_sheets/
+│   ├── commands/            # copied from bundled commands/
+│   ├── agents/              # copied from bundled agents/
+│   ├── skills/              # copied from bundled skills/
+│   └── .dr-version          # tracks installed CLI version + file hashes
+└── .github/
+    ├── agents/
+    ├── skills/
+    └── .dr-copilot-version
+```
+
+The `.dr-version` file records the CLI version that performed the install, enabling `dr upgrade` to detect when the bundled integrations have changed and prompt for updates. This ensures users get the integration files that match their installed CLI version, not whatever happens to be in some external location.
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
+
+
