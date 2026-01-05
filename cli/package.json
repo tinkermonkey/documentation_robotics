@@ -34,8 +34,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/tinkermonkey/documentation_robotics.git",
+    "url": "git+https://github.com/tinkermonkey/documentation_robotics.git",
     "directory": "cli"
+  },
+  "publishConfig": {
+    "access": "public"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.71.2",

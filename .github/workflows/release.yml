@@ -88,7 +88,7 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
-      id-token: write
+      id-token: write # Required for npm provenance
     steps:
       - uses: actions/checkout@v4
 
@@ -122,11 +122,12 @@ jobs:
         working-directory: ./cli
         run: npm test
 
-      - name: Publish to npm
+      - name: Publish to npm via Trusted Publisher
         working-directory: ./cli
         env:
+          # NPM_TOKEN is only needed for first publish, optional after Trusted Publisher is configured
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: npm publish --access public
+        run: npm publish --provenance --access public
 
       - name: Create Release
         uses: softprops/action-gh-release@v1
