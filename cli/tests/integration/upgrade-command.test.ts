@@ -174,4 +174,171 @@ describe('upgrade command', () => {
     // Should check spec reference and model
     expect(result.stdout).toContain('Scanning for available upgrades');
   });
+
+  it('should not show integration updates when no integrations installed', async () => {
+    // Initialize a model without installing integrations
+    await runDr(['init', '--name', 'No Integrations'], { cwd: tempDir.path });
+
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should not mention integration updates when none are installed
+    expect(result.stdout).not.toContain('Integration Updates Available');
+  });
+
+  it('should show everything up to date when no upgrades needed', async () => {
+    // Initialize a model
+    await runDr(['init', '--name', 'Current Model'], { cwd: tempDir.path });
+
+    // Run upgrade first to bring model current
+    await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    // Run upgrade again when everything is current
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should report everything is up to date
+    expect(result.stdout).toContain('Everything is up to date');
+  });
+
+  it('should handle integration checking in upgrade flow', async () => {
+    // Initialize a model
+    await runDr(['init', '--name', 'Integration Check'], { cwd: tempDir.path });
+
+    // Run upgrade which will check integrations
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should complete successfully and check for upgrades
+    expect(result.stdout).toContain('Scanning for available upgrades');
+  });
+
+  it('should provide correct suggestions for outdated Claude integration', async () => {
+    // Initialize a model and Claude integration
+    await runDr(['init', '--name', 'Claude Integration Test'], { cwd: tempDir.path });
+
+    // Bring model up to date first
+    await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    // Install Claude integration
+    await runDr(['claude', 'install', '--force'], { cwd: tempDir.path });
+
+    // Simulate outdated integration by modifying version file to older version
+    const versionFile = tempDir.path + '/.claude/.dr-version';
+    const fs = require('fs');
+    const yaml = require('yaml');
+
+    if (fs.existsSync(versionFile)) {
+      const content = fs.readFileSync(versionFile, 'utf-8');
+      const data = yaml.parse(content);
+      data.version = '0.0.9'; // Set to older version
+      fs.writeFileSync(versionFile, yaml.stringify(data));
+    }
+
+    // Run upgrade
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should detect outdated Claude integration and suggest update
+    if (fs.existsSync(versionFile)) {
+      expect(result.stdout).toContain('Claude integration outdated');
+      expect(result.stdout).toContain('dr claude update');
+    }
+  });
+
+  it('should provide correct suggestions for outdated Copilot integration', async () => {
+    // Initialize a model and Copilot integration
+    await runDr(['init', '--name', 'Copilot Integration Test'], { cwd: tempDir.path });
+
+    // Bring model up to date first
+    await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    // Install Copilot integration
+    await runDr(['copilot', 'install', '--force'], { cwd: tempDir.path });
+
+    // Simulate outdated integration by modifying version file to older version
+    const versionFile = tempDir.path + '/.github/.dr-copilot-version';
+    const fs = require('fs');
+    const yaml = require('yaml');
+
+    if (fs.existsSync(versionFile)) {
+      const content = fs.readFileSync(versionFile, 'utf-8');
+      const data = yaml.parse(content);
+      data.version = '0.0.8'; // Set to older version
+      fs.writeFileSync(versionFile, yaml.stringify(data));
+    }
+
+    // Run upgrade
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should detect outdated Copilot integration and suggest update
+    if (fs.existsSync(versionFile)) {
+      expect(result.stdout).toContain('GitHub Copilot integration outdated');
+      expect(result.stdout).toContain('dr copilot update');
+    }
+  });
+
+  it('should handle multiple outdated integrations', async () => {
+    // Initialize a model and both integrations
+    await runDr(['init', '--name', 'Multiple Integration Test'], { cwd: tempDir.path });
+
+    // Bring model up to date first
+    await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    // Install both integrations
+    await runDr(['claude', 'install', '--force'], { cwd: tempDir.path });
+    await runDr(['copilot', 'install', '--force'], { cwd: tempDir.path });
+
+    // Simulate outdated integrations
+    const fs = require('fs');
+    const yaml = require('yaml');
+
+    // Modify Claude version
+    const claudeVersionFile = tempDir.path + '/.claude/.dr-version';
+    if (fs.existsSync(claudeVersionFile)) {
+      const content = fs.readFileSync(claudeVersionFile, 'utf-8');
+      const data = yaml.parse(content);
+      data.version = '0.0.9';
+      fs.writeFileSync(claudeVersionFile, yaml.stringify(data));
+    }
+
+    // Modify Copilot version
+    const copilotVersionFile = tempDir.path + '/.github/.dr-copilot-version';
+    if (fs.existsSync(copilotVersionFile)) {
+      const content = fs.readFileSync(copilotVersionFile, 'utf-8');
+      const data = yaml.parse(content);
+      data.version = '0.0.8';
+      fs.writeFileSync(copilotVersionFile, yaml.stringify(data));
+    }
+
+    // Run upgrade
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should detect both outdated integrations
+    if (fs.existsSync(claudeVersionFile) && fs.existsSync(copilotVersionFile)) {
+      expect(result.stdout).toContain('Integration Updates Available');
+      expect(result.stdout).toContain('Claude integration outdated');
+      expect(result.stdout).toContain('GitHub Copilot integration outdated');
+    }
+  });
+
+  it('should show current integration versions when up to date', async () => {
+    // Initialize a model and Claude integration
+    await runDr(['init', '--name', 'Claude Up To Date'], { cwd: tempDir.path });
+
+    // Bring model up to date first
+    await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    // Install Claude integration
+    await runDr(['claude', 'install', '--force'], { cwd: tempDir.path });
+
+    // Run upgrade without modifying versions
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(0);
+    // Should not show integration updates when they're current
+    expect(result.stdout).not.toContain('Claude integration outdated');
+  });
 });

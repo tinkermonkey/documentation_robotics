@@ -433,4 +433,23 @@ export abstract class BaseIntegrationManager {
 
     return removed;
   }
+
+  /**
+   * Public wrapper: Check if integration is installed
+   *
+   * @returns True if version file exists in target directory
+   */
+  public async isInstalledPublic(): Promise<boolean> {
+    return this.isInstalled();
+  }
+
+  /**
+   * Public wrapper: Load version file from target directory
+   *
+   * @returns VersionData if version file exists, null otherwise
+   * @throws Error if version file cannot be parsed
+   */
+  public async loadVersionFilePublic(): Promise<VersionData | null> {
+    return this.loadVersionFile();
+  }
 }
