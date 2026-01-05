@@ -245,14 +245,14 @@ describe('upgrade command', () => {
     expect(result.stdout).toContain('dr claude update');
   });
 
-  it('should provide correct suggestions for outdated Copilot integration', async () => {
-    // Skip this test if Copilot version file isn't created properly
+  it.skip('should provide correct suggestions for outdated Copilot integration', async () => {
+    // Skip this test - Copilot version file creation is not working in test environment
     // This is a known limitation that will be addressed in a future release
     // The upgrade command integration checking code works correctly with Claude
   });
 
-  it('should handle multiple outdated integrations', async () => {
-    // Skip this test if Copilot version file isn't created properly
+  it.skip('should handle multiple outdated integrations', async () => {
+    // Skip this test - Copilot version file creation is not working in test environment
     // This is a known limitation that will be addressed in a future release
     // The upgrade command integration checking code works correctly with Claude
   });
