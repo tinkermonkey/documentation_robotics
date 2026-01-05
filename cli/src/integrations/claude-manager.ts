@@ -19,7 +19,7 @@ import { fileExists } from '../utils/file-io.js';
 import { confirm, spinner } from '@clack/prompts';
 import ansis from 'ansis';
 import { dirname, join } from 'node:path';
-import { mkdir, copyFile } from 'node:fs/promises';
+import { mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 
 /**
@@ -28,7 +28,7 @@ import { existsSync } from 'node:fs';
  * Manages installation and updating of Claude Code integration files in .claude/ directory
  */
 export class ClaudeIntegrationManager extends BaseIntegrationManager {
-  protected readonly targetDir = '.claude';
+  protected targetDir: string = '.claude';
   protected readonly versionFileName = '.dr-version';
   protected readonly integrationSourceDir = 'claude_code';
 
@@ -63,14 +63,14 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       target: 'skills',
       description: 'Auto-activating capabilities',
       prefix: '',
-      type: 'directories',
+      type: 'dirs',
     },
     templates: {
       source: 'templates',
       target: 'templates',
       description: 'Customization templates and examples',
       prefix: '',
-      type: 'mixed',
+      type: 'files',
     },
   };
 
@@ -332,13 +332,8 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     try {
       for (const componentName of components) {
-        const config = this.components[componentName];
-        if (!config) continue;
-
-        const targetPath = join(this.targetDir, config.target);
-        if (existsSync(targetPath)) {
-          // We'll handle component directory cleanup during version file update
-        }
+        // Validate component exists
+        if (!this.components[componentName]) continue;
       }
 
       // Remove version file if all components were removed
@@ -389,7 +384,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     // Show component table
     console.log(ansis.bold('Components:'));
-    for (const [componentName, config] of Object.entries(this.components)) {
+    for (const [componentName] of Object.entries(this.components)) {
       const files = versionData.components[componentName] || {};
       const fileCount = Object.keys(files).length;
       const status = fileCount > 0 ? ansis.green('✓') : ansis.dim('-');
