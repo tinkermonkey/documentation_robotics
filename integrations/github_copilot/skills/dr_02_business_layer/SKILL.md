@@ -12,13 +12,13 @@ triggers:
     "business layer",
     "archimate business",
   ]
-version: 0.6.0
+version: 0.7.0
 ---
 
 # Business Layer Skill
 
 **Layer Number:** 02
-**Specification:** Metadata Model Spec v0.6.0
+**Specification:** Metadata Model Spec v0.7.0
 **Purpose:** Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.
 
 ---

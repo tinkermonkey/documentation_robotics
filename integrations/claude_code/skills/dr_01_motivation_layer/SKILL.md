@@ -14,13 +14,13 @@ triggers:
     "motivation",
     "archimate motivation",
   ]
-version: 0.6.0
+version: 0.7.0
 ---
 
 # Motivation Layer Skill
 
 **Layer Number:** 01
-**Specification:** Metadata Model Spec v0.6.0
+**Specification:** Metadata Model Spec v0.7.0
 **Purpose:** Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.
 
 ---

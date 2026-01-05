@@ -44,7 +44,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 **Note**: The DR CLI is implemented in TypeScript/Bun (cli/) for high performance. Installation: `npm install -g @documentation-robotics/cli` or `npm install -g .` from the cli directory.
 
-## Knowledge Base: DR Specification v0.5.0
+## Knowledge Base: DR Specification v0.7.0
 
 ### The 12-Layer Architecture
 

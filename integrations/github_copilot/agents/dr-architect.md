@@ -44,7 +44,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 **Note**: The DR CLI is implemented in TypeScript/Bun (cli/) for faster performance. The Bun CLI (cli/) is has been deprecated.
 
-## Knowledge Base: DR Specification v0.5.0
+## Knowledge Base: DR Specification v0.7.0
 
 ### The 12-Layer Architecture
 
