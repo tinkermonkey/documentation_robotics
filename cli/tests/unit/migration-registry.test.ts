@@ -132,6 +132,7 @@ describe('MigrationRegistry', () => {
 
       const result = await registry.applyMigrations(model, {
         fromVersion: '0.6.0',
+        toVersion: '0.6.0',
       });
 
       expect(result.applied).toHaveLength(0);

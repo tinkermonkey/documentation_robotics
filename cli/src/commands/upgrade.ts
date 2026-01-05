@@ -216,10 +216,20 @@ async function handleUpgrade(
   // Prompt for confirmation unless --yes flag is set
   let shouldProceed = options.yes;
   if (!shouldProceed) {
-    const response = await confirm({
-      message: 'Proceed with upgrade?',
-    });
-    shouldProceed = response === true;
+    // Check if we're in an interactive terminal
+    const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+    if (isInteractive) {
+      const response = await confirm({
+        message: 'Proceed with upgrade?',
+      });
+      shouldProceed = response === true;
+    } else {
+      console.error(
+        ansis.red('Error: Non-interactive mode requires --yes flag to proceed with upgrade')
+      );
+      process.exit(1);
+    }
   }
 
   if (!shouldProceed) {

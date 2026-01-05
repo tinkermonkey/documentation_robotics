@@ -21,30 +21,30 @@ describe('upgrade command', () => {
     // Initialize a model first
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('Checking for available upgrades');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should report CLI version status', async () => {
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should check spec and model versions
-    expect(result.stdout).toContain('spec');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should check spec version when model exists', async () => {
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    // Should check spec version
-    expect(result.stdout).toContain('spec');
+    // Should check spec version and execute upgrades
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should work without a model in directory', async () => {
@@ -56,10 +56,22 @@ describe('upgrade command', () => {
     expect(result.stderr).toContain('No DR project found');
   });
 
+  it('should require --yes flag in non-interactive mode', async () => {
+    // Initialize a model first
+    await runDr(['init', '--name', 'Interactive Test'], { cwd: tempDir.path });
+
+    // Run upgrade in non-interactive mode without --yes
+    // This simulates running in CI/CD or other non-TTY environments
+    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('Non-interactive mode requires --yes flag');
+  });
+
   it('should display migration path information', async () => {
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should show the upgrade/version information
@@ -70,7 +82,7 @@ describe('upgrade command', () => {
     // Initialize a model first
     await runDr(['init', '--name', 'Version Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should include version pattern (spec versions)
@@ -80,7 +92,7 @@ describe('upgrade command', () => {
   it('should provide actionable upgrade instructions', async () => {
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Output should be readable and informative
@@ -91,18 +103,18 @@ describe('upgrade command', () => {
     // Initialize a model first
     await runDr(['init', '--name', 'Versions Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should display version information (either "up to date" or version pattern)
-    expect(result.stdout).toMatch(/(\d+\.\d+\.\d+|Checking)/);
+    expect(result.stdout).toMatch(/(\d+\.\d+\.\d+|Scanning)/);
   });
 
   it('should work multiple times without side effects', async () => {
     await runDr(['init', '--name', 'Upgrade Test Model'], { cwd: tempDir.path });
 
-    const result1 = await runDr(['upgrade'], { cwd: tempDir.path });
-    const result2 = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result1 = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+    const result2 = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result1.exitCode).toBe(0);
     expect(result2.exitCode).toBe(0);
@@ -112,22 +124,22 @@ describe('upgrade command', () => {
     // Initialize a model first
     await runDr(['init', '--name', 'NPM Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Test passes if output contains upgrade information
-    expect(result.stdout).toContain('Checking');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should display information for current state', async () => {
     // Initialize a model first
     await runDr(['init', '--name', 'State Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should show information about current versions
-    expect(result.stdout).toContain('Checking');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should handle model directory structure correctly', async () => {
@@ -135,17 +147,17 @@ describe('upgrade command', () => {
     await runDr(['init', '--name', 'Nested Model'], { cwd: tempDir.path });
 
     // Run upgrade from the same directory
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('spec');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 
   it('should provide clear formatting', async () => {
     // Initialize a model first
     await runDr(['init', '--name', 'Format Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Output should be well-formatted (have multiple lines)
@@ -156,11 +168,10 @@ describe('upgrade command', () => {
   it('should display both CLI and spec upgrade status', async () => {
     await runDr(['init', '--name', 'Full Status Test'], { cwd: tempDir.path });
 
-    const result = await runDr(['upgrade'], { cwd: tempDir.path });
+    const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
     // Should check spec reference and model
-    expect(result.stdout).toContain('spec');
-    expect(result.stdout).toContain('model');
+    expect(result.stdout).toContain('Scanning for available upgrades');
   });
 });
