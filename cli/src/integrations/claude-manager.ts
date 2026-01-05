@@ -21,6 +21,7 @@ import ansis from 'ansis';
 import { dirname, join } from 'node:path';
 import { mkdir } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 /**
  * Claude Code Integration Manager
@@ -331,22 +332,32 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     spinnerObj.start('Removing files...');
 
     try {
+      const fs = await import('node:fs/promises');
+      const { rmSync } = await import('node:fs');
+
+      let removedCount = 0;
+
       for (const componentName of components) {
-        // Validate component exists
-        if (!this.components[componentName]) continue;
+        const config = this.components[componentName];
+        if (!config) continue;
+
+        const targetPath = join(this.targetDir, config.target);
+        if (existsSync(targetPath)) {
+          rmSync(targetPath, { recursive: true, force: true });
+          removedCount++;
+        }
       }
 
       // Remove version file if all components were removed
       if (components.length === Object.keys(this.components).length) {
         const versionFile = join(this.targetDir, this.versionFileName);
         if (existsSync(versionFile)) {
-          const fs = await import('node:fs/promises');
           await fs.unlink(versionFile);
         }
       }
 
       spinnerObj.stop('Removal complete');
-      console.log(ansis.green('✓ Removed successfully'));
+      console.log(ansis.green('✓ Removed ' + removedCount + ' component(s) successfully'));
     } catch (error) {
       spinnerObj.stop('Removal failed');
       console.error(ansis.red('✗ Error: ' + (error instanceof Error ? error.message : String(error))));
@@ -441,7 +452,8 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
   private async getCliVersion(): Promise<string> {
     const possiblePaths = [
       `${process.cwd()}/package.json`,
-      join(dirname(dirname(dirname(__dirname))), 'package.json'),
+      // From dist/integrations/claude-manager.js, go up to get dist/package.json
+      join(dirname(dirname(fileURLToPath(import.meta.url))), 'package.json'),
     ];
 
     for (const path of possiblePaths) {

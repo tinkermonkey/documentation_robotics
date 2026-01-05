@@ -7,6 +7,11 @@
   "bin": {
     "dr": "dist/cli.js"
   },
+  "files": [
+    "dist/**",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc && node esbuild.config.js && npm run copy-schemas",
     "build:debug": "tsc && DR_TELEMETRY=true node esbuild.config.js && npm run copy-schemas",

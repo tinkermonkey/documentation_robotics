@@ -9,6 +9,7 @@ import { createHash } from 'node:crypto';
 import { createReadStream } from 'node:fs';
 import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
+import { existsSync } from 'node:fs';
 
 /**
  * Compute SHA256 hash of a file, truncated to 8 characters
@@ -66,6 +67,11 @@ export async function computeDirectoryHashes(
   prefix?: string
 ): Promise<Map<string, string>> {
   const hashes = new Map<string, string>();
+
+  // Return empty map if directory doesn't exist
+  if (!existsSync(baseDir)) {
+    return hashes;
+  }
 
   async function scanDir(dir: string, relativePrefix: string = ''): Promise<void> {
     try {

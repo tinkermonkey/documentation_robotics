@@ -1,6 +1,7 @@
 import * as esbuild from 'esbuild';
 import { globSync } from 'glob';
-import { renameSync, rmSync } from 'fs';
+import { renameSync, rmSync, cpSync } from 'fs';
+import { join } from 'path';
 
 const isDebug = process.env.DR_TELEMETRY === 'true';
 
@@ -34,6 +35,19 @@ await esbuild.build({
 // Replace dist with processed version
 rmSync('dist', { recursive: true, force: true });
 renameSync('dist.tmp', 'dist');
+
+// Copy integration directories to dist/integrations/
+// These are bundled with the CLI so they're available in production
+const integrationDirs = ['claude_code', 'github_copilot'];
+for (const dir of integrationDirs) {
+  const srcPath = join('..', 'integrations', dir);
+  const destPath = join('dist', 'integrations', dir);
+  try {
+    cpSync(srcPath, destPath, { recursive: true, force: true });
+  } catch (error) {
+    // Silently ignore if integration directory doesn't exist yet
+  }
+}
 
 console.log(
   `✓ Build complete (${isDebug ? 'debug with telemetry' : 'production without telemetry'})`
