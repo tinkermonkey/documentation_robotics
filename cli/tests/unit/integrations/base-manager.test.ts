@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { writeFile, mkdir, readFile } from 'node:fs/promises';
 import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
+import { join, dirname } from 'node:path';
 import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { parse as parseYaml } from 'yaml';
@@ -78,6 +78,10 @@ class TestIntegrationManager extends BaseIntegrationManager {
 
   public testGetSourceRoot(): string {
     return this.getSourceRoot();
+  }
+
+  public async testGetAbsoluteTargetDir(): Promise<string> {
+    return this.getAbsoluteTargetDir();
   }
 }
 
@@ -405,6 +409,81 @@ components:
       // Should have installed at least cmd1.md and cmd2.md
       expect(filesInstalled).toBeGreaterThanOrEqual(2);
     });
+
+    it('should skip user-modified files unless force is set', async () => {
+      // First install
+      await manager.testInstallComponent('commands');
+      await manager.testUpdateVersionFile('0.1.0');
+
+      // User modifies a file
+      const cmd1Path = join(targetDir, 'commands', 'cmd1.md');
+      await writeFile(cmd1Path, 'User custom content', 'utf-8');
+
+      // Get the new hash (user-modified)
+      const userHash = await computeFileHash(cmd1Path);
+
+      // Update version file with user modification flag
+      const versionData = await manager.testLoadVersionFile();
+      if (versionData?.components['commands']['cmd1.md']) {
+        versionData.components['commands']['cmd1.md'].modified = true;
+      }
+      const yaml = require('yaml');
+      await writeFile(
+        join(targetDir, '.dr-test-version'),
+        yaml.stringify(versionData),
+        'utf-8'
+      );
+
+      // Modify source
+      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Updated Command 1', 'utf-8');
+
+      // Try to reinstall without force - file should not be overwritten
+      await manager.testInstallComponent('commands', false);
+      const cmd1Content = await readFile(cmd1Path, 'utf-8');
+      expect(cmd1Content).toBe('User custom content');
+
+      // Now reinstall with force - file should be overwritten
+      await manager.testInstallComponent('commands', true);
+      const cmd1UpdatedContent = await readFile(cmd1Path, 'utf-8');
+      expect(cmd1UpdatedContent).toBe('Updated Command 1');
+    });
+
+    it('should skip conflict files unless force is set', async () => {
+      // First install
+      await manager.testInstallComponent('commands');
+      await manager.testUpdateVersionFile('0.1.0');
+
+      // User modifies a file
+      const cmd1Path = join(targetDir, 'commands', 'cmd1.md');
+      await writeFile(cmd1Path, 'User custom content', 'utf-8');
+
+      // Source also modifies the file
+      await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Source updated', 'utf-8');
+
+      // This creates a conflict (both user and source modified)
+      // Update version file with original hash to trigger conflict detection
+      const originalHash = await computeFileHash(join(sourceDir, 'commands', 'cmd1.md'));
+      const versionData = await manager.testLoadVersionFile();
+      if (versionData?.components['commands']['cmd1.md']) {
+        versionData.components['commands']['cmd1.md'].hash = originalHash;
+      }
+      const yaml = require('yaml');
+      await writeFile(
+        join(targetDir, '.dr-test-version'),
+        yaml.stringify(versionData),
+        'utf-8'
+      );
+
+      // Try to reinstall without force - conflict file should not be overwritten
+      await manager.testInstallComponent('commands', false);
+      const cmd1Content = await readFile(cmd1Path, 'utf-8');
+      expect(cmd1Content).toBe('User custom content');
+
+      // Now reinstall with force - file should be overwritten
+      await manager.testInstallComponent('commands', true);
+      const cmd1UpdatedContent = await readFile(cmd1Path, 'utf-8');
+      expect(cmd1UpdatedContent).toBe('Source updated');
+    });
   });
 
   describe('Source path resolution', () => {
@@ -413,6 +492,84 @@ components:
       const sourceRoot = manager.testGetSourceRoot();
       expect(sourceRoot).toBeTruthy();
       expect(sourceRoot).toContain('source');
+    });
+  });
+
+  describe('Absolute target directory resolution (Bug #1)', () => {
+    it('should work with absolute paths directly', async () => {
+      // Create manager with absolute path
+      const absoluteManager = new TestIntegrationManager(targetDir);
+
+      const resolvedPath = await absoluteManager.testGetAbsoluteTargetDir();
+
+      // Should return the same path
+      expect(resolvedPath).toBe(targetDir);
+    });
+
+    it('should throw error if project root not found for relative paths', async () => {
+      // Create manager with relative path (will fail to find project root in test)
+      const relativeManager = new TestIntegrationManager('.claude');
+      relativeManager.setSourceRoot(sourceDir);
+
+      try {
+        await relativeManager.testGetAbsoluteTargetDir();
+        expect.fail('Should have thrown an error when project root not found');
+      } catch (error) {
+        expect(error).toBeTruthy();
+        expect((error as Error).message).toContain('Could not find project root');
+      }
+    });
+
+    it('isInstalled should work with absolute paths', async () => {
+      // Use absolute path manager
+      const absoluteManager = new TestIntegrationManager(targetDir);
+      absoluteManager.setSourceRoot(sourceDir);
+
+      // First should be false
+      const installed1 = await absoluteManager.testIsInstalled();
+      expect(installed1).toBe(false);
+
+      // Create version file
+      const versionFile = join(targetDir, '.dr-test-version');
+      await mkdir(dirname(versionFile), { recursive: true });
+      await writeFile(
+        versionFile,
+        'version: "0.1.0"\ninstalled_at: "2024-01-01T00:00:00Z"',
+        'utf-8'
+      );
+
+      // Should now be true
+      const installed2 = await absoluteManager.testIsInstalled();
+      expect(installed2).toBe(true);
+    });
+
+    it('loadVersionFile should work with absolute paths', async () => {
+      // Use absolute path manager
+      const absoluteManager = new TestIntegrationManager(targetDir);
+      absoluteManager.setSourceRoot(sourceDir);
+
+      // Create version file
+      const versionFile = join(targetDir, '.dr-test-version');
+      await mkdir(dirname(versionFile), { recursive: true });
+
+      const versionContent = `version: "0.1.0"
+installed_at: "2024-01-01T00:00:00Z"
+components:
+  commands:
+    test.md:
+      hash: "a1b2c3d4"
+      modified: false`;
+
+      await writeFile(versionFile, versionContent, 'utf-8');
+
+      // Should load the version file
+      const versionData = await absoluteManager.testLoadVersionFile();
+      expect(versionData).not.toBeNull();
+      expect(versionData?.version).toBe('0.1.0');
+      expect(versionData?.components['commands']['test.md']).toEqual({
+        hash: 'a1b2c3d4',
+        modified: false,
+      });
     });
   });
 

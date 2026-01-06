@@ -12,7 +12,7 @@
  */
 
 import * as yaml from 'yaml';
-import { join, dirname } from 'node:path';
+import { join, dirname, isAbsolute } from 'node:path';
 import {
   mkdir,
   readFile as fsReadFile,
@@ -25,6 +25,7 @@ import { fileURLToPath } from 'node:url';
 import { computeDirectoryHashes } from './hash-utils.js';
 import { ComponentConfig, VersionData, FileChange, ObsoleteFile } from './types.js';
 import { fileExists } from '../utils/file-io.js';
+import { findProjectRoot } from '../utils/project-paths.js';
 
 /**
  * Abstract base class for integration managers
@@ -97,12 +98,37 @@ export abstract class BaseIntegrationManager {
   }
 
   /**
+   * Get the absolute path to the target directory
+   *
+   * Resolves the project root and combines it with the relative targetDir.
+   * This method ensures that integration operations work from any directory
+   * within the project, not just from the project root.
+   *
+   * @returns Absolute path to the target directory
+   * @throws Error if project root cannot be found
+   */
+  protected async getAbsoluteTargetDir(): Promise<string> {
+    if (isAbsolute(this.targetDir)) {
+      return this.targetDir;
+    }
+    const projectRoot = await findProjectRoot();
+    if (!projectRoot) {
+      throw new Error(
+        `Could not find project root. Are you in a Documentation Robotics project? ` +
+          `Expected to find 'documentation-robotics' folder in directory hierarchy.`
+      );
+    }
+    return join(projectRoot, this.targetDir);
+  }
+
+  /**
    * Check if integration is already installed
    *
    * @returns True if version file exists in target directory
    */
   public async isInstalled(): Promise<boolean> {
-    const versionFilePath = join(this.targetDir, this.versionFileName);
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    const versionFilePath = join(absoluteTargetDir, this.versionFileName);
     return existsSync(versionFilePath);
   }
 
@@ -115,7 +141,8 @@ export abstract class BaseIntegrationManager {
    * @throws Error if version file cannot be parsed
    */
   public async loadVersionFile(): Promise<VersionData | null> {
-    const versionFilePath = join(this.targetDir, this.versionFileName);
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    const versionFilePath = join(absoluteTargetDir, this.versionFileName);
 
     if (!existsSync(versionFilePath)) {
       return null;
@@ -141,11 +168,12 @@ export abstract class BaseIntegrationManager {
    */
   protected async updateVersionFile(cliVersion: string): Promise<void> {
     const components: VersionData['components'] = {};
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
 
     try {
       // Compute hashes for all installed component files
       for (const [componentName, config] of Object.entries(this.components)) {
-        const targetPath = join(this.targetDir, config.target);
+        const targetPath = join(absoluteTargetDir, config.target);
 
         // Skip if component target doesn't exist yet
         if (!existsSync(targetPath)) {
@@ -174,7 +202,7 @@ export abstract class BaseIntegrationManager {
       };
 
       // Write version file
-      const versionFilePath = join(this.targetDir, this.versionFileName);
+      const versionFilePath = join(absoluteTargetDir, this.versionFileName);
       await mkdir(dirname(versionFilePath), { recursive: true });
       const yamlContent = yaml.stringify(versionData);
       await fsWriteFile(versionFilePath, yamlContent, 'utf-8');
@@ -252,7 +280,8 @@ export abstract class BaseIntegrationManager {
 
     const sourceRoot = this.getSourceRoot();
     const sourceDir = join(sourceRoot, config.source);
-    const targetPath = join(this.targetDir, config.target);
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    const targetPath = join(absoluteTargetDir, config.target);
 
     // Get hashes from source
     const sourceHashes = await computeDirectoryHashes(sourceDir, config.prefix);
@@ -350,7 +379,8 @@ export abstract class BaseIntegrationManager {
 
     const sourceRoot = this.getSourceRoot();
     const sourceDir = join(sourceRoot, config.source);
-    const targetPath = join(this.targetDir, config.target);
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+    const targetPath = join(absoluteTargetDir, config.target);
     const versionData = await this.loadVersionFile();
 
     // Get list of changes
@@ -366,11 +396,17 @@ export abstract class BaseIntegrationManager {
       const sourcePath = join(sourceDir, filePath);
       const targetFilePath = join(targetPath, filePath);
 
-      // Check for conflicts with user modifications
+      // Check for conflicts with user modifications or conflicts
       const change = changes.find((c) => c.path === filePath);
-      if (change && change.changeType === 'user-modified' && !force) {
+      if (change && !force) {
         // Skip user-modified files unless force is set
-        continue;
+        if (change.changeType === 'user-modified') {
+          continue;
+        }
+        // Skip conflict files - they require explicit resolution
+        if (change.changeType === 'conflict') {
+          continue;
+        }
       }
 
       // Create parent directories
@@ -397,11 +433,13 @@ export abstract class BaseIntegrationManager {
       return;
     }
 
+    const absoluteTargetDir = await this.getAbsoluteTargetDir();
+
     for (const [componentName] of Object.entries(versionData.components)) {
       const config = this.components[componentName];
       if (!config) continue;
 
-      const targetPath = join(this.targetDir, config.target);
+      const targetPath = join(absoluteTargetDir, config.target);
       const fullPath = join(targetPath, filePath);
 
       if (existsSync(fullPath)) {
