@@ -24,8 +24,8 @@ import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { computeDirectoryHashes } from './hash-utils.js';
 import { ComponentConfig, VersionData, FileChange, ObsoleteFile } from './types.js';
-import { fileExists } from '../utils/file-io.js';
 import { findProjectRoot } from '../utils/project-paths.js';
+import { getCliVersion as getCliVersionFromUtils } from '../utils/spec-version.js';
 
 /**
  * Abstract base class for integration managers
@@ -479,25 +479,7 @@ export abstract class BaseIntegrationManager {
    * @returns Version string (e.g., "0.1.0")
    */
   protected async getCliVersion(): Promise<string> {
-    const possiblePaths = [
-      `${process.cwd()}/package.json`,
-      // From dist/integrations/{manager}.js, go up to get dist/package.json
-      join(dirname(dirname(fileURLToPath(import.meta.url))), 'package.json'),
-    ];
-
-    for (const path of possiblePaths) {
-      if (await fileExists(path)) {
-        try {
-          const content = await fsReadFile(path, 'utf-8');
-          const pkg = JSON.parse(content);
-          return pkg.version || '0.1.0';
-        } catch {
-          continue;
-        }
-      }
-    }
-
-    return '0.1.0';
+    return getCliVersionFromUtils();
   }
 
 }

@@ -215,9 +215,16 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       totalChanges++;
     }
 
-    // If no changes, show status
+    // If no changes, still update version file if needed
     if (totalChanges === 0) {
       console.log(ansis.green('✓ All files are up to date'));
+
+      // Update version file even if no file changes
+      const cliVersion = await this.getCliVersion();
+      if (versionData.version !== cliVersion) {
+        await this.updateVersionFile(cliVersion);
+        console.log(ansis.green('✓ Version updated to ' + cliVersion));
+      }
       return;
     }
 

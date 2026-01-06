@@ -317,6 +317,21 @@ async function handleUpgrade(
     }
   }
 
+  // Execute integration updates
+  if (integrationStatus.claudeOutdated) {
+    await executeIntegrationUpdate('Claude', async () => {
+      const claudeManager = new ClaudeIntegrationManager();
+      await claudeManager.update({ force: true });
+    });
+  }
+
+  if (integrationStatus.copilotOutdated) {
+    await executeIntegrationUpdate('GitHub Copilot', async () => {
+      const copilotManager = new CopilotIntegrationManager();
+      await copilotManager.update({ force: true });
+    });
+  }
+
   console.log(ansis.green('\n✓ All upgrades completed successfully!\n'));
 }
 
@@ -373,6 +388,27 @@ async function executeModelMigration(action: UpgradeAction, options: UpgradeOpti
   } catch (error) {
     console.error(
       ansis.red(`Error migrating model: ${error instanceof Error ? error.message : String(error)}`)
+    );
+    throw error;
+  }
+}
+
+/**
+ * Execute integration update
+ */
+async function executeIntegrationUpdate(
+  integrationName: string,
+  updateFn: () => Promise<void>
+): Promise<void> {
+  try {
+    console.log(ansis.dim(`Updating ${integrationName} integration...`));
+    await updateFn();
+    console.log(ansis.green(`✓ ${integrationName} integration updated`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error updating ${integrationName} integration: ${error instanceof Error ? error.message : String(error)}`
+      )
     );
     throw error;
   }
