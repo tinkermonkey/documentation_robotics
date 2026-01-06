@@ -15,13 +15,13 @@ triggers:
     "actor objective",
     "STS-ml",
   ]
-version: 0.6.0
+version: 0.7.0
 ---
 
 # Security Layer Skill
 
 **Layer Number:** 03
-**Specification:** Metadata Model Spec v0.6.0
+**Specification:** Metadata Model Spec v0.7.0
 **Purpose:** Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.
 
 ---
