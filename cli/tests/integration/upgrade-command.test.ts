@@ -175,12 +175,18 @@ describe('upgrade command - unified flow', () => {
     });
 
     it('should accept --yes flag when no upgrades needed', async () => {
-      // Initialize a model at latest version
-      await runDr(['init', '--name', 'Test Model'], { cwd: tempDir.path });
+      // Initialize a model
+      await runDr(['init', '--name', 'Current Model'], { cwd: tempDir.path });
 
+      // Run upgrade first to bring model current
+      await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+      // Run upgrade again when everything is current
       const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
       expect(result.exitCode).toBe(0);
+      // Should report everything is up to date
+      expect(result.stdout).toContain('Everything is up to date');
     });
   });
 
@@ -770,6 +776,54 @@ describe('upgrade command - unified flow', () => {
       } catch {
         // If writeFile fails, that's okay - the test is validating error handling
       }
+    });
+  });
+
+  // ============================================================================
+  // Integration Version Checks
+  // ============================================================================
+
+  describe('Integration version checks', () => {
+    it('should not show integration updates when no integrations installed', async () => {
+      // Initialize a model without installing integrations
+      await runDr(['init', '--name', 'No Integrations'], { cwd: tempDir.path });
+
+      const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+      expect(result.exitCode).toBe(0);
+      // Should not mention integration updates when none are installed
+      expect(result.stdout).not.toContain('Claude integration outdated');
+      expect(result.stdout).not.toContain('GitHub Copilot integration outdated');
+    });
+
+    it('should check integration versions during upgrade', async () => {
+      // Initialize a model
+      await runDr(['init', '--name', 'Integration Check'], { cwd: tempDir.path });
+
+      // Run upgrade which will check integrations
+      const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
+
+      expect(result.exitCode).toBe(0);
+      // Upgrade should complete even if integrations aren't installed
+      expect(result.stdout).toContain('Scanning for available upgrades');
+    });
+  });
+
+  // ============================================================================
+  // Non-Interactive Mode
+  // ============================================================================
+
+  describe('Non-interactive mode', () => {
+    it('should require --yes flag in non-interactive mode', async () => {
+      // Initialize a model first
+      await runDr(['init', '--name', 'Interactive Test'], { cwd: tempDir.path });
+
+      // Run upgrade in non-interactive mode without --yes
+      // This simulates running in CI/CD or other non-TTY environments
+      const result = await runDr(['upgrade'], { cwd: tempDir.path });
+
+      expect(result.exitCode).toBe(1);
+      expect(result.stderr).toContain('Non-interactive mode requires --yes flag');
     });
   });
 });

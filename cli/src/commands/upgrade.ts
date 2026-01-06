@@ -19,6 +19,9 @@ import {
 import { MigrationRegistry } from '../core/migration-registry.js';
 import { installSpecReference } from '../utils/spec-installer.js';
 import { Model } from '../core/model.js';
+import { ClaudeIntegrationManager } from '../integrations/claude-manager.js';
+import { CopilotIntegrationManager } from '../integrations/copilot-manager.js';
+import { readJSON } from '../utils/file-io.js';
 
 export interface UpgradeOptions {
   yes?: boolean;
@@ -32,6 +35,70 @@ interface UpgradeAction {
   fromVersion?: string;
   toVersion: string;
   details?: string[];
+}
+
+interface IntegrationStatus {
+  claudeOutdated: boolean;
+  copilotOutdated: boolean;
+  messages: string[];
+}
+
+/**
+ * Get the CLI version from package.json
+ */
+async function getCliVersionFromPackage(projectRoot: string): Promise<string> {
+  try {
+    const pkg = await readJSON<{ version: string }>(
+      `${projectRoot}/package.json`
+    ).catch(() =>
+      readJSON<{ version: string }>(`${process.cwd()}/package.json`)
+    );
+    if (pkg && pkg.version) {
+      return pkg.version;
+    }
+  } catch {
+    // Fall back to default version
+  }
+  return '0.1.0';
+}
+
+/**
+ * Check for outdated integrations and suggest updates
+ */
+async function checkIntegrationVersions(cliVersion: string): Promise<IntegrationStatus> {
+  const messages: string[] = [];
+  let claudeOutdated = false;
+  let copilotOutdated = false;
+
+  // Check Claude integration
+  const claudeManager = new ClaudeIntegrationManager();
+  if (await claudeManager.isInstalled()) {
+    const claudeVersion = await claudeManager.loadVersionFile();
+    if (claudeVersion && claudeVersion.version !== cliVersion) {
+      claudeOutdated = true;
+      messages.push(
+        ansis.yellow('⚠') +
+          ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
+      );
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude update'));
+    }
+  }
+
+  // Check Copilot integration
+  const copilotManager = new CopilotIntegrationManager();
+  if (await copilotManager.isInstalled()) {
+    const copilotVersion = await copilotManager.loadVersionFile();
+    if (copilotVersion && copilotVersion.version !== cliVersion) {
+      copilotOutdated = true;
+      messages.push(
+        ansis.yellow('⚠') +
+          ` GitHub Copilot integration outdated: ${copilotVersion.version} → ${cliVersion}`
+      );
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot update'));
+    }
+  }
+
+  return { claudeOutdated, copilotOutdated, messages };
 }
 
 export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void> {
@@ -107,7 +174,9 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        await handleUpgrade(projectRoot, actions, options);
+        const cliVersion = await getCliVersionFromPackage(projectRoot);
+        const integrationStatus = await checkIntegrationVersions(cliVersion);
+        await handleUpgrade(projectRoot, actions, options, integrationStatus);
       }
       return;
     }
@@ -119,7 +188,9 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        await handleUpgrade(projectRoot, actions, options);
+        const cliVersion = await getCliVersionFromPackage(projectRoot);
+        const integrationStatus = await checkIntegrationVersions(cliVersion);
+        await handleUpgrade(projectRoot, actions, options, integrationStatus);
       }
       return;
     }
@@ -161,17 +232,24 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     }
 
     // ============================================================================
-    // STEP 3: Display upgrade plan and execute
+    // STEP 3: Check integration versions
     // ============================================================================
 
-    if (actions.length === 0) {
+    const cliVersion = await getCliVersionFromPackage(projectRoot);
+    const integrationStatus = await checkIntegrationVersions(cliVersion);
+
+    // ============================================================================
+    // STEP 4: Display upgrade plan and execute
+    // ============================================================================
+
+    if (actions.length === 0 && integrationStatus.messages.length === 0) {
       console.log(ansis.green('✓ Everything is up to date!\n'));
       console.log(ansis.dim(`  Spec reference: v${currentSpecVersion || bundledSpecVersion}`));
       console.log(ansis.dim(`  Model: v${modelSpecVersion}\n`));
       return;
     }
 
-    await handleUpgrade(projectRoot, actions, options);
+    await handleUpgrade(projectRoot, actions, options, integrationStatus);
   } catch (error) {
     console.error(
       ansis.red(`Error: ${error instanceof Error ? error.message : String(error)}`)
@@ -186,24 +264,34 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 async function handleUpgrade(
   projectRoot: string,
   actions: UpgradeAction[],
-  options: UpgradeOptions
+  options: UpgradeOptions,
+  integrationStatus: IntegrationStatus = { claudeOutdated: false, copilotOutdated: false, messages: [] }
 ): Promise<void> {
   // Display upgrade plan
-  console.log(ansis.bold('Upgrade Plan:\n'));
+  if (actions.length > 0) {
+    console.log(ansis.bold('Upgrade Plan:\n'));
 
-  for (const action of actions) {
-    const versionChange = action.fromVersion
-      ? `${action.fromVersion} → ${action.toVersion}`
-      : `v${action.toVersion}`;
+    for (const action of actions) {
+      const versionChange = action.fromVersion
+        ? `${action.fromVersion} → ${action.toVersion}`
+        : `v${action.toVersion}`;
 
-    console.log(ansis.yellow(`${action.type === 'spec' ? '📦' : '🔄'} ${action.description}`));
-    console.log(ansis.dim(`   Version: ${versionChange}`));
+      console.log(ansis.yellow(`${action.type === 'spec' ? '📦' : '🔄'} ${action.description}`));
+      console.log(ansis.dim(`   Version: ${versionChange}`));
 
-    if (action.details && action.details.length > 0) {
-      for (const detail of action.details) {
-        console.log(ansis.dim(`   • ${detail}`));
+      if (action.details && action.details.length > 0) {
+        for (const detail of action.details) {
+          console.log(ansis.dim(`   • ${detail}`));
+        }
       }
+      console.log();
     }
+  }
+
+  // Display integration status
+  if (integrationStatus.messages.length > 0) {
+    console.log(ansis.bold('Integration Updates Available:'));
+    integrationStatus.messages.forEach(msg => console.log(msg));
     console.log();
   }
 
@@ -216,10 +304,20 @@ async function handleUpgrade(
   // Prompt for confirmation unless --yes flag is set
   let shouldProceed = options.yes;
   if (!shouldProceed) {
-    const response = await confirm({
-      message: 'Proceed with upgrade?',
-    });
-    shouldProceed = response === true;
+    // Check if we're in an interactive terminal
+    const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+    if (isInteractive) {
+      const response = await confirm({
+        message: 'Proceed with upgrade?',
+      });
+      shouldProceed = response === true;
+    } else {
+      console.error(
+        ansis.red('Error: Non-interactive mode requires --yes flag to proceed with upgrade')
+      );
+      process.exit(1);
+    }
   }
 
   if (!shouldProceed) {

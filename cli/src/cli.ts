@@ -28,6 +28,8 @@ import { chatCommand } from './commands/chat.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
 import { changesetCommands } from './commands/changeset.js';
+import { claudeCommands } from './commands/claude.js';
+import { copilotCommands } from './commands/copilot.js';
 import { versionCommand } from './commands/version.js';
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from './telemetry/index.js';
 import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
@@ -453,6 +455,12 @@ Examples:
 
 // Changeset subcommands
 changesetCommands(program);
+
+// Claude Code integration subcommands
+claudeCommands(program);
+
+// GitHub Copilot integration subcommands
+copilotCommands(program);
 
 // Execute CLI with proper telemetry span wrapping
 // This creates a root span that all child spans will be linked to

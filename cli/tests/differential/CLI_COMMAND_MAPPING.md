@@ -23,8 +23,8 @@
 | `dr version`     | `dr version`      | ✅ Both            | Show version info                                                    |
 | `dr visualize`   | `dr visualize`    | ✅ Both            | Start visualization server                                           |
 | `dr links`       | -                 | ❌ Python only     | Query cross-layer links                                              |
-| `dr claude`      | -                 | ❌ Python only     | Claude Code integration                                              |
-| `dr copilot`     | -                 | ❌ Python only     | GitHub Copilot integration                                           |
+| `dr claude`      | `dr claude`       | ✅ Both            | Claude Code integration                                              |
+| `dr copilot`     | `dr copilot`      | ✅ Both            | GitHub Copilot integration                                          |
 | -                | `dr info`         | ❌ TypeScript only | Show model info                                                      |
 | -                | `dr chat`         | ❌ TypeScript only | Interactive chat                                                     |
 | -                | `dr element`      | ❌ TypeScript only | Element operations                                                   |
