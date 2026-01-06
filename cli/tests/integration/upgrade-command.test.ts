@@ -11,13 +11,59 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { mkdir, rm, readFile, writeFile, cp } from 'fs/promises';
+import { mkdir, rm, writeFile, readFile } from 'fs/promises';
 import { join } from 'path';
-import { createTempWorkdir, runDr, assertCliSuccess, assertCliFailed, assertOutputContains } from '../helpers/cli-runner.js';
-import { Model } from '../../src/core/model.js';
+import yaml from 'yaml';
+import { createTempWorkdir, runDr, assertOutputContains } from '../helpers/cli-runner.js';
 import { fileExists } from '../../src/utils/file-io.js';
 
 let tempDir: { path: string; cleanup: () => Promise<void> };
+
+// ============================================================================
+// Helper Functions
+// ============================================================================
+
+/**
+ * Safely remove a directory and its contents
+ */
+async function safeRm(path: string): Promise<void> {
+  await rm(path, { recursive: true }).catch(() => {});
+}
+
+/**
+ * Set model spec version by updating manifest
+ */
+async function setModelSpecVersion(workdir: string, version: string): Promise<void> {
+  const manifestPath = join(workdir, 'documentation-robotics/model/manifest.yaml');
+  const content = await readFile(manifestPath, 'utf-8');
+  const manifest = yaml.parse(content);
+  manifest.spec_version = version;
+  await writeFile(manifestPath, yaml.stringify(manifest));
+}
+
+/**
+ * Get model spec version from manifest
+ */
+async function getModelSpecVersion(workdir: string): Promise<string> {
+  const manifestPath = join(workdir, 'documentation-robotics/model/manifest.yaml');
+  const content = await readFile(manifestPath, 'utf-8');
+  const manifest = yaml.parse(content);
+  return manifest.spec_version;
+}
+
+/**
+ * Modify model manifest in place
+ */
+async function modifyModelManifest(
+  workdir: string,
+  modifier: (manifest: unknown) => void
+): Promise<void> {
+  const manifestPath = join(workdir, 'documentation-robotics/model/manifest.yaml');
+  const content = await readFile(manifestPath, 'utf-8');
+  const manifest = yaml.parse(content);
+  modifier(manifest);
+  await writeFile(manifestPath, yaml.stringify(manifest));
+}
 
 describe('upgrade command - unified flow', () => {
   beforeEach(async () => {
@@ -48,16 +94,8 @@ describe('upgrade command - unified flow', () => {
       // Initialize a model
       await runDr(['init', '--name', 'Test Model'], { cwd: tempDir.path });
 
-      // Manually downgrade the model to test upgrade detection
-      const manifestPath = join(tempDir.path, 'documentation-robotics/model/manifest.yaml');
-      const yaml = await import('yaml');
-      const fs = await import('fs/promises');
-
-      const content = await fs.readFile(manifestPath, 'utf-8');
-      const manifest = yaml.parse(content);
-      manifest.spec_version = '0.5.0';
-
-      await fs.writeFile(manifestPath, yaml.stringify(manifest));
+      // Downgrade the model to test upgrade detection
+      await setModelSpecVersion(tempDir.path, '0.5.0');
 
       const result = await runDr(['upgrade', '--dry-run'], { cwd: tempDir.path });
 
@@ -814,9 +852,20 @@ describe('upgrade command - unified flow', () => {
   // ============================================================================
 
   describe('Non-interactive mode', () => {
-    it('should require --yes flag in non-interactive mode', async () => {
+    it('should require --yes flag in non-interactive mode when upgrades needed', async () => {
       // Initialize a model first
       await runDr(['init', '--name', 'Interactive Test'], { cwd: tempDir.path });
+
+      // Downgrade the model to create an upgrade scenario
+      const manifestPath = join(tempDir.path, 'documentation-robotics/model/manifest.yaml');
+      const yaml = await import('yaml');
+      const fs = await import('fs/promises');
+
+      const content = await fs.readFile(manifestPath, 'utf-8');
+      const manifest = yaml.parse(content);
+      manifest.spec_version = '0.5.0';
+
+      await fs.writeFile(manifestPath, yaml.stringify(manifest));
 
       // Run upgrade in non-interactive mode without --yes
       // This simulates running in CI/CD or other non-TTY environments
