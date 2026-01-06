@@ -12,6 +12,7 @@ import ansis from 'ansis';
 import { confirm } from '@clack/prompts';
 import { findProjectRoot, getSpecReferencePath, getModelPath } from '../utils/project-paths.js';
 import {
+  getCliVersion,
   getCliBundledSpecVersion,
   getInstalledSpecVersion,
   getModelSpecVersion,
@@ -21,7 +22,6 @@ import { installSpecReference } from '../utils/spec-installer.js';
 import { Model } from '../core/model.js';
 import { ClaudeIntegrationManager } from '../integrations/claude-manager.js';
 import { CopilotIntegrationManager } from '../integrations/copilot-manager.js';
-import { readJSON } from '../utils/file-io.js';
 
 export interface UpgradeOptions {
   yes?: boolean;
@@ -41,25 +41,6 @@ interface IntegrationStatus {
   claudeOutdated: boolean;
   copilotOutdated: boolean;
   messages: string[];
-}
-
-/**
- * Get the CLI version from package.json
- */
-async function getCliVersionFromPackage(projectRoot: string): Promise<string> {
-  try {
-    const pkg = await readJSON<{ version: string }>(
-      `${projectRoot}/package.json`
-    ).catch(() =>
-      readJSON<{ version: string }>(`${process.cwd()}/package.json`)
-    );
-    if (pkg && pkg.version) {
-      return pkg.version;
-    }
-  } catch {
-    // Fall back to default version
-  }
-  return '0.1.0';
 }
 
 /**
@@ -174,7 +155,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        const cliVersion = await getCliVersionFromPackage(projectRoot);
+        const cliVersion = getCliVersion();
         const integrationStatus = await checkIntegrationVersions(cliVersion);
         await handleUpgrade(projectRoot, actions, options, integrationStatus);
       }
@@ -188,7 +169,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
 
       // If only spec needs upgrade, handle it
       if (actions.length > 0) {
-        const cliVersion = await getCliVersionFromPackage(projectRoot);
+        const cliVersion = getCliVersion();
         const integrationStatus = await checkIntegrationVersions(cliVersion);
         await handleUpgrade(projectRoot, actions, options, integrationStatus);
       }
@@ -235,7 +216,7 @@ export async function upgradeCommand(options: UpgradeOptions = {}): Promise<void
     // STEP 3: Check integration versions
     // ============================================================================
 
-    const cliVersion = await getCliVersionFromPackage(projectRoot);
+    const cliVersion = getCliVersion();
     const integrationStatus = await checkIntegrationVersions(cliVersion);
 
     // ============================================================================

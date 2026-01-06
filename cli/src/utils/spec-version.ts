@@ -8,11 +8,27 @@ import { readJSON, fileExists } from './file-io.js';
 import { join } from 'path';
 
 /**
+ * CLI version
+ * This should match the version in ../package.json
+ * Updated during release process
+ */
+const CLI_VERSION = '0.1.0';
+
+/**
  * Bundled spec version
  * This should match the version in ../../../spec/VERSION
  * Updated during build process
  */
 const BUNDLED_SPEC_VERSION = '0.7.0';
+
+/**
+ * Get the CLI version
+ *
+ * @returns CLI version string
+ */
+export function getCliVersion(): string {
+  return CLI_VERSION;
+}
 
 /**
  * Get the CLI's bundled spec version
