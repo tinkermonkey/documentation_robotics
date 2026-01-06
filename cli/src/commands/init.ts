@@ -8,6 +8,7 @@ import { Model } from '../core/model.js';
 import { fileExists } from '../utils/file-io.js';
 import { logVerbose, logDebug } from '../utils/globals.js';
 import { installSpecReference } from '../utils/spec-installer.js';
+import { getCliBundledSpecVersion } from '../utils/spec-version.js';
 
 export interface InitOptions {
   name?: string;
@@ -75,7 +76,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
         version: '0.1.0',
         description: (description as string) || undefined,
         author: (author as string) || undefined,
-        specVersion: '0.6.0',
+        specVersion: getCliBundledSpecVersion(),
         created: new Date().toISOString(),
       },
       { lazyLoad: false }
@@ -83,7 +84,7 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     logVerbose(`Model saved with:
   - Version: 0.1.0
-  - Spec Version: 0.6.0
+  - Spec Version: ${getCliBundledSpecVersion()}
   - Location: ${rootPath}/documentation-robotics/model`);
 
     // Install spec reference (.dr/ folder)
