@@ -661,6 +661,15 @@
           "items": {
             "type": "string"
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },

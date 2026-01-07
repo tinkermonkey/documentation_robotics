@@ -928,6 +928,15 @@
               }
             }
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1029,6 +1038,15 @@
               }
             }
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1096,6 +1114,15 @@
                   "description": ""
                 }
               }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
             }
           }
         }
@@ -1199,6 +1226,15 @@
               }
             }
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1252,6 +1288,15 @@
                   "description": "optional"
                 }
               }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
             }
           }
         }
@@ -1377,6 +1422,15 @@
               }
             }
           }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+            }
+          }
         }
       }
     },
@@ -1456,6 +1510,15 @@
                   "description": "optional, retention, compliance constraints"
                 }
               }
+            }
+          }
+        },
+        "source": {
+          "type": "object",
+          "description": "Source code reference",
+          "properties": {
+            "reference": {
+              "$ref": "common/source-references.schema.json#/definitions/SourceReference"
             }
           }
         }
