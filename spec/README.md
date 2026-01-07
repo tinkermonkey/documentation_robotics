@@ -237,16 +237,16 @@ The v0.7.1 release formalizes the source reference infrastructure for linking ar
   - `relationships.schema.json` - Relationship type definitions
   - `predicates.schema.json` - Predicate semantics
 - **📍 Source Reference Integration** - 10 layers now support source code linking
-  - **ArchiMate Layers** (04, 09, 10, 11, 12): Use `properties.source.reference` nested pattern
+  - **ArchiMate Layers** (04, 05, 09, 10, 11, 12): Use `properties.source.reference` nested pattern
+  - **Custom Security Layer** (03): Uses `properties.source.reference` nested pattern
   - **OpenAPI Layers** (06, 07, 08): Use `x-source-reference` extension pattern
+  - **Layer 03**: 10 entity types (AuthenticationConfig, SecurityPolicy, PolicyRule, PolicyAction, RateLimit, AuditConfig, Condition, ValidationRule, Countermeasure, Threat)
+  - **Layer 05**: 7 entity types (Node, SystemSoftware, TechnologyProcess, CommunicationNetwork, Artifact, TechnologyInterface, TechnologyService)
 - **🏷️ Provenance Tracking** - Four-value enum distinguishing reference origins
   - `extracted` - Automated tooling ingestion
   - `manual` - Human entry
   - `inferred` - Pattern matching analysis
   - `generated` - Code generated from model
-- **Evaluated for Future Support**:
-  - Layer 03 (Security) - SecurityControl, AuthenticationMechanism implementations
-  - Layer 05 (Technology) - Node, SystemSoftware, Artifact definitions
 
 See [CHANGELOG.md](CHANGELOG.md#071---2026-01-07) for complete details.
 

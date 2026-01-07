@@ -11,7 +11,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 - **Source Code Reference Infrastructure Formalization**:
   - Documented `spec/schemas/common/` as canonical location for cross-layer schemas
-  - Formalized source reference integration across 10 layers (04, 06, 07, 08, 09, 10, 11, 12)
+  - Formalized source reference integration across 10 layers (03, 04, 05, 06, 07, 08, 09, 10, 11, 12)
   - Common schema definitions:
     - `source-references.schema.json` - Defines ProvenanceType, SourceLocation, RepositoryContext, SourceReference
     - `layer-extensions.schema.json` - Layer metadata and relationship catalog structures
@@ -19,7 +19,8 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
     - `predicates.schema.json` - Predicate definitions for relationship semantics
 
 - **Source Reference Layer Integration**:
-  - **ArchiMate Layers** (04-application, 09-ux, 10-navigation, 11-apm, 12-testing): Use nested `properties.source.reference` pattern for compatibility with architecture description format
+  - **ArchiMate Layers** (04-application, 05-technology, 09-ux, 10-navigation, 11-apm, 12-testing): Use nested `properties.source.reference` pattern for compatibility with architecture description format
+  - **Custom Security Layer** (03-security): Uses nested `properties.source.reference` pattern consistent with ArchiMate-style layers
   - **OpenAPI Layers** (06-api, 07-data-model, 08-datastore): Use `x-source-reference` extension pattern for compatibility with OpenAPI tooling
   - All 10 layers reference common schema definitions via `$ref: "common/source-references.schema.json#/definitions/SourceReference"`
 
@@ -33,19 +34,35 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
   - **RepositoryContext**: Optional Git remote URL and 40-character commit SHA
   - **SourceReference**: Complete reference linking elements to one or more source code locations
 
-### Evaluated for Source Reference Support
+- **Layer 03-Security Source Reference Support**:
+  - **10 entity types** with source reference integration:
+    - AuthenticationConfig - Auth provider implementations (JWT validation, session handlers)
+    - SecurityPolicy - Policy-as-code implementations (OPA, RBAC middleware)
+    - PolicyRule - Authorization logic functions
+    - PolicyAction - Security action handlers (MFA, rate limiting)
+    - RateLimit - Rate limiting middleware
+    - AuditConfig - Audit logging implementations
+    - Condition - ABAC condition evaluators
+    - ValidationRule - Field validation code
+    - Countermeasure - Security control implementations
+    - Threat - Security test code, vulnerability scanners
+  - Enables traceability from security policies to actual implementation code
 
-- **Layer 03-Security**: Recommended for addition in future release
-  - SecurityControl, AuthenticationMechanism, AuthorizationMechanism often implement in code
-  - Would support tracing security policies to implementation details
-- **Layer 05-Technology**: Recommended for addition in future release
-  - Node, SystemSoftware, Artifact directly reference deployable code bundles
-  - Would support linking infrastructure elements to infrastructure-as-code definitions
+- **Layer 05-Technology Source Reference Support**:
+  - **7 entity types** with source reference integration:
+    - Node - Terraform/CloudFormation/Pulumi infrastructure definitions
+    - SystemSoftware - Dockerfiles, Ansible playbooks, Helm charts
+    - TechnologyProcess - Automation scripts, CI/CD pipeline definitions
+    - CommunicationNetwork - Network IaC (VPC definitions, networking configs)
+    - Artifact - SQL migrations, configuration files
+    - TechnologyInterface - API gateway configs, load balancer configs, ingress definitions
+    - TechnologyService - Kubernetes manifests, Docker Compose files
+  - Supports linking infrastructure elements to infrastructure-as-code definitions
 
 ### Changed
 
 - **All Common Schemas**: Updated to reside in `spec/schemas/common/` as canonical location
-- **10 Layer Schemas**: All schemas with source reference support verified and documented
+- **10 Layer Schemas**: All schemas with source reference support verified and documented (03, 04, 05, 06, 07, 08, 09, 10, 11, 12)
 
 ### Backward Compatibility
 
