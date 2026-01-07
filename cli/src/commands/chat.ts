@@ -6,18 +6,18 @@
 import ansis from 'ansis';
 import { text, intro, outro } from '@clack/prompts';
 import { Model } from '../core/model.js';
+import { spawnSync, spawn } from 'child_process';
 
 /**
  * Check if Claude Code CLI is available
  */
 async function checkClaudeAvailable(): Promise<boolean> {
   try {
-    const result = Bun.spawnSync({
-      cmd: ['which', 'claude'],
-      stdout: 'pipe',
-      stderr: 'pipe',
+    const result = spawnSync('which', ['claude'], {
+      stdio: 'pipe',
+      encoding: 'utf-8',
     });
-    return result.exitCode === 0;
+    return result.status === 0;
   } catch {
     return false;
   }
@@ -31,85 +31,80 @@ async function sendMessage(
   modelPath: string
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const proc = Bun.spawn({
-      cmd: [
-        'claude',
+    const proc = spawn(
+      'claude',
+      [
         '--agent', 'dr-architect',
         '--print',
         '--dangerously-skip-permissions',
         '--verbose',
         '--output-format', 'stream-json',
       ],
-      cwd: modelPath,
-      stdin: 'pipe',
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
+      {
+        cwd: modelPath,
+        stdio: ['pipe', 'pipe', 'pipe'],
+      }
+    );
 
     // Send message via stdin
-    proc.stdin?.write(new TextEncoder().encode(message));
-    proc.stdin?.end();
+    proc.stdin.write(message);
+    proc.stdin.end();
 
     // Stream stdout
     let buffer = '';
-    const stdoutReader = proc.stdout.getReader();
-    const decoder = new TextDecoder();
 
-    const readLoop = async () => {
-      try {
-        while (true) {
-          const { done, value } = await stdoutReader.read();
-          if (done) break;
+    proc.stdout.on('data', (data: Buffer) => {
+      const chunk = data.toString();
+      buffer += chunk;
 
-          const chunk = decoder.decode(value, { stream: true });
-          buffer += chunk;
+      // Process complete lines
+      const lines = buffer.split('\n');
+      buffer = lines.pop() || '';
 
-          // Process complete lines
-          const lines = buffer.split('\n');
-          buffer = lines.pop() || '';
+      for (const line of lines) {
+        if (!line.trim()) continue;
 
-          for (const line of lines) {
-            if (!line.trim()) continue;
+        try {
+          const event = JSON.parse(line);
 
-            try {
-              const event = JSON.parse(line);
-
-              if (event.type === 'assistant') {
-                const content = event.message?.content || [];
-                for (const block of content) {
-                  if (block.type === 'text') {
-                    process.stdout.write(block.text);
-                  } else if (block.type === 'tool_use') {
-                    process.stdout.write(ansis.dim(`\n[Using tool: ${block.name}]\n`));
-                  }
-                }
+          if (event.type === 'assistant') {
+            const content = event.message?.content || [];
+            for (const block of content) {
+              if (block.type === 'text') {
+                process.stdout.write(block.text);
+              } else if (block.type === 'tool_use') {
+                process.stdout.write(ansis.dim(`\n[Using tool: ${block.name}]\n`));
               }
-            } catch {
-              // Non-JSON line, print as-is
-              process.stdout.write(line + '\n');
             }
           }
+        } catch {
+          // Non-JSON line, print as-is
+          process.stdout.write(line + '\n');
         }
-
-        // Print any remaining buffer
-        if (buffer.trim()) {
-          process.stdout.write(buffer);
-        }
-      } catch (error) {
-        reject(error);
       }
-    };
+    });
 
-    // Handle process completion
-    proc.exited.then((exitCode) => {
-      readLoop().then(() => {
-        if (exitCode === 0) {
-          resolve();
-        } else {
-          reject(new Error(`Claude process exited with code ${exitCode}`));
-        }
-      }).catch(reject);
-    }).catch(reject);
+    proc.stderr.on('data', (_data: Buffer) => {
+      // Optionally log errors
+      // process.stderr.write(_data);
+    });
+
+    proc.on('error', (error) => {
+      reject(error);
+    });
+
+    proc.on('close', (exitCode) => {
+      // Print any remaining buffer
+      if (buffer.trim()) {
+        process.stdout.write(buffer);
+      }
+
+      if (exitCode === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Claude process exited with code ${exitCode}`));
+      }
+    });
   });
 }
 
