@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.7.0-blue)](.)
+[![Specification](https://img.shields.io/badge/Specification-v0.7.1-blue)](.)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.7.0
+**Version:** 0.7.1
 **Status:** Draft
-**Last Updated:** 2025-12-19
+**Last Updated:** 2026-01-07
 
 ## Overview
 
@@ -57,6 +57,11 @@ spec/
 │   └── 12-testing-layer.md         # VERIFY - Test coverage modeling
 │
 ├── schemas/                    # JSON Schemas (normative)
+│   ├── common/                      # Cross-layer shared schemas (NEW in v0.7.1)
+│   │   ├── source-references.schema.json    # Source code location tracking
+│   │   ├── layer-extensions.schema.json     # Layer metadata and relationships
+│   │   ├── relationships.schema.json        # Relationship type definitions
+│   │   └── predicates.schema.json           # Predicate definitions
 │   ├── link-registry.json           # Cross-layer link registry
 │   ├── 01-motivation-layer.schema.json
 │   ├── 02-business-layer.schema.json
@@ -222,6 +227,29 @@ See [core/02-layering-philosophy.md](core/02-layering-philosophy.md) for rationa
 
 ## Recent Enhancements
 
+### Source Code Reference Infrastructure (v0.7.1)
+
+The v0.7.1 release formalizes the source reference infrastructure for linking architecture elements to source code locations:
+
+- **🔍 Common Schemas Directory** - Canonical location for cross-layer schemas
+  - `source-references.schema.json` - Links architecture elements to code locations
+  - `layer-extensions.schema.json` - Layer metadata and relationship structures
+  - `relationships.schema.json` - Relationship type definitions
+  - `predicates.schema.json` - Predicate semantics
+- **📍 Source Reference Integration** - 10 layers now support source code linking
+  - **ArchiMate Layers** (04, 09, 10, 11, 12): Use `properties.source.reference` nested pattern
+  - **OpenAPI Layers** (06, 07, 08): Use `x-source-reference` extension pattern
+- **🏷️ Provenance Tracking** - Four-value enum distinguishing reference origins
+  - `extracted` - Automated tooling ingestion
+  - `manual` - Human entry
+  - `inferred` - Pattern matching analysis
+  - `generated` - Code generated from model
+- **Evaluated for Future Support**:
+  - Layer 03 (Security) - SecurityControl, AuthenticationMechanism implementations
+  - Layer 05 (Technology) - Node, SystemSoftware, Artifact definitions
+
+See [CHANGELOG.md](CHANGELOG.md#071---2026-01-07) for complete details.
+
 ### Ontology Refinement & Relationship Modeling (v0.6.0)
 
 The v0.6.0 release delivers comprehensive relationship modeling across all 12 layers:
@@ -349,10 +377,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.6.0
-**Release Date:** 2025-12-14
+**Current Version:** 0.7.1
+**Release Date:** 2026-01-07
 **Status:** Draft
-**Next Review:** 2025-06-14
+**Next Review:** 2026-07-07
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -402,8 +430,8 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.6.0},
-  year = {2025},
+  version = {0.7.1},
+  year = {2026},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }
 ```

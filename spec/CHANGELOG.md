@@ -5,6 +5,54 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.1] - 2026-01-07
+
+### Added
+
+- **Source Code Reference Infrastructure Formalization**:
+  - Documented `spec/schemas/common/` as canonical location for cross-layer schemas
+  - Formalized source reference integration across 10 layers (04, 06, 07, 08, 09, 10, 11, 12)
+  - Common schema definitions:
+    - `source-references.schema.json` - Defines ProvenanceType, SourceLocation, RepositoryContext, SourceReference
+    - `layer-extensions.schema.json` - Layer metadata and relationship catalog structures
+    - `relationships.schema.json` - Relationship type definitions
+    - `predicates.schema.json` - Predicate definitions for relationship semantics
+
+- **Source Reference Layer Integration**:
+  - **ArchiMate Layers** (04-application, 09-ux, 10-navigation, 11-apm, 12-testing): Use nested `properties.source.reference` pattern for compatibility with architecture description format
+  - **OpenAPI Layers** (06-api, 07-data-model, 08-datastore): Use `x-source-reference` extension pattern for compatibility with OpenAPI tooling
+  - All 10 layers reference common schema definitions via `$ref: "common/source-references.schema.json#/definitions/SourceReference"`
+
+- **Source Reference Schema Definition**:
+  - **ProvenanceType**: Four-value enum tracking how references were created
+    - `extracted` - Automated tooling ingestion
+    - `manual` - Human entry
+    - `inferred` - Pattern matching analysis
+    - `generated` - Code generated from model
+  - **SourceLocation**: File path and optional symbol for precise code location
+  - **RepositoryContext**: Optional Git remote URL and 40-character commit SHA
+  - **SourceReference**: Complete reference linking elements to one or more source code locations
+
+### Evaluated for Source Reference Support
+
+- **Layer 03-Security**: Recommended for addition in future release
+  - SecurityControl, AuthenticationMechanism, AuthorizationMechanism often implement in code
+  - Would support tracing security policies to implementation details
+- **Layer 05-Technology**: Recommended for addition in future release
+  - Node, SystemSoftware, Artifact directly reference deployable code bundles
+  - Would support linking infrastructure elements to infrastructure-as-code definitions
+
+### Changed
+
+- **All Common Schemas**: Updated to reside in `spec/schemas/common/` as canonical location
+- **10 Layer Schemas**: All schemas with source reference support verified and documented
+
+### Backward Compatibility
+
+- No breaking changes - source references remain optional properties
+- All existing models remain valid under v0.7.1
+- New source reference definitions are purely additive enhancements
+
 ## [0.7.0] - 2025-12-19
 
 ### Added
