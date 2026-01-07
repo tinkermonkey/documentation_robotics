@@ -959,6 +959,21 @@
           "items": {
             "type": "string"
           }
+        },
+        "properties": {
+          "type": "object",
+          "description": "Cross-layer properties",
+          "properties": {
+            "source": {
+              "type": "object",
+              "description": "Source code reference",
+              "properties": {
+                "reference": {
+                  "$ref": "common/source-references.schema.json#/definitions/SourceReference"
+                }
+              }
+            }
+          }
         }
       }
     },
@@ -1002,6 +1017,15 @@
                 "endpoint": {
                   "type": "string",
                   "description": "optional"
+                }
+              }
+            },
+            "source": {
+              "type": "object",
+              "description": "Source code reference",
+              "properties": {
+                "reference": {
+                  "$ref": "common/source-references.schema.json#/definitions/SourceReference"
                 }
               }
             }
