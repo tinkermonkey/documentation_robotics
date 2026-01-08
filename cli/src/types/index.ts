@@ -2,6 +2,9 @@
  * Core type definitions for Documentation Robotics CLI
  */
 
+// Export source reference types
+export type { ProvenanceType, SourceLocation, RepositoryContext, SourceReference } from './source-reference.js';
+
 /**
  * Reference across layers
  */

@@ -1,4 +1,4 @@
-import type { Element as IElement, Reference, Relationship } from "../types/index.js";
+import type { Element as IElement, Reference, Relationship, SourceReference } from "../types/index.js";
 
 /**
  * Element class representing an individual architecture item
@@ -71,6 +71,57 @@ export class Element implements IElement {
     const current = this.getArrayProperty<T>(key);
     current.push(item);
     this.properties[key] = current;
+  }
+
+  /**
+   * Get source reference for this element (layer-aware)
+   * - Layers 06-08 (OpenAPI): reads from properties['x-source-reference']
+   * - Other layers (ArchiMate): reads from properties.source?.reference
+   */
+  getSourceReference(): SourceReference | undefined {
+    if (!this.layer) {
+      return undefined;
+    }
+
+    const layerNum = parseInt(this.layer.split('-')[0], 10);
+
+    // OpenAPI pattern for layers 06-08
+    if (layerNum >= 6 && layerNum <= 8) {
+      return this.properties['x-source-reference'] as SourceReference | undefined;
+    }
+
+    // ArchiMate pattern for other layers
+    const source = this.properties.source as { reference?: SourceReference } | undefined;
+    return source?.reference;
+  }
+
+  /**
+   * Set source reference for this element (layer-aware)
+   */
+  setSourceReference(reference: SourceReference): void {
+    if (!this.layer) {
+      throw new Error('Cannot set source reference: element has no layer assigned');
+    }
+
+    const layerNum = parseInt(this.layer.split('-')[0], 10);
+
+    // OpenAPI pattern for layers 06-08
+    if (layerNum >= 6 && layerNum <= 8) {
+      this.properties['x-source-reference'] = reference;
+    } else {
+      // ArchiMate pattern for other layers
+      if (!this.properties.source) {
+        this.properties.source = {};
+      }
+      (this.properties.source as { reference: SourceReference }).reference = reference;
+    }
+  }
+
+  /**
+   * Check if element has source reference
+   */
+  hasSourceReference(): boolean {
+    return this.getSourceReference() !== undefined;
   }
 
   /**

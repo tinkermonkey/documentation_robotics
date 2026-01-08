@@ -1,0 +1,402 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Phase 2: Add TypeScript source reference types and Element class methods
+
+**Description**:
+Implement TypeScript type definitions for source reference structures and extend the `Element` class with layer-aware accessor methods. This phase establishes type safety for CLI implementation and abstracts the difference between OpenAPI x-extension and ArchiMate nested property patterns.
+
+## Requirements
+- **FR3.1**: Define TypeScript interfaces for SourceReference, SourceLocation, RepositoryContext, ProvenanceType
+- **FR3.2**: Element class provides `getSourceReference()`, `setSourceReference()`, `hasSourceReference()` methods
+- **FR3.3**: Store source references in element's properties following layer-specific schema patterns
+- **FR3.4**: Add type definitions to `cli/src/types/index.ts` or new module
+
+## Design Guidance
+**Type Definitions** (create `cli/src/types/source-reference.ts`):
+```typescript
+/**
+ * How the source reference was created
+ */
+export type ProvenanceType = 'extracted' | 'manual' | 'inferred' | 'generated';
+
+/**
+ * Location of source code implementing this element
+ */
+export interface SourceLocation {
+  /** Relative path from repository root using forward slashes */
+  file: string;
+  /** Optional symbol name (class, function, variable) */
+  symbol?: string;
+}
+
+/**
+ * Git repository context for source reference
+ */
+export interface RepositoryContext {
+  /** Git remote URL */
+  url?: string;
+  /** Full 40-character commit SHA */
+  commit?: string;
+}
+
+/**
+ * Complete source reference linking element to implementation
+ */
+export interface SourceReference {
+  /** How this reference was created */
+  provenance: ProvenanceType;
+  /** One or more source file locations */
+  locations: SourceLocation[];
+  /** Optional repository context */
+  repository?: RepositoryContext;
+}
+```
+
+**Element Class Extension** (`cli/src/core/element.ts`):
+
+The Element class already has `properties: Record<string, unknown>` and generic accessor methods. Add these layer-aware source reference methods:
+
+```typescript
+import { SourceReference } from '../types/source-reference';
+
+class Element {
+  // ... existing properties ...
+
+  /**
+   * Get source reference for this element (layer-aware)
+   * - Layers 06-08 (OpenAPI): reads from properties['x-source-reference']
+   * - Other layers (ArchiMate): reads from properties.source?.reference
+   */
+  getSourceReference(): SourceReference | undefined {
+    const layerNum = parseInt(this.layer.split('-')[0], 10);
+    
+    // OpenAPI pattern for layers 06-08
+    if (layerNum >= 6 && layerNum <= 8) {
+      return this.properties['x-source-reference'] as SourceReference | undefined;
+    }
+    
+    // ArchiMate pattern for other layers
+    const source = this.properties.source as { reference?: SourceReference } | undefined;
+    return source?.reference;
+  }
+
+  /**
+   * Set source reference for this element (layer-aware)
+   */
+  setSourceReference(reference: SourceReference): void {
+    const layerNum = parseInt(this.layer.split('-')[0], 10);
+    
+    // OpenAPI pattern for layers 06-08
+    if (layerNum >= 6 && layerNum <= 8) {
+      this.properties['x-source-reference'] = reference;
+    } else {
+      // ArchiMate pattern for other layers
+      if (!this.properties.source) {
+        this.properties.source = {};
+      }
+      (this.properties.source as { reference: SourceReference }).reference = reference;
+    }
+  }
+
+  /**
+   * Check if element has source reference
+   */
+  hasSourceReference(): boolean {
+    return this.getSourceReference() !== undefined;
+  }
+}
+```
+
+**ADR-001 Implementation**: Element class abstracts layer-specific storage paths. Callers use consistent API regardless of whether element uses x-extension or nested property pattern.
+
+**Export from Index** (`cli/src/types/index.ts`):
+```typescript
+export * from './source-reference';
+```
+
+## Acceptance Criteria
+- [ ] `cli/src/types/source-reference.ts` exports ProvenanceType, SourceLocation, RepositoryContext, SourceReference types
+- [ ] Types match JSON schema definitions from `spec/schemas/common/source-references.schema.json`
+- [ ] Element class has `getSourceReference()` method returning `SourceReference | undefined`
+- [ ] Element class has `setSourceReference(reference: SourceReference): void` method
+- [ ] Element class has `hasSourceReference(): boolean` method
+- [ ] `getSourceReference()` correctly reads from `x-source-reference` for layers 06-08
+- [ ] `getSourceReference()` correctly reads from `properties.source.reference` for other layers
+- [ ] `setSourceReference()` correctly writes to layer-appropriate property path
+- [ ] TypeScript compilation succeeds with no type errors
+- [ ] Code is reviewed and approved
+
+## Dependencies
+Phase 1 (spec formalization defines schema structure)
+
+## Parent Issue
+Part of #162
+
+## Discussion
+This work is detailed in discussion [163](https://github.com/tinkermonkey/documentation_robotics/discussions/163)
+
+---
+
+
+## Previous Work and Feedback
+
+The following is the complete history of agent outputs and feedback for this issue.
+This includes outputs from ALL previous stages (design, testing, QA, etc.) and any
+user feedback. If this issue was returned from testing or QA, pay special attention
+to their feedback and address all issues they identified.
+
+## Output from Software Architect
+
+**software_architect** (agent):
+# Architecture Design
+
+---
+
+## System Architecture
+
+### Current State Analysis
+
+The source references schema infrastructure is **already substantially implemented**:
+
+**Spec Layer (spec/schemas/common/):**
+- `source-references.schema.json` exists with complete definitions for `ProvenanceType`, `SourceLocation`, `RepositoryContext`, and `SourceReference`
+- Schema is referenced by 10 of 12 layer schemas (layers 04, 06, 07, 08, 09, 10, 11, 12)
+
+**CLI Layer (cli/src/schemas/bundled/):**
+- Common schemas already synchronized to `cli/src/schemas/bundled/common/`
+- Schema validator (`cli/src/validators/schema-validator.ts:71-91`) already preloads all four common schemas including `source-references.schema.json`
+
+**Coverage Gaps:**
+- Layers 01-motivation, 02-business, 03-security, and 05-technology do **not** reference source-references schema
+- CLI types (`cli/src/types/index.ts`) lack TypeScript interfaces for source reference structures
+- CLI commands (`add`, `update`, `info`, `search`) have no source reference parameters or display logic
+- Export modules have no source reference preservation logic
+
+### Integration Patterns (Existing)
+
+Two schema reference patterns are in use:
+
+| Pattern | Layers | Property Path |
+|---------|--------|---------------|
+| OpenAPI x-extension | 06-api, 07-data-model, 08-datastore | `x-source-reference` |
+| ArchiMate nested | 04-application, 09-ux, 10-navigation, 11-apm, 12-testing | `properties.source.reference` |
+
+## Scalability Design
+
+### Schema Versioning Strategy
+
+**Spec Version 0.7.0 → 0.7.1:**
+- Minor version bump appropriate—common schemas directory is additive
+- No breaking changes to existing layer schema consumers
+- Backward compatible: source references remain optional properties
+
+**CLI Version (remains 0.1.0):**
+- Feature addition within existing release cycle
+- TypeScript interface additions are non-breaking
+- Command option additions use optional flags
+
+### Extensibility Points
+
+**SourceReference schema extensibility:**
+- `RepositoryContext.url` and `commit` are optional—supports local-only workflows
+- `locations` array supports multiple file references per element
+- `provenance` enum can be extended in future spec versions
+
+## Established Patterns
+
+### Reuse from Existing Implementation
+
+**Validation Pipeline (`cli/src/validators/schema-validator.ts`):**
+- Already loads `common/source-references.schema.json` at line 72
+- AJV validates source reference structures automatically when layer schemas compile
+- No new validator code required—existing infrastructure handles validation
+
+**Element Properties Pattern (`cli/src/core/element.ts`):**
+- `properties: Record<string, unknown>` already stores arbitrary data
+- `getProperty<T>()` and `setProperty()` methods support typed access
+- Source references stored in `element.properties['x-source-reference']` or `element.properties.source.reference`
+
+**Search Infrastructure (`cli/src/commands/search.ts`):**
+- Pattern for filtering elements by property exists
+- Extend with `--source-file` filter checking `locations[].file`
+
+## Component Reuse
+
+### Existing Components to Extend
+
+| Component | File | Extension Required |
+|-----------|------|-------------------|
+| Element class | `cli/src/core/element.ts` | Add `getSourceReference()`, `setSourceReference()`, `hasSourceReference()` |
+| Types | `cli/src/types/index.ts` | Add `SourceReference`, `SourceLocation`, `RepositoryContext`, `ProvenanceType` |
+| Add command | `cli/src/commands/add.ts` | Add `--source-*` options |
+| Update command | `cli/src/commands/update.ts` | Add `--source-*` options |
+| Search command | `cli/src/commands/search.ts` | Add `--source-file` filter |
+| Info command | `cli/src/commands/info.ts` | Display source reference section |
+
+### Export Format Preservation
+
+| Exporter | File | Source Reference Handling |
+|----------|------|--------------------------|
+| OpenAPI | `cli/src/export/openapi-exporter.ts` | Preserve `x-source-reference` on PathItem/Operation |
+| JSON Schema | `cli/src/export/json-schema-exporter.ts` | Preserve `x-source-reference` on Entity |
+| Markdown | `cli/src/export/markdown-exporter.ts` | Render "Source Location" section |
+| PlantUML | `cli/src/export/plantuml-exporter.ts` | Optional `--include-sources` flag for notes |
+| ArchiMate | `cli/src/export/archimate-exporter.ts` | Map to ArchiMate property elements |
+
+## Implementation Plan
+
+### Phase 1: Spec Release 0.7.1
+
+**1.1 Update spec VERSION file**
+- Bump `spec/VERSION` from `0.7.0` to `0.7.1`
+
+**1.2 Update spec CHANGELOG.md**
+- Document formalization of `spec/schemas/common/` directory
+- Note existing source-references.schema.json integration
+- List layers with source reference support
+
+**1.3 Evaluate remaining layers for source reference support**
+
+| Layer | Entities to Evaluate | Recommendation |
+|-------|---------------------|----------------|
+| 01-motivation | Goal, Requirement, Stakeholder | Skip—conceptual entities rarely map to code |
+| 02-business | BusinessProcess, BusinessService | Optional—only if workflow engines generate code |
+| 03-security | SecurityControl, AuthenticationMechanism | Add—security controls often implemented in code |
+| 05-technology | Node, SystemSoftware, Artifact | Add—artifacts directly reference deployable code |
+
+### Phase 2: CLI Type System (cli/src/types/)
+
+**2.1 Add TypeScript interfaces**
+```typescript
+// cli/src/types/source-reference.ts
+export type ProvenanceType = 'extracted' | 'manual' | 'inferred' | 'generated';
+
+export interface SourceLocation {
+  file: string;
+  symbol?: string;
+}
+
+export interface RepositoryContext {
+  url?: string;
+  commit?: string;
+}
+
+export interface SourceReference {
+  provenance: ProvenanceType;
+  locations: SourceLocation[];
+  repository?: RepositoryContext;
+}
+```
+
+**2.2 Extend Element class**
+- Add layer-aware accessor that returns from correct property path
+- `getSourceReference()`: Check `x-source-reference` for layers 06-08, else `properties.source.reference`
+- `setSourceReference()`: Store at correct path based on element's layer
+- `hasSourceReference()`: Boolean check
+
+### Phase 3: CLI Command Extensions
+
+**3.1 Add command options**
+- `--source-file <path>` → Required for source reference creation
+- `--source-symbol <name>` → Optional symbol name
+- `--source-provenance <type>` → Required, enum validation
+- `--source-repo-url <url>` → Optional git remote
+- `--source-repo-commit <sha>` → Optional, 40-char hex validation
+
+**3.2 Update command**
+- Same options as add, modifies existing source reference
+
+**3.3 Search command**
+- `--source-file <path>` filter option
+- Scan `locations[].file` across all elements
+
+**3.4 Info command**
+- Display "Source Code Location" section when present
+- Show provenance, file(s), symbol(s), repository context
+
+### Phase 4: Export Integration
+
+**4.1 OpenAPI exporter**
+- Preserve `x-source-reference` in output PathItem/Operation objects
+
+**4.2 JSON Schema exporter**
+- Preserve `x-source-reference` in Entity definitions
+
+**4.3 Markdown exporter**
+- Add "Source Code Location" heading per element
+- Format: `File: path/to/file.ts | Symbol: ClassName.method | Provenance: manual`
+
+**4.4 PlantUML exporter**
+- Add `--include-sources` flag
+- Append note with file path to element when flag set
+
+**4.5 ArchiMate exporter**
+- Map source reference to `<property>` elements in ArchiMate XML
+
+### Phase 5: Schema Synchronization
+
+**5.1 Synchronize schemas to CLI**
+- Copy any updated layer schemas from `spec/schemas/` to `cli/src/schemas/bundled/`
+- Verify `npm run build` includes updated schemas in `dist/`
+
+### Phase 6: Testing
+
+**6.1 Unit tests**
+- `cli/tests/unit/source-reference.test.ts` for type interfaces and Element methods
+- Test layer-specific property path routing
+
+**6.2 Integration tests**
+- Add element with source reference via CLI
+- Query elements by source file
+- Verify export formats preserve source references
+
+**6.3 Validation tests**
+- Invalid provenance type rejected
+- Empty locations array rejected
+- Malformed commit SHA rejected
+
+## Architecture Decision Records
+
+### ADR-001: Layer-Specific Property Paths
+
+**Context:** Layer schemas use two different patterns for source references.
+
+**Decision:** Element class abstracts the difference internally. Callers use `getSourceReference()`/`setSourceReference()` without knowing the underlying storage path.
+
+**Consequences:**
+- Consistent API for all layers
+- Implementation complexity hidden in Element class
+- Future schema consolidation possible without CLI API changes
+
+### ADR-002: Optional Source References
+
+**Context:** Not all elements have associated source code.
+
+**Decision:** Source references remain optional at schema and CLI levels.
+
+**Consequences:**
+- No breaking changes to existing models
+- Elements without source references remain valid
+- CLI commands gracefully handle missing source references
+
+### ADR-003: Provenance Tracking
+
+**Context:** Need to distinguish how source references were created.
+
+**Decision:** Use four-value enum: `extracted` (automated tooling), `manual` (human entry), `inferred` (pattern matching), `generated` (code gen from model).
+
+**Consequences:**
+- Enables filtering by confidence level
+- Supports future automated extraction pipelines
+- Clear audit trail for traceability data
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the software_architect agent_
+
+IMPORTANT: Review all feedback carefully and address every issue that is not already addressed.
+
+
