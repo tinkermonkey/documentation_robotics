@@ -25,26 +25,6 @@ export interface Relationship {
   properties?: Record<string, unknown>;
 }
 
-/**
- * Source code reference types
- */
-export type ProvenanceType = 'extracted' | 'manual' | 'inferred' | 'generated';
-
-export interface SourceLocation {
-  file: string;
-  symbol?: string;
-}
-
-export interface RepositoryContext {
-  url?: string;
-  commit?: string;
-}
-
-export interface SourceReference {
-  provenance: ProvenanceType;
-  locations: SourceLocation[];
-  repository?: RepositoryContext;
-}
 
 /**
  * Element representation

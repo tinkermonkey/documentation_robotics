@@ -98,7 +98,9 @@ export class Element implements IElement {
 
   /**
    * Set source reference on element
-   * Handles layer-specific property paths
+   * Handles layer-specific property paths:
+   * - Layers 06-08 (API, Data Model, Data Store): x-source-reference
+   * - ArchiMate layers (01, 02, 04, 05, 09-12): properties.source.reference
    */
   setSourceReference(sourceRef: SourceReference | undefined): void {
     if (!sourceRef) {
@@ -115,10 +117,24 @@ export class Element implements IElement {
       return;
     }
 
-    // For layers 6-8, store at x-source-reference
-    // For now, we'll use the x-source-reference path as default (can be extended in future)
-    // This maintains OpenAPI compatibility
-    this.properties['x-source-reference'] = sourceRef;
+    // Layer-aware storage: use layer-specific property paths
+    if (!this.layer) {
+      throw new Error('Cannot set source reference: element has no layer assigned');
+    }
+
+    const layerNum = parseInt(this.layer.split('-')[0], 10);
+
+    // For layers 6-8 (API, Data Model, Data Store), use x-source-reference (OpenAPI pattern)
+    if (layerNum >= 6 && layerNum <= 8) {
+      this.properties['x-source-reference'] = sourceRef;
+      return;
+    }
+
+    // For ArchiMate layers (01, 02, 04, 05, 09-12), use properties.source.reference (ArchiMate pattern)
+    if (!this.properties.source) {
+      this.properties.source = {};
+    }
+    (this.properties.source as any).reference = sourceRef;
   }
 
   /**

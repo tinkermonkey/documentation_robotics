@@ -94,6 +94,7 @@ export async function addCommand(
       name: options.name || id,
       description: options.description,
       properties,
+      layer, // Set layer so setSourceReference can use it
     });
 
     // Add source reference if provided
