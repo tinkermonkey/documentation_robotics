@@ -90,7 +90,7 @@ describe('Source Reference CLI Integration Tests', () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--source-repo-commit must be');
+      expect(result.stderr).toContain('Invalid --source-repo-commit value');
     });
 
     it('should fail when source-repo-commit provided without source-repo-remote', async () => {
@@ -119,7 +119,8 @@ describe('Source Reference CLI Integration Tests', () => {
       const provenanceTypes = ['extracted', 'manual', 'inferred', 'generated'];
 
       for (let i = 0; i < provenanceTypes.length; i++) {
-        const result = await runDr('add', 'security', 'policy', `policy-${i}`,
+        const result = await runDr('add', 'security', 'policy', `policy-${provenanceTypes[i]}`,
+          '--name', `Policy ${provenanceTypes[i]}`,
           '--source-file', 'src/auth/policy.ts',
           '--source-provenance', provenanceTypes[i]
         );
@@ -138,7 +139,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should update element to add source reference', async () => {
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/policy.ts',
         '--source-provenance', 'extracted'
       );
@@ -148,7 +149,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should update element with all source reference options', async () => {
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/updated-policy.ts',
         '--source-symbol', 'PolicyValidator',
         '--source-provenance', 'manual',
@@ -162,13 +163,13 @@ describe('Source Reference CLI Integration Tests', () => {
 
     it('should clear source reference when --clear-source-reference provided', async () => {
       // First add source reference
-      await runDr('update', 'security-policy-auth-policy',
+      await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/policy.ts',
         '--source-provenance', 'extracted'
       );
 
       // Then clear it
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--clear-source-reference'
       );
 
@@ -177,7 +178,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should fail when using --clear-source-reference with other source options', async () => {
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--clear-source-reference',
         '--source-file', 'src/auth/policy.ts',
         '--source-provenance', 'extracted'
@@ -188,7 +189,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should fail with invalid commit SHA during update', async () => {
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/policy.ts',
         '--source-provenance', 'extracted',
         '--source-repo-remote', 'https://github.com/example/repo.git',
@@ -196,19 +197,19 @@ describe('Source Reference CLI Integration Tests', () => {
       );
 
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('--source-repo-commit must be');
+      expect(result.stderr).toContain('Invalid --source-repo-commit value');
     });
 
     it('should allow updating only some source reference fields', async () => {
       // Add initial source reference
-      await runDr('update', 'security-policy-auth-policy',
+      await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/policy.ts',
         '--source-provenance', 'extracted',
         '--source-symbol', 'OldFunction'
       );
 
       // Update to different file and provenance
-      const result = await runDr('update', 'security-policy-auth-policy',
+      const result = await runDr('update', 'auth-policy',
         '--source-file', 'src/auth/new-policy.ts',
         '--source-provenance', 'manual'
       );
@@ -231,7 +232,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should display source reference information in show command', async () => {
-      const result = await runDr('show', 'security-policy-auth-policy');
+      const result = await runDr('show', 'auth-policy');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Source Code Location');
@@ -242,7 +243,7 @@ describe('Source Reference CLI Integration Tests', () => {
     });
 
     it('should display repository context in show command', async () => {
-      const result = await runDr('show', 'security-policy-auth-policy');
+      const result = await runDr('show', 'auth-policy');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Repository Context');
@@ -256,7 +257,7 @@ describe('Source Reference CLI Integration Tests', () => {
         '--name', 'Policy Without Source'
       );
 
-      const result = await runDr('show', 'security-policy-no-source-policy');
+      const result = await runDr('show', 'no-source-policy');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).not.toContain('Source Code Location');
@@ -270,7 +271,7 @@ describe('Source Reference CLI Integration Tests', () => {
         '--source-provenance', 'manual'
       );
 
-      const result = await runDr('show', 'security-policy-simple-policy');
+      const result = await runDr('show', 'simple-policy');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Source Code Location');
@@ -287,7 +288,7 @@ describe('Source Reference CLI Integration Tests', () => {
         '--source-provenance', 'manual'
       );
 
-      const result = await runDr('show', 'security-policy-no-repo-policy');
+      const result = await runDr('show', 'no-repo-policy');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Source Code Location');
@@ -307,7 +308,7 @@ describe('Source Reference CLI Integration Tests', () => {
       expect(addResult.exitCode).toBe(0);
 
       // Step 2: Update to add symbol and repository context
-      const updateResult = await runDr('update', 'application-component-auth-service',
+      const updateResult = await runDr('update', 'auth-service',
         '--source-file', 'src/services/auth.ts',
         '--source-symbol', 'AuthService',
         '--source-provenance', 'extracted',
@@ -317,7 +318,7 @@ describe('Source Reference CLI Integration Tests', () => {
       expect(updateResult.exitCode).toBe(0);
 
       // Step 3: Display and verify all information
-      const showResult = await runDr('show', 'application-component-auth-service');
+      const showResult = await runDr('show', 'auth-service');
       expect(showResult.exitCode).toBe(0);
       expect(showResult.stdout).toContain('Authentication Service');
       expect(showResult.stdout).toContain('Core authentication component');

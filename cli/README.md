@@ -141,6 +141,78 @@ dr list <layer>                  # List layer elements
 dr search <query>                # Search elements
 ```
 
+### Source File Tracking
+
+Link architecture elements to their implementation source code:
+
+```bash
+# Add element with source reference
+dr add api endpoint create-user \
+  --name "Create User Endpoint" \
+  --source-file "src/api/endpoints/users.ts" \
+  --source-symbol "createUser" \
+  --source-provenance "extracted"
+
+# Update element to add source reference
+dr update api-endpoint-create-user \
+  --source-file "src/api/endpoints/users.ts" \
+  --source-symbol "createUser" \
+  --source-provenance "extracted" \
+  --source-repo-remote "https://github.com/example/repo.git" \
+  --source-repo-commit "a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b"
+
+# Show element with source reference details
+dr show api-endpoint-create-user
+
+# Search elements by source file
+dr search --source-file "src/api/endpoints/users.ts"
+
+# Clear source reference from element
+dr update api-endpoint-create-user --clear-source-reference
+```
+
+**Source Reference Options:**
+
+| Option | Required | Description | Example |
+|--------|----------|-------------|---------|
+| `--source-file` | When using source options | Path to source file (relative to repo root) | `src/api/routes.ts` |
+| `--source-symbol` | Optional | Symbol name (function, class, variable) | `createUser` |
+| `--source-provenance` | When using source options | How reference was created: `extracted`, `manual`, `inferred`, `generated` | `extracted` |
+| `--source-repo-remote` | Requires `--source-repo-commit` | Git remote URL | `https://github.com/example/repo.git` |
+| `--source-repo-commit` | Requires `--source-repo-remote` | Full 40-character commit SHA | `a1b2c3d4...` |
+
+**Examples:**
+
+```bash
+# Source reference with minimal information
+dr add security policy auth-validate \
+  --name "Auth Validation" \
+  --source-file "src/security/auth.ts" \
+  --source-provenance "manual"
+
+# Source reference with symbol and repository context
+dr add data-model entity user-entity \
+  --name "User Entity" \
+  --source-file "src/models/user.ts" \
+  --source-symbol "User" \
+  --source-provenance "extracted" \
+  --source-repo-remote "https://github.com/myorg/myapp.git" \
+  --source-repo-commit "5a7b3c9d1e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b"
+
+# Search for all elements in a source file
+dr search --source-file "src/services/auth.ts"
+
+# Search by file with additional filters
+dr search --source-file "src/api/endpoints.ts" --layer "06-api" --type "endpoint"
+```
+
+**Provenance Types:**
+
+- **`extracted`**: Automatically detected from source code via parsing/analysis tools
+- **`manual`**: Manually linked by a person reviewing source code
+- **`inferred`**: Determined through pattern matching and heuristics
+- **`generated`**: Created automatically from code generation or model transformation
+
 ### Relationships & Dependencies
 
 ```bash
