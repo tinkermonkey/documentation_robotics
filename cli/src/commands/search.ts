@@ -4,13 +4,44 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import type { Element } from '../core/element.js';
 
 export interface SearchOptions {
   layer?: string;
   type?: string;
+  sourceFile?: string;
   json?: boolean;
   verbose?: boolean;
   debug?: boolean;
+}
+
+/**
+ * Normalize a file path for comparison
+ * - Removes leading ./
+ * - Converts backslashes to forward slashes
+ */
+function normalizePath(path: string): string {
+  return path
+    .replace(/^\.\//, '')
+    .replace(/\\/g, '/');
+}
+
+/**
+ * Check if an element matches the source file query
+ */
+function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
+  const sourceRef = element.getSourceReference();
+  if (!sourceRef) {
+    return false;
+  }
+
+  const normalizedQuery = normalizePath(sourceFilePath);
+
+  // Check if any location matches the queried file
+  return sourceRef.locations.some(loc => {
+    const normalizedLoc = normalizePath(loc.file);
+    return normalizedLoc === normalizedQuery;
+  });
 }
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
@@ -18,16 +49,19 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     // Load model
     const model = await Model.load();
 
-    // Collect all matching elements
+    // Collect all matching elements with source reference info
     const results: Array<{
       layer: string;
       id: string;
       type: string;
       name: string;
       description?: string;
+      sourceFile?: string;
+      sourceSymbol?: string;
     }> = [];
 
     const queryLower = query.toLowerCase();
+    const isSourceFileSearch = !!options.sourceFile;
 
     for (const layerName of model.getLayerNames()) {
       // Skip if layer filter specified and doesn't match
@@ -39,24 +73,44 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       if (!layerObj) continue;
 
       for (const element of layerObj.listElements()) {
-        // Apply filters
+        // Apply type filter
         if (options.type && element.type !== options.type) {
           continue;
         }
 
-        // Match query against id and name
-        const idMatch = element.id.toLowerCase().includes(queryLower);
-        const nameMatch = element.name.toLowerCase().includes(queryLower);
+        // If source file search, use different matching logic
+        if (isSourceFileSearch) {
+          if (!matchesSourceFile(element, options.sourceFile!)) {
+            continue;
+          }
+        } else {
+          // Match query against id and name
+          const idMatch = element.id.toLowerCase().includes(queryLower);
+          const nameMatch = element.name.toLowerCase().includes(queryLower);
 
-        if (idMatch || nameMatch) {
-          results.push({
-            layer: layerName,
-            id: element.id,
-            type: element.type,
-            name: element.name,
-            description: element.description,
-          });
+          if (!idMatch && !nameMatch) {
+            continue;
+          }
         }
+
+        // Extract source reference info if present
+        let sourceFile: string | undefined;
+        let sourceSymbol: string | undefined;
+        const sourceRef = element.getSourceReference();
+        if (sourceRef && sourceRef.locations.length > 0) {
+          sourceFile = sourceRef.locations[0].file;
+          sourceSymbol = sourceRef.locations[0].symbol;
+        }
+
+        results.push({
+          layer: layerName,
+          id: element.id,
+          type: element.type,
+          name: element.name,
+          description: element.description,
+          sourceFile,
+          sourceSymbol,
+        });
       }
     }
 
@@ -68,12 +122,20 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
     // Display results
     if (results.length === 0) {
-      console.log(ansis.yellow(`No elements matching "${query}"`));
+      if (isSourceFileSearch) {
+        console.log(ansis.yellow(`No elements found referencing source file: ${options.sourceFile}`));
+      } else {
+        console.log(ansis.yellow(`No elements matching "${query}"`));
+      }
       return;
     }
 
     console.log('');
-    console.log(ansis.bold(`Found ${results.length} element(s) matching "${query}":`));
+    if (isSourceFileSearch) {
+      console.log(ansis.bold(`Found ${results.length} element(s) referencing ${options.sourceFile}:`));
+    } else {
+      console.log(ansis.bold(`Found ${results.length} element(s) matching "${query}":`));
+    }
     console.log(ansis.dim('─'.repeat(80)));
 
     // Print header
@@ -96,8 +158,15 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
 
       console.log(`${ansis.blue(layer)} ${id} ${type} ${name}`);
 
-      if (options.verbose && result.description) {
-        console.log(ansis.dim(`  └─ ${result.description}`));
+      // Show description and source info in verbose mode or for source file searches
+      if (options.verbose || isSourceFileSearch) {
+        if (result.description) {
+          console.log(ansis.dim(`  └─ Description: ${result.description}`));
+        }
+        if (result.sourceFile) {
+          const symbol = result.sourceSymbol ? ` | Symbol: ${result.sourceSymbol}` : '';
+          console.log(ansis.dim(`  └─ Source: ${result.sourceFile}${symbol}`));
+        }
       }
     }
 

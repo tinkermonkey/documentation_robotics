@@ -469,6 +469,17 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(0);
     });
+
+    it('should handle --source-file flag gracefully when no elements have source refs', async () => {
+      // Add elements without source references
+      await runDr('add', 'api', 'endpoint', 'api-endpoint-customer', '--name', 'Customer Endpoint');
+
+      // Search by source file (should find nothing since no source refs set)
+      const result = await runDr('search', '', '--source-file', 'src/api/customer.ts');
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('No elements found referencing');
+    });
   });
 
   describe('validate command', () => {

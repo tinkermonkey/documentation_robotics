@@ -182,6 +182,7 @@ program
   .description('Search for elements by name or ID')
   .option('--layer <layer>', 'Limit search to specific layer')
   .option('--type <type>', 'Filter by element type')
+  .option('--source-file <path>', 'Find elements referencing a source file (takes precedence over pattern matching)')
   .option('--json', 'Output as JSON')
   .addHelpText(
     'after',
@@ -189,7 +190,8 @@ program
 Examples:
   $ dr search customer
   $ dr search "order processing" --layer business
-  $ dr search create-* --type endpoint`
+  $ dr search create-* --type endpoint
+  $ dr search "" --source-file src/api/customer.ts`
   )
   .action(searchCommand);
 
