@@ -12,6 +12,7 @@ import {
   handleError,
   handleSuccess,
 } from '../utils/errors.js';
+import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 // Telemetry flag check
@@ -22,6 +23,11 @@ export interface AddOptions {
   name?: string;
   description?: string;
   properties?: string;
+  sourceFile?: string;
+  sourceSymbol?: string;
+  sourceProvenance?: string;
+  sourceRepoRemote?: string;
+  sourceRepoCommit?: string;
   verbose?: boolean;
   debug?: boolean;
 }
@@ -39,6 +45,9 @@ export async function addCommand(
   }) : null;
 
   try {
+    // Validate source reference options
+    validateSourceReferenceOptions(options);
+
     // Load model
     const model = await Model.load();
 
@@ -86,6 +95,12 @@ export async function addCommand(
       description: options.description,
       properties,
     });
+
+    // Add source reference if provided
+    const sourceRef = buildSourceReference(options);
+    if (sourceRef) {
+      element.setSourceReference(sourceRef);
+    }
 
     // Check if element already exists
     if (layerObj.getElement(id)) {

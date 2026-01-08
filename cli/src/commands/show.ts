@@ -71,6 +71,32 @@ export async function showCommand(id: string, options: { model?: string } = {}):
       }
     }
 
+    // Display source code location if present
+    const sourceRef = element.getSourceReference();
+    if (sourceRef) {
+      console.log('');
+      console.log(ansis.bold('Source Code Location:'));
+      console.log(`  ${ansis.gray('Provenance:')} ${sourceRef.provenance}`);
+
+      sourceRef.locations.forEach((loc, idx) => {
+        console.log(`  ${ansis.gray('Location ' + (idx + 1) + ':')}`);
+        console.log(`    File: ${ansis.cyan(loc.file)}`);
+        if (loc.symbol) {
+          console.log(`    Symbol: ${ansis.cyan(loc.symbol)}`);
+        }
+      });
+
+      if (sourceRef.repository) {
+        console.log(`  ${ansis.gray('Repository Context:')}`);
+        if (sourceRef.repository.url) {
+          console.log(`    Remote: ${ansis.cyan(sourceRef.repository.url)}`);
+        }
+        if (sourceRef.repository.commit) {
+          console.log(`    Commit: ${ansis.cyan(sourceRef.repository.commit)}`);
+        }
+      }
+    }
+
     console.log('');
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

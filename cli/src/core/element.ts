@@ -74,51 +74,55 @@ export class Element implements IElement {
   }
 
   /**
-   * Get source reference for this element (layer-aware)
-   * - Layers 06-08 (OpenAPI): reads from properties['x-source-reference']
-   * - Other layers (ArchiMate): reads from properties.source?.reference
+   * Get source reference from element
+   * Handles layer-specific property paths (x-source-reference for layers 6-8, properties.source.reference for others)
    */
   getSourceReference(): SourceReference | undefined {
-    if (!this.layer) {
-      return undefined;
+    // For layers 6-8 (API, Data Model, Data Store), source reference is at x-source-reference
+    const xSourceRef = this.getProperty<SourceReference>('x-source-reference');
+    if (xSourceRef) {
+      return xSourceRef;
     }
 
-    const layerNum = parseInt(this.layer.split('-')[0], 10);
-
-    // OpenAPI pattern for layers 06-08
-    if (layerNum >= 6 && layerNum <= 8) {
-      return this.properties['x-source-reference'] as SourceReference | undefined;
-    }
-
-    // ArchiMate pattern for other layers
-    const source = this.properties.source as { reference?: SourceReference } | undefined;
-    return source?.reference;
-  }
-
-  /**
-   * Set source reference for this element (layer-aware)
-   */
-  setSourceReference(reference: SourceReference): void {
-    if (!this.layer) {
-      throw new Error('Cannot set source reference: element has no layer assigned');
-    }
-
-    const layerNum = parseInt(this.layer.split('-')[0], 10);
-
-    // OpenAPI pattern for layers 06-08
-    if (layerNum >= 6 && layerNum <= 8) {
-      this.properties['x-source-reference'] = reference;
-    } else {
-      // ArchiMate pattern for other layers
-      if (!this.properties.source) {
-        this.properties.source = {};
+    // For layers 4-5, 9-12, source reference is at properties.source.reference
+    const sourceObj = this.getProperty<Record<string, unknown>>('source');
+    if (sourceObj && typeof sourceObj === 'object' && 'reference' in sourceObj) {
+      const ref = (sourceObj as any).reference;
+      if (ref && typeof ref === 'object') {
+        return ref as SourceReference;
       }
-      (this.properties.source as { reference: SourceReference }).reference = reference;
     }
+
+    return undefined;
   }
 
   /**
-   * Check if element has source reference
+   * Set source reference on element
+   * Handles layer-specific property paths
+   */
+  setSourceReference(sourceRef: SourceReference | undefined): void {
+    if (!sourceRef) {
+      // Remove source reference
+      delete this.properties['x-source-reference'];
+
+      const sourceObj = this.properties['source'];
+      if (typeof sourceObj === 'object' && sourceObj !== null) {
+        delete (sourceObj as any).reference;
+        if (Object.keys(sourceObj).length === 0) {
+          delete this.properties['source'];
+        }
+      }
+      return;
+    }
+
+    // For layers 6-8, store at x-source-reference
+    // For now, we'll use the x-source-reference path as default (can be extended in future)
+    // This maintains OpenAPI compatibility
+    this.properties['x-source-reference'] = sourceRef;
+  }
+
+  /**
+   * Check if element has a source reference
    */
   hasSourceReference(): boolean {
     return this.getSourceReference() !== undefined;

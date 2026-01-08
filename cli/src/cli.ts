@@ -110,13 +110,19 @@ program
   .option('--name <name>', 'Element name (defaults to ID)')
   .option('--description <desc>', 'Element description')
   .option('--properties <json>', 'Element properties as JSON object')
+  .option('--source-file <path>', 'Source file path (relative from repository root)')
+  .option('--source-symbol <name>', 'Symbol name (class, function, variable) in source file')
+  .option('--source-provenance <type>', 'Provenance type: extracted, manual, inferred, generated')
+  .option('--source-repo-remote <url>', 'Git remote URL for repository context')
+  .option('--source-repo-commit <sha>', 'Git commit SHA (40 hex characters) for repository context')
   .addHelpText(
     'after',
     `
 Examples:
   $ dr add business business-service customer-mgmt --name "Customer Management"
   $ dr add api endpoint create-customer --properties '{"method":"POST","path":"/customers"}'
-  $ dr add application component customer-api --description "REST API for customer operations"`
+  $ dr add application component customer-api --description "REST API for customer operations"
+  $ dr add security policy auth-validate --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"`
   )
   .action(addCommand);
 
@@ -126,12 +132,19 @@ program
   .option('--name <name>', 'New element name')
   .option('--description <desc>', 'New description')
   .option('--properties <json>', 'Updated properties (JSON)')
+  .option('--source-file <path>', 'Source file path (relative from repository root)')
+  .option('--source-symbol <name>', 'Symbol name (class, function, variable) in source file')
+  .option('--source-provenance <type>', 'Provenance type: extracted, manual, inferred, generated')
+  .option('--source-repo-remote <url>', 'Git remote URL for repository context')
+  .option('--source-repo-commit <sha>', 'Git commit SHA (40 hex characters) for repository context')
+  .option('--clear-source-reference', 'Remove source reference from element')
   .addHelpText(
     'after',
     `
 Examples:
   $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
-  $ dr update business-service-order --description "Updated description"`
+  $ dr update business-service-order --description "Updated description"
+  $ dr update security-policy-auth --source-file "src/auth/policy.ts" --source-provenance "extracted"`
   )
   .action(updateCommand);
 
