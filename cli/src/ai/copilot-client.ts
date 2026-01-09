@@ -78,6 +78,11 @@ export class CopilotClient extends BaseChatClient {
    * Checks for both `gh copilot` and standalone `copilot` command
    */
   async isAvailable(): Promise<boolean> {
+    // Return cached result if already detected
+    if (this.copilotCommand !== null) {
+      return true;
+    }
+
     // Check for gh CLI with copilot extension
     try {
       const ghResult = spawnSync('gh', ['copilot', '--version'], {

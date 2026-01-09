@@ -72,6 +72,20 @@ describe('CopilotClient', () => {
       const available = await client.isAvailable();
       expect(available).toBe(false);
     });
+
+    it('should cache the detected command', async () => {
+      mockSpawnSync.mockReturnValue({
+        status: 0,
+        stdout: 'gh copilot version 1.0.0',
+        stderr: '',
+      });
+
+      await client.isAvailable();
+      await client.isAvailable();
+      
+      // Should only call once since the command is cached
+      expect(mockSpawnSync).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('getClientName', () => {
