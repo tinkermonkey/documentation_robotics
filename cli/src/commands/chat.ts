@@ -8,7 +8,7 @@ import { text, intro, outro, select } from '@clack/prompts';
 import { Model } from '../core/model.js';
 import { BaseChatClient } from '../ai/base-chat-client.js';
 import { ClaudeCodeClient } from '../ai/claude-code-client.js';
-import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
+import { detectAvailableClients } from '../ai/chat-utils.js';
 
 /**
  * Get the preferred chat client from manifest metadata
