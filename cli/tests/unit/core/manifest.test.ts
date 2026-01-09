@@ -159,24 +159,24 @@ describe("Manifest", () => {
     expect(manifest.toString()).toBe("Manifest(Test Model v1.0.0)");
   });
 
-  describe("coding_agent field", () => {
-    it("should support coding_agent field", () => {
+  describe("getCodingAgent/setCodingAgent helpers", () => {
+    it("should support setCodingAgent helper", () => {
       const manifest = new Manifest({
         name: "Test Model",
         version: "1.0.0",
       });
 
       // Initially undefined
-      expect(manifest.coding_agent).toBeUndefined();
+      expect(manifest.preferred_chat_client).toBeUndefined();
       expect(manifest.getCodingAgent()).toBeUndefined();
 
       // Set coding agent
       manifest.setCodingAgent("Claude Code");
-      expect(manifest.coding_agent).toBe("Claude Code");
+      expect(manifest.preferred_chat_client).toBe("Claude Code");
       expect(manifest.getCodingAgent()).toBe("Claude Code");
     });
 
-    it("should serialize and deserialize coding_agent", () => {
+    it("should serialize and deserialize preferred_chat_client via helpers", () => {
       const manifest = new Manifest({
         name: "Test Model",
         version: "1.0.0",
@@ -185,29 +185,27 @@ describe("Manifest", () => {
       manifest.setCodingAgent("GitHub Copilot");
 
       const json = manifest.toJSON();
-      expect(json.coding_agent).toBe("GitHub Copilot");
+      expect(json.preferred_chat_client).toBe("GitHub Copilot");
 
       const deserialized = new Manifest(json);
       expect(deserialized.getCodingAgent()).toBe("GitHub Copilot");
     });
 
-    it("should maintain backward compatibility with preferred_chat_client", () => {
+    it("should work with preferred_chat_client directly", () => {
       const manifest = new Manifest({
         name: "Test Model",
         version: "1.0.0",
       });
 
-      // Setting via setCodingAgent should set both fields
+      // Setting via setCodingAgent should set preferred_chat_client
       manifest.setCodingAgent("Claude Code");
-      expect(manifest.coding_agent).toBe("Claude Code");
       expect(manifest.preferred_chat_client).toBe("Claude Code");
 
       const json = manifest.toJSON();
-      expect(json.coding_agent).toBe("Claude Code");
       expect(json.preferred_chat_client).toBe("Claude Code");
     });
 
-    it("should fall back to preferred_chat_client when coding_agent is not set", () => {
+    it("should read preferred_chat_client when set", () => {
       const data: any = {
         name: "Test Model",
         version: "1.0.0",
@@ -216,24 +214,20 @@ describe("Manifest", () => {
 
       const manifest = new Manifest(data);
       
-      // coding_agent not set, should fall back to preferred_chat_client
-      expect(manifest.coding_agent).toBeUndefined();
       expect(manifest.preferred_chat_client).toBe("GitHub Copilot");
       expect(manifest.getCodingAgent()).toBe("GitHub Copilot");
     });
 
-    it("should prefer coding_agent over preferred_chat_client", () => {
+    it("should handle undefined preferred_chat_client", () => {
       const data: any = {
         name: "Test Model",
         version: "1.0.0",
-        coding_agent: "Claude Code",
-        preferred_chat_client: "GitHub Copilot",
       };
 
       const manifest = new Manifest(data);
       
-      // coding_agent should take precedence
-      expect(manifest.getCodingAgent()).toBe("Claude Code");
+      expect(manifest.preferred_chat_client).toBeUndefined();
+      expect(manifest.getCodingAgent()).toBeUndefined();
     });
   });
 });
