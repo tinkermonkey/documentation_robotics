@@ -30,7 +30,8 @@ export class Manifest {
     applied_at: string;
     action: 'applied' | 'reverted';
   }>;  // Changeset application tracking
-  preferred_chat_client?: string;  // Chat client preference (Claude Code, GitHub Copilot)
+  preferred_chat_client?: string;  // Chat client preference (Claude Code, GitHub Copilot) - DEPRECATED: Use coding_agent instead
+  coding_agent?: string;  // Coding agent configuration (Claude Code, GitHub Copilot)
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -48,6 +49,7 @@ export class Manifest {
     this.upgrade_history = (data as any).upgrade_history;
     this.changeset_history = (data as any).changeset_history || [];
     this.preferred_chat_client = (data as any).preferred_chat_client;
+    this.coding_agent = (data as any).coding_agent;
   }
 
   /**
@@ -55,6 +57,25 @@ export class Manifest {
    */
   updateModified(): void {
     this.modified = new Date().toISOString();
+  }
+
+  /**
+   * Get the coding agent preference
+   * Falls back to preferred_chat_client for backward compatibility
+   * @returns The coding agent name or undefined
+   */
+  getCodingAgent(): string | undefined {
+    return this.coding_agent || this.preferred_chat_client;
+  }
+
+  /**
+   * Set the coding agent preference
+   * Sets both coding_agent (new) and preferred_chat_client (legacy) for compatibility
+   * @param agentName The coding agent name (e.g., "Claude Code", "GitHub Copilot")
+   */
+  setCodingAgent(agentName: string | undefined): void {
+    this.coding_agent = agentName;
+    this.preferred_chat_client = agentName; // Maintain backward compatibility
   }
 
   /**
@@ -107,6 +128,10 @@ export class Manifest {
 
     if (this.preferred_chat_client) {
       result.preferred_chat_client = this.preferred_chat_client;
+    }
+
+    if (this.coding_agent) {
+      result.coding_agent = this.coding_agent;
     }
 
     return result;
