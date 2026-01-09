@@ -13,6 +13,7 @@ import { telemetryMiddleware } from './telemetry-middleware.js';
 import { BaseChatClient } from '../ai/base-chat-client.js';
 import { ClaudeCodeClient } from '../ai/claude-code-client.js';
 import { CopilotClient } from '../ai/copilot-client.js';
+import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
 
 interface WSMessage {
   type: 'subscribe' | 'annotate' | 'ping';
@@ -82,6 +83,7 @@ type HonoWSContext = any;
 export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
+  withDanger?: boolean;
 }
 
 /**
@@ -98,6 +100,7 @@ export class VisualizationServer {
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
   private authEnabled: boolean = true; // Enabled by default for security
+  private withDanger: boolean = false; // Danger mode disabled by default
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
@@ -109,6 +112,7 @@ export class VisualizationServer {
     // Auth configuration (CLI options override environment variables)
     this.authEnabled = options?.authEnabled ?? (process.env.DR_AUTH_ENABLED !== 'false');
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
+    this.withDanger = options?.withDanger || false;
 
     // Add CORS middleware
     this.app.use('/*', cors());
@@ -162,35 +166,16 @@ export class VisualizationServer {
    * Detect and initialize available chat clients
    */
   private async initializeChatClients(): Promise<void> {
-    const clients: BaseChatClient[] = [];
+    const clients = await detectAvailableClients();
     
-    const claudeClient = new ClaudeCodeClient();
-    if (await claudeClient.isAvailable()) {
-      clients.push(claudeClient);
-    }
-    
-    const copilotClient = new CopilotClient();
-    if (await copilotClient.isAvailable()) {
-      clients.push(copilotClient);
-    }
-
     // Select the chat client based on manifest preference
     const preferredAgent = this.model.manifest.getCodingAgent();
+    this.selectedChatClient = selectChatClient(clients, preferredAgent);
     
-    if (preferredAgent) {
-      // Try to find and use the preferred client
-      this.selectedChatClient = clients.find(
-        c => c.getClientName() === preferredAgent
-      );
-      
-      if (!this.selectedChatClient && clients.length > 0) {
-        // Preferred client not available, use first available
-        this.selectedChatClient = clients[0];
-        console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
-      }
-    } else if (clients.length > 0) {
-      // No preference, use first available
-      this.selectedChatClient = clients[0];
+    // Log warnings/info if needed
+    if (preferredAgent && this.selectedChatClient && 
+        this.selectedChatClient.getClientName() !== preferredAgent) {
+      console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
     }
 
     if (this.selectedChatClient && process.env.VERBOSE) {
@@ -902,16 +887,19 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     try {
+      // Build command arguments
+      const cmd = ['claude', '--agent', 'dr-architect', '--print'];
+      
+      // Add dangerously-skip-permissions flag if withDanger is enabled
+      if (this.withDanger) {
+        cmd.push('--dangerously-skip-permissions');
+      }
+      
+      cmd.push('--verbose', '--output-format', 'stream-json');
+      
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = Bun.spawn({
-        cmd: [
-          'claude',
-          '--agent', 'dr-architect',
-          '--print',
-          '--dangerously-skip-permissions',
-          '--verbose',
-          '--output-format', 'stream-json',
-        ],
+        cmd,
         cwd: this.model.rootPath,
         stdin: 'pipe',
         stdout: 'pipe',
@@ -1102,10 +1090,24 @@ export class VisualizationServer {
       });
       
       if (ghResult.exitCode === 0) {
-        cmd = ['gh', 'copilot', 'explain', message];
+        cmd = ['gh', 'copilot', 'explain'];
+        
+        // Add allow-all-tools flag if withDanger is enabled
+        if (this.withDanger) {
+          cmd.push('--allow-all-tools');
+        }
+        
+        cmd.push(message);
       } else {
         // Try standalone copilot
-        cmd = ['copilot', 'explain', message];
+        cmd = ['copilot', 'explain'];
+        
+        // Add allow-all-tools flag if withDanger is enabled
+        if (this.withDanger) {
+          cmd.push('--allow-all-tools');
+        }
+        
+        cmd.push(message);
       }
 
       // Launch GitHub Copilot

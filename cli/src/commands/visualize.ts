@@ -14,6 +14,7 @@ export interface VisualizeOptions {
   token?: string;
   verbose?: boolean;
   debug?: boolean;
+  withDanger?: boolean;
 }
 
 export async function visualizeCommand(
@@ -42,9 +43,10 @@ export async function visualizeCommand(
     // Determine auth settings
     const authEnabled = !options.noAuth; // Auth enabled by default unless --no-auth flag
     const authToken = options.token; // Optional token for testing
+    const withDanger = options.withDanger || false; // Danger mode disabled by default
 
     // Create and start server
-    const server = new VisualizationServer(model, { authEnabled, authToken });
+    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger });
 
     logDebug(`Starting visualization server on port ${port}`);
     logDebug(`Authentication: ${authEnabled ? 'enabled' : 'disabled'}`);
@@ -52,6 +54,9 @@ export async function visualizeCommand(
       logDebug(`Using provided token for authentication`);
     } else if (authEnabled) {
       logDebug(`Token will be auto-generated`);
+    }
+    if (withDanger) {
+      logDebug(`Danger mode enabled - chat permissions will be skipped`);
     }
 
     await server.start(port);
@@ -66,6 +71,10 @@ export async function visualizeCommand(
     } else {
       console.log(ansis.dim(`   Open http://localhost:${port} in your browser`));
       console.log(ansis.yellow(`   ⚠ Authentication disabled`));
+    }
+
+    if (withDanger) {
+      console.log(ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`));
     }
 
     logVerbose(`   Model: ${model.manifest.name} (${model.getLayerNames().length} layers)`);

@@ -217,6 +217,11 @@ export class CopilotClient extends BaseChatClient {
       // Use gh CLI with copilot extension
       args.push('copilot', 'explain');
       
+      // Add allow-all-tools flag if withDanger is enabled
+      if (options?.withDanger) {
+        args.push('--allow-all-tools');
+      }
+      
       // Add session continuation if this is not the first message
       if (this.currentSession && options?.sessionId) {
         // Note: gh copilot doesn't have explicit session IDs,
@@ -226,6 +231,11 @@ export class CopilotClient extends BaseChatClient {
     } else {
       // Use standalone copilot command
       args.push('explain');
+      
+      // Add allow-all-tools flag if withDanger is enabled
+      if (options?.withDanger) {
+        args.push('--allow-all-tools');
+      }
     }
 
     // Add the message as an argument

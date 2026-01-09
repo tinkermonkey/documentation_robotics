@@ -8,28 +8,7 @@ import { text, intro, outro, select } from '@clack/prompts';
 import { Model } from '../core/model.js';
 import { BaseChatClient } from '../ai/base-chat-client.js';
 import { ClaudeCodeClient } from '../ai/claude-code-client.js';
-import { CopilotClient } from '../ai/copilot-client.js';
-
-/**
- * Detect available AI chat clients
- * Checks for Claude Code CLI and GitHub Copilot CLI
- * @returns Array of available client instances
- */
-async function detectAvailableClients(): Promise<BaseChatClient[]> {
-  const clients: BaseChatClient[] = [];
-  
-  const claudeClient = new ClaudeCodeClient();
-  if (await claudeClient.isAvailable()) {
-    clients.push(claudeClient);
-  }
-  
-  const copilotClient = new CopilotClient();
-  if (await copilotClient.isAvailable()) {
-    clients.push(copilotClient);
-  }
-  
-  return clients;
-}
+import { detectAvailableClients } from '../ai/chat-utils.js';
 
 /**
  * Get the preferred chat client from manifest metadata
@@ -71,8 +50,9 @@ function mapCliNameToClientName(cliName: string): string {
  * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
  * 
  * @param explicitClient Optional client name explicitly specified by user
+ * @param withDanger Optional flag to enable dangerous mode (skip permissions)
  */
-export async function chatCommand(explicitClient?: string): Promise<void> {
+export async function chatCommand(explicitClient?: string, withDanger?: boolean): Promise<void> {
   try {
     // Load the model to verify it exists
     const model = await Model.load(process.cwd());
@@ -155,7 +135,12 @@ export async function chatCommand(explicitClient?: string): Promise<void> {
 
     // Show intro
     intro(ansis.bold(ansis.cyan('Documentation Robotics Chat')));
-    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}\n`));
+    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}`));
+    if (withDanger) {
+      console.log(ansis.yellow('⚠️  Danger mode enabled - permissions will be skipped\n'));
+    } else {
+      console.log('');
+    }
 
     // Determine agent name based on client
     const agentName = selectedClient instanceof ClaudeCodeClient ? 'dr-architect' : undefined;
@@ -197,6 +182,7 @@ export async function chatCommand(explicitClient?: string): Promise<void> {
         await selectedClient.sendMessage(userInput, {
           workingDirectory: model.rootPath,
           agent: agentName,
+          withDanger,
         });
         console.log('\n');
       } catch (error) {
