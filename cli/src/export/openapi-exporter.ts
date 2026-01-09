@@ -119,7 +119,22 @@ export class OpenAPIExporter implements Exporter {
           operation.deprecated = deprecated;
         }
 
+        // Add source reference if present
+        const sourceRef = element.getSourceReference();
+        if (sourceRef) {
+          operation['x-source-reference'] = sourceRef;
+        }
+
         pathItem[method] = operation;
+      }
+
+      // Add source reference to PathItem if any endpoint has one
+      // (Use first endpoint's source reference for the path)
+      if (endpoints.length > 0) {
+        const firstSourceRef = endpoints[0].element.getSourceReference();
+        if (firstSourceRef) {
+          pathItem['x-source-reference'] = firstSourceRef;
+        }
       }
 
       (spec.paths as Record<string, unknown>)[path] = pathItem;

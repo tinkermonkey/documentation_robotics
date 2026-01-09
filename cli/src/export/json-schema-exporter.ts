@@ -62,6 +62,12 @@ export class JsonSchemaExporter implements Exporter {
           Object.assign(entitySchema, constraints);
         }
 
+        // Add source reference if present
+        const sourceRef = element.getSourceReference();
+        if (sourceRef) {
+          entitySchema['x-source-reference'] = sourceRef;
+        }
+
         (rootSchema.definitions as Record<string, unknown>)[element.id] = entitySchema;
       }
     }

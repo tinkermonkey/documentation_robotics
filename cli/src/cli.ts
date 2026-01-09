@@ -240,6 +240,7 @@ program
   .option('--output <path>', 'Output file path (default: print to stdout)')
   .option('--layers <layers...>', 'Specific layers to export')
   .option('--model <path>', 'Path to model root directory or manifest.yaml file')
+  .option('--include-sources', 'Include source file paths in PlantUML diagrams as notes')
   .addHelpText(
     'after',
     `
@@ -254,6 +255,7 @@ Supported formats:
 Examples:
   $ dr export archimate --output model.xml
   $ dr export openapi --layers api
+  $ dr export plantuml --include-sources --output diagram.puml
   $ dr export markdown --output docs/architecture.md`
   )
   .action(async (format, options) => {
@@ -262,6 +264,7 @@ Examples:
       output: options.output,
       layers: options.layers,
       model: options.model,
+      includeSources: options.includeSources,
     });
   });
 
