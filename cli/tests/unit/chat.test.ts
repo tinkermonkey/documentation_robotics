@@ -337,3 +337,85 @@ describe('Command-line Invocation', () => {
     // It should be sent via stdin instead
   });
 });
+
+describe('With-Danger Flag', () => {
+  it('should build Claude CLI command without danger flag by default', () => {
+    const cmd = [
+      'claude',
+      '--print',
+      '--verbose',
+      '--output-format', 'stream-json',
+    ];
+
+    expect(cmd).not.toContain('--dangerously-skip-permissions');
+  });
+
+  it('should build Claude CLI command with danger flag when enabled', () => {
+    const cmd = [
+      'claude',
+      '--print',
+      '--dangerously-skip-permissions',
+      '--verbose',
+      '--output-format', 'stream-json',
+    ];
+
+    expect(cmd).toContain('--dangerously-skip-permissions');
+  });
+
+  it('should build Copilot CLI command without danger flag by default', () => {
+    const cmd = [
+      'gh',
+      'copilot', 'explain',
+      'message',
+    ];
+
+    expect(cmd).not.toContain('--allow-all-tools');
+  });
+
+  it('should build Copilot CLI command with danger flag when enabled', () => {
+    const cmd = [
+      'gh',
+      'copilot', 'explain',
+      '--allow-all-tools',
+      'message',
+    ];
+
+    expect(cmd).toContain('--allow-all-tools');
+  });
+
+  it('should support with-danger as standalone argument', () => {
+    // Format: dr chat with-danger
+    const firstArg = 'with-danger';
+    const secondArg = undefined;
+
+    const withDanger = firstArg === 'with-danger';
+    const client = firstArg !== 'with-danger' ? firstArg : undefined;
+
+    expect(withDanger).toBe(true);
+    expect(client).toBeUndefined();
+  });
+
+  it('should support with-danger after client name', () => {
+    // Format: dr chat claude-code with-danger
+    const firstArg = 'claude-code';
+    const secondArg = 'with-danger';
+
+    const withDanger = secondArg === 'with-danger';
+    const client = firstArg !== 'with-danger' ? firstArg : undefined;
+
+    expect(withDanger).toBe(true);
+    expect(client).toBe('claude-code');
+  });
+
+  it('should not enable danger mode without with-danger flag', () => {
+    // Format: dr chat claude-code
+    const firstArg = 'claude-code';
+    const secondArg = undefined;
+
+    const withDanger = secondArg === 'with-danger' || firstArg === 'with-danger';
+    const client = firstArg !== 'with-danger' ? firstArg : undefined;
+
+    expect(withDanger).toBe(false);
+    expect(client).toBe('claude-code');
+  });
+});

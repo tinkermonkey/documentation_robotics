@@ -27,7 +27,7 @@ Documentation Robotics helps you build and maintain a **federated architecture m
 - Trace dependencies from business goals to implementation
 - Export to industry standards (ArchiMate, OpenAPI, JSON Schema)
 - Visualize your architecture in an interactive web interface
-- Chat with Claude AI about your architecture model
+- Chat with AI (Claude Code or GitHub Copilot) about your architecture model
 - Validate model integrity automatically
 
 ## Installation
@@ -53,11 +53,11 @@ dr --help
 
 ### System Requirements
 
-| Feature       | Requirement     | Notes                               |
-| ------------- | --------------- | ----------------------------------- |
-| Basic CLI     | Node.js 18+     | All commands work                   |
-| Visualization | Node.js 18+     | Interactive web interface           |
-| Chat          | Claude Code CLI | AI-powered architecture discussions |
+| Feature       | Requirement                       | Notes                               |
+| ------------- | --------------------------------- | ----------------------------------- |
+| Basic CLI     | Node.js 18+                       | All commands work                   |
+| Visualization | Node.js 18+                       | Interactive web interface           |
+| Chat          | Claude Code CLI or GitHub Copilot | AI-powered architecture discussions |
 
 ## Quick Start
 
@@ -233,10 +233,12 @@ dr export <format>                       # Export model
 ### AI-Powered Features
 
 ```bash
-dr chat                                  # Chat with Claude about your model
+dr chat                                  # Auto-detect or use saved preference
+dr chat claude-code                      # Use Claude Code, save as preference
+dr chat github-copilot                   # Use GitHub Copilot, save as preference
 ```
 
-**Note**: Chat requires [Claude Code CLI](https://claude.ai/download) to be installed and authenticated.
+**Note**: Chat requires either [Claude Code CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/gh-copilot) to be installed and authenticated. The CLI will auto-detect available clients and prompt you to choose if both are installed. You can also explicitly specify which client to use.
 
 ## Configuration
 
@@ -255,14 +257,28 @@ your-project/
 │       └── ...
 ```
 
-### Claude Code Setup (for Chat Features)
+### AI Chat Setup (for Chat Features)
 
-The chat functionality requires Claude Code CLI:
+The chat functionality supports two AI CLI tools. You need at least one installed:
+
+#### Option 1: Claude Code CLI
 
 1. Visit https://claude.ai/download
 2. Follow installation instructions for your platform
 3. Authenticate with your Anthropic account
 4. Verify: `claude --version`
+
+#### Option 2: GitHub Copilot CLI
+
+1. Install GitHub CLI: https://cli.github.com/
+2. Install Copilot extension: `gh extension install github/gh-copilot`
+3. Authenticate: `gh auth login`
+4. Verify: `gh copilot --version`
+
+**Client Selection**: 
+- **Auto-detection**: The first time you use `dr chat`, if both clients are available, you'll be prompted to choose one.
+- **Explicit selection**: You can specify a client directly (e.g., `dr chat github-copilot` or `dr chat claude-code`).
+- **Preference storage**: Your client choice is saved in the model manifest for future sessions. You can change it anytime by explicitly specifying a different client.
 
 ### Visualization Server
 
@@ -374,7 +390,9 @@ npm install
 
 ### Chat Not Working
 
-Ensure Claude Code CLI is installed and authenticated:
+Ensure at least one AI CLI tool is installed and authenticated:
+
+#### For Claude Code:
 
 ```bash
 # Check installation
@@ -386,12 +404,27 @@ claude --version
 
 If not installed, visit https://claude.ai/download
 
+#### For GitHub Copilot:
+
+```bash
+# Check installation
+gh copilot --version
+
+# Or check for standalone copilot
+which copilot
+
+# Authenticate GitHub CLI
+gh auth login
+```
+
+If not installed, see instructions above in the "AI Chat Setup" section.
+
 ## What's Next?
 
 - ⭐ **Star the project** on [GitHub](https://github.com/tinkermonkey/documentation_robotics)
 - 📖 **Read the spec** to understand the 12-layer model
 - 🎨 **Try visualization** with `dr visualize`
-- 🤖 **Chat with Claude** about your architecture
+- 🤖 **Chat with AI** about your architecture (Claude Code or GitHub Copilot)
 - 🚀 **Export to standards** (ArchiMate, OpenAPI)
 
 ## License

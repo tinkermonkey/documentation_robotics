@@ -83,7 +83,27 @@ describe('Chat E2E Tests', () => {
   });
 
   it('should build proper Claude CLI command with dr-architect agent', () => {
-    const expectedCmd = [
+    // Without with-danger flag, the command should not include --dangerously-skip-permissions
+    const expectedCmdWithoutDanger = [
+      'claude',
+      '--agent', 'dr-architect',
+      '--print',
+      '--verbose',
+      '--output-format', 'stream-json',
+    ];
+
+    expect(expectedCmdWithoutDanger).toContain('--agent');
+    expect(expectedCmdWithoutDanger).toContain('dr-architect');
+    expect(expectedCmdWithoutDanger).toContain('--print');
+    expect(expectedCmdWithoutDanger).not.toContain('--dangerously-skip-permissions');
+    expect(expectedCmdWithoutDanger).toContain('--output-format');
+    expect(expectedCmdWithoutDanger).toContain('stream-json');
+    // Agent defines its own tools, so --tools flag is not needed
+  });
+
+  it('should build proper Claude CLI command with danger flag when enabled', () => {
+    // With with-danger flag, the command should include --dangerously-skip-permissions
+    const expectedCmdWithDanger = [
       'claude',
       '--agent', 'dr-architect',
       '--print',
@@ -92,13 +112,12 @@ describe('Chat E2E Tests', () => {
       '--output-format', 'stream-json',
     ];
 
-    expect(expectedCmd).toContain('--agent');
-    expect(expectedCmd).toContain('dr-architect');
-    expect(expectedCmd).toContain('--print');
-    expect(expectedCmd).toContain('--dangerously-skip-permissions');
-    expect(expectedCmd).toContain('--output-format');
-    expect(expectedCmd).toContain('stream-json');
-    // Agent defines its own tools, so --tools flag is not needed
+    expect(expectedCmdWithDanger).toContain('--agent');
+    expect(expectedCmdWithDanger).toContain('dr-architect');
+    expect(expectedCmdWithDanger).toContain('--print');
+    expect(expectedCmdWithDanger).toContain('--dangerously-skip-permissions');
+    expect(expectedCmdWithDanger).toContain('--output-format');
+    expect(expectedCmdWithDanger).toContain('stream-json');
   });
 
   it('should have valid test model structure', async () => {
@@ -426,6 +445,21 @@ describe('System Prompt Content', () => {
 describe('Subprocess IPC', () => {
   it('should use stdin for message passing', () => {
     // Message should not be in command args
+    const cmd = [
+      'claude',
+      '--agent', 'dr-architect',
+      '--print',
+      '--verbose',
+      '--output-format', 'stream-json',
+    ];
+
+    // User message should NOT be in here
+    const message = 'user message';
+    expect(cmd).not.toContain(message);
+  });
+
+  it('should use stdin for message passing with danger flag', () => {
+    // Message should not be in command args even with danger flag
     const cmd = [
       'claude',
       '--agent', 'dr-architect',

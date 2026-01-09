@@ -1,128 +1,59 @@
 /**
- * Chat Command - Interactive chat with Claude about the architecture model
- * Uses Claude Code CLI subprocess with dr-architect agent
+ * Chat Command - Interactive chat with AI about the architecture model
+ * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
  */
 
 import ansis from 'ansis';
-import { text, intro, outro } from '@clack/prompts';
+import { text, intro, outro, select } from '@clack/prompts';
 import { Model } from '../core/model.js';
-import { spawnSync, spawn } from 'child_process';
+import { BaseChatClient } from '../ai/base-chat-client.js';
+import { ClaudeCodeClient } from '../ai/claude-code-client.js';
+import { detectAvailableClients } from '../ai/chat-utils.js';
 
 /**
- * Check if Claude Code CLI is available
+ * Get the preferred chat client from manifest metadata
+ * @param model The model instance
+ * @returns The preferred client name or null
  */
-async function checkClaudeAvailable(): Promise<boolean> {
-  try {
-    const result = spawnSync('which', ['claude'], {
-      stdio: 'pipe',
-      encoding: 'utf-8',
-    });
-    return result.status === 0;
-  } catch {
-    return false;
-  }
+function getPreferredClient(model: Model): string | null {
+  return model.manifest.getCodingAgent() || null;
 }
 
 /**
- * Send a message to Claude Code CLI and stream response using dr-architect agent
+ * Set the preferred chat client in manifest metadata
+ * @param model The model instance
+ * @param clientName The client name to set as preferred
  */
-async function sendMessage(
-  message: string,
-  modelPath: string
-): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const proc = spawn(
-      'claude',
-      [
-        '--agent', 'dr-architect',
-        '--print',
-        '--dangerously-skip-permissions',
-        '--verbose',
-        '--output-format', 'stream-json',
-      ],
-      {
-        cwd: modelPath,
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }
-    );
+async function setPreferredClient(model: Model, clientName: string): Promise<void> {
+  model.manifest.setCodingAgent(clientName);
+  await model.save();
+}
 
-    // Send message via stdin
-    proc.stdin.write(message);
-    proc.stdin.end();
-
-    // Stream stdout
-    let buffer = '';
-
-    proc.stdout.on('data', (data: Buffer) => {
-      const chunk = data.toString();
-      buffer += chunk;
-
-      // Process complete lines
-      const lines = buffer.split('\n');
-      buffer = lines.pop() || '';
-
-      for (const line of lines) {
-        if (!line.trim()) continue;
-
-        try {
-          const event = JSON.parse(line);
-
-          if (event.type === 'assistant') {
-            const content = event.message?.content || [];
-            for (const block of content) {
-              if (block.type === 'text') {
-                process.stdout.write(block.text);
-              } else if (block.type === 'tool_use') {
-                process.stdout.write(ansis.dim(`\n[Using tool: ${block.name}]\n`));
-              }
-            }
-          }
-        } catch {
-          // Non-JSON line, print as-is
-          process.stdout.write(line + '\n');
-        }
-      }
-    });
-
-    proc.stderr.on('data', (_data: Buffer) => {
-      // Optionally log errors
-      // process.stderr.write(_data);
-    });
-
-    proc.on('error', (error) => {
-      reject(error);
-    });
-
-    proc.on('close', (exitCode) => {
-      // Print any remaining buffer
-      if (buffer.trim()) {
-        process.stdout.write(buffer);
-      }
-
-      if (exitCode === 0) {
-        resolve();
-      } else {
-        reject(new Error(`Claude process exited with code ${exitCode}`));
-      }
-    });
-  });
+/**
+ * Map CLI-friendly client names to internal client names
+ * @param cliName The CLI-friendly name (e.g., "github-copilot", "claude-code")
+ * @returns The internal client name (e.g., "GitHub Copilot", "Claude Code")
+ */
+function mapCliNameToClientName(cliName: string): string {
+  const mapping: Record<string, string> = {
+    'github-copilot': 'GitHub Copilot',
+    'copilot': 'GitHub Copilot',
+    'claude-code': 'Claude Code',
+    'claude': 'Claude Code',
+  };
+  return mapping[cliName.toLowerCase()] || cliName;
 }
 
 /**
  * Chat command implementation
- * Launches an interactive conversation with Claude Code CLI
+ * Launches an interactive conversation with an AI chat client
+ * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
+ * 
+ * @param explicitClient Optional client name explicitly specified by user
+ * @param withDanger Optional flag to enable dangerous mode (skip permissions)
  */
-export async function chatCommand(): Promise<void> {
+export async function chatCommand(explicitClient?: string, withDanger?: boolean): Promise<void> {
   try {
-    // Check if Claude Code CLI is available
-    const claudeAvailable = await checkClaudeAvailable();
-    if (!claudeAvailable) {
-      console.error(ansis.red('Error: Claude Code CLI not found.'));
-      console.error(ansis.dim('Install Claude Code to enable chat functionality.'));
-      console.error(ansis.dim('Visit: https://claude.ai'));
-      process.exit(1);
-    }
-
     // Load the model to verify it exists
     const model = await Model.load(process.cwd());
     if (!model) {
@@ -130,9 +61,89 @@ export async function chatCommand(): Promise<void> {
       process.exit(1);
     }
 
+    // Detect available clients
+    const availableClients = await detectAvailableClients();
+    
+    if (availableClients.length === 0) {
+      console.error(ansis.red('Error: No AI chat CLI available.'));
+      console.error(ansis.dim('Install one of the following:'));
+      console.error(ansis.dim('  - Claude Code: https://claude.ai'));
+      console.error(ansis.dim('  - GitHub Copilot: gh extension install github/gh-copilot'));
+      process.exit(1);
+    }
+
+    // Select the client to use
+    let selectedClient: BaseChatClient;
+    
+    // If user explicitly specified a client
+    if (explicitClient) {
+      const requestedClientName = mapCliNameToClientName(explicitClient);
+      const requestedClient = availableClients.find(
+        c => c.getClientName() === requestedClientName
+      );
+      
+      if (!requestedClient) {
+        console.error(ansis.red(`Error: Requested client "${requestedClientName}" is not available.`));
+        console.error(ansis.dim('Available clients:'));
+        availableClients.forEach(c => {
+          console.error(ansis.dim(`  - ${c.getClientName()}`));
+        });
+        process.exit(1);
+      }
+      
+      selectedClient = requestedClient;
+      
+      // Save as preference
+      await setPreferredClient(model, selectedClient.getClientName());
+    } else {
+      // Auto-select based on preference or availability
+      const preferredClientName = getPreferredClient(model);
+      
+      if (availableClients.length === 1) {
+        selectedClient = availableClients[0];
+      } else {
+        // Multiple clients available - check for preference
+        const preferredClient = availableClients.find(
+          c => c.getClientName() === preferredClientName
+        );
+        
+        if (preferredClient) {
+          selectedClient = preferredClient;
+        } else {
+          // Ask user to choose
+          const choice = await select({
+            message: 'Select AI chat client:',
+            options: availableClients.map(c => ({
+              value: c.getClientName(),
+              label: c.getClientName(),
+            })),
+          });
+          
+          if (typeof choice !== 'string') {
+            console.log('');
+            outro(ansis.yellow('Chat cancelled'));
+            process.exit(0);
+          }
+          
+          selectedClient = availableClients.find(c => c.getClientName() === choice)!;
+          
+          // Save preference
+          await setPreferredClient(model, selectedClient.getClientName());
+        }
+      }
+    }
+
     // Show intro
     intro(ansis.bold(ansis.cyan('Documentation Robotics Chat')));
-    console.log(ansis.dim('Powered by Claude Code dr-architect agent\n'));
+    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}`));
+    if (withDanger) {
+      console.log(ansis.yellow('⚠️  Danger mode enabled - permissions will be skipped\n'));
+    } else {
+      console.log('');
+    }
+
+    // Determine agent name based on client
+    const agentName = selectedClient instanceof ClaudeCodeClient ? 'dr-architect' : undefined;
 
     // Start conversation loop
     while (true) {
@@ -167,8 +178,12 @@ export async function chatCommand(): Promise<void> {
 
       try {
         // Stream the response
-        process.stdout.write(ansis.cyan('Claude: '));
-        await sendMessage(userInput, model.rootPath);
+        process.stdout.write(ansis.cyan(`${selectedClient.getClientName()}: `));
+        await selectedClient.sendMessage(userInput, {
+          workingDirectory: model.rootPath,
+          agent: agentName,
+          withDanger,
+        });
         console.log('\n');
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);

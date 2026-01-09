@@ -10,6 +10,10 @@ import { serve } from 'bun';
 import { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import { telemetryMiddleware } from './telemetry-middleware.js';
+import { BaseChatClient } from '../ai/base-chat-client.js';
+import { ClaudeCodeClient } from '../ai/claude-code-client.js';
+import { CopilotClient } from '../ai/copilot-client.js';
+import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
 
 interface WSMessage {
   type: 'subscribe' | 'annotate' | 'ping';
@@ -79,6 +83,7 @@ type HonoWSContext = any;
 export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
+  withDanger?: boolean;
 }
 
 /**
@@ -95,8 +100,10 @@ export class VisualizationServer {
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
   private authEnabled: boolean = true; // Enabled by default for security
+  private withDanger: boolean = false; // Danger mode disabled by default
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
+  private selectedChatClient?: BaseChatClient; // Selected chat client for server
 
   constructor(model: Model, options?: VisualizationServerOptions) {
     this.app = new Hono();
@@ -105,6 +112,7 @@ export class VisualizationServer {
     // Auth configuration (CLI options override environment variables)
     this.authEnabled = options?.authEnabled ?? (process.env.DR_AUTH_ENABLED !== 'false');
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
+    this.withDanger = options?.withDanger || false;
 
     // Add CORS middleware
     this.app.use('/*', cors());
@@ -146,6 +154,34 @@ export class VisualizationServer {
     // Log auth token if enabled
     if (this.authEnabled && process.env.VERBOSE) {
       console.log(`[Auth] Authentication enabled. Token: ${this.authToken}`);
+    }
+
+    // Initialize chat clients asynchronously
+    this.initializeChatClients().catch((error) => {
+      console.error('[Chat] Failed to initialize chat clients:', error);
+    });
+  }
+
+  /**
+   * Detect and initialize available chat clients
+   */
+  private async initializeChatClients(): Promise<void> {
+    const clients = await detectAvailableClients();
+    
+    // Select the chat client based on manifest preference
+    const preferredAgent = this.model.manifest.getCodingAgent();
+    this.selectedChatClient = selectChatClient(clients, preferredAgent);
+    
+    // Log warnings/info if needed
+    if (preferredAgent && this.selectedChatClient && 
+        this.selectedChatClient.getClientName() !== preferredAgent) {
+      console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
+    }
+
+    if (this.selectedChatClient && process.env.VERBOSE) {
+      console.log(`[Chat] Using chat client: ${this.selectedChatClient.getClientName()}`);
+    } else if (clients.length === 0 && process.env.VERBOSE) {
+      console.log('[Chat] No chat clients available');
     }
   }
 
@@ -742,12 +778,12 @@ export class VisualizationServer {
     try {
       switch (method) {
         case 'chat.status':
-          // Check if Claude Code CLI is available
-          const claudeAvailable = await this.checkClaudeCodeCLI();
+          // Check if any chat client is available
+          const hasClient = this.selectedChatClient !== undefined;
           sendResponse({
-            sdk_available: claudeAvailable,
-            sdk_version: claudeAvailable ? 'claude-code-cli' : null,
-            error_message: claudeAvailable ? null : 'Claude Code CLI not found in PATH'
+            sdk_available: hasClient,
+            sdk_version: hasClient ? this.selectedChatClient!.getClientName() : null,
+            error_message: hasClient ? null : 'No chat client available. Install Claude Code or GitHub Copilot.'
           });
           break;
 
@@ -758,17 +794,17 @@ export class VisualizationServer {
             return;
           }
 
-          // Check if Claude Code is available
-          if (!await this.checkClaudeCodeCLI()) {
-            sendError(-32001, 'Claude Code CLI not available. Install Claude Code to enable chat.');
+          // Check if chat client is available
+          if (!this.selectedChatClient) {
+            sendError(-32001, 'No chat client available. Install Claude Code or GitHub Copilot to enable chat.');
             return;
           }
 
           // Generate conversation ID
           const conversationId = `conv-${++this.chatConversationCounter}-${Date.now()}`;
 
-          // Launch Claude Code with DR chat agent
-          await this.launchClaudeCodeChat(ws, conversationId, params.message, id);
+          // Launch chat with selected client
+          await this.launchChat(ws, conversationId, params.message, id);
           break;
 
         case 'chat.cancel':
@@ -804,18 +840,40 @@ export class VisualizationServer {
   }
 
   /**
-   * Check if Claude Code CLI is available
+   * Launch chat with selected client and stream responses via WebSocket
    */
-  private async checkClaudeCodeCLI(): Promise<boolean> {
-    try {
-      const result = Bun.spawnSync({
-        cmd: ['which', 'claude'],
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      return result.exitCode === 0;
-    } catch {
-      return false;
+  private async launchChat(
+    ws: HonoWSContext,
+    conversationId: string,
+    message: string,
+    requestId: string | number | undefined
+  ): Promise<void> {
+    if (!this.selectedChatClient) {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'No chat client available',
+        },
+        id: requestId,
+      }));
+      return;
+    }
+
+    // Route to appropriate client-specific handler
+    if (this.selectedChatClient instanceof ClaudeCodeClient) {
+      await this.launchClaudeCodeChat(ws, conversationId, message, requestId);
+    } else if (this.selectedChatClient instanceof CopilotClient) {
+      await this.launchCopilotChat(ws, conversationId, message, requestId);
+    } else {
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32001,
+          message: 'Unknown chat client type',
+        },
+        id: requestId,
+      }));
     }
   }
 
@@ -829,16 +887,19 @@ export class VisualizationServer {
     requestId: string | number | undefined
   ): Promise<void> {
     try {
+      // Build command arguments
+      const cmd = ['claude', '--agent', 'dr-architect', '--print'];
+      
+      // Add dangerously-skip-permissions flag if withDanger is enabled
+      if (this.withDanger) {
+        cmd.push('--dangerously-skip-permissions');
+      }
+      
+      cmd.push('--verbose', '--output-format', 'stream-json');
+      
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = Bun.spawn({
-        cmd: [
-          'claude',
-          '--agent', 'dr-architect',
-          '--print',
-          '--dangerously-skip-permissions',
-          '--verbose',
-          '--output-format', 'stream-json',
-        ],
+        cmd,
         cwd: this.model.rootPath,
         stdin: 'pipe',
         stdout: 'pipe',
@@ -1007,6 +1068,143 @@ export class VisualizationServer {
     }
   }
 
+
+  /**
+   * Launch GitHub Copilot CLI and stream responses via WebSocket
+   */
+  private async launchCopilotChat(
+    ws: HonoWSContext,
+    conversationId: string,
+    message: string,
+    requestId: string | number | undefined
+  ): Promise<void> {
+    try {
+      // Determine which command to use (gh copilot or standalone copilot)
+      let cmd: string[];
+      
+      // Check if gh CLI with copilot extension is available
+      const ghResult = Bun.spawnSync({
+        cmd: ['gh', 'copilot', '--version'],
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      
+      if (ghResult.exitCode === 0) {
+        cmd = ['gh', 'copilot', 'explain'];
+        
+        // Add allow-all-tools flag if withDanger is enabled
+        if (this.withDanger) {
+          cmd.push('--allow-all-tools');
+        }
+        
+        cmd.push(message);
+      } else {
+        // Try standalone copilot
+        cmd = ['copilot', 'explain'];
+        
+        // Add allow-all-tools flag if withDanger is enabled
+        if (this.withDanger) {
+          cmd.push('--allow-all-tools');
+        }
+        
+        cmd.push(message);
+      }
+
+      // Launch GitHub Copilot
+      const proc = Bun.spawn({
+        cmd,
+        cwd: this.model.rootPath,
+        stdin: 'pipe',
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+
+      // Store active process
+      this.activeChatProcesses.set(conversationId, proc);
+
+      // GitHub Copilot outputs plain text/markdown (not JSON)
+      const stdoutReader = proc.stdout.getReader();
+      const decoder = new TextDecoder();
+
+      const streamOutput = async () => {
+        let accumulatedText = '';
+
+        try {
+          while (true) {
+            const { done, value } = await stdoutReader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            accumulatedText += chunk;
+
+            // Send text chunk as it arrives
+            ws.send(JSON.stringify({
+              jsonrpc: '2.0',
+              method: 'chat.response.chunk',
+              params: {
+                conversation_id: conversationId,
+                content: chunk,
+                is_final: false,
+                timestamp: new Date().toISOString(),
+              },
+            }));
+          }
+
+          // Wait for process to complete
+          const exitCode = await proc.exited;
+
+          // Clean up
+          this.activeChatProcesses.delete(conversationId);
+
+          // Send completion response
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            result: {
+              conversation_id: conversationId,
+              status: exitCode === 0 ? 'complete' : 'error',
+              exit_code: exitCode,
+              full_response: accumulatedText,
+              timestamp: new Date().toISOString(),
+            },
+            id: requestId,
+          }));
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : String(error);
+
+          ws.send(JSON.stringify({
+            jsonrpc: '2.0',
+            error: {
+              code: -32603,
+              message: `Chat failed: ${errorMsg}`,
+            },
+            id: requestId,
+          }));
+
+          this.activeChatProcesses.delete(conversationId);
+
+          try {
+            proc.kill();
+          } catch {
+            // Process may already be terminated
+          }
+        }
+      };
+
+      // Start streaming in background
+      streamOutput();
+    } catch (error) {
+      const errorMsg = error instanceof Error ? error.message : String(error);
+
+      ws.send(JSON.stringify({
+        jsonrpc: '2.0',
+        error: {
+          code: -32603,
+          message: `Failed to launch GitHub Copilot: ${errorMsg}`,
+        },
+        id: requestId,
+      }));
+    }
+  }
 
   /**
    * Setup file watcher for model changes
