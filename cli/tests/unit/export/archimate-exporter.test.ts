@@ -134,10 +134,30 @@ describe("ArchiMateExporter", () => {
   it("should close all XML tags properly", async () => {
     const output = await exporter.export(model, {});
 
-    const openElements = (output.match(/<[a-zA-Z]/g) || []).length;
-    const closeElements = (output.match(/<\/[a-zA-Z]/g) || []).length;
+    // Parse all tags and verify they are properly balanced
+    const tagStack: string[] = [];
+    const tagRegex = /<(\/?[a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+    let match;
 
-    expect(openElements).toBe(closeElements);
+    while ((match = tagRegex.exec(output)) !== null) {
+      const [, tagName, selfClosing] = match;
+      
+      if (tagName.startsWith('/')) {
+        // Closing tag
+        const expectedTag = tagStack.pop();
+        const actualTag = tagName.substring(1);
+        if (expectedTag !== actualTag) {
+          throw new Error(`Mismatched tags: expected </${expectedTag}>, got </${actualTag}>`);
+        }
+      } else if (!selfClosing) {
+        // Opening tag (not self-closing)
+        tagStack.push(tagName);
+      }
+      // Self-closing tags don't need to be on the stack
+    }
+
+    // All tags should be closed
+    expect(tagStack).toEqual([]);
   });
 
   it("should have correct namespaces", async () => {
