@@ -104,7 +104,7 @@ export abstract class BaseChatClient {
    * @returns A unique session identifier
    */
   protected generateSessionId(): string {
-    return `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    return `session-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`;
   }
 
   /**
