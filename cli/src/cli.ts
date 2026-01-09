@@ -395,19 +395,28 @@ Examples:
 
 // AI Integration command
 program
-  .command('chat')
-  .description('Interactive chat with Claude about the architecture model')
+  .command('chat [client]')
+  .description('Interactive chat with AI about the architecture model')
   .addHelpText(
     'after',
     `
-Examples:
-  $ dr chat
+Arguments:
+  client    Optional AI client to use: "claude-code" or "github-copilot"
 
-This launches an interactive chat interface where you can ask Claude questions
-about your architecture model. Requires Claude Code CLI to be installed and authenticated.`
+Examples:
+  $ dr chat                      # Auto-detect or use saved preference
+  $ dr chat claude-code          # Use Claude Code, save as preference
+  $ dr chat github-copilot       # Use GitHub Copilot, save as preference
+
+This launches an interactive chat interface where you can ask AI questions
+about your architecture model. Supports Claude Code CLI and GitHub Copilot CLI.
+
+Install instructions:
+  - Claude Code: https://claude.ai
+  - GitHub Copilot: gh extension install github/gh-copilot`
   )
-  .action(async () => {
-    await chatCommand();
+  .action(async (client?: string) => {
+    await chatCommand(client);
   });
 
 // Advanced commands

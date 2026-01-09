@@ -233,10 +233,12 @@ dr export <format>                       # Export model
 ### AI-Powered Features
 
 ```bash
-dr chat                                  # Chat with AI about your model
+dr chat                                  # Auto-detect or use saved preference
+dr chat claude-code                      # Use Claude Code, save as preference
+dr chat github-copilot                   # Use GitHub Copilot, save as preference
 ```
 
-**Note**: Chat requires either [Claude Code CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/gh-copilot) to be installed and authenticated. The CLI will auto-detect available clients and prompt you to choose if both are installed.
+**Note**: Chat requires either [Claude Code CLI](https://claude.ai/download) or [GitHub Copilot CLI](https://github.com/github/gh-copilot) to be installed and authenticated. The CLI will auto-detect available clients and prompt you to choose if both are installed. You can also explicitly specify which client to use.
 
 ## Configuration
 
@@ -273,7 +275,10 @@ The chat functionality supports two AI CLI tools. You need at least one installe
 3. Authenticate: `gh auth login`
 4. Verify: `gh copilot --version`
 
-**Client Selection**: The first time you use `dr chat`, if both clients are available, you'll be prompted to choose one. Your preference is saved in the model manifest for future sessions.
+**Client Selection**: 
+- **Auto-detection**: The first time you use `dr chat`, if both clients are available, you'll be prompted to choose one.
+- **Explicit selection**: You can specify a client directly (e.g., `dr chat github-copilot` or `dr chat claude-code`).
+- **Preference storage**: Your client choice is saved in the model manifest for future sessions. You can change it anytime by explicitly specifying a different client.
 
 ### Visualization Server
 
