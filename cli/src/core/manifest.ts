@@ -30,6 +30,7 @@ export class Manifest {
     applied_at: string;
     action: 'applied' | 'reverted';
   }>;  // Changeset application tracking
+  preferred_chat_client?: string;  // Chat client preference (Claude Code, GitHub Copilot)
 
   constructor(data: ManifestData) {
     this.name = data.name;
@@ -46,6 +47,7 @@ export class Manifest {
     this.conventions = (data as any).conventions;
     this.upgrade_history = (data as any).upgrade_history;
     this.changeset_history = (data as any).changeset_history || [];
+    this.preferred_chat_client = (data as any).preferred_chat_client;
   }
 
   /**
@@ -101,6 +103,10 @@ export class Manifest {
 
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
+    }
+
+    if (this.preferred_chat_client) {
+      result.preferred_chat_client = this.preferred_chat_client;
     }
 
     return result;

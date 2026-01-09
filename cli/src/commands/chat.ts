@@ -37,8 +37,7 @@ async function detectAvailableClients(): Promise<BaseChatClient[]> {
  * @returns The preferred client name or null
  */
 function getPreferredClient(model: Model): string | null {
-  const manifest = model.manifest as any;
-  return manifest.preferred_chat_client || null;
+  return model.manifest.preferred_chat_client || null;
 }
 
 /**
@@ -47,8 +46,7 @@ function getPreferredClient(model: Model): string | null {
  * @param clientName The client name to set as preferred
  */
 async function setPreferredClient(model: Model, clientName: string): Promise<void> {
-  const manifest = model.manifest as any;
-  manifest.preferred_chat_client = clientName;
+  model.manifest.preferred_chat_client = clientName;
   await model.save();
 }
 

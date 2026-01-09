@@ -448,6 +448,10 @@ export class Model {
       yamlData.changeset_history = this.manifest.changeset_history
     }
 
+    if (this.manifest.preferred_chat_client) {
+      yamlData.preferred_chat_client = this.manifest.preferred_chat_client
+    }
+
     await ensureDir(`${this.rootPath}/documentation-robotics/model`)
     await writeFile(manifestPath, yaml.stringify(yamlData))
   }
@@ -621,7 +625,8 @@ export class Model {
           by_type: {}
         },
         conventions: legacyData.conventions,
-        upgrade_history: legacyData.upgrade_history || []
+        upgrade_history: legacyData.upgrade_history || [],
+        preferred_chat_client: legacyData.preferred_chat_client
       }
       const manifest = new Manifest(manifestData)
       const model = new Model(projectRoot, manifest, options)

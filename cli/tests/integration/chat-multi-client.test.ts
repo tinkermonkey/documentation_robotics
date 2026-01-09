@@ -81,32 +81,32 @@ describe('Chat Command Integration', () => {
 
   describe('Client Preference Storage', () => {
     it('should store preferred client in manifest', async () => {
-      // Set preferred client
-      (model.manifest as any).preferred_chat_client = 'GitHub Copilot';
+      // Set preferred client using the proper property
+      model.manifest.preferred_chat_client = 'GitHub Copilot';
       await model.save();
       
       // Reload model
       const reloadedModel = await Model.load(testDir);
-      expect((reloadedModel?.manifest as any).preferred_chat_client).toBe('GitHub Copilot');
+      expect(reloadedModel?.manifest.preferred_chat_client).toBe('GitHub Copilot');
     });
 
     it('should handle missing preference', async () => {
-      const preference = (model.manifest as any).preferred_chat_client;
+      const preference = model.manifest.preferred_chat_client;
       expect(preference).toBeUndefined();
     });
 
     it('should update preference', async () => {
       // Set initial preference
-      (model.manifest as any).preferred_chat_client = 'Claude Code';
+      model.manifest.preferred_chat_client = 'Claude Code';
       await model.save();
       
       // Update preference
-      (model.manifest as any).preferred_chat_client = 'GitHub Copilot';
+      model.manifest.preferred_chat_client = 'GitHub Copilot';
       await model.save();
       
       // Verify update
       const reloadedModel = await Model.load(testDir);
-      expect((reloadedModel?.manifest as any).preferred_chat_client).toBe('GitHub Copilot');
+      expect(reloadedModel?.manifest.preferred_chat_client).toBe('GitHub Copilot');
     });
   });
 
