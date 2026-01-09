@@ -25,6 +25,7 @@ export interface ExportOptions {
   output?: string;
   layers?: string[];
   model?: string;
+  includeSources?: boolean;
 }
 
 export async function exportCommand(options: ExportOptions): Promise<void> {
@@ -101,6 +102,7 @@ export async function exportCommand(options: ExportOptions): Promise<void> {
     const result = await manager.export(model, format, {
       layers: options.layers,
       outputPath: options.output,
+      includeSources: options.includeSources,
     });
 
     if (isTelemetryEnabled && span) {

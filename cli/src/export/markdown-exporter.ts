@@ -134,6 +134,42 @@ export class MarkdownExporter implements Exporter {
         lines.push("**Type:** " + element.type);
         lines.push("");
 
+        // Source Reference
+        const sourceRef = element.getSourceReference();
+        if (sourceRef) {
+          lines.push("### Source Code Location");
+          lines.push("");
+          lines.push(`**Provenance**: ${sourceRef.provenance}`);
+          lines.push("");
+          
+          lines.push("**Locations:**");
+          lines.push("");
+          sourceRef.locations.forEach((loc, idx) => {
+            lines.push(`${idx + 1}. \`${this.escapeMarkdown(loc.file)}\``);
+            if (loc.symbol) {
+              lines.push(`   - Symbol: \`${this.escapeMarkdown(loc.symbol)}\``);
+            }
+          });
+          lines.push("");
+          
+          if (sourceRef.repository) {
+            lines.push("**Repository Context:**");
+            lines.push("");
+            if (sourceRef.repository.url) {
+              lines.push(`- Remote: ${sourceRef.repository.url}`);
+            }
+            if (sourceRef.repository.commit) {
+              const shortCommit = sourceRef.repository.commit.substring(0, 7);
+              if (sourceRef.repository.url) {
+                lines.push(`- Commit: [\`${shortCommit}\`](${sourceRef.repository.url}/commit/${sourceRef.repository.commit})`);
+              } else {
+                lines.push(`- Commit: \`${shortCommit}\``);
+              }
+            }
+            lines.push("");
+          }
+        }
+
         // Properties
         if (Object.keys(element.properties).length > 0) {
           lines.push("**Properties:**");

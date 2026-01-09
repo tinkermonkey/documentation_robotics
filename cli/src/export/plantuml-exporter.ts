@@ -23,19 +23,20 @@ export class PlantUMLExporter implements Exporter {
     }
 
     const layersToExport = options.layers || this.supportedLayers;
-    const elementsByLayer = new Map<string, Array<{ id: string; name: string; type: string }>>();
+    const elementsByLayer = new Map<string, Array<{ id: string; name: string; type: string; element: any }>>();
 
     // Collect elements by layer
     for (const layerName of layersToExport) {
       const layer = await model.getLayer(layerName);
       if (!layer) continue;
 
-      const layerElements: Array<{ id: string; name: string; type: string }> = [];
+      const layerElements: Array<{ id: string; name: string; type: string; element: any }> = [];
       for (const element of layer.listElements()) {
         layerElements.push({
           id: element.id,
           name: element.name,
           type: element.type,
+          element: element,
         });
       }
       elementsByLayer.set(layerName, layerElements);
@@ -49,8 +50,22 @@ export class PlantUMLExporter implements Exporter {
       const color = LAYER_COLORS[layerName] || "FFFFFF";
       lines.push(`package "${layerName}" #${color} {`);
 
-      for (const { id, name } of elements) {
+      for (const { id, name, element } of elements) {
         lines.push(`  component "${this.escapeQuotes(name)}" as ${id}`);
+        
+        // Add source reference as note if includeSources option is enabled
+        if (options.includeSources) {
+          const sourceRef = element.getSourceReference();
+          if (sourceRef && sourceRef.locations.length > 0) {
+            const loc = sourceRef.locations[0];
+            lines.push(`  note right of ${id}`);
+            lines.push(`    Source: ${this.escapeQuotes(loc.file)}`);
+            if (loc.symbol) {
+              lines.push(`    Symbol: ${this.escapeQuotes(loc.symbol)}`);
+            }
+            lines.push(`  end note`);
+          }
+        }
       }
 
       lines.push("}");

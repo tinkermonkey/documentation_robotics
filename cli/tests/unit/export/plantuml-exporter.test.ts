@@ -211,4 +211,130 @@ describe("PlantUMLExporter", () => {
 
     expect(output.includes('depends & requires')).toBe(true);
   });
+
+  it("should include source reference notes when includeSources is true", async () => {
+    const layer = new Layer("application");
+    const element = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/components/test.ts",
+                symbol: "TestComponent",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: true });
+
+    expect(output.includes("note right of application-component-test")).toBe(true);
+    expect(output.includes("Source: src/components/test.ts")).toBe(true);
+    expect(output.includes("Symbol: TestComponent")).toBe(true);
+    expect(output.includes("end note")).toBe(true);
+  });
+
+  it("should not include source reference notes when includeSources is false", async () => {
+    const layer = new Layer("application");
+    const element = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/components/test.ts",
+                symbol: "TestComponent",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: false });
+
+    expect(output.includes("note right of")).toBe(false);
+    expect(output.includes("Source:")).toBe(false);
+  });
+
+  it("should handle source reference without symbol", async () => {
+    const layer = new Layer("api");
+    const element = new Element({
+      id: "api-endpoint-test",
+      type: "endpoint",
+      name: "Test Endpoint",
+      properties: {
+        "x-source-reference": {
+          provenance: "manual",
+          locations: [
+            {
+              file: "src/api/test.ts",
+            },
+          ],
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: true });
+
+    expect(output.includes("Source: src/api/test.ts")).toBe(true);
+    expect(output.includes("Symbol:")).toBe(false);
+  });
+
+  it("should escape quotes in source file paths", async () => {
+    const layer = new Layer("application");
+    const element = new Element({
+      id: "application-component-quotes",
+      type: "application-component",
+      name: "Component with quotes",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: 'src/components/"special"/test.ts',
+                symbol: "TestComponent",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, { includeSources: true });
+
+    expect(output.includes('src/components/\\"special\\"/test.ts')).toBe(true);
+  });
 });

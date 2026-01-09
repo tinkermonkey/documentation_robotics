@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import type { SourceLocation } from "../types/index.js";
 import { escapeXml } from "./types.js";
 
 /**
@@ -63,22 +64,42 @@ export class ArchiMateExporter implements Exporter {
         );
       }
 
-      // Add properties as additional attributes or documentation
-      const propKeys = Object.keys(element.properties);
-      if (propKeys.length > 0) {
-        const propsStr = propKeys
-          .map((key) => {
-            const val = element.properties[key];
-            return `${key}: ${this.valueToString(val)}`;
-          })
-          .join("; ");
-        if (propsStr) {
-          lines.push(
-            `      <documentation>Properties: ${escapeXml(propsStr)}</documentation>`
-          );
+      // Add properties section
+      lines.push("      <properties>");
+
+      // Add source reference as properties if present
+      const sourceRef = element.getSourceReference();
+      if (sourceRef) {
+        lines.push(`        <property key="source.provenance" value="${escapeXml(sourceRef.provenance)}" />`);
+        
+        sourceRef.locations.forEach((loc: SourceLocation, idx: number) => {
+          lines.push(`        <property key="source.file.${idx}" value="${escapeXml(loc.file)}" />`);
+          if (loc.symbol) {
+            lines.push(`        <property key="source.symbol.${idx}" value="${escapeXml(loc.symbol)}" />`);
+          }
+        });
+        
+        if (sourceRef.repository) {
+          if (sourceRef.repository.url) {
+            lines.push(`        <property key="source.repository.url" value="${escapeXml(sourceRef.repository.url)}" />`);
+          }
+          if (sourceRef.repository.commit) {
+            lines.push(`        <property key="source.repository.commit" value="${escapeXml(sourceRef.repository.commit)}" />`);
+          }
         }
       }
 
+      // Add other properties
+      const propKeys = Object.keys(element.properties);
+      if (propKeys.length > 0) {
+        for (const key of propKeys) {
+          const val = element.properties[key];
+          const strValue = this.valueToString(val);
+          lines.push(`        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`);
+        }
+      }
+
+      lines.push("      </properties>");
       lines.push("    </element>");
     }
 

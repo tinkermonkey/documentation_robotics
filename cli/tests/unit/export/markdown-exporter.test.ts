@@ -246,4 +246,133 @@ describe("MarkdownExporter", () => {
     expect(output.includes("| 2024-01-01 |")).toBe(true);
     expect(output.includes("| 2024-12-20 |")).toBe(true);
   });
+
+  it("should include source reference when present", async () => {
+    const layer = new Layer("application");
+    const element = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      description: "Component with source reference",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/components/test.ts",
+                symbol: "TestComponent",
+              },
+            ],
+            repository: {
+              url: "https://github.com/example/repo",
+              commit: "abc123def456789012345678901234567890abcd",
+            },
+          },
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes("### Source Code Location")).toBe(true);
+    expect(output.includes("**Provenance**: extracted")).toBe(true);
+    expect(output.includes("**Locations:**")).toBe(true);
+    expect(output.includes("`src/components/test.ts`")).toBe(true);
+    expect(output.includes("Symbol: `TestComponent`")).toBe(true);
+    expect(output.includes("**Repository Context:**")).toBe(true);
+    expect(output.includes("Remote: https://github.com/example/repo")).toBe(true);
+    expect(output.includes("Commit: [`abc123d`]")).toBe(true);
+  });
+
+  it("should handle source reference without repository context", async () => {
+    const layer = new Layer("api");
+    const element = new Element({
+      id: "api-endpoint-test",
+      type: "endpoint",
+      name: "Test Endpoint",
+      properties: {
+        "x-source-reference": {
+          provenance: "manual",
+          locations: [
+            {
+              file: "src/api/test.ts",
+            },
+          ],
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes("### Source Code Location")).toBe(true);
+    expect(output.includes("**Provenance**: manual")).toBe(true);
+    expect(output.includes("`src/api/test.ts`")).toBe(true);
+    expect(output.includes("**Repository Context:**")).toBe(false);
+  });
+
+  it("should handle multiple source locations", async () => {
+    const layer = new Layer("application");
+    const element = new Element({
+      id: "application-component-multi",
+      type: "application-component",
+      name: "Multi-file Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/components/main.ts",
+                symbol: "MainComponent",
+              },
+              {
+                file: "src/components/helper.ts",
+                symbol: "HelperClass",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes("1. `src/components/main.ts`")).toBe(true);
+    expect(output.includes("2. `src/components/helper.ts`")).toBe(true);
+  });
+
+  it("should not show source reference section when absent", async () => {
+    const layer = new Layer("business");
+    const element = new Element({
+      id: "business-process-no-source",
+      type: "business-process",
+      name: "Process without Source",
+      description: "No source reference",
+    });
+
+    layer.addElement(element);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(layer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes("### Source Code Location")).toBe(false);
+  });
 });

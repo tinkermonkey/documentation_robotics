@@ -7,6 +7,7 @@ export interface ExportOptions {
   layers?: string[];
   outputPath?: string;
   format?: string;
+  includeSources?: boolean;  // For PlantUML: include source file paths as notes
 }
 
 /**

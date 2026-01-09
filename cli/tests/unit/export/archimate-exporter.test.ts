@@ -134,10 +134,30 @@ describe("ArchiMateExporter", () => {
   it("should close all XML tags properly", async () => {
     const output = await exporter.export(model, {});
 
-    const openElements = (output.match(/<[a-zA-Z]/g) || []).length;
-    const closeElements = (output.match(/<\/[a-zA-Z]/g) || []).length;
+    // Parse all tags and verify they are properly balanced
+    const tagStack: string[] = [];
+    const tagRegex = /<(\/?[a-zA-Z][\w-]*)[^>]*?(\/?)>/g;
+    let match;
 
-    expect(openElements).toBe(closeElements);
+    while ((match = tagRegex.exec(output)) !== null) {
+      const [, tagName, selfClosing] = match;
+      
+      if (tagName.startsWith('/')) {
+        // Closing tag
+        const expectedTag = tagStack.pop();
+        const actualTag = tagName.substring(1);
+        if (expectedTag !== actualTag) {
+          throw new Error(`Mismatched tags: expected </${expectedTag}>, got </${actualTag}>`);
+        }
+      } else if (!selfClosing) {
+        // Opening tag (not self-closing)
+        tagStack.push(tagName);
+      }
+      // Self-closing tags don't need to be on the stack
+    }
+
+    // All tags should be closed
+    expect(tagStack).toEqual([]);
   });
 
   it("should have correct namespaces", async () => {
@@ -195,5 +215,146 @@ describe("ArchiMateExporter", () => {
       const output = await exporter.export(testModel, {});
       expect(output.includes(`xsi:type="${archiType}"`)).toBe(true);
     }
+  });
+
+  it("should include source reference as properties", async () => {
+    const appLayer = new Layer("application");
+    const component = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/components/test.ts",
+                symbol: "TestComponent",
+              },
+            ],
+            repository: {
+              url: "https://github.com/example/repo",
+              commit: "abc123def456789012345678901234567890abcd",
+            },
+          },
+        },
+      },
+    });
+
+    appLayer.addElement(component);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(appLayer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes('<properties>')).toBe(true);
+    expect(output.includes('key="source.provenance" value="extracted"')).toBe(true);
+    expect(output.includes('key="source.file.0" value="src/components/test.ts"')).toBe(true);
+    expect(output.includes('key="source.symbol.0" value="TestComponent"')).toBe(true);
+    expect(output.includes('key="source.repository.url" value="https://github.com/example/repo"')).toBe(true);
+    expect(output.includes('key="source.repository.commit" value="abc123def456789012345678901234567890abcd"')).toBe(true);
+    expect(output.includes('</properties>')).toBe(true);
+  });
+
+  it("should handle source reference without repository context", async () => {
+    const appLayer = new Layer("application");
+    const component = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "manual",
+            locations: [
+              {
+                file: "src/test.ts",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    appLayer.addElement(component);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(appLayer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes('key="source.provenance" value="manual"')).toBe(true);
+    expect(output.includes('key="source.file.0" value="src/test.ts"')).toBe(true);
+    expect(output.includes('key="source.repository.url"')).toBe(false);
+  });
+
+  it("should handle multiple source locations", async () => {
+    const appLayer = new Layer("application");
+    const component = new Element({
+      id: "application-component-multi",
+      type: "application-component",
+      name: "Multi-file Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "extracted",
+            locations: [
+              {
+                file: "src/main.ts",
+                symbol: "MainClass",
+              },
+              {
+                file: "src/helper.ts",
+                symbol: "HelperClass",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    appLayer.addElement(component);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(appLayer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes('key="source.file.0" value="src/main.ts"')).toBe(true);
+    expect(output.includes('key="source.symbol.0" value="MainClass"')).toBe(true);
+    expect(output.includes('key="source.file.1" value="src/helper.ts"')).toBe(true);
+    expect(output.includes('key="source.symbol.1" value="HelperClass"')).toBe(true);
+  });
+
+  it("should escape XML special characters in source references", async () => {
+    const appLayer = new Layer("application");
+    const component = new Element({
+      id: "application-component-test",
+      type: "application-component",
+      name: "Test Component",
+      properties: {
+        source: {
+          reference: {
+            provenance: "manual",
+            locations: [
+              {
+                file: 'src/test<>&"file.ts',
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    appLayer.addElement(component);
+
+    const testModel = new Model("/test", model.manifest);
+    testModel.addLayer(appLayer);
+
+    const output = await exporter.export(testModel, {});
+
+    expect(output.includes('src/test&lt;&gt;&amp;&quot;file.ts')).toBe(true);
   });
 });

@@ -2,6 +2,9 @@
  * Core type definitions for Documentation Robotics CLI
  */
 
+// Export source reference types
+export type { ProvenanceType, SourceLocation, RepositoryContext, SourceReference } from './source-reference.js';
+
 /**
  * Reference across layers
  */
@@ -21,6 +24,7 @@ export interface Relationship {
   predicate: string; // e.g., "depends-on", "implements"
   properties?: Record<string, unknown>;
 }
+
 
 /**
  * Element representation

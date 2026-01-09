@@ -5,6 +5,8 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { CLIError } from '../utils/errors.js';
+import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -14,8 +16,36 @@ export interface UpdateOptions {
   name?: string;
   description?: string;
   properties?: string;
+  sourceFile?: string;
+  sourceSymbol?: string;
+  sourceProvenance?: string;
+  sourceRepoRemote?: string;
+  sourceRepoCommit?: string;
+  clearSourceReference?: boolean;
   verbose?: boolean;
   debug?: boolean;
+}
+
+/**
+ * Validate update-specific source reference options
+ */
+function validateUpdateSourceReferenceOptions(options: UpdateOptions): void {
+  const hasSourceOptions = options.sourceFile || options.sourceSymbol ||
+                           options.sourceProvenance || options.sourceRepoRemote ||
+                           options.sourceRepoCommit;
+
+  if (options.clearSourceReference && hasSourceOptions) {
+    throw new CLIError(
+      'Cannot use --clear-source-reference with other source reference options',
+      1,
+      ['Specify either --clear-source-reference or other source options, not both']
+    );
+  }
+
+  // Use shared validation for source reference options if any are provided
+  if (hasSourceOptions) {
+    validateSourceReferenceOptions(options);
+  }
 }
 
 export async function updateCommand(id: string, options: UpdateOptions): Promise<void> {
@@ -23,6 +53,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   if (options.name) changedFields.push('name');
   if (options.description) changedFields.push('description');
   if (options.properties) changedFields.push('properties');
+  if (options.sourceFile || options.clearSourceReference) changedFields.push('sourceReference');
 
   const span = isTelemetryEnabled ? startSpan('element.update', {
     'element.id': id,
@@ -30,6 +61,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
   }) : null;
 
   try {
+    // Validate source reference options
+    validateUpdateSourceReferenceOptions(options);
+
     // Load model
     const model = await Model.load();
 
@@ -70,6 +104,18 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       }
     }
 
+    // Handle source reference updates
+    if (options.clearSourceReference) {
+      element.setSourceReference(undefined);
+      updated = true;
+    } else if (options.sourceFile) {
+      const newRef = buildSourceReference(options);
+      if (newRef) {
+        element.setSourceReference(newRef);
+        updated = true;
+      }
+    }
+
     if (!updated) {
       console.log(ansis.yellow('No fields specified for update'));
       process.exit(0);
@@ -97,6 +143,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       }
       if (options.description) {
         console.log(ansis.dim(`  Description: ${options.description}`));
+      }
+      if (options.sourceFile) {
+        console.log(ansis.dim(`  Source: ${options.sourceFile}`));
+      }
+      if (options.clearSourceReference) {
+        console.log(ansis.dim(`  Source: cleared`));
       }
     }
   } catch (error) {
