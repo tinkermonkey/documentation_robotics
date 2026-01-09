@@ -13,6 +13,7 @@ import { telemetryMiddleware } from './telemetry-middleware.js';
 import { BaseChatClient } from '../ai/base-chat-client.js';
 import { ClaudeCodeClient } from '../ai/claude-code-client.js';
 import { CopilotClient } from '../ai/copilot-client.js';
+import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
 
 interface WSMessage {
   type: 'subscribe' | 'annotate' | 'ping';
@@ -165,35 +166,16 @@ export class VisualizationServer {
    * Detect and initialize available chat clients
    */
   private async initializeChatClients(): Promise<void> {
-    const clients: BaseChatClient[] = [];
+    const clients = await detectAvailableClients();
     
-    const claudeClient = new ClaudeCodeClient();
-    if (await claudeClient.isAvailable()) {
-      clients.push(claudeClient);
-    }
-    
-    const copilotClient = new CopilotClient();
-    if (await copilotClient.isAvailable()) {
-      clients.push(copilotClient);
-    }
-
     // Select the chat client based on manifest preference
     const preferredAgent = this.model.manifest.getCodingAgent();
+    this.selectedChatClient = selectChatClient(clients, preferredAgent);
     
-    if (preferredAgent) {
-      // Try to find and use the preferred client
-      this.selectedChatClient = clients.find(
-        c => c.getClientName() === preferredAgent
-      );
-      
-      if (!this.selectedChatClient && clients.length > 0) {
-        // Preferred client not available, use first available
-        this.selectedChatClient = clients[0];
-        console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
-      }
-    } else if (clients.length > 0) {
-      // No preference, use first available
-      this.selectedChatClient = clients[0];
+    // Log warnings/info if needed
+    if (preferredAgent && this.selectedChatClient && 
+        this.selectedChatClient.getClientName() !== preferredAgent) {
+      console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
     }
 
     if (this.selectedChatClient && process.env.VERBOSE) {

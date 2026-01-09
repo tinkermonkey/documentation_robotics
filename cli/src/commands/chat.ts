@@ -8,28 +8,7 @@ import { text, intro, outro, select } from '@clack/prompts';
 import { Model } from '../core/model.js';
 import { BaseChatClient } from '../ai/base-chat-client.js';
 import { ClaudeCodeClient } from '../ai/claude-code-client.js';
-import { CopilotClient } from '../ai/copilot-client.js';
-
-/**
- * Detect available AI chat clients
- * Checks for Claude Code CLI and GitHub Copilot CLI
- * @returns Array of available client instances
- */
-async function detectAvailableClients(): Promise<BaseChatClient[]> {
-  const clients: BaseChatClient[] = [];
-  
-  const claudeClient = new ClaudeCodeClient();
-  if (await claudeClient.isAvailable()) {
-    clients.push(claudeClient);
-  }
-  
-  const copilotClient = new CopilotClient();
-  if (await copilotClient.isAvailable()) {
-    clients.push(copilotClient);
-  }
-  
-  return clients;
-}
+import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
 
 /**
  * Get the preferred chat client from manifest metadata
