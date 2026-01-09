@@ -33,6 +33,8 @@ export interface ChatOptions {
   workingDirectory?: string;
   /** Optional session ID to continue a conversation */
   sessionId?: string;
+  /** Enable dangerous mode (skip permissions for Claude, allow all tools for Copilot) */
+  withDanger?: boolean;
 }
 
 /**

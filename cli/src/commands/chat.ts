@@ -71,8 +71,9 @@ function mapCliNameToClientName(cliName: string): string {
  * Supports Claude Code CLI and GitHub Copilot CLI with auto-detection
  * 
  * @param explicitClient Optional client name explicitly specified by user
+ * @param withDanger Optional flag to enable dangerous mode (skip permissions)
  */
-export async function chatCommand(explicitClient?: string): Promise<void> {
+export async function chatCommand(explicitClient?: string, withDanger?: boolean): Promise<void> {
   try {
     // Load the model to verify it exists
     const model = await Model.load(process.cwd());
@@ -155,7 +156,12 @@ export async function chatCommand(explicitClient?: string): Promise<void> {
 
     // Show intro
     intro(ansis.bold(ansis.cyan('Documentation Robotics Chat')));
-    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}\n`));
+    console.log(ansis.dim(`Powered by ${selectedClient.getClientName()}`));
+    if (withDanger) {
+      console.log(ansis.yellow('⚠️  Danger mode enabled - permissions will be skipped\n'));
+    } else {
+      console.log('');
+    }
 
     // Determine agent name based on client
     const agentName = selectedClient instanceof ClaudeCodeClient ? 'dr-architect' : undefined;
@@ -197,6 +203,7 @@ export async function chatCommand(explicitClient?: string): Promise<void> {
         await selectedClient.sendMessage(userInput, {
           workingDirectory: model.rootPath,
           agent: agentName,
+          withDanger,
         });
         console.log('\n');
       } catch (error) {

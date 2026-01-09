@@ -395,18 +395,26 @@ Examples:
 
 // AI Integration command
 program
-  .command('chat [client]')
+  .command('chat [client] [withDanger]')
   .description('Interactive chat with AI about the architecture model')
   .addHelpText(
     'after',
     `
 Arguments:
-  client    Optional AI client to use: "claude-code" or "github-copilot"
+  client      Optional AI client to use: "claude-code" or "github-copilot"
+  withDanger  Enable dangerous mode: "with-danger"
 
 Examples:
-  $ dr chat                      # Auto-detect or use saved preference
-  $ dr chat claude-code          # Use Claude Code, save as preference
-  $ dr chat github-copilot       # Use GitHub Copilot, save as preference
+  $ dr chat                           # Auto-detect or use saved preference
+  $ dr chat claude-code               # Use Claude Code, save as preference
+  $ dr chat github-copilot            # Use GitHub Copilot, save as preference
+  $ dr chat with-danger               # Auto-detect with dangerous mode
+  $ dr chat claude-code with-danger   # Use Claude Code with dangerous mode
+  $ dr chat github-copilot with-danger # Use GitHub Copilot with dangerous mode
+
+Dangerous mode enables:
+  - Claude Code: --dangerously-skip-permissions
+  - GitHub Copilot: --allow-all-tools
 
 This launches an interactive chat interface where you can ask AI questions
 about your architecture model. Supports Claude Code CLI and GitHub Copilot CLI.
@@ -415,8 +423,25 @@ Install instructions:
   - Claude Code: https://claude.ai
   - GitHub Copilot: gh extension install github/gh-copilot`
   )
-  .action(async (client?: string) => {
-    await chatCommand(client);
+  .action(async (client?: string, withDangerArg?: string) => {
+    // Parse arguments - handle both "with-danger" as first or second arg
+    let selectedClient: string | undefined;
+    let withDanger = false;
+
+    if (client === 'with-danger') {
+      // Format: dr chat with-danger
+      withDanger = true;
+      selectedClient = undefined;
+    } else if (withDangerArg === 'with-danger') {
+      // Format: dr chat <client> with-danger
+      withDanger = true;
+      selectedClient = client;
+    } else {
+      // Format: dr chat <client>
+      selectedClient = client;
+    }
+
+    await chatCommand(selectedClient, withDanger);
   });
 
 // Advanced commands

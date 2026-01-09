@@ -149,11 +149,15 @@ export class ClaudeCodeClient extends BaseChatClient {
   ): ChildProcess {
     const args = [
       '--print',
-      '--dangerously-skip-permissions',
       '--verbose',
       '--output-format',
       'stream-json',
     ];
+
+    // Add dangerously-skip-permissions flag if withDanger is enabled
+    if (options?.withDanger) {
+      args.splice(1, 0, '--dangerously-skip-permissions');
+    }
 
     // Add agent if specified
     if (options?.agent) {
