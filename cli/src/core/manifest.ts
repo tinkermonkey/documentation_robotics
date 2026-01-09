@@ -58,6 +58,22 @@ export class Manifest {
   }
 
   /**
+   * Get the coding agent preference
+   * @returns The coding agent name or undefined
+   */
+  getCodingAgent(): string | undefined {
+    return this.preferred_chat_client;
+  }
+
+  /**
+   * Set the coding agent preference
+   * @param agentName The coding agent name (e.g., "Claude Code", "GitHub Copilot")
+   */
+  setCodingAgent(agentName: string | undefined): void {
+    this.preferred_chat_client = agentName;
+  }
+
+  /**
    * Serialize to JSON representation
    */
   toJSON(): ManifestData {

@@ -158,4 +158,76 @@ describe("Manifest", () => {
 
     expect(manifest.toString()).toBe("Manifest(Test Model v1.0.0)");
   });
+
+  describe("getCodingAgent/setCodingAgent helpers", () => {
+    it("should support setCodingAgent helper", () => {
+      const manifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+      });
+
+      // Initially undefined
+      expect(manifest.preferred_chat_client).toBeUndefined();
+      expect(manifest.getCodingAgent()).toBeUndefined();
+
+      // Set coding agent
+      manifest.setCodingAgent("Claude Code");
+      expect(manifest.preferred_chat_client).toBe("Claude Code");
+      expect(manifest.getCodingAgent()).toBe("Claude Code");
+    });
+
+    it("should serialize and deserialize preferred_chat_client via helpers", () => {
+      const manifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+      });
+
+      manifest.setCodingAgent("GitHub Copilot");
+
+      const json = manifest.toJSON();
+      expect(json.preferred_chat_client).toBe("GitHub Copilot");
+
+      const deserialized = new Manifest(json);
+      expect(deserialized.getCodingAgent()).toBe("GitHub Copilot");
+    });
+
+    it("should work with preferred_chat_client directly", () => {
+      const manifest = new Manifest({
+        name: "Test Model",
+        version: "1.0.0",
+      });
+
+      // Setting via setCodingAgent should set preferred_chat_client
+      manifest.setCodingAgent("Claude Code");
+      expect(manifest.preferred_chat_client).toBe("Claude Code");
+
+      const json = manifest.toJSON();
+      expect(json.preferred_chat_client).toBe("Claude Code");
+    });
+
+    it("should read preferred_chat_client when set", () => {
+      const data: any = {
+        name: "Test Model",
+        version: "1.0.0",
+        preferred_chat_client: "GitHub Copilot",
+      };
+
+      const manifest = new Manifest(data);
+      
+      expect(manifest.preferred_chat_client).toBe("GitHub Copilot");
+      expect(manifest.getCodingAgent()).toBe("GitHub Copilot");
+    });
+
+    it("should handle undefined preferred_chat_client", () => {
+      const data: any = {
+        name: "Test Model",
+        version: "1.0.0",
+      };
+
+      const manifest = new Manifest(data);
+      
+      expect(manifest.preferred_chat_client).toBeUndefined();
+      expect(manifest.getCodingAgent()).toBeUndefined();
+    });
+  });
 });
