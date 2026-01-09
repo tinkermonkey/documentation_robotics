@@ -364,7 +364,7 @@ Another plain line`;
         '{"type":"assistant","message":{"content":[{"type":"text","text":"Part 3"}]}}\n',
       ];
 
-      let allEvents: any[] = [];
+      let allEvents: ChatEvent[] = [];
       for (const chunk of chunks) {
         const events = agent.parseOutput(chunk);
         allEvents = allEvents.concat(events);
@@ -384,7 +384,7 @@ Another plain line`;
         '{"type":"assistant","message":{"content":[{"type":"text","text":"Found 2 files"}]}}\n',
       ];
 
-      let allEvents: any[] = [];
+      let allEvents: ChatEvent[] = [];
       for (const chunk of chunks) {
         const events = agent.parseOutput(chunk);
         allEvents = allEvents.concat(events);

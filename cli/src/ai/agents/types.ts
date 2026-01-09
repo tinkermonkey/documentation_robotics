@@ -24,8 +24,8 @@ export interface ChatEvent {
   type: ChatEventType;
   content?: string;
   toolName?: string;
-  toolInput?: any;
-  toolResult?: any;
+  toolInput?: Record<string, unknown>;
+  toolResult?: unknown;
   error?: string;
 }
 

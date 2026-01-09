@@ -30,11 +30,14 @@ export class ClaudeCodeAgent implements CodingAgent {
 
   /**
    * Check if Claude Code CLI is available
-   * Uses 'which' to detect command in PATH
+   * Uses 'which' on Unix-like systems or 'where' on Windows
    */
   async isAvailable(): Promise<boolean> {
     try {
-      const result = spawnSync('which', [this.command], {
+      const isWindows = process.platform === 'win32';
+      const checkCommand = isWindows ? 'where' : 'which';
+      
+      const result = spawnSync(checkCommand, [this.command], {
         stdio: 'pipe',
         encoding: 'utf-8',
       });
