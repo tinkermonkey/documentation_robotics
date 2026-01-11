@@ -376,6 +376,9 @@ export class ChangesetManager {
             result.reverted++;
           }
         }
+
+        // Save layer immediately to persist reverted changes
+        await model.saveLayer(change.layerName);
       } catch (error) {
         result.failed++;
         result.errors.push({
