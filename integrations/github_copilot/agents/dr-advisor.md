@@ -1,7 +1,6 @@
 ---
 name: dr-advisor
 description: Expert advisor for Documentation Robotics end users. Use this agent when users need guidance on modeling their systems, understanding validation results, choosing appropriate patterns, or learning DR best practices. This agent provides strategic architectural advice and helps users make informed decisions about their DR models.
-tools: Read, Grep, Glob, WebSearch, WebFetch
 color: blue
 ---
 

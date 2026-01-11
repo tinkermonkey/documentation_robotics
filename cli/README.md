@@ -173,13 +173,13 @@ dr update api-endpoint-create-user --clear-source-reference
 
 **Source Reference Options:**
 
-| Option | Required | Description | Example |
-|--------|----------|-------------|---------|
-| `--source-file` | When using source options | Path to source file (relative to repo root) | `src/api/routes.ts` |
-| `--source-symbol` | Optional | Symbol name (function, class, variable) | `createUser` |
-| `--source-provenance` | When using source options | How reference was created: `extracted`, `manual`, `inferred`, `generated` | `extracted` |
-| `--source-repo-remote` | Requires `--source-repo-commit` | Git remote URL | `https://github.com/example/repo.git` |
-| `--source-repo-commit` | Requires `--source-repo-remote` | Full 40-character commit SHA | `a1b2c3d4...` |
+| Option                 | Required                        | Description                                                               | Example                               |
+| ---------------------- | ------------------------------- | ------------------------------------------------------------------------- | ------------------------------------- |
+| `--source-file`        | When using source options       | Path to source file (relative to repo root)                               | `src/api/routes.ts`                   |
+| `--source-symbol`      | Optional                        | Symbol name (function, class, variable)                                   | `createUser`                          |
+| `--source-provenance`  | When using source options       | How reference was created: `extracted`, `manual`, `inferred`, `generated` | `extracted`                           |
+| `--source-repo-remote` | Requires `--source-repo-commit` | Git remote URL                                                            | `https://github.com/example/repo.git` |
+| `--source-repo-commit` | Requires `--source-repo-remote` | Full 40-character commit SHA                                              | `a1b2c3d4...`                         |
 
 **Examples:**
 
@@ -275,7 +275,8 @@ The chat functionality supports two AI CLI tools. You need at least one installe
 3. Authenticate: `gh auth login`
 4. Verify: `gh copilot --version`
 
-**Client Selection**: 
+**Client Selection**:
+
 - **Auto-detection**: The first time you use `dr chat`, if both clients are available, you'll be prompted to choose one.
 - **Explicit selection**: You can specify a client directly (e.g., `dr chat github-copilot` or `dr chat claude-code`).
 - **Preference storage**: Your client choice is saved in the model manifest for future sessions. You can change it anytime by explicitly specifying a different client.
@@ -324,19 +325,40 @@ dr relationship delete business-process-order business-process-payment
 
 ### Tracking Changes
 
+> ⚠️ **IMPORTANT**: Changesets must be **ACTIVATED** to track changes.
+>
+> After creating a changeset:
+>
+> 1. `dr changeset create "my-changes"`
+> 2. `dr changeset activate "my-changes"` ← **DON'T FORGET THIS**
+> 3. Make your changes (add/update/delete)
+
 ```bash
 # Create a changeset
 dr changeset create "v2.0 API migration" \
   --description "Update to new API structure"
 
+# Activate the changeset to track changes
+dr changeset activate "v2.0 API migration"
+
+# Now make your changes - they will be tracked
+dr update api-endpoint-users --name "Users API v2"
+dr add api endpoint users-list
+
 # List changesets
 dr changeset list
+
+# Review changes
+dr changeset show "v2.0 API migration"
 
 # Apply a changeset
 dr changeset apply "v2.0 API migration"
 
 # Revert if needed
 dr changeset revert "v2.0 API migration"
+
+# Deactivate when done
+dr changeset deactivate
 ```
 
 ## Getting Help
@@ -392,7 +414,7 @@ npm install
 
 Ensure at least one AI CLI tool is installed and authenticated:
 
-#### For Claude Code:
+#### For Claude Code
 
 ```bash
 # Check installation
@@ -404,7 +426,7 @@ claude --version
 
 If not installed, visit https://claude.ai/download
 
-#### For GitHub Copilot:
+#### For GitHub Copilot
 
 ```bash
 # Check installation

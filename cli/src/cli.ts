@@ -141,6 +141,10 @@ program
   .addHelpText(
     'after',
     `
+Note: Changes are written immediately to model files.
+To track changes for review, activate a changeset first:
+  $ dr changeset activate my-changeset
+
 Examples:
   $ dr update api-endpoint-create-customer --name "Create Customer (v2)"
   $ dr update business-service-order --description "Updated description"

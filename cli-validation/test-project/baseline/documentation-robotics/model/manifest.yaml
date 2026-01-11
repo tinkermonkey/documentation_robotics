@@ -2,8 +2,8 @@ version: 1.0.0
 schema: documentation-robotics-v1
 cli_version: 1.0.0
 spec_version: 0.6.0
-created: 2025-12-28T15:00:20.908085Z
-updated: 2025-12-29T12:39:39.684Z
+created: 2025-12-28 15:00:20.908085+00:00
+updated: "2026-01-11T14:36:43.089297Z"
 project:
   name: test-project
   description: Architecture model for test-project
@@ -137,7 +137,7 @@ statistics:
   total_elements: 61
   total_relationships: 0
   completeness: 0
-  last_validation: 2025-12-28T22:08:58.973590Z
+  last_validation: "2026-01-11T14:36:43.089290Z"
   validation_status: failed
 cross_references:
   total: 0
@@ -151,4 +151,4 @@ conventions:
 upgrade_history:
   - from_version: 0.7.1
     to_version: 0.7.3
-    upgraded_at: 2025-12-28T18:11:23.317461Z
+    upgraded_at: 2025-12-28 18:11:23.317461+00:00

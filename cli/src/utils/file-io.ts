@@ -98,8 +98,9 @@ export async function readJSON<T>(path: string): Promise<T> {
 
 /**
  * Write a JSON object to a file
+ * Uses atomic write to prevent corruption
  */
 export async function writeJSON<T>(path: string, data: T, pretty: boolean = true): Promise<void> {
   const content = pretty ? JSON.stringify(data, null, 2) : JSON.stringify(data);
-  await writeFile(path, content);
+  await atomicWrite(path, content);
 }

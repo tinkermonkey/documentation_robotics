@@ -13,6 +13,7 @@ import {
   handleSuccess,
 } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
+import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 // Telemetry flag check
@@ -51,6 +52,9 @@ export async function addCommand(
     // Load model
     const model = await Model.load();
 
+    // Display active changeset status
+    await displayChangesetStatus(model);
+
     // Get or create layer
     let layerObj = await model.getLayer(layer);
     if (!layerObj) {
@@ -87,9 +91,13 @@ export async function addCommand(
       }
     }
 
+    // Construct full element ID with layer.type prefix
+    // Format: {layer}.{type}.{id}
+    const fullElementId = `${layer}.${type}.${id}`;
+
     // Create element
     const element = new Element({
-      id,
+      id: fullElementId,
       type,
       name: options.name || id,
       description: options.description,
@@ -104,11 +112,11 @@ export async function addCommand(
     }
 
     // Check if element already exists
-    if (layerObj.getElement(id)) {
+    if (layerObj.getElement(fullElementId)) {
       throw new CLIError(
-        `Element ${id} already exists in ${layer} layer`,
+        `Element ${fullElementId} already exists in ${layer} layer`,
         1,
-        [`Use "dr show ${id}" to view the existing element`, `Use "dr update ${id}" to modify it`]
+        [`Use "dr show ${fullElementId}" to view the existing element`, `Use "dr update ${fullElementId}" to modify it`]
       );
     }
 
@@ -119,7 +127,7 @@ export async function addCommand(
     const activeChangeset = model.getActiveChangesetContext();
     await activeChangeset.trackChange(
       'add',
-      id,
+      fullElementId,
       layer,
       undefined,
       element.toJSON() as unknown as Record<string, unknown>
@@ -129,7 +137,7 @@ export async function addCommand(
     await model.saveLayer(layer);
     await model.saveManifest();
 
-    handleSuccess(`Added element ${ansis.bold(id)} to ${ansis.bold(layer)} layer`, {
+    handleSuccess(`Added element ${ansis.bold(fullElementId)} to ${ansis.bold(layer)} layer`, {
       type,
       name: options.name || id,
       description: options.description || '(none)',

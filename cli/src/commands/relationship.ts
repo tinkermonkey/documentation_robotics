@@ -6,6 +6,7 @@ import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { displayChangesetStatus } from '../utils/changeset-status.js';
 
 export function relationshipCommands(program: Command): void {
   program
@@ -25,6 +26,9 @@ Examples:
       try {
         // Load model
         const model = await Model.load();
+
+        // Display active changeset status
+        await displayChangesetStatus(model);
 
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
@@ -103,6 +107,9 @@ Examples:
       try {
         // Load model
         const model = await Model.load();
+
+        // Display active changeset status
+        await displayChangesetStatus(model);
 
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);

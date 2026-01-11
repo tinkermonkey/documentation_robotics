@@ -1,9 +1,9 @@
 /**
  * GitHub Copilot CLI Client
- * 
+ *
  * Implements chat functionality using GitHub Copilot CLI subprocess.
  * Supports both `gh copilot` (GitHub CLI extension) and `@github/copilot` (npm package).
- * 
+ *
  * Key features:
  * - Availability detection for both CLI variants
  * - Plain text/markdown output parsing (heuristic)
@@ -15,6 +15,7 @@
 import { BaseChatClient, ChatOptions } from './base-chat-client.js';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import ansis from 'ansis';
+import { getChatLogger } from '../utils/chat-logger.js';
 
 /**
  * Output parser for GitHub Copilot plain text responses
@@ -71,30 +72,17 @@ class CopilotOutputParser {
  */
 export class CopilotClient extends BaseChatClient {
   private parser = new CopilotOutputParser();
-  private copilotCommand: 'gh' | 'copilot' | null = null;
+  private copilotCommand: 'copilot' | null = null;
+  private isFirstMessage = true;
 
   /**
    * Check if GitHub Copilot CLI is available
-   * Checks for both `gh copilot` and standalone `copilot` command
+   * Only supports standalone `copilot` npm package (@github/copilot)
    */
   async isAvailable(): Promise<boolean> {
     // Return cached result if already detected
     if (this.copilotCommand !== null) {
       return true;
-    }
-
-    // Check for gh CLI with copilot extension
-    try {
-      const ghResult = spawnSync('gh', ['copilot', '--version'], {
-        stdio: 'pipe',
-        encoding: 'utf-8',
-      });
-      if (ghResult.status === 0) {
-        this.copilotCommand = 'gh';
-        return true;
-      }
-    } catch {
-      // gh not available or copilot extension not installed
     }
 
     // Check for standalone copilot command (npm package)
@@ -128,6 +116,15 @@ export class CopilotClient extends BaseChatClient {
       }
     }
 
+    // Log the user message
+    const logger = getChatLogger();
+    if (logger) {
+      await logger.logUserMessage(message, {
+        client: 'GitHub Copilot',
+        agent: options?.agent,
+      });
+    }
+
     // Create or continue session
     if (!this.currentSession) {
       this.createSession();
@@ -139,12 +136,14 @@ export class CopilotClient extends BaseChatClient {
       const proc = this.spawnCopilotProcess(message, options);
 
       let buffer = '';
+      let assistantOutput = '';
       this.parser.reset();
 
       // Handle stdout
       proc.stdout?.on('data', (data: Buffer) => {
         const chunk = data.toString();
         buffer += chunk;
+        assistantOutput += chunk;
 
         // Process complete lines
         const lines = buffer.split('\n');
@@ -173,11 +172,26 @@ export class CopilotClient extends BaseChatClient {
           errorText.includes('not authenticated')
         ) {
           process.stderr.write(ansis.red(errorText));
+
+          // Log error
+          if (logger) {
+            void logger.logError(errorText, {
+              source: 'stderr',
+              client: 'GitHub Copilot',
+            });
+          }
         }
       });
 
       // Handle errors
       proc.on('error', (error) => {
+        if (logger) {
+          void logger.logError(error.message, {
+            source: 'process',
+            client: 'GitHub Copilot',
+            stack: error.stack,
+          });
+        }
         reject(error);
       });
 
@@ -192,9 +206,22 @@ export class CopilotClient extends BaseChatClient {
         }
 
         if (exitCode === 0) {
+          // Log assistant message if we got output
+          if (logger && assistantOutput.trim()) {
+            void logger.logAssistantMessage(assistantOutput, {
+              client: 'GitHub Copilot',
+            });
+          }
           resolve();
         } else {
-          reject(new Error(`Copilot process exited with code ${exitCode}`));
+          const errorMsg = `Copilot process exited with code ${exitCode}`;
+          if (logger) {
+            void logger.logError(errorMsg, {
+              exitCode,
+              client: 'GitHub Copilot',
+            });
+          }
+          reject(new Error(errorMsg));
         }
       });
     });
@@ -213,35 +240,42 @@ export class CopilotClient extends BaseChatClient {
     const args: string[] = [];
     const cwd = options?.workingDirectory || process.cwd();
 
-    if (this.copilotCommand === 'gh') {
-      // Use gh CLI with copilot extension
-      args.push('copilot', 'explain');
-      
-      // Add allow-all-tools flag if withDanger is enabled
-      if (options?.withDanger) {
-        args.push('--allow-all-tools');
-      }
-      
-      // Add session continuation if this is not the first message
-      if (this.currentSession && options?.sessionId) {
-        // Note: gh copilot doesn't have explicit session IDs,
-        // so we rely on the conversation history in the terminal
-        // This is a limitation of the gh CLI implementation
-      }
+    const isFirst = this.isFirstMessage;
+
+    // For first message: copilot --prompt "message" --agent "dr-architect" --allow-all-tools
+    // For subsequent messages: copilot --continue --prompt "message" --allow-all-tools
+    if (isFirst) {
+      args.push('--prompt', message);
+      this.isFirstMessage = false;
     } else {
-      // Use standalone copilot command
-      args.push('explain');
-      
-      // Add allow-all-tools flag if withDanger is enabled
-      if (options?.withDanger) {
-        args.push('--allow-all-tools');
-      }
+      args.push('--continue', '--prompt', message);
     }
 
-    // Add the message as an argument
-    args.push(message);
+    // Add agent if specified (only on first message, agent persists in session)
+    if (isFirst && options?.agent) {
+      args.push('--agent', options.agent);
+    }
 
-    const command = this.copilotCommand === 'gh' ? 'gh' : 'copilot';
+    // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
+    if (options?.withDanger) {
+      args.push('--allow-all-tools');
+    }
+
+    const command = 'copilot';
+
+    // Log the command that's being executed
+    const logger = getChatLogger();
+    if (logger) {
+      void logger.logCommand(command, args, {
+        client: 'GitHub Copilot',
+        workingDirectory: cwd,
+        withDanger: options?.withDanger || false,
+        copilotVariant: this.copilotCommand,
+        messageLength: message.length,
+        hasAgent: !!options?.agent,
+        isFirstMessage: isFirst,
+      });
+    }
 
     return spawn(command, args, {
       cwd,
