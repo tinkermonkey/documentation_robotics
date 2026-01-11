@@ -109,7 +109,7 @@ describe('Changeset Migration', () => {
       const newStorage = new StagedChangesetStorage(TEST_DIR);
 
       const migratedDraft = await newStorage.load('draft-test');
-      expect(migratedDraft?.status).toBe('draft');
+      expect(migratedDraft?.status).toBe('staged');
 
       const migratedApplied = await newStorage.load('applied-test');
       expect(migratedApplied?.status).toBe('committed');

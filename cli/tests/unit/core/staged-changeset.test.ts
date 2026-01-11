@@ -63,7 +63,7 @@ describe('Staged Changeset Data Model', () => {
       const original = Changeset.create('test', 'description');
       original.id = 'test-001';
       original.baseSnapshot = 'sha256:abc123';
-      original.status = 'staged' as any;
+      original.status = 'staged';
       original.addChange('add', 'elem-1', 'api', undefined, { name: 'Test' });
       original.updateStats();
 
@@ -205,7 +205,7 @@ describe('StagedChangesetStorage', () => {
     } catch {
       // Ignore
     }
-    await Bun.spawn(['mkdir', '-p', TEST_DIR]).exited;
+    await mkdir(TEST_DIR, { recursive: true });
   });
 
   afterAll(async () => {
