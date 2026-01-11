@@ -9,13 +9,13 @@
 1. **CLI Tool (`cli/`)** - TypeScript/Bun implementation (v0.1.0, ~8x faster)
 2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Versions:** Bun CLI v0.1.0, Spec v0.7.0
+**Current Versions:** Bun CLI v0.1.0, Spec v0.7.1
 
 ## Repository Structure
 
 ```
 documentation_robotics/
-├── spec/                        # SPECIFICATION (v0.7.0)
+├── spec/                        # SPECIFICATION (v0.7.1)
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 layer specifications
 │   └── schemas/                 # JSON Schema definitions
