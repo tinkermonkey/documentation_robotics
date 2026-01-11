@@ -22,6 +22,13 @@ export interface Change {
 }
 
 /**
+ * Represents a staged change with sequence number for replay
+ */
+export interface StagedChange extends Change {
+  sequenceNumber: number;
+}
+
+/**
  * Changeset metadata
  */
 export interface ChangesetData {
@@ -31,6 +38,25 @@ export interface ChangesetData {
   modified: string;
   changes: Change[];
   status: 'draft' | 'applied' | 'reverted';
+}
+
+/**
+ * Extended changeset data with staging semantics
+ */
+export interface StagedChangesetData {
+  id: string;
+  name: string;
+  description?: string;
+  created: string;
+  modified: string;
+  status: 'draft' | 'staged' | 'committed' | 'discarded';
+  baseSnapshot: string;
+  changes: StagedChange[];
+  stats: {
+    additions: number;
+    modifications: number;
+    deletions: number;
+  };
 }
 
 /**
@@ -44,13 +70,33 @@ export class Changeset {
   changes: Change[] = [];
   status: 'draft' | 'applied' | 'reverted' = 'draft';
 
-  constructor(data: ChangesetData) {
+  // Extended staging fields (optional for backward compatibility)
+  id?: string;
+  baseSnapshot?: string;
+  stats?: {
+    additions: number;
+    modifications: number;
+    deletions: number;
+  };
+
+  constructor(data: ChangesetData | StagedChangesetData) {
     this.name = data.name;
     this.description = data.description;
     this.created = data.created;
     this.modified = data.modified;
     this.changes = data.changes || [];
-    this.status = data.status || 'draft';
+    this.status = (data.status as any) || 'draft';
+
+    // Load extended fields if present
+    if ('id' in data) {
+      this.id = (data as StagedChangesetData).id;
+    }
+    if ('baseSnapshot' in data) {
+      this.baseSnapshot = (data as StagedChangesetData).baseSnapshot;
+    }
+    if ('stats' in data) {
+      this.stats = (data as StagedChangesetData).stats;
+    }
   }
 
   /**
@@ -111,6 +157,17 @@ export class Changeset {
   }
 
   /**
+   * Calculate and update changeset statistics
+   */
+  updateStats(): void {
+    this.stats = {
+      additions: this.getChangesByType('add').length,
+      modifications: this.getChangesByType('update').length,
+      deletions: this.getChangesByType('delete').length,
+    };
+  }
+
+  /**
    * Mark changeset as applied
    */
   markApplied(): void {
@@ -127,10 +184,34 @@ export class Changeset {
   }
 
   /**
+   * Mark changeset as staged
+   */
+  markStaged(): void {
+    this.status = 'staged' as any;
+    this.updateModified();
+  }
+
+  /**
+   * Mark changeset as committed
+   */
+  markCommitted(): void {
+    this.status = 'committed' as any;
+    this.updateModified();
+  }
+
+  /**
+   * Mark changeset as discarded
+   */
+  markDiscarded(): void {
+    this.status = 'discarded' as any;
+    this.updateModified();
+  }
+
+  /**
    * Serialize to JSON
    */
-  toJSON(): ChangesetData {
-    return {
+  toJSON(): ChangesetData | StagedChangesetData {
+    const base = {
       name: this.name,
       description: this.description,
       created: this.created,
@@ -138,12 +219,24 @@ export class Changeset {
       changes: this.changes,
       status: this.status,
     };
+
+    // Include extended fields if present
+    if (this.id && this.baseSnapshot && this.stats) {
+      return {
+        ...base,
+        id: this.id,
+        baseSnapshot: this.baseSnapshot,
+        stats: this.stats,
+      } as StagedChangesetData;
+    }
+
+    return base as ChangesetData;
   }
 
   /**
    * Create from JSON data
    */
-  static fromJSON(data: ChangesetData): Changeset {
+  static fromJSON(data: ChangesetData | StagedChangesetData): Changeset {
     return new Changeset(data);
   }
 }
