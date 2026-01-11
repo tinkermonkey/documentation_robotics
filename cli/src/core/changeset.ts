@@ -29,6 +29,13 @@ export interface StagedChange extends Change {
 }
 
 /**
+ * Status values for changesets (supports both legacy and new lifecycle)
+ * Legacy: 'draft' | 'applied' | 'reverted'
+ * New staging: 'staged' | 'committed' | 'discarded'
+ */
+export type ChangesetStatus = 'draft' | 'applied' | 'reverted' | 'staged' | 'committed' | 'discarded';
+
+/**
  * Changeset metadata
  */
 export interface ChangesetData {
@@ -37,7 +44,7 @@ export interface ChangesetData {
   created: string;
   modified: string;
   changes: Change[];
-  status: 'draft' | 'applied' | 'reverted';
+  status: ChangesetStatus;
 }
 
 /**
@@ -49,7 +56,7 @@ export interface StagedChangesetData {
   description?: string;
   created: string;
   modified: string;
-  status: 'draft' | 'staged' | 'committed' | 'discarded';
+  status: ChangesetStatus;
   baseSnapshot: string;
   changes: StagedChange[];
   stats: {
@@ -68,7 +75,7 @@ export class Changeset {
   created: string;
   modified: string;
   changes: Change[] = [];
-  status: 'draft' | 'applied' | 'reverted' = 'draft';
+  status: ChangesetStatus = 'draft';
 
   // Extended staging fields (optional for backward compatibility)
   id?: string;
@@ -85,7 +92,7 @@ export class Changeset {
     this.created = data.created;
     this.modified = data.modified;
     this.changes = data.changes || [];
-    this.status = (data.status as any) || 'draft';
+    this.status = data.status || 'draft';
 
     // Load extended fields if present
     if ('id' in data) {
@@ -187,7 +194,7 @@ export class Changeset {
    * Mark changeset as staged
    */
   markStaged(): void {
-    this.status = 'staged' as any;
+    this.status = 'staged';
     this.updateModified();
   }
 
@@ -195,7 +202,7 @@ export class Changeset {
    * Mark changeset as committed
    */
   markCommitted(): void {
-    this.status = 'committed' as any;
+    this.status = 'committed';
     this.updateModified();
   }
 
@@ -203,7 +210,7 @@ export class Changeset {
    * Mark changeset as discarded
    */
   markDiscarded(): void {
-    this.status = 'discarded' as any;
+    this.status = 'discarded';
     this.updateModified();
   }
 

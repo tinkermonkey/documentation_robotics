@@ -6,7 +6,7 @@ import { Model } from '../../../src/core/model.js';
 import { Manifest } from '../../../src/core/manifest.js';
 import { Layer } from '../../../src/core/layer.js';
 import { Element } from '../../../src/core/element.js';
-import { rm } from 'fs/promises';
+import { rm, mkdir } from 'fs/promises';
 import { fileExists } from '../../../src/utils/file-io.js';
 
 const TEST_DIR = '/tmp/migration-test';
@@ -21,7 +21,7 @@ describe('Changeset Migration', () => {
     } catch {
       // Ignore
     }
-    await Bun.spawn(['mkdir', '-p', `${TEST_DIR}/.dr`]).exited;
+    await mkdir(`${TEST_DIR}/.dr`, { recursive: true });
 
     // Create test model
     const manifest = new Manifest({

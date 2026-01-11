@@ -6,7 +6,7 @@ import { Model } from '../../../src/core/model.js';
 import { Manifest } from '../../../src/core/manifest.js';
 import { Layer } from '../../../src/core/layer.js';
 import { Element } from '../../../src/core/element.js';
-import { rm } from 'fs/promises';
+import { rm, mkdir } from 'fs/promises';
 
 const TEST_DIR = '/tmp/staged-changeset-test';
 
@@ -89,7 +89,7 @@ describe('BaseSnapshotManager', () => {
     } catch {
       // Ignore
     }
-    await Bun.spawn(['mkdir', '-p', TEST_DIR]).exited;
+    await mkdir(TEST_DIR, { recursive: true });
 
     // Create a test model
     const manifest = new Manifest({

@@ -10,13 +10,20 @@ import type { Model } from './model.js';
 
 /**
  * Report on model drift between snapshots
+ *
+ * NOTE: Current implementation identifies that drift occurred but not the specific
+ * changes. To identify actual changes, we would need to store detailed snapshot data
+ * (not just hashes). The affectedLayers and affectedElements fields report ALL
+ * layers/elements when drift is detected, not specifically what changed.
  */
 export interface DriftReport {
   baseSnapshotHash: string;
   currentModelHash: string;
   hasDrift: boolean;
-  affectedLayers: string[];
-  affectedElements: string[];
+  // When hasDrift is true, these contain ALL current layers/elements (not specific changes)
+  // Full diff detection would require storing complete snapshot data
+  potentiallyAffectedLayers: string[];
+  potentiallyAffectedElements: string[];
 }
 
 /**
@@ -57,19 +64,20 @@ export class BaseSnapshotManager {
       }
     }
 
-    // Hash relationships (if accessible)
-    if (model.relationships) {
-      // Note: relationships is private, so we skip it in the hash
-      // The manifest and layers are sufficient for drift detection
-    }
-
     return `sha256:${hash.digest('hex')}`;
   }
 
   /**
    * Detect drift between expected snapshot and current model
    *
-   * Returns a report indicating which layers/elements have changed
+   * Returns a report indicating whether drift occurred.
+   *
+   * NOTE: This method only identifies that the model has changed (hasDrift: true/false).
+   * It cannot determine which specific layers/elements changed without storing
+   * detailed snapshot data. When drift is detected, potentiallyAffectedLayers and
+   * potentiallyAffectedElements contain ALL current layers/elements as a conservative
+   * estimate. For precise change detection, implement snapshot comparison with
+   * stored layer/element state data.
    */
   async detectDrift(
     expectedSnapshot: string,
@@ -84,26 +92,22 @@ export class BaseSnapshotManager {
         baseSnapshotHash: expectedSnapshot,
         currentModelHash: currentSnapshot,
         hasDrift: false,
-        affectedLayers: [],
-        affectedElements: [],
+        potentiallyAffectedLayers: [],
+        potentiallyAffectedElements: [],
       };
     }
 
-    // Compute which layers/elements have changed
-    const affectedLayers: string[] = [];
-    const affectedElements: string[] = [];
-
-    // Since we don't have the original snapshot data, we can only report
-    // that drift was detected. In a real implementation, we'd compare
-    // the actual layer contents.
-    // For now, we'll scan for modified layers by checking their modification time
+    // Drift detected but we cannot pinpoint exact changes without stored snapshot data
+    // Return all current layers/elements as potentially affected
+    const potentiallyAffectedLayers: string[] = [];
+    const potentiallyAffectedElements: string[] = [];
 
     for (const layerName of currentModel.layers.keys()) {
-      affectedLayers.push(layerName);
+      potentiallyAffectedLayers.push(layerName);
       const layer = currentModel.layers.get(layerName);
       if (layer) {
         layer.listElements().forEach((e) => {
-          affectedElements.push(e.id);
+          potentiallyAffectedElements.push(e.id);
         });
       }
     }
@@ -112,8 +116,8 @@ export class BaseSnapshotManager {
       baseSnapshotHash: expectedSnapshot,
       currentModelHash: currentSnapshot,
       hasDrift: true,
-      affectedLayers,
-      affectedElements,
+      potentiallyAffectedLayers,
+      potentiallyAffectedElements,
     };
   }
 

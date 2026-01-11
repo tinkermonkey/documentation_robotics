@@ -89,7 +89,7 @@ export async function migrateChangesets(
         );
 
         // Update changeset properties
-        migratedChangeset.status = newStatus as any;
+        migratedChangeset.status = newStatus;
         migratedChangeset.baseSnapshot = baseSnapshot;
 
         // Convert changes to StagedChange format with sequence numbers
@@ -137,17 +137,22 @@ function generateChangesetId(name: string): string {
 
 /**
  * Map old status values to new status values
+ *
+ * Status mapping:
+ * - draft → staged (moved to staging area)
+ * - applied → committed (already applied to model)
+ * - reverted → discarded (no longer needed)
  */
 function mapStatus(oldStatus: string): 'draft' | 'staged' | 'committed' | 'discarded' {
   switch (oldStatus) {
     case 'draft':
-      return 'draft';
+      return 'staged';  // Draft changesets become staged in the new system
     case 'applied':
       return 'committed';
     case 'reverted':
       return 'discarded';
     default:
-      return 'draft';
+      return 'staged';
   }
 }
 
