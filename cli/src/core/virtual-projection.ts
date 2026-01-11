@@ -11,7 +11,7 @@ import type { Element } from './element.js';
 import type { Manifest } from './manifest.js';
 import { Layer as LayerClass } from './layer.js';
 import { Element as ElementClass } from './element.js';
-import type { StagedChangesetData, StagedChange } from './changeset.js';
+import type { StagedChange } from './changeset.js';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 
 /**
@@ -312,7 +312,7 @@ export class VirtualProjectionEngine {
   /**
    * Compute diff by categorizing changeset changes
    */
-  async computeDiff(baseModel: Model, changesetId: string): Promise<ModelDiff> {
+  async computeDiff(_baseModel: Model, changesetId: string): Promise<ModelDiff> {
     const changeset = await this.stagingAreaManager.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
