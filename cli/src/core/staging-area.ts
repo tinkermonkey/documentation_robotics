@@ -394,12 +394,27 @@ export class StagingAreaManager {
       for (const layerName of modifiedLayers) {
         await model.saveLayer(layerName);
       }
-      await model.saveManifest();
 
       // Step 7: Update changeset status to committed
       changeset.status = 'committed';
       changeset.updateModified();
       await this.storage.save(changeset);
+
+      // Step 8: Add changeset to manifest history
+      if (!model.manifest.changeset_history) {
+        model.manifest.changeset_history = [];
+      }
+      model.manifest.changeset_history.push({
+        name: changeset.name,
+        applied_at: new Date().toISOString(),
+        action: 'applied',
+      });
+
+      // Step 9: Save manifest with updated changeset history
+      await model.saveManifest();
+
+      // Step 10: Clean up backup directory after successful commit
+      await this.cleanupBackup(backup);
 
       return result;
 
@@ -516,6 +531,21 @@ export class StagingAreaManager {
     }
 
     return backupDir;
+  }
+
+  /**
+   * Clean up a backup directory after successful commit
+   *
+   * Removes the backup directory and all its contents to prevent disk accumulation
+   */
+  private async cleanupBackup(backupDir: string): Promise<void> {
+    try {
+      const { rm } = await import('node:fs/promises');
+      await rm(backupDir, { recursive: true, force: true });
+    } catch (error) {
+      // Log cleanup failures but don't throw - successful commits shouldn't fail due to cleanup
+      console.warn(`Failed to clean up backup directory ${backupDir}:`, error);
+    }
   }
 
   /**

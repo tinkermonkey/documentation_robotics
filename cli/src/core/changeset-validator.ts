@@ -40,8 +40,11 @@ export class ChangesetValidator {
     );
 
     // Run unified validator on projected model
-    // The validator's validateModel method works with any Model-like interface
-    const result = await this.validator.validateModel(projectedModel as any);
+    // ProjectedModel has the same structure as Model (manifest + layers)
+    // so it works with the existing validator pipeline
+    const result = await this.validator.validateModel(
+      projectedModel as unknown as Model
+    );
 
     return result;
   }
