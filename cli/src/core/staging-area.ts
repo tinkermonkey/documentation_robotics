@@ -60,9 +60,11 @@ export class StagingAreaManager {
   private storage: StagedChangesetStorage;
   private snapshotManager: BaseSnapshotManager;
   private rootPath: string;
+  private model: Model | null = null;
 
-  constructor(rootPath: string) {
+  constructor(rootPath: string, model?: Model) {
     this.rootPath = rootPath;
+    this.model = model || null;
     this.storage = new StagedChangesetStorage(rootPath);
     this.snapshotManager = new BaseSnapshotManager(rootPath);
   }
@@ -71,8 +73,11 @@ export class StagingAreaManager {
    * Create a new staged changeset
    */
   async create(name: string, description?: string): Promise<Changeset> {
+    if (!this.model) {
+      throw new Error('Model required for creating changesets');
+    }
     const id = this.generateChangesetId();
-    const baseSnapshotId = await this.snapshotManager.captureSnapshot('base');
+    const baseSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
 
     const changeset = await this.storage.create(id, name, description, baseSnapshotId);
     changeset.id = id;
@@ -192,12 +197,15 @@ export class StagingAreaManager {
    * Capture a base snapshot for drift detection
    */
   async captureBaseSnapshot(changesetId: string): Promise<string> {
+    if (!this.model) {
+      throw new Error('Model required for capturing base snapshot');
+    }
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const snapshotId = await this.snapshotManager.captureSnapshot(`changeset-${changesetId}`);
+    const snapshotId = await this.snapshotManager.captureSnapshot(this.model);
     changeset.baseSnapshot = snapshotId;
     changeset.updateModified();
     await this.storage.save(changeset);
@@ -209,6 +217,9 @@ export class StagingAreaManager {
    * Detect drift by comparing base snapshot to current model state
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
+    if (!this.model) {
+      throw new Error('Model required for drift detection');
+    }
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
@@ -224,74 +235,27 @@ export class StagingAreaManager {
       };
     }
 
-    // Compare base snapshot with current state
-    const baseSnapshot = await this.snapshotManager.loadSnapshot(changeset.baseSnapshot);
-    const currentSnapshot = await this.snapshotManager.captureSnapshot('current');
+    // Capture current snapshot to compare against base
+    const currentSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
 
-    if (!baseSnapshot) {
-      return {
-        isDrifted: true,
-        baseSnapshotId: changeset.baseSnapshot,
-        currentSnapshotId: currentSnapshot,
-        changedElements: [],
-        warnings: ['Base snapshot not found - cannot detect drift accurately'],
-      };
-    }
+    // Note: BaseSnapshotManager works with hashes, not full snapshot objects
+    // Drift detection is limited to comparing snapshot IDs (hashes)
+    // Full element-level diff detection would require storing complete snapshot data
+    const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
-    // Find differences between snapshots
-    const changedElements: DriftReport['changedElements'] = [];
     const warnings: string[] = [];
-
-    // Check for elements in base that are missing or changed in current
-    for (const [layerName, elements] of Object.entries(baseSnapshot.layers || {})) {
-      const currentLayerElements = (currentSnapshot.layers?.[layerName] as Record<string, unknown>) || {};
-
-      for (const [elementId, elementData] of Object.entries(elements as Record<string, unknown>)) {
-        const currentElement = currentLayerElements[elementId];
-
-        if (!currentElement) {
-          changedElements.push({
-            elementId,
-            layerName,
-            type: 'deleted',
-          });
-        } else if (JSON.stringify(elementData) !== JSON.stringify(currentElement)) {
-          changedElements.push({
-            elementId,
-            layerName,
-            type: 'modified',
-          });
-        }
-      }
-    }
-
-    // Check for new elements in current not in base
-    for (const [layerName, elements] of Object.entries(currentSnapshot.layers || {})) {
-      const baseLayerElements = (baseSnapshot.layers?.[layerName] as Record<string, unknown>) || {};
-
-      for (const elementId of Object.keys(elements as Record<string, unknown>)) {
-        if (!baseLayerElements[elementId]) {
-          changedElements.push({
-            elementId,
-            layerName,
-            type: 'added',
-          });
-        }
-      }
-    }
-
-    const isDrifted = changedElements.length > 0;
+    const changedElements: DriftReport['changedElements'] = [];
 
     if (isDrifted) {
       warnings.push(
-        `Model has drifted since changeset creation: ${changedElements.length} element(s) changed`
+        `Model has drifted since changeset creation (base snapshot hash differs from current)`
       );
     }
 
     return {
       isDrifted,
       baseSnapshotId: changeset.baseSnapshot,
-      currentSnapshotId: currentSnapshot,
+      currentSnapshotId: currentSnapshotId,
       changedElements,
       warnings,
     };
@@ -325,10 +289,6 @@ export class StagingAreaManager {
     if (drift.isDrifted && !options.force) {
       result.driftWarning = drift;
       return result;
-    }
-
-    if (drift.isDrifted && !options.force) {
-      result.driftWarning = drift;
     }
 
     // Apply changes to model

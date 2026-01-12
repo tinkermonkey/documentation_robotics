@@ -123,7 +123,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     }
 
     // Check for active staging changeset
-    const stagingManager = new StagingAreaManager(model.rootPath);
+    const stagingManager = new StagingAreaManager(model.rootPath, model);
     const activeChangeset = await stagingManager.getActive();
 
     // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only

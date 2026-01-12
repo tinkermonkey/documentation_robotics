@@ -12,17 +12,31 @@ import { fileExists, ensureDir } from '../../src/utils/file-io.js';
 describe('StagingAreaManager', () => {
   let testDir: string;
   let manager: StagingAreaManager;
+  let model: Model;
 
   beforeEach(async () => {
     // Create temporary test directory
     testDir = path.join('/tmp', `test-staging-${Date.now()}-${Math.random()}`);
     await ensureDir(testDir);
 
-    // Initialize basic model structure
+    // Initialize basic model structure with required files
     const modelDir = path.join(testDir, 'documentation-robotics', 'model');
     await ensureDir(modelDir);
 
-    manager = new StagingAreaManager(testDir);
+    // Create manifest file in YAML format (Model.load expects YAML)
+    const { writeFile } = await import('../../src/utils/file-io.js');
+    const manifestPath = path.join(modelDir, 'manifest.yaml');
+    const manifest = `version: 0.1.0
+specVersion: 0.7.1
+created: ${new Date().toISOString()}
+modified: ${new Date().toISOString()}
+layers: {}`;
+    await writeFile(manifestPath, manifest);
+
+    // Load model for snapshot capture
+    process.chdir(testDir);
+    model = await Model.load();
+    manager = new StagingAreaManager(testDir, model);
   });
 
   afterEach(async () => {

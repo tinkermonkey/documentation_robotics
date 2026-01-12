@@ -31,38 +31,39 @@ describe('Staging Interception Integration', () => {
     const modelDir = path.join(testDir, 'documentation-robotics', 'model');
     await ensureDir(modelDir);
 
-    // Create application layer directory
+    // Create application layer directory and file
     const appLayerDir = path.join(modelDir, '04_application');
     await ensureDir(appLayerDir);
+    const appLayerPath = path.join(appLayerDir, 'elements.yaml');
 
     const dataLayerDir = path.join(modelDir, '07_data-model');
     await ensureDir(dataLayerDir);
+    const dataLayerPath = path.join(dataLayerDir, 'elements.yaml');
 
-    // Create manifest
+    // Create manifest in YAML format (Model.load expects YAML)
     const { writeFile } = await import('../../src/utils/file-io.js');
-    const manifestPath = path.join(testDir, 'documentation-robotics', 'manifest.json');
-    const manifest = {
-      version: '0.1.0',
-      specVersion: '0.7.1',
-      created: new Date().toISOString(),
-      modified: new Date().toISOString(),
-      layers: {
-        application: {
-          path: 'documentation-robotics/model/04_application',
-          catalogVersion: '1.0.0',
-        },
-        'data-model': {
-          path: 'documentation-robotics/model/07_data-model',
-          catalogVersion: '1.0.0',
-        },
-      },
-    };
-    await writeFile(manifestPath, JSON.stringify(manifest, null, 2));
+    const manifestPath = path.join(modelDir, 'manifest.yaml');
+    const manifest = `version: 0.1.0
+specVersion: 0.7.1
+created: ${new Date().toISOString()}
+modified: ${new Date().toISOString()}
+layers:
+  application:
+    path: documentation-robotics/model/04_application
+    catalogVersion: 1.0.0
+  data-model:
+    path: documentation-robotics/model/07_data-model
+    catalogVersion: 1.0.0`;
+    await writeFile(manifestPath, manifest);
+
+    // Create empty layer files
+    await writeFile(appLayerPath, 'elements: {}');
+    await writeFile(dataLayerPath, 'elements: {}');
 
     // Load model and manager
     process.chdir(testDir);
     model = await Model.load();
-    stagingManager = new StagingAreaManager(testDir);
+    stagingManager = new StagingAreaManager(testDir, model);
   });
 
   afterEach(async () => {
@@ -306,6 +307,9 @@ describe('Staging Interception Integration', () => {
         name: 'Direct Service',
       });
 
+      // Reload model to see persisted changes
+      model = await Model.load();
+
       // Verify element IS in base model (not staged)
       const appLayer = await model.getLayer('application');
       expect(appLayer?.getElement('app-service-direct')).toBeDefined();
@@ -334,6 +338,10 @@ describe('Staging Interception Integration', () => {
     });
 
     it('should maintain base model integrity across multiple staged changesets', async () => {
+      // Debug: Check if there's an inherited active changeset (shouldn't be)
+      const inheritedActive = await stagingManager.getActive();
+      expect(inheritedActive).toBeNull();
+
       // Create two changesets
       const changeset1 = await stagingManager.create('test-cs-1', 'Changeset 1');
       const changeset2 = await stagingManager.create('test-cs-2', 'Changeset 2');
@@ -360,7 +368,7 @@ describe('Staging Interception Integration', () => {
       expect(loaded1?.changes.length).toBe(2);
       expect(loaded2?.changes.length).toBe(1);
 
-      // Verify base model is still completely empty
+      // Verify base model is still completely empty (using the already-loaded instance)
       const appLayer = await model.getLayer('application');
       expect(appLayer?.listElements().length).toBe(0);
     });
