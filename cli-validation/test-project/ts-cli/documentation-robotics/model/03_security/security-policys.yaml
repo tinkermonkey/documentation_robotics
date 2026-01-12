@@ -1,5 +1,0 @@
-public-access:
-  id: public-access
-  name: Public Access Policy
-  type: security-policy
-  documentation: No authentication required - application is publicly accessible

@@ -1,5 +1,0 @@
-todo-title-field:
-  id: todo-title-field
-  name: Todo Title Field
-  type: string
-  documentation: Title/description of the todo item

@@ -1,7 +1,0 @@
-Todo Database:
-  name: Todo Database
-  description: SQLite database for storing todo items
-  type: SQLite
-  version: "1.0"
-  file: todo.db
-  id: todo-database

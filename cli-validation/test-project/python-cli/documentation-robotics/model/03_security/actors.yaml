@@ -1,5 +1,0 @@
-Authenticated User:
-  name: Authenticated User
-  description: User accessing the todo application
-  type: role
-  id: authenticated-user

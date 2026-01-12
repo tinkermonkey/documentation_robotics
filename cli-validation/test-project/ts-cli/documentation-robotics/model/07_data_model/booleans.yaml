@@ -1,5 +1,0 @@
-todo-done-field:
-  id: todo-done-field
-  name: Todo Done Field
-  type: boolean
-  documentation: Completion status of the todo item

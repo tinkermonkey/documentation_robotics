@@ -1,5 +1,0 @@
-todos-title-column:
-  id: todos-title-column
-  name: Title Column
-  type: TEXT
-  documentation: Todo item title text
