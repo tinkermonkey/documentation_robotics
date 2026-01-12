@@ -5,6 +5,7 @@
 import { confirm } from '@clack/prompts';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import { StagingAreaManager } from '../core/staging-area.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
@@ -53,7 +54,30 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     const element = layer.getElement(id)!;
     const beforeState = element.toJSON();
 
-    // Delete element
+    // Check for active staging changeset
+    const stagingManager = new StagingAreaManager(model.rootPath);
+    const activeChangeset = await stagingManager.getActive();
+
+    // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only
+    if (activeChangeset && activeChangeset.status === 'staged') {
+      // Record change in staging area, don't delete from model
+      await stagingManager.stage(activeChangeset.id!, {
+        type: 'delete',
+        elementId: id,
+        layerName,
+        before: beforeState as unknown as Record<string, unknown>,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(ansis.green(`✓ Staged deletion of element ${ansis.bold(id)} in ${ansis.bold(activeChangeset.name)}`));
+      if (options.verbose) {
+        console.log(ansis.dim(`  Changeset: ${activeChangeset.name}`));
+        console.log(ansis.dim(`  Status: staged (base model unchanged)`));
+      }
+      return;
+    }
+
+    // Normal flow: Delete from base model directly
     const deleted = layer.deleteElement(id);
     if (!deleted) {
       console.error(ansis.red(`Error: Failed to delete element ${id}`));
@@ -63,9 +87,9 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     // Delete all relationships involving this element
     model.relationships.deleteForElement(id);
 
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
+    // Track change in legacy changeset context if present
+    const activeChangesetContext = model.getActiveChangesetContext();
+    await activeChangesetContext.trackChange(
       'delete',
       id,
       layerName,

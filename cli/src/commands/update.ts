@@ -4,6 +4,7 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import { StagingAreaManager } from '../core/staging-area.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { CLIError } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
@@ -121,9 +122,34 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       process.exit(0);
     }
 
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
+    // Check for active staging changeset
+    const stagingManager = new StagingAreaManager(model.rootPath);
+    const activeChangeset = await stagingManager.getActive();
+
+    // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only
+    if (activeChangeset && activeChangeset.status === 'staged') {
+      // Record change in staging area, don't apply to model
+      await stagingManager.stage(activeChangeset.id!, {
+        type: 'update',
+        elementId: id,
+        layerName,
+        before: beforeState as unknown as Record<string, unknown>,
+        after: element.toJSON() as unknown as Record<string, unknown>,
+        timestamp: new Date().toISOString(),
+      });
+
+      console.log(ansis.green(`✓ Staged update to element ${ansis.bold(id)} in ${ansis.bold(activeChangeset.name)}`));
+      if (options.verbose) {
+        console.log(ansis.dim(`  Changeset: ${activeChangeset.name}`));
+        console.log(ansis.dim(`  Status: staged (base model unchanged)`));
+      }
+      return;
+    }
+
+    // Normal flow: Apply changes to base model directly
+    // Track change in legacy changeset context if present
+    const activeChangesetContext = model.getActiveChangesetContext();
+    await activeChangesetContext.trackChange(
       'update',
       id,
       layerName,

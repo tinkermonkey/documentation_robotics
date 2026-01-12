@@ -6,6 +6,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
+import { StagingAreaManager } from '../core/staging-area.js';
 import {
   InvalidJSONError,
   CLIError,
@@ -103,7 +104,7 @@ export async function addCommand(
       element.setSourceReference(sourceRef);
     }
 
-    // Check if element already exists
+    // Check if element already exists in base model
     if (layerObj.getElement(id)) {
       throw new CLIError(
         `Element ${id} already exists in ${layer} layer`,
@@ -112,12 +113,36 @@ export async function addCommand(
       );
     }
 
-    // Add to layer
+    // Check for active staging changeset
+    const stagingManager = new StagingAreaManager(model.rootPath);
+    const activeChangeset = await stagingManager.getActive();
+
+    // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only
+    if (activeChangeset && activeChangeset.status === 'staged') {
+      // Record change in staging area, block model mutation
+      await stagingManager.stage(activeChangeset.id!, {
+        type: 'add',
+        elementId: id,
+        layerName: layer,
+        after: element.toJSON() as unknown as Record<string, unknown>,
+        timestamp: new Date().toISOString(),
+      });
+
+      handleSuccess(`Staged element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`, {
+        status: 'staged',
+        changeset: activeChangeset.name,
+        type,
+        name: options.name || id,
+      });
+      return;
+    }
+
+    // Normal flow: Add to base model directly
     layerObj.addElement(element);
 
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
+    // Track change in legacy changeset context if present
+    const activeChangesetContext = model.getActiveChangesetContext();
+    await activeChangesetContext.trackChange(
       'add',
       id,
       layer,
