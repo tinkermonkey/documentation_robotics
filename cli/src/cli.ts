@@ -34,6 +34,8 @@ import { versionCommand } from './commands/version.js';
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from './telemetry/index.js';
 import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
 import { readJSON, fileExists } from './utils/file-io.js';
+import { migrateChangesets } from './core/changeset-migration.js';
+import { Model } from './core/model.js';
 
 // Declare TELEMETRY_ENABLED as a build-time constant (substituted by esbuild)
 // Provide runtime fallback when not running through esbuild
@@ -60,6 +62,47 @@ async function getCliVersion(): Promise<string> {
   }
 
   return '0.1.0';
+}
+
+// Check if changesets need migration from old format (.dr/changesets/) to new format
+async function needsStagingMigration(): Promise<boolean> {
+  const oldChangesetsPath = `${process.cwd()}/.dr/changesets`;
+  return await fileExists(oldChangesetsPath);
+}
+
+// Perform migration if needed
+async function runMigrationIfNeeded(): Promise<void> {
+  if (!(await needsStagingMigration())) {
+    return;
+  }
+
+  try {
+    const model = await Model.load();
+    const result = await migrateChangesets(process.cwd(), model);
+
+    if (result.totalChangesets > 0) {
+      console.log(`✓ Migrated ${result.migratedChangesets} changesets to new staging model`);
+
+      if (result.skippedChangesets > 0) {
+        console.log(`  (${result.skippedChangesets} changesets already migrated)`);
+      }
+
+      if (result.failedChangesets > 0) {
+        console.error(`✗ Failed to migrate ${result.failedChangesets} changesets:`);
+        result.errors.forEach((err) => {
+          console.error(`  - ${err.name}: ${err.error}`);
+        });
+      }
+    }
+  } catch (error) {
+    // Don't block CLI if migration fails - log and continue
+    if (process.env.DEBUG) {
+      console.error(
+        'Staging migration warning:',
+        error instanceof Error ? error.message : String(error)
+      );
+    }
+  }
 }
 
 const cliVersion = await getCliVersion();
@@ -525,6 +568,9 @@ copilotCommands(program);
 // This creates a root span that all child spans will be linked to
 (async () => {
   try {
+    // Run migration if needed (on first invocation after upgrade)
+    await runMigrationIfNeeded();
+
     if (isTelemetryEnabled) {
       // Initialize telemetry before execution
       await initTelemetry();

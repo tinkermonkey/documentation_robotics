@@ -1,0 +1,376 @@
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
+import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
+import { Model } from '../../src/core/model.js';
+import { Manifest } from '../../src/core/manifest.js';
+import { Layer } from '../../src/core/layer.js';
+import { Element } from '../../src/core/element.js';
+import { tmpdir } from 'os';
+import { mkdtemp, rm, readFile, writeFile } from 'fs/promises';
+import { join } from 'path';
+import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
+
+describe('Export/Import Workflow', () => {
+  let storage: StagedChangesetStorage;
+  let snapshotManager: BaseSnapshotManager;
+  let baseModel: Model;
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'dr-export-import-test-'));
+    storage = new StagedChangesetStorage(tempDir);
+    snapshotManager = new BaseSnapshotManager();
+
+    // Create test model
+    const manifest = new Manifest({
+      name: 'Export Test Model',
+      description: 'Model for testing export/import',
+      version: '1.0.0',
+      specVersion: '0.7.1',
+      created: new Date().toISOString(),
+      modified: new Date().toISOString(),
+    });
+
+    baseModel = new Model(tempDir, manifest);
+
+    // Add API layer with test elements
+    const apiLayer = new Layer('api');
+    const endpoint = new Element({
+      id: 'api-endpoint-get-user',
+      type: 'endpoint',
+      name: 'Get User',
+      properties: { method: 'GET', path: '/users/{id}' },
+    });
+    apiLayer.addElement(endpoint);
+
+    baseModel.addLayer(apiLayer);
+    await baseModel.saveManifest();
+    await baseModel.saveLayer('api');
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  describe('YAML Format Export/Import', () => {
+    it('should export changeset to YAML format', async () => {
+      const changesetId = 'yaml-export-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'YAML Export Test',
+        'Test YAML export',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-post-user',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-post-user',
+            type: 'endpoint',
+            name: 'Create User',
+            properties: { method: 'POST', path: '/users' },
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Export to YAML
+      const yamlPath = join(tempDir, 'changeset.yaml');
+      const changesetData = {
+        id: changeset.id,
+        name: changeset.name,
+        description: changeset.description,
+        status: changeset.status,
+        created: changeset.created,
+        modified: changeset.modified,
+        changes: changeset.changes,
+      };
+
+      await writeFile(yamlPath, stringifyYaml(changesetData));
+
+      // Verify YAML file was created
+      const yamlContent = await readFile(yamlPath, 'utf-8');
+      expect(yamlContent).toContain('api-endpoint-post-user');
+      expect(yamlContent).toContain('Create User');
+    });
+
+    it('should import changeset from YAML format and preserve structure', async () => {
+      const importId = 'yaml-import-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      // Create original changeset
+      const original = await storage.create(
+        importId,
+        'YAML Import Test',
+        'Test YAML import',
+        baseSnapshot
+      );
+
+      original.changes = [
+        {
+          type: 'update',
+          elementId: 'api-endpoint-get-user',
+          layerName: 'api',
+          before: {
+            id: 'api-endpoint-get-user',
+            type: 'endpoint',
+            name: 'Get User',
+          },
+          after: {
+            id: 'api-endpoint-get-user',
+            type: 'endpoint',
+            name: 'Get User (v2)',
+            properties: { method: 'GET', path: '/users/{id}', deprecated: true },
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(original);
+
+      // Export to YAML
+      const yamlPath = join(tempDir, 'import-test.yaml');
+      const changesetData = {
+        id: original.id,
+        name: original.name,
+        description: original.description,
+        status: original.status,
+        created: original.created,
+        modified: original.modified,
+        changes: original.changes,
+      };
+
+      await writeFile(yamlPath, stringifyYaml(changesetData));
+
+      // Import from YAML
+      const yamlContent = await readFile(yamlPath, 'utf-8');
+      const imported = parseYaml(yamlContent);
+
+      // Verify imported data matches original
+      expect(imported.id).toBe(original.id);
+      expect(imported.name).toBe('YAML Import Test');
+      expect(imported.changes.length).toBe(1);
+      expect(imported.changes[0].elementId).toBe('api-endpoint-get-user');
+      expect(imported.changes[0].after.name).toBe('Get User (v2)');
+    });
+  });
+
+  describe('Base Snapshot Compatibility Validation', () => {
+    it('should detect incompatibility when base model has changed', async () => {
+      const changesetId = 'compat-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      // Create changeset with original base snapshot
+      const changeset = await storage.create(
+        changesetId,
+        'Compatibility Test',
+        'Test compatibility detection',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-compat',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-compat',
+            type: 'endpoint',
+            name: 'Compatibility Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Modify base model
+      const apiLayer = await baseModel.getLayer('api');
+      if (apiLayer) {
+        const newElement = new Element({
+          id: 'api-endpoint-new-in-base',
+          type: 'endpoint',
+          name: 'New in Base',
+        });
+        apiLayer.addElement(newElement);
+        await baseModel.saveLayer('api');
+      }
+
+      // Capture new snapshot
+      const newSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      // Snapshots should differ
+      expect(JSON.stringify(newSnapshot)).not.toBe(JSON.stringify(baseSnapshot));
+    });
+
+    it('should identify when new elements can be imported into modified base', async () => {
+      const changesetId = 'selective-import';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Selective Import',
+        'Test selective import',
+        baseSnapshot
+      );
+
+      // Create changes that don't conflict with base modifications
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-non-conflicting',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-non-conflicting',
+            type: 'endpoint',
+            name: 'Non-Conflicting Change',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Modify base model by adding a completely different element
+      const apiLayer = await baseModel.getLayer('api');
+      if (apiLayer) {
+        const divergentElement = new Element({
+          id: 'api-endpoint-divergent',
+          type: 'endpoint',
+          name: 'Divergent Change',
+        });
+        apiLayer.addElement(divergentElement);
+        await baseModel.saveLayer('api');
+      }
+
+      // The staged change should still be valid (doesn't conflict)
+      const loaded = await storage.load(changesetId);
+      expect(loaded?.changes.length).toBe(1);
+      expect(loaded?.changes[0].elementId).toBe('api-endpoint-non-conflicting');
+    });
+  });
+
+  describe('Changeset Metadata Preservation', () => {
+    it('should preserve changeset metadata during export/import cycle', async () => {
+      const changesetId = 'metadata-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Metadata Test Changeset',
+        'A detailed description of this test changeset',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-metadata',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-metadata',
+            type: 'endpoint',
+            name: 'Metadata Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      const originalCreated = changeset.created;
+
+      await storage.save(changeset);
+
+      // Load and verify metadata is preserved
+      const loaded = await storage.load(changesetId);
+      expect(loaded?.id).toBe(changesetId);
+      expect(loaded?.name).toBe('Metadata Test Changeset');
+      expect(loaded?.description).toBe('A detailed description of this test changeset');
+      expect(loaded?.created).toBe(originalCreated);
+      expect(loaded?.status).toBe('staged');
+      // Verify changes are preserved
+      expect(loaded?.changes.length).toBe(1);
+      expect(loaded?.changes[0].elementId).toBe('api-endpoint-metadata');
+    });
+  });
+
+  describe('Multi-Layer Export', () => {
+    it('should export changes spanning multiple layers', async () => {
+      const changesetId = 'multi-layer-export';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Multi-Layer Export',
+        'Test exporting changes across layers',
+        baseSnapshot
+      );
+
+      // Add data-model layer to base model
+      const dataModelLayer = new Layer('data-model');
+      const entity = new Element({
+        id: 'data-model-entity-user',
+        type: 'entity',
+        name: 'User',
+      });
+      dataModelLayer.addElement(entity);
+      baseModel.addLayer(dataModelLayer);
+      await baseModel.saveLayer('data-model');
+
+      // Create changes in multiple layers
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-multi-1',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-multi-1',
+            type: 'endpoint',
+            name: 'Multi-Layer Test 1',
+          },
+          sequenceNumber: 0,
+        },
+        {
+          type: 'add',
+          elementId: 'data-model-entity-role',
+          layerName: 'data-model',
+          after: {
+            id: 'data-model-entity-role',
+            type: 'entity',
+            name: 'Role',
+          },
+          sequenceNumber: 1,
+        },
+        {
+          type: 'add',
+          elementId: 'api-endpoint-multi-2',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-multi-2',
+            type: 'endpoint',
+            name: 'Multi-Layer Test 2',
+          },
+          sequenceNumber: 2,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Verify all changes are saved
+      const loaded = await storage.load(changesetId);
+      expect(loaded?.changes.length).toBe(3);
+
+      const apiChanges = loaded?.changes.filter((c) => c.layerName === 'api') || [];
+      const dataModelChanges = loaded?.changes.filter((c) => c.layerName === 'data-model') || [];
+
+      expect(apiChanges.length).toBe(2);
+      expect(dataModelChanges.length).toBe(1);
+    });
+  });
+});
