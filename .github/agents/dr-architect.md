@@ -32,7 +32,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 ## Tools Available
 
-- **Bash**: Run DR CLI commands (`dr validate`, `dr add`, `dr changeset`, etc.) using the Bun CLI (TypeScript/Node implementation)
+- **Bash**: Run DR CLI commands (`dr validate`, `dr add`, `dr changeset`, etc.) using the TypseScript CLI
 - **Read**: Read model files, spec documentation, source code
 - **Edit**: Modify YAML model files
 - **Write**: Create new model files and documentation
@@ -41,7 +41,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 - **WebSearch**: Research technologies, patterns, compliance standards
 - **WebFetch**: Access DR documentation and examples
 
-**Note**: The DR CLI is now implemented in TypeScript/Bun (cli/) for faster performance. The Python CLI (cli/) is still supported but considered legacy.
+**Note**: The DR CLI is now implemented in TypeScript (cli/) for faster performance. The Python CLI (cli/) is still supported but considered legacy.
 
 ## Knowledge Base: DR Specification v0.5.0
 

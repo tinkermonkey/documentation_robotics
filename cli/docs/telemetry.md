@@ -83,19 +83,23 @@ This document provides a comprehensive guide to verifying the complete telemetry
 ### Phase 1: Build and Setup
 
 - [ ] **Build debug CLI**:
+
   ```bash
   cd /workspace/cli
   npm run build:debug
   ```
+
   Expected: No errors, telemetry enabled in output
 
 - [ ] **Verify build artifacts**:
+
   ```bash
   ls -la dist/cli.js
   # Approximately 400-500KB (with telemetry)
   ```
 
 - [ ] **Verify development build has telemetry**:
+
   ```bash
   npm run build
   ls -la dist/cli.js
@@ -105,27 +109,34 @@ This document provides a comprehensive guide to verifying the complete telemetry
 ### Phase 2: Project Name Propagation
 
 - [ ] **Create test model**:
+
   ```bash
   cd /tmp && rm -rf test-model && mkdir test-model && cd test-model
   /workspace/cli/dist/cli.js init --name "VerificationModel"
   cat .dr/manifest.json | grep '"name"'
   ```
+
   Expected: `"name": "VerificationModel"`
 
 - [ ] **Verify project name loading**:
+
   ```bash
   /workspace/cli/dist/cli.js validate
   ```
+
   When telemetry is enabled, traces will include `dr.project.name: "VerificationModel"`
 
 ### Phase 3: Console Logging Verification
 
 - [ ] **Run validator to see console output**:
+
   ```bash
   cd /tmp/test-model
   /workspace/cli/dist/cli.js validate
   ```
+
   Expected output includes validation messages like:
+
   ```
   ✓ Schema validation passed
   ✓ Naming validation passed
@@ -134,57 +145,71 @@ This document provides a comprehensive guide to verifying the complete telemetry
   ```
 
 - [ ] **Test error logging**:
+
   ```bash
   # Create an invalid element to trigger errors
   /workspace/cli/dist/cli.js add invalid-layer invalid-type test-element
   ```
+
   Expected: Error messages appear in console (and would be captured as ERROR level logs)
 
 ### Phase 4: Span Nesting Verification
 
 - [ ] **Inspect CLI span in code**:
+
   ```bash
   grep -n "startSpan('cli.execute'" /workspace/cli/src/cli.ts
   ```
+
   Expected: Found at line ~69
 
 - [ ] **Inspect validator spans in code**:
+
   ```bash
   grep -n "startSpan('model.validate'" /workspace/cli/src/validators/validator.ts
   grep -n "startSpan('validation.stage" /workspace/cli/src/validators/validator.ts
   ```
+
   Expected: Multiple stages found with proper nesting
 
 ### Phase 5: Test Instrumentation Verification
 
 - [ ] **Review example test file**:
+
   ```bash
   head -100 /workspace/cli/tests/unit/test-instrumentation.example.test.ts
   ```
+
   Expected: Shows `beforeAll()`, `afterAll()`, `instrumentTest()` usage
 
 - [ ] **Run unit tests**:
+
   ```bash
   cd /workspace/cli
   npm run test:unit
   ```
+
   Expected: All tests pass (100+ test files)
 
 ### Phase 6: Circuit-Breaker Verification
 
 - [ ] **Verify circuit-breaker code**:
+
   ```bash
   grep -A5 "retryAfter =" /workspace/cli/src/telemetry/resilient-exporter.ts
   ```
+
   Expected: Circuit-breaker logic present with 30s backoff
 
 - [ ] **Verify graceful handling**:
+
   ```bash
   # When OTEL collector is unavailable, this command completes successfully
   # with no user-visible errors or blocking
   OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:9999 \
   /workspace/cli/dist/cli.js validate
   ```
+
   Expected: Command completes in <2 seconds, no error output
 
 ## Detailed Verification Instructions
@@ -198,6 +223,7 @@ If you want to fully verify the telemetry pipeline with SigNoz:
    - At least 4GB free disk space
 
 2. **Start SigNoz** (using the example configuration):
+
    ```bash
    cd /workspace
    ./docs/otel_example/signoz-stack.sh start
@@ -211,6 +237,7 @@ If you want to fully verify the telemetry pipeline with SigNoz:
    - Dashboard should load with no errors
 
 4. **Send telemetry**:
+
    ```bash
    cd /tmp/test-model
    npm run build:debug  # In CLI directory
@@ -233,6 +260,7 @@ If you want to fully verify the telemetry pipeline with SigNoz:
    - Console output should appear with correlation IDs
 
 8. **Stop SigNoz** (if using the example stack):
+
    ```bash
    ./docs/otel_example/signoz-stack.sh stop
    ```
@@ -305,54 +333,63 @@ If you want to fully verify the telemetry pipeline with SigNoz:
 ## Key Features Verified
 
 ### Feature 1: CLI Command Tracing
+
 - **Status**: ✅ Implemented
 - **Location**: `cli.ts:69` - Root span creation
 - **Verification**: Run any command and check for `cli.execute` span
 - **Attributes**: command, args, cwd, version, dr.project.name
 
 ### Feature 2: Console Log Correlation
+
 - **Status**: ✅ Implemented
 - **Location**: `console-interceptor.ts` - All console methods wrapped
 - **Verification**: Run validator and check logs appear with traceId/spanId
 - **Severity Mapping**: log→INFO, error→ERROR, warn→WARN, debug→DEBUG
 
 ### Feature 3: Validator Span Nesting
+
 - **Status**: ✅ Implemented
 - **Location**: `validator.ts:41-111` - All stages instrumented
 - **Verification**: Expand validator spans to see nested stages
 - **Stages**: schema, naming, reference, semantic
 
 ### Feature 4: Test File Spans
+
 - **Status**: ✅ Implemented
 - **Location**: `test-instrumentation.ts:58-70` - File span creation
 - **Verification**: Run instrumented test and check for `test.file` attribute
 - **Attributes**: test.file, test.framework=bun
 
 ### Feature 5: Test Case Spans
+
 - **Status**: ✅ Implemented
 - **Location**: `test-instrumentation.ts:113-127` - Case span creation
 - **Verification**: Check span for test.name, test.suite, test.status attributes
 - **Error Recording**: test.error.message and test.error.stack for failures
 
 ### Feature 6: Failed Test Error Reporting
+
 - **Status**: ✅ Implemented
 - **Location**: `test-instrumentation.ts:153-166` - Error attribute setting
 - **Verification**: Fail a test and check for test.status=fail and error attributes
 - **Stack Traces**: Captured via span.recordException()
 
 ### Feature 7: Log-Test Correlation
+
 - **Status**: ✅ Implemented via console interceptor
 - **Location**: `console-interceptor.ts` + `test-instrumentation.ts`
 - **Verification**: Console output during tests appears in test span logs
 - **Mechanism**: Automatic trace context propagation
 
 ### Feature 8: Circuit-Breaker Protection
+
 - **Status**: ✅ Implemented
 - **Location**: `resilient-exporter.ts`, `resilient-log-exporter.ts`
 - **Verification**: Block collector and run command → completes normally, no errors
 - **Backoff**: 30 seconds after failure
 
 ### Feature 9: Project Name Propagation
+
 - **Status**: ✅ Implemented
 - **Location**: `telemetry/index.ts:74-90` - Manifest loading
 - **Verification**: All spans/logs include `dr.project.name` attribute
@@ -386,6 +423,7 @@ All tests verify:
    - Observe actual trace-log correlation in the UI
 
 2. **Run comprehensive tests**:
+
    ```bash
    cd /workspace/cli
    npm run test
@@ -409,6 +447,7 @@ All tests verify:
 ## Troubleshooting Reference
 
 See `/workspace/cli/README.md` "Telemetry & Observability" section for:
+
 - Common setup issues
 - Circuit-breaker behavior
 - Resource attribute verification
@@ -418,6 +457,7 @@ See `/workspace/cli/README.md` "Telemetry & Observability" section for:
 ## Summary
 
 All requirements have been implemented with:
+
 - Zero production overhead (telemetry disabled by default)
 - Comprehensive error handling
 - Graceful degradation

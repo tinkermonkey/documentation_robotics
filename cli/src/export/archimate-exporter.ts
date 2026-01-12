@@ -71,14 +71,14 @@ export class ArchiMateExporter implements Exporter {
       const sourceRef = element.getSourceReference();
       if (sourceRef) {
         lines.push(`        <property key="source.provenance" value="${escapeXml(sourceRef.provenance)}" />`);
-        
+
         sourceRef.locations.forEach((loc: SourceLocation, idx: number) => {
           lines.push(`        <property key="source.file.${idx}" value="${escapeXml(loc.file)}" />`);
           if (loc.symbol) {
             lines.push(`        <property key="source.symbol.${idx}" value="${escapeXml(loc.symbol)}" />`);
           }
         });
-        
+
         if (sourceRef.repository) {
           if (sourceRef.repository.url) {
             lines.push(`        <property key="source.repository.url" value="${escapeXml(sourceRef.repository.url)}" />`);

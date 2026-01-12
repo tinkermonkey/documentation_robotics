@@ -6,21 +6,21 @@
 
 **Components:**
 
-1. **CLI Tool (`cli/`)** - TypeScript/Bun implementation (v0.1.0, ~8x faster)
+1. **CLI Tool (`cli/`)** - TypeScript implementation
 2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
 
-**Current Versions:** Bun CLI v0.1.0, Spec v0.7.1
+**Current Versions:** Typescript CLI v0.1.0, Spec v0.7.1
 
 ## Repository Structure
 
 ```
 documentation_robotics/
-├── spec/                        # SPECIFICATION (v0.7.1)
+├── spec/                        # SPECIFICATION
 │   ├── VERSION                  # Spec version number
 │   ├── layers/                  # 12 layer specifications
 │   └── schemas/                 # JSON Schema definitions
 │
-└── cli/                         # TYPESCRIPT/BUN CLI (v0.1.0)
+└── cli/                         # TYPESCRIPT CLI
     ├── src/
     │   ├── commands/           # 23+ command implementations
     │   ├── core/               # Domain models & registries
@@ -144,11 +144,13 @@ Federated architecture model spanning 12 interconnected layers:
 **CRITICAL**: Schema changes require updating BOTH spec and CLI schemas.
 
 Layer schemas include relationship metadata:
+
 - `layerMetadata` - layer identifier and catalog version
 - `intraLayerRelationships` - relationships within the layer
 - `crossLayerRelationships` - outgoing/incoming relationships to/from other layers
 
 **Always update both:**
+
 - `spec/schemas/{layer}.schema.json`
 - `cli/src/schemas/bundled/{layer}.schema.json`
 

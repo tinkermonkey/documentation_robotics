@@ -1,6 +1,6 @@
 /**
  * Tests for Claude Code Agent Implementation
- * 
+ *
  * Tests the ClaudeCodeAgent implementation including availability checking,
  * process spawning, and JSON output parsing.
  */
@@ -35,7 +35,7 @@ describe('ClaudeCodeAgent', () => {
     it('should return Promise<boolean>', async () => {
       const result = agent.isAvailable();
       expect(result).toBeInstanceOf(Promise);
-      
+
       const available = await result;
       expect(typeof available).toBe('boolean');
     });
@@ -265,7 +265,7 @@ Another plain line`;
       const proc2 = agent.spawn({ cwd: '/test', message: 'test2' });
 
       expect(proc1.conversationId).not.toBe(proc2.conversationId);
-      
+
       proc1.process.kill();
       proc2.process.kill();
     });

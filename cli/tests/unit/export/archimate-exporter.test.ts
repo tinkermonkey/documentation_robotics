@@ -141,7 +141,7 @@ describe("ArchiMateExporter", () => {
 
     while ((match = tagRegex.exec(output)) !== null) {
       const [, tagName, selfClosing] = match;
-      
+
       if (tagName.startsWith('/')) {
         // Closing tag
         const expectedTag = tagStack.pop();

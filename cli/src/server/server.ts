@@ -167,13 +167,13 @@ export class VisualizationServer {
    */
   private async initializeChatClients(): Promise<void> {
     const clients = await detectAvailableClients();
-    
+
     // Select the chat client based on manifest preference
     const preferredAgent = this.model.manifest.getCodingAgent();
     this.selectedChatClient = selectChatClient(clients, preferredAgent);
-    
+
     // Log warnings/info if needed
-    if (preferredAgent && this.selectedChatClient && 
+    if (preferredAgent && this.selectedChatClient &&
         this.selectedChatClient.getClientName() !== preferredAgent) {
       console.warn(`[Chat] Preferred client "${preferredAgent}" not available, using ${this.selectedChatClient.getClientName()}`);
     }
@@ -889,14 +889,14 @@ export class VisualizationServer {
     try {
       // Build command arguments
       const cmd = ['claude', '--agent', 'dr-architect', '--print'];
-      
+
       // Add dangerously-skip-permissions flag if withDanger is enabled
       if (this.withDanger) {
         cmd.push('--dangerously-skip-permissions');
       }
-      
+
       cmd.push('--verbose', '--output-format', 'stream-json');
-      
+
       // Launch claude with dr-architect agent for comprehensive DR expertise
       const proc = Bun.spawn({
         cmd,
@@ -1081,32 +1081,32 @@ export class VisualizationServer {
     try {
       // Determine which command to use (gh copilot or standalone copilot)
       let cmd: string[];
-      
+
       // Check if gh CLI with copilot extension is available
       const ghResult = Bun.spawnSync({
         cmd: ['gh', 'copilot', '--version'],
         stdout: 'pipe',
         stderr: 'pipe',
       });
-      
+
       if (ghResult.exitCode === 0) {
         cmd = ['gh', 'copilot', 'explain'];
-        
+
         // Add allow-all-tools flag if withDanger is enabled
         if (this.withDanger) {
           cmd.push('--allow-all-tools');
         }
-        
+
         cmd.push(message);
       } else {
         // Try standalone copilot
         cmd = ['copilot', 'explain'];
-        
+
         // Add allow-all-tools flag if withDanger is enabled
         if (this.withDanger) {
           cmd.push('--allow-all-tools');
         }
-        
+
         cmd.push(message);
       }
 

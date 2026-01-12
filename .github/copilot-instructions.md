@@ -4,8 +4,8 @@
 
 Documentation Robotics is a **federated architecture modeling toolkit** that spans 12 interconnected layers from business goals to observability. It consists of:
 
-1. **Specification** ([spec/](../spec/)) - Formal 12-layer model definition (v0.7.1)
-2. **TypeScript/Bun CLI** ([cli/](../cli/)) - Fast implementation (~150ms startup, v0.1.0)
+1. **Specification** ([spec/](../spec/)) - Formal 12-layer model definition
+2. **TypeScript CLI** ([cli/](../cli/)) - Fast implementation
 3. **Python CLI** (legacy, deprecated) - Original implementation
 
 **Key Principle:** Elements in higher layers reference lower layers only (motivation → business → security → application → technology → API → data model → data store → UX → navigation → APM → testing).
@@ -30,14 +30,17 @@ Documentation Robotics is a **federated architecture modeling toolkit** that spa
 ### Core Concepts
 
 **Model Structure:** All models live in `.dr/` directory:
+
 - `.dr/manifest.json` - Model metadata
 - `.dr/layers/{layer-name}.json` - Layer data files
 
 **Element Naming:** Format is `{layer}.{type}.{kebab-case-name}` (e.g., `api.endpoint.create-customer`)
+
 - Must be unique across entire model
 - Use dot-separated format consistently
 
 **Validation Pipeline** (4 stages):
+
 1. **Schema** - JSON Schema compliance (AJV)
 2. **Naming** - Element ID format enforcement
 3. **Reference** - Cross-layer reference integrity
@@ -48,6 +51,7 @@ Documentation Robotics is a **federated architecture modeling toolkit** that spa
 ### 1. Two Version Numbers
 
 **NEVER confuse these:**
+
 - **Specification:** `spec/VERSION` (currently v0.7.1)
 - **CLI:** `cli/package.json` (currently v0.1.0)
 
@@ -56,6 +60,7 @@ CLI version can be ahead of spec version, but CLI must remain compatible with cu
 ### 2. Schema Synchronization
 
 **CRITICAL:** Schema changes require updating BOTH:
+
 - `spec/schemas/{layer}.schema.json` (source of truth)
 - `cli/src/schemas/bundled/{layer}.schema.json` (bundled copy)
 
@@ -64,12 +69,14 @@ CLI version can be ahead of spec version, but CLI must remain compatible with cu
 ### 3. When to Ask vs. Proceed
 
 **ASK before:**
+
 - Modifying layer specifications or schemas
 - Breaking changes to CLI commands or public APIs
 - Version bumps (releases use specific process)
 - Changes affecting backwards compatibility
 
 **PROCEED without asking:**
+
 - Bug fixes in CLI implementation
 - Internal refactoring (no API changes)
 - Adding tests or improving documentation
@@ -78,6 +85,7 @@ CLI version can be ahead of spec version, but CLI must remain compatible with cu
 ### 4. Cross-Layer References
 
 **Direction:** Higher layers → lower layers ONLY
+
 - VALID: `application.service.orders` → `business.service.order-management`
 - INVALID: `business.service.orders` → `application.service.order-app`
 
@@ -88,7 +96,7 @@ Always validate references exist before creating them.
 ### Running Tests
 
 ```bash
-# CLI tests (TypeScript/Bun)
+# CLI tests (TypeScript)
 cd cli
 npm test                    # All tests
 npm run test:unit          # Unit tests only
@@ -143,6 +151,7 @@ npm run copy-schemas       # Copy spec schemas to bundled/
 ## Export Formats
 
 **Supported exports:**
+
 - **ArchiMate** - Layers 1, 2, 4, 5 only (business, motivation, application, technology)
 - **OpenAPI** - Layer 6 (API) only
 - **JSON Schema** - Layer 7 (Data Model) only
@@ -151,6 +160,7 @@ npm run copy-schemas       # Copy spec schemas to bundled/
 - **GraphML** - Graph analysis (all layers)
 
 **Export commands:**
+
 ```bash
 dr export archimate --output model.archimate
 dr export openapi --output api-spec.yaml
@@ -169,6 +179,7 @@ dr visualize --token my-token   # Custom token
 ```
 
 **Features:**
+
 - WebSocket support for live model updates
 - Element annotations and comments
 - Changeset tracking
@@ -214,7 +225,6 @@ Hooks check: markdown formatting, YAML syntax, JSON validity, trailing whitespac
 2. **Separation of concerns** - Clear boundaries between commands, core logic, validators
 3. **Federated approach** - ArchiMate spine + specialized standards for each layer
 4. **Testability** - Comprehensive test coverage across all components
-5. **Fast and efficient** - TypeScript/Bun CLI is ~8x faster than Python legacy
 
 ## Documentation References
 

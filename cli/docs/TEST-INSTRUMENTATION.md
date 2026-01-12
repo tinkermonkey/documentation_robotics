@@ -43,28 +43,28 @@ test.file span (parent)
 
 #### File-Level Span (`test.file`)
 
-| Attribute | Type | Example | Description |
-|-----------|------|---------|-------------|
-| `test.file` | string | `tests/unit/example.test.ts` | Path to the test file |
-| `test.framework` | string | `bun` | Test framework being used |
-| `dr.project.name` | string | `my-project` | Project name (inherited from resource) |
+| Attribute         | Type   | Example                      | Description                            |
+| ----------------- | ------ | ---------------------------- | -------------------------------------- |
+| `test.file`       | string | `tests/unit/example.test.ts` | Path to the test file                  |
+| `test.framework`  | string | `bun`                        | Test framework being used              |
+| `dr.project.name` | string | `my-project`                 | Project name (inherited from resource) |
 
 #### Test Case Span (`test.case`)
 
-| Attribute | Type | Example | Description |
-|-----------|------|---------|-------------|
-| `test.name` | string | `should validate input` | Test case name |
-| `test.suite` | string | `ValidationTests` | Describe block name (optional) |
-| `test.file` | string | `tests/unit/example.test.ts` | Parent test file |
-| `test.status` | string | `pass`, `fail`, `skip` | Test result status |
-| `dr.project.name` | string | `my-project` | Project name (inherited from resource) |
+| Attribute         | Type   | Example                      | Description                            |
+| ----------------- | ------ | ---------------------------- | -------------------------------------- |
+| `test.name`       | string | `should validate input`      | Test case name                         |
+| `test.suite`      | string | `ValidationTests`            | Describe block name (optional)         |
+| `test.file`       | string | `tests/unit/example.test.ts` | Parent test file                       |
+| `test.status`     | string | `pass`, `fail`, `skip`       | Test result status                     |
+| `dr.project.name` | string | `my-project`                 | Project name (inherited from resource) |
 
 #### Error Attributes (on failed tests)
 
-| Attribute | Type | Example |
-|-----------|------|---------|
-| `test.error.message` | string | `Expected string, got number` |
-| `test.error.stack` | string | `Error: Expected...\n    at ...` |
+| Attribute            | Type   | Example                          |
+| -------------------- | ------ | -------------------------------- |
+| `test.error.message` | string | `Expected string, got number`    |
+| `test.error.stack`   | string | `Error: Expected...\n    at ...` |
 
 ## Basic Usage
 
@@ -73,16 +73,16 @@ test.file span (parent)
 Add this to the top of your test file to create a file-level span:
 
 ```typescript
-import { describe, test, beforeAll, afterAll } from 'bun:test';
+import { describe, test, beforeAll, afterAll } from "bun:test";
 import {
   startTestFileSpan,
   endTestFileSpan,
   instrumentTest,
-} from '../../src/telemetry/test-instrumentation.js';
+} from "../../src/telemetry/test-instrumentation.js";
 
 // Create file-level span at the beginning of tests
 beforeAll(() => {
-  startTestFileSpan('tests/unit/my.test.ts');
+  startTestFileSpan("tests/unit/my.test.ts");
 });
 
 // Clean up at the end of tests
@@ -96,16 +96,16 @@ afterAll(() => {
 Use `instrumentTest()` to wrap test functions:
 
 ```typescript
-describe('ValidationTests', () => {
+describe("ValidationTests", () => {
   test(
-    'should validate positive numbers',
+    "should validate positive numbers",
     instrumentTest(
-      'should validate positive numbers',
+      "should validate positive numbers",
       async () => {
         const isValid = (n: number) => n > 0;
         expect(isValid(42)).toBe(true);
       },
-      'ValidationTests'
+      "ValidationTests"
     )
   );
 });
@@ -116,18 +116,15 @@ describe('ValidationTests', () => {
 For complex tests, manage spans manually:
 
 ```typescript
-import {
-  createTestCaseSpan,
-  recordTestResult,
-} from '../../src/telemetry/test-instrumentation.js';
+import { createTestCaseSpan, recordTestResult } from "../../src/telemetry/test-instrumentation.js";
 
-test('complex test', async () => {
-  const span = createTestCaseSpan('complex test', 'ComplexTests');
+test("complex test", async () => {
+  const span = createTestCaseSpan("complex test", "ComplexTests");
   try {
     // test code
-    recordTestResult(span, 'pass');
+    recordTestResult(span, "pass");
   } catch (error) {
-    recordTestResult(span, 'fail', error as Error);
+    recordTestResult(span, "fail", error as Error);
     throw error; // Re-throw to fail the test
   }
 });
@@ -138,17 +135,17 @@ test('complex test', async () => {
 Import the helper functions for cleaner setup:
 
 ```typescript
-import { setupTestTelemetry } from '../../tests/helpers/test-instrumentation-helpers.js';
-import { describe, test, beforeAll, afterAll } from 'bun:test';
+import { setupTestTelemetry } from "../../tests/helpers/test-instrumentation-helpers.js";
+import { describe, test, beforeAll, afterAll } from "bun:test";
 
 const { beforeAll: setupTelemetry, afterAll: teardownTelemetry } =
-  setupTestTelemetry('tests/unit/my.test.ts');
+  setupTestTelemetry("tests/unit/my.test.ts");
 
 beforeAll(setupTelemetry);
 afterAll(teardownTelemetry);
 
-describe('MyTests', () => {
-  test('my test', () => {
+describe("MyTests", () => {
+  test("my test", () => {
     // test code
   });
 });
@@ -158,50 +155,50 @@ describe('MyTests', () => {
 
 ```typescript
 // tests/unit/example.test.ts
-import { describe, test, beforeAll, afterAll, expect } from 'bun:test';
+import { describe, test, beforeAll, afterAll, expect } from "bun:test";
 import {
   startTestFileSpan,
   endTestFileSpan,
   instrumentTest,
-} from '../../src/telemetry/test-instrumentation.js';
+} from "../../src/telemetry/test-instrumentation.js";
 
 // File-level setup
 beforeAll(() => {
-  startTestFileSpan('tests/unit/example.test.ts');
+  startTestFileSpan("tests/unit/example.test.ts");
 });
 
 afterAll(() => {
   endTestFileSpan();
 });
 
-describe('ValidationTests', () => {
+describe("ValidationTests", () => {
   test(
-    'should validate email',
+    "should validate email",
     instrumentTest(
-      'should validate email',
+      "should validate email",
       async () => {
         const validateEmail = (email: string) => {
-          if (!email.includes('@')) throw new Error('Invalid email');
+          if (!email.includes("@")) throw new Error("Invalid email");
           return true;
         };
 
-        expect(validateEmail('user@example.com')).toBe(true);
-        expect(() => validateEmail('invalid')).toThrow('Invalid email');
+        expect(validateEmail("user@example.com")).toBe(true);
+        expect(() => validateEmail("invalid")).toThrow("Invalid email");
       },
-      'ValidationTests'
+      "ValidationTests"
     )
   );
 
   test(
-    'should handle edge cases',
+    "should handle edge cases",
     instrumentTest(
-      'should handle edge cases',
+      "should handle edge cases",
       async () => {
         const isEmpty = (s: string) => s.length === 0;
-        expect(isEmpty('')).toBe(true);
-        expect(isEmpty('a')).toBe(false);
+        expect(isEmpty("")).toBe(true);
+        expect(isEmpty("a")).toBe(false);
       },
-      'ValidationTests'
+      "ValidationTests"
     )
   );
 });
@@ -222,11 +219,13 @@ When telemetry is enabled (`TELEMETRY_ENABLED=true`):
 ### Export Endpoint
 
 By default, spans are sent to:
+
 ```
 http://localhost:4318/v1/traces
 ```
 
 Configure via environment variables:
+
 ```bash
 OTEL_EXPORTER_OTLP_ENDPOINT=http://your-collector:4318
 ```
@@ -238,6 +237,7 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://your-collector:4318
 1. Open SigNoz dashboard
 2. Go to **Traces** section
 3. Filter by attributes:
+
    ```
    dr.project.name = "my-project"
    test.framework = "bun"
@@ -246,21 +246,25 @@ OTEL_EXPORTER_OTLP_ENDPOINT=http://your-collector:4318
 ### Query Examples
 
 **Find all failed tests:**
+
 ```
 test.status = "fail"
 ```
 
 **Find tests in a specific file:**
+
 ```
 test.file = "tests/unit/example.test.ts"
 ```
 
 **Find tests in a suite:**
+
 ```
 test.suite = "ValidationTests"
 ```
 
 **Find tests with errors matching pattern:**
+
 ```
 test.error.message LIKE "%assertion%"
 ```
@@ -268,6 +272,7 @@ test.error.message LIKE "%assertion%"
 ### Viewing Error Details
 
 Click a failed test span to see:
+
 - `test.error.message` - Error message
 - `test.error.stack` - Full stack trace
 - Exception record with full error context
@@ -281,13 +286,14 @@ In production builds, `TELEMETRY_ENABLED=false` and all instrumentation becomes 
 ```typescript
 // Compiled out in production
 if (TELEMETRY_ENABLED) {
-  const span = startTestFileSpan('...'); // → Eliminated
+  const span = startTestFileSpan("..."); // → Eliminated
 }
 ```
 
 ### Debug Mode
 
 In debug mode, overhead is minimal:
+
 - File span: ~1ms overhead per test file
 - Test span: ~0.1ms overhead per test case
 - Exporter timeout: 500ms (non-blocking, happens in background)
@@ -295,6 +301,7 @@ In debug mode, overhead is minimal:
 ### Circuit-Breaker Protection
 
 If the OTLP collector is unreachable:
+
 1. First export attempt fails with 500ms timeout
 2. Circuit-breaker activates for 30 seconds
 3. Spans discarded silently (no CLI impact)
@@ -305,6 +312,7 @@ If the OTLP collector is unreachable:
 ### Spans Not Appearing in SigNoz
 
 1. **Check collector is running:**
+
    ```bash
    curl http://localhost:4318/v1/traces
    ```
@@ -320,6 +328,7 @@ If the OTLP collector is unreachable:
 ### Empty `test.suite` Attribute
 
 If `test.suite` is empty string:
+
 - Means the optional `suiteName` parameter wasn't provided
 - This is fine - tests are still tracked by `test.name`
 

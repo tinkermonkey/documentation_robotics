@@ -48,9 +48,9 @@ The main interface all agent implementations must satisfy:
 
 ```typescript
 interface CodingAgent {
-  readonly name: string;          // Human-readable name
-  readonly command: string;        // CLI command
-  
+  readonly name: string; // Human-readable name
+  readonly command: string; // CLI command
+
   isAvailable(): Promise<boolean>;
   spawn(options: SpawnAgentOptions): AgentProcess;
   parseOutput(chunk: string): ChatEvent[];
@@ -63,9 +63,9 @@ Wrapper for spawned subprocess:
 
 ```typescript
 interface AgentProcess {
-  process: ChildProcess;           // Node.js child process
-  conversationId: string;          // Unique identifier
-  completion: Promise<AgentProcessResult>;  // Resolves on completion
+  process: ChildProcess; // Node.js child process
+  conversationId: string; // Unique identifier
+  completion: Promise<AgentProcessResult>; // Resolves on completion
 }
 ```
 
@@ -75,12 +75,12 @@ Structured event from agent output:
 
 ```typescript
 interface ChatEvent {
-  type: 'text' | 'tool_use' | 'tool_result' | 'error' | 'complete';
-  content?: string;                // Text content
-  toolName?: string;               // Tool being used
-  toolInput?: any;                 // Tool input parameters
-  toolResult?: any;                // Tool execution result
-  error?: string;                  // Error message
+  type: "text" | "tool_use" | "tool_result" | "error" | "complete";
+  content?: string; // Text content
+  toolName?: string; // Tool being used
+  toolInput?: any; // Tool input parameters
+  toolResult?: any; // Tool execution result
+  error?: string; // Error message
 }
 ```
 
@@ -89,13 +89,13 @@ interface ChatEvent {
 ### 1. Check Availability
 
 ```typescript
-import { ClaudeCodeAgent } from './ai/agents';
+import { ClaudeCodeAgent } from "./ai/agents";
 
 const agent = new ClaudeCodeAgent();
 const available = await agent.isAvailable();
 
 if (!available) {
-  console.error('Agent not installed');
+  console.error("Agent not installed");
   process.exit(1);
 }
 ```
@@ -104,26 +104,26 @@ if (!available) {
 
 ```typescript
 const agentProcess = agent.spawn({
-  cwd: '/path/to/project',
-  message: 'What layers are in this model?',
-  agentName: 'dr-architect',  // Optional
-  additionalArgs: ['--verbose'],  // Optional
+  cwd: "/path/to/project",
+  message: "What layers are in this model?",
+  agentName: "dr-architect", // Optional
+  additionalArgs: ["--verbose"], // Optional
 });
 
-console.log('Conversation ID:', agentProcess.conversationId);
+console.log("Conversation ID:", agentProcess.conversationId);
 ```
 
 ### 3. Monitor Live Output
 
 ```typescript
-agentProcess.process.stdout?.on('data', (data: Buffer) => {
+agentProcess.process.stdout?.on("data", (data: Buffer) => {
   const chunk = data.toString();
   const events = agent.parseOutput(chunk);
-  
+
   for (const event of events) {
-    if (event.type === 'text') {
-      process.stdout.write(event.content || '');
-    } else if (event.type === 'tool_use') {
+    if (event.type === "text") {
+      process.stdout.write(event.content || "");
+    } else if (event.type === "tool_use") {
       console.log(`[Using tool: ${event.toolName}]`);
     }
   }
@@ -135,12 +135,12 @@ agentProcess.process.stdout?.on('data', (data: Buffer) => {
 ```typescript
 const result = await agentProcess.completion;
 
-console.log('Exit code:', result.exitCode);
-console.log('Full response:', result.fullResponse);
-console.log('Total events:', result.events.length);
+console.log("Exit code:", result.exitCode);
+console.log("Full response:", result.fullResponse);
+console.log("Total events:", result.events.length);
 
 if (result.error) {
-  console.error('Error:', result.error);
+  console.error("Error:", result.error);
 }
 ```
 
@@ -151,40 +151,42 @@ To add support for a new coding agent CLI:
 ### 1. Create Agent Class
 
 ```typescript
-import { CodingAgent, AgentProcess, ChatEvent, SpawnAgentOptions } from './types';
+import { CodingAgent, AgentProcess, ChatEvent, SpawnAgentOptions } from "./types";
 
 export class MyCustomAgent implements CodingAgent {
-  readonly name = 'My Custom Agent';
-  readonly command = 'my-agent';
-  
+  readonly name = "My Custom Agent";
+  readonly command = "my-agent";
+
   async isAvailable(): Promise<boolean> {
     // Check if command exists in PATH
     // Should be fast (< 100ms)
     try {
-      const result = spawnSync('which', [this.command], {
-        stdio: 'pipe',
-        encoding: 'utf-8',
+      const result = spawnSync("which", [this.command], {
+        stdio: "pipe",
+        encoding: "utf-8",
       });
       return result.status === 0;
     } catch {
       return false;
     }
   }
-  
+
   spawn(options: SpawnAgentOptions): AgentProcess {
     // Build command arguments
-    const args = [/* ... */];
-    
+    const args = [
+      /* ... */
+    ];
+
     // Spawn subprocess
     const proc = spawn(this.command, args, {
       cwd: options.cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ["pipe", "pipe", "pipe"],
     });
-    
+
     // Send initial message
     proc.stdin.write(options.message);
     proc.stdin.end();
-    
+
     // Return process wrapper
     return {
       process: proc,
@@ -192,26 +194,26 @@ export class MyCustomAgent implements CodingAgent {
       completion: this.monitorProcess(proc),
     };
   }
-  
+
   parseOutput(chunk: string): ChatEvent[] {
     // Parse agent-specific output format
     // Return structured ChatEvent array
     const events: ChatEvent[] = [];
-    
+
     // Example: plain text line by line
-    const lines = chunk.split('\n');
+    const lines = chunk.split("\n");
     for (const line of lines) {
       if (line.trim()) {
         events.push({
-          type: 'text',
+          type: "text",
           content: line,
         });
       }
     }
-    
+
     return events;
   }
-  
+
   private monitorProcess(proc: ChildProcess): Promise<AgentProcessResult> {
     // Set up stdout/stderr monitoring
     // Accumulate results
@@ -224,7 +226,7 @@ export class MyCustomAgent implements CodingAgent {
 
 ```typescript
 // src/ai/agents/index.ts
-export { MyCustomAgent } from './my-custom-agent.js';
+export { MyCustomAgent } from "./my-custom-agent.js";
 ```
 
 ### 3. Add Tests
@@ -244,10 +246,7 @@ Modify `commands/chat.ts` to detect and use your agent:
 
 ```typescript
 // Detect available agents
-const agents = [
-  new ClaudeCodeAgent(),
-  new MyCustomAgent(),
-];
+const agents = [new ClaudeCodeAgent(), new MyCustomAgent()];
 
 let selectedAgent: CodingAgent | undefined;
 for (const agent of agents) {
@@ -258,7 +257,7 @@ for (const agent of agents) {
 }
 
 if (!selectedAgent) {
-  console.error('No coding agent available');
+  console.error("No coding agent available");
   process.exit(1);
 }
 ```
@@ -267,21 +266,23 @@ if (!selectedAgent) {
 
 ### ClaudeCodeAgent
 
-**Command:** `claude`  
-**Output Format:** Line-delimited JSON (`--output-format stream-json`)  
+**Command:** `claude`
+**Output Format:** Line-delimited JSON (`--output-format stream-json`)
 **Features:**
+
 - Uses `dr-architect` agent by default
 - Supports tool use events
 - Parses structured JSON events
 
 **Example Event:**
+
 ```json
 {
   "type": "assistant",
   "message": {
     "content": [
-      {"type": "text", "text": "Response text"},
-      {"type": "tool_use", "name": "Bash", "input": {"command": "ls"}}
+      { "type": "text", "text": "Response text" },
+      { "type": "tool_use", "name": "Bash", "input": { "command": "ls" } }
     ]
   }
 }
@@ -289,9 +290,10 @@ if (!selectedAgent) {
 
 ### GitHubCopilotAgent (Planned)
 
-**Command:** `gh copilot` or `@github/copilot`  
-**Output Format:** Plain text/markdown  
+**Command:** `gh copilot` or `@github/copilot`
+**Output Format:** Plain text/markdown
 **Features:**
+
 - Session-based context
 - `--continue` flag for conversation
 - Plain text output parsing

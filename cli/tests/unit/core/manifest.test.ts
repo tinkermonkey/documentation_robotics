@@ -213,7 +213,7 @@ describe("Manifest", () => {
       };
 
       const manifest = new Manifest(data);
-      
+
       expect(manifest.preferred_chat_client).toBe("GitHub Copilot");
       expect(manifest.getCodingAgent()).toBe("GitHub Copilot");
     });
@@ -225,7 +225,7 @@ describe("Manifest", () => {
       };
 
       const manifest = new Manifest(data);
-      
+
       expect(manifest.preferred_chat_client).toBeUndefined();
       expect(manifest.getCodingAgent()).toBeUndefined();
     });

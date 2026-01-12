@@ -1,6 +1,6 @@
 /**
  * Base Chat Client Interface
- * 
+ *
  * Defines the abstraction layer for AI chat clients that can be used with
  * the Documentation Robotics CLI. Implementations include Claude Code CLI
  * and GitHub Copilot CLI.
@@ -39,7 +39,7 @@ export interface ChatOptions {
 
 /**
  * Abstract base class for AI chat clients
- * 
+ *
  * Provides a common interface for different AI chat CLI tools,
  * handling availability detection, message streaming, and session management.
  */

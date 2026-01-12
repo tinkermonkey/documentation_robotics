@@ -1,10 +1,10 @@
 /**
  * Coding Agent Abstraction Layer
- * 
+ *
  * Provides a unified interface for integrating multiple coding agent CLIs
  * (Claude Code, GitHub Copilot, etc.) with consistent availability checking,
  * process spawning, and output parsing.
- * 
+ *
  * @module ai/agents
  */
 

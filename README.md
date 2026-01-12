@@ -76,7 +76,7 @@ The Documentation Robotics specification defines a standards-based approach to m
 **Location:** [`cli/`](cli/)
 **Status:** Production-ready
 
-A TypeScript/Bun-based command-line tool for managing project models conforming to the specification.
+A TypeScript-based command-line tool for managing project models conforming to the specification.
 
 **Key Features:**
 
@@ -143,7 +143,7 @@ documentation_robotics/
 │   ├── guides/                  # Implementation guides
 │   └── examples/                # Example models
 │
-├── cli/                         # TYPESCRIPT/BUN CLI
+├── cli/                         # TYPESCRIPT CLI
 │   ├── src/                     # TypeScript source code
 │   │   ├── commands/            # Command implementations
 │   │   ├── core/                # Domain models
@@ -197,11 +197,13 @@ This project maximizes use of existing standards:
 Want to use this for modeling your project?
 
 1. **Install the CLI**
+
    ```bash
    npm install -g @documentation-robotics/cli
    ```
 
 2. **Create Your First Model**
+
    ```bash
    dr init --name "My Project"
    dr add motivation goal motivation-goal-first --name "My First Goal"

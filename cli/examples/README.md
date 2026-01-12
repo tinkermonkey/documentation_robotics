@@ -24,11 +24,13 @@ Demonstrates the core features of the Agent Abstraction Layer:
 - Spawning agent processes (example code)
 
 **Run:**
+
 ```bash
 node examples/agent-usage.js
 ```
 
 **Expected Output:**
+
 ```
 === Agent Abstraction Layer Example ===
 
@@ -59,7 +61,7 @@ Event 2:
 To create an example using the abstraction layer:
 
 ```javascript
-import { ClaudeCodeAgent } from '../dist/ai/agents/index.js';
+import { ClaudeCodeAgent } from "../dist/ai/agents/index.js";
 
 const agent = new ClaudeCodeAgent();
 
@@ -68,9 +70,9 @@ if (await agent.isAvailable()) {
   // Spawn and interact with agent
   const proc = agent.spawn({
     cwd: process.cwd(),
-    message: 'Your message here',
+    message: "Your message here",
   });
-  
+
   // Process events...
 }
 ```
