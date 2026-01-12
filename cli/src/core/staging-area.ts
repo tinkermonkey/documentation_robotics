@@ -12,6 +12,7 @@ import path from 'path';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 import { BaseSnapshotManager } from './base-snapshot-manager.js';
 import { Changeset, StagedChange } from './changeset.js';
+import { ChangesetValidator } from './changeset-validator.js';
 import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
 
@@ -59,6 +60,7 @@ export interface CommitResult {
 export class StagingAreaManager {
   private storage: StagedChangesetStorage;
   private snapshotManager: BaseSnapshotManager;
+  private validator: ChangesetValidator;
   private rootPath: string;
   private model: Model | null = null;
 
@@ -67,6 +69,7 @@ export class StagingAreaManager {
     this.model = model || null;
     this.storage = new StagedChangesetStorage(rootPath);
     this.snapshotManager = new BaseSnapshotManager();
+    this.validator = new ChangesetValidator(rootPath);
   }
 
   /**
@@ -263,7 +266,15 @@ export class StagingAreaManager {
 
   /**
    * Commit a changeset to the base model
-   * Applies staged changes to the model if validation passes
+   *
+   * Implements atomic commit with the following steps:
+   * 1. Detect drift (throw unless --force)
+   * 2. Validate against projected model (validation errors always block)
+   * 3. Backup current model state
+   * 4. Apply all changes in sequence order
+   * 5. Save all modified layers
+   * 6. Update changeset status and history
+   * 7. Rollback on any failure
    */
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
     const changeset = await this.storage.load(changesetId);
@@ -272,9 +283,17 @@ export class StagingAreaManager {
     }
 
     const isDryRun = options.dryRun === true;
+    const shouldValidate = options.validate !== false;
 
-    // Check for drift
+    // Step 1: Detect drift and throw if drifted without --force
     const drift = await this.detectDrift(changesetId);
+    if (drift.isDrifted && !options.force) {
+      throw new Error(
+        `Base model has drifted since changeset creation. ` +
+        `Use --force to commit anyway. Affected elements: ${drift.changedElements.map(e => e.elementId).join(', ')}`
+      );
+    }
+
     const result: CommitResult = {
       changeset: changeset.name,
       committed: 0,
@@ -285,64 +304,90 @@ export class StagingAreaManager {
       },
     };
 
-    if (drift.isDrifted && !options.force) {
-      result.driftWarning = drift;
-      return result;
-    }
-
-    // Apply changes to model
-    for (const change of changeset.changes) {
-      try {
-        const layer = await model.getLayer(change.layerName);
-        if (!layer) {
-          throw new Error(`Layer '${change.layerName}' not found`);
-        }
-
-        if (change.type === 'add' && change.after && !isDryRun) {
-          const elements = layer.listElements();
-          const elementExists = elements.some((e) => e.id === change.elementId);
-
-          if (!elementExists) {
-            const { Element } = await import('./element.js');
-            const elementData = change.after as Record<string, unknown>;
-            const element = new Element({
-              id: change.elementId,
-              type: (elementData.type as string) || 'unknown',
-              name: (elementData.name as string) || change.elementId,
-              description: elementData.description as string | undefined,
-              properties: elementData,
-            });
-            layer.addElement(element);
-            result.committed++;
-          }
-        } else if (change.type === 'update' && change.after && !isDryRun) {
-          const element = layer.getElement(change.elementId);
-          if (element) {
-            const elementData = change.after as Record<string, unknown>;
-            Object.assign(element, elementData);
-            result.committed++;
-          }
-        } else if (change.type === 'delete' && !isDryRun) {
-          const element = layer.getElement(change.elementId);
-          if (element) {
-            layer.deleteElement(change.elementId);
-            result.committed++;
-          }
-        }
-      } catch (error) {
-        result.failed++;
+    // Step 2: Validate against projected model (force cannot override validation)
+    if (shouldValidate) {
+      const validation = await this.validator.validateChangeset(model, changesetId);
+      if (!validation.isValid()) {
         result.validation.passed = false;
-        result.validation.errors.push(
-          `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
+        result.validation.errors = validation.errors.map(e => e.message);
+        throw new Error(
+          `Validation failed: ${result.validation.errors.join('; ')}`
         );
       }
     }
 
-    // Save model changes if commit succeeded and not a dry run
-    if (result.failed === 0 && !isDryRun) {
-      // Save all modified layers
+    // Step 3: Dry run early exit (before making any changes)
+    if (isDryRun) {
+      result.committed = changeset.changes.length;
+      if (drift.isDrifted) {
+        result.driftWarning = drift;
+      }
+      return result;
+    }
+
+    // Step 4: Backup model state for atomic rollback
+    const backup = await this.backupModel(model);
+
+    try {
+      // Step 5: Apply all changes sequentially by sequence number
+      const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
+        (a, b) => a.sequenceNumber - b.sequenceNumber
+      );
+
+      for (const change of sortedChanges) {
+        try {
+          const layer = await model.getLayer(change.layerName);
+          if (!layer) {
+            throw new Error(`Layer '${change.layerName}' not found`);
+          }
+
+          if (change.type === 'add' && change.after) {
+            const elements = layer.listElements();
+            const elementExists = elements.some((e) => e.id === change.elementId);
+
+            if (!elementExists) {
+              const { Element } = await import('./element.js');
+              const elementData = change.after as Record<string, unknown>;
+              const element = new Element({
+                id: change.elementId,
+                type: (elementData.type as string) || 'unknown',
+                name: (elementData.name as string) || change.elementId,
+                description: elementData.description as string | undefined,
+                properties: elementData,
+              });
+              layer.addElement(element);
+              result.committed++;
+            }
+          } else if (change.type === 'update' && change.after) {
+            const element = layer.getElement(change.elementId);
+            if (element) {
+              const elementData = change.after as Record<string, unknown>;
+              Object.assign(element, elementData);
+              result.committed++;
+            }
+          } else if (change.type === 'delete') {
+            const element = layer.getElement(change.elementId);
+            if (element) {
+              layer.deleteElement(change.elementId);
+              result.committed++;
+            }
+          }
+        } catch (error) {
+          result.failed++;
+          result.validation.passed = false;
+          result.validation.errors.push(
+            `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
+          );
+          throw new Error(
+            `Atomic commit failed at change ${sortedChanges.indexOf(change) + 1}/${sortedChanges.length}: ` +
+            `${error instanceof Error ? error.message : String(error)}`
+          );
+        }
+      }
+
+      // Step 6: Save all modified layers atomically
       const modifiedLayers = new Set<string>();
-      for (const change of changeset.changes) {
+      for (const change of sortedChanges) {
         modifiedLayers.add(change.layerName);
       }
 
@@ -351,13 +396,18 @@ export class StagingAreaManager {
       }
       await model.saveManifest();
 
-      // Mark changeset as committed
+      // Step 7: Update changeset status to committed
       changeset.status = 'committed';
       changeset.updateModified();
       await this.storage.save(changeset);
-    }
 
-    return result;
+      return result;
+
+    } catch (error) {
+      // Step 8: Rollback on any failure - restore from backup
+      await this.restoreModel(model, backup);
+      throw error;
+    }
   }
 
   /**
@@ -429,6 +479,72 @@ export class StagingAreaManager {
     }
 
     return this.storage.load(id);
+  }
+
+  /**
+   * Backup the current model state for atomic rollback
+   *
+   * Creates a temporary backup by copying all layer files and manifest
+   * Used to restore model state if commit fails
+   */
+  private async backupModel(model: Model): Promise<string> {
+    const backupDir = path.join(
+      this.rootPath,
+      'documentation-robotics',
+      '.backups',
+      `backup-${Date.now()}`
+    );
+
+    const { ensureDir, readFile, writeFile } = await import('../utils/file-io.js');
+    await ensureDir(backupDir);
+
+    // Backup manifest
+    const manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
+    const manifestContent = await readFile(manifestPath);
+    await writeFile(path.join(backupDir, 'manifest.json'), manifestContent);
+
+    // Backup all layers
+    const layersDir = path.join(backupDir, 'layers');
+    await ensureDir(layersDir);
+
+    for (const layer of model.layers.values()) {
+      const layerPath = path.join(model.rootPath, 'documentation-robotics', 'layers', `${layer.name}.json`);
+      if (await fileExists(layerPath)) {
+        const layerContent = await readFile(layerPath);
+        await writeFile(path.join(layersDir, `${layer.name}.json`), layerContent);
+      }
+    }
+
+    return backupDir;
+  }
+
+  /**
+   * Restore model state from backup after failed commit
+   *
+   * Restores all layer files and manifest from backup directory
+   */
+  private async restoreModel(model: Model, backupDir: string): Promise<void> {
+    const { readFile, writeFile } = await import('../utils/file-io.js');
+
+    // Restore manifest
+    const backupManifest = path.join(backupDir, 'manifest.json');
+    const manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
+    const manifestContent = await readFile(backupManifest);
+    await writeFile(manifestPath, manifestContent);
+
+    // Restore all layer files
+    const backupLayersDir = path.join(backupDir, 'layers');
+    for (const layer of model.layers.values()) {
+      const backupLayerPath = path.join(backupLayersDir, `${layer.name}.json`);
+      if (await fileExists(backupLayerPath)) {
+        const layerContent = await readFile(backupLayerPath);
+        const layerPath = path.join(model.rootPath, 'documentation-robotics', 'layers', `${layer.name}.json`);
+        await writeFile(layerPath, layerContent);
+      }
+    }
+
+    // Reload model layers to reflect restored state
+    model.layers.clear();
   }
 
   /**

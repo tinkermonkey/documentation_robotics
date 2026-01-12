@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { ChangesetManager } from '../core/changeset.js';
+import { StagingAreaManager } from '../core/staging-area.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
@@ -718,9 +719,10 @@ export async function changesetDiffCommand(options: {
 
 /**
  * Apply staged changes to the base model
- * Options for validate and force flags may be used in future enhancements
+ * Implements atomic commit with validation and rollback on failure
+ * Options: validate (default true), force (override drift warnings)
  */
-export async function changesetCommitCommand(_options?: {
+export async function changesetCommitCommand(options?: {
   validate?: boolean;
   force?: boolean;
 }): Promise<void> {
@@ -734,15 +736,15 @@ export async function changesetCommitCommand(_options?: {
       return;
     }
 
-    const manager = new ChangesetManager(model.rootPath);
-    const changeset = await manager.load(activeChangeset);
+    const stagingManager = new StagingAreaManager(model.rootPath, model);
+    const changeset = await stagingManager.load(activeChangeset);
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
       process.exit(1);
     }
 
-    const changeCount = changeset.getChangeCount();
+    const changeCount = changeset.changes.length;
 
     if (changeCount === 0) {
       console.log(ansis.yellow('No staged changes to commit'));
@@ -753,42 +755,33 @@ export async function changesetCommitCommand(_options?: {
     console.log(ansis.dim(`Staged changes: ${changeCount}`));
     console.log();
 
-    // Apply changes to model
-    const result = await manager.apply(model, activeChangeset);
+    // Execute atomic commit with validation and rollback
+    try {
+      const result = await stagingManager.commit(model, activeChangeset, {
+        validate: options?.validate !== false,
+        force: options?.force === true,
+      });
 
-    // Mark changeset as committed
-    changeset.markCommitted();
-    await manager.save(changeset);
+      // Show results
+      console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
 
-    // Update manifest history (use 'applied' since commit is equivalent to apply)
-    if (!model.manifest.changeset_history) {
-      model.manifest.changeset_history = [];
-    }
-    model.manifest.changeset_history.push({
-      name: activeChangeset,
-      applied_at: new Date().toISOString(),
-      action: 'applied',
-    });
-
-    // Save changes
-    await model.saveDirtyLayers();
-    await model.saveManifest();
-
-    // Show results
-    console.log(ansis.green(`✓ Committed ${result.applied} change(s)`));
-
-    if (result.failed > 0) {
-      console.log(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
-      for (const error of result.errors) {
+      if (result.driftWarning) {
         console.log(
-          ansis.dim(
-            `  - ${(error as any).change.elementId} (${(error as any).change.type}): ${(error as any).error}`
+          ansis.yellow(
+            `⚠ Warning: Model had drifted since changeset creation (--force was used)`
           )
         );
       }
-    }
 
-    console.log();
+      console.log();
+    } catch (error) {
+      // Commit failed - error was thrown from StagingAreaManager
+      // Model has been automatically rolled back
+      console.log(
+        ansis.red(`✗ Commit failed and rolled back: ${error instanceof Error ? error.message : String(error)}`)
+      );
+      throw error;
+    }
   } catch (error) {
     console.error(
       ansis.red(
