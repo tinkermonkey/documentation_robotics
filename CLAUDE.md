@@ -204,9 +204,9 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 - `cli/src/core/reference-registry.ts` - Reference tracking
 - `cli/src/core/relationship-registry.ts` - Relationship tracking
 - `cli/src/validators/semantic.ts` - Business rule validation
-- `cli/src/core/virtual-projection.js` - Virtual projection engine
-- `cli/src/core/staged-changeset-storage.js` - Changeset persistence
-- `cli/src/core/drift-detector.js` - Drift detection logic
+- `cli/src/core/virtual-projection.ts` - Virtual projection engine
+- `cli/src/core/staged-changeset-storage.ts` - Changeset persistence
+- `cli/src/core/drift-detector.ts` - Drift detection logic
 
 ### Staging Workflow
 
