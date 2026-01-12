@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
 import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
+import { ChangesetExporter } from '../../src/core/changeset-exporter.js';
 import { Model } from '../../src/core/model.js';
 import { Manifest } from '../../src/core/manifest.js';
 import { Layer } from '../../src/core/layer.js';
@@ -371,6 +372,412 @@ describe('Export/Import Workflow', () => {
 
       expect(apiChanges.length).toBe(2);
       expect(dataModelChanges.length).toBe(1);
+    });
+  });
+
+  describe('ChangesetExporter Integration', () => {
+    it('should export changeset to YAML using exporter', async () => {
+      const changesetId = 'exporter-yaml-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Exporter YAML Test',
+        'Test YAML export via exporter',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-export-test',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-export-test',
+            type: 'endpoint',
+            name: 'Export Test',
+            properties: { method: 'POST', path: '/test' },
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const yamlContent = await exporter.export(changesetId, 'yaml');
+
+      expect(yamlContent).toContain('id: exporter-yaml-test');
+      expect(yamlContent).toContain('Exporter YAML Test');
+      expect(yamlContent).toContain('api-endpoint-export-test');
+      expect(yamlContent).toContain('Export Test');
+    });
+
+    it('should export changeset to JSON using exporter', async () => {
+      const changesetId = 'exporter-json-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Exporter JSON Test',
+        'Test JSON export via exporter',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-json-test',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-json-test',
+            type: 'endpoint',
+            name: 'JSON Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const jsonContent = await exporter.export(changesetId, 'json');
+      const parsed = JSON.parse(jsonContent);
+
+      expect(parsed.id).toBe('exporter-json-test');
+      expect(parsed.name).toBe('Exporter JSON Test');
+      expect(parsed.changes.length).toBe(1);
+      expect(parsed.changes[0].elementId).toBe('api-endpoint-json-test');
+    });
+
+    it('should export changeset to file', async () => {
+      const changesetId = 'export-to-file-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Export to File Test',
+        'Test exporting to file',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-file-test',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-file-test',
+            type: 'endpoint',
+            name: 'File Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const outputPath = join(tempDir, 'export-test.yaml');
+      await exporter.exportToFile(changesetId, outputPath, 'yaml');
+
+      const fileContent = await readFile(outputPath, 'utf-8');
+      expect(fileContent).toContain('api-endpoint-file-test');
+      expect(fileContent).toContain('Export to File Test');
+    });
+
+    it('should import changeset from YAML', async () => {
+      const changesetId = 'import-yaml-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Import YAML Test',
+        'Test importing from YAML',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-import-yaml',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-import-yaml',
+            type: 'endpoint',
+            name: 'Import YAML Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Export to YAML
+      const exporter = new ChangesetExporter(tempDir);
+      const yamlContent = await exporter.export(changesetId, 'yaml');
+
+      // Import from YAML
+      const imported = await exporter.import(yamlContent, 'yaml');
+
+      expect(imported.id).toBe(changesetId);
+      expect(imported.name).toBe('Import YAML Test');
+      expect(imported.changes.length).toBe(1);
+      expect(imported.changes[0].elementId).toBe('api-endpoint-import-yaml');
+      expect(imported.baseSnapshot).toBe(baseSnapshot);
+    });
+
+    it('should import changeset from JSON', async () => {
+      const changesetId = 'import-json-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Import JSON Test',
+        'Test importing from JSON',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-import-json',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-import-json',
+            type: 'endpoint',
+            name: 'Import JSON Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Export to JSON
+      const exporter = new ChangesetExporter(tempDir);
+      const jsonContent = await exporter.export(changesetId, 'json');
+
+      // Import from JSON
+      const imported = await exporter.import(jsonContent, 'json');
+
+      expect(imported.id).toBe(changesetId);
+      expect(imported.name).toBe('Import JSON Test');
+      expect(imported.changes.length).toBe(1);
+    });
+
+    it('should import changeset from file', async () => {
+      const changesetId = 'import-file-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Import File Test',
+        'Test importing from file',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-import-file',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-import-file',
+            type: 'endpoint',
+            name: 'Import File Test',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Export to file
+      const exporter = new ChangesetExporter(tempDir);
+      const outputPath = join(tempDir, 'import-test.yaml');
+      await exporter.exportToFile(changesetId, outputPath, 'yaml');
+
+      // Import from file
+      const imported = await exporter.importFromFile(outputPath);
+
+      expect(imported.id).toBe(changesetId);
+      expect(imported.name).toBe('Import File Test');
+      expect(imported.changes.length).toBe(1);
+    });
+
+    it('should auto-detect YAML format', async () => {
+      const changesetId = 'autodetect-yaml';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Autodetect YAML',
+        'Test format autodetection',
+        baseSnapshot
+      );
+
+      changeset.changes = [];
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const yamlContent = await exporter.export(changesetId, 'yaml');
+
+      // Import without specifying format
+      const imported = await exporter.import(yamlContent);
+
+      expect(imported.name).toBe('Autodetect YAML');
+    });
+
+    it('should auto-detect JSON format', async () => {
+      const changesetId = 'autodetect-json';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Autodetect JSON',
+        'Test format autodetection',
+        baseSnapshot
+      );
+
+      changeset.changes = [];
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const jsonContent = await exporter.export(changesetId, 'json');
+
+      // Import without specifying format
+      const imported = await exporter.import(jsonContent);
+
+      expect(imported.name).toBe('Autodetect JSON');
+    });
+
+    it('should validate compatibility and detect incompatible elements', async () => {
+      const changesetId = 'compat-validation-test';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Compatibility Validation',
+        'Test compatibility validation',
+        baseSnapshot
+      );
+
+      // Add changes that would be invalid
+      changeset.changes = [
+        {
+          type: 'update',
+          elementId: 'api-endpoint-nonexistent',
+          layerName: 'api',
+          before: { id: 'api-endpoint-nonexistent' },
+          after: { id: 'api-endpoint-nonexistent', name: 'Updated' },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const compatibility = await exporter.validateCompatibility(changeset, baseModel);
+
+      expect(compatibility.compatible).toBe(false);
+      expect(compatibility.missingElements).toContain('api-endpoint-nonexistent');
+    });
+
+    it('should allow valid additions even with base drift', async () => {
+      const changesetId = 'valid-with-drift';
+      const originalSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Valid with Drift',
+        'Test valid additions despite drift',
+        originalSnapshot
+      );
+
+      // Add a new element that doesnt conflict
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-new-valid',
+          layerName: 'api',
+          after: {
+            id: 'api-endpoint-new-valid',
+            type: 'endpoint',
+            name: 'New Valid Endpoint',
+          },
+          sequenceNumber: 0,
+        },
+      ];
+
+      await storage.save(changeset);
+
+      // Modify base model
+      const apiLayer = await baseModel.getLayer('api');
+      if (apiLayer) {
+        const newElement = new Element({
+          id: 'api-endpoint-drift-element',
+          type: 'endpoint',
+          name: 'Drift Element',
+        });
+        apiLayer.addElement(newElement);
+        await baseModel.saveLayer('api');
+      }
+
+      const exporter = new ChangesetExporter(tempDir);
+      const compatibility = await exporter.validateCompatibility(changeset, baseModel);
+
+      // Should be compatible even though base has drifted
+      expect(compatibility.compatible).toBe(true);
+      expect(compatibility.baseSnapshotMatch).toBe(false);
+    });
+
+    it('should export and re-import with statistics preserved', async () => {
+      const changesetId = 'stats-preservation';
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+
+      const changeset = await storage.create(
+        changesetId,
+        'Statistics Preservation',
+        'Test stats preservation through export/import',
+        baseSnapshot
+      );
+
+      changeset.changes = [
+        {
+          type: 'add',
+          elementId: 'api-endpoint-new-1',
+          layerName: 'api',
+          after: { id: 'api-endpoint-new-1', type: 'endpoint', name: 'New 1' },
+          sequenceNumber: 0,
+        },
+        {
+          type: 'add',
+          elementId: 'api-endpoint-new-2',
+          layerName: 'api',
+          after: { id: 'api-endpoint-new-2', type: 'endpoint', name: 'New 2' },
+          sequenceNumber: 1,
+        },
+        {
+          type: 'update',
+          elementId: 'api-endpoint-get-user',
+          layerName: 'api',
+          before: { id: 'api-endpoint-get-user', name: 'Get User' },
+          after: { id: 'api-endpoint-get-user', name: 'Get User (v2)' },
+          sequenceNumber: 2,
+        },
+      ];
+
+      changeset.updateStats();
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const yamlContent = await exporter.export(changesetId, 'yaml');
+      const imported = await exporter.import(yamlContent, 'yaml');
+
+      expect(imported.stats?.additions).toBe(2);
+      expect(imported.stats?.modifications).toBe(1);
+      expect(imported.stats?.deletions).toBe(0);
     });
   });
 });

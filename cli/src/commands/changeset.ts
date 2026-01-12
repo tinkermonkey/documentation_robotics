@@ -6,9 +6,11 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { ChangesetManager } from '../core/changeset.js';
 import { StagingAreaManager } from '../core/staging-area.js';
+import { ChangesetExporter } from '../core/changeset-exporter.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
+import path from 'path';
 
 /**
  * Create a new changeset
@@ -793,6 +795,127 @@ export async function changesetCommitCommand(options?: {
 }
 
 /**
+ * Export changeset to portable file
+ */
+export async function changesetExportCommand(
+  changesetId: string,
+  options: {
+    output?: string;
+    format?: 'yaml' | 'json' | 'patch';
+  }
+): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const exporter = new ChangesetExporter(model.rootPath);
+
+    // Default output filename based on changeset id and format
+    const format = options.format || 'yaml';
+    const ext = format === 'patch' ? 'patch' : format;
+    const outputPath =
+      options.output || `${changesetId}.${ext}`;
+
+    // Ensure output path is absolute
+    const absolutePath = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.join(process.cwd(), outputPath);
+
+    await exporter.exportToFile(changesetId, absolutePath, format);
+
+    console.log(ansis.green(`✓ Exported changeset to ${ansis.cyan(outputPath)}`));
+    console.log(ansis.dim(`  Format: ${format}`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Import changeset from portable file
+ */
+export async function changesetImportCommand(file: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const exporter = new ChangesetExporter(model.rootPath);
+
+    // Ensure file path is absolute
+    const absolutePath = path.isAbsolute(file)
+      ? file
+      : path.join(process.cwd(), file);
+
+    // Import changeset
+    const imported = await exporter.importFromFile(absolutePath);
+
+    // Validate compatibility with current model
+    const fullModel = await Model.load(process.cwd(), { lazyLoad: false });
+    const compatibility = await exporter.validateCompatibility(
+      imported,
+      fullModel
+    );
+
+    // Check for issues
+    if (!compatibility.compatible) {
+      console.error(ansis.red('✗ Import failed: Changeset is incompatible'));
+      console.error(ansis.dim(`  Issues:`));
+      for (const warning of compatibility.warnings) {
+        console.error(ansis.dim(`    - ${warning}`));
+      }
+      process.exit(1);
+    }
+
+    // Warn about drift if detected
+    if (!compatibility.baseSnapshotMatch) {
+      console.warn(ansis.yellow(`⚠ Warning: Base model has changed`));
+      console.warn(
+        ansis.dim('  The model has been modified since this changeset was created.')
+      );
+      console.warn(
+        ansis.dim(
+          '  Review the changes carefully before committing.'
+        )
+      );
+      console.log();
+    }
+
+    // Assign new ID to avoid conflicts
+    const newId = `imported-${Date.now()}`;
+    imported.id = newId;
+
+    // Save to staging area using storage
+    const storage = new (require('../core/staged-changeset-storage.js').StagedChangesetStorage)(model.rootPath);
+    await storage.save(imported);
+
+    console.log(ansis.green(`✓ Imported changeset: ${ansis.cyan(imported.name)}`));
+    console.log(ansis.dim(`  ID: ${newId}`));
+    console.log(
+      ansis.dim(
+        `  Changes: +${imported.stats?.additions || 0} ~${imported.stats?.modifications || 0} -${imported.stats?.deletions || 0}`
+      )
+    );
+
+    if (!compatibility.baseSnapshotMatch) {
+      console.log(
+        ansis.yellow(
+          `  ⚠ Base model drift detected - review before committing`
+        )
+      );
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Register changeset subcommands
  */
 export function changesetCommands(program: Command): void {
@@ -981,5 +1104,37 @@ Examples:
     )
     .action(async (options) => {
       await changesetCommitCommand(options);
+    });
+
+  changesetGroup
+    .command('export <changeset-id>')
+    .description('Export changeset to portable file')
+    .option('-o, --output <file>', 'Output file path')
+    .option('-f, --format <format>', 'Export format (yaml|json|patch)', 'yaml')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset export api-updates
+  $ dr changeset export api-updates --output changes.yaml
+  $ dr changeset export api-updates --format json --output changes.json
+  $ dr changeset export api-updates --format patch --output changes.patch`
+    )
+    .action(async (changesetId, options) => {
+      await changesetExportCommand(changesetId, options);
+    });
+
+  changesetGroup
+    .command('import <file>')
+    .description('Import changeset from file')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset import changes.yaml
+  $ dr changeset import ../team-changes.json`
+    )
+    .action(async (file) => {
+      await changesetImportCommand(file);
     });
 }
