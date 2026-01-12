@@ -780,4 +780,59 @@ describe('Export/Import Workflow', () => {
       expect(imported.stats?.deletions).toBe(0);
     });
   });
+
+  describe('Patch format import limitations', () => {
+    it('should import patch metadata but result in empty changes array', async () => {
+      // This test documents the expected behavior of patch format import:
+      // The patch format can extract header metadata but cannot reconstruct
+      // individual change details from unified diff without full diff parsing.
+
+      const changesetId = 'api-updates';
+      const changeset = new (await import('../../src/core/changeset.js')).Changeset({
+        id: changesetId,
+        name: 'API Updates',
+        description: 'Add new endpoints',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        status: 'staged',
+        baseSnapshot: 'sha256:test123',
+        changes: [
+          {
+            type: 'add',
+            elementId: 'api-endpoint-create-user',
+            layerName: 'api',
+            timestamp: new Date().toISOString(),
+            after: {
+              id: 'api-endpoint-create-user',
+              name: 'Create User',
+              type: 'endpoint',
+              properties: { method: 'POST', path: '/users' },
+            },
+          },
+        ],
+        stats: {
+          additions: 1,
+          modifications: 0,
+          deletions: 0,
+        },
+      });
+
+      await storage.save(changeset);
+
+      const exporter = new ChangesetExporter(tempDir);
+      const patchContent = await exporter.export(changesetId, 'patch');
+      const imported = await exporter.import(patchContent, 'patch');
+
+      // Verify metadata was extracted
+      expect(imported.name).toBe('API Updates');
+      expect(imported.description).toBe('Add new endpoints');
+      expect(imported.baseSnapshot).toBe('sha256:test123');
+
+      // Document the limitation: changes array is empty when importing patch format
+      expect(imported.changes.length).toBe(0);
+      expect(imported.stats?.additions).toBe(0);
+      expect(imported.stats?.modifications).toBe(0);
+      expect(imported.stats?.deletions).toBe(0);
+    });
+  });
 });

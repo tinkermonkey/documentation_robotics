@@ -7,10 +7,18 @@ import { Model } from '../core/model.js';
 import { ChangesetManager } from '../core/changeset.js';
 import { StagingAreaManager } from '../core/staging-area.js';
 import { ChangesetExporter } from '../core/changeset-exporter.js';
+import { StagedChangesetStorage } from '../core/staged-changeset-storage.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
 import path from 'path';
+
+/**
+ * Generate a unique ID for imported changesets
+ */
+function generateImportedChangesetId(): string {
+  return `imported-${Date.now()}`;
+}
 
 /**
  * Create a new changeset
@@ -838,7 +846,8 @@ export async function changesetExportCommand(
  */
 export async function changesetImportCommand(file: string): Promise<void> {
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    // Load full model for compatibility validation
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Ensure file path is absolute
@@ -850,10 +859,9 @@ export async function changesetImportCommand(file: string): Promise<void> {
     const imported = await exporter.importFromFile(absolutePath);
 
     // Validate compatibility with current model
-    const fullModel = await Model.load(process.cwd(), { lazyLoad: false });
     const compatibility = await exporter.validateCompatibility(
       imported,
-      fullModel
+      model
     );
 
     // Check for issues
@@ -881,11 +889,11 @@ export async function changesetImportCommand(file: string): Promise<void> {
     }
 
     // Assign new ID to avoid conflicts
-    const newId = `imported-${Date.now()}`;
+    const newId = generateImportedChangesetId();
     imported.id = newId;
 
     // Save to staging area using storage
-    const storage = new (require('../core/staged-changeset-storage.js').StagedChangesetStorage)(model.rootPath);
+    const storage = new StagedChangesetStorage(model.rootPath);
     await storage.save(imported);
 
     console.log(ansis.green(`✓ Imported changeset: ${ansis.cyan(imported.name)}`));

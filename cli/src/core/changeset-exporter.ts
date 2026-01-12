@@ -10,7 +10,7 @@
 import { readFile, writeFile } from 'fs/promises';
 import { fileExists } from '../utils/file-io.js';
 import yaml from 'yaml';
-import type { Changeset } from './changeset.js';
+import { Changeset, type ChangesetStatus, type Change } from './changeset.js';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 import type { Model } from './model.js';
 import { BaseSnapshotManager } from './base-snapshot-manager.js';
@@ -355,6 +355,7 @@ export class ChangesetExporter {
       throw new Error('Invalid YAML format');
     }
 
+    const parsedRecord = parsed as Record<string, unknown>;
     const {
       id,
       name,
@@ -365,7 +366,7 @@ export class ChangesetExporter {
       baseSnapshot,
       changes = [],
       stats,
-    } = parsed as Record<string, unknown>;
+    } = parsedRecord;
 
     if (!id || !name || !created || !modified) {
       throw new Error(
@@ -373,17 +374,26 @@ export class ChangesetExporter {
       );
     }
 
-    // Reconstruct changeset
-    const changeset = new (require('./changeset.js').Changeset)({
-      id: id as string,
-      name: name as string,
-      description: description as string | undefined,
-      created: created as string,
-      modified: modified as string,
-      status: (status as string) || 'draft',
-      baseSnapshot: baseSnapshot as string | undefined,
-      changes: (changes as Changeset['changes']) || [],
-      stats: stats as Record<string, number> | undefined,
+    // Reconstruct changeset with defaults for optional fields
+    const changesetStatus = (typeof status === 'string' ? status : 'draft') as ChangesetStatus;
+    const statsRecord = stats as Record<string, unknown> | undefined;
+    const changesetStats = {
+      additions: typeof statsRecord?.additions === 'number' ? statsRecord.additions : 0,
+      modifications: typeof statsRecord?.modifications === 'number' ? statsRecord.modifications : 0,
+      deletions: typeof statsRecord?.deletions === 'number' ? statsRecord.deletions : 0,
+    };
+    const changesetSnapshot = typeof baseSnapshot === 'string' ? baseSnapshot : 'unknown';
+
+    const changeset = new Changeset({
+      id: String(id),
+      name: String(name),
+      description: typeof description === 'string' ? description : undefined,
+      created: String(created),
+      modified: String(modified),
+      status: changesetStatus,
+      baseSnapshot: changesetSnapshot,
+      changes: (changes as Change[]) || [],
+      stats: changesetStats,
     });
 
     return changeset;
@@ -399,6 +409,7 @@ export class ChangesetExporter {
       throw new Error('Invalid JSON format');
     }
 
+    const parsedRecord = parsed as Record<string, unknown>;
     const {
       id,
       name,
@@ -409,7 +420,7 @@ export class ChangesetExporter {
       baseSnapshot,
       changes = [],
       stats,
-    } = parsed as Record<string, unknown>;
+    } = parsedRecord;
 
     if (!id || !name || !created || !modified) {
       throw new Error(
@@ -417,17 +428,26 @@ export class ChangesetExporter {
       );
     }
 
-    // Reconstruct changeset
-    const changeset = new (require('./changeset.js').Changeset)({
-      id: id as string,
-      name: name as string,
-      description: description as string | undefined,
-      created: created as string,
-      modified: modified as string,
-      status: (status as string) || 'draft',
-      baseSnapshot: baseSnapshot as string | undefined,
-      changes: (changes as Changeset['changes']) || [],
-      stats: stats as Record<string, number> | undefined,
+    // Reconstruct changeset with defaults for optional fields
+    const changesetStatus = (typeof status === 'string' ? status : 'draft') as ChangesetStatus;
+    const statsRecord = stats as Record<string, unknown> | undefined;
+    const changesetStats = {
+      additions: typeof statsRecord?.additions === 'number' ? statsRecord.additions : 0,
+      modifications: typeof statsRecord?.modifications === 'number' ? statsRecord.modifications : 0,
+      deletions: typeof statsRecord?.deletions === 'number' ? statsRecord.deletions : 0,
+    };
+    const changesetSnapshot = typeof baseSnapshot === 'string' ? baseSnapshot : 'unknown';
+
+    const changeset = new Changeset({
+      id: String(id),
+      name: String(name),
+      description: typeof description === 'string' ? description : undefined,
+      created: String(created),
+      modified: String(modified),
+      status: changesetStatus,
+      baseSnapshot: changesetSnapshot,
+      changes: (changes as Change[]) || [],
+      stats: changesetStats,
     });
 
     return changeset;
@@ -435,15 +455,23 @@ export class ChangesetExporter {
 
   /**
    * Import changeset from patch format
+   *
+   * NOTE: Patch format import extracts metadata and base snapshot from headers only.
+   * The unified diff format makes it impractical to reconstruct full change details
+   * without complex diff parsing. For this reason, patch format import returns a
+   * changeset with empty changes array and is primarily useful for preserving metadata.
+   *
+   * Use YAML or JSON formats for changesets that need to be re-imported with full
+   * change data. Patch format is recommended for email-based sharing and archival.
    */
   private importFromPatch(data: string): Changeset {
     const lines = data.split('\n');
     const metadata: Record<string, string> = {};
-    const changes: Changeset['changes'] = [];
+    const changes: Change[] = [];
 
     let i = 0;
-    // Parse header
-    while (i < lines.length && lines[i].startsWith('From:')) {
+    // Parse header lines - continue until we hit the --- marker or blank line
+    while (i < lines.length && !lines[i].startsWith('---') && lines[i].trim() !== '') {
       const line = lines[i];
       if (line.startsWith('From:')) {
         metadata.id = line.substring('From:'.length).trim();
@@ -457,7 +485,7 @@ export class ChangesetExporter {
       i++;
     }
 
-    // Skip to changes section
+    // Skip blank lines
     while (i < lines.length && lines[i].trim() === '') {
       i++;
     }
@@ -472,25 +500,22 @@ export class ChangesetExporter {
       metadata.description = descriptionLines.join('\n').trim();
     }
 
-    // For now, we parse the patch header but extraction of individual changes
-    // from the unified diff format is complex. In a full implementation, you would
-    // parse the hunk headers and diff lines to reconstruct changes.
-    // For this MVP, we focus on the YAML/JSON formats which preserve full change data.
-
+    // Validate required metadata
     if (!metadata.id || !metadata.name) {
       throw new Error('Missing required fields in patch header: id, name');
     }
 
     // Create changeset with extracted metadata
-    const changeset = new (require('./changeset.js').Changeset)({
+    // Note: changes array remains empty as diff parsing is complex
+    const changeset = new Changeset({
       id: metadata.id,
       name: metadata.name,
       description: metadata.description,
       created: new Date().toISOString(),
       modified: new Date().toISOString(),
       status: 'draft',
-      baseSnapshot: metadata.baseSnapshot,
-      changes: changes,
+      baseSnapshot: metadata.baseSnapshot || 'unknown',
+      changes,
       stats: {
         additions: 0,
         modifications: 0,

@@ -343,6 +343,15 @@ index abc123..def456 100644
 - Good for email/messaging
 - Easy to review changes
 
+**Important Note - Patch Format Limitations:**
+
+When importing patch format files, the system extracts metadata (id, name, description, base snapshot) from the patch header but cannot reconstruct individual change details from the unified diff format without complex diff parsing.
+
+- **Importing patch files results in empty changes array** - The imported changeset will contain metadata but no individual change operations
+- **Recommended for export only** - Use patch format primarily for sharing/review
+- **Use YAML or JSON for import** - For actual changeset import and application, use YAML or JSON formats which preserve complete change data
+- **Consider git-apply alternative** - For traditional patch workflows, you may want to apply patches directly to your model files using `git apply` rather than importing
+
 ## Base Model Drift Detection
 
 When importing a changeset, the system automatically detects if the base model has changed since the changeset was created.
