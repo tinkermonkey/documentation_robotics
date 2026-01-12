@@ -5,6 +5,30 @@ All notable changes to the Documentation Robotics specification will be document
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this specification adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- **Changeset Storage Migration**:
+  - Changesets migrated from legacy `.dr/changesets/` format to new `documentation-robotics/changesets/` structure
+  - Auto-migration triggers on first CLI invocation after upgrade
+  - Status mapping: `draft` → `staged`, `applied` → `committed`
+  - Preserves changeset IDs, timestamps, and change arrays
+  - Base snapshot capture for drift detection
+
+- **Staging Feature Schema**:
+  - `StagedChangeset` schema with changeset metadata (id, name, description, created, modified, status)
+  - `StagedChange` schema with operation type (add, update, delete), element ID, layer name, sequence number
+  - Base snapshot format for drift detection across model snapshots
+  - Status enum: `staged`, `committed`, `discarded`
+
+### Changed
+
+- **Changeset Format Evolution**:
+  - Old format: Single `{name}.json` file in `.dr/changesets/`
+  - New format: Structured directory per changeset: `documentation-robotics/changesets/{id}/metadata.yaml + changes.yaml`
+  - Maintains full backward compatibility during migration period
+
 ## [0.7.1] - 2026-01-07
 
 ### Added

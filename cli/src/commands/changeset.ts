@@ -369,6 +369,437 @@ export async function changesetStatusCommand(): Promise<void> {
 }
 
 /**
+ * List all staged changes in the active changeset
+ */
+export async function changesetStagedCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    let changes = changeset.getChangesByType('add')
+      .concat(changeset.getChangesByType('update'))
+      .concat(changeset.getChangesByType('delete'));
+
+    if (options.layer) {
+      changes = changes.filter((c: any) => c.layerName === options.layer);
+    }
+
+    if (changes.length === 0) {
+      console.log(ansis.yellow('No staged changes'));
+      return;
+    }
+
+    console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+
+    const tableData = changes.map((c: any) => ({
+      'Element ID': c.elementId,
+      'Layer': c.layerName,
+      'Type': c.type,
+      'Timestamp': new Date(c.timestamp || Date.now()).toISOString(),
+    }));
+
+    console.table(tableData);
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Remove specific element from staging area
+ */
+export async function changesetUnstageCommand(elementId: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    // Check if element exists in changes
+    const initialCount = changeset.getChangeCount();
+    changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+
+    if (changeset.getChangeCount() === initialCount) {
+      console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+      return;
+    }
+
+    // Save updated changeset
+    changeset.updateModified();
+    await manager.save(changeset);
+
+    console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
+    console.log(
+      ansis.dim(
+        `  Remaining staged changes: ${changeset.getChangeCount()}`
+      )
+    );
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Discard all or single staged changes
+ */
+export async function changesetDiscardCommand(elementId?: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    if (elementId) {
+      // Discard single element
+      const initialCount = changeset.getChangeCount();
+      changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+
+      if (changeset.getChangeCount() === initialCount) {
+        console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+        return;
+      }
+
+      changeset.updateModified();
+      await manager.save(changeset);
+      console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
+    } else {
+      // Discard all changes with confirmation
+      const confirmed = await prompts.confirm({
+        message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
+      });
+
+      if (!confirmed) {
+        console.log(ansis.dim('Cancelled'));
+        return;
+      }
+
+      // Clear all changes
+      changeset.changes = [];
+      changeset.markDiscarded();
+      await manager.save(changeset);
+
+      console.log(ansis.green(`✓ Discarded all staged changes`));
+      console.log(ansis.dim(`  Changeset status: discarded`));
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Preview the merged model state with staged changes applied
+ */
+export async function changesetPreviewCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    console.log(
+      ansis.bold(`\nPreview: Merged Model State (${ansis.cyan('with staged changes')})`)
+    );
+    console.log(ansis.dim(`Changeset: ${activeChangeset}`));
+    console.log();
+
+    // Show summary of changes
+    const additions = changeset.getChangesByType('add').length;
+    const modifications = changeset.getChangesByType('update').length;
+    const deletions = changeset.getChangesByType('delete').length;
+
+    if (additions > 0) {
+      console.log(ansis.green(`+ ${additions} additions`));
+    }
+    if (modifications > 0) {
+      console.log(ansis.yellow(`~ ${modifications} modifications`));
+    }
+    if (deletions > 0) {
+      console.log(ansis.red(`- ${deletions} deletions`));
+    }
+
+    console.log();
+
+    if (options.layer) {
+      // Filter changes by layer
+      const layerChanges = changeset.changes.filter(
+        (c: any) => c.layerName === options.layer
+      );
+
+      if (layerChanges.length === 0) {
+        console.log(ansis.dim(`No staged changes in layer '${options.layer}'`));
+        return;
+      }
+
+      console.log(ansis.bold(`Layer: ${options.layer}`));
+      const tableData = layerChanges.map((c: any) => ({
+        'Element ID': c.elementId + ansis.dim(' (staged)'),
+        'Type': c.type,
+        'Status': c.type === 'add' ? 'new' : c.type === 'delete' ? 'removed' : 'updated',
+      }));
+      console.table(tableData);
+    } else {
+      // Show all layers with staged changes
+      const layerMap = new Map<string, any[]>();
+      changeset.changes.forEach((c: any) => {
+        if (!layerMap.has(c.layerName)) {
+          layerMap.set(c.layerName, []);
+        }
+        layerMap.get(c.layerName)!.push(c);
+      });
+
+      for (const [layerName, changes] of layerMap) {
+        console.log(ansis.bold(`Layer: ${layerName}`));
+        const tableData = changes.map((c: any) => ({
+          'Element ID': c.elementId,
+          'Type': c.type,
+          'Status': c.type === 'add' ? 'new' : c.type === 'delete' ? 'removed' : 'updated',
+        }));
+        console.table(tableData);
+        console.log();
+      }
+    }
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Show delta between base model and staged changes
+ */
+export async function changesetDiffCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    console.log(ansis.bold('\nDiff: Base Model vs Staged Changes\n'));
+
+    // Group changes by layer
+    const layerMap = new Map<string, any[]>();
+    changeset.changes.forEach((c: any) => {
+      if (!options.layer || c.layerName === options.layer) {
+        if (!layerMap.has(c.layerName)) {
+          layerMap.set(c.layerName, []);
+        }
+        layerMap.get(c.layerName)!.push(c);
+      }
+    });
+
+    if (layerMap.size === 0) {
+      console.log(
+        ansis.dim(
+          options.layer
+            ? `No changes in layer '${options.layer}'`
+            : 'No staged changes'
+        )
+      );
+      return;
+    }
+
+    // Display changes grouped by layer
+    for (const [layerName, changes] of layerMap) {
+      console.log(ansis.bold(`Layer: ${layerName}`));
+
+      for (const change of changes) {
+        if (change.type === 'add') {
+          console.log(ansis.green(`+ ${change.elementId}`));
+          console.log(ansis.dim(`  ${JSON.stringify(change.after || {}, null, 2)}`));
+        } else if (change.type === 'delete') {
+          console.log(ansis.red(`- ${change.elementId}`));
+          console.log(ansis.dim(`  ${JSON.stringify(change.before || {}, null, 2)}`));
+        } else if (change.type === 'update') {
+          console.log(ansis.yellow(`~ ${change.elementId}`));
+          console.log(ansis.dim(`  Before: ${JSON.stringify(change.before || {})}`));
+          console.log(ansis.dim(`  After:  ${JSON.stringify(change.after || {})}`));
+        }
+      }
+
+      console.log();
+    }
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Apply staged changes to the base model
+ * Options for validate and force flags may be used in future enhancements
+ */
+export async function changesetCommitCommand(_options?: {
+  validate?: boolean;
+  force?: boolean;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    const changeCount = changeset.getChangeCount();
+
+    if (changeCount === 0) {
+      console.log(ansis.yellow('No staged changes to commit'));
+      return;
+    }
+
+    console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(activeChangeset)}`));
+    console.log(ansis.dim(`Staged changes: ${changeCount}`));
+    console.log();
+
+    // Apply changes to model
+    const result = await manager.apply(model, activeChangeset);
+
+    // Mark changeset as committed
+    changeset.markCommitted();
+    await manager.save(changeset);
+
+    // Update manifest history (use 'applied' since commit is equivalent to apply)
+    if (!model.manifest.changeset_history) {
+      model.manifest.changeset_history = [];
+    }
+    model.manifest.changeset_history.push({
+      name: activeChangeset,
+      applied_at: new Date().toISOString(),
+      action: 'applied',
+    });
+
+    // Save changes
+    await model.saveDirtyLayers();
+    await model.saveManifest();
+
+    // Show results
+    console.log(ansis.green(`✓ Committed ${result.applied} change(s)`));
+
+    if (result.failed > 0) {
+      console.log(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
+      for (const error of result.errors) {
+        console.log(
+          ansis.dim(
+            `  - ${(error as any).change.elementId} (${(error as any).change.type}): ${(error as any).error}`
+          )
+        );
+      }
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Register changeset subcommands
  */
 export function changesetCommands(program: Command): void {
@@ -467,5 +898,95 @@ Examples:
     )
     .action(async () => {
       await changesetStatusCommand();
+    });
+
+  // Staging operation commands
+  changesetGroup
+    .command('staged')
+    .description('List all staged changes in the active changeset')
+    .option('-l, --layer <layer>', 'Filter by layer name')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset staged
+  $ dr changeset staged --layer api`
+    )
+    .action(async (options) => {
+      await changesetStagedCommand(options);
+    });
+
+  changesetGroup
+    .command('unstage <element-id>')
+    .description('Remove specific element from staging area')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset unstage api-endpoint-create-customer`
+    )
+    .action(async (elementId) => {
+      await changesetUnstageCommand(elementId);
+    });
+
+  changesetGroup
+    .command('discard [element-id]')
+    .description('Discard all or single staged changes')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset discard
+  $ dr changeset discard api-endpoint-create-customer`
+    )
+    .action(async (elementId) => {
+      await changesetDiscardCommand(elementId);
+    });
+
+  changesetGroup
+    .command('preview')
+    .description('Preview the merged model state with staged changes applied')
+    .option('-l, --layer <layer>', 'Preview specific layer only')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset preview
+  $ dr changeset preview --layer application`
+    )
+    .action(async (options) => {
+      await changesetPreviewCommand(options);
+    });
+
+  changesetGroup
+    .command('diff')
+    .description('Show delta between base model and staged changes')
+    .option('-l, --layer <layer>', 'Show diff for specific layer only')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset diff
+  $ dr changeset diff --layer api`
+    )
+    .action(async (options) => {
+      await changesetDiffCommand(options);
+    });
+
+  changesetGroup
+    .command('commit')
+    .description('Apply staged changes to the base model')
+    .option('--validate', 'Run validation before commit (default: true)', true)
+    .option('--force', 'Commit despite drift warnings', false)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset commit
+  $ dr changeset commit --validate
+  $ dr changeset commit --force`
+    )
+    .action(async (options) => {
+      await changesetCommitCommand(options);
     });
 }
