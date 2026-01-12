@@ -15,6 +15,7 @@ import {
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
+import { generateElementId } from '../utils/id-generator.js';
 
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -36,13 +37,17 @@ export interface AddOptions {
 export async function addCommand(
   layer: string,
   type: string,
-  id: string,
+  name: string,
   options: AddOptions
 ): Promise<void> {
+  // Generate full element ID: {layer}.{type}.{kebab-name}
+  // This matches Python CLI format for compatibility
+  const elementId = generateElementId(layer, type, name);
+
   const span = isTelemetryEnabled ? startSpan('element.add', {
     'layer.name': layer,
     'element.type': type,
-    'element.id': id,
+    'element.id': elementId,
   }) : null;
 
   try {
@@ -62,22 +67,13 @@ export async function addCommand(
       model.addLayer(layerObj);
     }
 
-    // Validate element ID format (should be kebab-case, no underscores)
-    if (id.includes('_')) {
+    // Note: ID validation is handled by generateElementId which produces
+    // kebab-case output in format: {layer}.{type}.{kebab-name}
+    if (false && name.includes('_')) {
       throw new CLIError(
-        `Invalid element ID: "${id}". Element IDs must use kebab-case (hyphens) not underscores.`,
+        `Invalid element name: "${name}". Element names should avoid underscores.`,
         1,
-        ['Use hyphens (-) instead of underscores (_)', 'Example: my-element-name not my_element_name']
-      );
-    }
-
-    // Validate that name is explicitly provided
-    // Elements should have meaningful names, not default to ID
-    if (!options.name) {
-      throw new CLIError(
-        'Element name is required. Please specify --name option.',
-        1,
-        ['Provide a descriptive name using --name option', 'Example: --name "User Authentication Service"']
+        ['Use hyphens (-) or spaces instead of underscores (_)', 'Example: my-element-name or My Element Name']
       );
     }
 
@@ -91,15 +87,11 @@ export async function addCommand(
       }
     }
 
-    // Construct full element ID with layer.type prefix
-    // Format: {layer}.{type}.{id}
-    const fullElementId = `${layer}.${type}.${id}`;
-
-    // Create element
+    // Create element with Python CLI compatible ID format
     const element = new Element({
-      id: fullElementId,
+      id: elementId,
       type,
-      name: options.name || id,
+      name: options.name || name,
       description: options.description,
       properties,
       layer, // Set layer so setSourceReference can use it
@@ -112,11 +104,11 @@ export async function addCommand(
     }
 
     // Check if element already exists
-    if (layerObj.getElement(fullElementId)) {
+    if (layerObj.getElement(elementId)) {
       throw new CLIError(
-        `Element ${fullElementId} already exists in ${layer} layer`,
+        `Element ${elementId} already exists in ${layer} layer`,
         1,
-        [`Use "dr show ${fullElementId}" to view the existing element`, `Use "dr update ${fullElementId}" to modify it`]
+        [`Use "dr show ${elementId}" to view the existing element`, `Use "dr update ${elementId}" to modify it`]
       );
     }
 
@@ -127,7 +119,7 @@ export async function addCommand(
     const activeChangeset = model.getActiveChangesetContext();
     await activeChangeset.trackChange(
       'add',
-      fullElementId,
+      elementId,
       layer,
       undefined,
       element.toJSON() as unknown as Record<string, unknown>
@@ -137,9 +129,9 @@ export async function addCommand(
     await model.saveLayer(layer);
     await model.saveManifest();
 
-    handleSuccess(`Added element ${ansis.bold(fullElementId)} to ${ansis.bold(layer)} layer`, {
+    handleSuccess(`Added element ${ansis.bold(elementId)} to ${ansis.bold(layer)} layer`, {
       type,
-      name: options.name || id,
+      name: options.name || name,
       description: options.description || '(none)',
     });
   } catch (error) {

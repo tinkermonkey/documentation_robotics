@@ -105,9 +105,9 @@ Examples:
   .action(initCommand);
 
 program
-  .command('add <layer> <type> <id>')
+  .command('add <layer> <type> <name>')
   .description('Add an element to a layer')
-  .option('--name <name>', 'Element name (defaults to ID)')
+  .option('--name <name>', 'Element display name (defaults to the name argument)')
   .option('--description <desc>', 'Element description')
   .option('--properties <json>', 'Element properties as JSON object')
   .option('--source-file <path>', 'Source file path (relative from repository root)')
@@ -119,10 +119,12 @@ program
     'after',
     `
 Examples:
-  $ dr add business business-service customer-mgmt --name "Customer Management"
-  $ dr add api endpoint create-customer --properties '{"method":"POST","path":"/customers"}'
-  $ dr add application component customer-api --description "REST API for customer operations"
-  $ dr add security policy auth-validate --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"`
+  $ dr add business service "Customer Management"
+  $ dr add api operation "Create Customer" --properties '{"method":"POST","path":"/customers"}'
+  $ dr add application component "Customer API" --description "REST API for customer operations"
+  $ dr add security policy "Auth Validator" --source-file "src/auth/validator.ts" --source-symbol "validateToken" --source-provenance "extracted"
+
+Note: Element IDs are generated automatically in format {layer}.{type}.{kebab-name}`
   )
   .action(addCommand);
 

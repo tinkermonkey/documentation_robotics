@@ -6,9 +6,11 @@
  */
 
 import { cp, rm } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { exec } from "node:child_process";
 import { promisify } from "node:util";
+import * as yaml from "yaml";
 
 const execAsync = promisify(exec);
 
@@ -101,6 +103,68 @@ export async function validateCLIBinary(cliPath: string): Promise<void> {
 }
 
 /**
+ * Get the version string from a CLI binary
+ */
+async function getCLIVersion(cliPath: string): Promise<string> {
+  const isPythonCLI = cliPath.includes(".venv/bin/dr");
+
+  let versionCommand: string;
+  if (isPythonCLI) {
+    // Try python3 first, fall back to direct execution
+    versionCommand = `${cliPath} --version`;
+  } else {
+    versionCommand = `${cliPath} --version`;
+  }
+
+  try {
+    const { stdout } = await execAsync(versionCommand);
+    // Extract version number from output like "dr, version 0.7.3" or "0.7.3"
+    const match = stdout.match(/(\d+\.\d+\.\d+)/);
+    if (!match) {
+      throw new Error(`Could not parse version from: ${stdout}`);
+    }
+    return match[1];
+  } catch (error) {
+    throw new Error(
+      `Failed to get version from ${cliPath}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
+ * Update cli_version in manifest.yaml to match the CLI being tested
+ * This avoids upgrade prompts when testing CLIs against baseline models
+ */
+async function updateManifestCLIVersion(
+  projectPath: string,
+  cliPath: string
+): Promise<void> {
+  const manifestPath = join(
+    projectPath,
+    "documentation-robotics/model/manifest.yaml"
+  );
+
+  try {
+    // Get CLI version
+    const version = await getCLIVersion(cliPath);
+
+    // Read manifest
+    const content = await readFile(manifestPath, "utf8");
+    const manifest = yaml.parse(content);
+
+    // Update cli_version
+    manifest.cli_version = version;
+
+    // Write back
+    await writeFile(manifestPath, yaml.stringify(manifest), "utf8");
+  } catch (error) {
+    throw new Error(
+      `Failed to update manifest at ${manifestPath}: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+}
+
+/**
  * Validate that both CLI binaries exist and are executable
  * For now, we skip Python CLI validation if not available and focus on TypeScript CLI
  * @throws Error if TypeScript CLI is invalid
@@ -136,9 +200,10 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
 /**
  * Create fresh copies of baseline test project
  * Copies baseline to isolated python-cli/ and ts-cli/ directories
+ * Updates cli_version in manifests to match the CLI being tested
  * @throws Error if copy operation fails
  */
-export async function setupTestEnvironment(paths: TestPaths): Promise<void> {
+export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig): Promise<void> {
   // Clean up previous test artifacts
   await cleanupTestArtifacts(paths);
 
@@ -158,6 +223,10 @@ export async function setupTestEnvironment(paths: TestPaths): Promise<void> {
       `Failed to copy baseline to ts-cli: ${error instanceof Error ? error.message : String(error)}`
     );
   }
+
+  // Update cli_version in manifests to match CLIs being tested
+  await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
+  await updateManifestCLIVersion(paths.tsPath, config.tsCLI);
 }
 
 /**
@@ -177,7 +246,7 @@ export async function initializeTestEnvironment(
   await validateCLIBinaries(config);
 
   // Setup isolated test environment
-  await setupTestEnvironment(paths);
+  await setupTestEnvironment(paths, config);
 
   return { config, paths };
 }

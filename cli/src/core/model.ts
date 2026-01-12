@@ -5,6 +5,7 @@ import { ProjectionEngine } from "./projection-engine.js";
 import { Relationships } from "./relationships.js";
 import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
+import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -393,7 +394,7 @@ export class Model {
     const yamlData: any = {
       version: this.manifest.version,
       schema: 'documentation-robotics-v1',
-      cli_version: this.manifest.version || '0.1.0',
+      cli_version: getCliVersion(),
       spec_version: this.manifest.specVersion,
       created: this.manifest.created,
       updated: this.manifest.modified,
