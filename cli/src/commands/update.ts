@@ -81,23 +81,31 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // Capture before state for changeset tracking
     const beforeState = element.toJSON();
 
-    // Update fields
+    // Build the after state based on options (without modifying the element yet)
+    const afterState = {
+      ...beforeState,
+    };
+
+    // Apply fields to afterState
     let updated = false;
 
     if (options.name) {
-      element.name = options.name;
+      (afterState as any).name = options.name;
       updated = true;
     }
 
     if (options.description !== undefined) {
-      element.description = options.description || undefined;
+      (afterState as any).description = options.description || undefined;
       updated = true;
     }
 
     if (options.properties) {
       try {
         const newProperties = JSON.parse(options.properties);
-        element.properties = { ...element.properties, ...newProperties };
+        (afterState as any).properties = {
+          ...(afterState as any).properties,
+          ...newProperties,
+        };
         updated = true;
       } catch (e) {
         console.error(ansis.red('Error: Invalid JSON in --properties'));
@@ -107,12 +115,12 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
     // Handle source reference updates
     if (options.clearSourceReference) {
-      element.setSourceReference(undefined);
+      (afterState as any).sourceReference = undefined;
       updated = true;
     } else if (options.sourceFile) {
       const newRef = buildSourceReference(options);
       if (newRef) {
-        element.setSourceReference(newRef);
+        (afterState as any).sourceReference = newRef;
         updated = true;
       }
     }
@@ -134,7 +142,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
         elementId: id,
         layerName,
         before: beforeState as unknown as Record<string, unknown>,
-        after: element.toJSON() as unknown as Record<string, unknown>,
+        after: afterState as unknown as Record<string, unknown>,
         timestamp: new Date().toISOString(),
       });
 
@@ -147,6 +155,29 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     }
 
     // Normal flow: Apply changes to base model directly
+    // Now apply modifications to the actual element
+    if (options.name) {
+      element.name = options.name;
+    }
+
+    if (options.description !== undefined) {
+      element.description = options.description || undefined;
+    }
+
+    if (options.properties) {
+      const newProperties = JSON.parse(options.properties);
+      element.properties = { ...element.properties, ...newProperties };
+    }
+
+    if (options.clearSourceReference) {
+      element.setSourceReference(undefined);
+    } else if (options.sourceFile) {
+      const newRef = buildSourceReference(options);
+      if (newRef) {
+        element.setSourceReference(newRef);
+      }
+    }
+
     // Track change in legacy changeset context if present
     const activeChangesetContext = model.getActiveChangesetContext();
     await activeChangesetContext.trackChange(
@@ -154,7 +185,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       id,
       layerName,
       beforeState as unknown as Record<string, unknown>,
-      element.toJSON() as unknown as Record<string, unknown>
+      afterState as unknown as Record<string, unknown>
     );
 
     // Save

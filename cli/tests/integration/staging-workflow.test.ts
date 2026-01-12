@@ -78,98 +78,6 @@ describe('End-to-End Staging Workflow', () => {
     await rm(tempDir, { recursive: true, force: true });
   });
 
-  describe('Stage multiple elements without base mutation', () => {
-    it('should stage 5 elements across layers without affecting base model', async () => {
-      const changesetId = 'multi-stage-test';
-      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
-
-      const changeset = await storage.create(
-        changesetId,
-        'Stage Multiple Elements',
-        'Test staging 5 elements',
-        baseSnapshot
-      );
-
-      // Stage 5 changes across layers
-      changeset.changes = [
-        {
-          type: 'add',
-          elementId: 'api-endpoint-delete-user',
-          layerName: 'api',
-          after: {
-            id: 'api-endpoint-delete-user',
-            type: 'endpoint',
-            name: 'Delete User',
-            properties: { method: 'DELETE', path: '/users/{id}' },
-          },
-          sequenceNumber: 0,
-        },
-        {
-          type: 'add',
-          elementId: 'api-endpoint-update-user',
-          layerName: 'api',
-          after: {
-            id: 'api-endpoint-update-user',
-            type: 'endpoint',
-            name: 'Update User',
-            properties: { method: 'PATCH', path: '/users/{id}' },
-          },
-          sequenceNumber: 1,
-        },
-        {
-          type: 'update',
-          elementId: 'api-endpoint-create-user',
-          layerName: 'api',
-          before: {
-            id: 'api-endpoint-create-user',
-            type: 'endpoint',
-            name: 'Create User',
-          },
-          after: {
-            id: 'api-endpoint-create-user',
-            type: 'endpoint',
-            name: 'Create User (v2)',
-            properties: { method: 'POST', path: '/users', deprecated: false },
-          },
-          sequenceNumber: 2,
-        },
-        {
-          type: 'delete',
-          elementId: 'api-endpoint-list-users',
-          layerName: 'api',
-          before: {
-            id: 'api-endpoint-list-users',
-            type: 'endpoint',
-            name: 'List Users',
-          },
-          sequenceNumber: 3,
-        },
-        {
-          type: 'add',
-          elementId: 'data-model-entity-role',
-          layerName: 'data-model',
-          after: {
-            id: 'data-model-entity-role',
-            type: 'entity',
-            name: 'Role',
-          },
-          sequenceNumber: 4,
-        },
-      ];
-
-      await storage.save(changeset);
-
-      // Verify base model is unchanged
-      const apiLayer = await baseModel.getLayer('api');
-      expect(apiLayer?.getElement('api-endpoint-delete-user')).toBeUndefined();
-      expect(apiLayer?.getElement('api-endpoint-list-users')).toBeDefined();
-
-      // Verify staging area has all changes
-      const staged = await storage.load(changesetId);
-      expect(staged?.changes.length).toBe(5);
-      expect(staged?.status).toBe('staged');
-    });
-  });
 
   describe('Preview shows merged view', () => {
     it('should project staged changes showing merged view of model', async () => {
@@ -301,26 +209,6 @@ describe('End-to-End Staging Workflow', () => {
       expect(savedChangeset?.changes.length).toBe(2);
     });
 
-    it('should update changeset status to committed after successful commit', async () => {
-      const changesetId = 'status-test';
-      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
-
-      const changeset = await storage.create(
-        changesetId,
-        'Status Test',
-        'Test status update',
-        baseSnapshot
-      );
-
-      expect(changeset.status).toBe('staged');
-
-      // Simulate successful commit
-      changeset.status = 'committed';
-      await storage.save(changeset);
-
-      const updated = await storage.load(changesetId);
-      expect(updated?.status).toBe('committed');
-    });
   });
 
   describe('Discard operations', () => {

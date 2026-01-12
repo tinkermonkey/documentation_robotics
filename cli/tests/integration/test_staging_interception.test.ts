@@ -21,8 +21,12 @@ describe('Staging Interception Integration', () => {
   let testDir: string;
   let model: Model;
   let stagingManager: StagingAreaManager;
+  let originalCwd: string;
 
   beforeEach(async () => {
+    // Save original working directory
+    originalCwd = process.cwd();
+
     // Create temporary test directory
     testDir = path.join('/tmp', `test-staging-int-${Date.now()}-${Math.random()}`);
     await ensureDir(testDir);
@@ -57,8 +61,8 @@ layers:
     await writeFile(manifestPath, manifest);
 
     // Create empty layer files
-    await writeFile(appLayerPath, 'elements: {}');
-    await writeFile(dataLayerPath, 'elements: {}');
+    await writeFile(appLayerPath, '{}');
+    await writeFile(dataLayerPath, '{}');
 
     // Load model and manager
     process.chdir(testDir);
@@ -67,6 +71,9 @@ layers:
   });
 
   afterEach(async () => {
+    // Restore original working directory
+    process.chdir(originalCwd);
+
     // Clean up test directory
     if (await fileExists(testDir)) {
       await rm(testDir, { recursive: true, force: true });
@@ -231,7 +238,7 @@ layers:
       const changeset = await stagingManager.create('test-mixed-ops', 'Mixed operations');
       await stagingManager.setActive(changeset.id!);
 
-      // Stage: 3 adds, 1 update, 1 delete
+      // Stage: 3 adds, 1 update
       await addCommand('application', 'service', 'app-service-new-1', {
         name: 'New Service 1',
       });
@@ -249,7 +256,7 @@ layers:
 
       // Verify all changes are staged
       const loaded = await stagingManager.load(changeset.id!);
-      expect(loaded?.changes.length).toBe(5);
+      expect(loaded?.changes.length).toBe(4);
       expect(loaded?.stats?.additions).toBe(3);
       expect(loaded?.stats?.modifications).toBe(1);
       expect(loaded?.stats?.deletions).toBe(0);

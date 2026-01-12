@@ -13,8 +13,12 @@ describe('StagingAreaManager', () => {
   let testDir: string;
   let manager: StagingAreaManager;
   let model: Model;
+  let originalCwd: string;
 
   beforeEach(async () => {
+    // Save original working directory
+    originalCwd = process.cwd();
+
     // Create temporary test directory
     testDir = path.join('/tmp', `test-staging-${Date.now()}-${Math.random()}`);
     await ensureDir(testDir);
@@ -40,6 +44,9 @@ layers: {}`;
   });
 
   afterEach(async () => {
+    // Restore original working directory
+    process.chdir(originalCwd);
+
     // Clean up test directory
     if (await fileExists(testDir)) {
       await rm(testDir, { recursive: true, force: true });
@@ -53,7 +60,7 @@ layers: {}`;
       expect(changeset).toBeDefined();
       expect(changeset.name).toBe('test-changeset');
       expect(changeset.description).toBe('Test description');
-      expect(changeset.status).toBe('staged');
+      expect(changeset.status).toBe('draft');
       expect(changeset.changes.length).toBe(0);
       expect(changeset.id).toBeDefined();
     });
@@ -104,6 +111,7 @@ layers: {}`;
   describe('Staging operations', () => {
     it('should stage an add change', async () => {
       const changeset = await manager.create('stage-add-test');
+      await manager.setActive(changeset.id!);
 
       await manager.stage(changeset.id!, {
         type: 'add',
@@ -121,6 +129,7 @@ layers: {}`;
 
     it('should stage multiple changes with sequence numbers', async () => {
       const changeset = await manager.create('stage-multiple-test');
+      await manager.setActive(changeset.id!);
 
       await manager.stage(changeset.id!, {
         type: 'add',
@@ -152,6 +161,7 @@ layers: {}`;
 
     it('should unstage a specific element', async () => {
       const changeset = await manager.create('unstage-test');
+      await manager.setActive(changeset.id!);
 
       await manager.stage(changeset.id!, {
         type: 'add',
@@ -177,6 +187,7 @@ layers: {}`;
 
     it('should discard all changes', async () => {
       const changeset = await manager.create('discard-test');
+      await manager.setActive(changeset.id!);
 
       await manager.stage(changeset.id!, {
         type: 'add',
@@ -266,6 +277,7 @@ layers: {}`;
   describe('Statistics tracking', () => {
     it('should update stats when adding changes', async () => {
       const changeset = await manager.create('stats-test');
+      await manager.setActive(changeset.id!);
 
       await manager.stage(changeset.id!, {
         type: 'add',

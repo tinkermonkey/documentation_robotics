@@ -11,7 +11,7 @@
 import path from 'path';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 import { BaseSnapshotManager } from './base-snapshot-manager.js';
-import { Changeset, StagedChange, type StagedChangesetData } from './changeset.js';
+import { Changeset, StagedChange } from './changeset.js';
 import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
 
@@ -66,7 +66,7 @@ export class StagingAreaManager {
     this.rootPath = rootPath;
     this.model = model || null;
     this.storage = new StagedChangesetStorage(rootPath);
-    this.snapshotManager = new BaseSnapshotManager(rootPath);
+    this.snapshotManager = new BaseSnapshotManager();
   }
 
   /**
@@ -271,7 +271,6 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const shouldValidate = options.validate !== false;
     const isDryRun = options.dryRun === true;
 
     // Check for drift
@@ -377,11 +376,18 @@ export class StagingAreaManager {
 
   /**
    * Set a changeset as active
+   * Also transitions the changeset status to 'staged' to enable interception
    */
   async setActive(changesetId: string): Promise<void> {
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
+    }
+
+    // Transition to 'staged' status to enable interception
+    if (changeset.status !== 'staged') {
+      changeset.markStaged();
+      await this.storage.save(changeset);
     }
 
     const { writeFile, ensureDir } = await import('../utils/file-io.js');
