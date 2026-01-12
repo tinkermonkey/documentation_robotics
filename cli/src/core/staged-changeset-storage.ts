@@ -47,7 +47,7 @@ export class StagedChangesetStorage {
       description,
       created: now,
       modified: now,
-      status: 'draft',
+      status: 'staged',
       baseSnapshot,
       stats: {
         additions: 0,
@@ -73,7 +73,7 @@ export class StagedChangesetStorage {
       description,
       created: now,
       modified: now,
-      status: 'draft',
+      status: 'staged',
       baseSnapshot,
       changes: [],
       stats: metadata.stats,

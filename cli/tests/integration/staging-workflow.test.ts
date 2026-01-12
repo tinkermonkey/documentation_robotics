@@ -5,7 +5,6 @@ import { Layer } from '../../src/core/layer.js';
 import { Element } from '../../src/core/element.js';
 import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
 import { VirtualProjectionEngine } from '../../src/core/virtual-projection.js';
-import { DriftDetector } from '../../src/core/drift-detector.js';
 import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
 import { tmpdir } from 'os';
 import { mkdtemp, rm } from 'fs/promises';
@@ -15,7 +14,6 @@ describe('End-to-End Staging Workflow', () => {
   let baseModel: Model;
   let storage: StagedChangesetStorage;
   let engine: VirtualProjectionEngine;
-  let driftDetector: DriftDetector;
   let snapshotManager: BaseSnapshotManager;
   let tempDir: string;
 
@@ -23,7 +21,6 @@ describe('End-to-End Staging Workflow', () => {
     tempDir = await mkdtemp(join(tmpdir(), 'dr-staging-test-'));
     storage = new StagedChangesetStorage(tempDir);
     engine = new VirtualProjectionEngine(tempDir);
-    driftDetector = new DriftDetector();
     snapshotManager = new BaseSnapshotManager();
 
     // Create test model
@@ -206,7 +203,7 @@ describe('End-to-End Staging Workflow', () => {
       const projectedModel = await engine.projectModel(baseModel, changesetId);
 
       // Verify projection includes base elements plus staged changes
-      const projectedApi = await projectedModel.getLayer('api');
+      const projectedApi = projectedModel.layers.get('api');
       expect(projectedApi?.getElement('api-endpoint-list-users')).toBeDefined();
       expect(projectedApi?.getElement('api-endpoint-new')).toBeDefined();
     });
@@ -253,8 +250,8 @@ describe('End-to-End Staging Workflow', () => {
       }
 
       // Detect drift
-      const hasDrift = await driftDetector.detectDrift(baseSnapshot, baseModel);
-      expect(hasDrift).toBe(true);
+      const driftReport = await snapshotManager.detectDrift(baseSnapshot, baseModel);
+      expect(driftReport.hasDrift).toBe(true);
     });
 
     it('should apply changes atomically when committing', async () => {
