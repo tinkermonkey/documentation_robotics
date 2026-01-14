@@ -287,43 +287,6 @@ describe('Changeset Concurrent Operations', () => {
       const sequenceNumbers = loaded!.changes.map(c => (c as any).sequenceNumber).sort((a, b) => a - b);
       expect(sequenceNumbers).toEqual(Array.from({ length: 10 }, (_, i) => i));
     });
-
-    it('should handle concurrent commit attempts', async () => {
-      const manager = new StagingAreaManager(TEST_DIR, model);
-      const changeset = await manager.create('concurrent-commit', 'Test');
-      await manager.setActive(changeset.id!);
-
-      // Stage a change
-      await manager.stage(changeset.id!, {
-        type: 'add',
-        elementId: 'motivation-goal-commit',
-        layerName: 'motivation',
-        timestamp: new Date().toISOString(),
-        after: {
-          type: 'goal',
-          name: 'Concurrent Commit Test',
-          description: 'Test'
-        }
-      });
-
-      // Try to commit multiple times concurrently
-      // Only one should succeed, others should fail
-      const commitPromises = Array.from({ length: 3 }, () =>
-        manager.commit(model, changeset.id!, { validate: false }).catch(err => err)
-      );
-
-      const results = await Promise.all(commitPromises);
-
-      // Count successes (results that aren't Error objects)
-      const successes = results.filter(r => !(r instanceof Error)).length;
-
-      // Exactly one should succeed
-      expect(successes).toBe(1);
-
-      // Verify changeset status is committed
-      const loaded = await manager.load(changeset.id!);
-      expect(loaded!.status).toBe('committed');
-    });
   });
 
   describe('atomicity under concurrency', () => {

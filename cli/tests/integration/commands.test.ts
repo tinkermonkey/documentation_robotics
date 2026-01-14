@@ -506,7 +506,7 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should add relationship between elements', async () => {
       const result = await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--predicate', 'depends-on'
       );
 
@@ -514,7 +514,7 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       await model.loadRelationships();
-      const relationships = model.relationships.find('motivation.goal.goal-1', 'motivation.goal.goal-2');
+      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
       expect(relationships.length).toBe(1);
       expect(relationships[0].predicate).toBe('depends-on');
     });
@@ -532,24 +532,24 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should list relationships', async () => {
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--predicate', 'depends-on'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1');
+      const result = await runDr('relationship', 'list', 'motivation-goal-1');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation.goal.goal-2');
+      expect(result.stdout).toContain('motivation-goal-2');
     });
 
     it('should delete relationship', async () => {
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--predicate', 'depends-on'
       );
 
       const result = await runDr('relationship', 'delete',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--force'
       );
 
@@ -557,21 +557,21 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       await model.loadRelationships();
-      const relationships = model.relationships.find('motivation.goal.goal-1', 'motivation.goal.goal-2');
+      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
       expect(relationships.length).toBe(0);
     });
 
     it('should support --json output for list', async () => {
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--predicate', 'depends-on'
       );
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-3',
+        'motivation-goal-1', 'motivation-goal-3',
         '--predicate', 'supports'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1', '--json');
+      const result = await runDr('relationship', 'list', 'motivation-goal-1', '--json');
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -583,10 +583,10 @@ describe('CLI Commands Integration Tests', () => {
       const predicates = ['depends-on', 'supports', 'triggers', 'includes'];
 
       for (let i = 0; i < predicates.length; i++) {
-        const targetId = `motivation.goal.goal-${i + 2}`;
+        const targetId = `motivation-goal-${i + 2}`;
         if (i === 0) {
           const result = await runDr('relationship', 'add',
-            'motivation.goal.goal-1', targetId,
+            'motivation-goal-1', targetId,
             '--predicate', predicates[i]
           );
           expect(result.exitCode).toBe(0);
@@ -605,19 +605,19 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should handle multiple relationships on same element', async () => {
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-2',
+        'motivation-goal-1', 'motivation-goal-2',
         '--predicate', 'depends-on'
       );
       await runDr('relationship', 'add',
-        'motivation.goal.goal-1', 'motivation.goal.goal-3',
+        'motivation-goal-1', 'motivation-goal-3',
         '--predicate', 'supports'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1');
+      const result = await runDr('relationship', 'list', 'motivation-goal-1');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation.goal.goal-2');
-      expect(result.stdout).toContain('motivation.goal.goal-3');
+      expect(result.stdout).toContain('motivation-goal-2');
+      expect(result.stdout).toContain('motivation-goal-3');
     });
   });
 });
