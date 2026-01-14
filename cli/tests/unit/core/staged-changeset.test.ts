@@ -12,40 +12,6 @@ const TEST_DIR = '/tmp/staged-changeset-test';
 
 describe('Staged Changeset Data Model', () => {
   describe('Changeset with extended fields', () => {
-    it('should create changeset with staging fields', () => {
-      const changeset = Changeset.create('test-changeset', 'Test description');
-
-      // Basic fields
-      expect(changeset.name).toBe('test-changeset');
-      expect(changeset.status).toBe('draft');
-
-      // Add extended fields manually
-      changeset.id = 'test-changeset-001';
-      changeset.baseSnapshot = 'sha256:abc123';
-      changeset.stats = { additions: 0, modifications: 0, deletions: 0 };
-
-      expect(changeset.id).toBe('test-changeset-001');
-      expect(changeset.baseSnapshot).toBe('sha256:abc123');
-      expect(changeset.stats).toEqual({ additions: 0, modifications: 0, deletions: 0 });
-    });
-
-    it('should update stats from changes', () => {
-      const changeset = Changeset.create('test');
-      changeset.id = 'test-001';
-      changeset.baseSnapshot = 'sha256:abc';
-
-      changeset.addChange('add', 'elem-1', 'api', undefined, { name: 'New' });
-      changeset.addChange('add', 'elem-2', 'api', undefined, { name: 'Another' });
-      changeset.addChange('update', 'elem-3', 'application', {}, {});
-      changeset.addChange('delete', 'elem-4', 'technology', {}, undefined);
-
-      changeset.updateStats();
-
-      expect(changeset.stats?.additions).toBe(2);
-      expect(changeset.stats?.modifications).toBe(1);
-      expect(changeset.stats?.deletions).toBe(1);
-    });
-
     it('should support new status values', () => {
       const changeset = Changeset.create('test');
 
@@ -60,12 +26,23 @@ describe('Staged Changeset Data Model', () => {
     });
 
     it('should serialize and deserialize with extended fields', () => {
-      const original = Changeset.create('test', 'description');
-      original.id = 'test-001';
-      original.baseSnapshot = 'sha256:abc123';
-      original.status = 'staged';
-      original.addChange('add', 'elem-1', 'api', undefined, { name: 'Test' });
-      original.updateStats();
+      const original = new Changeset({
+        id: 'test-001',
+        name: 'test',
+        description: 'description',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        status: 'staged',
+        baseSnapshot: 'sha256:abc123',
+        changes: [
+          {
+            type: 'add',
+            elementId: 'elem-1',
+            layerName: 'api',
+            after: { name: 'Test' },
+          },
+        ],
+      });
 
       const json = original.toJSON();
       const restored = Changeset.fromJSON(json);
@@ -73,8 +50,29 @@ describe('Staged Changeset Data Model', () => {
       expect(restored.id).toBe('test-001');
       expect(restored.baseSnapshot).toBe('sha256:abc123');
       expect(restored.status).toBe('staged');
-      expect(restored.stats?.additions).toBe(1);
+      expect(restored.stats.additions).toBe(1);
       expect(restored.changes).toHaveLength(1);
+    });
+
+    it('should compute stats automatically from changes', () => {
+      const changeset = new Changeset({
+        id: 'test-001',
+        name: 'test',
+        created: new Date().toISOString(),
+        modified: new Date().toISOString(),
+        status: 'draft',
+        baseSnapshot: 'sha256:abc',
+        changes: [
+          { type: 'add', elementId: 'elem-1', layerName: 'api', after: { name: 'New' } },
+          { type: 'add', elementId: 'elem-2', layerName: 'api', after: { name: 'Another' } },
+          { type: 'update', elementId: 'elem-3', layerName: 'application', before: {}, after: {} },
+          { type: 'delete', elementId: 'elem-4', layerName: 'technology', before: {} },
+        ],
+      });
+
+      expect(changeset.stats.additions).toBe(2);
+      expect(changeset.stats.modifications).toBe(1);
+      expect(changeset.stats.deletions).toBe(1);
     });
   });
 });

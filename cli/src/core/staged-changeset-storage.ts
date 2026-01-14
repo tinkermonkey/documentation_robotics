@@ -214,27 +214,33 @@ export class StagedChangesetStorage {
    * Add or update a change in the changeset's changes.yaml
    *
    * Uses file locking to prevent concurrent modification race conditions
+   * Assigns sequence number atomically inside the lock to prevent duplicates
+   *
+   * @returns The assigned sequence number for the change
    */
-  async addChange(id: string, change: StagedChange): Promise<void> {
+  async addChange(id: string, change: StagedChange): Promise<number> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
-    await lock.withLock(async () => {
+    return await lock.withLock(async () => {
       const changeset = await this.load(id);
       if (!changeset) {
         throw new Error(`Changeset '${id}' not found`);
       }
 
-      // Add change with sequence number if not present
-      if (!change.sequenceNumber) {
-        change.sequenceNumber = changeset.changes.length;
-      }
+      // Assign sequence number atomically inside the lock
+      // This prevents race conditions when multiple concurrent operations
+      // try to add changes at the same time
+      const sequenceNumber = changeset.changes.length;
+      change.sequenceNumber = sequenceNumber;
 
       changeset.changes.push(change);
       changeset.updateModified();
       changeset.updateStats();
 
       await this.save(changeset);
+
+      return sequenceNumber;
     });
   }
 

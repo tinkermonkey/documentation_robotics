@@ -40,8 +40,13 @@ describe('Chat Command with Explicit Client Selection', () => {
   });
 
   afterEach(async () => {
-    // Restore cwd
-    process.chdir(originalCwd);
+    // Restore cwd - use a safe fallback if originalCwd no longer exists
+    try {
+      process.chdir(originalCwd);
+    } catch (e) {
+      // If original directory no longer exists, use root
+      process.chdir('/');
+    }
 
     // Clean up temporary directory
     try {

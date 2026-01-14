@@ -166,10 +166,10 @@ export class StagingAreaManager {
     const stagedChange: StagedChange = {
       ...change,
       timestamp: change.timestamp || new Date().toISOString(),
-      sequenceNumber: changeset.changes.length,
+      sequenceNumber: -1, // Will be assigned by storage layer
     };
 
-    await this.storage.addChange(changesetId, stagedChange);
+    const assignedSequenceNumber = await this.storage.addChange(changesetId, stagedChange);
 
     // Invalidate projection cache for this layer
     const engine = await this.getProjectionEngine();

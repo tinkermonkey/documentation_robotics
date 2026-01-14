@@ -7,16 +7,9 @@ import { ProjectionEngine } from '../../src/core/projection-engine.js';
 import { Model } from '../../src/core/model.js';
 import { Manifest } from '../../src/core/manifest.js';
 import { fileExists } from '../../src/utils/file-io.js';
-import path from 'path';
 
 describe('ProjectionEngine - YAML Integration', () => {
-  const testRulesPath = path.join(
-    process.cwd(),
-    '..',
-    'cli-validation',
-    'test-project',
-    'projection-rules.yaml'
-  );
+  const testRulesPath = new URL('../../../cli-validation/test-project/projection-rules.yaml', import.meta.url).pathname;
 
   it('should have test rules file', async () => {
     const exists = await fileExists(testRulesPath);
