@@ -61,7 +61,7 @@ export class StagingAreaManager {
   private storage: StagedChangesetStorage;
   private snapshotManager: BaseSnapshotManager;
   private validator: ChangesetValidator;
-  private projectionEngine: any; // VirtualProjectionEngine (lazy loaded to avoid circular dependency)
+  private projectionEngine: any; // VirtualProjectionEngine instance (initialized on first use)
   private rootPath: string;
   private model: Model | null = null;
 
@@ -71,11 +71,13 @@ export class StagingAreaManager {
     this.storage = new StagedChangesetStorage(rootPath);
     this.snapshotManager = new BaseSnapshotManager();
     this.validator = new ChangesetValidator(rootPath);
-    this.projectionEngine = null; // Lazy loaded
+    this.projectionEngine = null; // Lazy loaded on first call to getProjectionEngine()
   }
 
   /**
-   * Get or create projection engine instance
+   * Get or create projection engine instance (lazy initialization).
+   * Deferred initialization avoids circular dependency issues at module load time.
+   * @returns VirtualProjectionEngine instance for computing merged model views
    */
   private async getProjectionEngine(): Promise<any> {
     if (!this.projectionEngine) {
@@ -139,8 +141,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Stage a change in the changeset
-   * Blocks model mutation and records change in staging area
+   * Stage a change in the changeset.
+   * Records the change in the staging area without applying to the base model.
+   * The changeset must be in 'staged' status to accept new changes.
+   *
+   * @param changesetId - ID of the changeset to stage the change in
+   * @param change - The change to stage (type, elementId, layerName, before/after snapshots)
+   * @throws Error if changeset not found or not in 'staged' status
    */
   async stage(changesetId: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<void> {
     const changeset = await this.storage.load(changesetId);
@@ -148,7 +155,7 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    // Only allow staging when status is 'staged'
+    // Only allow staging when status is 'staged' (not 'committed' or 'discarded')
     if (changeset.status !== 'staged') {
       throw new Error(
         `Cannot stage changes on changeset with status '${changeset.status}'. ` +
@@ -170,8 +177,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Unstage a specific element from the changeset
-   * Removes all changes for the element and resequences remaining
+   * Unstage a specific element from the changeset.
+   * Removes all changes associated with the element.
+   * The changeset must be in 'staged' status.
+   *
+   * @param changesetId - ID of the changeset to unstage from
+   * @param elementId - ID of the element to remove all changes for
+   * @throws Error if changeset not found or not in 'staged' status
    */
   async unstage(changesetId: string, elementId: string): Promise<void> {
     const changeset = await this.storage.load(changesetId);
@@ -186,17 +198,21 @@ export class StagingAreaManager {
       );
     }
 
-    // Remove change and resequence
+    // Remove the element's changes and resequence remaining changes
     await this.storage.removeChange(changesetId, elementId);
 
-    // Invalidate projection cache (all layers since we don't know which layer the element was in)
+    // Invalidate projection cache for all layers (element's layer is unknown at this point)
     const engine = await this.getProjectionEngine();
     engine.invalidateOnUnstage(changesetId);
   }
 
   /**
-   * Discard all changes in the changeset
-   * Clears changes and sets status to 'discarded'
+   * Discard all changes in the changeset.
+   * Clears all staged changes and marks the changeset as 'discarded'.
+   * This operation is irreversible for the changeset but does not affect the base model.
+   *
+   * @param changesetId - ID of the changeset to discard
+   * @throws Error if changeset not found
    */
   async discard(changesetId: string): Promise<void> {
     const changeset = await this.storage.load(changesetId);
@@ -204,21 +220,26 @@ export class StagingAreaManager {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    // Clear changes and update status
+    // Clear all staged changes and update status
     changeset.changes = [];
     changeset.status = 'discarded';
-    // Note: stats auto-computed from changes array (will be 0/0/0)
+    // Note: stats are auto-computed from changes array (will be 0/0/0 after clearing)
     changeset.updateModified();
 
     await this.storage.save(changeset);
 
-    // Invalidate all projections for this changeset
+    // Invalidate all projection cache entries for this changeset
     const engine = await this.getProjectionEngine();
     engine.invalidateOnDiscard(changesetId);
   }
 
   /**
-   * Capture a base snapshot for drift detection
+   * Capture a base snapshot of the current model state for drift detection.
+   * Stores a hash of the model that can be compared later to detect changes.
+   *
+   * @param changesetId - ID of the changeset to capture snapshot for
+   * @returns SHA256 hash of the current model state
+   * @throws Error if changeset not found or model not available
    */
   async captureBaseSnapshot(changesetId: string): Promise<string> {
     if (!this.model) {
@@ -238,7 +259,18 @@ export class StagingAreaManager {
   }
 
   /**
-   * Detect drift by comparing base snapshot to current model state
+   * Detect drift by comparing base snapshot hash to current model state.
+   * Identifies whether the base model has changed since the changeset was created.
+   *
+   * @param changesetId - ID of the changeset to check for drift
+   * @returns DriftReport with isDrifted flag, snapshot hashes, and list of changed elements
+   * @throws Error if changeset not found or model not available
+   *
+   * @remarks
+   * Drift detection is based on hash comparison of the entire model snapshot.
+   * Returns isDrifted=false and warnings if no base snapshot was captured.
+   * Full element-level drift information would require storing complete snapshots;
+   * current implementation returns empty changedElements array (hash comparison only).
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
     if (!this.model) {
@@ -259,12 +291,11 @@ export class StagingAreaManager {
       };
     }
 
-    // Capture current snapshot to compare against base
+    // Capture current model snapshot to compare against base
     const currentSnapshotId = await this.snapshotManager.captureSnapshot(this.model);
 
-    // Note: BaseSnapshotManager works with hashes, not full snapshot objects
-    // Drift detection is limited to comparing snapshot IDs (hashes)
-    // Full element-level diff detection would require storing complete snapshot data
+    // Compare snapshot hashes to detect drift
+    // isDrifted=true indicates base model has changed since changeset creation
     const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
     const warnings: string[] = [];
@@ -286,16 +317,28 @@ export class StagingAreaManager {
   }
 
   /**
-   * Commit a changeset to the base model
+   * Commit a changeset to the base model with atomic guarantee.
+   * Applies all staged changes and persists them to the base model.
    *
    * Implements atomic commit with the following steps:
-   * 1. Detect drift (throw unless --force)
-   * 2. Validate against projected model (validation errors always block)
-   * 3. Backup current model state
+   * 1. Detect drift in base model (fail unless force=true)
+   * 2. Validate projected model (schema, references, semantics)
+   * 3. Create backup of current model state
    * 4. Apply all changes in sequence order
-   * 5. Save all modified layers
-   * 6. Update changeset status and history
-   * 7. Rollback on any failure
+   * 5. Save all modified layers to disk
+   * 6. Update changeset status and manifest history
+   * 7. Cleanup backup on success, restore on failure
+   *
+   * @param model - The model to commit changes to
+   * @param changesetId - ID of the changeset to commit
+   * @param options - Commit options (force, validate, dryRun)
+   * @returns CommitResult with count of committed/failed changes and validation status
+   * @throws Error if validation fails, drift detected without --force, or commit fails
+   *
+   * @remarks
+   * Validation errors always block commit (cannot override with --force).
+   * Dry-run mode performs all checks but does not persist changes.
+   * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
     const changeset = await this.storage.load(changesetId);
@@ -472,7 +515,11 @@ export class StagingAreaManager {
   }
 
   /**
-   * Check if a changeset is currently active
+   * Check if a changeset is currently active.
+   * Active changesets intercept mutations to stage changes instead of applying to base model.
+   *
+   * @param changesetId - ID of the changeset to check
+   * @returns true if changeset is marked as active, false otherwise
    */
   async isActive(changesetId: string): Promise<boolean> {
     const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
@@ -486,8 +533,16 @@ export class StagingAreaManager {
   }
 
   /**
-   * Set a changeset as active
-   * Also transitions the changeset status to 'staged' to enable interception
+   * Activate a changeset to intercept model mutations.
+   * Marks the changeset as active and transitions status to 'staged'.
+   * Only one changeset can be active at a time.
+   *
+   * @param changesetId - ID of the changeset to activate
+   * @throws Error if changeset not found
+   *
+   * @remarks
+   * When a changeset is active, add/update/delete commands will stage changes
+   * instead of applying them directly to the base model.
    */
   async setActive(changesetId: string): Promise<void> {
     const changeset = await this.storage.load(changesetId);
@@ -510,7 +565,8 @@ export class StagingAreaManager {
   }
 
   /**
-   * Clear the active changeset
+   * Clear the active changeset marker.
+   * Allows a new changeset to be activated or model mutations to proceed normally.
    */
   async clearActive(): Promise<void> {
     const { writeFile } = await import('../utils/file-io.js');
@@ -522,7 +578,10 @@ export class StagingAreaManager {
   }
 
   /**
-   * Get the currently active changeset
+   * Get the currently active changeset.
+   * Returns null if no changeset is active.
+   *
+   * @returns The active changeset or null if none is active
    */
   async getActive(): Promise<Changeset | null> {
     const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
@@ -543,11 +602,20 @@ export class StagingAreaManager {
   }
 
   /**
-   * Backup the current model state for atomic rollback
+   * Backup the current model state for atomic rollback on commit failure.
+   * Creates a temporary backup directory with copies of all layer files and manifest.
+   * Validates backup completeness and calculates checksums for integrity verification.
    *
-   * Creates a temporary backup by copying all layer files and manifest.
-   * Validates backup completeness and integrity before returning.
-   * Used to restore model state if commit fails.
+   * @param model - The model to backup
+   * @returns Path to the backup directory
+   * @throws Error if backup creation or validation fails
+   *
+   * @remarks
+   * Backup includes:
+   * - manifest.yaml or manifest.json
+   * - All layer YAML files
+   * - Backup manifest with checksums and metadata
+   * Backup is removed after successful commit; retained if commit fails for recovery.
    */
   private async backupModel(model: Model): Promise<string> {
     const backupDir = path.join(
@@ -654,7 +722,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Validate that backup is complete and matches source files
+   * Validate backup completeness and file integrity.
+   * Verifies that all files in the manifest exist in the backup directory
+   * with matching checksums and sizes.
+   *
+   * @param backupDir - Path to the backup directory
+   * @param manifest - Backup manifest with file list and checksums
+   * @throws Error if any file is missing, checksum mismatches, or size differs
    */
   private async validateBackup(
     backupDir: string,
@@ -691,9 +765,14 @@ export class StagingAreaManager {
   }
 
   /**
-   * Clean up a backup directory after successful commit
+   * Clean up a backup directory after successful commit.
+   * Removes the backup directory and all its contents to prevent disk space accumulation.
    *
-   * Removes the backup directory and all its contents to prevent disk accumulation
+   * @param backupDir - Path to the backup directory to remove
+   *
+   * @remarks
+   * Failures during cleanup are logged but do not throw - successful commits
+   * should not fail due to cleanup errors. Backup directory remains if cleanup fails.
    */
   private async cleanupBackup(backupDir: string): Promise<void> {
     try {
@@ -706,10 +785,21 @@ export class StagingAreaManager {
   }
 
   /**
-   * Restore model state from backup after failed commit
+   * Restore model state from backup after failed commit.
+   * Restores manifest first (critical), then all layer files with defensive error handling.
+   * Provides detailed reporting of restoration progress and failures.
    *
-   * Performs defensive restoration with per-file error handling.
-   * Tracks restoration progress and provides detailed error reporting.
+   * @param model - The model to restore
+   * @param backupDir - Path to the backup directory
+   * @throws Error with detailed restoration summary if restoration fails
+   *
+   * @remarks
+   * Restoration strategy:
+   * 1. Restore manifest first (critical for model integrity)
+   * 2. Restore all layer files with per-file error handling
+   * 3. Continue restoring remaining files even if some fail
+   * 4. Throw detailed error if critical files fail to restore
+   * Manifest restoration failure is fatal; layer failures are warnings.
    */
   private async restoreModel(model: Model, backupDir: string): Promise<void> {
     const { readFile, fileExists, atomicWrite } = await import('../utils/file-io.js');
@@ -821,8 +911,13 @@ export class StagingAreaManager {
   }
 
   /**
-   * Find the directory path for a layer
-   * Follows same discovery logic as Model.loadLayer
+   * Find the directory path for a layer in the model.
+   * Uses same discovery logic as Model.loadLayer to locate layer directories.
+   * Handles naming convention: `{PREFIX}_{layerName}` where PREFIX is numeric (01_motivation, etc).
+   *
+   * @param rootPath - Root path of the model
+   * @param layerName - Name of the layer to find
+   * @returns Path to the layer directory or null if not found
    */
   private async findLayerDirectory(rootPath: string, layerName: string): Promise<string | null> {
     const fs = await import('fs/promises');
@@ -846,7 +941,10 @@ export class StagingAreaManager {
   }
 
   /**
-   * Generate a unique changeset ID
+   * Generate a unique changeset ID.
+   * Combines timestamp and random suffix to ensure uniqueness across concurrent operations.
+   *
+   * @returns A unique changeset ID in format `changeset-{timestamp}-{random}`
    */
   private generateChangesetId(): string {
     return `changeset-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;

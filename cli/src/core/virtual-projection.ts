@@ -1,8 +1,11 @@
 /**
- * VirtualProjectionEngine - Computes merged model views by applying staged changes
+ * VirtualProjectionEngine - Computes merged model views by applying staged changes.
  *
- * Creates virtual projections of the base model with staged changes applied,
- * without persisting the result. Enables preview and validation operations.
+ * Creates virtual (temporary) projections of the base model with staged changes applied,
+ * without modifying or persisting the base model. Enables safe preview and validation
+ * of changes before commit. Includes projection caching with TTL-based expiration.
+ *
+ * Staging changes are applied in sequence order to compute accurate merged views.
  */
 
 import type { Model } from './model.js';
@@ -15,72 +18,98 @@ import type { StagedChange, Change } from './changeset.js';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 
 /**
- * Projected model with isProjection flag to prevent accidental saves
+ * Projected model with isProjection flag to prevent accidental saves.
+ * This marker interface ensures that projected models are recognized as temporary
+ * and cannot be persisted to disk without explicit commit of the underlying changeset.
  */
 export interface ProjectedModel {
   manifest: Manifest;
   layers: Map<string, Layer>;
-  isProjection: true;
+  isProjection: true; // Always true; marks this as a temporary virtual projection
 }
 
 /**
- * Model diff categorizing changes into additions, modifications, deletions
+ * Model diff categorizing changeset changes by type.
+ * Separates staged changes into additions (new elements), modifications (updated properties),
+ * and deletions (removed elements). Used for preview and diff display operations.
  */
 export interface ModelDiff {
   additions: Array<{
     elementId: string;
     layerName: string;
-    data: Record<string, unknown>;
+    data: Record<string, unknown>; // Complete element state (from change.after)
   }>;
   modifications: Array<{
     elementId: string;
     layerName: string;
-    before: Record<string, unknown>;
-    after: Record<string, unknown>;
+    before: Record<string, unknown>; // Previous state (from change.before)
+    after: Record<string, unknown>;  // New state (from change.after)
   }>;
   deletions: Array<{
     elementId: string;
     layerName: string;
-    data: Record<string, unknown>;
+    data: Record<string, unknown>; // Element state before deletion (from change.before)
   }>;
 }
 
 /**
- * Projection cache entry
+ * Single cached layer projection.
+ * Stores the computed projected layer and timestamp for cache expiration.
  */
 interface CacheEntry {
   layer: Layer;
-  computedAt: string;
+  computedAt: string; // ISO timestamp for age calculation
 }
 
 /**
- * Cache configuration and management
+ * Projection cache for storing computed layer projections.
+ * Uses TTL-based expiration to prevent stale projections.
+ * Entries are lazily removed when expired on access or during periodic cleanup.
  */
 interface ProjectionCache {
-  cache: Map<string, CacheEntry>;
-  maxAge: number;
-  lastCleanup: number;
+  cache: Map<string, CacheEntry>; // Key format: `${changesetId}:${layerName}`
+  maxAge: number; // Cache entry TTL in milliseconds (5 minutes default)
+  lastCleanup: number; // Timestamp of last cleanup to limit cleanup frequency
 }
 
 /**
- * VirtualProjectionEngine - Computes merged model views
+ * VirtualProjectionEngine - Computes merged model views without persisting.
+ * Applies staged changes to a cloned base model to compute projections.
+ * Uses caching with TTL-based expiration to optimize repeated projections.
  */
 export class VirtualProjectionEngine {
   private stagingAreaManager: StagedChangesetStorage;
   private projectionCache: ProjectionCache;
 
+  /**
+   * Create a new projection engine.
+   *
+   * @param rootPath - Root path to the model (used by StagedChangesetStorage)
+   */
   constructor(rootPath: string) {
     this.stagingAreaManager = new StagedChangesetStorage(rootPath);
     this.projectionCache = {
       cache: new Map(),
-      maxAge: 5 * 60 * 1000, // 5 minutes TTL
+      maxAge: 5 * 60 * 1000, // 5-minute TTL for cached projections
       lastCleanup: Date.now(),
     };
   }
 
   /**
-   * Create merged view of a single element by applying staged changes
-   * Returns the projected element state or null if deleted
+   * Project a single element by applying staged changes to it.
+   * Merges the element's base state with staged changes to compute its projected state.
+   *
+   * @param baseModel - The base model to project from
+   * @param changesetId - ID of the changeset containing staged changes
+   * @param elementId - ID of the element to project
+   * @returns Projected element with staged changes applied, or null if element is deleted
+   * @throws Error if changeset not found
+   *
+   * @remarks
+   * If multiple changes exist for the element, the last change determines final state.
+   * For 'delete' operations, returns null.
+   * For 'add' operations without base element, creates new element from staged data.
+   * For 'update' operations, merges staged changes with base element properties.
    */
   async projectElement(
     baseModel: Model,
@@ -158,8 +187,23 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Create merged view of a layer by applying staged changes
-   * Clones base layer and applies changes in sequence order
+   * Project a layer by applying staged changes to a clone of the base layer.
+   * Checks cache first; computes and caches result if not found or expired.
+   *
+   * @param baseModel - The base model to project from
+   * @param changesetId - ID of the changeset containing staged changes
+   * @param layerName - Name of the layer to project
+   * @returns Projected layer with staged changes applied
+   * @throws Error if changeset or base layer not found
+   *
+   * @remarks
+   * Computation process:
+   * 1. Check projection cache (returns if found and not expired)
+   * 2. Clone base layer to avoid mutations
+   * 3. Load staged changes filtered to this layer
+   * 4. Apply changes in sequence number order (add/update/delete)
+   * 5. Cache result with timestamp for TTL tracking
+   * 6. Trigger periodic cache cleanup
    */
   async projectLayer(
     baseModel: Model,
@@ -272,7 +316,20 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Create merged view of entire model by applying staged changes to all layers
+   * Project entire model by applying staged changes to all layers.
+   * Creates a complete projected model view that includes both changed and unchanged layers.
+   *
+   * @param baseModel - The base model to project from
+   * @param changesetId - ID of the changeset containing staged changes
+   * @returns ProjectedModel with isProjection=true flag (prevents accidental saves)
+   * @throws Error if changeset not found
+   *
+   * @remarks
+   * Projection includes:
+   * - All layers mentioned in changeset changes
+   * - All layers from base model (to have complete model state)
+   * - Base model's manifest (unchanged)
+   * Returned model has isProjection=true to prevent accidental persistence.
    */
   async projectModel(baseModel: Model, changesetId: string): Promise<ProjectedModel> {
     const changeset = await this.stagingAreaManager.load(changesetId);
@@ -310,7 +367,17 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Compute diff by categorizing changeset changes
+   * Compute diff by categorizing changeset changes by type.
+   * Extracts the staged changes and organizes them into additions, modifications, and deletions.
+   *
+   * @param _baseModel - The base model (unused; included for interface compatibility)
+   * @param changesetId - ID of the changeset to compute diff for
+   * @returns ModelDiff with changes categorized by type
+   * @throws Error if changeset not found
+   *
+   * @remarks
+   * Diff is computed directly from changeset changes; does not perform deep comparison.
+   * Each change's before/after snapshots are included for detailed display.
    */
   async computeDiff(_baseModel: Model, changesetId: string): Promise<ModelDiff> {
     const changeset = await this.stagingAreaManager.load(changesetId);
@@ -349,7 +416,15 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Invalidate projection cache for a changeset when changes are staged
+   * Invalidate projection cache when changes are staged.
+   * Removes cached projections to ensure fresh computation next time.
+   *
+   * @param changesetId - ID of the changeset being modified
+   * @param layerName - Optional: specific layer to invalidate (all if omitted)
+   *
+   * @remarks
+   * If layerName is provided, only that layer's projection is invalidated.
+   * Otherwise, all projections for the changeset are invalidated.
    */
   invalidateOnStage(changesetId: string, layerName?: string): void {
     if (layerName) {
@@ -367,14 +442,21 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Invalidate projection cache when changes are unstaged
+   * Invalidate projection cache when changes are unstaged.
+   * Delegates to invalidateOnStage (same cache invalidation logic).
+   *
+   * @param changesetId - ID of the changeset being modified
+   * @param layerName - Optional: specific layer to invalidate (all if omitted)
    */
   invalidateOnUnstage(changesetId: string, layerName?: string): void {
     this.invalidateOnStage(changesetId, layerName);
   }
 
   /**
-   * Invalidate all projections for a changeset when it's discarded
+   * Invalidate all projections for a changeset when it's discarded.
+   * Clears all cached projections for this changeset to free memory.
+   *
+   * @param changesetId - ID of the changeset being discarded
    */
   invalidateOnDiscard(changesetId: string): void {
     for (const key of this.projectionCache.cache.keys()) {
@@ -385,46 +467,68 @@ export class VirtualProjectionEngine {
   }
 
   /**
-   * Clone a layer to create independent copy
+   * Clone a layer to create an independent copy.
+   * Deep clones all elements and metadata to avoid mutations.
+   * Cloned layer is marked clean to prevent unintended saves.
+   *
+   * @param layer - The layer to clone
+   * @returns New layer with cloned elements and metadata
+   *
+   * @remarks
+   * Cloning strategy:
+   * 1. Create new Layer with same name
+   * 2. Clone each element: deep copy properties, references, relationships
+   * 3. Copy layer metadata if present
+   * 4. Mark cloned layer as clean to prevent automatic saves
+   * This ensures changes to projection don't affect base layer.
    */
   private cloneLayer(layer: Layer): Layer {
     const cloned = new LayerClass(layer.name);
 
-    // Clone all elements
+    // Clone all elements (deep copy to avoid mutations)
     for (const element of layer.listElements()) {
       const elementClone = new ElementClass({
         id: element.id,
         name: element.name,
         type: element.type,
         description: element.description,
-        properties: { ...element.properties },
-        references: [...(element.references || [])],
-        relationships: [...(element.relationships || [])],
+        properties: { ...element.properties },        // Shallow copy (properties are read-only in projection)
+        references: [...(element.references || [])],  // Shallow copy of array
+        relationships: [...(element.relationships || [])], // Shallow copy of array
         layer: element.layer,
       });
       cloned.addElement(elementClone);
     }
 
-    // Preserve metadata if present
+    // Preserve layer metadata if present
     if (layer.metadata) {
       cloned.metadata = { ...layer.metadata };
     }
 
+    // Mark as clean to prevent projection from being saved
     cloned.markClean();
     return cloned;
   }
 
   /**
-   * Clean up expired cache entries periodically
+   * Clean up expired cache entries periodically (every 60 seconds).
+   * Removes entries that exceed the maxAge TTL.
+   * Runs at most once per minute to limit overhead.
+   *
+   * @remarks
+   * Cleanup is triggered after each projection computation.
+   * Early exit if last cleanup was less than 60 seconds ago.
+   * Entries are marked for deletion based on age calculation from computedAt timestamp.
    */
   private cleanupExpiredCache(): void {
     const now = Date.now();
 
-    // Cleanup every 60 seconds at most
+    // Limit cleanup frequency to at most every 60 seconds
     if (now - this.projectionCache.lastCleanup < 60 * 1000) {
       return;
     }
 
+    // Remove entries that have exceeded their TTL
     for (const [key, entry] of this.projectionCache.cache.entries()) {
       const age = now - new Date(entry.computedAt).getTime();
       if (age >= this.projectionCache.maxAge) {

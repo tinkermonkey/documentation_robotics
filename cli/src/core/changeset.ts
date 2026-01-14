@@ -1,8 +1,13 @@
 /**
- * Changeset - Represents a collection of model changes
+ * Changeset - Represents a collection of model changes.
  *
- * Changesets allow grouping related modifications to the architecture model
- * and applying/reverting them as a unit.
+ * Changesets group related modifications to the architecture model for:
+ * - Atomic application or reversion as a unit
+ * - Staging changes before committing to the base model (new staging workflow)
+ * - Audit trail of model changes with before/after snapshots
+ * - Collaboration and change tracking across team members
+ *
+ * Supports both legacy (draft/applied/reverted) and new staging (staged/committed/discarded) workflows.
  */
 
 import { readJSON, writeJSON, ensureDir, fileExists } from '../utils/file-io.js';
@@ -10,55 +15,67 @@ import type { Model } from './model.js';
 import { Element } from './element.js';
 
 /**
- * Represents a single change in a changeset
+ * Represents a single change in a changeset.
+ * Records element mutations with before/after snapshots for audit and reversion.
  */
 export interface Change {
   type: 'add' | 'update' | 'delete';
   elementId: string;
   layerName: string;
-  before?: Record<string, unknown>;
-  after?: Record<string, unknown>;
-  timestamp?: string; // Optional to allow construction, always populated before storage
+  before?: Record<string, unknown>;  // Element state before change (for update/delete)
+  after?: Record<string, unknown>;   // Element state after change (for add/update)
+  timestamp?: string; // ISO timestamp; optional in interface but always set before storage
 }
 
 /**
- * Represents a staged change with sequence number for replay
+ * Represents a staged change with sequence number for ordered replay.
+ * Used in the staging workflow to ensure changes are applied in order during commit.
  */
 export interface StagedChange extends Change {
-  sequenceNumber: number;
+  sequenceNumber: number; // 0-based index for ordering during commit replay
 }
 
 /**
- * Status values for changesets (supports both legacy and new lifecycle)
- * Legacy: 'draft' | 'applied' | 'reverted'
- * New staging: 'staged' | 'committed' | 'discarded'
+ * Status values for changesets (supports both legacy and new staging workflows).
+ *
+ * Legacy workflow (deprecated, still supported for compatibility):
+ * - 'draft': Created but not yet applied
+ * - 'applied': Changes have been applied to model
+ * - 'reverted': Changes have been reverted from model
+ *
+ * New staging workflow (current approach):
+ * - 'staged': Created and active for staging changes (can accept new changes)
+ * - 'committed': Changes have been committed to base model
+ * - 'discarded': Changes were discarded without applying
  */
 export type ChangesetStatus = 'draft' | 'applied' | 'reverted' | 'staged' | 'committed' | 'discarded';
 
 /**
- * Changeset metadata
+ * Changeset metadata for legacy and staging workflows.
+ * Base interface for both ChangesetData and StagedChangesetData.
  */
 export interface ChangesetData {
   name: string;
   description?: string;
-  created: string;
-  modified: string;
+  created: string;       // ISO timestamp of creation
+  modified: string;      // ISO timestamp of last modification
   changes: Change[];
   status: ChangesetStatus;
 }
 
 /**
- * Extended changeset data with staging semantics
+ * Extended changeset data with staging semantics and metadata.
+ * Includes base snapshot for drift detection and auto-computed stats.
  */
 export interface StagedChangesetData {
-  id: string;
+  id: string;                     // Unique changeset ID
   name: string;
   description?: string;
-  created: string;
-  modified: string;
+  created: string;                // ISO timestamp of creation
+  modified: string;               // ISO timestamp of last modification
   status: ChangesetStatus;
-  baseSnapshot: string;
-  changes: StagedChange[];
+  baseSnapshot: string;           // SHA256 hash of base model at creation (for drift detection)
+  changes: StagedChange[];        // Changes with sequence numbers
   stats: {
     additions: number;
     modifications: number;
@@ -67,7 +84,11 @@ export interface StagedChangesetData {
 }
 
 /**
- * Changeset class for managing model changes
+ * Changeset class for managing model changes.
+ * Represents either a legacy (draft/applied/reverted) or staging workflow (staged/committed/discarded) changeset.
+ *
+ * Stats are computed on-demand from the changes array, ensuring consistency.
+ * Extended fields (id, baseSnapshot) are optional for backward compatibility.
  */
 export class Changeset {
   name: string;
@@ -77,20 +98,22 @@ export class Changeset {
   changes: Change[] = [];
   status: ChangesetStatus = 'draft';
 
-  // Extended staging fields (optional for backward compatibility)
+  // Extended staging fields (optional for backward compatibility with legacy changesets)
   id?: string;
   baseSnapshot?: string;
 
   /**
-   * Get stats derived from changes array
-   * Always accurate since computed from actual changes
+   * Get statistics derived from changes array.
+   * Computed on-demand to ensure always accurate regardless of how changes were added.
+   *
+   * @returns Statistics object with count of additions, modifications, deletions
    */
   get stats(): {
     additions: number;
     modifications: number;
     deletions: number;
   } {
-    // Compute stats from changes array
+    // Compute stats from changes array on-demand (never stale)
     const additions = this.changes.filter(c => c.type === 'add').length;
     const modifications = this.changes.filter(c => c.type === 'update').length;
     const deletions = this.changes.filter(c => c.type === 'delete').length;
@@ -98,6 +121,12 @@ export class Changeset {
     return { additions, modifications, deletions };
   }
 
+  /**
+   * Create changeset from data object.
+   * Handles both legacy (ChangesetData) and staging (StagedChangesetData) formats.
+   *
+   * @param data - Changeset data from storage or API
+   */
   constructor(data: ChangesetData | StagedChangesetData) {
     this.name = data.name;
     this.description = data.description;
@@ -106,19 +135,22 @@ export class Changeset {
     this.changes = data.changes || [];
     this.status = data.status || 'draft';
 
-    // Load extended fields if present
+    // Load extended staging fields if present
     if ('id' in data) {
       this.id = (data as StagedChangesetData).id;
     }
     if ('baseSnapshot' in data) {
       this.baseSnapshot = (data as StagedChangesetData).baseSnapshot;
     }
-    // Note: stats now computed from changes array (stats getter)
-    // Ignore any stored stats for data integrity
+    // Note: Stats are computed from changes array via getter; ignore any stored stats
   }
 
   /**
-   * Create a new changeset
+   * Create a new changeset with draft status.
+   *
+   * @param name - Human-readable name for the changeset
+   * @param description - Optional description of changes
+   * @returns New Changeset instance in draft status
    */
   static create(name: string, description?: string): Changeset {
     const now = new Date().toISOString();
@@ -133,7 +165,15 @@ export class Changeset {
   }
 
   /**
-   * Add a change to the changeset
+   * Add a change to the changeset.
+   * Records element mutation with before/after snapshots for audit and reversion.
+   *
+   * @param type - Type of change (add, update, delete)
+   * @param elementId - ID of the element being changed
+   * @param layerName - Layer containing the element
+   * @param before - Element state before change (for update/delete operations)
+   * @param after - Element state after change (for add/update operations)
+   * @throws No exceptions; updates modified timestamp on success
    */
   addChange(
     type: 'add' | 'update' | 'delete',
@@ -154,37 +194,43 @@ export class Changeset {
   }
 
   /**
-   * Update the modified timestamp
+   * Update the modified timestamp to current time.
    */
   updateModified(): void {
     this.modified = new Date().toISOString();
   }
 
   /**
-   * Get number of changes
+   * Get the total number of changes in this changeset.
+   *
+   * @returns Number of changes (add + update + delete)
    */
   getChangeCount(): number {
     return this.changes.length;
   }
 
   /**
-   * Get changes by type
+   * Get all changes of a specific type.
+   *
+   * @param type - Type of changes to filter for
+   * @returns Array of changes matching the type
    */
   getChangesByType(type: 'add' | 'update' | 'delete'): Change[] {
     return this.changes.filter((c) => c.type === type);
   }
 
   /**
-   * Calculate and update changeset statistics
-   * @deprecated Stats are now computed automatically from changes array via getter
-   * This method is kept for backward compatibility but does nothing
+   * Update changeset statistics (deprecated).
+   * @deprecated Stats are now computed automatically from the changes array via the stats getter.
+   * This method is kept for backward compatibility but performs no operation.
    */
   updateStats(): void {
-    // No-op: stats are now computed via getter
+    // No-op: stats are now computed on-demand via the stats getter
   }
 
   /**
-   * Mark changeset as applied
+   * Mark changeset as applied (legacy workflow).
+   * Updates status and modified timestamp.
    */
   markApplied(): void {
     this.status = 'applied';
@@ -192,7 +238,8 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as reverted
+   * Mark changeset as reverted (legacy workflow).
+   * Updates status and modified timestamp.
    */
   markReverted(): void {
     this.status = 'reverted';
@@ -200,7 +247,9 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as staged
+   * Mark changeset as staged (new staging workflow).
+   * Enables the changeset to accept new changes via staging operations.
+   * Updates status and modified timestamp.
    */
   markStaged(): void {
     this.status = 'staged';
@@ -208,7 +257,9 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as committed
+   * Mark changeset as committed (new staging workflow).
+   * Indicates changes have been applied to the base model.
+   * Updates status and modified timestamp.
    */
   markCommitted(): void {
     this.status = 'committed';
@@ -216,7 +267,9 @@ export class Changeset {
   }
 
   /**
-   * Mark changeset as discarded
+   * Mark changeset as discarded (new staging workflow).
+   * Indicates changes have been discarded without applying.
+   * Updates status and modified timestamp.
    */
   markDiscarded(): void {
     this.status = 'discarded';
@@ -224,7 +277,10 @@ export class Changeset {
   }
 
   /**
-   * Serialize to JSON
+   * Serialize changeset to JSON.
+   * Returns StagedChangesetData if extended fields are present, otherwise ChangesetData.
+   *
+   * @returns Serialized changeset data suitable for storage
    */
   toJSON(): ChangesetData | StagedChangesetData {
     const base = {
@@ -236,8 +292,8 @@ export class Changeset {
       status: this.status,
     };
 
-    // Include extended fields if present
-    if (this.id && this.baseSnapshot && this.stats) {
+    // Include extended staging fields if present
+    if (this.id && this.baseSnapshot) {
       return {
         ...base,
         id: this.id,
@@ -250,7 +306,11 @@ export class Changeset {
   }
 
   /**
-   * Create from JSON data
+   * Deserialize changeset from JSON data.
+   * Handles both legacy (ChangesetData) and staging (StagedChangesetData) formats.
+   *
+   * @param data - Serialized changeset data
+   * @returns New Changeset instance
    */
   static fromJSON(data: ChangesetData | StagedChangesetData): Changeset {
     return new Changeset(data);
@@ -258,17 +318,28 @@ export class Changeset {
 }
 
 /**
- * Changeset Manager for storing and retrieving changesets
+ * Changeset Manager for storing and retrieving changesets (legacy format).
+ * Manages changesets stored in the `.dr/changesets/` directory.
+ * Note: New staging workflow uses StagedChangesetStorage (documentation-robotics/changesets/).
  */
 export class ChangesetManager {
   private changesetsDir: string;
 
+  /**
+   * Create a changeset manager for legacy changesets.
+   *
+   * @param modelPath - Root path to the model
+   */
   constructor(modelPath: string) {
     this.changesetsDir = `${modelPath}/.dr/changesets`;
   }
 
   /**
-   * Create a new changeset
+   * Create a new changeset and save to disk.
+   *
+   * @param name - Human-readable name for the changeset
+   * @param description - Optional description of changes
+   * @returns New Changeset instance
    */
   async create(name: string, description?: string): Promise<Changeset> {
     const changeset = Changeset.create(name, description);
@@ -277,7 +348,11 @@ export class ChangesetManager {
   }
 
   /**
-   * Save a changeset to disk
+   * Save a changeset to disk.
+   * Serializes to JSON in the changesets directory.
+   *
+   * @param changeset - The changeset to save
+   * @throws Error if directory creation fails
    */
   async save(changeset: Changeset): Promise<void> {
     await ensureDir(this.changesetsDir);
@@ -286,7 +361,10 @@ export class ChangesetManager {
   }
 
   /**
-   * Load a changeset by name
+   * Load a changeset by name.
+   *
+   * @param name - Name of the changeset to load
+   * @returns Changeset or null if not found
    */
   async load(name: string): Promise<Changeset | null> {
     const filePath = `${this.changesetsDir}/${this.sanitizeName(name)}.json`;
@@ -300,7 +378,9 @@ export class ChangesetManager {
   }
 
   /**
-   * List all changesets
+   * List all changesets in the changesets directory.
+   *
+   * @returns Array of all changesets (empty array if directory doesn't exist)
    */
   async list(): Promise<Changeset[]> {
     if (!(await fileExists(this.changesetsDir))) {
@@ -324,7 +404,10 @@ export class ChangesetManager {
   }
 
   /**
-   * Delete a changeset
+   * Delete a changeset by name.
+   *
+   * @param name - Name of the changeset to delete
+   * @throws Error if changeset not found
    */
   async delete(name: string): Promise<void> {
     const filePath = `${this.changesetsDir}/${this.sanitizeName(name)}.json`;
@@ -338,7 +421,13 @@ export class ChangesetManager {
   }
 
   /**
-   * Apply a changeset to the model
+   * Apply a changeset to the model (legacy workflow).
+   * Applies all changes in the changeset to the specified model.
+   *
+   * @param model - The model to apply changes to
+   * @param name - Name of the changeset to apply
+   * @returns ApplyResult with count of applied/failed changes and errors
+   * @throws Error if changeset not found
    */
   async apply(model: Model, name: string): Promise<ApplyResult> {
     const changeset = await this.load(name);
@@ -416,7 +505,19 @@ export class ChangesetManager {
   }
 
   /**
-   * Revert a changeset from the model
+   * Revert a changeset from the model (legacy workflow).
+   * Reverses all changes in the changeset by processing them in reverse order.
+   * Recreates deleted elements, restores updated elements to previous state, removes added elements.
+   *
+   * @param model - The model to revert changes from
+   * @param name - Name of the changeset to revert
+   * @returns RevertResult with count of reverted/failed changes and errors
+   * @throws Error if changeset not found
+   *
+   * @remarks
+   * Changes are processed in reverse order (last to first) to ensure correct handling
+   * of dependent operations. For example, if a single element was added and then updated,
+   * reverting will undo the update first, then remove the element.
    */
   async revert(model: Model, name: string): Promise<RevertResult> {
     const changeset = await this.load(name);
@@ -497,7 +598,11 @@ export class ChangesetManager {
   }
 
   /**
-   * Sanitize changeset name for use as filename
+   * Sanitize changeset name for use as a filesystem filename.
+   * Converts to lowercase, replaces spaces with hyphens, removes special characters.
+   *
+   * @param name - The changeset name to sanitize
+   * @returns Safe filename-compatible version of the name
    */
   private sanitizeName(name: string): string {
     return name
@@ -508,12 +613,13 @@ export class ChangesetManager {
 }
 
 /**
- * Result of applying a changeset
+ * Result of applying a changeset to the model.
+ * Reports success/failure counts and detailed errors for failed changes.
  */
 export interface ApplyResult {
-  changeset: string;
-  applied: number;
-  failed: number;
+  changeset: string;  // Name of the changeset
+  applied: number;    // Number of successfully applied changes
+  failed: number;     // Number of failed change applications
   errors: Array<{
     change: Change;
     error: string;
@@ -521,12 +627,13 @@ export interface ApplyResult {
 }
 
 /**
- * Result of reverting a changeset
+ * Result of reverting a changeset from the model.
+ * Reports success/failure counts and detailed errors for failed reversions.
  */
 export interface RevertResult {
-  changeset: string;
-  reverted: number;
-  failed: number;
+  changeset: string;  // Name of the changeset
+  reverted: number;   // Number of successfully reverted changes
+  failed: number;     // Number of failed reversions
   errors: Array<{
     change: Change;
     error: string;
