@@ -247,12 +247,8 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
-<<<<<<< Updated upstream
       const element = layer!.getElement('motivation-goal-special');
-=======
-      const element = layer!.getElement('motivation.goal.test-goal-(priority:-critical)');
       expect(element).toBeDefined();
->>>>>>> Stashed changes
       expect(element!.name).toContain('Priority');
       expect(element!.description).toContain('special');
     });
@@ -499,92 +495,6 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
     });
   });
-
-<<<<<<< Updated upstream
-=======
-  describe('element subcommands', () => {
-    beforeEach(async () => {
-      await runDr('init', '--name', 'Test Model');
-    });
-
-    it('should add element via element subcommand', async () => {
-      const result = await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-test',
-        '--name', 'Test Goal'
-      );
-
-      expect(result.exitCode).toBe(0);
-
-      const model = await Model.load(tempDir.path);
-      const element = (await model.getLayer('motivation'))!.getElement('motivation.goal.motivation-goal-test');
-      expect(element).toBeDefined();
-    });
-
-    it('should list elements via element subcommand', async () => {
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-1', '--name', 'Goal 1');
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-2', '--name', 'Goal 2');
-
-      const result = await runDr('element', 'list', 'motivation');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Goal 1');
-      expect(result.stdout).toContain('Goal 2');
-    });
-
-    it('should show element details via show subcommand', async () => {
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-test',
-        '--name', 'Test Goal',
-        '--description', 'Test Description'
-      );
-
-      const result = await runDr('show', 'motivation.goal.motivation-goal-test');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Test Goal');
-    });
-
-    it('show command should display element metadata', async () => {
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-test',
-        '--name', 'Test Goal'
-      );
-
-      const result = await runDr('show', 'motivation.goal.motivation-goal-test');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation.goal.motivation-goal-test');
-      expect(result.stdout).toContain('Test Goal');
-    });
-
-    it('should fail to show non-existent element', async () => {
-      const result = await runDr('show', 'non-existent-element');
-
-      expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('not found');
-    });
-
-    it('element list should support --json output', async () => {
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-1', '--name', 'Goal 1');
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-2', '--name', 'Goal 2');
-
-      const result = await runDr('element', 'list', 'motivation', '--json');
-
-      expect(result.exitCode).toBe(0);
-      const output = JSON.parse(result.stdout);
-      expect(Array.isArray(output)).toBe(true);
-      expect(output.length).toBe(2);
-    });
-
-    it('element list should filter by type with --type option', async () => {
-      await runDr('element', 'add', 'motivation', 'goal', 'motivation-goal-1', '--name', 'Goal 1');
-      await runDr('element', 'add', 'motivation', 'driver', 'motivation-driver-1', '--name', 'Driver 1');
-
-      const result = await runDr('element', 'list', 'motivation', '--type', 'goal');
-
-      expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Goal 1');
-      expect(result.stdout).not.toContain('Driver 1');
-    });
-  });
->>>>>>> Stashed changes
 
   describe('relationship subcommands', () => {
     beforeEach(async () => {

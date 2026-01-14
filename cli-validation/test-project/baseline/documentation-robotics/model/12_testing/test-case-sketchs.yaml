@@ -4,25 +4,25 @@ Test Create Todo:
   type: functional
   priority: high
   status: planned
-  id: test-create-todo
+  id: testing-case-create-todo
 Test List Todos:
   name: Test List Todos
   description: Test retrieving all todos
   type: functional
   priority: high
   status: planned
-  id: test-list-todos
+  id: testing-case-list-todos
 Test Update Todo:
   name: Test Update Todo
   description: Test updating an existing todo
   type: functional
   priority: medium
   status: planned
-  id: test-update-todo
+  id: testing-case-update-todo
 Test Delete Todo:
   name: Test Delete Todo
   description: Test deleting a todo
   type: functional
   priority: medium
   status: planned
-  id: test-delete-todo
+  id: testing-case-delete-todo

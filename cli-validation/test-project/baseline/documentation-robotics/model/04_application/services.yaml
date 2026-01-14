@@ -1,11 +1,11 @@
 Todo API Service:
   name: Todo API Service
   description: FastAPI application service providing REST API for todo operations
-  technology: fastapi
+  technology: technology-system-software-fastapi
   criticality: high
-  id: todo-api-service
-  realizes: task-management
+  id: application-service-todo-api
+  realizes: business-service-task-management
   business:
-    realizes-services: task-management
+    realizes-services: business-service-task-management
   motivation:
-    supports-goals: manage-tasks
+    supports-goals: motivation-goal-manage-tasks

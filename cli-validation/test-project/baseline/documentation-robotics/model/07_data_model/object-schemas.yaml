@@ -3,12 +3,12 @@ Todo Object:
   description: Todo item with id, title, and done status
   type: object
   fields: id,title,done
-  id: todo-object
+  id: data-model-object-schema-todo
   data:
-    maps-to: todos-table
+    maps-to: datastore-table-todos
 Todo Input Object:
   name: Todo Input Object
   description: Todo input with title and optional done status
   type: object
   fields: title,done
-  id: todo-input-object
+  id: data-model-object-schema-todo-input

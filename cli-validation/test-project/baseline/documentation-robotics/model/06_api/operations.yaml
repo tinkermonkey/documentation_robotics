@@ -1,20 +1,20 @@
 list-todos:
-  id: list-todos
+  id: api-operation-list-todos
   name: List Todos
   type: operation
   documentation: GET /todos - Retrieve all todo items
 create-todo:
-  id: create-todo
+  id: api-operation-create-todo
   name: Create Todo
   type: operation
   documentation: POST /todos - Create a new todo item
 update-todo:
-  id: update-todo
+  id: api-operation-update-todo
   name: Update Todo
   type: operation
   documentation: PUT /todos/{todo_id} - Update an existing todo item
 delete-todo:
-  id: delete-todo
+  id: api-operation-delete-todo
   name: Delete Todo
   type: operation
   documentation: DELETE /todos/{todo_id} - Delete a todo item

@@ -4,11 +4,11 @@ Task CRUD Operations:
   type: functional
   requirementType: functional
   priority: high
-  id: task-crud
+  id: motivation-requirement-task-crud
 Data Persistence:
   name: Data Persistence
   description: Tasks must be stored persistently and survive application restarts
   type: functional
   requirementType: functional
   priority: high
-  id: data-persistence
+  id: motivation-requirement-data-persistence

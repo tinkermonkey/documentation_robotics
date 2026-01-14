@@ -2,4 +2,4 @@ Authenticated User:
   name: Authenticated User
   description: User accessing the todo application
   type: role
-  id: authenticated-user
+  id: security-actor-authenticated-user

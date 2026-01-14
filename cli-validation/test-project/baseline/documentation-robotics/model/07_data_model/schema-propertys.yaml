@@ -9,7 +9,7 @@ Todo ID Field:
   const: "null"
   enum: "id"
   examples: "1"
-  id: todo-id-field
+  id: data-model-property-todo-id
 Todo Title Field:
   name: Todo Title Field
   description: Title/description of the todo item
@@ -21,7 +21,7 @@ Todo Title Field:
   const: "none"
   enum: "title"
   examples: "Buy groceries"
-  id: todo-title-field
+  id: data-model-property-todo-title
 Todo Done Field:
   name: Todo Done Field
   description: Completion status of the todo item
@@ -33,4 +33,4 @@ Todo Done Field:
   const: "false"
   enum: "done"
   examples: "false"
-  id: todo-done-field
+  id: data-model-property-todo-done
