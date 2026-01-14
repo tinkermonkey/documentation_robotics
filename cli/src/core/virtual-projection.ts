@@ -11,7 +11,7 @@ import type { Element } from './element.js';
 import type { Manifest } from './manifest.js';
 import { Layer as LayerClass } from './layer.js';
 import { Element as ElementClass } from './element.js';
-import type { StagedChange } from './changeset.js';
+import type { StagedChange, Change } from './changeset.js';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 
 /**
@@ -93,9 +93,9 @@ export class VirtualProjectionEngine {
     }
 
     // Find all changes for this element across all layers
-    const elementChanges = (changeset as any).changes.filter(
-      (c: StagedChange) => c.elementId === elementId
-    );
+    const elementChanges = changeset.changes.filter(
+      (c: Change) => c.elementId === elementId
+    ) as StagedChange[];
 
     if (elementChanges.length === 0) {
       // No changes, return base element if it exists
@@ -117,9 +117,9 @@ export class VirtualProjectionEngine {
       // Create a new element with projected data merged with base
       const mergedData = {
         id: baseElement.id,
-        name: projectedData.name || baseElement.name,
-        type: projectedData.type || baseElement.type,
-        description: projectedData.description || baseElement.description,
+        name: (typeof projectedData.name === 'string' ? projectedData.name : baseElement.name),
+        type: (typeof projectedData.type === 'string' ? projectedData.type : baseElement.type),
+        description: (typeof projectedData.description === 'string' ? projectedData.description : baseElement.description),
         properties: {
           ...baseElement.properties,
           ...(typeof projectedData.properties === 'object' ? projectedData.properties : {}),
@@ -195,7 +195,7 @@ export class VirtualProjectionEngine {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const layerChanges = (changeset as any).changes
+    const layerChanges = (changeset.changes as StagedChange[])
       .filter((c: StagedChange) => c.layerName === layerName)
       .sort((a: StagedChange, b: StagedChange) => a.sequenceNumber - b.sequenceNumber);
 
@@ -284,7 +284,7 @@ export class VirtualProjectionEngine {
 
     // Project all layers mentioned in the changeset
     const layerNames = new Set<string>();
-    for (const change of (changeset as any).changes) {
+    for (const change of changeset.changes) {
       layerNames.add(change.layerName);
     }
 
@@ -318,10 +318,10 @@ export class VirtualProjectionEngine {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
 
-    const changeData = changeset as any;
+    const changes = changeset.changes as StagedChange[];
 
     return {
-      additions: changeData.changes
+      additions: changes
         .filter((c: StagedChange) => c.type === 'add')
         .map((c: StagedChange) => ({
           elementId: c.elementId,
@@ -329,7 +329,7 @@ export class VirtualProjectionEngine {
           data: c.after || {},
         })),
 
-      modifications: changeData.changes
+      modifications: changes
         .filter((c: StagedChange) => c.type === 'update')
         .map((c: StagedChange) => ({
           elementId: c.elementId,
@@ -338,7 +338,7 @@ export class VirtualProjectionEngine {
           after: c.after || {},
         })),
 
-      deletions: changeData.changes
+      deletions: changes
         .filter((c: StagedChange) => c.type === 'delete')
         .map((c: StagedChange) => ({
           elementId: c.elementId,

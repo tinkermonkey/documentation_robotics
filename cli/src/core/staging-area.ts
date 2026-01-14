@@ -61,6 +61,7 @@ export class StagingAreaManager {
   private storage: StagedChangesetStorage;
   private snapshotManager: BaseSnapshotManager;
   private validator: ChangesetValidator;
+  private projectionEngine: any; // VirtualProjectionEngine (lazy loaded to avoid circular dependency)
   private rootPath: string;
   private model: Model | null = null;
 
@@ -70,6 +71,18 @@ export class StagingAreaManager {
     this.storage = new StagedChangesetStorage(rootPath);
     this.snapshotManager = new BaseSnapshotManager();
     this.validator = new ChangesetValidator(rootPath);
+    this.projectionEngine = null; // Lazy loaded
+  }
+
+  /**
+   * Get or create projection engine instance
+   */
+  private async getProjectionEngine(): Promise<any> {
+    if (!this.projectionEngine) {
+      const { VirtualProjectionEngine } = await import('./virtual-projection.js');
+      this.projectionEngine = new VirtualProjectionEngine(this.rootPath);
+    }
+    return this.projectionEngine;
   }
 
   /**
@@ -150,6 +163,10 @@ export class StagingAreaManager {
     };
 
     await this.storage.addChange(changesetId, stagedChange);
+
+    // Invalidate projection cache for this layer
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnStage(changesetId, change.layerName);
   }
 
   /**
@@ -171,6 +188,10 @@ export class StagingAreaManager {
 
     // Remove change and resequence
     await this.storage.removeChange(changesetId, elementId);
+
+    // Invalidate projection cache (all layers since we don't know which layer the element was in)
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnUnstage(changesetId);
   }
 
   /**
@@ -186,14 +207,14 @@ export class StagingAreaManager {
     // Clear changes and update status
     changeset.changes = [];
     changeset.status = 'discarded';
-    changeset.stats = {
-      additions: 0,
-      modifications: 0,
-      deletions: 0,
-    };
+    // Note: stats auto-computed from changes array (will be 0/0/0)
     changeset.updateModified();
 
     await this.storage.save(changeset);
+
+    // Invalidate all projections for this changeset
+    const engine = await this.getProjectionEngine();
+    engine.invalidateOnDiscard(changesetId);
   }
 
   /**
@@ -418,10 +439,35 @@ export class StagingAreaManager {
 
       return result;
 
-    } catch (error) {
+    } catch (commitError) {
       // Step 8: Rollback on any failure - restore from backup
-      await this.restoreModel(model, backup);
-      throw error;
+      try {
+        await this.restoreModel(model, backup);
+        // Rollback succeeded, throw original commit error
+        throw commitError;
+      } catch (rollbackError) {
+        // CRITICAL: Rollback failed - model may be corrupted
+        const compositeMessage =
+          `Commit failed AND rollback failed. Model may be in corrupted state.\n` +
+          `\n` +
+          `Original commit error:\n` +
+          `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n` +
+          `\n` +
+          `Rollback error:\n` +
+          `  ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n` +
+          `\n` +
+          `Backup location: ${backup}\n` +
+          `Manual recovery may be required.`;
+
+        const { CLIError } = await import('../utils/errors.js');
+        throw new CLIError(compositeMessage, 1, [
+          `Manually restore from backup: ${backup}`,
+          `Copy manifest.json from backup to ${path.join(model.rootPath, 'documentation-robotics')}`,
+          `Copy layer files from ${path.join(backup, 'layers')} to ${path.join(model.rootPath, 'documentation-robotics', 'layers')}`,
+          `Run 'dr validate' after manual restoration`,
+          `Contact support if issue persists`
+        ]);
+      }
     }
   }
 
@@ -499,8 +545,9 @@ export class StagingAreaManager {
   /**
    * Backup the current model state for atomic rollback
    *
-   * Creates a temporary backup by copying all layer files and manifest
-   * Used to restore model state if commit fails
+   * Creates a temporary backup by copying all layer files and manifest.
+   * Validates backup completeness and integrity before returning.
+   * Used to restore model state if commit fails.
    */
   private async backupModel(model: Model): Promise<string> {
     const backupDir = path.join(
@@ -510,27 +557,137 @@ export class StagingAreaManager {
       `backup-${Date.now()}`
     );
 
-    const { ensureDir, readFile, writeFile } = await import('../utils/file-io.js');
+    const { ensureDir, readFile, atomicWrite } = await import('../utils/file-io.js');
+    const { createHash } = await import('crypto');
+
     await ensureDir(backupDir);
 
-    // Backup manifest
-    const manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
-    const manifestContent = await readFile(manifestPath);
-    await writeFile(path.join(backupDir, 'manifest.json'), manifestContent);
+    // Track what we're backing up for validation
+    const backupManifest: {
+      files: Array<{ path: string; checksum: string; size: number }>;
+      timestamp: string;
+    } = {
+      files: [],
+      timestamp: new Date().toISOString()
+    };
 
-    // Backup all layers
-    const layersDir = path.join(backupDir, 'layers');
-    await ensureDir(layersDir);
+    try {
+      // Backup manifest - try both .yaml and .json formats
+      let manifestPath = path.join(model.rootPath, 'documentation-robotics', 'model', 'manifest.yaml');
+      if (!(await fileExists(manifestPath))) {
+        manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
+      }
+      if (!(await fileExists(manifestPath))) {
+        throw new Error('Manifest file not found in expected locations');
+      }
 
-    for (const layer of model.layers.values()) {
-      const layerPath = path.join(model.rootPath, 'documentation-robotics', 'layers', `${layer.name}.json`);
-      if (await fileExists(layerPath)) {
-        const layerContent = await readFile(layerPath);
-        await writeFile(path.join(layersDir, `${layer.name}.json`), layerContent);
+      const manifestContent = await readFile(manifestPath);
+      const manifestChecksum = createHash('sha256').update(manifestContent).digest('hex');
+      const manifestFilename = path.basename(manifestPath);
+
+      await atomicWrite(path.join(backupDir, manifestFilename), manifestContent);
+      backupManifest.files.push({
+        path: manifestFilename,
+        checksum: manifestChecksum,
+        size: manifestContent.length
+      });
+
+      // Backup all layers - handle multiple YAML files per layer
+      const layersDir = path.join(backupDir, 'layers');
+      await ensureDir(layersDir);
+
+      const fs = await import('fs/promises');
+
+      for (const layer of model.layers.values()) {
+        const layerBackupDir = path.join(layersDir, layer.name);
+        await ensureDir(layerBackupDir);
+
+        // Find the layer directory in the model
+        const layerDirPath = await this.findLayerDirectory(model.rootPath, layer.name);
+        if (!layerDirPath) {
+          continue;
+        }
+
+        // Backup all YAML files in the layer directory
+        const files = await fs.readdir(layerDirPath);
+        for (const file of files) {
+          if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+            const filePath = path.join(layerDirPath, file);
+            const fileContent = await readFile(filePath);
+            const fileChecksum = createHash('sha256').update(fileContent).digest('hex');
+
+            await atomicWrite(path.join(layerBackupDir, file), fileContent);
+            backupManifest.files.push({
+              path: `layers/${layer.name}/${file}`,
+              checksum: fileChecksum,
+              size: fileContent.length
+            });
+          }
+        }
+      }
+
+      // Write backup manifest for validation
+      await atomicWrite(
+        path.join(backupDir, '.backup-manifest.json'),
+        JSON.stringify(backupManifest, null, 2)
+      );
+
+      // Validate backup completeness
+      await this.validateBackup(backupDir, backupManifest);
+
+      return backupDir;
+
+    } catch (error) {
+      // Clean up incomplete backup
+      try {
+        const { rm } = await import('node:fs/promises');
+        await rm(backupDir, { recursive: true, force: true });
+      } catch {
+        // Warn but don't throw - original error is more important
+        console.warn(`Warning: Failed to clean up incomplete backup at ${backupDir}`);
+      }
+
+      throw new Error(
+        `Failed to create backup: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  /**
+   * Validate that backup is complete and matches source files
+   */
+  private async validateBackup(
+    backupDir: string,
+    manifest: { files: Array<{ path: string; checksum: string; size: number }> }
+  ): Promise<void> {
+    const { readFile, fileExists } = await import('../utils/file-io.js');
+    const { createHash } = await import('crypto');
+
+    for (const file of manifest.files) {
+      const backupFilePath = path.join(backupDir, file.path);
+
+      // Verify file exists
+      if (!(await fileExists(backupFilePath))) {
+        throw new Error(`Backup validation failed: ${file.path} not found in backup`);
+      }
+
+      // Verify checksum matches
+      const content = await readFile(backupFilePath);
+      const checksum = createHash('sha256').update(content).digest('hex');
+
+      if (checksum !== file.checksum) {
+        throw new Error(
+          `Backup validation failed: ${file.path} checksum mismatch (expected ${file.checksum}, got ${checksum})`
+        );
+      }
+
+      // Verify size matches
+      if (content.length !== file.size) {
+        throw new Error(
+          `Backup validation failed: ${file.path} size mismatch (expected ${file.size}, got ${content.length})`
+        );
       }
     }
-
-    return backupDir;
   }
 
   /**
@@ -551,30 +708,141 @@ export class StagingAreaManager {
   /**
    * Restore model state from backup after failed commit
    *
-   * Restores all layer files and manifest from backup directory
+   * Performs defensive restoration with per-file error handling.
+   * Tracks restoration progress and provides detailed error reporting.
    */
   private async restoreModel(model: Model, backupDir: string): Promise<void> {
-    const { readFile, writeFile } = await import('../utils/file-io.js');
+    const { readFile, fileExists, atomicWrite } = await import('../utils/file-io.js');
 
-    // Restore manifest
-    const backupManifest = path.join(backupDir, 'manifest.json');
-    const manifestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
-    const manifestContent = await readFile(backupManifest);
-    await writeFile(manifestPath, manifestContent);
+    const restoredFiles: string[] = [];
+    const failedFiles: Array<{ path: string; error: string }> = [];
 
-    // Restore all layer files
-    const backupLayersDir = path.join(backupDir, 'layers');
-    for (const layer of model.layers.values()) {
-      const backupLayerPath = path.join(backupLayersDir, `${layer.name}.json`);
-      if (await fileExists(backupLayerPath)) {
-        const layerContent = await readFile(backupLayerPath);
-        const layerPath = path.join(model.rootPath, 'documentation-robotics', 'layers', `${layer.name}.json`);
-        await writeFile(layerPath, layerContent);
+    try {
+      // Restore manifest first (most critical) - try both .yaml and .json
+      let backupManifestFile = path.join(backupDir, 'manifest.yaml');
+      let manifestDestPath = path.join(model.rootPath, 'documentation-robotics', 'model', 'manifest.yaml');
+
+      if (!(await fileExists(backupManifestFile))) {
+        backupManifestFile = path.join(backupDir, 'manifest.json');
+        manifestDestPath = path.join(model.rootPath, 'documentation-robotics', 'manifest.json');
       }
+
+      try {
+        if (!(await fileExists(backupManifestFile))) {
+          throw new Error('Backup manifest file not found (tried .yaml and .json)');
+        }
+
+        const manifestContent = await readFile(backupManifestFile);
+        await atomicWrite(manifestDestPath, manifestContent);
+        restoredFiles.push(path.basename(backupManifestFile));
+      } catch (error) {
+        failedFiles.push({
+          path: path.basename(backupManifestFile),
+          error: error instanceof Error ? error.message : String(error)
+        });
+        // Manifest is critical - throw immediately
+        throw new Error(
+          `Failed to restore ${path.basename(backupManifestFile)}: ${error instanceof Error ? error.message : String(error)}`
+        );
+      }
+
+      // Restore all layer files with defensive error handling
+      const backupLayersDir = path.join(backupDir, 'layers');
+      const fs = await import('fs/promises');
+
+      for (const layer of model.layers.values()) {
+        const backupLayerDir = path.join(backupLayersDir, layer.name);
+
+        try {
+          if (await fileExists(backupLayerDir)) {
+            // Find the correct destination directory for this layer
+            const layerDirPath = await this.findLayerDirectory(model.rootPath, layer.name);
+
+            if (!layerDirPath) {
+              console.warn(`Warning: Could not find destination directory for layer ${layer.name}, skipping`);
+              continue;
+            }
+
+            // Restore all YAML files from backup
+            const backupFiles = await fs.readdir(backupLayerDir);
+            for (const file of backupFiles) {
+              if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+                const backupFilePath = path.join(backupLayerDir, file);
+                const destFilePath = path.join(layerDirPath, file);
+                const fileContent = await readFile(backupFilePath);
+                await atomicWrite(destFilePath, fileContent);
+                restoredFiles.push(`layers/${layer.name}/${file}`);
+              }
+            }
+          } else {
+            // Layer directory doesn't exist in backup - log but continue
+            console.warn(`Warning: Layer ${layer.name} not found in backup, skipping`);
+          }
+        } catch (error) {
+          // Track failure but continue with other layers
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          failedFiles.push({
+            path: `layers/${layer.name}`,
+            error: errorMessage
+          });
+          console.warn(`Warning: Failed to restore layer ${layer.name}: ${errorMessage}`);
+        }
+      }
+
+      // Reload model layers to reflect restored state
+      model.layers.clear();
+
+      // If any files failed to restore, report but don't throw (manifest was restored)
+      if (failedFiles.length > 0) {
+        console.warn(
+          `Warning: Restore completed with ${failedFiles.length} failures:\n` +
+          failedFiles.map(f => `  - ${f.path}: ${f.error}`).join('\n')
+        );
+      }
+
+    } catch (error) {
+      // Critical failure during restore
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      const summary =
+        `Model restoration failed: ${errorMessage}\n` +
+        `\n` +
+        `Restoration progress:\n` +
+        `  Successfully restored: ${restoredFiles.length} files\n` +
+        `  Failed to restore: ${failedFiles.length} files\n` +
+        `\n` +
+        `Restored files:\n${restoredFiles.map(f => `  ✓ ${f}`).join('\n')}\n` +
+        `\n` +
+        `Failed files:\n${failedFiles.map(f => `  ✗ ${f.path}: ${f.error}`).join('\n')}\n` +
+        `\n` +
+        `Backup location: ${backupDir}`;
+
+      throw new Error(summary);
+    }
+  }
+
+  /**
+   * Find the directory path for a layer
+   * Follows same discovery logic as Model.loadLayer
+   */
+  private async findLayerDirectory(rootPath: string, layerName: string): Promise<string | null> {
+    const fs = await import('fs/promises');
+    const modelDir = path.join(rootPath, 'documentation-robotics', 'model');
+
+    try {
+      const entries = await fs.readdir(modelDir, { withFileTypes: true });
+      const layerDir = entries.find(e =>
+        e.isDirectory() && e.name.match(/^\d{2}_/) &&
+        e.name.replace(/^\d{2}_/, '') === layerName
+      );
+
+      if (layerDir) {
+        return path.join(modelDir, layerDir.name);
+      }
+    } catch {
+      // Model directory doesn't exist or can't be read
     }
 
-    // Reload model layers to reflect restored state
-    model.layers.clear();
+    return null;
   }
 
   /**

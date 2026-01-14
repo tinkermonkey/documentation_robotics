@@ -9,6 +9,7 @@
 
 import { readFile, writeFile, readdir, rm } from 'fs/promises';
 import { fileExists, ensureDir } from '../utils/file-io.js';
+import { FileLock } from '../utils/file-lock.js';
 import path from 'path';
 import yaml from 'yaml';
 import type { StagedChangesetData, StagedChange } from './changeset.js';
@@ -35,14 +36,15 @@ export class StagedChangesetStorage {
     baseSnapshot: string
   ): Promise<Changeset> {
     const now = new Date().toISOString();
-    const changesetPath = path.join(this.changesetsDir, id);
+    const sanitizedId = this.sanitizeId(id);
+    const changesetPath = path.join(this.changesetsDir, sanitizedId);
 
     // Create directory structure
     await ensureDir(changesetPath);
 
     // Create metadata
     const metadata: Omit<StagedChangesetData, 'changes'> = {
-      id,
+      id: sanitizedId,
       name,
       description,
       created: now,
@@ -68,7 +70,7 @@ export class StagedChangesetStorage {
 
     // Return constructed changeset object
     return new Changeset({
-      id,
+      id: sanitizedId,
       name,
       description,
       created: now,
@@ -84,7 +86,8 @@ export class StagedChangesetStorage {
    * Load a staged changeset from YAML files
    */
   async load(id: string): Promise<Changeset | null> {
-    const changesetPath = path.join(this.changesetsDir, id);
+    const sanitizedId = this.sanitizeId(id);
+    const changesetPath = path.join(this.changesetsDir, sanitizedId);
     const metadataPath = path.join(changesetPath, 'metadata.yaml');
     const changesPath = path.join(changesetPath, 'changes.yaml');
 
@@ -131,7 +134,8 @@ export class StagedChangesetStorage {
       throw new Error('Changeset must have an id to be saved in YAML format');
     }
 
-    const changesetPath = path.join(this.changesetsDir, changeset.id);
+    const sanitizedId = this.sanitizeId(changeset.id);
+    const changesetPath = path.join(this.changesetsDir, sanitizedId);
     await ensureDir(changesetPath);
 
     // Prepare metadata (all fields except changes)
@@ -190,7 +194,8 @@ export class StagedChangesetStorage {
    * Delete a staged changeset
    */
   async delete(id: string): Promise<void> {
-    const changesetPath = path.join(this.changesetsDir, id);
+    const sanitizedId = this.sanitizeId(id);
+    const changesetPath = path.join(this.changesetsDir, sanitizedId);
 
     if (!(await fileExists(changesetPath))) {
       throw new Error(`Changeset '${id}' not found`);
@@ -207,53 +212,68 @@ export class StagedChangesetStorage {
 
   /**
    * Add or update a change in the changeset's changes.yaml
+   *
+   * Uses file locking to prevent concurrent modification race conditions
    */
   async addChange(id: string, change: StagedChange): Promise<void> {
-    const changeset = await this.load(id);
-    if (!changeset) {
-      throw new Error(`Changeset '${id}' not found`);
-    }
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
 
-    // Add change with sequence number if not present
-    if (!change.sequenceNumber) {
-      change.sequenceNumber = changeset.changes.length;
-    }
+    await lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
 
-    changeset.changes.push(change);
-    changeset.updateModified();
-    changeset.updateStats();
+      // Add change with sequence number if not present
+      if (!change.sequenceNumber) {
+        change.sequenceNumber = changeset.changes.length;
+      }
 
-    await this.save(changeset);
+      changeset.changes.push(change);
+      changeset.updateModified();
+      changeset.updateStats();
+
+      await this.save(changeset);
+    });
   }
 
   /**
    * Remove a change by element ID
+   *
+   * Uses file locking to prevent concurrent modification race conditions
    */
   async removeChange(id: string, elementId: string): Promise<void> {
-    const changeset = await this.load(id);
-    if (!changeset) {
-      throw new Error(`Changeset '${id}' not found`);
-    }
+    const changesetPath = this.getChangesetPath(id);
+    const lock = new FileLock(changesetPath);
 
-    // Filter out changes for this element
-    changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+    await lock.withLock(async () => {
+      const changeset = await this.load(id);
+      if (!changeset) {
+        throw new Error(`Changeset '${id}' not found`);
+      }
 
-    // Recalculate sequence numbers
-    changeset.changes.forEach((c, idx) => {
-      (c as StagedChange).sequenceNumber = idx;
+      // Filter out changes for this element
+      changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+
+      // Recalculate sequence numbers
+      changeset.changes.forEach((c, idx) => {
+        (c as StagedChange).sequenceNumber = idx;
+      });
+
+      changeset.updateModified();
+      changeset.updateStats();
+
+      await this.save(changeset);
     });
-
-    changeset.updateModified();
-    changeset.updateStats();
-
-    await this.save(changeset);
   }
 
   /**
    * Get the storage path for a changeset
    */
   getChangesetPath(id: string): string {
-    return path.join(this.changesetsDir, id);
+    const sanitizedId = this.sanitizeId(id);
+    return path.join(this.changesetsDir, sanitizedId);
   }
 
   /**
@@ -261,5 +281,25 @@ export class StagedChangesetStorage {
    */
   getChangesetsDir(): string {
     return this.changesetsDir;
+  }
+
+  /**
+   * Sanitize changeset ID for safe use in file paths
+   * Prevents path traversal by removing special characters and path separators
+   */
+  private sanitizeId(id: string): string {
+    const sanitized = id
+      .replace(/\.\./g, '')           // Remove .. (parent directory)
+      .replace(/^\/+/, '')            // Remove leading slashes
+      .replace(/^[A-Z]:\\/g, '')      // Remove Windows drive letters
+      .toLowerCase()
+      .replace(/\s+/g, '-')           // Replace spaces with hyphens
+      .replace(/[^a-z0-9-]/g, '');    // Keep only alphanumeric and hyphens
+
+    if (!sanitized) {
+      throw new Error('Invalid changeset ID: results in empty string after sanitization');
+    }
+
+    return sanitized;
   }
 }

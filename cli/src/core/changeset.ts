@@ -18,7 +18,7 @@ export interface Change {
   layerName: string;
   before?: Record<string, unknown>;
   after?: Record<string, unknown>;
-  timestamp: string;
+  timestamp?: string; // Optional to allow construction, always populated before storage
 }
 
 /**
@@ -80,11 +80,23 @@ export class Changeset {
   // Extended staging fields (optional for backward compatibility)
   id?: string;
   baseSnapshot?: string;
-  stats?: {
+
+  /**
+   * Get stats derived from changes array
+   * Always accurate since computed from actual changes
+   */
+  get stats(): {
     additions: number;
     modifications: number;
     deletions: number;
-  };
+  } {
+    // Compute stats from changes array
+    const additions = this.changes.filter(c => c.type === 'add').length;
+    const modifications = this.changes.filter(c => c.type === 'update').length;
+    const deletions = this.changes.filter(c => c.type === 'delete').length;
+
+    return { additions, modifications, deletions };
+  }
 
   constructor(data: ChangesetData | StagedChangesetData) {
     this.name = data.name;
@@ -101,9 +113,8 @@ export class Changeset {
     if ('baseSnapshot' in data) {
       this.baseSnapshot = (data as StagedChangesetData).baseSnapshot;
     }
-    if ('stats' in data) {
-      this.stats = (data as StagedChangesetData).stats;
-    }
+    // Note: stats now computed from changes array (stats getter)
+    // Ignore any stored stats for data integrity
   }
 
   /**
@@ -165,13 +176,11 @@ export class Changeset {
 
   /**
    * Calculate and update changeset statistics
+   * @deprecated Stats are now computed automatically from changes array via getter
+   * This method is kept for backward compatibility but does nothing
    */
   updateStats(): void {
-    this.stats = {
-      additions: this.getChangesByType('add').length,
-      modifications: this.getChangesByType('update').length,
-      deletions: this.getChangesByType('delete').length,
-    };
+    // No-op: stats are now computed via getter
   }
 
   /**
