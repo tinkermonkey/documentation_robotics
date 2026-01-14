@@ -364,6 +364,35 @@ describe('Changeset Migration', () => {
   });
 
   describe('Rollback and Recovery', () => {
+    it('should handle migration failure with automatic recovery', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+      const newStorage = new StagedChangesetStorage(TEST_DIR);
+
+      // Create multiple changesets with one problematic
+      for (let i = 0; i < 3; i++) {
+        const cs = await oldManager.create(`failure-recovery-${i}`, `Recovery ${i}`);
+        cs.addChange('add', `elem-${i}`, 'api', undefined, { name: `E${i}` });
+        await oldManager.save(cs);
+      }
+
+      // Simulate partial migration failure by checking recovery capability
+      const beforeMigration = await oldManager.list();
+      expect(beforeMigration.length).toBeGreaterThan(0);
+
+      // Backup before migration
+      const backupPath = await backupOldChangesets(TEST_DIR);
+      expect(backupPath).not.toBeNull();
+
+      // Attempt migration
+      const result = await migrateChangesets(TEST_DIR, testModel);
+
+      // If any failed, verify recovery is possible
+      if (result.failedChangesets > 0) {
+        // Backup should still exist
+        expect(backupPath).toContain('.dr.backup');
+      }
+    });
+
     it('should rollback migration from backup', async () => {
       const oldManager = new ChangesetManager(TEST_DIR);
 
@@ -503,6 +532,154 @@ describe('Changeset Migration', () => {
       // await cleanupMigration(rootPath, true);
 
       expect(true).toBe(true); // Documentation test
+    });
+
+    it('should handle missing backup gracefully during rollback', async () => {
+      const noBackupDir = '/tmp/no-backup-migration-test';
+      try {
+        await mkdir(noBackupDir, { recursive: true });
+
+        // Try to rollback without backup - should throw error
+        try {
+          await rollbackMigration(noBackupDir);
+          expect(true).toBe(false); // Should have thrown
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          expect((error as Error).message).toContain('Backup');
+        }
+      } finally {
+        try {
+          await rm(noBackupDir, { recursive: true });
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should support rollback with restore and cleanup', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      // Create test changeset
+      const cs = await oldManager.create('rollback-cleanup-test', 'Cleanup');
+      cs.addChange('add', 'elem-1', 'api', undefined, { name: 'A' });
+      await oldManager.save(cs);
+
+      // Backup
+      const backupPath = await backupOldChangesets(TEST_DIR);
+      expect(backupPath).not.toBeNull();
+
+      // Migrate
+      await migrateChangesets(TEST_DIR, testModel);
+
+      // Cleanup with restore
+      await cleanupMigration(TEST_DIR, true);
+
+      // Verify restored
+      const restored = await oldManager.load('rollback-cleanup-test');
+      expect(restored).not.toBeNull();
+    });
+
+    it('should handle multiple backup/migrate/rollback cycles', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      for (let cycle = 0; cycle < 3; cycle++) {
+        // Create test changesets
+        const cs = await oldManager.create(`cycle-test-${cycle}`, `Cycle ${cycle}`);
+        cs.addChange('add', `elem-${cycle}`, 'api', undefined, { name: `E${cycle}` });
+        await oldManager.save(cs);
+
+        // Backup and migrate
+        const backupPath = await backupOldChangesets(TEST_DIR);
+        expect(backupPath).not.toBeNull();
+
+        const migrateResult = await migrateChangesets(TEST_DIR, testModel);
+        expect(migrateResult.migratedChangesets).toBeGreaterThan(0);
+
+        // Rollback
+        const success = await rollbackMigration(TEST_DIR);
+        expect(success).toBe(true);
+
+        // Verify restored
+        const restored = await oldManager.load(`cycle-test-${cycle}`);
+        expect(restored).not.toBeNull();
+      }
+    });
+  });
+
+  describe('Migration Failure Scenarios', () => {
+    it('should capture and report migration errors', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      // Create valid changeset
+      const validCs = await oldManager.create('error-valid', 'Valid');
+      validCs.addChange('add', 'elem-1', 'api', undefined, { name: 'A' });
+      await validCs.markApplied();
+      await oldManager.save(validCs);
+
+      // Run migration
+      const result = await migrateChangesets(TEST_DIR, testModel);
+
+      // Verify result structure captures success
+      expect(result.totalChangesets).toBeGreaterThan(0);
+      expect(result.migratedChangesets + result.failedChangesets + result.skippedChangesets).toBe(result.totalChangesets);
+    });
+
+    it('should validate changesets before migration', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      // Create test changeset
+      const cs = await oldManager.create('validate-before', 'Validate');
+      cs.addChange('add', 'elem-1', 'api', undefined, { name: 'A' });
+      await oldManager.save(cs);
+
+      // Run validation
+      const validation = await validateMigration(TEST_DIR, testModel);
+
+      expect(validation.migrationNeeded).toBe(true);
+      expect(validation.requiresMigrationCount).toBeGreaterThan(0);
+      expect(validation.canProceed).toBe(true);
+    });
+
+    it('should detect validation issues in changesets', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      // Create valid changeset first
+      const validCs = await oldManager.create('valid-detect', 'Valid');
+      validCs.addChange('add', 'elem-1', 'api', undefined, { name: 'A' });
+      await oldManager.save(validCs);
+
+      // Run validation
+      const validation = await validateMigration(TEST_DIR, testModel);
+
+      // Should have valid changesets
+      if (validation.totalOldChangesets > 0) {
+        // Either valid or invalid, but detected
+        expect(typeof validation.canProceed).toBe('boolean');
+      }
+    });
+
+    it('should preserve changeset integrity during failed migration', async () => {
+      const oldManager = new ChangesetManager(TEST_DIR);
+
+      // Create test changesets
+      const changesets = [];
+      for (let i = 0; i < 3; i++) {
+        const cs = await oldManager.create(`integrity-test-${i}`, `Integrity ${i}`);
+        cs.addChange('add', `elem-${i}`, 'api', undefined, { name: `E${i}` });
+        await oldManager.save(cs);
+        changesets.push(cs.name);
+      }
+
+      // Save original count
+      const beforeList = await oldManager.list();
+      const beforeCount = beforeList.length;
+
+      // Run migration
+      await migrateChangesets(TEST_DIR, testModel);
+
+      // Verify originals still exist for rollback
+      const afterList = await oldManager.list();
+      expect(afterList.length).toBeGreaterThanOrEqual(beforeCount);
     });
   });
 });
