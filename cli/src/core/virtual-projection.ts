@@ -62,12 +62,24 @@ interface CacheEntry {
 }
 
 /**
+ * Cache hit/miss metrics for monitoring cache performance.
+ * Tracks successful cache hits, misses, and invalidations per changeset.
+ */
+interface CacheMetrics {
+  hits: number; // Number of successful cache hits
+  misses: number; // Number of cache misses (required computation)
+  invalidations: number; // Number of invalidation operations
+  lastInvalidation?: string; // ISO timestamp of last invalidation
+}
+
+/**
  * Projection cache for storing computed layer projections.
  * Uses TTL-based expiration to prevent stale projections.
  * Entries are lazily removed when expired on access or during periodic cleanup.
  */
 interface ProjectionCache {
   cache: Map<string, CacheEntry>; // Key format: `${changesetId}:${layerName}`
+  metrics: Map<string, CacheMetrics>; // Cache metrics keyed by changesetId
   maxAge: number; // Cache entry TTL in milliseconds (5 minutes default)
   lastCleanup: number; // Timestamp of last cleanup to limit cleanup frequency
 }
@@ -90,6 +102,7 @@ export class VirtualProjectionEngine {
     this.stagingAreaManager = new StagedChangesetStorage(rootPath);
     this.projectionCache = {
       cache: new Map(),
+      metrics: new Map(),
       maxAge: 5 * 60 * 1000, // 5-minute TTL for cached projections
       lastCleanup: Date.now(),
     };
@@ -217,12 +230,17 @@ export class VirtualProjectionEngine {
     if (cached) {
       const age = Date.now() - new Date(cached.computedAt).getTime();
       if (age < this.projectionCache.maxAge) {
+        // Record cache hit
+        this.recordCacheHit(changesetId);
         return cached.layer;
       } else {
         // Invalidate expired entry
         this.projectionCache.cache.delete(cacheKey);
       }
     }
+
+    // Record cache miss
+    this.recordCacheMiss(changesetId);
 
     // Load base layer
     const baseLayer = await baseModel.getLayer(layerName);
@@ -416,6 +434,98 @@ export class VirtualProjectionEngine {
   }
 
   /**
+   * Get affected layers for an element in a changeset.
+   * Returns all layers that have cached projections and contain changes for the element.
+   *
+   * @param changesetId - ID of the changeset
+   * @param elementId - ID of the element being unstaged
+   * @returns Set of affected layer names
+   *
+   * @remarks
+   * When unstaging an element, only the layers where that element was modified
+   * need cache invalidation. This enables granular invalidation instead of
+   * invalidating the entire changeset cache.
+   */
+  private async getAffectedLayers(changesetId: string, elementId: string): Promise<Set<string>> {
+    const affectedLayers = new Set<string>();
+
+    try {
+      const changeset = await this.stagingAreaManager.load(changesetId);
+      if (!changeset) {
+        return affectedLayers;
+      }
+
+      // Find all layers that have changes for this element
+      for (const change of changeset.changes) {
+        if (change.elementId === elementId) {
+          affectedLayers.add(change.layerName);
+        }
+      }
+    } catch {
+      // If changeset can't be loaded, return empty set (no invalidation needed)
+      // This handles the case where changeset is deleted or corrupted
+    }
+
+    return affectedLayers;
+  }
+
+  /**
+   * Record a cache hit for metrics tracking.
+   *
+   * @param changesetId - ID of the changeset
+   */
+  private recordCacheHit(changesetId: string): void {
+    const metrics = this.projectionCache.metrics.get(changesetId) || {
+      hits: 0,
+      misses: 0,
+      invalidations: 0,
+    };
+    metrics.hits++;
+    this.projectionCache.metrics.set(changesetId, metrics);
+  }
+
+  /**
+   * Record a cache miss for metrics tracking.
+   *
+   * @param changesetId - ID of the changeset
+   */
+  private recordCacheMiss(changesetId: string): void {
+    const metrics = this.projectionCache.metrics.get(changesetId) || {
+      hits: 0,
+      misses: 0,
+      invalidations: 0,
+    };
+    metrics.misses++;
+    this.projectionCache.metrics.set(changesetId, metrics);
+  }
+
+  /**
+   * Record a cache invalidation for metrics tracking.
+   *
+   * @param changesetId - ID of the changeset
+   */
+  private recordInvalidation(changesetId: string): void {
+    const metrics = this.projectionCache.metrics.get(changesetId) || {
+      hits: 0,
+      misses: 0,
+      invalidations: 0,
+    };
+    metrics.invalidations++;
+    metrics.lastInvalidation = new Date().toISOString();
+    this.projectionCache.metrics.set(changesetId, metrics);
+  }
+
+  /**
+   * Get cache metrics for a changeset (for monitoring and debugging).
+   *
+   * @param changesetId - ID of the changeset
+   * @returns Cache metrics or undefined if no metrics exist
+   */
+  getCacheMetrics(changesetId: string): CacheMetrics | undefined {
+    return this.projectionCache.metrics.get(changesetId);
+  }
+
+  /**
    * Invalidate projection cache when changes are staged.
    * Removes cached projections to ensure fresh computation next time.
    *
@@ -431,6 +541,7 @@ export class VirtualProjectionEngine {
       // Invalidate specific layer projection
       const cacheKey = `${changesetId}:${layerName}`;
       this.projectionCache.cache.delete(cacheKey);
+      this.recordInvalidation(changesetId);
     } else {
       // Invalidate all projections for this changeset
       for (const key of this.projectionCache.cache.keys()) {
@@ -438,18 +549,43 @@ export class VirtualProjectionEngine {
           this.projectionCache.cache.delete(key);
         }
       }
+      this.recordInvalidation(changesetId);
     }
   }
 
   /**
    * Invalidate projection cache when changes are unstaged.
-   * Delegates to invalidateOnStage (same cache invalidation logic).
+   * Uses layer-specific invalidation for the affected element's layers.
    *
    * @param changesetId - ID of the changeset being modified
-   * @param layerName - Optional: specific layer to invalidate (all if omitted)
+   * @param elementId - Optional: ID of element being unstaged (enables granular invalidation)
+   *
+   * @remarks
+   * If elementId is provided, only the layers containing that element are invalidated.
+   * This is more efficient than invalidating the entire changeset cache when
+   * unstaging elements from a multi-layer changeset.
+   * If elementId is omitted, invalidates all projections for the changeset.
    */
-  invalidateOnUnstage(changesetId: string, layerName?: string): void {
-    this.invalidateOnStage(changesetId, layerName);
+  async invalidateOnUnstage(changesetId: string, elementId?: string): Promise<void> {
+    if (elementId) {
+      // Layer-specific invalidation: only invalidate affected layers
+      const affectedLayers = await this.getAffectedLayers(changesetId, elementId);
+      for (const layerName of affectedLayers) {
+        const cacheKey = `${changesetId}:${layerName}`;
+        this.projectionCache.cache.delete(cacheKey);
+      }
+      if (affectedLayers.size > 0) {
+        this.recordInvalidation(changesetId);
+      }
+    } else {
+      // Full invalidation: clear all projections for this changeset
+      for (const key of this.projectionCache.cache.keys()) {
+        if (key.startsWith(`${changesetId}:`)) {
+          this.projectionCache.cache.delete(key);
+        }
+      }
+      this.recordInvalidation(changesetId);
+    }
   }
 
   /**

@@ -469,7 +469,7 @@ describe('VirtualProjectionEngine', () => {
       await engine.projectLayer(baseModel, changesetId, 'application');
 
       // Invalidate specific layer
-      engine.invalidateOnUnstage(changesetId, 'application');
+      await engine.invalidateOnUnstage(changesetId, 'application');
 
       // TODO: Would require exposing cache state to verify this works
       // For now we verify it doesn't throw

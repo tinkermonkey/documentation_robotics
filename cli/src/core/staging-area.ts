@@ -169,7 +169,7 @@ export class StagingAreaManager {
       sequenceNumber: -1, // Will be assigned by storage layer
     };
 
-    const assignedSequenceNumber = await this.storage.addChange(changesetId, stagedChange);
+    await this.storage.addChange(changesetId, stagedChange);
 
     // Invalidate projection cache for this layer
     const engine = await this.getProjectionEngine();
@@ -201,9 +201,9 @@ export class StagingAreaManager {
     // Remove the element's changes and resequence remaining changes
     await this.storage.removeChange(changesetId, elementId);
 
-    // Invalidate projection cache for all layers (element's layer is unknown at this point)
+    // Invalidate projection cache for the removed element's layers
     const engine = await this.getProjectionEngine();
-    engine.invalidateOnUnstage(changesetId);
+    await engine.invalidateOnUnstage(changesetId, elementId);
   }
 
   /**
