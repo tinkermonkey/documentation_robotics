@@ -9,6 +9,7 @@ import { StagingAreaManager } from '../core/staging-area.js';
 import { ChangesetExporter } from '../core/changeset-exporter.js';
 import { StagedChangesetStorage } from '../core/staged-changeset-storage.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
+import { validateMigration, dryRunMigration, migrateChangesets } from '../core/changeset-migration.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
 import path from 'path';
@@ -924,6 +925,171 @@ export async function changesetImportCommand(file: string): Promise<void> {
 }
 
 /**
+ * Validate migration from old to new changeset format
+ */
+export async function changesetValidateMigrationCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const validation = await validateMigration(model.rootPath, model);
+
+    if (!validation.migrationNeeded) {
+      console.log(ansis.green('✓ Migration not needed - all changesets are in new format'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.bold('\nMigration Validation Report:\n'));
+    console.log(ansis.cyan(`  Total old-format changesets: ${validation.totalOldChangesets}`));
+    console.log(ansis.cyan(`  Already migrated: ${validation.alreadyMigratedCount}`));
+    console.log(ansis.cyan(`  Require migration: ${validation.requiresMigrationCount}`));
+    console.log();
+
+    if (validation.validationIssues.length > 0) {
+      console.log(ansis.red(`✗ Found ${validation.validationIssues.length} validation issue(s):\n`));
+      for (const issue of validation.validationIssues) {
+        console.log(ansis.dim(`  - ${ansis.bold(issue.changeset)}: ${issue.issue}`));
+      }
+      console.log();
+    }
+
+    if (validation.warnings.length > 0) {
+      console.log(ansis.yellow(`⚠ Warnings:\n`));
+      for (const warning of validation.warnings) {
+        console.log(ansis.dim(`  - ${warning}`));
+      }
+      console.log();
+    }
+
+    if (validation.canProceed) {
+      console.log(ansis.green('✓ Migration can proceed'));
+      console.log(ansis.dim('  Run: dr changeset migrate'));
+    } else {
+      console.log(ansis.red('✗ Migration cannot proceed - fix issues above first'));
+    }
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Perform dry-run of changeset migration
+ */
+export async function changesetMigrateDryRunCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const dryRun = await dryRunMigration(model.rootPath, model);
+
+    console.log(ansis.bold('\nMigration Dry-Run Preview:\n'));
+    console.log(ansis.cyan(`Summary:`));
+    console.log(ansis.dim(`  Total to migrate: ${dryRun.summary.totalToMigrate}`));
+    console.log(ansis.dim(`  Already migrated: ${dryRun.summary.alreadyMigrated}`));
+    console.log(ansis.dim(`  Expected failures: ${dryRun.summary.expectedFailures}`));
+    console.log();
+
+    if (dryRun.changesets.length === 0) {
+      console.log(ansis.yellow('No changesets to migrate'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.cyan(`Changesets:\n`));
+
+    for (const cs of dryRun.changesets) {
+      const statusColor =
+        cs.mappedStatus === 'committed'
+          ? ansis.green
+          : cs.mappedStatus === 'discarded'
+            ? ansis.gray
+            : ansis.yellow;
+
+      console.log(`${ansis.bold(cs.oldName)}`);
+      console.log(ansis.dim(`  ID: ${cs.newId}`));
+      console.log(ansis.dim(`  Status: ${cs.currentStatus} → ${statusColor(cs.mappedStatus)}`));
+      console.log(ansis.dim(`  Changes: ${cs.changes}`));
+
+      if (cs.issues && cs.issues.length > 0) {
+        console.log(ansis.red(`  Issues:`));
+        for (const issue of cs.issues) {
+          console.log(ansis.dim(`    - ${issue}`));
+        }
+      }
+
+      console.log();
+    }
+
+    if (dryRun.summary.expectedFailures === 0) {
+      console.log(ansis.green('✓ All changesets appear valid for migration'));
+      console.log(ansis.dim('  Run: dr changeset migrate'));
+    } else {
+      console.log(ansis.yellow(`⚠ ${dryRun.summary.expectedFailures} changeset(s) may fail`));
+      console.log(ansis.dim('  Fix issues above before running: dr changeset migrate'));
+    }
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Migrate changesets from old to new format
+ */
+export async function changesetMigrateCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+
+    console.log(ansis.bold('\nMigrating changesets...\n'));
+
+    const result = await migrateChangesets(model.rootPath, model);
+
+    if (result.totalChangesets === 0) {
+      console.log(ansis.yellow('No old-format changesets found'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.green(`✓ Migration complete!\n`));
+    console.log(ansis.cyan(`Summary:`));
+    console.log(ansis.dim(`  Total processed: ${result.totalChangesets}`));
+    console.log(ansis.dim(`  Successfully migrated: ${result.migratedChangesets}`));
+
+    if (result.skippedChangesets > 0) {
+      console.log(
+        ansis.dim(`  Skipped (already migrated): ${result.skippedChangesets}`)
+      );
+    }
+
+    if (result.failedChangesets > 0) {
+      console.log(ansis.red(`  Failed: ${result.failedChangesets}`));
+      console.log();
+      console.log(ansis.red(`✗ Migration errors:\n`));
+      for (const error of result.errors) {
+        console.log(ansis.dim(`  - ${ansis.bold(error.name)}: ${error.error}`));
+      }
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Register changeset subcommands
  */
 export function changesetCommands(program: Command): void {
@@ -1144,5 +1310,40 @@ Examples:
     )
     .action(async (file) => {
       await changesetImportCommand(file);
+    });
+
+  // Migration commands
+  changesetGroup
+    .command('validate-migration')
+    .description('Validate if migration from old to new format is needed')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset validate-migration`
+    )
+    .action(async () => {
+      await changesetValidateMigrationCommand();
+    });
+
+  changesetGroup
+    .command('migrate')
+    .description('Migrate changesets from old .dr/ format to new documentation-robotics/ format')
+    .option('--dry-run', 'Preview migration without making changes', false)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset migrate --dry-run
+  $ dr changeset migrate
+
+See docs/MIGRATION.md for detailed migration instructions.`
+    )
+    .action(async (options) => {
+      if (options.dryRun) {
+        await changesetMigrateDryRunCommand();
+      } else {
+        await changesetMigrateCommand();
+      }
     });
 }
