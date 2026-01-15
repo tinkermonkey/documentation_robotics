@@ -464,12 +464,10 @@ export class StagingAreaManager {
         modifiedLayers.add(change.layerName);
       }
 
-      const failedLayerSaves: string[] = [];
       for (const layerName of modifiedLayers) {
         try {
           await model.saveLayer(layerName);
         } catch (error) {
-          failedLayerSaves.push(layerName);
           throw new Error(
             `Failed to save layer '${layerName}': ${error instanceof Error ? error.message : String(error)}`
           );
@@ -971,7 +969,6 @@ export class StagingAreaManager {
     } catch (error) {
       // Log cleanup failures but don't throw - successful commits shouldn't fail due to cleanup
       console.warn(`Failed to clean up backup directory ${backupDir}:`, error);
-      throw error;
     }
   }
 
