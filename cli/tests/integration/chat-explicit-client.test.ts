@@ -22,8 +22,8 @@ describe('Chat Command with Explicit Client Selection', () => {
     // Save original cwd
     originalCwd = process.cwd();
 
-    // Create a temporary directory for testing
-    testDir = join(tmpdir(), `dr-chat-explicit-test-${Date.now()}`);
+    // Create a temporary directory for testing with unique name including random component
+    testDir = join(tmpdir(), `dr-chat-explicit-test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
     await mkdir(testDir, { recursive: true });
 
     // Create a test model
@@ -40,19 +40,25 @@ describe('Chat Command with Explicit Client Selection', () => {
   });
 
   afterEach(async () => {
-    // Restore cwd - use a safe fallback if originalCwd no longer exists
+    // Restore cwd first before cleanup
     try {
       process.chdir(originalCwd);
     } catch (e) {
-      // If original directory no longer exists, use root
-      process.chdir('/');
+      // Ignore errors changing directory
     }
 
     // Clean up temporary directory
-    try {
-      await rm(testDir, { recursive: true, force: true });
-    } catch (e) {
-      // Ignore errors
+    if (testDir) {
+      try {
+        // Add a small delay to ensure file handles are released
+        await new Promise(resolve => setTimeout(resolve, 50));
+        await rm(testDir, { recursive: true, force: true });
+      } catch (e) {
+        // Ignore errors during cleanup - directory may already be deleted
+        if ((e as any)?.code !== 'ENOENT') {
+          // Don't warn for ENOENT errors - they're expected if dir already deleted
+        }
+      }
     }
   });
 
