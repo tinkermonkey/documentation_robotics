@@ -53,7 +53,7 @@ export interface PropertyTransform {
 export interface ProjectionCondition {
   field: string;
   operator: ConditionOperator;
-  value?: any;
+  value?: unknown;
   pattern?: string; // For regex matching
 }
 
@@ -63,7 +63,7 @@ export interface ProjectionCondition {
 export interface PropertyMapping {
   source: string;
   target: string;
-  default?: any;
+  default?: unknown;
   required?: boolean;
   transform?: PropertyTransform;
 }
@@ -90,7 +90,7 @@ export interface ProjectionRule {
 export class PropertyTransformer {
   constructor(private config: PropertyTransform) {}
 
-  apply(value: any): any {
+  apply(value: unknown): string | null {
     if (value === null || value === undefined) return null;
 
     const strValue = String(value);
@@ -121,7 +121,7 @@ export class PropertyTransformer {
         return this.config.value?.replace('{value}', strValue) ?? strValue;
 
       default:
-        return value;
+        return strValue;
     }
   }
 }
@@ -132,8 +132,8 @@ export class PropertyTransformer {
 export class ConditionEvaluator {
   constructor(private config: ProjectionCondition) {}
 
-  evaluate(element: any): boolean {
-    const fieldValue = getNestedProperty(element, this.config.field);
+  evaluate(element: unknown): boolean {
+    const fieldValue = getNestedProperty(element as Record<string, unknown>, this.config.field);
 
     switch (this.config.operator) {
       case 'exists':
@@ -156,10 +156,10 @@ export class ConditionEvaluator {
           : false;
 
       case 'gt':
-        return fieldValue > this.config.value;
+        return (fieldValue as number) > (this.config.value as number);
 
       case 'lt':
-        return fieldValue < this.config.value;
+        return (fieldValue as number) < (this.config.value as number);
 
       case 'in':
         return Array.isArray(this.config.value)
@@ -198,13 +198,13 @@ export class ProjectionEngine {
   async loadRules(path: string): Promise<void> {
     try {
       const content = await readFile(path, 'utf-8');
-      const data = parseYAML(content);
+      const data = parseYAML(content) as Record<string, unknown>;
 
       if (!data.projections || !Array.isArray(data.projections)) {
         throw new Error('Invalid projection rules file: missing projections array');
       }
 
-      this.rules = data.projections.map((proj: any) =>
+      this.rules = (data.projections as Record<string, unknown>[]).map((proj) =>
         this.parseProjectionRule(proj)
       );
     } catch (error) {
@@ -246,56 +246,57 @@ export class ProjectionEngine {
   /**
    * Parse YAML projection definition into ProjectionRule
    */
-  private parseProjectionRule(data: any): ProjectionRule {
+  private parseProjectionRule(data: Record<string, unknown>): ProjectionRule {
     // Split from/to into layer.type
-    const [from_layer, from_type] = data.from.split('.');
-    const [to_layer, to_type] = data.to.split('.');
+    const [from_layer, from_type] = (data.from as string).split('.');
+    const [to_layer, to_type] = (data.to as string).split('.');
 
     // Get first rule definition (simplified - Python CLI could support multiple)
-    const ruleData = Array.isArray(data.rules) ? data.rules[0] : data.rules;
+    const ruleData = Array.isArray(data.rules) ? (data.rules as Record<string, unknown>[])[0] : (data.rules as Record<string, unknown>);
 
     // Parse conditions
-    const conditions: ProjectionCondition[] = (data.conditions || []).map(
-      (c: any) => ({
-        field: c.field,
-        operator: c.operator,
+    const conditions: ProjectionCondition[] = ((data.conditions as Record<string, unknown>[] | undefined) || []).map(
+      (c: Record<string, unknown>) => ({
+        field: c.field as string,
+        operator: c.operator as ConditionOperator,
         value: c.value,
-        pattern: c.pattern,
+        pattern: c.pattern as string | undefined,
       })
     );
 
     // Parse property mappings
     const property_mappings: PropertyMapping[] = [];
-    if (ruleData.properties) {
-      for (const [target, mapping] of Object.entries(ruleData.properties)) {
+    if (ruleData && typeof ruleData === 'object' && 'properties' in ruleData && ruleData.properties) {
+      const properties = ruleData.properties as Record<string, unknown>;
+      for (const [target, mapping] of Object.entries(properties)) {
         if (typeof mapping === 'string') {
           // Simple format: { target: source }
-          property_mappings.push({ source: mapping as string, target });
-        } else if (typeof mapping === 'object') {
+          property_mappings.push({ source: mapping, target });
+        } else if (typeof mapping === 'object' && mapping !== null) {
           // Advanced format with transform
-          const m = mapping as any;
+          const m = mapping as Record<string, unknown>;
           property_mappings.push({
-            source: m.source,
+            source: m.source as string,
             target,
             default: m.default,
-            required: m.required ?? false,
-            transform: m.transform,
+            required: (m.required as boolean | undefined) ?? false,
+            transform: m.transform as PropertyTransform | undefined,
           });
         }
       }
     }
 
     return {
-      name: data.name,
+      name: data.name as string,
       from_layer,
       from_type,
       to_layer,
       to_type,
-      name_template: ruleData.name_template,
+      name_template: (ruleData && typeof ruleData === 'object' && 'name_template' in ruleData) ? (ruleData.name_template as string) : '',
       property_mappings,
       conditions,
-      template_file: ruleData.template,
-      create_bidirectional: ruleData.create_bidirectional ?? true,
+      template_file: (ruleData && typeof ruleData === 'object' && 'template' in ruleData) ? (ruleData.template as string | undefined) : undefined,
+      create_bidirectional: (ruleData && typeof ruleData === 'object' && 'create_bidirectional' in ruleData && ruleData.create_bidirectional !== undefined) ? (ruleData.create_bidirectional as boolean) : true,
     };
   }
 
@@ -386,7 +387,7 @@ export class ProjectionEngine {
     const id = generateElementId(rule.to_layer, rule.to_type, name);
 
     // Initialize element data
-    const data: any = {
+    const data: Record<string, unknown> = {
       id,
       name,
       type: rule.to_type,
@@ -395,7 +396,7 @@ export class ProjectionEngine {
 
     // Map properties
     for (const mapping of rule.property_mappings) {
-      let value: any;
+      let value: unknown;
 
       // Get source value
       if (mapping.source.includes('{') || mapping.source.includes('{{')) {
@@ -431,17 +432,17 @@ export class ProjectionEngine {
     // Add bidirectional reference if enabled
     if (rule.create_bidirectional !== false) {
       if (!data.properties) data.properties = {};
-      data.properties.realizes = source.id;
+      (data.properties as Record<string, unknown>).realizes = source.id;
     }
 
     // Create Element instance
-    return new Element(data);
+    return new Element(data as ConstructorParameters<typeof Element>[0]);
   }
 
   /**
    * Get value from source element (supports dot notation)
    */
-  private getSourceValue(source: Element, path: string): any {
+  private getSourceValue(source: Element, path: string): unknown {
     // Check for direct element properties
     if (path === 'id') return source.id;
     if (path === 'name') return source.name;
@@ -449,8 +450,8 @@ export class ProjectionEngine {
     if (path === 'layer') return source.layer;
     if (path === 'description') return source.description;
 
-    // Check nested properties
-    return getNestedProperty(source, path);
+    // Check nested properties in the properties map
+    return getNestedProperty(source.properties, path);
   }
 
   /**
@@ -458,13 +459,13 @@ export class ProjectionEngine {
    */
   private renderTemplate(template: string, source: Element): string {
     // Build context
-    const context: any = {
+    const context: Record<string, string | Record<string, unknown>> = {
       id: source.id,
       name: source.name,
       type: source.type,
-      layer: source.layer,
-      description: source.description,
-      properties: (source as any).properties || {},
+      layer: source.layer ?? '',
+      description: source.description ?? '',
+      properties: source.properties,
       name_pascal: toPascalCase(source.name),
       name_kebab: toKebabCase(source.name),
       name_snake: toSnakeCase(source.name),
@@ -532,13 +533,13 @@ export class ProjectionEngine {
 /**
  * Helper: Get nested property from object
  */
-function getNestedProperty(obj: any, path: string): any {
+function getNestedProperty(obj: Record<string, unknown>, path: string): unknown {
   const parts = path.split('.');
-  let current = obj;
+  let current: unknown = obj;
 
   for (const part of parts) {
     if (current && typeof current === 'object') {
-      current = current[part];
+      current = (current as Record<string, unknown>)[part];
     } else {
       return undefined;
     }
@@ -550,16 +551,16 @@ function getNestedProperty(obj: any, path: string): any {
 /**
  * Helper: Set nested property on object
  */
-function setNestedProperty(obj: any, path: string, value: any): void {
+function setNestedProperty(obj: Record<string, unknown>, path: string, value: unknown): void {
   const parts = path.split('.');
-  let current = obj;
+  let current = obj as Record<string, unknown>;
 
   for (let i = 0; i < parts.length - 1; i++) {
     const part = parts[i];
     if (!current[part] || typeof current[part] !== 'object') {
       current[part] = {};
     }
-    current = current[part];
+    current = current[part] as Record<string, unknown>;
   }
 
   current[parts[parts.length - 1]] = value;
