@@ -241,7 +241,9 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       const layer = await model.getLayer('motivation');
-      const element = layer!.getElement('motivation.goal.test-goal-priority-critical');
+      // Special chars like parentheses and colons are preserved in the kebab-case conversion
+      const element = layer!.getElement('motivation.goal.test-goal-(priority:-critical)');
+      expect(element).toBeDefined();
       expect(element!.name).toContain('Priority');
       expect(element!.description).toContain('special');
     });
@@ -395,8 +397,8 @@ describe('CLI Commands Integration Tests', () => {
       const result = await runDr('search', 'goal');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-improve');
-      expect(result.stdout).toContain('motivation-goal-enhance');
+      expect(result.stdout).toContain('motivation.goal.improve');
+      expect(result.stdout).toContain('motivation.goal.enhance');
     });
 
     it('should search by name pattern', async () => {
@@ -423,7 +425,7 @@ describe('CLI Commands Integration Tests', () => {
       const result = await runDr('search', 'goal', '--layer', 'motivation');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-improve');
+      expect(result.stdout).toContain('motivation.goal.improve');
       expect(result.stdout).not.toContain('User Authentication');
     });
 
@@ -447,7 +449,7 @@ describe('CLI Commands Integration Tests', () => {
       const result = await runDr('search', 'goal', '--layer', 'motivation', '--type', 'goal');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-improve');
+      expect(result.stdout).toContain('motivation.goal.improve');
     });
 
     it('should support case-insensitive search', async () => {
@@ -501,7 +503,8 @@ describe('CLI Commands Integration Tests', () => {
       expect(result.exitCode).toBe(0);
 
       const model = await Model.load(tempDir.path);
-      const element = (await model.getLayer('motivation'))!.getElement('motivation-goal-test');
+      // The third parameter 'motivation-goal-test' is treated as a name and converted to ID
+      const element = (await model.getLayer('motivation'))!.getElement('motivation.goal.motivation-goal-test');
       expect(element).toBeDefined();
     });
 
@@ -522,7 +525,7 @@ describe('CLI Commands Integration Tests', () => {
         '--description', 'Test Description'
       );
 
-      const result = await runDr('show', 'motivation-goal-test');
+      const result = await runDr('show', 'motivation.goal.motivation-goal-test');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Test Goal');
@@ -533,10 +536,10 @@ describe('CLI Commands Integration Tests', () => {
         '--name', 'Test Goal'
       );
 
-      const result = await runDr('show', 'motivation-goal-test');
+      const result = await runDr('show', 'motivation.goal.motivation-goal-test');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-test');
+      expect(result.stdout).toContain('motivation.goal.motivation-goal-test');
       expect(result.stdout).toContain('Test Goal');
     });
 
@@ -581,7 +584,7 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should add relationship between elements', async () => {
       const result = await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--predicate', 'depends-on'
       );
 
@@ -589,7 +592,7 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       await model.loadRelationships();
-      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
+      const relationships = model.relationships.find('motivation.goal.goal-1', 'motivation.goal.goal-2');
       expect(relationships.length).toBe(1);
       expect(relationships[0].predicate).toBe('depends-on');
     });
@@ -598,7 +601,7 @@ describe('CLI Commands Integration Tests', () => {
       await runDr('add', 'business', 'process', 'Test Process');
 
       const result = await runDr('relationship', 'add',
-        'motivation-goal-1', 'business-process-test',
+        'motivation.goal.goal-1', 'business.process.test-process',
         '--predicate', 'depends-on'
       );
 
@@ -607,24 +610,24 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should list relationships', async () => {
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--predicate', 'depends-on'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation-goal-1');
+      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-2');
+      expect(result.stdout).toContain('motivation.goal.goal-2');
     });
 
     it('should delete relationship', async () => {
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--predicate', 'depends-on'
       );
 
       const result = await runDr('relationship', 'delete',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--force'
       );
 
@@ -632,21 +635,21 @@ describe('CLI Commands Integration Tests', () => {
 
       const model = await Model.load(tempDir.path);
       await model.loadRelationships();
-      const relationships = model.relationships.find('motivation-goal-1', 'motivation-goal-2');
+      const relationships = model.relationships.find('motivation.goal.goal-1', 'motivation.goal.goal-2');
       expect(relationships.length).toBe(0);
     });
 
     it('should support --json output for list', async () => {
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--predicate', 'depends-on'
       );
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-3',
+        'motivation.goal.goal-1', 'motivation.goal.goal-3',
         '--predicate', 'supports'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation-goal-1', '--json');
+      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1', '--json');
 
       expect(result.exitCode).toBe(0);
       const output = JSON.parse(result.stdout);
@@ -658,10 +661,10 @@ describe('CLI Commands Integration Tests', () => {
       const predicates = ['depends-on', 'supports', 'triggers', 'includes'];
 
       for (let i = 0; i < predicates.length; i++) {
-        const targetId = `motivation-goal-${i + 2}`;
+        const targetId = `motivation.goal.goal-${i + 2}`;
         if (i === 0) {
           const result = await runDr('relationship', 'add',
-            'motivation-goal-1', targetId,
+            'motivation.goal.goal-1', targetId,
             '--predicate', predicates[i]
           );
           expect(result.exitCode).toBe(0);
@@ -680,19 +683,19 @@ describe('CLI Commands Integration Tests', () => {
 
     it('should handle multiple relationships on same element', async () => {
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-2',
+        'motivation.goal.goal-1', 'motivation.goal.goal-2',
         '--predicate', 'depends-on'
       );
       await runDr('relationship', 'add',
-        'motivation-goal-1', 'motivation-goal-3',
+        'motivation.goal.goal-1', 'motivation.goal.goal-3',
         '--predicate', 'supports'
       );
 
-      const result = await runDr('relationship', 'list', 'motivation-goal-1');
+      const result = await runDr('relationship', 'list', 'motivation.goal.goal-1');
 
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('motivation-goal-2');
-      expect(result.stdout).toContain('motivation-goal-3');
+      expect(result.stdout).toContain('motivation.goal.goal-2');
+      expect(result.stdout).toContain('motivation.goal.goal-3');
     });
   });
 });
