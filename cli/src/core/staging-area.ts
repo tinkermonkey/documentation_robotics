@@ -126,6 +126,8 @@ export class StagingAreaManager {
 
   /**
    * Delete a changeset
+   * If the changeset being deleted is the currently active changeset,
+   * this method will also clear the active changeset marker.
    */
   async delete(name: string): Promise<void> {
     const changeset = await this.load(name);
@@ -135,6 +137,12 @@ export class StagingAreaManager {
 
     if (!changeset.id) {
       throw new Error(`Changeset '${name}' has no ID and cannot be deleted`);
+    }
+
+    // Check if this changeset is the active one and clear it if so
+    const activeChangeset = await this.getActive();
+    if (activeChangeset && activeChangeset.id === changeset.id) {
+      await this.clearActive();
     }
 
     await this.storage.delete(changeset.id);

@@ -102,6 +102,27 @@ layers: {}`;
       expect(loaded).toBeNull();
     });
 
+    it('should clear active changeset marker when deleting active changeset', async () => {
+      const created = await manager.create('delete-active-test');
+      await manager.setActive(created.id!);
+
+      // Verify the changeset is active
+      const activeBeforeDeletion = await manager.getActive();
+      expect(activeBeforeDeletion).not.toBeNull();
+      expect(activeBeforeDeletion?.id).toBe(created.id);
+
+      // Delete the active changeset
+      await manager.delete('delete-active-test');
+
+      // Verify the changeset is deleted
+      const loaded = await manager.load('delete-active-test');
+      expect(loaded).toBeNull();
+
+      // Verify the active marker is cleared
+      const activeAfterDeletion = await manager.getActive();
+      expect(activeAfterDeletion).toBeNull();
+    });
+
     it('should return null for non-existent changeset', async () => {
       const loaded = await manager.load('nonexistent');
       expect(loaded).toBeNull();
