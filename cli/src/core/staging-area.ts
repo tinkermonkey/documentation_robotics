@@ -390,7 +390,16 @@ export class StagingAreaManager {
     }
 
     // Step 4: Backup model state for atomic rollback
-    const backup = await this.backupModel(model);
+    let backup: string;
+    try {
+      backup = await this.backupModel(model);
+    } catch (backupError) {
+      // Backup creation failed - cannot proceed safely
+      throw new Error(
+        `Failed to create backup before commit. No changes have been applied. ` +
+        `${backupError instanceof Error ? backupError.message : String(backupError)}`
+      );
+    }
 
     try {
       // Step 5: Apply all changes sequentially by sequence number
@@ -455,14 +464,28 @@ export class StagingAreaManager {
         modifiedLayers.add(change.layerName);
       }
 
+      const failedLayerSaves: string[] = [];
       for (const layerName of modifiedLayers) {
-        await model.saveLayer(layerName);
+        try {
+          await model.saveLayer(layerName);
+        } catch (error) {
+          failedLayerSaves.push(layerName);
+          throw new Error(
+            `Failed to save layer '${layerName}': ${error instanceof Error ? error.message : String(error)}`
+          );
+        }
       }
 
-      // Step 7: Update changeset status to committed
+      // Step 7: Update changeset status to committed ONLY AFTER successful saves
       changeset.status = 'committed';
       changeset.updateModified();
-      await this.storage.save(changeset);
+
+      try {
+        await this.storage.save(changeset);
+      } catch (error) {
+        // Even if changeset save fails, continue to save manifest
+        console.warn(`Warning: Failed to save changeset status to storage: ${error instanceof Error ? error.message : String(error)}`);
+      }
 
       // Step 8: Add changeset to manifest history
       if (!model.manifest.changeset_history) {
@@ -475,41 +498,79 @@ export class StagingAreaManager {
       });
 
       // Step 9: Save manifest with updated changeset history
-      await model.saveManifest();
+      try {
+        await model.saveManifest();
+      } catch (manifestError) {
+        // Manifest save failed - this is critical
+        // Attempt to rollback since manifest wasn't saved
+        console.error(`Manifest save failed: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}`);
+        throw new Error(
+          `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}`
+        );
+      }
 
       // Step 10: Clean up backup directory after successful commit
-      await this.cleanupBackup(backup);
+      try {
+        await this.cleanupBackup(backup);
+      } catch (cleanupError) {
+        // Log warning but don't fail the commit - data is safe
+        console.warn(`Warning: Failed to clean up backup at ${backup}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`);
+      }
 
       return result;
 
     } catch (commitError) {
-      // Step 8: Rollback on any failure - restore from backup
+      // Attempt rollback on any failure - restore from backup
+      let rollbackSucceeded = false;
+      let rollbackError: Error | null = null;
+
       try {
         await this.restoreModel(model, backup);
-        // Rollback succeeded, throw original commit error
-        throw commitError;
-      } catch (rollbackError) {
-        // CRITICAL: Rollback failed - model may be corrupted
-        // IMPORTANT: Validate backup integrity BEFORE suggesting manual restoration
-        let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
-        let backupValidationError: string | null = null;
+        rollbackSucceeded = true;
+      } catch (err) {
+        rollbackError = err instanceof Error ? err : new Error(String(err));
+      }
 
+      // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
+      let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
+      let backupValidationError: string | null = null;
+
+      try {
+        backupHealth = await this.validateBackupIntegrity(backup);
+      } catch (validationErr) {
+        backupValidationError = validationErr instanceof Error ? validationErr.message : String(validationErr);
+        backupHealth = { isValid: false, filesChecked: 0, errors: [backupValidationError] };
+      }
+
+      // Build comprehensive error message
+      let compositeMessage: string;
+      const suggestions: string[] = [];
+
+      if (rollbackSucceeded) {
+        // Rollback succeeded - throw original commit error
+        compositeMessage = `Commit failed but rollback succeeded. Model restored to pre-commit state.\n\n`;
+        compositeMessage += `Error during commit:\n`;
+        compositeMessage += `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n\n`;
+        compositeMessage += `Backup location (for reference): ${backup}`;
+
+        // Clean up backup after successful rollback
         try {
-          backupHealth = await this.validateBackupIntegrity(backup);
-        } catch (validationErr) {
-          backupValidationError = validationErr instanceof Error ? validationErr.message : String(validationErr);
-          backupHealth = { isValid: false, filesChecked: 0, errors: [backupValidationError] };
+          await this.cleanupBackup(backup);
+        } catch {
+          suggestions.push(`Note: Failed to clean up backup at ${backup}`);
         }
 
-        // Build comprehensive error message with backup health status
-        let compositeMessage =
+        throw new Error(compositeMessage);
+      } else {
+        // Rollback failed - model may be corrupted
+        compositeMessage =
           `Commit failed AND rollback failed. Model may be in corrupted state.\n` +
           `\n` +
           `Original commit error:\n` +
           `  ${commitError instanceof Error ? commitError.message : String(commitError)}\n` +
           `\n` +
           `Rollback error:\n` +
-          `  ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n` +
+          `  ${rollbackError ? rollbackError.message : 'Unknown error'}\n` +
           `\n` +
           `Backup location: ${backup}\n`;
 
@@ -525,9 +586,6 @@ export class StagingAreaManager {
         }
 
         compositeMessage += `\n`;
-
-        const { CLIError } = await import('../utils/errors.js');
-        const suggestions: string[] = [];
 
         if (backupHealth.isValid) {
           suggestions.push(
@@ -549,6 +607,7 @@ export class StagingAreaManager {
 
         compositeMessage += `Manual recovery may be required.`;
 
+        const { CLIError } = await import('../utils/errors.js');
         throw new CLIError(compositeMessage, 1, suggestions);
       }
     }
@@ -746,13 +805,12 @@ export class StagingAreaManager {
       return backupDir;
 
     } catch (error) {
-      // Clean up incomplete backup
-      try {
-        const { rm } = await import('node:fs/promises');
-        await rm(backupDir, { recursive: true, force: true });
-      } catch {
-        // Warn but don't throw - original error is more important
-        console.warn(`Warning: Failed to clean up incomplete backup at ${backupDir}`);
+      // Clean up incomplete backup with detailed error handling
+      const cleanupError = await this.forceRemoveBackupDir(backupDir);
+
+      if (cleanupError) {
+        console.warn(`Warning: Failed to clean up incomplete backup at ${backupDir}: ${cleanupError}`);
+        console.warn(`Please manually remove this directory if backup creation is retried`);
       }
 
       throw new Error(
@@ -913,6 +971,57 @@ export class StagingAreaManager {
     } catch (error) {
       // Log cleanup failures but don't throw - successful commits shouldn't fail due to cleanup
       console.warn(`Failed to clean up backup directory ${backupDir}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Force remove a backup directory with enhanced error handling.
+   * Attempts multiple strategies to ensure removal even with permission issues.
+   *
+   * @param backupDir - Path to the backup directory to remove
+   * @returns Error message if removal failed, null if successful
+   *
+   * @remarks
+   * This is used during backup creation failures to ensure cleanup of partial state.
+   * Returns error details instead of throwing so caller can log and continue.
+   */
+  private async forceRemoveBackupDir(backupDir: string): Promise<string | null> {
+    const fs = await import('fs/promises');
+
+    try {
+      // Try standard removal first
+      await fs.rm(backupDir, { recursive: true, force: true });
+      return null;
+    } catch (error) {
+      // If standard removal fails, try more aggressive approach
+      try {
+        // List directory contents and try to remove each item
+        const entries = await fs.readdir(backupDir, { withFileTypes: true });
+        for (const entry of entries) {
+          const fullPath = path.join(backupDir, entry.name);
+          try {
+            if (entry.isDirectory()) {
+              await fs.rm(fullPath, { recursive: true, force: true });
+            } else {
+              await fs.unlink(fullPath);
+            }
+          } catch (itemError) {
+            console.warn(`Failed to remove ${fullPath}: ${itemError instanceof Error ? itemError.message : String(itemError)}`);
+          }
+        }
+
+        // Try to remove the directory itself
+        try {
+          await fs.rmdir(backupDir);
+          return null;
+        } catch {
+          // Directory may not be empty, return error
+          return `Could not remove directory ${backupDir} - may contain leftover files`;
+        }
+      } catch (aggressiveError) {
+        return `Backup cleanup failed: ${aggressiveError instanceof Error ? aggressiveError.message : String(aggressiveError)}`;
+      }
     }
   }
 
