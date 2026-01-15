@@ -490,7 +490,19 @@ export class StagingAreaManager {
         throw commitError;
       } catch (rollbackError) {
         // CRITICAL: Rollback failed - model may be corrupted
-        const compositeMessage =
+        // IMPORTANT: Validate backup integrity BEFORE suggesting manual restoration
+        let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
+        let backupValidationError: string | null = null;
+
+        try {
+          backupHealth = await this.validateBackupIntegrity(backup);
+        } catch (validationErr) {
+          backupValidationError = validationErr instanceof Error ? validationErr.message : String(validationErr);
+          backupHealth = { isValid: false, filesChecked: 0, errors: [backupValidationError] };
+        }
+
+        // Build comprehensive error message with backup health status
+        let compositeMessage =
           `Commit failed AND rollback failed. Model may be in corrupted state.\n` +
           `\n` +
           `Original commit error:\n` +
@@ -499,17 +511,45 @@ export class StagingAreaManager {
           `Rollback error:\n` +
           `  ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}\n` +
           `\n` +
-          `Backup location: ${backup}\n` +
-          `Manual recovery may be required.`;
+          `Backup location: ${backup}\n`;
+
+        // Add backup health status
+        compositeMessage += `Backup integrity check:\n`;
+        if (backupHealth.isValid) {
+          compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
+        } else {
+          compositeMessage += `  ✗ Backup integrity issues found:\n`;
+          for (const error of backupHealth.errors) {
+            compositeMessage += `    - ${error}\n`;
+          }
+        }
+
+        compositeMessage += `\n`;
 
         const { CLIError } = await import('../utils/errors.js');
-        throw new CLIError(compositeMessage, 1, [
-          `Manually restore from backup: ${backup}`,
-          `Copy manifest.json from backup to ${path.join(model.rootPath, 'documentation-robotics')}`,
-          `Copy layer files from ${path.join(backup, 'layers')} to ${path.join(model.rootPath, 'documentation-robotics', 'layers')}`,
-          `Run 'dr validate' after manual restoration`,
-          `Contact support if issue persists`
-        ]);
+        const suggestions: string[] = [];
+
+        if (backupHealth.isValid) {
+          suggestions.push(
+            `Backup is valid. Manually restore from backup: ${backup}`,
+            `Copy manifest.json/manifest.yaml from backup to ${path.join(model.rootPath, 'documentation-robotics')}`,
+            `Copy layer files from ${path.join(backup, 'layers')} to ${path.join(model.rootPath, 'documentation-robotics', 'layers')}`,
+            `Run 'dr validate' after manual restoration`,
+            `Contact support if issue persists`
+          );
+        } else {
+          suggestions.push(
+            `⚠ Backup integrity is compromised. Do NOT use this backup for recovery.`,
+            `Check if backup files exist at: ${backup}`,
+            `Verify disk space and file permissions`,
+            `Contact support immediately - manual data recovery may be required`,
+            `Do not attempt manual restoration with a corrupted backup`
+          );
+        }
+
+        compositeMessage += `Manual recovery may be required.`;
+
+        throw new CLIError(compositeMessage, 1, suggestions);
       }
     }
   }
@@ -761,6 +801,98 @@ export class StagingAreaManager {
           `Backup validation failed: ${file.path} size mismatch (expected ${file.size}, got ${content.length})`
         );
       }
+    }
+  }
+
+  /**
+   * Validate backup integrity by checking manifest and file checksums.
+   * This is called before suggesting manual restoration to ensure the backup is usable.
+   * @param backupDir - Path to the backup directory
+   * @returns Promise resolving to backup health status or throwing error with details
+   * @throws Error with details about any integrity issues found
+   */
+  async validateBackupIntegrity(backupDir: string): Promise<{
+    isValid: boolean;
+    filesChecked: number;
+    errors: string[];
+  }> {
+    const { readFile, fileExists } = await import('../utils/file-io.js');
+    const { createHash } = await import('crypto');
+
+    const errors: string[] = [];
+    let filesChecked = 0;
+
+    try {
+      // Check if backup directory exists
+      if (!(await fileExists(backupDir))) {
+        throw new Error(`Backup directory not found: ${backupDir}`);
+      }
+
+      // Load and validate backup manifest
+      const manifestPath = path.join(backupDir, '.backup-manifest.json');
+      if (!(await fileExists(manifestPath))) {
+        throw new Error(`Backup manifest not found at ${manifestPath}`);
+      }
+
+      let manifest;
+      try {
+        const manifestContent = await readFile(manifestPath);
+        manifest = JSON.parse(manifestContent.toString());
+      } catch (err) {
+        throw new Error(
+          `Failed to read backup manifest: ${err instanceof Error ? err.message : String(err)}`
+        );
+      }
+
+      if (!manifest.files || !Array.isArray(manifest.files)) {
+        throw new Error('Backup manifest is invalid or corrupted (missing files array)');
+      }
+
+      // Validate each file in the backup manifest
+      for (const file of manifest.files) {
+        filesChecked++;
+        const backupFilePath = path.join(backupDir, file.path);
+
+        // Check file exists
+        if (!(await fileExists(backupFilePath))) {
+          errors.push(`Missing: ${file.path}`);
+          continue;
+        }
+
+        // Check checksum
+        try {
+          const content = await readFile(backupFilePath);
+          const checksum = createHash('sha256').update(content).digest('hex');
+
+          if (checksum !== file.checksum) {
+            errors.push(
+              `Checksum mismatch: ${file.path} (expected ${file.checksum}, got ${checksum})`
+            );
+            continue;
+          }
+
+          // Check size
+          if (content.length !== file.size) {
+            errors.push(
+              `Size mismatch: ${file.path} (expected ${file.size}, got ${content.length})`
+            );
+          }
+        } catch (err) {
+          errors.push(
+            `Failed to validate: ${file.path} (${err instanceof Error ? err.message : String(err)})`
+          );
+        }
+      }
+
+      return {
+        isValid: errors.length === 0,
+        filesChecked,
+        errors
+      };
+    } catch (err) {
+      throw new Error(
+        `Backup integrity check failed: ${err instanceof Error ? err.message : String(err)}`
+      );
     }
   }
 

@@ -156,6 +156,127 @@ describe('Changeset Rollback Verification', () => {
     });
   });
 
+  describe('backup integrity validation', () => {
+    it('should validate intact backup successfully', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Validate backup integrity
+      const health = await manager.validateBackupIntegrity(backupDir);
+
+      expect(health.isValid).toBe(true);
+      expect(health.filesChecked).toBeGreaterThan(0);
+      expect(health.errors.length).toBe(0);
+    });
+
+    it('should detect missing backup files', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Corrupt backup by removing a file
+      const manifestPath = path.join(backupDir, 'manifest.yaml');
+      if (await fileExists(manifestPath)) {
+        await rm(manifestPath, { force: true });
+      } else {
+        await rm(path.join(backupDir, 'manifest.json'), { force: true });
+      }
+
+      // Validate should detect missing file
+      const health = await manager.validateBackupIntegrity(backupDir);
+
+      expect(health.isValid).toBe(false);
+      expect(health.errors.length).toBeGreaterThan(0);
+      expect(health.errors.some(e => e.includes('Missing'))).toBe(true);
+    });
+
+    it('should detect checksum mismatches', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Find and corrupt a layer file
+      const layersDir = path.join(backupDir, 'layers');
+      const layerSubDirs = await readdir(layersDir);
+      if (layerSubDirs.length > 0) {
+        const firstLayer = layerSubDirs[0];
+        const layerDir = path.join(layersDir, firstLayer);
+        const layerFiles = await readdir(layerDir);
+        if (layerFiles.length > 0) {
+          const filePath = path.join(layerDir, layerFiles[0]);
+          // Corrupt the file by appending garbage
+          await writeFile(filePath, (await readFile(filePath, 'utf-8')) + '\nCORRUPTED');
+        }
+      }
+
+      // Validate should detect checksum mismatch
+      const health = await manager.validateBackupIntegrity(backupDir);
+
+      expect(health.isValid).toBe(false);
+      expect(health.errors.length).toBeGreaterThan(0);
+      expect(health.errors.some(e => e.includes('Checksum mismatch'))).toBe(true);
+    });
+
+    it('should detect missing backup manifest', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create a fake backup directory without manifest
+      const backupDir = path.join(TEST_DIR, 'documentation-robotics', '.backups', 'fake-backup');
+      await mkdir(backupDir, { recursive: true });
+
+      // Validate should fail
+      try {
+        await manager.validateBackupIntegrity(backupDir);
+        expect(true).toBe(false); // Should throw
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        expect((error as Error).message).toContain('Backup manifest not found');
+      }
+    });
+
+    it('should detect nonexistent backup directory', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Validate should fail for nonexistent directory
+      try {
+        await manager.validateBackupIntegrity('/nonexistent/backup/dir');
+        expect(true).toBe(false); // Should throw
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        expect((error as Error).message).toContain('Backup directory not found');
+      }
+    });
+
+    it('should provide detailed error information on validation failure', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Corrupt multiple files
+      const layersDir = path.join(backupDir, 'layers');
+      const layerSubDirs = await readdir(layersDir);
+      for (let i = 0; i < Math.min(2, layerSubDirs.length); i++) {
+        const layerDir = path.join(layersDir, layerSubDirs[i]);
+        const layerFiles = await readdir(layerDir);
+        if (layerFiles.length > 0) {
+          const filePath = path.join(layerDir, layerFiles[0]);
+          await writeFile(filePath, 'CORRUPTED_DATA');
+        }
+      }
+
+      // Validate should report multiple errors
+      const health = await manager.validateBackupIntegrity(backupDir);
+
+      expect(health.isValid).toBe(false);
+      expect(health.errors.length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
   describe('rollback failure scenarios', () => {
     it('should handle commit failure with successful rollback', async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
@@ -230,10 +351,122 @@ describe('Changeset Rollback Verification', () => {
         expect(message).toContain('Original commit error');
         expect(message).toContain('Rollback error');
         expect(message).toContain('Backup location');
+        // CRITICAL: Verify backup integrity check is included
+        expect(message).toContain('Backup integrity check');
       }
 
       // Restore mock
       (manager as any).restoreModel = originalRestore;
+    });
+
+    it('should validate backup integrity before suggesting manual restoration', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Mock restoreModel to fail
+      const originalRestore = (manager as any).restoreModel;
+      (manager as any).restoreModel = async () => {
+        throw new Error('Simulated restore failure');
+      };
+
+      const changeset = await manager.create('test-backup-check', 'Test');
+      await manager.setActive(changeset.id!);
+
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'test',
+        layerName: 'nonexistent',
+        timestamp: new Date().toISOString(),
+        after: {}
+      });
+
+      try {
+        // Disable validation to reach the apply phase where failure occurs
+        await manager.commit(model, changeset.id!, { validate: false });
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        const cliError = error as any;
+
+        // Should include backup integrity check result in message
+        expect(message).toContain('Backup integrity check');
+
+        // If backup is valid, suggestions should include manual restoration
+        if (message.includes('✓ Backup is valid')) {
+          expect(cliError.suggestions).toBeDefined();
+          const suggestionsText = (cliError.suggestions || []).join(' ');
+          expect(suggestionsText).toContain('Backup is valid');
+          expect(suggestionsText).toContain('Manually restore from backup');
+        } else {
+          // Backup is corrupted, suggestions should warn against restoration
+          expect(cliError.suggestions).toBeDefined();
+          const suggestionsText = (cliError.suggestions || []).join(' ');
+          expect(suggestionsText).toContain('Do NOT use this backup for recovery');
+        }
+      }
+
+      // Restore mock
+      (manager as any).restoreModel = originalRestore;
+    });
+
+    it('should warn when backup is corrupted during failed rollback', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Mock restoreModel to fail
+      const originalRestore = (manager as any).restoreModel;
+      (manager as any).restoreModel = async () => {
+        throw new Error('Simulated restore failure');
+      };
+
+      // Create changeset and trigger failure
+      const changeset = await manager.create('test-corrupted-backup', 'Test');
+      await manager.setActive(changeset.id!);
+
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'test',
+        layerName: 'nonexistent',
+        timestamp: new Date().toISOString(),
+        after: {}
+      });
+
+      // Corrupt the backup during commit by mocking validation to fail
+      const originalValidate = manager.validateBackupIntegrity;
+      let backupDirToCorrupt: string | null = null;
+
+      (manager as any).restoreModel = async () => {
+        throw new Error('Simulated restore failure');
+      };
+
+      manager.validateBackupIntegrity = async (backupDir: string) => {
+        backupDirToCorrupt = backupDir;
+        return {
+          isValid: false,
+          filesChecked: 1,
+          errors: ['Test: simulated backup corruption']
+        };
+      };
+
+      try {
+        await manager.commit(model, changeset.id!, { validate: false });
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        const cliError = error as any;
+
+        // Should detect backup corruption in message
+        expect(message).toContain('Backup integrity issues found');
+
+        // Suggestions should warn against manual restoration
+        expect(cliError.suggestions).toBeDefined();
+        const suggestionsText = (cliError.suggestions || []).join(' ');
+        expect(suggestionsText).toContain('Do NOT use this backup for recovery');
+      }
+
+      // Restore original
+      (manager as any).restoreModel = originalRestore;
+      manager.validateBackupIntegrity = originalValidate;
     });
   });
 
