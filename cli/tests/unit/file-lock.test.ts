@@ -266,6 +266,154 @@ describe('FileLock', () => {
     });
   });
 
+  describe('stale lock detection', () => {
+    it('isLockStale - returns false for fresh locks', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock = new FileLock(lockPath);
+
+      await lock.acquire();
+
+      // Fresh lock should not be stale (default threshold is 30s)
+      const isStale = await FileLock.isLockStale(lockPath);
+      expect(isStale).toBe(false);
+
+      await lock.release();
+    });
+
+    it('isLockStale - returns true for old locks', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock = new FileLock(lockPath);
+
+      await lock.acquire();
+
+      // Wait 100ms to ensure lock age exceeds threshold
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Use a 50ms threshold so the lock (now ~100ms old) is stale
+      const isStale = await FileLock.isLockStale(lockPath, 50);
+      expect(isStale).toBe(true);
+
+      await lock.release();
+    });
+
+    it('isLockStale - handles missing lock directory', async () => {
+      const lockPath = path.join(TEST_DIR, 'nonexistent');
+
+      // Non-existent lock should not be stale
+      const isStale = await FileLock.isLockStale(lockPath);
+      expect(isStale).toBe(false);
+    });
+
+    it('cleanupStaleLocks - removes stale lock', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock = new FileLock(lockPath);
+
+      await lock.acquire();
+
+      // Wait 100ms to ensure lock age exceeds threshold
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Cleanup with 50ms threshold to treat lock as stale
+      await FileLock.cleanupStaleLocks(lockPath, 50);
+
+      // Lock should be removed
+      expect(FileLock.exists(lockPath)).toBe(false);
+    });
+
+    it('cleanupStaleLocks - preserves fresh locks', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock = new FileLock(lockPath);
+
+      await lock.acquire();
+
+      // Cleanup with high threshold so lock is not stale
+      await FileLock.cleanupStaleLocks(lockPath, 60000); // 60s threshold
+
+      // Lock should still exist
+      expect(FileLock.exists(lockPath)).toBe(true);
+
+      await lock.release();
+    });
+
+    it('acquire - automatically cleans up stale locks', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock1 = new FileLock(lockPath);
+
+      // Create a stale lock
+      await lock1.acquire();
+
+      // Wait 100ms to ensure lock age exceeds threshold
+      await new Promise(resolve => setTimeout(resolve, 100));
+
+      // Create new lock instance with 50ms threshold to detect it as stale
+      const lock2 = new FileLock(lockPath);
+      await lock2.acquire({ staleLockThreshold: 50 });
+
+      // If we got here, acquire cleaned up the stale lock and got the new lock
+      expect(lock2.isAcquired()).toBe(true);
+      expect(FileLock.exists(lockPath)).toBe(true);
+
+      await lock2.release();
+    });
+
+    it('acquire - respects detectStaleLocks option', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock1 = new FileLock(lockPath);
+
+      // Create a stale lock
+      await lock1.acquire();
+
+      // Try to acquire with detection disabled
+      const lock2 = new FileLock(lockPath);
+      let error: Error | null = null;
+
+      try {
+        await lock2.acquire({
+          staleLockThreshold: 1,
+          detectStaleLocks: false,
+          timeout: 100,
+          retryInterval: 20,
+        });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      // Should timeout because detection is disabled
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain('Failed to acquire lock');
+
+      await lock1.release();
+    });
+
+    it('acquire - custom staleLockThreshold works', async () => {
+      const lockPath = path.join(TEST_DIR, 'resource');
+      const lock1 = new FileLock(lockPath);
+
+      // Create a lock
+      await lock1.acquire();
+
+      // Create new lock instance with high threshold (lock won't be stale)
+      const lock2 = new FileLock(lockPath);
+      let error: Error | null = null;
+
+      try {
+        await lock2.acquire({
+          staleLockThreshold: 60000, // 60s threshold, lock is fresh
+          timeout: 100,
+          retryInterval: 20,
+        });
+      } catch (err) {
+        error = err as Error;
+      }
+
+      // Should timeout because lock is not considered stale with 60s threshold
+      expect(error).not.toBeNull();
+      expect(error?.message).toContain('Failed to acquire lock');
+
+      await lock1.release();
+    });
+  });
+
   describe('static utilities', () => {
     it('should check if lock exists', async () => {
       const lockPath = path.join(TEST_DIR, 'resource');

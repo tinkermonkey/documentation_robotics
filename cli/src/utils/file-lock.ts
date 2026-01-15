@@ -5,12 +5,16 @@
  * Prevents race conditions in read-modify-write operations on changeset files.
  */
 
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, stat } from 'fs/promises';
 import { existsSync } from 'fs';
 
+const DEFAULT_STALE_LOCK_THRESHOLD = 30000; // 30 seconds
+
 export interface LockOptions {
-  timeout?: number;      // Max time to wait for lock (ms)
-  retryInterval?: number; // Time between retry attempts (ms)
+  timeout?: number;        // Max time to wait for lock (ms)
+  retryInterval?: number;  // Time between retry attempts (ms)
+  staleLockThreshold?: number; // Threshold in ms for detecting stale locks (default: 30000ms)
+  detectStaleLocks?: boolean;  // Whether to automatically detect and cleanup stale locks (default: true)
 }
 
 /**
@@ -30,10 +34,28 @@ export class FileLock {
    *
    * Uses atomic directory creation (mkdir with recursive: false) to ensure
    * only one process can acquire the lock at a time.
+   *
+   * Before attempting lock acquisition, automatically checks for stale locks
+   * (locks older than the configured threshold) and removes them if detected.
+   * This prevents the CLI from becoming unusable after process crashes.
    */
   async acquire(options: LockOptions = {}): Promise<void> {
     const timeout = options.timeout || 5000;      // 5 second default
     const retryInterval = options.retryInterval || 50; // 50ms default
+    const staleLockThreshold = options.staleLockThreshold || DEFAULT_STALE_LOCK_THRESHOLD;
+    const detectStaleLocks = options.detectStaleLocks !== false; // true by default
+
+    // Attempt to clean up stale locks before acquiring
+    if (detectStaleLocks) {
+      try {
+        await FileLock.cleanupStaleLocks(
+          this.lockPath.replace(/\.lock$/, ''),
+          staleLockThreshold
+        );
+      } catch {
+        // Silently ignore cleanup errors - we'll still attempt to acquire the lock
+      }
+    }
 
     const startTime = Date.now();
 
@@ -144,6 +166,68 @@ export class FileLock {
    */
   static exists(resourcePath: string): boolean {
     return existsSync(`${resourcePath}.lock`);
+  }
+
+  /**
+   * Check if a lock is stale based on age
+   *
+   * A lock is considered stale if its modification time exceeds the threshold.
+   * This helps detect locks from crashed processes.
+   *
+   * @param resourcePath - Path to the locked resource
+   * @param threshold - Max age in ms before lock is considered stale (default: 30s)
+   * @returns true if lock exists and is stale, false otherwise
+   */
+  static async isLockStale(
+    resourcePath: string,
+    threshold: number = DEFAULT_STALE_LOCK_THRESHOLD
+  ): Promise<boolean> {
+    const lockPath = `${resourcePath}.lock`;
+
+    try {
+      if (!existsSync(lockPath)) {
+        return false;
+      }
+
+      const stats = await stat(lockPath);
+      const lockAge = Date.now() - stats.mtime.getTime();
+      return lockAge > threshold;
+    } catch {
+      // If we can't determine lock age, treat as valid (not stale)
+      // This ensures we don't accidentally remove locks we're unsure about
+      return false;
+    }
+  }
+
+  /**
+   * Cleanup stale locks automatically
+   *
+   * Removes lock directories that are older than the specified threshold.
+   * Logs the cleanup action for diagnostics. Safe to call repeatedly.
+   *
+   * @param resourcePath - Path to the locked resource
+   * @param threshold - Max age in ms before lock is considered stale (default: 30s)
+   */
+  static async cleanupStaleLocks(
+    resourcePath: string,
+    threshold: number = DEFAULT_STALE_LOCK_THRESHOLD
+  ): Promise<void> {
+    const isStale = await this.isLockStale(resourcePath, threshold);
+
+    if (isStale) {
+      const lockPath = `${resourcePath}.lock`;
+      try {
+        const stats = await stat(lockPath);
+        const lockAge = Date.now() - stats.mtime.getTime();
+        await rm(lockPath, { recursive: true, force: true });
+        console.log(
+          `Cleaned up stale lock at ${lockPath} (age: ${lockAge}ms, threshold: ${threshold}ms)`
+        );
+      } catch (error) {
+        // Silently ignore cleanup errors - lock may have been removed by another process
+        // or other temporary filesystem issues
+      }
+    }
   }
 
   /**
