@@ -9,7 +9,7 @@ import { fileExists, ensureDir } from '../../src/utils/file-io.js';
 import { fileURLToPath } from 'url';
 
 const TEST_DIR = '/tmp/changeset-rollback-test';
-const BASELINE_DIR = fileURLToPath(new URL('../../cli-validation/test-project/baseline', import.meta.url));
+const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset Rollback Verification', () => {
   let model: Model;
@@ -524,6 +524,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-double-fault'
         });
 
+<<<<<<< HEAD
         // Stage a change that will cause commit failure
         await testSetup.changeset.stage({
           type: 'add',
@@ -535,6 +536,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test1',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail by making save throw
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Failed to save layer: Write failed');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false); // Should not reach
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -546,8 +569,16 @@ describe('Changeset Rollback Verification', () => {
           expect(message).toContain('Rollback error');
 
           // Verify both error messages are included
+<<<<<<< HEAD
           expect(message).toContain('not found'); // Original commit error about nonexistent layer
           expect(message).toContain('Permission denied'); // Rollback error message
+=======
+          expect(message).toContain('Failed to save layer'); // Original commit error
+          expect(message).toContain('Permission denied'); // Rollback error message
+        } finally {
+          // Restore original method
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
 
@@ -559,6 +590,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-backup-location'
         });
 
+<<<<<<< HEAD
         await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
@@ -569,6 +601,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test2',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Layer not found');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -578,6 +632,11 @@ describe('Changeset Rollback Verification', () => {
           expect(message).toContain('Backup location:');
           // Backup should be in .backups directory
           expect(message).toMatch(/\.backups[/\\]/);
+<<<<<<< HEAD
+=======
+        } finally {
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
 
@@ -596,6 +655,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-valid-backup-recovery'
         });
 
+<<<<<<< HEAD
         await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
@@ -606,6 +666,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test3',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Layer not found');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -628,6 +710,11 @@ describe('Changeset Rollback Verification', () => {
           expect(suggestionsText).toContain('layer files');
           expect(suggestionsText).toContain('dr validate');
           expect(suggestionsText).toContain('Contact support');
+<<<<<<< HEAD
+=======
+        } finally {
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
 
@@ -649,6 +736,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-corrupted-backup-recovery'
         });
 
+<<<<<<< HEAD
         await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
@@ -659,6 +747,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test4',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Layer not found');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -680,6 +790,11 @@ describe('Changeset Rollback Verification', () => {
           expect(suggestionsText).toContain('Backup integrity is compromised');
           expect(suggestionsText).toContain('Contact support immediately');
           expect(suggestionsText).toContain('do not attempt manual restoration');
+<<<<<<< HEAD
+=======
+        } finally {
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
 
@@ -694,6 +809,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-validation-failure'
         });
 
+<<<<<<< HEAD
         await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
@@ -704,6 +820,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test5',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Layer not found');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -714,6 +852,11 @@ describe('Changeset Rollback Verification', () => {
           expect(message).toContain('✗ Backup integrity issues found');
           // Should include the validation error message
           expect(message).toContain('Cannot read backup directory');
+<<<<<<< HEAD
+=======
+        } finally {
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
 
@@ -732,6 +875,7 @@ describe('Changeset Rollback Verification', () => {
           changesetName: 'test-recovery-accuracy'
         });
 
+<<<<<<< HEAD
         await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
@@ -742,6 +886,28 @@ describe('Changeset Rollback Verification', () => {
 
         try {
           await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
+=======
+        // Stage a change to the changeset
+        await testSetup.manager.stage(testSetup.changeset.id!, {
+          type: 'add',
+          elementId: 'app-service-test6',
+          layerName: 'application',
+          timestamp: new Date().toISOString(),
+          after: {
+            type: 'service',
+            name: 'Test Service'
+          }
+        });
+
+        // Mock commit to fail
+        const originalSaveLayer = model.saveLayer.bind(model);
+        (model as any).saveLayer = async () => {
+          throw new Error('Layer not found');
+        };
+
+        try {
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false, force: true });
+>>>>>>> 4b648e0 (Complete work for issue #212)
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
@@ -768,6 +934,11 @@ describe('Changeset Rollback Verification', () => {
           // Verify support contact step is present
           const supportStep = suggestions.find((s: string) => s.includes('Contact support'));
           expect(supportStep).toBeDefined();
+<<<<<<< HEAD
+=======
+        } finally {
+          (model as any).saveLayer = originalSaveLayer;
+>>>>>>> 4b648e0 (Complete work for issue #212)
         }
       });
     });
