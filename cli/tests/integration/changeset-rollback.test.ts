@@ -468,6 +468,325 @@ describe('Changeset Rollback Verification', () => {
       (manager as any).restoreModel = originalRestore;
       manager.validateBackupIntegrity = originalValidate;
     });
+
+    describe('double-fault rollback scenario (lines 485-514)', () => {
+      it('should construct composite error message with both commit and rollback errors', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        const rollbackError = new Error('Backup restoration failed: Permission denied on /model/layers');
+        (manager as any).restoreModel = async () => {
+          throw rollbackError;
+        };
+
+        // Create changeset that will fail during apply
+        const changeset = await manager.create('test-double-fault', 'Double Fault Test');
+        await manager.setActive(changeset.id!);
+
+        // Stage a change that will cause commit failure
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test-element',
+          layerName: 'nonexistent-layer',
+          timestamp: new Date().toISOString(),
+          after: { name: 'Test' }
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false); // Should not reach
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+
+          // Verify composite error structure per lines 572-582 of staging-area.ts
+          expect(message).toContain('Commit failed AND rollback failed');
+          expect(message).toContain('Original commit error');
+          expect(message).toContain('Rollback error');
+
+          // Verify both error messages are included
+          expect(message).toContain('not found'); // Original commit error about nonexistent layer
+          expect(message).toContain('Permission denied'); // Rollback error message
+        }
+
+        // Restore mock
+        (manager as any).restoreModel = originalRestore;
+      });
+
+      it('should include backup location in composite error message', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        (manager as any).restoreModel = async () => {
+          throw new Error('Restore failed');
+        };
+
+        const changeset = await manager.create('test-backup-location', 'Test');
+        await manager.setActive(changeset.id!);
+
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test',
+          layerName: 'nonexistent',
+          timestamp: new Date().toISOString(),
+          after: {}
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+
+          // Verify backup location is included per line 582 of staging-area.ts
+          expect(message).toContain('Backup location:');
+          // Backup should be in .backups directory
+          expect(message).toMatch(/\.backups[/\\]/);
+        }
+
+        // Restore mock
+        (manager as any).restoreModel = originalRestore;
+      });
+
+      it('should validate backup integrity before suggesting manual restoration for valid backup', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        (manager as any).restoreModel = async () => {
+          throw new Error('Restore failed');
+        };
+
+        // Mock validateBackupIntegrity to return valid backup
+        const originalValidate = manager.validateBackupIntegrity;
+        manager.validateBackupIntegrity = async (backupDir: string) => {
+          return {
+            isValid: true,
+            filesChecked: 12,
+            errors: []
+          };
+        };
+
+        const changeset = await manager.create('test-valid-backup-recovery', 'Test');
+        await manager.setActive(changeset.id!);
+
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test',
+          layerName: 'nonexistent',
+          timestamp: new Date().toISOString(),
+          after: {}
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+          const cliError = error as any;
+
+          // Verify backup health status in composite message per lines 585-593 of staging-area.ts
+          expect(message).toContain('Backup integrity check:');
+          expect(message).toContain('✓ Backup is valid');
+          expect(message).toContain('(12 files checked)');
+
+          // Verify recovery instructions for valid backup per lines 597-604 of staging-area.ts
+          expect(cliError.suggestions).toBeDefined();
+          const suggestionsText = (cliError.suggestions || []).join(' ');
+
+          // Verify all recovery instructions are present
+          expect(suggestionsText).toContain('Backup is valid');
+          expect(suggestionsText).toContain('Manually restore from backup');
+          expect(suggestionsText).toContain('manifest');
+          expect(suggestionsText).toContain('layer files');
+          expect(suggestionsText).toContain('dr validate');
+          expect(suggestionsText).toContain('Contact support');
+        }
+
+        // Restore mocks
+        (manager as any).restoreModel = originalRestore;
+        manager.validateBackupIntegrity = originalValidate;
+      });
+
+      it('should provide different recovery instructions for corrupted backup', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        (manager as any).restoreModel = async () => {
+          throw new Error('Restore failed');
+        };
+
+        // Mock validateBackupIntegrity to return corrupted backup
+        const originalValidate = manager.validateBackupIntegrity;
+        manager.validateBackupIntegrity = async (backupDir: string) => {
+          return {
+            isValid: false,
+            filesChecked: 8,
+            errors: [
+              'Checksum mismatch: layers/motivation.json',
+              'Missing file: manifest.yaml'
+            ]
+          };
+        };
+
+        const changeset = await manager.create('test-corrupted-backup-recovery', 'Test');
+        await manager.setActive(changeset.id!);
+
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test',
+          layerName: 'nonexistent',
+          timestamp: new Date().toISOString(),
+          after: {}
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+          const cliError = error as any;
+
+          // Verify backup health status in composite message per lines 585-593 of staging-area.ts
+          expect(message).toContain('Backup integrity check:');
+          expect(message).toContain('✗ Backup integrity issues found');
+          expect(message).toContain('Checksum mismatch');
+          expect(message).toContain('Missing file');
+
+          // Verify recovery instructions for corrupted backup per lines 605-613 of staging-area.ts
+          expect(cliError.suggestions).toBeDefined();
+          const suggestionsText = (cliError.suggestions || []).join(' ');
+
+          // Should warn against manual restoration with corrupted backup
+          expect(suggestionsText).toContain('Do NOT use this backup for recovery');
+          expect(suggestionsText).toContain('Backup integrity is compromised');
+          expect(suggestionsText).toContain('Contact support immediately');
+          expect(suggestionsText).toContain('do not attempt manual restoration');
+        }
+
+        // Restore mocks
+        (manager as any).restoreModel = originalRestore;
+        manager.validateBackupIntegrity = originalValidate;
+      });
+
+      it('should handle backup validation failure during double-fault scenario', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        (manager as any).restoreModel = async () => {
+          throw new Error('Restore failed');
+        };
+
+        // Mock validateBackupIntegrity to fail
+        const originalValidate = manager.validateBackupIntegrity;
+        const validationError = new Error('Cannot read backup directory: I/O error');
+        manager.validateBackupIntegrity = async (backupDir: string) => {
+          throw validationError;
+        };
+
+        const changeset = await manager.create('test-validation-failure', 'Test');
+        await manager.setActive(changeset.id!);
+
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test',
+          layerName: 'nonexistent',
+          timestamp: new Date().toISOString(),
+          after: {}
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+
+          // Should handle validation error gracefully per lines 545-550 of staging-area.ts
+          expect(message).toContain('Backup integrity check:');
+          expect(message).toContain('✗ Backup integrity issues found');
+          // Should include the validation error message
+          expect(message).toContain('Cannot read backup directory');
+        }
+
+        // Restore mocks
+        (manager as any).restoreModel = originalRestore;
+        manager.validateBackupIntegrity = originalValidate;
+      });
+
+      it('should verify recovery procedure accuracy for valid backup', async () => {
+        const manager = new StagingAreaManager(TEST_DIR, model);
+
+        // Mock restoreModel to fail
+        const originalRestore = (manager as any).restoreModel;
+        (manager as any).restoreModel = async () => {
+          throw new Error('Restore failed');
+        };
+
+        // Mock validateBackupIntegrity to return valid backup
+        const originalValidate = manager.validateBackupIntegrity;
+        manager.validateBackupIntegrity = async (backupDir: string) => {
+          return {
+            isValid: true,
+            filesChecked: 15,
+            errors: []
+          };
+        };
+
+        const changeset = await manager.create('test-recovery-accuracy', 'Test');
+        await manager.setActive(changeset.id!);
+
+        await manager.stage(changeset.id!, {
+          type: 'add',
+          elementId: 'test',
+          layerName: 'nonexistent',
+          timestamp: new Date().toISOString(),
+          after: {}
+        });
+
+        try {
+          await manager.commit(model, changeset.id!, { validate: false });
+          expect(true).toBe(false);
+        } catch (error) {
+          expect(error instanceof Error).toBe(true);
+          const message = (error as Error).message;
+          const cliError = error as any;
+
+          // Verify recovery instructions contain specific accurate steps
+          expect(cliError.suggestions).toBeDefined();
+          const suggestions = cliError.suggestions || [];
+
+          // Verify manifest restoration step
+          const manifestStep = suggestions.find((s: string) => s.includes('manifest'));
+          expect(manifestStep).toBeDefined();
+          expect(manifestStep).toContain('documentation-robotics');
+
+          // Verify layer restoration step
+          const layerStep = suggestions.find((s: string) => s.includes('layer files'));
+          expect(layerStep).toBeDefined();
+          expect(layerStep).toContain('layers');
+
+          // Verify validation step
+          const validateStep = suggestions.find((s: string) => s.includes('dr validate'));
+          expect(validateStep).toBeDefined();
+
+          // Verify support contact step
+          const supportStep = suggestions.find((s: string) => s.includes('Contact support'));
+          expect(supportStep).toBeDefined();
+        }
+
+        // Restore mocks
+        (manager as any).restoreModel = originalRestore;
+        manager.validateBackupIntegrity = originalValidate;
+      });
+    });
   });
 
   describe('partial restoration handling', () => {
