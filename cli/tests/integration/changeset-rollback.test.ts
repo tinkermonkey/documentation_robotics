@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterAll, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { Element } from '../../src/core/element.js';
@@ -6,9 +6,10 @@ import { rm, mkdir, readFile, writeFile, cp, readdir } from 'fs/promises';
 import path from 'path';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
+import { fileURLToPath } from 'url';
 
 const TEST_DIR = '/tmp/changeset-rollback-test';
-const BASELINE_DIR = path.join(process.cwd(), '..', 'cli-validation', 'test-project', 'baseline');
+const BASELINE_DIR = fileURLToPath(new URL('../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset Rollback Verification', () => {
   let model: Model;
@@ -469,23 +470,62 @@ describe('Changeset Rollback Verification', () => {
       manager.validateBackupIntegrity = originalValidate;
     });
 
-    describe('double-fault rollback scenario (lines 485-514)', () => {
-      it('should construct composite error message with both commit and rollback errors', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+    describe('double-fault rollback scenario', () => {
+      // Helper function to reduce test duplication and improve maintainability
+      async function setupDoubleFaultScenario(options: {
+        testDir: string;
+        model: Model;
+        mockRestoreToFail: boolean;
+        mockValidateBackupIntegrity?: (backupDir: string) => Promise<any>;
+        changesetName: string;
+      }) {
+        const manager = new StagingAreaManager(options.testDir, options.model);
 
-        // Mock restoreModel to fail
         const originalRestore = (manager as any).restoreModel;
-        const rollbackError = new Error('Backup restoration failed: Permission denied on /model/layers');
-        (manager as any).restoreModel = async () => {
-          throw rollbackError;
-        };
+        if (options.mockRestoreToFail) {
+          (manager as any).restoreModel = async () => {
+            throw new Error('Backup restoration failed: Permission denied on /model/layers');
+          };
+        }
 
-        // Create changeset that will fail during apply
-        const changeset = await manager.create('test-double-fault', 'Double Fault Test');
+        const originalValidate = manager.validateBackupIntegrity;
+        if (options.mockValidateBackupIntegrity) {
+          manager.validateBackupIntegrity = options.mockValidateBackupIntegrity;
+        }
+
+        const changeset = await manager.create(options.changesetName, 'Double Fault Test');
         await manager.setActive(changeset.id!);
 
+        return {
+          manager,
+          changeset,
+          originalRestore,
+          originalValidate,
+          cleanup: async () => {
+            (manager as any).restoreModel = originalRestore;
+            manager.validateBackupIntegrity = originalValidate;
+          }
+        };
+      }
+
+      let testSetup: any;
+
+      afterEach(async () => {
+        if (testSetup?.cleanup) {
+          await testSetup.cleanup();
+        }
+      });
+
+      it('should construct composite error message with both commit and rollback errors', async () => {
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          changesetName: 'test-double-fault'
+        });
+
         // Stage a change that will cause commit failure
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test-element',
           layerName: 'nonexistent-layer',
@@ -494,13 +534,13 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false); // Should not reach
         } catch (error) {
           expect(error instanceof Error).toBe(true);
           const message = (error as Error).message;
 
-          // Verify composite error structure per lines 572-582 of staging-area.ts
+          // Verify composite error structure for double-fault scenario
           expect(message).toContain('Commit failed AND rollback failed');
           expect(message).toContain('Original commit error');
           expect(message).toContain('Rollback error');
@@ -509,24 +549,17 @@ describe('Changeset Rollback Verification', () => {
           expect(message).toContain('not found'); // Original commit error about nonexistent layer
           expect(message).toContain('Permission denied'); // Rollback error message
         }
-
-        // Restore mock
-        (manager as any).restoreModel = originalRestore;
       });
 
       it('should include backup location in composite error message', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          changesetName: 'test-backup-location'
+        });
 
-        // Mock restoreModel to fail
-        const originalRestore = (manager as any).restoreModel;
-        (manager as any).restoreModel = async () => {
-          throw new Error('Restore failed');
-        };
-
-        const changeset = await manager.create('test-backup-location', 'Test');
-        await manager.setActive(changeset.id!);
-
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
           layerName: 'nonexistent',
@@ -535,45 +568,35 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
           const message = (error as Error).message;
 
-          // Verify backup location is included per line 582 of staging-area.ts
+          // Verify backup location is included in composite error
           expect(message).toContain('Backup location:');
           // Backup should be in .backups directory
           expect(message).toMatch(/\.backups[/\\]/);
         }
-
-        // Restore mock
-        (manager as any).restoreModel = originalRestore;
       });
 
       it('should validate backup integrity before suggesting manual restoration for valid backup', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          mockValidateBackupIntegrity: async (backupDir: string) => {
+            return {
+              isValid: true,
+              filesChecked: 12,
+              errors: []
+            };
+          },
+          changesetName: 'test-valid-backup-recovery'
+        });
 
-        // Mock restoreModel to fail
-        const originalRestore = (manager as any).restoreModel;
-        (manager as any).restoreModel = async () => {
-          throw new Error('Restore failed');
-        };
-
-        // Mock validateBackupIntegrity to return valid backup
-        const originalValidate = manager.validateBackupIntegrity;
-        manager.validateBackupIntegrity = async (backupDir: string) => {
-          return {
-            isValid: true,
-            filesChecked: 12,
-            errors: []
-          };
-        };
-
-        const changeset = await manager.create('test-valid-backup-recovery', 'Test');
-        await manager.setActive(changeset.id!);
-
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
           layerName: 'nonexistent',
@@ -582,19 +605,19 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
           const message = (error as Error).message;
           const cliError = error as any;
 
-          // Verify backup health status in composite message per lines 585-593 of staging-area.ts
+          // Verify backup health status in composite error message
           expect(message).toContain('Backup integrity check:');
           expect(message).toContain('✓ Backup is valid');
           expect(message).toContain('(12 files checked)');
 
-          // Verify recovery instructions for valid backup per lines 597-604 of staging-area.ts
+          // Verify recovery instructions for valid backup
           expect(cliError.suggestions).toBeDefined();
           const suggestionsText = (cliError.suggestions || []).join(' ');
 
@@ -606,38 +629,27 @@ describe('Changeset Rollback Verification', () => {
           expect(suggestionsText).toContain('dr validate');
           expect(suggestionsText).toContain('Contact support');
         }
-
-        // Restore mocks
-        (manager as any).restoreModel = originalRestore;
-        manager.validateBackupIntegrity = originalValidate;
       });
 
       it('should provide different recovery instructions for corrupted backup', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          mockValidateBackupIntegrity: async (backupDir: string) => {
+            return {
+              isValid: false,
+              filesChecked: 8,
+              errors: [
+                'Checksum mismatch: layers/motivation.json',
+                'Missing file: manifest.yaml'
+              ]
+            };
+          },
+          changesetName: 'test-corrupted-backup-recovery'
+        });
 
-        // Mock restoreModel to fail
-        const originalRestore = (manager as any).restoreModel;
-        (manager as any).restoreModel = async () => {
-          throw new Error('Restore failed');
-        };
-
-        // Mock validateBackupIntegrity to return corrupted backup
-        const originalValidate = manager.validateBackupIntegrity;
-        manager.validateBackupIntegrity = async (backupDir: string) => {
-          return {
-            isValid: false,
-            filesChecked: 8,
-            errors: [
-              'Checksum mismatch: layers/motivation.json',
-              'Missing file: manifest.yaml'
-            ]
-          };
-        };
-
-        const changeset = await manager.create('test-corrupted-backup-recovery', 'Test');
-        await manager.setActive(changeset.id!);
-
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
           layerName: 'nonexistent',
@@ -646,20 +658,20 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
           const message = (error as Error).message;
           const cliError = error as any;
 
-          // Verify backup health status in composite message per lines 585-593 of staging-area.ts
+          // Verify backup health status in composite error message
           expect(message).toContain('Backup integrity check:');
           expect(message).toContain('✗ Backup integrity issues found');
           expect(message).toContain('Checksum mismatch');
           expect(message).toContain('Missing file');
 
-          // Verify recovery instructions for corrupted backup per lines 605-613 of staging-area.ts
+          // Verify recovery instructions for corrupted backup
           expect(cliError.suggestions).toBeDefined();
           const suggestionsText = (cliError.suggestions || []).join(' ');
 
@@ -669,32 +681,20 @@ describe('Changeset Rollback Verification', () => {
           expect(suggestionsText).toContain('Contact support immediately');
           expect(suggestionsText).toContain('do not attempt manual restoration');
         }
-
-        // Restore mocks
-        (manager as any).restoreModel = originalRestore;
-        manager.validateBackupIntegrity = originalValidate;
       });
 
       it('should handle backup validation failure during double-fault scenario', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          mockValidateBackupIntegrity: async (backupDir: string) => {
+            throw new Error('Cannot read backup directory: I/O error');
+          },
+          changesetName: 'test-validation-failure'
+        });
 
-        // Mock restoreModel to fail
-        const originalRestore = (manager as any).restoreModel;
-        (manager as any).restoreModel = async () => {
-          throw new Error('Restore failed');
-        };
-
-        // Mock validateBackupIntegrity to fail
-        const originalValidate = manager.validateBackupIntegrity;
-        const validationError = new Error('Cannot read backup directory: I/O error');
-        manager.validateBackupIntegrity = async (backupDir: string) => {
-          throw validationError;
-        };
-
-        const changeset = await manager.create('test-validation-failure', 'Test');
-        await manager.setActive(changeset.id!);
-
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
           layerName: 'nonexistent',
@@ -703,47 +703,36 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
           const message = (error as Error).message;
 
-          // Should handle validation error gracefully per lines 545-550 of staging-area.ts
+          // Should handle validation error gracefully
           expect(message).toContain('Backup integrity check:');
           expect(message).toContain('✗ Backup integrity issues found');
           // Should include the validation error message
           expect(message).toContain('Cannot read backup directory');
         }
-
-        // Restore mocks
-        (manager as any).restoreModel = originalRestore;
-        manager.validateBackupIntegrity = originalValidate;
       });
 
       it('should verify recovery procedure accuracy for valid backup', async () => {
-        const manager = new StagingAreaManager(TEST_DIR, model);
+        testSetup = await setupDoubleFaultScenario({
+          testDir: TEST_DIR,
+          model: model,
+          mockRestoreToFail: true,
+          mockValidateBackupIntegrity: async (backupDir: string) => {
+            return {
+              isValid: true,
+              filesChecked: 15,
+              errors: []
+            };
+          },
+          changesetName: 'test-recovery-accuracy'
+        });
 
-        // Mock restoreModel to fail
-        const originalRestore = (manager as any).restoreModel;
-        (manager as any).restoreModel = async () => {
-          throw new Error('Restore failed');
-        };
-
-        // Mock validateBackupIntegrity to return valid backup
-        const originalValidate = manager.validateBackupIntegrity;
-        manager.validateBackupIntegrity = async (backupDir: string) => {
-          return {
-            isValid: true,
-            filesChecked: 15,
-            errors: []
-          };
-        };
-
-        const changeset = await manager.create('test-recovery-accuracy', 'Test');
-        await manager.setActive(changeset.id!);
-
-        await manager.stage(changeset.id!, {
+        await testSetup.changeset.stage({
           type: 'add',
           elementId: 'test',
           layerName: 'nonexistent',
@@ -752,39 +741,34 @@ describe('Changeset Rollback Verification', () => {
         });
 
         try {
-          await manager.commit(model, changeset.id!, { validate: false });
+          await testSetup.manager.commit(model, testSetup.changeset.id!, { validate: false });
           expect(true).toBe(false);
         } catch (error) {
           expect(error instanceof Error).toBe(true);
-          const message = (error as Error).message;
           const cliError = error as any;
 
           // Verify recovery instructions contain specific accurate steps
           expect(cliError.suggestions).toBeDefined();
           const suggestions = cliError.suggestions || [];
 
-          // Verify manifest restoration step
+          // Verify manifest restoration step contains path details
           const manifestStep = suggestions.find((s: string) => s.includes('manifest'));
           expect(manifestStep).toBeDefined();
           expect(manifestStep).toContain('documentation-robotics');
 
-          // Verify layer restoration step
+          // Verify layer restoration step contains directory structure details
           const layerStep = suggestions.find((s: string) => s.includes('layer files'));
           expect(layerStep).toBeDefined();
           expect(layerStep).toContain('layers');
 
-          // Verify validation step
+          // Verify validation step with specific command
           const validateStep = suggestions.find((s: string) => s.includes('dr validate'));
           expect(validateStep).toBeDefined();
 
-          // Verify support contact step
+          // Verify support contact step is present
           const supportStep = suggestions.find((s: string) => s.includes('Contact support'));
           expect(supportStep).toBeDefined();
         }
-
-        // Restore mocks
-        (manager as any).restoreModel = originalRestore;
-        manager.validateBackupIntegrity = originalValidate;
       });
     });
   });
