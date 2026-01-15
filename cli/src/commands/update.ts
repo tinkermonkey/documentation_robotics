@@ -4,7 +4,7 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { StagingAreaManager } from '../core/staging-area.js';
+import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { CLIError } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
@@ -78,119 +78,62 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     const layer = (await model.getLayer(layerName))!;
     const element = layer.getElement(id)!;
 
-    // Capture before state for changeset tracking
-    const beforeState = element.toJSON();
+    // Validate that at least one field is specified
+    const hasUpdates = options.name || options.description !== undefined ||
+                       options.properties || options.sourceFile || options.clearSourceReference;
 
-    // Build the after state based on options (without modifying the element yet)
-    const afterState = {
-      ...beforeState,
-    };
-
-    // Apply fields to afterState
-    let updated = false;
-
-    if (options.name) {
-      (afterState as any).name = options.name;
-      updated = true;
-    }
-
-    if (options.description !== undefined) {
-      (afterState as any).description = options.description || undefined;
-      updated = true;
-    }
-
-    if (options.properties) {
-      try {
-        const newProperties = JSON.parse(options.properties);
-        (afterState as any).properties = {
-          ...(afterState as any).properties,
-          ...newProperties,
-        };
-        updated = true;
-      } catch (e) {
-        console.error(ansis.red('Error: Invalid JSON in --properties'));
-        process.exit(1);
-      }
-    }
-
-    // Handle source reference updates
-    if (options.clearSourceReference) {
-      (afterState as any).sourceReference = undefined;
-      updated = true;
-    } else if (options.sourceFile) {
-      const newRef = buildSourceReference(options);
-      if (newRef) {
-        (afterState as any).sourceReference = newRef;
-        updated = true;
-      }
-    }
-
-    if (!updated) {
+    if (!hasUpdates) {
       console.log(ansis.yellow('No fields specified for update'));
       process.exit(0);
     }
 
-    // Check for active staging changeset
-    const stagingManager = new StagingAreaManager(model.rootPath, model);
-    const activeChangeset = await stagingManager.getActive();
+    // Single unified mutation handler for update
+    const handler = new MutationHandler(model, id, layerName);
 
-    // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only
-    if (activeChangeset && activeChangeset.status === 'staged') {
-      // Record change in staging area, don't apply to model
-      await stagingManager.stage(activeChangeset.id!, {
-        type: 'update',
-        elementId: id,
-        layerName,
-        before: beforeState as unknown as Record<string, unknown>,
-        after: afterState as unknown as Record<string, unknown>,
-        timestamp: new Date().toISOString(),
-      });
-
-      console.log(ansis.green(`✓ Staged update to element ${ansis.bold(id)} in ${ansis.bold(activeChangeset.name)}`));
-      if (options.verbose) {
-        console.log(ansis.dim(`  Changeset: ${activeChangeset.name}`));
-        console.log(ansis.dim(`  Status: staged (base model unchanged)`));
+    // Execute update through unified path (handles staging and base model consistently)
+    // The mutator function applies all updates in a single pass with validated JSON parsing
+    await handler.executeUpdate(element, async (elem, after) => {
+      // Parse JSON once here in the mutator - shared by both staging and base paths
+      let parsedProperties: Record<string, unknown> | undefined;
+      if (options.properties) {
+        try {
+          parsedProperties = JSON.parse(options.properties);
+        } catch (e) {
+          throw new CLIError(
+            'Invalid JSON in --properties',
+            1,
+            ['Ensure your JSON is valid and properly formatted']
+          );
+        }
       }
-      return;
-    }
 
-    // Normal flow: Apply changes to base model directly
-    // Now apply modifications to the actual element
-    if (options.name) {
-      element.name = options.name;
-    }
-
-    if (options.description !== undefined) {
-      element.description = options.description || undefined;
-    }
-
-    if (options.properties) {
-      const newProperties = JSON.parse(options.properties);
-      element.properties = { ...element.properties, ...newProperties };
-    }
-
-    if (options.clearSourceReference) {
-      element.setSourceReference(undefined);
-    } else if (options.sourceFile) {
-      const newRef = buildSourceReference(options);
-      if (newRef) {
-        element.setSourceReference(newRef);
+      // Apply updates to both element and after state
+      if (options.name) {
+        elem.name = options.name;
+        (after as any).name = options.name;
       }
-    }
 
-    // Track change in legacy changeset context if present
-    const activeChangesetContext = model.getActiveChangesetContext();
-    await activeChangesetContext.trackChange(
-      'update',
-      id,
-      layerName,
-      beforeState as unknown as Record<string, unknown>,
-      afterState as unknown as Record<string, unknown>
-    );
+      if (options.description !== undefined) {
+        elem.description = options.description || undefined;
+        (after as any).description = options.description || undefined;
+      }
 
-    // Save
-    await model.saveLayer(layerName);
-    await model.saveManifest();
+      if (parsedProperties) {
+        elem.properties = { ...elem.properties, ...parsedProperties };
+        (after as any).properties = { ...(after as any).properties, ...parsedProperties };
+      }
+
+      if (options.clearSourceReference) {
+        elem.setSourceReference(undefined);
+        (after as any).sourceReference = undefined;
+      } else if (options.sourceFile) {
+        const newRef = buildSourceReference(options);
+        if (newRef) {
+          elem.setSourceReference(newRef);
+          (after as any).sourceReference = newRef;
+        }
+      }
+    });
 
     console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));
     if (options.verbose) {

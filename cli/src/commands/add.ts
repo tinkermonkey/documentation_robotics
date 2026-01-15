@@ -6,7 +6,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
-import { StagingAreaManager } from '../core/staging-area.js';
+import { MutationHandler } from '../core/mutation-handler.js';
 import {
   InvalidJSONError,
   CLIError,
@@ -113,52 +113,37 @@ export async function addCommand(
       );
     }
 
-    // Check for active staging changeset
-    const stagingManager = new StagingAreaManager(model.rootPath, model);
-    const activeChangeset = await stagingManager.getActive();
+    // Unified mutation handler for add operation
+    const handler = new MutationHandler(model, id, layer);
+    const stagingManager = handler['stagingManager'];
 
-    // STAGING INTERCEPTION: If active changeset with 'staged' status, redirect to staging only
-    if (activeChangeset && activeChangeset.status === 'staged') {
-      // Record change in staging area, block model mutation
-      await stagingManager.stage(activeChangeset.id!, {
-        type: 'add',
-        elementId: id,
-        layerName: layer,
-        after: element.toJSON() as unknown as Record<string, unknown>,
-        timestamp: new Date().toISOString(),
-      });
-
-      handleSuccess(`Staged element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`, {
-        status: 'staged',
-        changeset: activeChangeset.name,
-        type,
-        name: options.name || id,
-      });
-      return;
-    }
-
-    // Normal flow: Add to base model directly
-    layerObj.addElement(element);
-
-    // Track change in legacy changeset context if present
-    const activeChangesetContext = model.getActiveChangesetContext();
-    await activeChangesetContext.trackChange(
-      'add',
-      id,
-      layer,
-      undefined,
-      element.toJSON() as unknown as Record<string, unknown>
-    );
-
-    // Save
-    await model.saveLayer(layer);
-    await model.saveManifest();
-
-    handleSuccess(`Added element ${ansis.bold(id)} to ${ansis.bold(layer)} layer`, {
-      type,
-      name: options.name || id,
-      description: options.description || '(none)',
+    // Execute add through unified path (handles staging and base model consistently)
+    await handler.executeAdd(element, (elem) => {
+      // This mutator is called by executeAdd for base model path only
+      layerObj.addElement(elem);
     });
+
+    // Determine if operation was staged or applied to base model
+    if (handler.getAfterState()) {
+      // Check if we went through staging path
+      const activeChangeset = await stagingManager.getActive();
+      if (activeChangeset && activeChangeset.status === 'staged') {
+        // Staging path
+        handleSuccess(`Staged element ${ansis.bold(id)} to ${ansis.bold(activeChangeset.name)}`, {
+          status: 'staged',
+          changeset: activeChangeset.name,
+          type,
+          name: options.name || id,
+        });
+      } else {
+        // Base model path
+        handleSuccess(`Added element ${ansis.bold(id)} to ${ansis.bold(layer)} layer`, {
+          type,
+          name: options.name || id,
+          description: options.description || '(none)',
+        });
+      }
+    }
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);
