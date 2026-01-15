@@ -15,6 +15,7 @@ import { Changeset, StagedChange } from './changeset.js';
 import { ChangesetValidator } from './changeset-validator.js';
 import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
+import type { VirtualProjectionEngine } from './virtual-projection.js';
 
 /**
  * Options for commit operation
@@ -61,7 +62,7 @@ export class StagingAreaManager {
   private storage: StagedChangesetStorage;
   private snapshotManager: BaseSnapshotManager;
   private validator: ChangesetValidator;
-  private projectionEngine: any; // VirtualProjectionEngine instance (initialized on first use)
+  private projectionEngine: VirtualProjectionEngine | null = null;
   private rootPath: string;
   private model: Model | null = null;
 
@@ -79,7 +80,7 @@ export class StagingAreaManager {
    * Deferred initialization avoids circular dependency issues at module load time.
    * @returns VirtualProjectionEngine instance for computing merged model views
    */
-  private async getProjectionEngine(): Promise<any> {
+  private async getProjectionEngine(): Promise<VirtualProjectionEngine> {
     if (!this.projectionEngine) {
       const { VirtualProjectionEngine } = await import('./virtual-projection.js');
       this.projectionEngine = new VirtualProjectionEngine(this.rootPath);
