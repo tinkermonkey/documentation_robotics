@@ -69,6 +69,9 @@ export class FileLock {
    * Release the lock
    *
    * Removes the lock directory. Should always be called in a finally block.
+   * Throws errors on filesystem failures to propagate critical issues.
+   *
+   * @throws {Error} If lock removal fails (permission denied, disk full, etc)
    */
   async release(): Promise<void> {
     if (!this.acquired) {
@@ -79,8 +82,14 @@ export class FileLock {
       await rm(this.lockPath, { recursive: true, force: true });
       this.acquired = false;
     } catch (error: any) {
-      // Log but don't throw - best effort cleanup
-      console.warn(`Warning: Failed to release lock ${this.lockPath}: ${error.message}`);
+      // Construct detailed error message with lock state
+      const errorMsg = `Failed to release lock on ${this.lockPath} (acquired: ${this.acquired}): ${error.message}`;
+
+      // Log the error for visibility
+      console.error(`ERROR: ${errorMsg}`);
+
+      // Throw to propagate to callers - they may attempt force removal
+      throw new Error(errorMsg);
     }
   }
 
@@ -96,13 +105,37 @@ export class FileLock {
    *
    * Acquires lock, executes function, and releases lock in finally block.
    * Ensures lock is always released even if function throws.
+   *
+   * Propagates both function errors and lock release errors to the caller.
+   * If the function throws and lock release also fails, the lock release error
+   * is thrown (with original error logged).
+   *
+   * @throws {Error} If function throws or if lock release fails
    */
   async withLock<T>(fn: () => Promise<T>, options?: LockOptions): Promise<T> {
     await this.acquire(options);
+    let fnError: unknown;
+
     try {
       return await fn();
+    } catch (error) {
+      // Capture function error to re-throw after attempting lock release
+      fnError = error;
+      throw error;
     } finally {
-      await this.release();
+      try {
+        await this.release();
+      } catch (releaseError) {
+        // If function already threw, log both errors
+        // Release error takes precedence since it indicates filesystem corruption
+        if (fnError) {
+          console.error(
+            `Function error suppressed due to lock release failure. ` +
+            `Function error: ${fnError instanceof Error ? fnError.message : String(fnError)}`
+          );
+        }
+        throw releaseError;
+      }
     }
   }
 

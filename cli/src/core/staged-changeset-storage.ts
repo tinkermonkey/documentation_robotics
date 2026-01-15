@@ -217,61 +217,78 @@ export class StagedChangesetStorage {
    * Assigns sequence number atomically inside the lock to prevent duplicates
    *
    * @returns The assigned sequence number for the change
+   * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
    */
   async addChange(id: string, change: StagedChange): Promise<number> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
-    return await lock.withLock(async () => {
-      const changeset = await this.load(id);
-      if (!changeset) {
-        throw new Error(`Changeset '${id}' not found`);
-      }
+    try {
+      return await lock.withLock(async () => {
+        const changeset = await this.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${id}' not found`);
+        }
 
-      // Assign sequence number atomically inside the lock
-      // This prevents race conditions when multiple concurrent operations
-      // try to add changes at the same time
-      const sequenceNumber = changeset.changes.length;
-      change.sequenceNumber = sequenceNumber;
+        // Assign sequence number atomically inside the lock
+        // This prevents race conditions when multiple concurrent operations
+        // try to add changes at the same time
+        const sequenceNumber = changeset.changes.length;
+        change.sequenceNumber = sequenceNumber;
 
-      changeset.changes.push(change);
-      changeset.updateModified();
-      changeset.updateStats();
+        changeset.changes.push(change);
+        changeset.updateModified();
+        changeset.updateStats();
 
-      await this.save(changeset);
+        await this.save(changeset);
 
-      return sequenceNumber;
-    });
+        return sequenceNumber;
+      });
+    } catch (error) {
+      // Provide context about which changeset operation failed
+      throw new Error(
+        `Failed to add change to changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**
    * Remove a change by element ID
    *
    * Uses file locking to prevent concurrent modification race conditions
+   *
+   * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
    */
   async removeChange(id: string, elementId: string): Promise<void> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
-    await lock.withLock(async () => {
-      const changeset = await this.load(id);
-      if (!changeset) {
-        throw new Error(`Changeset '${id}' not found`);
-      }
+    try {
+      await lock.withLock(async () => {
+        const changeset = await this.load(id);
+        if (!changeset) {
+          throw new Error(`Changeset '${id}' not found`);
+        }
 
-      // Filter out changes for this element
-      changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+        // Filter out changes for this element
+        changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
 
-      // Recalculate sequence numbers
-      changeset.changes.forEach((c, idx) => {
-        (c as StagedChange).sequenceNumber = idx;
+        // Recalculate sequence numbers
+        changeset.changes.forEach((c, idx) => {
+          (c as StagedChange).sequenceNumber = idx;
+        });
+
+        changeset.updateModified();
+        changeset.updateStats();
+
+        await this.save(changeset);
       });
-
-      changeset.updateModified();
-      changeset.updateStats();
-
-      await this.save(changeset);
-    });
+    } catch (error) {
+      // Provide context about which changeset operation failed
+      throw new Error(
+        `Failed to remove change from changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
   }
 
   /**
