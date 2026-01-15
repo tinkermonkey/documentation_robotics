@@ -8,6 +8,12 @@ import { ChangesetManager } from '../core/changeset.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
+import {
+  ChangesetNotFoundError,
+  ChangesetAlreadyExistsError,
+  ActiveChangesetError,
+  handleError,
+} from '../utils/errors.js';
 
 /**
  * Create a new changeset
@@ -22,8 +28,7 @@ export async function changesetCreateCommand(name: string, options: {
     // Check if changeset already exists
     const existing = await manager.load(name);
     if (existing) {
-      console.error(ansis.red(`Error: Changeset '${name}' already exists`));
-      process.exit(1);
+      throw new ChangesetAlreadyExistsError(name);
     }
 
     // Get description if not provided
@@ -51,12 +56,7 @@ export async function changesetCreateCommand(name: string, options: {
     );
     console.log();
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -121,12 +121,7 @@ export async function changesetListCommand(): Promise<void> {
       console.log();
     }
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -140,8 +135,7 @@ export async function changesetApplyCommand(name: string): Promise<void> {
 
     const changeset = await manager.load(name);
     if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${name}' not found`));
-      process.exit(1);
+      throw new ChangesetNotFoundError(name);
     }
 
     console.log(
@@ -194,12 +188,7 @@ export async function changesetApplyCommand(name: string): Promise<void> {
 
     console.log();
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -213,8 +202,7 @@ export async function changesetRevertCommand(name: string): Promise<void> {
 
     const changeset = await manager.load(name);
     if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${name}' not found`));
-      process.exit(1);
+      throw new ChangesetNotFoundError(name);
     }
 
     console.log(
@@ -267,12 +255,7 @@ export async function changesetRevertCommand(name: string): Promise<void> {
 
     console.log();
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -288,12 +271,7 @@ export async function changesetActivateCommand(name: string): Promise<void> {
     console.log(ansis.green(`✓ Activated changeset: ${ansis.bold(name)}`));
     console.log(ansis.dim('  All model changes will now be tracked in this changeset'));
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -314,12 +292,7 @@ export async function changesetDeactivateCommand(): Promise<void> {
     await context.clearActive();
     console.log(ansis.green(`✓ Deactivated changeset: ${ansis.bold(active)}`));
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -335,19 +308,14 @@ export async function changesetDeleteCommand(name: string, options: {
 
     const changeset = await manager.load(name);
     if (!changeset) {
-      console.error(ansis.red(`Error: Changeset '${name}' not found`));
-      process.exit(1);
+      throw new ChangesetNotFoundError(name);
     }
 
     // Check if changeset is currently active
     const context = new ActiveChangesetContext(model.rootPath);
     const active = await context.getActive();
     if (active === name) {
-      console.error(
-        ansis.red(`Error: Cannot delete active changeset '${name}'`)
-      );
-      console.log(ansis.dim('  Run `dr changeset deactivate` first'));
-      process.exit(1);
+      throw new ActiveChangesetError(name);
     }
 
     // Confirm deletion unless --force is used
@@ -366,12 +334,7 @@ export async function changesetDeleteCommand(name: string, options: {
 
     console.log(ansis.green(`✓ Deleted changeset: ${ansis.bold(name)}`));
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 
@@ -411,12 +374,7 @@ export async function changesetStatusCommand(): Promise<void> {
       }
     }
   } catch (error) {
-    console.error(
-      ansis.red(
-        `Error: ${error instanceof Error ? error.message : String(error)}`
-      )
-    );
-    process.exit(1);
+    handleError(error);
   }
 }
 

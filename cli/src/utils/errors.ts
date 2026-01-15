@@ -128,6 +128,50 @@ export class InvalidJSONError extends CLIError {
   }
 }
 
+export class ChangesetNotFoundError extends CLIError {
+  constructor(name: string) {
+    super(
+      `Changeset not found: ${name}`,
+      2,
+      [
+        'Run "dr changeset list" to see available changesets',
+        'Check the changeset name and try again',
+        'Changesets are case-sensitive',
+      ]
+    );
+    this.name = 'ChangesetNotFoundError';
+  }
+}
+
+export class ChangesetAlreadyExistsError extends CLIError {
+  constructor(name: string) {
+    super(
+      `Changeset '${name}' already exists`,
+      1,
+      [
+        'Use a different name for the new changeset',
+        `Run "dr changeset delete '${name}' --force" to remove the existing one`,
+        'Run "dr changeset list" to see all changesets',
+      ]
+    );
+    this.name = 'ChangesetAlreadyExistsError';
+  }
+}
+
+export class ActiveChangesetError extends CLIError {
+  constructor(name: string) {
+    super(
+      `Cannot delete active changeset '${name}'`,
+      1,
+      [
+        'Run "dr changeset deactivate" first to deactivate the changeset',
+        'Then you can delete it with "dr changeset delete"',
+      ]
+    );
+    this.name = 'ActiveChangesetError';
+  }
+}
+
 export function handleError(error: unknown): never {
   if (error instanceof CLIError) {
     console.error(error.format());
