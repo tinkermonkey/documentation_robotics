@@ -7,6 +7,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { CLIError, handleError } from '../utils/errors.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -31,8 +32,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
-      console.error(ansis.red(`Error: Element ${id} not found`));
-      process.exit(1);
+      throw new CLIError(`Element ${id} not found`, 1);
     }
 
     // Confirm deletion unless --force
@@ -71,9 +71,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: (error as Error).message });
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   } finally {
     if (isTelemetryEnabled) {
       endSpan(span);

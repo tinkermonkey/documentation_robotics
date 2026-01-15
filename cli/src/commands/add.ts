@@ -115,7 +115,6 @@ export async function addCommand(
 
     // Unified mutation handler for add operation
     const handler = new MutationHandler(model, id, layer);
-    const stagingManager = handler['stagingManager'];
 
     // Execute add through unified path (handles staging and base model consistently)
     await handler.executeAdd(element, (elem) => {
@@ -126,6 +125,7 @@ export async function addCommand(
     // Determine if operation was staged or applied to base model
     if (handler.getAfterState()) {
       // Check if we went through staging path
+      const stagingManager = handler.getStagingManager();
       const activeChangeset = await stagingManager.getActive();
       if (activeChangeset && activeChangeset.status === 'staged') {
         // Staging path

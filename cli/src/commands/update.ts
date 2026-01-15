@@ -6,7 +6,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
-import { CLIError } from '../utils/errors.js';
+import { CLIError, handleError } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
@@ -71,8 +71,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
-      console.error(ansis.red(`Error: Element ${id} not found`));
-      process.exit(1);
+      throw new CLIError(`Element ${id} not found`, 1);
     }
 
     const layer = (await model.getLayer(layerName))!;
@@ -110,27 +109,27 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       // Apply updates to both element and after state
       if (options.name) {
         elem.name = options.name;
-        (after as any).name = options.name;
+        after.name = options.name;
       }
 
       if (options.description !== undefined) {
         elem.description = options.description || undefined;
-        (after as any).description = options.description || undefined;
+        after.description = options.description || undefined;
       }
 
       if (parsedProperties) {
         elem.properties = { ...elem.properties, ...parsedProperties };
-        (after as any).properties = { ...(after as any).properties, ...parsedProperties };
+        after.properties = { ...(after.properties as Record<string, unknown>), ...parsedProperties };
       }
 
       if (options.clearSourceReference) {
         elem.setSourceReference(undefined);
-        (after as any).sourceReference = undefined;
+        after.sourceReference = undefined;
       } else if (options.sourceFile) {
         const newRef = buildSourceReference(options);
         if (newRef) {
           elem.setSourceReference(newRef);
-          (after as any).sourceReference = newRef;
+          after.sourceReference = newRef;
         }
       }
     });
@@ -156,9 +155,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: (error as Error).message });
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   } finally {
     if (isTelemetryEnabled) {
       endSpan(span);

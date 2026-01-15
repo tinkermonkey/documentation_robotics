@@ -81,6 +81,13 @@ export class MutationHandler {
   }
 
   /**
+   * Get staging manager for accessing changeset information
+   */
+  getStagingManager(): StagingAreaManager {
+    return this.stagingManager;
+  }
+
+  /**
    * Compute before and after states
    *
    * For add: before is undefined, after is the new element state
@@ -89,7 +96,7 @@ export class MutationHandler {
    */
   async computeStates(element: Element): Promise<void> {
     this.context.element = element;
-    this.context.before = element.toJSON() as Record<string, unknown>;
+    this.context.before = element.toJSON() as unknown as Record<string, unknown>;
     this.context.after = { ...this.context.before };
   }
 
@@ -105,7 +112,7 @@ export class MutationHandler {
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: capture after state and stage
-      this.context.after = element.toJSON() as Record<string, unknown>;
+      this.context.after = element.toJSON() as unknown as Record<string, unknown>;
 
       await this.stagingManager.stage(activeChangeset.id!, {
         type: 'add',
@@ -119,7 +126,7 @@ export class MutationHandler {
 
     // Base model path: add element and persist
     await mutator(element);
-    this.context.after = element.toJSON() as Record<string, unknown>;
+    this.context.after = element.toJSON() as unknown as Record<string, unknown>;
 
     // Persist to base model
     await this._persistChanges('add');
@@ -128,10 +135,10 @@ export class MutationHandler {
   /**
    * Execute mutation for update operation
    */
-  async executeUpdate(element: Element, mutator: (elem: Element, after: any) => Promise<void>): Promise<void> {
+  async executeUpdate(element: Element, mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>): Promise<void> {
     // Compute before and after states
     this.context.element = element;
-    this.context.before = element.toJSON() as Record<string, unknown>;
+    this.context.before = element.toJSON() as unknown as Record<string, unknown>;
     this.context.after = { ...this.context.before };
 
     // Check if we're in staging mode
@@ -161,7 +168,7 @@ export class MutationHandler {
   async executeDelete(element: Element): Promise<void> {
     // For delete, before is the current state, after is undefined
     this.context.element = element;
-    this.context.before = element.toJSON() as Record<string, unknown>;
+    this.context.before = element.toJSON() as unknown as Record<string, unknown>;
     this.context.after = undefined;
 
     // Check if we're in staging mode
@@ -200,7 +207,7 @@ export class MutationHandler {
   /**
    * Execute all registered steps and persist
    */
-  async execute(mutator: (elem: Element, after: any) => Promise<void>, type: 'add' | 'update' | 'delete'): Promise<void> {
+  async execute(mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>, type: 'add' | 'update' | 'delete'): Promise<void> {
     if (!this.context.element) {
       throw new CLIError('Element not set on MutationHandler', 1);
     }
@@ -210,14 +217,14 @@ export class MutationHandler {
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: build after state and stage
       if (this.context.before === undefined && type !== 'add') {
-        this.context.before = this.context.element.toJSON() as Record<string, unknown>;
+        this.context.before = this.context.element.toJSON() as unknown as Record<string, unknown>;
       }
 
       this.context.after = type === 'delete'
         ? undefined
-        : { ...this.context.before || this.context.element.toJSON() };
+        : { ...(this.context.before || (this.context.element.toJSON() as unknown as Record<string, unknown>)) };
 
-      if (type !== 'delete') {
+      if (type !== 'delete' && this.context.after) {
         await mutator(this.context.element, this.context.after);
       }
 
@@ -239,14 +246,14 @@ export class MutationHandler {
   /**
    * Base model path: execute mutations and persist atomically
    */
-  private async _executeBasePath(mutator: (elem: Element, after: any) => Promise<void>, type?: string): Promise<void> {
+  private async _executeBasePath(mutator: (elem: Element, after: Record<string, unknown>) => Promise<void>, type?: string): Promise<void> {
     if (!this.context.element) {
       throw new CLIError('Element not set', 1);
     }
 
     // Initialize before state if not already set
     if (this.context.before === undefined) {
-      this.context.before = this.context.element.toJSON() as Record<string, unknown>;
+      this.context.before = this.context.element.toJSON() as unknown as Record<string, unknown>;
     }
 
     // Initialize after state if not already set
