@@ -1412,12 +1412,5 @@ See docs/MIGRATION.md for detailed migration instructions.`
       } else {
         await changesetMigrateCommand();
       }
-=======
-  $ dr changeset delete "old-migration"
-  $ dr changeset delete "old-migration" --force`
-    )
-    .action(async (name, options) => {
-      await changesetDeleteCommand(name, options);
->>>>>>> origin/feature/issue-214-documentation-fix-incorrect
     });
 }

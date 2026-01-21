@@ -517,12 +517,8 @@ export class StagingAreaManager {
       }
 
       // Step 10: Clean up backup directory after successful commit
-      try {
-        await this.cleanupBackup(backup);
-      } catch (cleanupError) {
-        // Log warning but don't fail the commit - data is safe
-        console.warn(`Warning: Failed to clean up backup at ${backup}: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`);
-      }
+      // Note: cleanupBackup handles its own errors and logs them with ERROR severity
+      await this.cleanupBackup(backup);
 
       return result;
 
@@ -561,11 +557,8 @@ export class StagingAreaManager {
         compositeMessage += `Backup location (for reference): ${backup}`;
 
         // Clean up backup after successful rollback
-        try {
-          await this.cleanupBackup(backup);
-        } catch {
-          suggestions.push(`Note: Failed to clean up backup at ${backup}`);
-        }
+        // Note: cleanupBackup handles its own errors and logs them with ERROR severity
+        await this.cleanupBackup(backup);
 
         throw new Error(compositeMessage);
       } else {
@@ -968,16 +961,49 @@ export class StagingAreaManager {
    * @param backupDir - Path to the backup directory to remove
    *
    * @remarks
-   * Failures during cleanup are logged but do not throw - successful commits
-   * should not fail due to cleanup errors. Backup directory remains if cleanup fails.
+   * Failures during cleanup are logged with ERROR severity but do not throw.
+   * Successful commits should not fail due to cleanup errors, but users need to
+   * know about cleanup failures to avoid disk space accumulation.
+   * Includes actionable guidance for common failure scenarios.
    */
   private async cleanupBackup(backupDir: string): Promise<void> {
     try {
       const { rm } = await import('node:fs/promises');
       await rm(backupDir, { recursive: true, force: true });
     } catch (error) {
-      // Log cleanup failures but don't throw - successful commits shouldn't fail due to cleanup
-      console.warn(`Failed to clean up backup directory ${backupDir}:`, error);
+      // Log cleanup failures with ERROR severity - these mask real problems
+      const errorMsg = error instanceof Error ? error.message : String(error);
+      const errorCode = (error as NodeJS.ErrnoException)?.code;
+
+      let suggestions = '';
+
+      // Provide specific guidance based on error type
+      if (errorCode === 'ENOSPC') {
+        suggestions =
+          '\n\n[ACTION REQUIRED] Disk space is full. Backup cleanup failed.\n' +
+          'This will cause backup directories to accumulate and fill your disk.\n' +
+          `Manual cleanup: rm -rf "${backupDir}"\n` +
+          'Then free up disk space before attempting another commit.';
+      } else if (errorCode === 'EACCES') {
+        suggestions =
+          '\n\n[PERMISSION ERROR] Cannot delete backup directory.\n' +
+          `Directory: ${backupDir}\n` +
+          'Check file permissions or try manual cleanup:\n' +
+          `sudo rm -rf "${backupDir}"`;
+      } else if (errorCode === 'ENOENT') {
+        // Backup was already deleted - not critical but worth noting
+        suggestions = '\n[INFO] Backup directory was already deleted (no manual cleanup needed).';
+      } else {
+        suggestions =
+          '\n\n[ACTION REQUIRED] Backup cleanup failed due to file system error.\n' +
+          `Directory: ${backupDir}\n` +
+          `Manual cleanup: rm -rf "${backupDir}"\n` +
+          'Note: Backup directories accumulate over time and can fill disk space.';
+      }
+
+      console.error(
+        `[ERROR] Failed to clean up backup directory after commit: ${errorMsg}` + suggestions
+      );
     }
   }
 
