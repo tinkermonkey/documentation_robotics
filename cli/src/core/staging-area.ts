@@ -76,6 +76,36 @@ export class StagingAreaManager {
   }
 
   /**
+   * Validate changeset ID format and content
+   * Ensures ID is safe and provides early validation before file operations
+   *
+   * @param changesetId - The changeset ID to validate
+   * @throws Error if ID is invalid
+   */
+  private validateChangesetId(changesetId: string): void {
+    if (!changesetId || typeof changesetId !== 'string') {
+      throw new Error('Changeset ID must be a non-empty string');
+    }
+
+    if (changesetId.trim() === '') {
+      throw new Error('Changeset ID cannot be empty or whitespace-only');
+    }
+
+    // Check for path traversal attempts
+    if (changesetId.includes('..') || changesetId.includes('/') || changesetId.includes('\\')) {
+      throw new Error('Changeset ID cannot contain path separators or traversal sequences (..)');
+    }
+
+    // Check for special characters that could cause issues
+    if (/[<>:"|?*]/.test(changesetId)) {
+      throw new Error('Changeset ID contains invalid special characters (<>:"|?*)');
+    }
+
+    // After sanitization validation passes, the ID will be processed safely
+    // This is ensured by the storage layer's sanitizeId method
+  }
+
+  /**
    * Get or create projection engine instance (lazy initialization).
    * Deferred initialization avoids circular dependency issues at module load time.
    * @returns VirtualProjectionEngine instance for computing merged model views
@@ -156,9 +186,11 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to stage the change in
    * @param change - The change to stage (type, elementId, layerName, before/after snapshots)
-   * @throws Error if changeset not found or not in 'staged' status
+   * @throws Error if changeset ID is invalid, changeset not found, or not in 'staged' status
    */
   async stage(changesetId: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<void> {
+    this.validateChangesetId(changesetId);
+
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
@@ -192,9 +224,11 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to unstage from
    * @param elementId - ID of the element to remove all changes for
-   * @throws Error if changeset not found or not in 'staged' status
+   * @throws Error if changeset ID is invalid, changeset not found, or not in 'staged' status
    */
   async unstage(changesetId: string, elementId: string): Promise<void> {
+    this.validateChangesetId(changesetId);
+
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
@@ -221,9 +255,11 @@ export class StagingAreaManager {
    * This operation is irreversible for the changeset but does not affect the base model.
    *
    * @param changesetId - ID of the changeset to discard
-   * @throws Error if changeset not found
+   * @throws Error if changeset ID is invalid or changeset not found
    */
   async discard(changesetId: string): Promise<void> {
+    this.validateChangesetId(changesetId);
+
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
@@ -251,6 +287,8 @@ export class StagingAreaManager {
    * @throws Error if changeset not found or model not available
    */
   async captureBaseSnapshot(changesetId: string): Promise<string> {
+    this.validateChangesetId(changesetId);
+
     if (!this.model) {
       throw new Error('Model required for capturing base snapshot');
     }
@@ -273,7 +311,7 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to check for drift
    * @returns DriftReport with isDrifted flag, snapshot hashes, and list of changed elements
-   * @throws Error if changeset not found or model not available
+   * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
    * Drift detection is based on hash comparison of the entire model snapshot.
@@ -282,6 +320,8 @@ export class StagingAreaManager {
    * current implementation returns empty changedElements array (hash comparison only).
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
+    this.validateChangesetId(changesetId);
+
     if (!this.model) {
       throw new Error('Model required for drift detection');
     }
@@ -350,6 +390,8 @@ export class StagingAreaManager {
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
+    this.validateChangesetId(changesetId);
+
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
@@ -619,8 +661,11 @@ export class StagingAreaManager {
    *
    * @param changesetId - ID of the changeset to check
    * @returns true if changeset is marked as active, false otherwise
+   * @throws Error if changeset ID is invalid
    */
   async isActive(changesetId: string): Promise<boolean> {
+    this.validateChangesetId(changesetId);
+
     const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
     if (!(await fileExists(activePath))) {
       return false;
@@ -637,13 +682,15 @@ export class StagingAreaManager {
    * Only one changeset can be active at a time.
    *
    * @param changesetId - ID of the changeset to activate
-   * @throws Error if changeset not found
+   * @throws Error if changeset ID is invalid or changeset not found
    *
    * @remarks
    * When a changeset is active, add/update/delete commands will stage changes
    * instead of applying them directly to the base model.
    */
   async setActive(changesetId: string): Promise<void> {
+    this.validateChangesetId(changesetId);
+
     const changeset = await this.storage.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
