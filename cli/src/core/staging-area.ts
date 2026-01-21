@@ -79,8 +79,14 @@ export class StagingAreaManager {
    * Validate changeset ID format and content
    * Ensures ID is safe and provides early validation before file operations
    *
+   * Validation rules:
+   * - Must be a non-empty string
+   * - Cannot contain path separators (.., /, \)
+   * - Cannot contain special characters (<>:"|?*)
+   * - During storage, the ID will be normalized: lowercase, spaces→hyphens, non-alphanumeric→stripped
+   *
    * @param changesetId - The changeset ID to validate
-   * @throws Error if ID is invalid
+   * @throws Error if ID contains invalid characters or structure
    */
   private validateChangesetId(changesetId: string): void {
     if (!changesetId || typeof changesetId !== 'string') {
@@ -97,12 +103,15 @@ export class StagingAreaManager {
     }
 
     // Check for special characters that could cause issues
+    // Note: sanitizeId() will normalize the ID by converting to lowercase, replacing spaces with hyphens,
+    // and removing all non-alphanumeric characters (except hyphens)
     if (/[<>:"|?*]/.test(changesetId)) {
-      throw new Error('Changeset ID contains invalid special characters (<>:"|?*)');
+      throw new Error(
+        'Changeset ID contains invalid special characters (<>:"|?*). ' +
+        'Only alphanumeric characters and hyphens are preserved. ' +
+        'Spaces are converted to hyphens, and other characters are removed during storage.'
+      );
     }
-
-    // After sanitization validation passes, the ID will be processed safely
-    // This is ensured by the storage layer's sanitizeId method
   }
 
   /**

@@ -45,8 +45,6 @@ describe('Changeset ID Validation', () => {
 
   describe('stage operation validation', () => {
     it('should reject empty changeset ID', async () => {
-      const changeset = await manager.create('test-changeset', 'Test');
-
       try {
         await manager.stage('', {
           type: 'add',
@@ -131,8 +129,6 @@ describe('Changeset ID Validation', () => {
     });
 
     it('should accept valid alphanumeric changeset ID', async () => {
-      const changeset = await manager.create('valid-changeset-123', 'Test');
-
       // Should not throw
       try {
         // We're testing validation passes, so we'll just catch the "not found" error
@@ -151,8 +147,6 @@ describe('Changeset ID Validation', () => {
     });
 
     it('should accept valid changeset ID with hyphens and underscores', async () => {
-      const changeset = await manager.create('test-changeset_123', 'Test');
-
       try {
         await manager.stage('valid-test_id-999', {
           type: 'add',
@@ -416,8 +410,6 @@ describe('Changeset ID Validation', () => {
     });
 
     it('should normalize mixed case in changeset ID (sanitizeId handles)', async () => {
-      const changeset = await manager.create('MixedCase', 'Test');
-
       // After sanitization, uppercase gets lowercased
       // So validation should pass as the storage layer handles this
       try {

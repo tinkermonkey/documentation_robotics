@@ -112,9 +112,17 @@ export class MutationHandler {
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: capture after state and stage
+      if (!activeChangeset.id) {
+        throw new CLIError(
+          `Active changeset has no ID, cannot stage changes`,
+          1,
+          ['The changeset may be corrupted', 'Try creating a new changeset']
+        );
+      }
+
       this.context.after = element.toJSON() as unknown as Record<string, unknown>;
 
-      await this.stagingManager.stage(activeChangeset.id!, {
+      await this.stagingManager.stage(activeChangeset.id, {
         type: 'add',
         elementId: this.context.elementId,
         layerName: this.context.layerName,
@@ -145,9 +153,17 @@ export class MutationHandler {
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: apply mutations to after state, then stage
+      if (!activeChangeset.id) {
+        throw new CLIError(
+          `Active changeset has no ID, cannot stage changes`,
+          1,
+          ['The changeset may be corrupted', 'Try creating a new changeset']
+        );
+      }
+
       await mutator(element, this.context.after);
 
-      await this.stagingManager.stage(activeChangeset.id!, {
+      await this.stagingManager.stage(activeChangeset.id, {
         type: 'update',
         elementId: this.context.elementId,
         layerName: this.context.layerName,
@@ -175,7 +191,15 @@ export class MutationHandler {
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: stage the deletion only
-      await this.stagingManager.stage(activeChangeset.id!, {
+      if (!activeChangeset.id) {
+        throw new CLIError(
+          `Active changeset has no ID, cannot stage changes`,
+          1,
+          ['The changeset may be corrupted', 'Try creating a new changeset']
+        );
+      }
+
+      await this.stagingManager.stage(activeChangeset.id, {
         type: 'delete',
         elementId: this.context.elementId,
         layerName: this.context.layerName,
@@ -216,6 +240,14 @@ export class MutationHandler {
     const activeChangeset = await this.stagingManager.getActive();
     if (activeChangeset && activeChangeset.status === 'staged') {
       // Staging path: build after state and stage
+      if (!activeChangeset.id) {
+        throw new CLIError(
+          `Active changeset has no ID, cannot stage changes`,
+          1,
+          ['The changeset may be corrupted', 'Try creating a new changeset']
+        );
+      }
+
       if (this.context.before === undefined && type !== 'add') {
         this.context.before = this.context.element.toJSON() as unknown as Record<string, unknown>;
       }
@@ -228,7 +260,7 @@ export class MutationHandler {
         await mutator(this.context.element, this.context.after);
       }
 
-      await this.stagingManager.stage(activeChangeset.id!, {
+      await this.stagingManager.stage(activeChangeset.id, {
         type,
         elementId: this.context.elementId,
         layerName: this.context.layerName,
