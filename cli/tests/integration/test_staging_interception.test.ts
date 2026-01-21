@@ -94,13 +94,13 @@ layers:
 
       // Verify element is NOT in base model
       const layer = await model.getLayer('application');
-      const elementInModel = layer?.getElement('app-service-auth');
+      const elementInModel = layer?.getElement('application.service.app-service-auth');
       expect(elementInModel).toBeUndefined();
 
       // Verify element IS in staging
       const loaded = await stagingManager.load(changeset.id!);
       expect(loaded?.changes.length).toBe(1);
-      expect(loaded?.changes[0].elementId).toBe('app-service-auth');
+      expect(loaded?.changes[0].elementId).toBe('application.service.app-service-auth');
       expect(loaded?.changes[0].type).toBe('add');
     });
 
@@ -109,16 +109,17 @@ layers:
       await stagingManager.setActive(changeset.id!);
 
       // Add 5 different elements
-      const elementIds = [
+      const elementNames = [
         'app-service-1',
         'app-service-2',
         'app-service-3',
         'app-service-4',
         'app-service-5',
       ];
+      const elementIds = elementNames.map(name => `application.service.${name}`);
 
-      for (let i = 0; i < elementIds.length; i++) {
-        await addCommand('application', 'service', elementIds[i], {
+      for (let i = 0; i < elementNames.length; i++) {
+        await addCommand('application', 'service', elementNames[i], {
           name: `Service ${i + 1}`,
           description: `Service number ${i + 1}`,
         });
@@ -150,7 +151,7 @@ layers:
       const { Element } = await import('../../src/core/element.js');
 
       const baseElement = new Element({
-        id: 'app-service-existing',
+        id: 'application.service.app-service-existing',
         type: 'service',
         name: 'Existing Service',
         description: 'Original description',
@@ -165,13 +166,13 @@ layers:
       await stagingManager.setActive(changeset.id!);
 
       // Update the element via command (should go to staging)
-      await updateCommand('app-service-existing', {
+      await updateCommand('application.service.app-service-existing', {
         name: 'Updated Service Name',
         description: 'Updated description',
       });
 
       // Verify base model element is UNCHANGED
-      const unmodifiedElement = appLayer?.getElement('app-service-existing');
+      const unmodifiedElement = appLayer?.getElement('application.service.app-service-existing');
       expect(unmodifiedElement?.name).toBe('Existing Service');
       expect(unmodifiedElement?.description).toBe('Original description');
 
@@ -179,7 +180,7 @@ layers:
       const loaded = await stagingManager.load(changeset.id!);
       expect(loaded?.changes.length).toBe(1);
       expect(loaded?.changes[0].type).toBe('update');
-      expect(loaded?.changes[0].elementId).toBe('app-service-existing');
+      expect(loaded?.changes[0].elementId).toBe('application.service.app-service-existing');
       expect((loaded?.changes[0].after as any).name).toBe('Updated Service Name');
     });
 
@@ -189,7 +190,7 @@ layers:
       const { Element } = await import('../../src/core/element.js');
 
       const baseElement = new Element({
-        id: 'app-service-todelete',
+        id: 'application.service.app-service-todelete',
         type: 'service',
         name: 'Service to Delete',
         layer: 'application',
@@ -203,10 +204,10 @@ layers:
       await stagingManager.setActive(changeset.id!);
 
       // Delete the element via command (should go to staging)
-      await deleteCommand('app-service-todelete', { force: true });
+      await deleteCommand('application.service.app-service-todelete', { force: true });
 
       // Verify base model element still EXISTS
-      const stillExists = appLayer?.getElement('app-service-todelete');
+      const stillExists = appLayer?.getElement('application.service.app-service-todelete');
       expect(stillExists).toBeDefined();
       expect(stillExists?.name).toBe('Service to Delete');
 
@@ -214,7 +215,7 @@ layers:
       const loaded = await stagingManager.load(changeset.id!);
       expect(loaded?.changes.length).toBe(1);
       expect(loaded?.changes[0].type).toBe('delete');
-      expect(loaded?.changes[0].elementId).toBe('app-service-todelete');
+      expect(loaded?.changes[0].elementId).toBe('application.service.app-service-todelete');
     });
   });
 
@@ -225,7 +226,7 @@ layers:
       const { Element } = await import('../../src/core/element.js');
 
       const baseElement = new Element({
-        id: 'app-service-baseline',
+        id: 'application.service.app-service-baseline',
         type: 'service',
         name: 'Baseline Service',
         layer: 'application',
@@ -246,7 +247,7 @@ layers:
         name: 'New Service 2',
       });
 
-      await updateCommand('app-service-baseline', {
+      await updateCommand('application.service.app-service-baseline', {
         name: 'Updated Baseline Service',
       });
 
@@ -263,11 +264,11 @@ layers:
 
       // Verify base model unchanged except for baseline element
       expect(appLayer?.listElements().length).toBe(1);
-      expect(appLayer?.getElement('app-service-baseline')).toBeDefined();
-      expect(appLayer?.getElement('app-service-baseline')?.name).toBe('Baseline Service');
-      expect(appLayer?.getElement('app-service-new-1')).toBeUndefined();
-      expect(appLayer?.getElement('app-service-new-2')).toBeUndefined();
-      expect(appLayer?.getElement('app-service-new-3')).toBeUndefined();
+      expect(appLayer?.getElement('application.service.app-service-baseline')).toBeDefined();
+      expect(appLayer?.getElement('application.service.app-service-baseline')?.name).toBe('Baseline Service');
+      expect(appLayer?.getElement('application.service.app-service-new-1')).toBeUndefined();
+      expect(appLayer?.getElement('application.service.app-service-new-2')).toBeUndefined();
+      expect(appLayer?.getElement('application.service.app-service-new-3')).toBeUndefined();
     });
 
     it('should support unstaging specific elements', async () => {
@@ -286,16 +287,16 @@ layers:
       expect(loaded?.changes.length).toBe(5);
 
       // Unstage element 3
-      await stagingManager.unstage(changeset.id!, 'app-service-3');
+      await stagingManager.unstage(changeset.id!, 'application.service.app-service-3');
 
       // Verify 4 remain and sequence is correct
       loaded = await stagingManager.load(changeset.id!);
       expect(loaded?.changes.length).toBe(4);
       expect(loaded?.changes.map((c) => c.elementId)).toEqual([
-        'app-service-1',
-        'app-service-2',
-        'app-service-4',
-        'app-service-5',
+        'application.service.app-service-1',
+        'application.service.app-service-2',
+        'application.service.app-service-4',
+        'application.service.app-service-5',
       ]);
 
       // Verify sequence numbers are resequenced
@@ -319,7 +320,7 @@ layers:
 
       // Verify element IS in base model (not staged)
       const appLayer = await model.getLayer('application');
-      expect(appLayer?.getElement('app-service-direct')).toBeDefined();
+      expect(appLayer?.getElement('application.service.app-service-direct')).toBeDefined();
 
       // Verify changeset is empty
       const loaded = await stagingManager.load(changeset.id!);

@@ -1,5 +1,0 @@
-todo-app:
-  id: todo-app
-  name: Todo Application
-  type: ux-application
-  documentation: React-based todo management application

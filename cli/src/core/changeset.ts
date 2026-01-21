@@ -467,6 +467,8 @@ export class ChangesetManager {
               properties: elementData,
             });
             layer.addElement(element);
+            // Save layer immediately to persist this change
+            await model.saveLayer(change.layerName);
             result.applied++;
           }
         } else if (change.type === 'update' && change.after) {
@@ -476,6 +478,8 @@ export class ChangesetManager {
           if (element) {
             const elementData = change.after as Record<string, unknown>;
             Object.assign(element, elementData);
+            // Save layer immediately to persist this change
+            await model.saveLayer(change.layerName);
             result.applied++;
           }
         } else if (change.type === 'delete') {
@@ -484,6 +488,8 @@ export class ChangesetManager {
 
           if (element) {
             layer.deleteElement(change.elementId);
+            // Save layer immediately to persist this change
+            await model.saveLayer(change.layerName);
             result.applied++;
           }
         }
@@ -580,6 +586,9 @@ export class ChangesetManager {
             result.reverted++;
           }
         }
+
+        // Save layer immediately to persist reverted changes
+        await model.saveLayer(change.layerName);
       } catch (error) {
         result.failed++;
         result.errors.push({

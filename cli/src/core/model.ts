@@ -6,6 +6,7 @@ import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { Relationships } from "./relationships.js";
 import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
+import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
 import { findProjectRoot } from "../utils/project-paths.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
@@ -148,18 +149,20 @@ export class Model {
       }
 
       const layer = new Layer(name)
+      let parseErrorCount = 0
 
       // Load all YAML files in the layer directory
       const files = await fs.readdir(layerPath)
       for (const file of files) {
         if (file.endsWith('.yaml') || file.endsWith('.yml')) {
           const filePath = `${layerPath}/${file}`
-          const yamlContent = await fs.readFile(filePath, 'utf-8')
-          const elements = yaml.parse(yamlContent)
+          try {
+            const yamlContent = await fs.readFile(filePath, 'utf-8')
+            const elements = yaml.parse(yamlContent)
 
-          // Add each element from the YAML file
-          if (elements && typeof elements === 'object') {
-            for (const [key, element] of Object.entries(elements)) {
+            // Add each element from the YAML file
+            if (elements && typeof elements === 'object') {
+              for (const [key, element] of Object.entries(elements)) {
               if (element && typeof element === 'object') {
                 const el: any = element
 
@@ -190,8 +193,20 @@ export class Model {
                 layer.addElement(newElement);
               }
             }
+            }
+          } catch (fileError) {
+            // Log YAML parsing errors but continue loading other files
+            const errorMsg = fileError instanceof Error ? fileError.message : String(fileError)
+            console.error(`Warning: Failed to parse ${filePath}: ${errorMsg}`)
+            parseErrorCount++
+            // Continue with next file
           }
         }
+      }
+
+      // If we had parse errors, add a note to the layer
+      if (parseErrorCount > 0) {
+        console.error(`Warning: Layer '${name}' loaded with ${parseErrorCount} YAML parse error(s)`)
       }
 
       this.layers.set(name, layer)
@@ -391,7 +406,7 @@ export class Model {
     const yamlData: any = {
       version: this.manifest.version,
       schema: 'documentation-robotics-v1',
-      cli_version: this.manifest.version || '0.1.0',
+      cli_version: getCliVersion(),
       spec_version: this.manifest.specVersion,
       created: this.manifest.created,
       updated: this.manifest.modified,

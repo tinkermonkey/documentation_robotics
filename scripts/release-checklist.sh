@@ -41,9 +41,9 @@ check() {
     local name="$1"
     local command="$2"
     local required="${3:-true}"
-    
+
     printf "%-50s" "$name"
-    
+
     if eval "$command" > /dev/null 2>&1; then
         echo -e "${GREEN}${CHECK}${NC}"
         return 0
@@ -137,7 +137,7 @@ echo "Running build..."
 
 if npm run build > /tmp/build.log 2>&1; then
     echo -e "${GREEN}${CHECK}${NC} Build completed successfully"
-    
+
     # Check for build artifacts
     check "dist/cli.js exists" "[ -f dist/cli.js ]"
     check "dist/schemas/ exists" "[ -d dist/schemas ]"
@@ -160,7 +160,7 @@ echo "Running tests..."
 
 if npm test > /tmp/test.log 2>&1; then
     echo -e "${GREEN}${CHECK}${NC} All tests passed"
-    
+
     # Extract test stats
     TEST_STATS=$(grep -E "pass|fail|skip" /tmp/test.log | tail -3)
     echo "$TEST_STATS"

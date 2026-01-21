@@ -141,7 +141,7 @@ export class MarkdownExporter implements Exporter {
           lines.push("");
           lines.push(`**Provenance**: ${sourceRef.provenance}`);
           lines.push("");
-          
+
           lines.push("**Locations:**");
           lines.push("");
           sourceRef.locations.forEach((loc, idx) => {
@@ -151,7 +151,7 @@ export class MarkdownExporter implements Exporter {
             }
           });
           lines.push("");
-          
+
           if (sourceRef.repository) {
             lines.push("**Repository Context:**");
             lines.push("");

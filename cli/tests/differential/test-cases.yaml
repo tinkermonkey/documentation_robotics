@@ -392,16 +392,209 @@ test_cases:
     expectedToFail: true
 
   # ============================================================================
-  # NOTE: The following commands exist but are harder to test differentially
-  # because they modify state or require interactive input:
-  # - init (creates new model)
-  # - add (modifies model)
-  # - update (modifies model)
-  # - remove/delete (modifies model)
-  # - migrate (modifies files)
-  # - changeset (requires git)
-  # - visualize (starts server, requires port availability)
-  # - project/project-all (requires projection rules)
-  #
-  # These should be tested in integration tests with test models
+  # WRITE OPERATION TESTS
+  # These tests verify that both CLIs create identical filesystem changes
   # ============================================================================
+
+  - name: "Add - create element with auto-generated ID"
+    description: "Verify both CLIs generate same element ID format from name"
+    python:
+      command: *python_cli
+      args: ["--no-upgrade-check", "add", "motivation", "goal", "--name", "Test Goal"]
+      cwd: "/tmp/dr-test-python"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "rm -rf /tmp/dr-test-python && mkdir -p /tmp/dr-test-python && cd /tmp/dr-test-python && /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr --no-upgrade-check init --name 'Test Project' --description 'Test' --author 'Test'",
+          ]
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "/Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts",
+          "add",
+          "motivation",
+          "goal",
+          "Test Goal",
+        ]
+      cwd: "/tmp/dr-test-typescript"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "rm -rf /tmp/dr-test-typescript && mkdir -p /tmp/dr-test-typescript && cd /tmp/dr-test-typescript && bun run /Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts init --name 'Test Project' --description 'Test' --author 'Test'",
+          ]
+      timeout: 10000
+    comparison:
+      type: "filesystem"
+      pythonRoot: "/tmp/dr-test-python/documentation-robotics/model"
+      typescriptRoot: "/tmp/dr-test-typescript/documentation-robotics/model"
+      paths: ["**/*.yaml"]
+    skip: false
+    expectedToFail: true
+
+  - name: "Add - create element with special characters in name"
+    description: "Verify kebab-case conversion matches between CLIs"
+    python:
+      command: *python_cli
+      args:
+        ["--no-upgrade-check", "add", "business", "capability", "--name", "User Management & Auth"]
+      cwd: "/tmp/dr-test-python"
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "/Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts",
+          "add",
+          "business",
+          "capability",
+          "User Management & Auth",
+        ]
+      cwd: "/tmp/dr-test-typescript"
+      timeout: 10000
+    comparison:
+      type: "filesystem"
+      pythonRoot: "/tmp/dr-test-python/documentation-robotics/model"
+      typescriptRoot: "/tmp/dr-test-typescript/documentation-robotics/model"
+      paths: ["**/*.yaml"]
+    skip: false
+    expectedToFail: true
+
+  - name: "Add - multiple elements in same layer"
+    description: "Verify consistent ID generation for multiple elements"
+    python:
+      command: *python_cli
+      args: ["--no-upgrade-check", "add", "motivation", "goal", "--name", "Second Goal"]
+      cwd: "/tmp/dr-test-python"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-python && /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr --no-upgrade-check add motivation goal --name 'First Goal'",
+          ]
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "/Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts",
+          "add",
+          "motivation",
+          "goal",
+          "Second Goal",
+        ]
+      cwd: "/tmp/dr-test-typescript"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-typescript && bun run /Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts add motivation goal 'First Goal'",
+          ]
+      timeout: 10000
+    comparison:
+      type: "filesystem"
+      pythonRoot: "/tmp/dr-test-python/documentation-robotics/model"
+      typescriptRoot: "/tmp/dr-test-typescript/documentation-robotics/model"
+      paths: ["**/*.yaml"]
+    skip: false
+    expectedToFail: true
+
+  - name: "Update - modify element properties"
+    description: "Verify update command produces identical results"
+    python:
+      command: *python_cli
+      args:
+        [
+          "--no-upgrade-check",
+          "update",
+          "motivation.goal.test-goal",
+          "--name",
+          "Updated Goal",
+          "--description",
+          "New description",
+        ]
+      cwd: "/tmp/dr-test-python"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-python && /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr --no-upgrade-check add motivation goal --name 'Test Goal'",
+          ]
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "/Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts",
+          "update",
+          "motivation.goal.test-goal",
+          "--name",
+          "Updated Goal",
+          "--description",
+          "New description",
+        ]
+      cwd: "/tmp/dr-test-typescript"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-typescript && bun run /Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts add motivation goal 'Test Goal'",
+          ]
+      timeout: 10000
+    comparison:
+      type: "filesystem"
+      pythonRoot: "/tmp/dr-test-python/documentation-robotics/model"
+      typescriptRoot: "/tmp/dr-test-typescript/documentation-robotics/model"
+      paths: ["**/*.yaml"]
+    skip: false
+    expectedToFail: true
+
+  - name: "Delete - remove element"
+    description: "Verify delete command produces identical results"
+    python:
+      command: *python_cli
+      args: ["--no-upgrade-check", "delete", "motivation.goal.test-goal"]
+      cwd: "/tmp/dr-test-python"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-python && /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr --no-upgrade-check add motivation goal --name 'Test Goal' && /Users/austinsand/workspace/documentation_robotics/.venv/bin/dr --no-upgrade-check add motivation goal --name 'Keep Goal'",
+          ]
+      timeout: 10000
+    typescript:
+      command: "bun"
+      args:
+        [
+          "run",
+          "/Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts",
+          "delete",
+          "motivation.goal.test-goal",
+        ]
+      cwd: "/tmp/dr-test-typescript"
+      setup:
+        - [
+            "/bin/sh",
+            "-c",
+            "cd /tmp/dr-test-typescript && bun run /Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts add motivation goal 'Test Goal' && bun run /Users/austinsand/workspace/documentation_robotics/cli/src/cli.ts add motivation goal 'Keep Goal'",
+          ]
+      timeout: 10000
+    comparison:
+      type: "filesystem"
+      pythonRoot: "/tmp/dr-test-python/documentation-robotics/model"
+      typescriptRoot: "/tmp/dr-test-typescript/documentation-robotics/model"
+      paths: ["**/*.yaml"]
+    skip: false
+    expectedToFail: true
+
+  # ============================================================================
+  # NOTE: Additional commands that could be tested:
+  # - relationship add/list/delete (requires relationships schema)
+  # - migrate (requires version changes)

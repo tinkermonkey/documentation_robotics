@@ -1,6 +1,6 @@
 /**
  * Chat Utilities
- * 
+ *
  * Common utilities for chat client detection and management.
  */
 
@@ -15,17 +15,17 @@ import { CopilotClient } from './copilot-client.js';
  */
 export async function detectAvailableClients(): Promise<BaseChatClient[]> {
   const clients: BaseChatClient[] = [];
-  
+
   const claudeClient = new ClaudeCodeClient();
   if (await claudeClient.isAvailable()) {
     clients.push(claudeClient);
   }
-  
+
   const copilotClient = new CopilotClient();
   if (await copilotClient.isAvailable()) {
     clients.push(copilotClient);
   }
-  
+
   return clients;
 }
 
@@ -42,7 +42,7 @@ export function selectChatClient(
   if (clients.length === 0) {
     return undefined;
   }
-  
+
   // If a preference is specified, try to find it
   if (preferredClientName) {
     const preferred = clients.find(c => c.getClientName() === preferredClientName);
@@ -50,7 +50,7 @@ export function selectChatClient(
       return preferred;
     }
   }
-  
+
   // Return first available client
   return clients[0];
 }

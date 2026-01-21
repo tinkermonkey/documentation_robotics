@@ -132,7 +132,7 @@ describe("JsonSchemaExporter", () => {
 
   it("should handle multiple entities with mixed source references", async () => {
     const dataModelLayer = new Layer("data-model");
-    
+
     const entity1 = new Element({
       id: "data-model-entity-order",
       type: "entity",

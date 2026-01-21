@@ -16,12 +16,14 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 ### Added
 
 #### Core Model Management
+
 - **Initialize models** - Create new DR models with `dr init`
 - **Element operations** - Add, update, delete, and show elements across all 12 layers
 - **List and search** - Query elements by layer, type, or search term
 - **Model info** - Display model metadata and statistics
 
 #### Validation Pipeline
+
 - **4-stage validation** - Schema, naming, reference, and semantic validation
 - **Schema validation** - JSON Schema compliance (AJV)
 - **Naming validation** - Element ID format enforcement (`{layer}.{type}.{kebab-case-name}`)
@@ -30,6 +32,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **Validation commands** - `dr validate`, `dr validate-layer`, `dr validate-element`
 
 #### Cross-Layer Integration
+
 - **Reference registry** - Tracks 60+ cross-layer reference patterns
 - **Relationship registry** - Manages intra-layer relationships with predicates
 - **Dependency tracing** - `dr trace` for impact analysis
@@ -37,12 +40,14 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **Link management** - Discover, validate, and document inter-layer links
 
 #### Model Evolution
+
 - **Changesets** - Track, apply, and revert model changes
 - **Migration system** - Automated migration between specification versions
 - **Upgrade command** - Unified `dr upgrade` for spec reference and model migration
 - **Conformance checking** - `dr conformance` validates model completeness
 
 #### Export Formats
+
 - **ArchiMate** - Export layers 1, 2, 4, 5 (motivation, business, application, technology)
 - **OpenAPI** - Export layer 6 (API) to OpenAPI 3.0 specs
 - **JSON Schema** - Export layer 7 (Data Model) to JSON Schema
@@ -51,6 +56,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **GraphML** - Graph analysis format for all layers
 
 #### Visualization Server
+
 - **Interactive web interface** - `dr visualize` launches server at http://localhost:8080
 - **WebSocket support** - Real-time model updates
 - **Element annotations** - Add comments and notes to elements
@@ -59,6 +65,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **Authentication** - Token-based auth (enabled by default)
 
 #### AI Integration
+
 - **Claude Code client** - Chat about your model with Claude
 - **GitHub Copilot client** - Chat about your model with Copilot
 - **Multi-client support** - Auto-detect available AI CLI tools
@@ -67,6 +74,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **Preference storage** - Remembers your preferred AI client
 
 #### Source Code Linking
+
 - **Source references** - Link architecture elements to source code locations
 - **Provenance tracking** - Track how references were created (extracted, manual, inferred, generated)
 - **Repository context** - Optional Git remote URL and commit SHA
@@ -74,6 +82,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **Search by source** - Find elements by source file path
 
 #### Developer Experience
+
 - **Fast startup** - ~150ms CLI startup time (8x faster than Python CLI)
 - **Comprehensive help** - Detailed help for every command
 - **Error messages** - Clear, actionable error messages with fix suggestions
@@ -81,6 +90,7 @@ First stable release of the Documentation Robotics CLI - a TypeScript/Bun implem
 - **JSON output** - `--json` flag for machine-readable output
 
 #### Testing & Compatibility
+
 - **713 passing tests** - Comprehensive unit and integration test coverage
 - **Python CLI compatibility** - Load and work with Python CLI models
 - **Test fixtures** - Valid and invalid test cases for all validators

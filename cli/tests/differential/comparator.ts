@@ -1,12 +1,15 @@
 import { describe, expect, test } from 'bun:test';
 import { deepEqual } from 'node:assert/strict';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
+import { parse as parseYaml } from 'yaml';
 
 /**
  * Configuration for output comparison
  */
 export interface ComparisonConfig {
   /** Type of comparison to perform */
-  type: 'json' | 'text' | 'exit-code';
+  type: 'json' | 'text' | 'exit-code' | 'filesystem';
   /** Keys to ignore in JSON comparison (e.g., timestamps) */
   ignoreKeys?: string[];
   /** Whether to sort arrays before comparison */
@@ -19,6 +22,12 @@ export interface ComparisonConfig {
   normalizePaths?: boolean;
   /** Accept validation philosophy differences (e.g., Python=0, TS=1 with warnings) */
   acceptValidationDifferences?: boolean;
+  /** Paths to compare in filesystem comparison (glob patterns) */
+  paths?: string[];
+  /** Root directory for Python CLI filesystem */
+  pythonRoot?: string;
+  /** Root directory for TypeScript CLI filesystem */
+  typescriptRoot?: string;
 }
 
 export interface OutputPayload {
@@ -82,6 +91,119 @@ function normalizeJson(
   }
 
   return obj;
+}
+
+/**
+ * Recursively get all files matching patterns in a directory
+ */
+function getFilesRecursive(dir: string, patterns: string[] = ['**/*.yaml', '**/*.yml']): string[] {
+  const files: string[] = [];
+
+  if (!fs.existsSync(dir)) {
+    return files;
+  }
+
+  function walk(currentPath: string): void {
+    const entries = fs.readdirSync(currentPath, { withFileTypes: true });
+
+    for (const entry of entries) {
+      const fullPath = path.join(currentPath, entry.name);
+
+      if (entry.isDirectory()) {
+        walk(fullPath);
+      } else if (entry.isFile()) {
+        // Check if file matches any pattern
+        const relativePath = path.relative(dir, fullPath);
+        const matches = patterns.some(pattern => {
+          // Simple glob matching for **/*.yaml and *.yaml patterns
+          if (pattern.startsWith('**/*.')) {
+            const ext = pattern.slice(4);
+            return relativePath.endsWith(ext);
+          }
+          if (pattern.startsWith('*.')) {
+            const ext = pattern.slice(1);
+            return path.basename(relativePath).endsWith(ext);
+          }
+          return relativePath === pattern;
+        });
+
+        if (matches) {
+          files.push(fullPath);
+        }
+      }
+    }
+  }
+
+  walk(dir);
+  return files;
+}
+
+/**
+ * Compare two directory structures
+ */
+function compareFilesystems(
+  pythonRoot: string,
+  typescriptRoot: string,
+  patterns: string[]
+): ComparisonResult {
+  const pythonFiles = getFilesRecursive(pythonRoot, patterns);
+  const typescriptFiles = getFilesRecursive(typescriptRoot, patterns);
+
+  // Get relative paths for comparison
+  const pythonRelPaths = pythonFiles.map(f => path.relative(pythonRoot, f)).sort();
+  const typescriptRelPaths = typescriptFiles.map(f => path.relative(typescriptRoot, f)).sort();
+
+  const differences: string[] = [];
+
+  // Check if same files exist
+  const pythonSet = new Set(pythonRelPaths);
+  const typescriptSet = new Set(typescriptRelPaths);
+
+  for (const relPath of pythonRelPaths) {
+    if (!typescriptSet.has(relPath)) {
+      differences.push(`File exists in Python but not TypeScript: ${relPath}`);
+    }
+  }
+
+  for (const relPath of typescriptRelPaths) {
+    if (!pythonSet.has(relPath)) {
+      differences.push(`File exists in TypeScript but not Python: ${relPath}`);
+    }
+  }
+
+  // Compare contents of common files
+  for (const relPath of pythonRelPaths) {
+    if (typescriptSet.has(relPath)) {
+      const pythonFile = path.join(pythonRoot, relPath);
+      const typescriptFile = path.join(typescriptRoot, relPath);
+
+      try {
+        const pythonContent = fs.readFileSync(pythonFile, 'utf-8');
+        const typescriptContent = fs.readFileSync(typescriptFile, 'utf-8');
+
+        // Parse YAML and compare
+        if (relPath.endsWith('.yaml') || relPath.endsWith('.yml')) {
+          const pythonYaml = parseYaml(pythonContent);
+          const typescriptYaml = parseYaml(typescriptContent);
+
+          const fileDiffs = generateJsonDiff(pythonYaml, typescriptYaml, relPath);
+          differences.push(...fileDiffs);
+        } else {
+          // Direct text comparison
+          if (pythonContent !== typescriptContent) {
+            differences.push(`File content differs: ${relPath}`);
+          }
+        }
+      } catch (error) {
+        differences.push(`Error comparing ${relPath}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+  }
+
+  return {
+    matches: differences.length === 0,
+    differences: differences.length > 0 ? differences : undefined,
+  };
 }
 
 /**
@@ -226,6 +348,18 @@ export function compareOutputs(
             `Exit code mismatch: python=${python.exitCode}, typescript=${typescript.exitCode}`,
           ],
     };
+  }
+
+  if (config.type === 'filesystem') {
+    if (!config.pythonRoot || !config.typescriptRoot) {
+      return {
+        matches: false,
+        differences: ['Filesystem comparison requires pythonRoot and typescriptRoot'],
+      };
+    }
+
+    const patterns = config.paths || ['**/*.yaml', '**/*.yml'];
+    return compareFilesystems(config.pythonRoot, config.typescriptRoot, patterns);
   }
 
   const pythonOutput = python.stdout || python.stderr;

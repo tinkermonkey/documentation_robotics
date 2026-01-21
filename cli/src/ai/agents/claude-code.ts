@@ -17,7 +17,7 @@ import {
 
 /**
  * Claude Code CLI agent implementation
- * 
+ *
  * Uses `claude` command with:
  * - dr-architect agent for DR-specific knowledge
  * - --output-format stream-json for structured events
@@ -36,7 +36,7 @@ export class ClaudeCodeAgent implements CodingAgent {
     try {
       const isWindows = process.platform === 'win32';
       const checkCommand = isWindows ? 'where' : 'which';
-      
+
       const result = spawnSync(checkCommand, [this.command], {
         stdio: 'pipe',
         encoding: 'utf-8',
@@ -49,7 +49,7 @@ export class ClaudeCodeAgent implements CodingAgent {
 
   /**
    * Spawn Claude Code CLI process
-   * 
+   *
    * Creates subprocess with dr-architect agent, sends initial message via stdin,
    * and monitors stdout for JSON events.
    */
@@ -96,11 +96,11 @@ export class ClaudeCodeAgent implements CodingAgent {
 
   /**
    * Parse Claude Code JSON output into chat events
-   * 
+   *
    * Claude Code outputs line-delimited JSON events:
    * - {"type":"assistant","message":{"content":[{"type":"text","text":"..."}]}}
    * - {"type":"assistant","message":{"content":[{"type":"tool_use","name":"..."}]}}
-   * 
+   *
    * Non-JSON lines are treated as plain text output.
    */
   parseOutput(chunk: string): ChatEvent[] {
@@ -154,7 +154,7 @@ export class ClaudeCodeAgent implements CodingAgent {
 
   /**
    * Monitor process execution and accumulate results
-   * 
+   *
    * Collects all output, parses events, and resolves when process completes.
    */
   private monitorProcess(

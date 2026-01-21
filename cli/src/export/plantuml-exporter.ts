@@ -52,7 +52,7 @@ export class PlantUMLExporter implements Exporter {
 
       for (const { id, name, element } of elements) {
         lines.push(`  component "${this.escapeQuotes(name)}" as ${id}`);
-        
+
         // Add source reference as note if includeSources option is enabled
         if (options.includeSources) {
           const sourceRef = element.getSourceReference();

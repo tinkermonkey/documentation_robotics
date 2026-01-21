@@ -369,21 +369,59 @@ You should:
 - "Abandon this work"
 - "Delete the changeset"
 - "I don't want these changes"
+- "Clean up old changesets"
+- "Remove applied changesets"
+
+**Understanding the difference:**
+
+- **Apply**: Merges changes to main model, marks changeset as 'applied', keeps file
+- **Revert**: Reverses applied changes, marks changeset as 'reverted', keeps file
+- **Delete**: Permanently removes the changeset file (cannot be undone)
+
+**When to DELETE vs REVERT:**
+
+**DELETE changeset when:**
+
+- It's already been applied and you want to clean up
+- It's been reverted and no longer needed
+- It was experimental work that's obsolete
+- You want to permanently remove it to reduce clutter
+- User explicitly says "delete", "remove", "clean up"
+
+**DON'T delete when:**
+
+- Changeset is currently active (deactivate first)
+- You want to keep history for auditing
+- Changes might be needed again
+- User just wants to discard changes (use revert)
 
 **Your process:**
 
 ```bash
-# For active changeset
-dr changeset abandon $(cat .dr/changesets/active) --yes
+# 1. Check if changeset is active
+ACTIVE=$(cat .dr/changesets/active 2>/dev/null)
+if [ "$ACTIVE" = "changeset-name" ]; then
+  echo "Error: Cannot delete active changeset"
+  echo "Deactivate first: dr changeset deactivate"
+  exit 1
+fi
 
-# For specific changeset
-dr changeset abandon changeset-id --yes
+# 2. Show changeset details
+dr changeset list | grep "changeset-name"
 
-# Permanent deletion
-dr changeset delete changeset-id --yes
+# 3. Confirm deletion
+echo "This will PERMANENTLY delete the changeset file."
+echo "This cannot be undone."
+read -p "Type 'delete' to confirm: "
+
+# 4. Delete
+dr changeset delete changeset-name
+
+# Or with --force to skip confirmation
+dr changeset delete changeset-name --force
 ```
 
-**Example:**
+**Example - Discard changes:**
 
 ```
 User: /dr-changeset I don't want these changes, discard them
@@ -394,18 +432,52 @@ You should:
    - 2 elements added
    - 1 element updated
 
-   These changes will be DISCARDED (cannot be recovered)"
+   These changes will be REVERTED (changeset file kept)"
 
 2. Confirm:
-   "Are you sure? Type 'discard' to confirm: "
+   "Are you sure? Type 'revert' to confirm: "
 
-3. Abandon:
-   dr changeset abandon feature-auth-system-001 --yes
+3. Revert:
+   dr changeset revert auth-system
 
 4. Confirm:
-   "✓ Changeset abandoned
+   "✓ Changeset reverted
    ✓ Changes discarded
-   ✓ Now working in main model"
+   ✓ Changeset marked as 'reverted'
+   ✓ Now working in main model
+
+   To permanently delete: dr changeset delete auth-system"
+```
+
+**Example - Clean up old changesets:**
+
+```
+User: /dr-changeset Clean up my old applied changesets
+
+You should:
+1. List applied/reverted changesets:
+   dr changeset list | grep -E "APPLIED|REVERTED"
+
+2. Show what you found:
+   "Found 3 old changesets:
+   - feature-auth (applied 2 weeks ago)
+   - bugfix-payment (applied 1 week ago)
+   - experimental-cache (reverted 3 days ago)
+
+   These can be safely deleted."
+
+3. Confirm:
+   "Delete all 3 changesets? Type 'yes' to confirm: "
+
+4. Delete each:
+   dr changeset delete feature-auth --force
+   dr changeset delete bugfix-payment --force
+   dr changeset delete experimental-cache --force
+
+5. Confirm:
+   "✓ Deleted 3 changesets
+   ✓ Freed up disk space
+   ✓ Model history preserved in manifest"
 ```
 
 ### Integration with Other Commands
@@ -474,21 +546,25 @@ dr changeset status                  # Current changeset
 cat .dr/changesets/active            # Active changeset ID
 
 # Lifecycle
-dr changeset create "name" --type feature
-dr changeset apply --preview         # Preview first!
-dr changeset apply --yes             # Apply to main
-dr changeset abandon id --yes        # Discard changes
+dr changeset create "name"           # Create new changeset
+dr changeset activate "name"         # Make it active
+dr changeset apply "name"            # Apply to main model
+dr changeset revert "name"           # Reverse applied changes
+dr changeset deactivate              # Clear active changeset
+
+# Cleanup (DESTRUCTIVE)
+dr changeset delete "name"           # Permanent deletion (with prompt)
+dr changeset delete "name" --force   # Delete without confirmation
 
 # Navigation
-dr changeset switch changeset-id     # Switch to different
-dr changeset clear --yes             # Return to main
+dr changeset activate changeset-id   # Switch to different
+dr changeset deactivate              # Return to main
 
-# Comparison
-dr changeset diff                    # Compare with main
-dr changeset diff id1 id2            # Compare two
-
-# Cleanup
-dr changeset delete changeset-id --yes  # Permanent deletion
+# When to delete:
+# - After changeset is applied and verified
+# - After changeset is reverted and obsolete
+# - To clean up experimental/abandoned work
+# - Cannot delete active changeset (deactivate first)
 ```
 
 ### Python API for Advanced Operations

@@ -1,5 +1,0 @@
-todo-api-service:
-  id: todo-api-service
-  name: Todo API Service
-  type: service
-  documentation: FastAPI application service providing REST API for todo operations

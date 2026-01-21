@@ -1,5 +1,0 @@
-todos-table:
-  id: todos-table
-  name: Todos Table
-  type: table
-  documentation: Database table storing todo items

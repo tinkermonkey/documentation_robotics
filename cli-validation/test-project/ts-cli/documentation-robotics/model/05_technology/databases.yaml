@@ -1,5 +1,0 @@
-sqlite:
-  id: sqlite
-  name: SQLite
-  type: database
-  documentation: Lightweight embedded SQL database

@@ -1,5 +1,0 @@
-task-management:
-  id: task-management
-  name: Task Management Service
-  type: service
-  documentation: Business service for managing personal tasks and to-do items

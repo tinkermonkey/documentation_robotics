@@ -336,6 +336,58 @@ export async function changesetDeactivateCommand(): Promise<void> {
 }
 
 /**
+ * Delete a changeset permanently
+ */
+export async function changesetDeleteCommand(name: string, options: {
+  force?: boolean;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const manager = new ChangesetManager(model.rootPath);
+
+    const changeset = await manager.load(name);
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${name}' not found`));
+      process.exit(1);
+    }
+
+    // Check if changeset is currently active
+    const context = new ActiveChangesetContext(model.rootPath);
+    const active = await context.getActive();
+    if (active === name) {
+      console.error(
+        ansis.red(`Error: Cannot delete active changeset '${name}'`)
+      );
+      console.log(ansis.dim('  Run `dr changeset deactivate` first'));
+      process.exit(1);
+    }
+
+    // Confirm deletion unless --force is used
+    if (!options.force) {
+      const confirm = await prompts.confirm({
+        message: `Delete changeset '${name}'? This cannot be undone.`,
+      });
+
+      if (!confirm || typeof confirm !== 'boolean') {
+        console.log(ansis.yellow('Deletion cancelled'));
+        return;
+      }
+    }
+
+    await manager.delete(name);
+
+    console.log(ansis.green(`✓ Deleted changeset: ${ansis.bold(name)}`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Show the currently active changeset
  */
 export async function changesetStatusCommand(): Promise<void> {
@@ -1190,6 +1242,21 @@ Examples:
       await changesetStatusCommand();
     });
 
+  changesetGroup
+    .command('delete <name>')
+    .description('Delete a changeset permanently')
+    .option('-f, --force', 'Skip confirmation prompt')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset delete my-feature
+  $ dr changeset delete my-feature --force`
+    )
+    .action(async (name, options) => {
+      await changesetDeleteCommand(name, options);
+    });
+
   // Staging operation commands
   changesetGroup
     .command('staged')
@@ -1345,5 +1412,12 @@ See docs/MIGRATION.md for detailed migration instructions.`
       } else {
         await changesetMigrateCommand();
       }
+=======
+  $ dr changeset delete "old-migration"
+  $ dr changeset delete "old-migration" --force`
+    )
+    .action(async (name, options) => {
+      await changesetDeleteCommand(name, options);
+>>>>>>> origin/feature/issue-214-documentation-fix-incorrect
     });
 }

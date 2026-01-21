@@ -1,6 +1,6 @@
 /**
  * Tests for Coding Agent Abstraction Layer - Interface Contracts
- * 
+ *
  * Validates the agent abstraction interface, ensuring all required
  * methods and properties are defined correctly.
  */
@@ -41,7 +41,7 @@ describe('CodingAgent Interface', () => {
         events: [],
       }),
     };
-    
+
     expect(mockReturn.process).toBeDefined();
     expect(mockReturn.conversationId).toBeString();
     expect(mockReturn.completion).toBeInstanceOf(Promise);
@@ -52,7 +52,7 @@ describe('CodingAgent Interface', () => {
     const mockReturn: ParseOutputReturn = [
       { type: 'text', content: 'test' },
     ];
-    
+
     expect(Array.isArray(mockReturn)).toBe(true);
     expect(mockReturn[0].type).toBe('text');
   });

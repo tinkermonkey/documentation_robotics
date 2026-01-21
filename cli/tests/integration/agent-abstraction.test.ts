@@ -1,6 +1,6 @@
 /**
  * Integration Tests for Agent Abstraction Layer
- * 
+ *
  * Tests end-to-end workflows including process lifecycle,
  * output streaming, error handling, and multi-event scenarios.
  */
@@ -28,10 +28,10 @@ describe('Agent Abstraction Layer - Integration', () => {
     it('should work as polymorphic CodingAgent', async () => {
       // Test that we can use agent through interface
       const codingAgent: CodingAgent = agent;
-      
+
       const available = await codingAgent.isAvailable();
       expect(typeof available).toBe('boolean');
-      
+
       const events = codingAgent.parseOutput('test');
       expect(Array.isArray(events)).toBe(true);
     });
@@ -41,11 +41,11 @@ describe('Agent Abstraction Layer - Integration', () => {
       class MockAgent implements CodingAgent {
         readonly name = 'Mock';
         readonly command = 'mock';
-        
+
         async isAvailable(): Promise<boolean> {
           return true;
         }
-        
+
         spawn(options: any): any {
           return {
             process: {} as any,
@@ -57,7 +57,7 @@ describe('Agent Abstraction Layer - Integration', () => {
             }),
           };
         }
-        
+
         parseOutput(chunk: string): ChatEvent[] {
           return [{ type: 'text', content: chunk }];
         }
@@ -77,9 +77,9 @@ describe('Agent Abstraction Layer - Integration', () => {
 {"type":"assistant","message":{"content":[{"type":"text","text":"Found 2 endpoints"}]}}`;
 
       const events = agent.parseOutput(stream);
-      
+
       expect(events.length).toBeGreaterThan(0);
-      
+
       // Should have text, tool_use, tool_result, and more text
       const types = events.map(e => e.type);
       expect(types).toContain('text');
@@ -102,13 +102,13 @@ describe('Agent Abstraction Layer - Integration', () => {
       }
 
       expect(allEvents).toHaveLength(3);
-      
+
       // Verify content can be reconstructed
       const fullText = allEvents
         .filter(e => e.type === 'text')
         .map(e => e.content)
         .join('');
-      
+
       expect(fullText).toBe('StartingMiddleEnd');
     });
 
@@ -116,11 +116,11 @@ describe('Agent Abstraction Layer - Integration', () => {
       // First chunk ends mid-JSON
       const partial1 = '{"type":"assistant","message":{"content":[{"type":"text","te';
       const partial2 = 'xt":"Complete"}]}}';
-      
+
       // First chunk should not parse successfully
       const events1 = agent.parseOutput(partial1);
       expect(events1).toHaveLength(1); // Treated as text
-      
+
       // Full JSON should parse
       const events2 = agent.parseOutput(partial1 + partial2);
       const textEvents = events2.filter(e => e.type === 'text');
@@ -135,7 +135,7 @@ describe('Agent Abstraction Layer - Integration', () => {
 {"type":"assistant","message":{"content":[{"type":"text","text":"Also good"}]}}`;
 
       const events = agent.parseOutput(malformed);
-      
+
       // Should get 3 events (2 valid + 1 treated as text)
       expect(events).toHaveLength(3);
       expect(events[0].type).toBe('text');
@@ -145,9 +145,9 @@ describe('Agent Abstraction Layer - Integration', () => {
 
     it('should handle error events in stream', () => {
       const withError = '{"type":"error","message":"Process failed"}';
-      
+
       const events = agent.parseOutput(withError);
-      
+
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('error');
       expect(events[0].error).toBe('Process failed');
@@ -159,7 +159,7 @@ describe('Agent Abstraction Layer - Integration', () => {
 {"type":"assistant","message":{"content":[{"type":"text","text":"After"}]}}`;
 
       const events = agent.parseOutput(stream);
-      
+
       expect(events).toHaveLength(3);
       expect(events[0].type).toBe('text');
       expect(events[1].type).toBe('error');
@@ -175,13 +175,13 @@ describe('Agent Abstraction Layer - Integration', () => {
 {"type":"assistant","message":{"content":[{"type":"text","text":"The file contains..."}]}}`;
 
       const events = agent.parseOutput(workflow);
-      
+
       // Find the tool_use event
       const toolUse = events.find(e => e.type === 'tool_use');
       expect(toolUse).toBeDefined();
       expect(toolUse?.toolName).toBe('Read');
       expect(toolUse?.toolInput).toEqual({ path: 'file.txt' });
-      
+
       // Find the tool_result event
       const toolResult = events.find(e => e.type === 'tool_result');
       expect(toolResult).toBeDefined();
@@ -195,21 +195,21 @@ describe('Agent Abstraction Layer - Integration', () => {
 {"type":"result","result":"content of file1"}`;
 
       const events = agent.parseOutput(multiTool);
-      
+
       const toolUses = events.filter(e => e.type === 'tool_use');
       expect(toolUses).toHaveLength(2);
       expect(toolUses[0].toolName).toBe('Bash');
       expect(toolUses[1].toolName).toBe('Read');
-      
+
       const toolResults = events.filter(e => e.type === 'tool_result');
       expect(toolResults).toHaveLength(2);
     });
 
     it('should preserve tool input structure', () => {
       const complexInput = `{"type":"assistant","message":{"content":[{"type":"tool_use","name":"CustomTool","input":{"nested":{"deep":{"value":42}},"array":[1,2,3]}}]}}`;
-      
+
       const events = agent.parseOutput(complexInput);
-      
+
       const toolUse = events.find(e => e.type === 'tool_use');
       expect(toolUse?.toolInput).toEqual({
         nested: { deep: { value: 42 } },
@@ -221,7 +221,7 @@ describe('Agent Abstraction Layer - Integration', () => {
   describe('Process Lifecycle', () => {
     it('should generate unique conversation IDs', () => {
       const ids = new Set<string>();
-      
+
       for (let i = 0; i < 10; i++) {
         try {
           const proc = agent.spawn({
@@ -234,7 +234,7 @@ describe('Agent Abstraction Layer - Integration', () => {
           // Expected if command not found
         }
       }
-      
+
       // All IDs should be unique (or all failed)
       expect(ids.size === 0 || ids.size === 10).toBe(true);
     });
@@ -245,12 +245,12 @@ describe('Agent Abstraction Layer - Integration', () => {
           cwd: '/tmp',
           message: 'test',
         });
-        
+
         // ID should contain 'claude-' and timestamp-like number
         expect(proc.conversationId).toContain('claude-');
         const parts = proc.conversationId.split('-');
         expect(parts.length).toBeGreaterThan(1);
-        
+
         proc.process.kill();
       } catch {
         // Expected if command not found
@@ -263,9 +263,9 @@ describe('Agent Abstraction Layer - Integration', () => {
           cwd: '/tmp',
           message: 'test',
         });
-        
+
         expect(proc.completion).toBeInstanceOf(Promise);
-        
+
         proc.process.kill();
       } catch {
         // Expected if command not found
@@ -281,7 +281,7 @@ describe('Agent Abstraction Layer - Integration', () => {
           message: 'test',
           agentName: 'custom-agent-name',
         });
-        
+
         expect(proc.conversationId).toBeString();
         proc.process.kill();
       } catch {
@@ -296,7 +296,7 @@ describe('Agent Abstraction Layer - Integration', () => {
           message: 'test',
           additionalArgs: ['--debug', '--verbose'],
         });
-        
+
         expect(proc.process).toBeDefined();
         proc.process.kill();
       } catch {
@@ -310,7 +310,7 @@ describe('Agent Abstraction Layer - Integration', () => {
           cwd: '/home',
           message: 'test',
         });
-        
+
         expect(proc.process).toBeDefined();
         proc.process.kill();
       } catch {
@@ -322,9 +322,9 @@ describe('Agent Abstraction Layer - Integration', () => {
   describe('Output Format Compatibility', () => {
     it('should handle Claude Code stream-json format', () => {
       const claudeFormat = `{"type":"assistant","message":{"content":[{"type":"text","text":"Response"}]}}`;
-      
+
       const events = agent.parseOutput(claudeFormat);
-      
+
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('text');
       expect(events[0].content).toBe('Response');
@@ -332,9 +332,9 @@ describe('Agent Abstraction Layer - Integration', () => {
 
     it('should handle plain text fallback', () => {
       const plainText = 'This is plain output without JSON';
-      
+
       const events = agent.parseOutput(plainText);
-      
+
       expect(events).toHaveLength(1);
       expect(events[0].type).toBe('text');
       expect(events[0].content).toBe(plainText);
@@ -344,9 +344,9 @@ describe('Agent Abstraction Layer - Integration', () => {
       const multiline = `Line 1
 Line 2
 Line 3`;
-      
+
       const events = agent.parseOutput(multiline);
-      
+
       expect(events).toHaveLength(3);
       expect(events[0].content).toBe('Line 1');
       expect(events[1].content).toBe('Line 2');
@@ -359,7 +359,7 @@ Line 3`;
       const start = Date.now();
       await agent.isAvailable();
       const duration = Date.now() - start;
-      
+
       // Should complete in under 1 second
       expect(duration).toBeLessThan(1000);
     });
@@ -368,7 +368,7 @@ Line 3`;
       const result1 = await agent.isAvailable();
       const result2 = await agent.isAvailable();
       const result3 = await agent.isAvailable();
-      
+
       // Results should be consistent
       expect(result1).toBe(result2);
       expect(result2).toBe(result3);
@@ -392,14 +392,14 @@ Line 3`;
 {"type":"assistant","message":{"content":[{"type":"text","text":"The Create User endpoint..."}]}}`;
 
       const events = agent.parseOutput(conversation);
-      
+
       // Should have text, tool uses, and results
       const toolUses = events.filter(e => e.type === 'tool_use');
       expect(toolUses).toHaveLength(2);
-      
+
       const toolResults = events.filter(e => e.type === 'tool_result');
       expect(toolResults).toHaveLength(2);
-      
+
       const textBlocks = events.filter(e => e.type === 'text');
       expect(textBlocks.length).toBeGreaterThan(0);
     });
@@ -410,12 +410,12 @@ Line 3`;
 {"type":"assistant","message":{"content":[{"type":"text","text":"Third part."}]}}`;
 
       const events = agent.parseOutput(stream);
-      
+
       const fullResponse = events
         .filter(e => e.type === 'text')
         .map(e => e.content)
         .join('');
-      
+
       expect(fullResponse).toBe('First part. Second part. Third part.');
     });
   });

@@ -133,7 +133,7 @@ describe("OpenAPIExporter", () => {
 
   it("should handle multiple endpoints with mixed source references", async () => {
     const apiLayer = new Layer("api");
-    
+
     const endpoint1 = new Element({
       id: "api-endpoint-get-users",
       type: "endpoint",

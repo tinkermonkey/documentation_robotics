@@ -1,5 +1,0 @@
-text-input:
-  id: text-input
-  name: Text Input
-  type: form-field
-  documentation: Flowbite text input component

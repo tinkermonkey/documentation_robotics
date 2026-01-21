@@ -1,5 +1,0 @@
-manage-tasks:
-  id: manage-tasks
-  name: Manage Personal Tasks
-  type: goal
-  documentation: Enable users to efficiently create, track, and complete personal tasks

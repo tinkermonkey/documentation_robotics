@@ -145,6 +145,123 @@ Isolated workspaces for safe experimentation:
 - Direct corrections
 - Simple property updates
 
+**Changeset Lifecycle:**
+
+1. **Create**: `dr changeset create "name"` - Creates new changeset file
+2. **Activate**: `dr changeset activate "name"` - Makes it active for tracking changes
+3. **Work**: All `dr add`/`dr update` commands tracked automatically
+4. **Review**: `dr changeset status` - See what changed
+5. **Apply**: `dr changeset apply "name"` - Merges to main, marks as 'applied'
+6. **Clean up**: `dr changeset delete "name"` - Permanently removes file
+
+**Deletion rules:**
+
+- Cannot delete active changeset (must deactivate first)
+- Recommended after changeset is applied and verified
+- Use `--force` flag to skip confirmation prompt
+- Deletes file permanently (cannot be recovered)
+
+### Source File Tracking
+
+**CRITICAL**: Linking elements to source code is a **core DR capability** that enables:
+
+- **Bidirectional Traceability**: Navigate from architecture to code and back
+- **Impact Analysis**: Know which elements are affected by code changes
+- **Code-to-Architecture Sync**: Keep model updated as code evolves
+- **Team Communication**: Developers see where architectural decisions are implemented
+- **Automated Extraction**: Tools can verify/update references automatically
+
+**When to use source tracking:**
+
+✅ **ALWAYS during extraction** - Every extracted element should link to its source
+✅ **RECOMMENDED for all adds** - Manual elements should reference code when applicable
+✅ **When documenting existing systems** - Link elements to implementation
+✅ **After refactoring** - Update references to reflect code changes
+
+**When NOT needed:**
+
+- Pure architectural concepts with no implementation (e.g., high-level goals)
+- Placeholder elements for future work
+- Abstract patterns or templates
+
+**Source Reference Components:**
+
+```bash
+dr add <layer> <type> <id> --name "Name" \
+  --source-file "src/path/file.ts"           # REQUIRED: Path relative to repo root
+  --source-symbol "functionName"             # OPTIONAL: Specific symbol (function/class/variable)
+  --source-provenance "extracted"            # REQUIRED: How reference was created
+  --source-repo-remote "https://github..."   # OPTIONAL: Git repo URL
+  --source-repo-commit "abc123..."           # OPTIONAL: Full 40-char commit SHA
+```
+
+**Provenance Types:**
+
+| Type        | When to Use                             | Example                           |
+| ----------- | --------------------------------------- | --------------------------------- |
+| `extracted` | Automatically detected by parsing tools | Code analyzer found API endpoint  |
+| `manual`    | Human reviewed code and linked manually | You read code and added reference |
+| `inferred`  | Determined through heuristics/patterns  | Naming convention match           |
+| `generated` | Created by code generation tool         | Model-to-code generator output    |
+
+**Examples:**
+
+```bash
+# Extraction: Link to source automatically
+dr add api operation create-order \
+  --name "Create Order Endpoint" \
+  --source-file "src/api/orders/create.ts" \
+  --source-symbol "createOrderHandler" \
+  --source-provenance "extracted" \
+  --property method="POST" \
+  --property path="/api/v1/orders"
+
+# Manual add: Reference implementation
+dr add application service order-processor \
+  --name "Order Processing Service" \
+  --source-file "src/services/orders/processor.ts" \
+  --source-symbol "OrderProcessor" \
+  --source-provenance "manual"
+
+# With git context (enables precise version tracking)
+dr add security policy auth-validation \
+  --name "Authentication Validation" \
+  --source-file "src/auth/validator.ts" \
+  --source-symbol "validateToken" \
+  --source-provenance "extracted" \
+  --source-repo-remote "https://github.com/myorg/myapp.git" \
+  --source-repo-commit "5a7b3c9d1e2f4a6b8c0d2e4f6a8b0c2d4e6f8a0b"
+
+# Update existing element to add source reference
+dr update api.operation.create-order \
+  --source-file "src/api/orders/create.ts" \
+  --source-symbol "createOrderHandler" \
+  --source-provenance "manual"
+
+# Search by source file
+dr search --source-file "src/api/orders/create.ts"
+
+# Clear source reference (rarely needed)
+dr update api.operation.create-order --clear-source-reference
+```
+
+**Agent Responsibilities:**
+
+1. **During Extraction**: ALWAYS add source tracking
+2. **During Manual Adds**: ASK user if source reference should be added
+3. **When Showing Elements**: Display source references clearly
+4. **During Updates**: Preserve source references unless explicitly clearing
+5. **When Searching**: Use `--source-file` to filter by implementation
+
+**Best Practices:**
+
+- Use **relative paths** from repository root (not absolute paths)
+- Include **symbol names** for precise linking (function/class names)
+- Use **extracted** provenance for automated tools
+- Use **manual** provenance when you link by hand
+- Add **git context** when available (enables version-specific tracking)
+- Keep references **up-to-date** when code moves or refactors
+
 ## CLI-First Development Mandate
 
 **CRITICAL**: All model modifications MUST use CLI commands. Manual YAML/JSON generation causes 60%+ validation failures and takes 5x longer to fix.
@@ -339,16 +456,25 @@ Check for:
 # 1. Create changeset
 dr changeset create "extract-orders-$(date +%s)"
 
-# 2. Extract elements with CLI
-dr add api operation --name "Create Order" \
-  --property path="/api/v1/orders" --property method="POST"
+# 2. Extract elements with CLI (WITH SOURCE TRACKING - MANDATORY)
+dr add api operation create-order \
+  --name "Create Order" \
+  --source-file "src/api/orders.py" \
+  --source-symbol "create_order" \
+  --source-provenance "extracted" \
+  --property path="/api/v1/orders" \
+  --property method="POST"
 dr validate --layer api
 
-dr add application service --name "Order Service"
+dr add application service order-service \
+  --name "Order Service" \
+  --source-file "src/services/order_service.py" \
+  --source-symbol "OrderService" \
+  --source-provenance "extracted"
 dr validate --layer application
 
 # 3. Link layers
-dr update-element api.operation.create-order \
+dr update api.operation.create-order \
   --set x-archimate-ref=application.service.order-service
 dr validate --validate-links
 
@@ -382,25 +508,29 @@ $ dr validate --validate-links
 
 ### Framework Patterns
 
-| Framework   | Code Pattern                | CLI Command                                                                                     |
-| ----------- | --------------------------- | ----------------------------------------------------------------------------------------------- |
-| FastAPI     | `@app.post("/orders")`      | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
-| Express     | `router.post('/orders')`    | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
-| Spring Boot | `@PostMapping("/orders")`   | `dr add api operation --name "Create Order" --property path="/orders" --property method="POST"` |
-| Django      | `def create_order(request)` | `dr add api operation --name "Create Order"`                                                    |
+**IMPORTANT**: All examples below MUST include source tracking (`--source-file`, `--source-symbol`, `--source-provenance "extracted"`)
+
+| Framework   | Code Pattern                | CLI Command                                                                                                                                                                                                                       |
+| ----------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI     | `@app.post("/orders")`      | `dr add api operation create-order --name "Create Order" --source-file "src/api/orders.py" --source-symbol "create_order" --source-provenance "extracted" --property path="/orders" --property method="POST"`                     |
+| Express     | `router.post('/orders')`    | `dr add api operation create-order --name "Create Order" --source-file "src/routes/orders.js" --source-symbol "createOrder" --source-provenance "extracted" --property path="/orders" --property method="POST"`                   |
+| Spring Boot | `@PostMapping("/orders")`   | `dr add api operation create-order --name "Create Order" --source-file "src/main/java/api/OrderController.java" --source-symbol "createOrder" --source-provenance "extracted" --property path="/orders" --property method="POST"` |
+| Django      | `def create_order(request)` | `dr add api operation create-order --name "Create Order" --source-file "api/views.py" --source-symbol "create_order" --source-provenance "extracted"`                                                                             |
 
 **Supported**: Python (FastAPI, Django, Flask), JavaScript (Express, NestJS), Java (Spring Boot), Go, C# (ASP.NET)
 
 ### Layer Mapping
 
-| Code Element  | DR Layer    | CLI Example                                  |
-| ------------- | ----------- | -------------------------------------------- |
-| HTTP Route    | api         | `dr add api operation --name "X"`            |
-| Service Class | application | `dr add application service --name "X"`      |
-| Pydantic/DTO  | data_model  | `dr add data_model object-schema --name "X"` |
-| ORM Model     | data_model  | `dr add data_model entity --name "X"`        |
-| DB Table      | datastore   | `dr add datastore table --name "X"`          |
-| UI Component  | ux          | `dr add ux component --name "X"`             |
+**NOTE**: Add `--source-file "path/to/file" --source-symbol "SymbolName" --source-provenance "extracted"` to all commands
+
+| Code Element  | DR Layer    | CLI Example (add source tracking to all)                                                                                         |
+| ------------- | ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| HTTP Route    | api         | `dr add api operation x --name "X" --source-file "..." --source-provenance "extracted"`                                          |
+| Service Class | application | `dr add application service x --name "X" --source-file "..." --source-symbol "XClass" --source-provenance "extracted"`           |
+| Pydantic/DTO  | data_model  | `dr add data_model object-schema x --name "X" --source-file "..." --source-symbol "XModel" --source-provenance "extracted"`      |
+| ORM Model     | data_model  | `dr add data_model entity x --name "X" --source-file "..." --source-symbol "XEntity" --source-provenance "extracted"`            |
+| DB Table      | datastore   | `dr add datastore table x --name "X" --source-file "migrations/xxx.sql" --source-provenance "extracted"`                         |
+| UI Component  | ux          | `dr add ux component x --name "X" --source-file "components/X.tsx" --source-symbol "XComponent" --source-provenance "extracted"` |
 
 ### Confidence & Reporting
 

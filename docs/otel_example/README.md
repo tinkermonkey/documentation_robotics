@@ -12,6 +12,7 @@ This directory contains example configurations for running a local OpenTelemetry
 ## When to Use This
 
 Use these examples if you want to:
+
 - Test the CLI's telemetry integration locally
 - View traces and logs in a web UI during development
 - Learn how to set up an OTEL collector for your own projects
@@ -19,6 +20,7 @@ Use these examples if you want to:
 ## When NOT to Use This
 
 You don't need this if:
+
 - You already have an OTEL collector running
 - You're using a managed observability service
 - You don't need telemetry during development
@@ -33,6 +35,7 @@ You don't need this if:
 ```
 
 This starts:
+
 - OpenTelemetry Collector (HTTP: `localhost:4318`, gRPC: `localhost:4317`)
 - SigNoz UI (`http://localhost:3301`)
 - ClickHouse (trace storage)
@@ -87,5 +90,6 @@ To customize the collector configuration:
 ## Questions?
 
 For CLI telemetry configuration, see:
+
 - [CLI Telemetry Documentation](../../cli/docs/telemetry.md)
 - [CLI README - Telemetry Section](../../cli/README.md)

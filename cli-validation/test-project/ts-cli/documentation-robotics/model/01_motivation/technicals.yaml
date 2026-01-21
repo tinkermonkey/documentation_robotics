@@ -1,5 +1,0 @@
-lightweight-stack:
-  id: lightweight-stack
-  name: Lightweight Technology Stack
-  type: technical
-  documentation: Use minimal dependencies and simple deployment

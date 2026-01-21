@@ -1,5 +1,0 @@
-todo-api-coverage:
-  id: todo-api-coverage
-  name: Todo API Coverage Model
-  type: test-coverage-model
-  documentation: Test coverage model for todo API operations

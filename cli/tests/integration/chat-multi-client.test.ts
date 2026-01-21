@@ -44,7 +44,7 @@ describe('Chat Command Integration', () => {
     it('should detect ClaudeCodeClient availability', async () => {
       const client = new ClaudeCodeClient();
       const available = await client.isAvailable();
-      
+
       // This will be false in CI unless claude CLI is installed
       expect(typeof available).toBe('boolean');
     });
@@ -52,7 +52,7 @@ describe('Chat Command Integration', () => {
     it('should detect CopilotClient availability', async () => {
       const client = new CopilotClient();
       const available = await client.isAvailable();
-      
+
       // This will be false in CI unless gh/copilot CLI is installed
       expect(typeof available).toBe('boolean');
     });
@@ -60,7 +60,7 @@ describe('Chat Command Integration', () => {
     it('should have correct client names', () => {
       const claudeClient = new ClaudeCodeClient();
       const copilotClient = new CopilotClient();
-      
+
       expect(claudeClient.getClientName()).toBe('Claude Code');
       expect(copilotClient.getClientName()).toBe('GitHub Copilot');
     });
@@ -84,7 +84,7 @@ describe('Chat Command Integration', () => {
       // Set preferred client using the proper property
       model.manifest.preferred_chat_client = 'GitHub Copilot';
       await model.save();
-      
+
       // Reload model
       const reloadedModel = await Model.load(testDir);
       expect(reloadedModel?.manifest.preferred_chat_client).toBe('GitHub Copilot');
@@ -99,11 +99,11 @@ describe('Chat Command Integration', () => {
       // Set initial preference
       model.manifest.preferred_chat_client = 'Claude Code';
       await model.save();
-      
+
       // Update preference
       model.manifest.preferred_chat_client = 'GitHub Copilot';
       await model.save();
-      
+
       // Verify update
       const reloadedModel = await Model.load(testDir);
       expect(reloadedModel?.manifest.preferred_chat_client).toBe('GitHub Copilot');
@@ -117,7 +117,7 @@ describe('Chat Command Integration', () => {
         agent: 'dr-architect',
         workingDirectory: testDir,
       };
-      
+
       // Verify options are accepted (actual sendMessage would spawn process)
       expect(options.agent).toBe('dr-architect');
       expect(options.workingDirectory).toBe(testDir);
@@ -126,11 +126,11 @@ describe('Chat Command Integration', () => {
     it('should support working directory for all clients', () => {
       const claudeClient = new ClaudeCodeClient();
       const copilotClient = new CopilotClient();
-      
+
       const options = {
         workingDirectory: testDir,
       };
-      
+
       // Both clients should accept working directory
       expect(options.workingDirectory).toBe(testDir);
     });

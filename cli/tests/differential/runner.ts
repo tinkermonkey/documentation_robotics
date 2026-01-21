@@ -15,6 +15,8 @@ export interface CliCommand {
   env?: Record<string, string>;
   /** Timeout in milliseconds (default: 30000) */
   timeout?: number;
+  /** Setup commands to run before the main command */
+  setup?: string[][];
 }
 
 /**
@@ -58,6 +60,34 @@ export interface TestCase {
  * Execute a command and capture output
  */
 export async function executeCommand(cmd: CliCommand): Promise<CommandResult> {
+  // Execute setup commands first if they exist
+  if (cmd.setup && cmd.setup.length > 0) {
+    for (const setupCmd of cmd.setup) {
+      const [command, ...args] = setupCmd;
+      const setupResult = await executeCommandInternal({
+        command,
+        args,
+        cwd: '/tmp',  // Use /tmp for setup commands since cmd.cwd may not exist yet
+        env: cmd.env,
+        timeout: cmd.timeout
+      });
+      // If setup fails, return early with setup error
+      if (!setupResult.success) {
+        return {
+          ...setupResult,
+          stderr: `Setup command failed: ${command} ${args.join(' ')}\n${setupResult.stderr}`
+        };
+      }
+    }
+  }
+
+  return executeCommandInternal(cmd);
+}
+
+/**
+ * Internal function to execute a single command
+ */
+async function executeCommandInternal(cmd: CliCommand): Promise<CommandResult> {
   return new Promise((resolve, reject) => {
     const startTime = Date.now();
     let stdout = '';

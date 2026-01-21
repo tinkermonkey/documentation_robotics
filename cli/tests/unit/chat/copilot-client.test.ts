@@ -15,7 +15,7 @@ describe('CopilotClient', () => {
   describe('isAvailable', () => {
     it('should check for gh copilot or standalone copilot', async () => {
       const available = await client.isAvailable();
-      
+
       // In CI, this will likely be false unless gh/copilot is installed
       // We're just verifying it returns a boolean and doesn't crash
       expect(typeof available).toBe('boolean');
@@ -25,7 +25,7 @@ describe('CopilotClient', () => {
       // Multiple calls should not crash
       await client.isAvailable();
       const available = await client.isAvailable();
-      
+
       expect(typeof available).toBe('boolean');
     });
   });

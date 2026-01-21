@@ -1,6 +1,6 @@
 /**
  * Unit tests for ClaudeCodeClient
- * 
+ *
  * Tests the Claude Code CLI client implementation that extends BaseChatClient.
  * Validates availability detection, session management, event handling,
  * and proper implementation of the abstraction layer interface.
@@ -46,7 +46,7 @@ describe('ClaudeCodeClient', () => {
   describe('isAvailable', () => {
     it('should check for claude availability', async () => {
       const available = await client.isAvailable();
-      
+
       // In CI, this will likely be false unless claude CLI is installed
       // We're just verifying it returns a boolean and doesn't crash
       expect(typeof available).toBe('boolean');
@@ -56,14 +56,14 @@ describe('ClaudeCodeClient', () => {
       // Multiple calls should not crash
       await client.isAvailable();
       const available = await client.isAvailable();
-      
+
       expect(typeof available).toBe('boolean');
     });
 
     it('should return false when which command fails', async () => {
       // This test validates that errors are caught and return false
       const available = await client.isAvailable();
-      
+
       // We can't guarantee the result, but it should not throw
       expect(typeof available).toBe('boolean');
     });
@@ -94,7 +94,7 @@ describe('ClaudeCodeClient', () => {
     it('should maintain session state after clearing', () => {
       client.clearSession();
       expect(client.getCurrentSession()).toBeUndefined();
-      
+
       // Clear again should not cause issues
       client.clearSession();
       expect(client.getCurrentSession()).toBeUndefined();
