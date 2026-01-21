@@ -809,8 +809,12 @@ export class StagingAreaManager {
       const cleanupError = await this.forceRemoveBackupDir(backupDir);
 
       if (cleanupError) {
-        console.warn(`Warning: Failed to clean up incomplete backup at ${backupDir}: ${cleanupError}`);
-        console.warn(`Please manually remove this directory if backup creation is retried`);
+        console.error(
+          `[ERROR] Failed to clean up incomplete backup at ${backupDir}: ${cleanupError}\n` +
+          `[ACTION REQUIRED] Please manually remove this directory:\n` +
+          `rm -rf "${backupDir}"\n` +
+          `This can accumulate if backup creation is retried multiple times.`
+        );
       }
 
       throw new Error(
@@ -991,8 +995,8 @@ export class StagingAreaManager {
           'Check file permissions or try manual cleanup:\n' +
           `sudo rm -rf "${backupDir}"`;
       } else if (errorCode === 'ENOENT') {
-        // Backup was already deleted - not critical but worth noting
-        suggestions = '\n[INFO] Backup directory was already deleted (no manual cleanup needed).';
+        // Backup was already deleted - not an error, directory removal goal is achieved
+        return;
       } else {
         suggestions =
           '\n\n[ACTION REQUIRED] Backup cleanup failed due to file system error.\n' +
