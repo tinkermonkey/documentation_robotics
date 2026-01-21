@@ -8,19 +8,19 @@ import {
   writeJSON,
   atomicWrite,
 } from "@/utils/file-io";
-import { $ } from "bun";
+import { rm } from "node:fs/promises";
 
 describe("File I/O Utilities", () => {
   let testDir: string;
 
   beforeEach(async () => {
     testDir = `/tmp/dr-fileio-test-${Date.now()}-${Math.random()}`;
-    await $`mkdir -p ${testDir}`;
+    await ensureDir(testDir);
   });
 
   afterEach(async () => {
     if (await fileExists(testDir)) {
-      await $`rm -rf ${testDir}`;
+      await rm(testDir, { recursive: true, force: true });
     }
   });
 
