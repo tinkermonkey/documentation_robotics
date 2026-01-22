@@ -782,8 +782,19 @@ export async function changesetDiffCommand(options: {
 
 /**
  * Apply staged changes to the base model
- * Implements atomic commit with validation and rollback on failure
- * Options: validate (default true), force (override drift warnings)
+ *
+ * Implements atomic commit with validation and rollback on failure.
+ * All changes are applied atomically—on any failure, the model is rolled back.
+ *
+ * @param options - Commit options
+ * @param options.validate - Run validation before commit (default: true).
+ *   When enabled, schema, reference, and semantic validation must pass.
+ *   Validation errors always block the commit and cannot be overridden with --force.
+ * @param options.force - Skip drift detection warnings (default: false).
+ *   When the base model has changed since the changeset was created, drift is detected.
+ *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
+ *
+ * @throws Error if validation fails, drift detected without --force, or commit fails
  */
 export async function changesetCommitCommand(options?: {
   validate?: boolean;
