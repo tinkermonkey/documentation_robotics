@@ -141,6 +141,11 @@ export class StagingAreaManager {
 
     const changeset = await this.storage.create(id, name, description, baseSnapshotId);
     changeset.id = id;
+
+    // Mark as 'staged' so it can accept changes immediately
+    changeset.markStaged();
+    await this.storage.save(changeset);
+
     return changeset;
   }
 
