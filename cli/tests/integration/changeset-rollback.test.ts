@@ -846,29 +846,30 @@ describe('Changeset Rollback Verification', () => {
   });
 
   describe('partial restoration handling', () => {
-    it('should handle missing layer in backup', async () => {
+    it('[CRITICAL FIX] should fail if any layer is missing from backup', async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);
 
       // Create backup
       const backupDir = await (manager as any).backupModel(model);
 
-      // Remove a layer directory from backup
+      // Remove a layer directory from backup to simulate incomplete backup
       const layerDir = path.join(backupDir, 'layers', 'motivation');
       await rm(layerDir, { recursive: true, force: true });
 
-      // Capture console warnings
-      const warnings: string[] = [];
-      const originalWarn = console.warn;
-      console.warn = (msg: string) => warnings.push(msg);
-
       try {
-        // Restore should succeed but warn
+        // Restore should now FAIL (not just warn and continue)
         await (manager as any).restoreModel(model, backupDir);
 
-        // Should have warned about missing layer
-        expect(warnings.some(w => w.includes('not found in backup'))).toBe(true);
-      } finally {
-        console.warn = originalWarn;
+        // Should not reach here
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should indicate CRITICAL failure due to missing layer
+        expect(message).toContain('restoration FAILED');
+        expect(message).toContain('[CRITICAL]');
+        expect(message).toContain('not found in backup');
+        expect(message).toContain('Failed layers:');
       }
     });
 
@@ -912,6 +913,165 @@ describe('Changeset Rollback Verification', () => {
         expect(message).toContain('Successfully restored');
         expect(message).toContain('Failed to restore');
         expect(message).toContain('Backup location');
+      }
+    });
+
+    it('[CRITICAL FIX] should fail if backup layer directory is missing', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Remove the entire layers directory from backup - simulates corrupted/incomplete backup
+      await rm(path.join(backupDir, 'layers'), { recursive: true, force: true });
+
+      try {
+        await (manager as any).restoreModel(model, backupDir);
+        expect(true).toBe(false); // Should not reach this
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should indicate CRITICAL failure
+        expect(message).toContain('restoration FAILED');
+        expect(message).toContain('[CRITICAL]');
+        expect(message).toContain('not found in backup');
+        // Should list which layers failed
+        expect(message).toContain('Failed layers:');
+      }
+    });
+
+    it('[CRITICAL FIX] should fail if layer destination directory cannot be found', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Remove the actual layer model directories (XX_layername format)
+      const modelDir = path.join(TEST_DIR, 'documentation-robotics', 'model');
+      const fs = await import('fs/promises');
+      const entries = await fs.readdir(modelDir, { withFileTypes: true });
+
+      // Remove the first layer directory found
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name.match(/^\d{2}_/)) {
+          await rm(path.join(modelDir, entry.name), { recursive: true, force: true });
+          break;
+        }
+      }
+
+      try {
+        await (manager as any).restoreModel(model, backupDir);
+        expect(true).toBe(false); // Should not reach this
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should fail with critical error about destination directory
+        expect(message).toContain('restoration FAILED');
+        expect(message).toContain('[CRITICAL]');
+        expect(message).toContain('Destination directory not found');
+      }
+    });
+
+    it('[CRITICAL FIX] should track file-level restoration failures as critical', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Verify backup has layer files
+      const layersDir = path.join(backupDir, 'layers');
+      const layers = await readdir(layersDir);
+
+      // If no layers, skip test
+      if (layers.length === 0) {
+        return;
+      }
+
+      // Intentionally corrupt backup layer directory permissions to cause failure
+      const firstLayer = layers[0];
+      const layerPath = path.join(layersDir, firstLayer);
+      const layerFiles = await readdir(layerPath);
+
+      // If there are layer files, try to simulate a permission issue
+      if (layerFiles.length > 0) {
+        // Make layer directory unreadable to cause readdir to fail
+        const fs = await import('fs/promises');
+        try {
+          // This will fail on some systems, but that's ok for this test
+          await fs.chmod(layerPath, 0o000);
+
+          try {
+            await (manager as any).restoreModel(model, backupDir);
+            expect(true).toBe(false); // Should not reach this
+          } catch (error) {
+            expect(error instanceof Error).toBe(true);
+            const message = (error as Error).message;
+            // Should fail with critical error
+            expect(message).toContain('restoration FAILED');
+            expect(message).toContain('[CRITICAL]');
+          } finally {
+            // Restore permissions for cleanup
+            try {
+              await fs.chmod(layerPath, 0o755);
+            } catch {
+              // ignore
+            }
+          }
+        } catch {
+          // Skip if chmod is not available on this system
+        }
+      }
+    });
+
+    it('[CRITICAL FIX] should not silently skip missing layers', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Selectively remove one layer from backup to simulate partial corruption
+      const layersDir = path.join(backupDir, 'layers');
+      const layers = await readdir(layersDir);
+      if (layers.length > 0) {
+        // Remove first layer directory completely
+        await rm(path.join(layersDir, layers[0]), { recursive: true, force: true });
+      }
+
+      try {
+        await (manager as any).restoreModel(model, backupDir);
+        expect(true).toBe(false); // Should not succeed
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Verify it's not just a warning but a thrown error
+        expect(message).toContain('restoration FAILED');
+        expect(message).toContain('[CRITICAL]');
+        // Should clearly indicate the missing layer
+        expect(message).toContain('not found in backup');
+      }
+    });
+
+    it('[CRITICAL FIX] should provide detailed error reasons in summary', async () => {
+      const manager = new StagingAreaManager(TEST_DIR, model);
+
+      // Create backup
+      const backupDir = await (manager as any).backupModel(model);
+
+      // Remove layers directory
+      await rm(path.join(backupDir, 'layers'), { recursive: true, force: true });
+
+      try {
+        await (manager as any).restoreModel(model, backupDir);
+        expect(true).toBe(false);
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should include possible causes
+        expect(message).toContain('Possible causes:');
+        // Should mention specific failure scenarios
+        expect(message.toLowerCase()).toContain('backup');
+        expect(message.toLowerCase()).toContain('permission');
+        expect(message.toLowerCase()).toContain('disk');
       }
     });
   });

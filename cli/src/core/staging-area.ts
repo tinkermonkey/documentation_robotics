@@ -1183,7 +1183,8 @@ export class StagingAreaManager {
     const { readFile, fileExists, atomicWrite } = await import('../utils/file-io.js');
 
     const restoredFiles: string[] = [];
-    const failedFiles: Array<{ path: string; error: string }> = [];
+    const failedFiles: Array<{ path: string; error: string; isCritical: boolean }> = [];
+    const criticalLayers = new Set<string>(); // Track critical layer failures
 
     try {
       // Restore manifest first (most critical) - try both .yaml and .json
@@ -1206,7 +1207,8 @@ export class StagingAreaManager {
       } catch (error) {
         failedFiles.push({
           path: path.basename(backupManifestFile),
-          error: error instanceof Error ? error.message : String(error)
+          error: error instanceof Error ? error.message : String(error),
+          isCritical: true
         });
         // Manifest is critical - throw immediately
         throw new Error(
@@ -1220,52 +1222,108 @@ export class StagingAreaManager {
 
       for (const layer of model.layers.values()) {
         const backupLayerDir = path.join(backupLayersDir, layer.name);
+        let layerRestored = false;
 
         try {
-          if (await fileExists(backupLayerDir)) {
-            // Find the correct destination directory for this layer
-            const layerDirPath = await this.findLayerDirectory(model.rootPath, layer.name);
+          if (!(await fileExists(backupLayerDir))) {
+            // CRITICAL: Layer directory missing in backup - this is a data loss scenario
+            const errorMsg = `Layer '${layer.name}' not found in backup (backup incomplete or corrupted)`;
+            failedFiles.push({
+              path: `layers/${layer.name}`,
+              error: errorMsg,
+              isCritical: true
+            });
+            criticalLayers.add(layer.name);
+            continue;
+          }
 
-            if (!layerDirPath) {
-              console.warn(`Warning: Could not find destination directory for layer ${layer.name}, skipping`);
-              continue;
-            }
+          // Find the correct destination directory for this layer
+          const layerDirPath = await this.findLayerDirectory(model.rootPath, layer.name);
 
-            // Restore all YAML files from backup
-            const backupFiles = await fs.readdir(backupLayerDir);
-            for (const file of backupFiles) {
-              if (file.endsWith('.yaml') || file.endsWith('.yml')) {
-                const backupFilePath = path.join(backupLayerDir, file);
-                const destFilePath = path.join(layerDirPath, file);
+          if (!layerDirPath) {
+            // CRITICAL: Cannot find destination for layer - filesystem issue or permission problem
+            const errorMsg = `Destination directory not found for layer '${layer.name}' (permissions issue or directory structure changed)`;
+            failedFiles.push({
+              path: `layers/${layer.name}`,
+              error: errorMsg,
+              isCritical: true
+            });
+            criticalLayers.add(layer.name);
+            continue;
+          }
+
+          // Restore all YAML files from backup
+          const backupFiles = await fs.readdir(backupLayerDir);
+          let filesRestoredInLayer = 0;
+
+          for (const file of backupFiles) {
+            if (file.endsWith('.yaml') || file.endsWith('.yml')) {
+              const backupFilePath = path.join(backupLayerDir, file);
+              const destFilePath = path.join(layerDirPath, file);
+              try {
                 const fileContent = await readFile(backupFilePath);
                 await atomicWrite(destFilePath, fileContent);
                 restoredFiles.push(`layers/${layer.name}/${file}`);
+                filesRestoredInLayer++;
+              } catch (fileError) {
+                // Individual file restoration failure - still critical for data integrity
+                const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
+                failedFiles.push({
+                  path: `layers/${layer.name}/${file}`,
+                  error: errorMsg,
+                  isCritical: true
+                });
+                criticalLayers.add(layer.name);
               }
             }
-          } else {
-            // Layer directory doesn't exist in backup - log but continue
-            console.warn(`Warning: Layer ${layer.name} not found in backup, skipping`);
+          }
+
+          if (filesRestoredInLayer > 0) {
+            layerRestored = true;
           }
         } catch (error) {
-          // Track failure but continue with other layers
+          // Unexpected error during layer restoration - treat as critical
           const errorMessage = error instanceof Error ? error.message : String(error);
           failedFiles.push({
             path: `layers/${layer.name}`,
-            error: errorMessage
+            error: errorMessage,
+            isCritical: true
           });
-          console.warn(`Warning: Failed to restore layer ${layer.name}: ${errorMessage}`);
+          criticalLayers.add(layer.name);
         }
       }
 
       // Reload model layers to reflect restored state
       model.layers.clear();
 
-      // If any files failed to restore, report but don't throw (manifest was restored)
-      if (failedFiles.length > 0) {
-        console.warn(
-          `Warning: Restore completed with ${failedFiles.length} failures:\n` +
-          failedFiles.map(f => `  - ${f.path}: ${f.error}`).join('\n')
-        );
+      // CRITICAL: If any critical layers failed to restore, throw error immediately
+      if (criticalLayers.size > 0) {
+        const failedLayersList = Array.from(criticalLayers).join(', ');
+        const detailedErrors = failedFiles
+          .filter(f => f.isCritical)
+          .map(f => `  - ${f.path}: ${f.error}`)
+          .join('\n');
+
+        const errorSummary =
+          `Model restoration FAILED - ${failedFiles.filter(f => f.isCritical).length} critical layer(s) could not be restored:\n` +
+          `  Failed layers: ${failedLayersList}\n` +
+          `\n` +
+          `Detailed errors:\n${detailedErrors}\n` +
+          `\n` +
+          `Successfully restored: ${restoredFiles.length} files\n` +
+          `Failed to restore: ${failedFiles.length} files\n` +
+          `\n` +
+          `Possible causes:\n` +
+          `  1. Backup directory corrupted or incomplete\n` +
+          `  2. Insufficient permissions to write to model directory\n` +
+          `  3. Disk full during restoration\n` +
+          `  4. Layer directory structure changed since backup\n` +
+          `\n` +
+          `Backup location: ${backupDir}\n` +
+          `\n` +
+          `ACTION REQUIRED: Manually restore from backup or contact support.`;
+
+        throw new Error(errorSummary);
       }
 
     } catch (error) {
@@ -1276,11 +1334,11 @@ export class StagingAreaManager {
         `\n` +
         `Restoration progress:\n` +
         `  Successfully restored: ${restoredFiles.length} files\n` +
-        `  Failed to restore: ${failedFiles.length} files\n` +
+        `  Failed to restore: ${failedFiles.length} files (${failedFiles.filter(f => f.isCritical).length} critical)\n` +
         `\n` +
         `Restored files:\n${restoredFiles.map(f => `  ✓ ${f}`).join('\n')}\n` +
         `\n` +
-        `Failed files:\n${failedFiles.map(f => `  ✗ ${f.path}: ${f.error}`).join('\n')}\n` +
+        `Failed files:\n${failedFiles.map(f => `  ${f.isCritical ? '✗ [CRITICAL]' : '⚠ [WARNING]'} ${f.path}: ${f.error}`).join('\n')}\n` +
         `\n` +
         `Backup location: ${backupDir}`;
 
