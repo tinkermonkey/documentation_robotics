@@ -5,7 +5,7 @@ priority: high
 pipelines:
   - name: "Create and delete relationships"
     steps:
-      - command: "add motivation goal motivation.goal.rel-base-goal --name 'Baseline Goal' --description 'Goal for relationships'"
+      - command: "add motivation goal rel-base-goal --name 'Baseline Goal' --description 'Goal for relationships'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -15,13 +15,13 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "add datastore table datastore.table.rel-test-table --name 'test_table' --description 'Table for relationship test'"
+      - command: "add datastore table rel-test-table --name 'test_table' --description 'Table for relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column datastore.column.rel-test-column --name 'test_column' --description 'Column for relationship test'"
+      - command: "add datastore column rel-test-column --name 'test_column' --description 'Column for relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
@@ -69,19 +69,19 @@ pipelines:
 
   - name: "Multiple relationship types"
     steps:
-      - command: "add datastore table datastore.table.multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
+      - command: "add datastore table multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column datastore.column.multi-rel-col-1 --name 'column_1' --description 'First column'"
+      - command: "add datastore column multi-rel-col-1 --name 'column_1' --description 'First column'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column datastore.column.multi-rel-col-2 --name 'column_2' --description 'Second column'"
+      - command: "add datastore column multi-rel-col-2 --name 'column_2' --description 'Second column'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
@@ -123,13 +123,13 @@ pipelines:
   - name: "Negative test: Cross-layer relationships not supported"
     description: "Verify that cross-layer relationships (higher→lower) are properly rejected or handled by the CLI"
     steps:
-      - command: "add motivation goal motivation.goal.cross-layer-goal --name 'Cross Layer Goal' --description 'Goal for cross-layer test'"
+      - command: "add motivation goal cross-layer-goal --name 'Cross Layer Goal' --description 'Goal for cross-layer test'"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
-      - command: "add business service business.service.cross-layer-service --name 'Cross Layer Service' --description 'Service for cross-layer test'"
+      - command: "add business service cross-layer-service --name 'Cross Layer Service' --description 'Service for cross-layer test'"
         files_to_compare:
           - manifest.yaml
           - 02_business/services.yaml
