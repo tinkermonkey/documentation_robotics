@@ -394,7 +394,8 @@ export class StagingAreaManager {
    * @throws Error if validation fails, drift detected without --force, or commit fails
    *
    * @remarks
-   * Validation errors always block commit (cannot override with --force).
+   * Validation errors always block commit (force flag does not override).
+   * Drift warnings can be bypassed with --force flag.
    * Dry-run mode performs all checks but does not persist changes.
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
