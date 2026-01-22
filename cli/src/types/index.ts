@@ -71,3 +71,21 @@ export interface ModelOptions {
   lazyLoad?: boolean;
   referenceRegistry?: unknown; // Will be properly typed when implemented
 }
+
+/**
+ * Backup manifest entry for a single file
+ */
+export interface BackupManifestFile {
+  path: string;        // Relative path to the file in the backup directory
+  checksum: string;    // SHA256 hash of the file contents
+  size: number;        // File size in bytes
+}
+
+/**
+ * Backup manifest tracking files and creation timestamp
+ * Used for backup integrity validation and recovery
+ */
+export interface BackupManifest {
+  files: BackupManifestFile[];  // Array of backed up files with metadata
+  timestamp: string;             // ISO 8601 timestamp when backup was created
+}

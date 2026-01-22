@@ -16,6 +16,7 @@ import { ChangesetValidator } from './changeset-validator.js';
 import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
 import type { VirtualProjectionEngine } from './virtual-projection.js';
+import type { BackupManifest } from '../types/index.js';
 
 /**
  * Options for commit operation
@@ -786,10 +787,7 @@ export class StagingAreaManager {
     await ensureDir(backupDir);
 
     // Track what we're backing up for validation
-    const backupManifest: {
-      files: Array<{ path: string; checksum: string; size: number }>;
-      timestamp: string;
-    } = {
+    const backupManifest: BackupManifest = {
       files: [],
       timestamp: new Date().toISOString()
     };
@@ -890,7 +888,7 @@ export class StagingAreaManager {
    */
   private async validateBackup(
     backupDir: string,
-    manifest: { files: Array<{ path: string; checksum: string; size: number }> }
+    manifest: BackupManifest
   ): Promise<void> {
     const { readFile, fileExists } = await import('../utils/file-io.js');
     const { createHash } = await import('crypto');
