@@ -149,9 +149,6 @@ export async function traceCommand(
       }
     }
 
-    // Note: Advanced features like cycle detection and metrics are not yet implemented
-    // in the refactored DependencyTracker matching Python CLI API
-
     console.log('');
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
