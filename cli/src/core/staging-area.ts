@@ -17,6 +17,7 @@ import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
 import type { VirtualProjectionEngine } from './virtual-projection.js';
 import type { BackupManifest } from '../types/index.js';
+import { createSha256Hash, createBackupManifest } from '../types/index.js';
 
 /**
  * Options for commit operation
@@ -787,10 +788,13 @@ export class StagingAreaManager {
     await ensureDir(backupDir);
 
     // Track what we're backing up for validation
-    const backupManifest: BackupManifest = {
-      files: [],
-      timestamp: new Date().toISOString()
-    };
+    // Use mutable array during construction, then make readonly when creating BackupManifest
+    const backupFiles: Array<{
+      path: string;
+      checksum: ReturnType<typeof createSha256Hash>;
+      size: number;
+    }> = [];
+    const timestamp = new Date().toISOString();
 
     try {
       // Backup manifest - try both .yaml and .json formats
@@ -803,11 +807,13 @@ export class StagingAreaManager {
       }
 
       const manifestContent = await readFile(manifestPath);
-      const manifestChecksum = createHash('sha256').update(manifestContent).digest('hex');
+      const manifestChecksum = createSha256Hash(
+        createHash('sha256').update(manifestContent).digest('hex')
+      );
       const manifestFilename = path.basename(manifestPath);
 
       await atomicWrite(path.join(backupDir, manifestFilename), manifestContent);
-      backupManifest.files.push({
+      backupFiles.push({
         path: manifestFilename,
         checksum: manifestChecksum,
         size: manifestContent.length
@@ -835,10 +841,12 @@ export class StagingAreaManager {
           if (file.endsWith('.yaml') || file.endsWith('.yml')) {
             const filePath = path.join(layerDirPath, file);
             const fileContent = await readFile(filePath);
-            const fileChecksum = createHash('sha256').update(fileContent).digest('hex');
+            const fileChecksum = createSha256Hash(
+              createHash('sha256').update(fileContent).digest('hex')
+            );
 
             await atomicWrite(path.join(layerBackupDir, file), fileContent);
-            backupManifest.files.push({
+            backupFiles.push({
               path: `layers/${layer.name}/${file}`,
               checksum: fileChecksum,
               size: fileContent.length
@@ -846,6 +854,12 @@ export class StagingAreaManager {
           }
         }
       }
+
+      // Create the final immutable BackupManifest
+      const backupManifest: BackupManifest = {
+        files: backupFiles as ReadonlyArray<typeof backupFiles[0]>,
+        timestamp
+      };
 
       // Write backup manifest for validation
       await atomicWrite(
@@ -953,15 +967,12 @@ export class StagingAreaManager {
       let manifest;
       try {
         const manifestContent = await readFile(manifestPath);
-        manifest = JSON.parse(manifestContent.toString());
+        const rawManifest = JSON.parse(manifestContent.toString());
+        manifest = createBackupManifest(rawManifest);
       } catch (err) {
         throw new Error(
           `Failed to read backup manifest: ${err instanceof Error ? err.message : String(err)}`
         );
-      }
-
-      if (!manifest.files || !Array.isArray(manifest.files)) {
-        throw new Error('Backup manifest is invalid or corrupted (missing files array)');
       }
 
       // Validate each file in the backup manifest
