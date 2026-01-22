@@ -16,8 +16,8 @@ import { ChangesetValidator } from './changeset-validator.js';
 import { fileExists } from '../utils/file-io.js';
 import type { Model } from './model.js';
 import type { VirtualProjectionEngine } from './virtual-projection.js';
+import { createSha256Hash } from '../types/index.js';
 import type { BackupManifest } from '../types/index.js';
-import { createSha256Hash, createBackupManifest } from '../types/index.js';
 
 /**
  * Options for commit operation
@@ -964,20 +964,58 @@ export class StagingAreaManager {
         throw new Error(`Backup manifest not found at ${manifestPath}`);
       }
 
-      let manifest;
+      // Read manifest content first (can throw for parse errors)
+      let rawManifest;
       try {
         const manifestContent = await readFile(manifestPath);
-        const rawManifest = JSON.parse(manifestContent.toString());
-        manifest = createBackupManifest(rawManifest);
+        if (!manifestContent || manifestContent.length === 0) {
+          throw new Error('Backup manifest is empty');
+        }
+        rawManifest = JSON.parse(manifestContent.toString());
       } catch (err) {
+        // JSON parse errors should throw - these are critical errors
         throw new Error(
           `Failed to read backup manifest: ${err instanceof Error ? err.message : String(err)}`
         );
       }
 
-      // Validate each file in the backup manifest
-      for (const file of manifest.files) {
+      // Validate manifest structure (can throw for missing required arrays)
+      if (!rawManifest || typeof rawManifest !== 'object') {
+        throw new Error('Backup manifest must be an object');
+      }
+
+      if (!rawManifest.files || !Array.isArray(rawManifest.files)) {
+        throw new Error('Backup manifest must have a files array');
+      }
+
+      // Validate each file entry in the manifest and collect errors gracefully
+      for (let index = 0; index < rawManifest.files.length; index++) {
+        const file = rawManifest.files[index];
         filesChecked++;
+
+        // Validate file entry structure
+        if (!file || typeof file !== 'object') {
+          errors.push(`Backup manifest file entry ${index} must be an object`);
+          continue;
+        }
+
+        if (typeof file.path !== 'string' || !file.path) {
+          errors.push(`Backup manifest file entry ${index} must have a non-empty path string`);
+          continue;
+        }
+
+        // Validate required metadata fields - these are validation errors, not critical
+        if (typeof file.checksum !== 'string') {
+          errors.push(`Backup manifest file entry ${index} must have a checksum string`);
+          continue;
+        }
+
+        if (typeof file.size !== 'number' || file.size < 0) {
+          errors.push(`Backup manifest file entry ${index} must have a non-negative size number`);
+          continue;
+        }
+
+        // File validation: check file exists and integrity
         const backupFilePath = path.join(backupDir, file.path);
 
         // Check file exists
