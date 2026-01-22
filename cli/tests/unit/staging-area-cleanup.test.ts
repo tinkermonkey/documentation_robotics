@@ -14,12 +14,11 @@ describe('StagingAreaManager - Cleanup Error Handling', () => {
   let testDir: string;
   let manager: StagingAreaManager;
   let model: Model;
-  let originalCwd: string;
+  let originalCwd: string = process.cwd(); // Save at suite level, not in beforeEach
   let consoleErrorCalls: Array<{ message: string }> = [];
 
   beforeEach(async () => {
-    // Save original working directory
-    originalCwd = process.cwd();
+    // originalCwd is now saved at the suite level to avoid issues with deleted directories
 
     // Create temporary test directory
     testDir = path.join('/tmp', `test-cleanup-${Date.now()}-${Math.random()}`);
@@ -55,7 +54,12 @@ layers: {}`;
 
   afterEach(async () => {
     // Restore original working directory and console.error
-    process.chdir(originalCwd);
+    try {
+      process.chdir(originalCwd);
+    } catch (error) {
+      // If originalCwd no longer exists, chdir to a safe default
+      process.chdir('/tmp');
+    }
 
     // Clean up test directory
     if (await fileExists(testDir)) {
