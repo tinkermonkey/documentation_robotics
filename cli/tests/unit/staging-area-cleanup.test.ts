@@ -69,20 +69,22 @@ layers: {}`;
       // not WARNING severity which would mask critical failures
       const changeset = await manager.create('cleanup-test', 'Test cleanup errors');
 
-      // Create a changeset file to trigger backup cleanup
-      const { writeFile } = await import('../../src/utils/file-io.js');
-      const changesetPath = path.join(
+      // Verify the changeset directory structure (YAML format)
+      const changesetDir = path.join(
         testDir,
         'documentation-robotics',
         'changesets',
-        `${changeset.id}.json`
+        changeset.id
       );
+      const metadataPath = path.join(changesetDir, 'metadata.yaml');
 
-      // Verify that ERROR-level messages are used (not console.warn)
+      // Verify that the changeset was created with proper directory structure
+      // and that ERROR-level messages would be used (not console.warn)
       // The actual testing of error scenarios is limited in unit tests since
       // we can't easily mock file system errors, but this verifies the code
-      // path is set up to use console.error
-      expect(changesetPath).toBeDefined();
+      // path is set up correctly
+      expect(await fileExists(changesetDir)).toBe(true);
+      expect(await fileExists(metadataPath)).toBe(true);
     });
 
     it('should include actionable guidance for ENOSPC errors', async () => {
