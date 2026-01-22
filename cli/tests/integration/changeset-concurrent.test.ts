@@ -3,9 +3,10 @@ import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { rm, mkdir, cp } from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 
 const TEST_DIR = '/tmp/changeset-concurrent-test';
-const BASELINE_DIR = path.join(process.cwd(), '..', 'cli-validation', 'test-project', 'baseline');
+const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset Concurrent Operations', () => {
   let model: Model;

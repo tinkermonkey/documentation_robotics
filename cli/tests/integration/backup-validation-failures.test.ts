@@ -3,11 +3,12 @@ import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { rm, mkdir, readFile, writeFile, cp, readdir, chmod } from 'fs/promises';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
 
 const TEST_DIR = '/tmp/backup-validation-failures-test';
-const BASELINE_DIR = path.join(process.cwd(), '..', 'cli-validation', 'test-project', 'baseline');
+const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Backup Validation Failure Paths', () => {
   let model: Model;
