@@ -1177,7 +1177,7 @@ export class StagingAreaManager {
    * 2. Restore all layer files with per-file error handling
    * 3. Continue restoring remaining files even if some fail
    * 4. Throw detailed error if critical files fail to restore
-   * Manifest restoration failure is fatal; layer failures are warnings.
+   * Both manifest and layer restoration failures are critical and will throw errors.
    */
   private async restoreModel(model: Model, backupDir: string): Promise<void> {
     const { readFile, fileExists, atomicWrite } = await import('../utils/file-io.js');
@@ -1222,7 +1222,6 @@ export class StagingAreaManager {
 
       for (const layer of model.layers.values()) {
         const backupLayerDir = path.join(backupLayersDir, layer.name);
-        let layerRestored = false;
 
         try {
           if (!(await fileExists(backupLayerDir))) {
@@ -1277,10 +1276,6 @@ export class StagingAreaManager {
               }
             }
           }
-
-          if (filesRestoredInLayer > 0) {
-            layerRestored = true;
-          }
         } catch (error) {
           // Unexpected error during layer restoration - treat as critical
           const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1300,12 +1295,11 @@ export class StagingAreaManager {
       if (criticalLayers.size > 0) {
         const failedLayersList = Array.from(criticalLayers).join(', ');
         const detailedErrors = failedFiles
-          .filter(f => f.isCritical)
           .map(f => `  - ${f.path}: ${f.error}`)
           .join('\n');
 
         const errorSummary =
-          `Model restoration FAILED - ${failedFiles.filter(f => f.isCritical).length} critical layer(s) could not be restored:\n` +
+          `Model restoration FAILED - ${failedFiles.length} critical layer(s) could not be restored:\n` +
           `  Failed layers: ${failedLayersList}\n` +
           `\n` +
           `Detailed errors:\n${detailedErrors}\n` +
@@ -1334,7 +1328,7 @@ export class StagingAreaManager {
         `\n` +
         `Restoration progress:\n` +
         `  Successfully restored: ${restoredFiles.length} files\n` +
-        `  Failed to restore: ${failedFiles.length} files (${failedFiles.filter(f => f.isCritical).length} critical)\n` +
+        `  Failed to restore: ${failedFiles.length} files (all critical)\n` +
         `\n` +
         `Restored files:\n${restoredFiles.map(f => `  ✓ ${f}`).join('\n')}\n` +
         `\n` +

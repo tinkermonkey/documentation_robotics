@@ -987,38 +987,30 @@ describe('Changeset Rollback Verification', () => {
         return;
       }
 
-      // Intentionally corrupt backup layer directory permissions to cause failure
+      // Delete first layer directory from backup to simulate restoration failure
       const firstLayer = layers[0];
-      const layerPath = path.join(layersDir, firstLayer);
-      const layerFiles = await readdir(layerPath);
+      const fs = await import('fs/promises');
+      const backupLayerPath = path.join(layersDir, firstLayer);
+      const tempStorePath = path.join(backupDir, 'removed_' + firstLayer);
 
-      // If there are layer files, try to simulate a permission issue
-      if (layerFiles.length > 0) {
-        // Make layer directory unreadable to cause readdir to fail
-        const fs = await import('fs/promises');
+      // Move layer directory out of backup
+      await fs.rename(backupLayerPath, tempStorePath);
+
+      try {
+        await (manager as any).restoreModel(model, backupDir);
+        expect(true).toBe(false); // Should not reach this
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+        const message = (error as Error).message;
+        // Should fail with critical error
+        expect(message).toContain('restoration FAILED');
+        expect(message).toContain('[CRITICAL]');
+      } finally {
+        // Restore layer directory for cleanup
         try {
-          // This will fail on some systems, but that's ok for this test
-          await fs.chmod(layerPath, 0o000);
-
-          try {
-            await (manager as any).restoreModel(model, backupDir);
-            expect(true).toBe(false); // Should not reach this
-          } catch (error) {
-            expect(error instanceof Error).toBe(true);
-            const message = (error as Error).message;
-            // Should fail with critical error
-            expect(message).toContain('restoration FAILED');
-            expect(message).toContain('[CRITICAL]');
-          } finally {
-            // Restore permissions for cleanup
-            try {
-              await fs.chmod(layerPath, 0o755);
-            } catch {
-              // ignore
-            }
-          }
+          await fs.rename(tempStorePath, backupLayerPath);
         } catch {
-          // Skip if chmod is not available on this system
+          // ignore
         }
       }
     });
