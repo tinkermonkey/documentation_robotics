@@ -324,7 +324,6 @@ describe('StagedChangesetStorage', () => {
       elementId: 'elem-1',
       layerName: 'api',
       timestamp: new Date().toISOString(),
-      sequenceNumber: 0,
       after: { name: 'New Element' },
     });
 
@@ -343,7 +342,6 @@ describe('StagedChangesetStorage', () => {
       elementId: 'elem-1',
       layerName: 'api',
       timestamp: new Date().toISOString(),
-      sequenceNumber: 0,
       after: { name: 'Elem 1' },
     });
 
@@ -352,7 +350,6 @@ describe('StagedChangesetStorage', () => {
       elementId: 'elem-2',
       layerName: 'api',
       timestamp: new Date().toISOString(),
-      sequenceNumber: 1,
       after: { name: 'Elem 2' },
     });
 

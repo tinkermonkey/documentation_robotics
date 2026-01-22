@@ -213,10 +213,9 @@ export class StagingAreaManager {
       );
     }
 
-    const stagedChange: StagedChange = {
+    const stagedChange: Omit<StagedChange, 'sequenceNumber'> = {
       ...change,
       timestamp: change.timestamp || new Date().toISOString(),
-      sequenceNumber: -1, // Will be assigned by storage layer
     };
 
     await this.storage.addChange(changesetId, stagedChange);

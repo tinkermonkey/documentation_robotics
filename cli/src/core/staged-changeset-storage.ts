@@ -219,7 +219,7 @@ export class StagedChangesetStorage {
    * @returns The assigned sequence number for the change
    * @throws {Error} If lock acquisition, changeset load, save, or lock release fails
    */
-  async addChange(id: string, change: StagedChange): Promise<number> {
+  async addChange(id: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<number> {
     const changesetPath = this.getChangesetPath(id);
     const lock = new FileLock(changesetPath);
 
@@ -234,9 +234,12 @@ export class StagedChangesetStorage {
         // This prevents race conditions when multiple concurrent operations
         // try to add changes at the same time
         const sequenceNumber = changeset.changes.length;
-        change.sequenceNumber = sequenceNumber;
+        const stagedChange: StagedChange = {
+          ...change,
+          sequenceNumber,
+        };
 
-        changeset.changes.push(change);
+        changeset.changes.push(stagedChange);
         changeset.updateModified();
         changeset.updateStats();
 
@@ -271,12 +274,13 @@ export class StagedChangesetStorage {
         }
 
         // Filter out changes for this element
-        changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+        const filtered = changeset.changes.filter((c) => c.elementId !== elementId);
 
-        // Recalculate sequence numbers
-        changeset.changes.forEach((c, idx) => {
-          (c as StagedChange).sequenceNumber = idx;
-        });
+        // Reconstruct changes with updated sequence numbers
+        changeset.changes = filtered.map((c, idx) => ({
+          ...c,
+          sequenceNumber: idx,
+        }));
 
         changeset.updateModified();
         changeset.updateStats();

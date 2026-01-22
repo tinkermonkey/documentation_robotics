@@ -32,7 +32,7 @@ export interface Change {
  * Used in the staging workflow to ensure changes are applied in order during commit.
  */
 export interface StagedChange extends Change {
-  sequenceNumber: number; // 0-based index for ordering during commit replay
+  readonly sequenceNumber: number; // 0-based index for ordering during commit replay
 }
 
 /**
