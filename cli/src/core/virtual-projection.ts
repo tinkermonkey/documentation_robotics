@@ -604,7 +604,7 @@ export class VirtualProjectionEngine {
 
   /**
    * Clone a layer to create an independent copy.
-   * Deep clones all elements and metadata to avoid mutations.
+   * Shallow clones all elements and metadata to avoid mutations.
    * Cloned layer is marked clean to prevent unintended saves.
    *
    * @param layer - The layer to clone
@@ -613,10 +613,11 @@ export class VirtualProjectionEngine {
    * @remarks
    * Cloning strategy:
    * 1. Create new Layer with same name
-   * 2. Clone each element: deep copy properties, references, relationships
+   * 2. Clone each element: shallow copy properties object and array references
    * 3. Copy layer metadata if present
    * 4. Mark cloned layer as clean to prevent automatic saves
    * This ensures changes to projection don't affect base layer.
+   * Note: Shallow cloning is sufficient since properties are read-only in projections.
    */
   private cloneLayer(layer: Layer): Layer {
     const cloned = new LayerClass(layer.name);
