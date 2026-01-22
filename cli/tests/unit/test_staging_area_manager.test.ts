@@ -60,7 +60,7 @@ layers: {}`;
       expect(changeset).toBeDefined();
       expect(changeset.name).toBe('test-changeset');
       expect(changeset.description).toBe('Test description');
-      expect(changeset.status).toBe('draft');
+      expect(changeset.status).toBe('staged'); // Changed from 'draft' to 'staged' as changesets are now immediately ready to accept changes
       expect(changeset.changes.length).toBe(0);
       expect(changeset.id).toBeDefined();
     });
