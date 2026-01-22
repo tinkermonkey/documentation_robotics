@@ -30,16 +30,16 @@ export interface CommitOptions {
 
 /**
  * Drift report for change detection
+ *
+ * NOTE: Detects whether the base model has drifted (changed) since the changeset was created.
+ * Current implementation only identifies that drift occurred (isDrifted flag).
+ * Element-level change tracking is not implemented; detailed diff detection would require
+ * storing complete snapshot data, not just hashes.
  */
 export interface DriftReport {
   isDrifted: boolean;
   baseSnapshotId: string;
   currentSnapshotId: string;
-  changedElements: {
-    elementId: string;
-    layerName: string;
-    type: 'added' | 'modified' | 'deleted';
-  }[];
   warnings: string[];
 }
 
@@ -358,7 +358,6 @@ export class StagingAreaManager {
     const isDrifted = changeset.baseSnapshot !== currentSnapshotId;
 
     const warnings: string[] = [];
-    const changedElements: DriftReport['changedElements'] = [];
 
     if (isDrifted) {
       warnings.push(
@@ -370,7 +369,6 @@ export class StagingAreaManager {
       isDrifted,
       baseSnapshotId: changeset.baseSnapshot,
       currentSnapshotId: currentSnapshotId,
-      changedElements,
       warnings,
     };
   }
@@ -416,7 +414,7 @@ export class StagingAreaManager {
     if (drift.isDrifted && !options.force) {
       throw new Error(
         `Base model has drifted since changeset creation. ` +
-        `Use --force to commit anyway. Affected elements: ${drift.changedElements.map(e => e.elementId).join(', ')}`
+        `Use --force to commit anyway.`
       );
     }
 
