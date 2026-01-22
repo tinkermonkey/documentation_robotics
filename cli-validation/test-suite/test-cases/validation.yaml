@@ -62,14 +62,14 @@ pipelines:
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
-      - command: "show inspect-test-goal"
+      - command: "show motivation.goal.inspect-test-goal"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "inspect-test-goal"
           - "Test Goal for Inspection"
 
-      - command: "delete inspect-test-goal --force"
+      - command: "delete motivation.goal.inspect-test-goal --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -105,7 +105,7 @@ pipelines:
         expect_stderr_contains:
           - "already exists"
 
-      - command: "delete dup-test-goal --force"
+      - command: "delete motivation.goal.dup-test-goal --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -129,13 +129,13 @@ pipelines:
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "relationship add ref-test-table nonexistent-element --predicate composes"
+      - command: "relationship add datastore.table.ref-test-table nonexistent-element --predicate composes"
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
           - "not found"
 
-      - command: "delete ref-test-table --force"
+      - command: "delete datastore.table.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
