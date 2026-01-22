@@ -622,7 +622,7 @@ export class VirtualProjectionEngine {
   private cloneLayer(layer: Layer): Layer {
     const cloned = new LayerClass(layer.name);
 
-    // Clone all elements (deep copy to avoid mutations)
+    // Clone all elements (shallow copy - read-only in projection)
     for (const element of layer.listElements()) {
       const elementClone = new ElementClass({
         id: element.id,
