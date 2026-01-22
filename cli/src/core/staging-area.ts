@@ -320,13 +320,14 @@ export class StagingAreaManager {
    * Identifies whether the base model has changed since the changeset was created.
    *
    * @param changesetId - ID of the changeset to check for drift
-   * @returns DriftReport with isDrifted flag, snapshot hashes, and list of changed elements
+   * @returns DriftReport with isDrifted flag, snapshot hashes, and warnings
    * @throws Error if changeset ID is invalid, changeset not found, or model not available
    *
    * @remarks
    * Drift detection uses hash-based comparison of the entire model snapshot.
-   * Currently returns empty changedElements array as element-level change tracking
-   * is not implemented - only the isDrifted flag indicates if the model has changed.
+   * Element-level change tracking is not implemented - only the isDrifted flag
+   * indicates if the model has changed. Detailed diff detection would require
+   * storing complete snapshot data, not just hashes.
    * Returns isDrifted=false and warnings if no base snapshot was captured.
    */
   async detectDrift(changesetId: string): Promise<DriftReport> {
@@ -345,7 +346,6 @@ export class StagingAreaManager {
         isDrifted: false,
         baseSnapshotId: 'unknown',
         currentSnapshotId: 'unknown',
-        changedElements: [],
         warnings: ['No base snapshot available for drift detection'],
       };
     }
