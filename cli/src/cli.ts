@@ -21,6 +21,7 @@ import { validateCommand } from './commands/validate.js';
 import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
+import { catalogCommands } from './commands/catalog.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
@@ -200,13 +201,18 @@ Examples:
 program
   .command('delete <id>')
   .description('Delete an element')
-  .option('--force', 'Skip confirmation prompt')
+  .option('--force', 'Skip confirmation prompt and dependency checks')
+  .option('--cascade', 'Remove dependent elements automatically')
+  .option('--dry-run', 'Show what would be removed without actually removing')
   .addHelpText(
     'after',
     `
 Examples:
   $ dr delete api-endpoint-old-endpoint
-  $ dr delete api-endpoint-old-endpoint --force`
+  $ dr delete api-endpoint-old-endpoint --force
+  $ dr delete api-endpoint-old-endpoint --cascade
+  $ dr delete api-endpoint-old-endpoint --dry-run
+  $ dr delete api-endpoint-old-endpoint --cascade --dry-run`
   )
   .action(deleteCommand);
 
@@ -341,6 +347,9 @@ const relationshipGroup = program
   .command('relationship')
   .description('Relationship operations');
 relationshipCommands(relationshipGroup);
+
+// Catalog subcommands (modern relationship catalog)
+catalogCommands(program);
 
 // Dependency analysis commands
 program

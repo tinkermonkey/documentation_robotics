@@ -5,9 +5,32 @@ All notable changes to the Documentation Robotics CLI tool will be documented in
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.8.0] - 2025-12-19
+---
 
-### Added
+## ⚠️ DEPRECATION NOTICE
+
+**The Python CLI is deprecated** as of January 2026.
+
+- **Final Release:** v0.8.0 (this release)
+- **Migration:** See `docs/MIGRATION_FROM_PYTHON_CLI.md`
+- **Removal:** After 1-month transition period
+- **Replacement:** TypeScript CLI - `npm install -g @documentation-robotics/cli`
+
+**This is the last Python CLI release. No further updates will be published.**
+
+---
+
+## [0.8.0] - 2026-01-23 (FINAL RELEASE)
+
+### ⚠️ Deprecated
+
+- **Entire Python CLI** - This is the final release. No further updates will be published.
+  - **Reason:** Uses deprecated link-registry.json, slower performance, divided development effort
+  - **Migration Path:** Migrate to TypeScript CLI (see `docs/MIGRATION_FROM_PYTHON_CLI.md`)
+  - **Timeline:** 1-month transition period, then code will be archived
+  - **Replacement:** TypeScript CLI has all features plus enhancements (cascade deletion, modern catalog, etc.)
+
+### Added - Deprecation Warning
 
 - **Relationship Validation**: New comprehensive relationship validation system
   - `validators/relationship_validator.py`: Validates intra-layer and cross-layer relationships against layer schemas

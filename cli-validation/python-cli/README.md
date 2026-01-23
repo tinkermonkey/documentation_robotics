@@ -1,4 +1,21 @@
-# Documentation Robotics (`dr`) CLI Tool
+# Documentation Robotics Python CLI Tool
+
+---
+
+## ⚠️ **DEPRECATED - DO NOT USE FOR NEW PROJECTS**
+
+**This Python CLI is deprecated** and will be removed in a future release.
+
+- **Status:** 🔴 Maintenance mode only (v0.8.0 is the final release)
+- **Migrate to:** [TypeScript CLI](../../cli/) - `npm install -g @documentation-robotics/cli`
+- **Migration Guide:** [docs/MIGRATION_FROM_PYTHON_CLI.md](../../docs/MIGRATION_FROM_PYTHON_CLI.md)
+- **Timeline:** Code will be archived after 1-month transition period
+
+**For new projects:** Use the TypeScript CLI immediately. Do not start with this deprecated implementation.
+
+**For existing users:** Follow the migration guide to transition to the TypeScript CLI.
+
+---
 
 A command-line tool for managing federated architecture data models across 12 layers using standard specifications (ArchiMate, OpenAPI, JSON Schema, OpenTelemetry) and custom extensions.
 

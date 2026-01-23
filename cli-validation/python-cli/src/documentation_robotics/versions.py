@@ -18,7 +18,8 @@ Release Coordination:
 
 # CLI Version - Increment with each CLI release
 # Format: MAJOR.MINOR.PATCH following semver.org
-CLI_VERSION = "0.7.3"
+# ⚠️ v0.8.0 IS THE FINAL RELEASE - Python CLI is deprecated
+CLI_VERSION = "0.8.0"
 
 # Specification Version - Which spec version this CLI implements
 # Must match an existing spec release tag (spec-vX.Y.Z)

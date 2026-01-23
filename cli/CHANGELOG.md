@@ -5,6 +5,72 @@ All notable changes to the Documentation Robotics CLI will be documented in this
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+#### Enhanced Delete Command
+
+- **Cascade deletion** - `--cascade` flag removes dependent elements automatically to prevent orphaned references
+- **Dry-run mode** - `--dry-run` flag previews what would be deleted without actually deleting
+- **Dependency display** - Shows all elements that depend on the target element before deletion
+- **Transitive dependency tracking** - Identifies both direct and transitive dependents
+- **Safe deletion workflow** - Prevents deletion of elements with dependents unless explicitly cascaded
+
+#### Relationship Catalog Command (Modern Link Registry Replacement)
+
+- **`catalog types`** - List all relationship types from the catalog with filtering by category or layer
+- **`catalog info`** - Display catalog metadata (version, total types, categories)
+- **`catalog search`** - Search relationship types by keyword across ID, predicate, and description
+- **`catalog validate`** - Validate model relationships against the catalog with strict mode support
+- **`catalog docs`** - Generate comprehensive markdown or JSON documentation
+- **Modern architecture** - Uses `relationship-catalog.json` v2.1.0 instead of deprecated `link-registry.json`
+- **34 relationship types** - Covers structural, behavioral, dependency, flow, and other semantic relationships
+- **ArchiMate alignment** - Maps relationships to ArchiMate 3.2 concepts where applicable
+- **Multiple output formats** - Table, JSON, and Markdown for different use cases
+
+#### Core Relationship Catalog System
+
+- **RelationshipCatalog class** - Manages semantic relationship type definitions
+- **Predicate validation** - Ensures relationships use valid predicates from the catalog
+- **Layer-specific filtering** - Get relationship types applicable to specific layers
+- **Category-based organization** - Group relationships by semantic category
+- **Rich metadata** - Includes directionality, transitivity, symmetry for each relationship type
+
+#### Improved Safety Features
+
+- **Dependency checking** - Automatically detects and warns about dependent elements
+- **Preview capability** - Combine `--cascade --dry-run` to see all elements that would be removed
+- **Enhanced error messages** - Clear guidance on using `--cascade` or `--force` flags
+- **Relationship validation** - Validates predicates and layer applicability
+
+### Changed
+
+- **`--force` flag behavior** - Now also skips dependency checks in addition to confirmation prompts
+- **Delete command output** - More detailed information about dependencies and elements to be removed
+
+#### Migration Tools & Documentation
+
+- **Comprehensive migration guide** - Complete guide for migrating from Python CLI to TypeScript CLI (`docs/MIGRATION_FROM_PYTHON_CLI.md`)
+- **Annotation export utility** - Tool to export Python CLI annotations to JSON/Markdown (`cli/src/utils/export-python-annotations.ts`)
+- **Deprecation notice** - Formal deprecation announcement with timeline and FAQ (`docs/PYTHON_CLI_DEPRECATION.md`)
+- **CI/CD migration examples** - GitHub Actions, GitLab CI, Jenkins, Docker examples
+- **Command mapping table** - Complete mapping of all Python CLI commands to TypeScript CLI equivalents
+- **Troubleshooting guide** - Common migration issues and solutions
+
+### Deprecated
+
+- **Python CLI (entire codebase)** - Deprecated as of January 2026
+  - Final release: v0.8.0 (planned)
+  - Removal: After 1-month transition period
+  - Migration: See `docs/MIGRATION_FROM_PYTHON_CLI.md`
+  - Reason: Uses deprecated link-registry.json, slower performance, divided development effort
+
+- **Python CLI's `links` command** - Replaced by modern `catalog` command in TypeScript CLI
+  - Old system used deprecated `link-registry.json` (removed in spec v0.8.0)
+  - New system uses `relationship-catalog.json` v2.1.0+
+  - Migration: Use `dr catalog types` instead of `dr links types`
+
 ## [0.1.0] - 2026-01-11
 
 ### 🎉 Initial Release

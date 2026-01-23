@@ -44,13 +44,18 @@ Examples:
   program
     .command('delete <id>')
     .description('Delete an element')
-    .option('--force', 'Skip confirmation prompt')
+    .option('--force', 'Skip confirmation prompt and dependency checks')
+    .option('--cascade', 'Remove dependent elements automatically')
+    .option('--dry-run', 'Show what would be removed without actually removing')
     .addHelpText(
       'after',
       `
 Examples:
   $ dr element delete api-endpoint-old-endpoint
-  $ dr element delete api-endpoint-old-endpoint --force`
+  $ dr element delete api-endpoint-old-endpoint --force
+  $ dr element delete api-endpoint-old-endpoint --cascade
+  $ dr element delete api-endpoint-old-endpoint --dry-run
+  $ dr element delete api-endpoint-old-endpoint --cascade --dry-run`
     )
     .action(deleteCommand);
 

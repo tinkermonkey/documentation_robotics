@@ -16,6 +16,21 @@ Documentation Robotics provides:
 - **A CLI Tool** - `dr` command for managing models according to the specification
 - **Standards Integration** - Leverages ArchiMate, OpenAPI, JSON Schema, OpenTelemetry
 
+---
+
+## ⚠️ Python CLI Deprecation Notice
+
+**The Python CLI is deprecated** and will be removed in a future release. All users should migrate to the **TypeScript CLI**, which is the official, actively maintained implementation.
+
+- **Migration Guide:** [`docs/MIGRATION_FROM_PYTHON_CLI.md`](docs/MIGRATION_FROM_PYTHON_CLI.md)
+- **Deprecation Notice:** [`docs/PYTHON_CLI_DEPRECATION.md`](docs/PYTHON_CLI_DEPRECATION.md)
+- **TypeScript CLI:** [`cli/`](cli/) (✅ Active development)
+- **Python CLI:** `cli-validation/python-cli/` (🟡 Deprecated, maintenance mode)
+
+**New users:** Install the TypeScript CLI via `npm install -g @documentation-robotics/cli`
+
+---
+
 ## The Challenge
 
 Modern software systems are complex, distributed, and constantly evolving. Working with large cross-functional teams to design, build, and maintain these systems is a significant challenge. Communicating business intent and the art of the possible across business, architecture, and engineering teams is difficult. Creating a robust feedback loop between these groups throughout the product development lifecycle / software development lifecycle is even more difficult. Good communication is required to move quickly and effectively and to manage risk, but often it's out of the reach of many organizations.

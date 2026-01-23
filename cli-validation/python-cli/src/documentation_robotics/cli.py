@@ -63,6 +63,12 @@ def cli(ctx: click.Context, verbose: bool, no_upgrade_check: bool) -> None:
     ctx.obj["verbose"] = verbose
     ctx.obj["no_upgrade_check"] = no_upgrade_check
 
+    # ⚠️ DEPRECATION WARNING
+    console.print("[yellow]⚠️  WARNING: Python CLI is deprecated and will be removed in a future release.[/yellow]")
+    console.print("[yellow]    Please migrate to the TypeScript CLI: npm install -g @documentation-robotics/cli[/yellow]")
+    console.print("[yellow]    Migration guide: docs/MIGRATION_FROM_PYTHON_CLI.md[/yellow]")
+    console.print("")  # Empty line for readability
+
     # Check for upgrades (skip for init, upgrade, version commands and if explicitly disabled)
     if not no_upgrade_check and ctx.invoked_subcommand not in ["init", "upgrade", "version"]:
         # Only check if we're in a DR project directory
