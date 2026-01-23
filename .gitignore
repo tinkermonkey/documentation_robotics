@@ -75,4 +75,3 @@ lbug
 cli-validation/test-suite/node_modules/
 cli-validation/test-suite/dist/
 cli-validation/test-project/ts-cli/
-cli-validation/test-project/python-cli/

@@ -1,8 +1,11 @@
 /**
- * Python CLI Model Compatibility Tests
+ * Model Format Regression Tests
  *
- * Validates that TypeScript CLI can correctly load and work with
- * models created by the Python CLI (legacy format).
+ * Validates that the CLI can correctly load and work with
+ * models in various path configurations and formats.
+ *
+ * These tests ensure backwards compatibility with models created
+ * by previous CLI versions.
  */
 
 import { describe, it, expect, beforeAll } from 'bun:test';
@@ -10,9 +13,9 @@ import { Model } from '../../src/core/model.js';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 
-const TEST_MODEL_DIR = '/tmp/dr-python-cli-compat-test';
+const TEST_MODEL_DIR = '/tmp/dr-model-format-test';
 
-describe('Python CLI Model Compatibility', () => {
+describe('Model Format Regression Tests', () => {
   beforeAll(async () => {
     // Clean up any existing test directory
     await rm(TEST_MODEL_DIR, { recursive: true, force: true });
@@ -59,8 +62,8 @@ describe('Python CLI Model Compatibility', () => {
     });
 
     it('should load manifest from root/documentation-robotics/model/manifest.yaml', async () => {
-      // Create test structure: root/documentation-robotics/model/manifest.yaml (Python CLI format)
-      await mkdir(join(TEST_MODEL_DIR, 'python-style', 'documentation-robotics', 'model'), { recursive: true });
+      // Create test structure: root/documentation-robotics/model/manifest.yaml (legacy path format)
+      await mkdir(join(TEST_MODEL_DIR, 'legacy-style', 'documentation-robotics', 'model'), { recursive: true });
 
       const manifest = {
         schema: 'documentation-robotics-v1',
@@ -69,8 +72,8 @@ describe('Python CLI Model Compatibility', () => {
         created: '2025-01-01T00:00:00Z',
         updated: '2025-01-01T00:00:00Z',
         project: {
-          name: 'Python Style Project',
-          description: 'A project with Python CLI path structure',
+          name: 'Legacy Path Project',
+          description: 'A project with legacy path structure',
           version: '1.0.0'
         },
         layers: {
@@ -86,18 +89,18 @@ describe('Python CLI Model Compatibility', () => {
       };
 
       await writeFile(
-        join(TEST_MODEL_DIR, 'python-style', 'documentation-robotics', 'model', 'manifest.yaml'),
+        join(TEST_MODEL_DIR, 'legacy-style', 'documentation-robotics', 'model', 'manifest.yaml'),
         JSON.stringify(manifest).replace(/"/g, "'").replace(/'/g, '"')
       );
 
-      const model = await Model.load(join(TEST_MODEL_DIR, 'python-style'));
+      const model = await Model.load(join(TEST_MODEL_DIR, 'legacy-style'));
 
-      expect(model.manifest.name).toBe('Python Style Project');
+      expect(model.manifest.name).toBe('Legacy Path Project');
     });
   });
 
   describe('Manifest Metadata Preservation', () => {
-    it('should preserve Python CLI metadata fields', async () => {
+    it('should preserve legacy metadata fields', async () => {
       await mkdir(join(TEST_MODEL_DIR, 'metadata', 'documentation-robotics', 'model'), { recursive: true });
 
       const manifest = {

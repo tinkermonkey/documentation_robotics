@@ -6,14 +6,10 @@
 
 **Components:**
 
-1. **TypeScript CLI (`cli/`)** - Official, actively maintained implementation
+1. **CLI Tool (`cli/`)** - TypeScript implementation for managing architecture models
 2. **Metadata Model Specification** - Formal documentation defining the 12-layer model
-3. **Python CLI (`cli-validation/python-cli/`)** - 🟡 **DEPRECATED** (maintenance mode only)
 
-**Current Versions:** TypeScript CLI v0.1.0, Spec v0.7.1
-
-**⚠️ Python CLI Deprecation:**
-The Python CLI is deprecated. All development efforts focus on the TypeScript CLI. New users should only use the TypeScript CLI. See [`docs/PYTHON_CLI_DEPRECATION.md`](docs/PYTHON_CLI_DEPRECATION.md) for migration details.
+**Current Versions:** CLI v0.1.0, Spec v0.7.1
 
 ## Repository Structure
 

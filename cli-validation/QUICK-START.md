@@ -1,4 +1,4 @@
-# CLI Compatibility Test Suite - Quick Start Guide
+# CLI Regression Test Suite - Quick Start Guide
 
 ## Installation
 
@@ -152,8 +152,7 @@ cat test-results/junit.xml | xmllint --format -
 # Check that test cases exist
 ls -la test-cases/
 
-# Check that CLIs are configured
-echo "Python CLI: $DR_PYTHON_CLI"
+# Check that CLI is configured
 echo "TypeScript CLI: $DR_TS_CLI"
 
 # Run with verbose output
@@ -217,7 +216,7 @@ npm run test:all           # Run unit + compatibility tests
 - **JUnit XML**: `test-results/junit.xml`
 - **Custom Output**: Specified with `--output` flag
 - **Verbose Logs**: Printed to terminal with `--verbose`
-- **Failure Artifacts**: `test-project/python-cli/` and `test-project/ts-cli/`
+- **Failure Artifacts**: `test-project/ts-cli/`
 
 ## Examples
 
