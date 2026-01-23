@@ -1,20 +1,20 @@
-name: CLI Compatibility Tests
+name: TypeScript CLI Regression Tests
 
 on:
   pull_request:
     paths:
       - "cli/**"
       - "cli-validation/**"
-      - ".github/workflows/cli-compatibility.yml"
+      - ".github/workflows/ts-cli-regression.yml"
   push:
     branches: [main]
     paths:
       - "cli/**"
       - "cli-validation/**"
-      - ".github/workflows/cli-compatibility.yml"
+      - ".github/workflows/ts-cli-regression.yml"
 
 jobs:
-  compatibility:
+  regression:
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -45,7 +45,7 @@ jobs:
         working-directory: ./cli-validation/test-suite
         run: npm install
 
-      - name: Run Compatibility Tests
+      - name: Run Regression Tests
         working-directory: ./cli-validation/test-suite
         run: |
           DR_TS_CLI="node ${{ github.workspace }}/cli/dist/cli.js" \
@@ -55,7 +55,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: compatibility-test-results
+          name: regression-test-results
           path: cli-validation/test-suite/results/
           retention-days: 7
 
@@ -63,6 +63,6 @@ jobs:
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: compatibility-test-failure-artifacts
+          name: regression-test-failure-artifacts
           path: cli-validation/test-project/ts-cli/
           retention-days: 7
