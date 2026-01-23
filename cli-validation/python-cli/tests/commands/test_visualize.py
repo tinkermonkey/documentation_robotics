@@ -3,7 +3,7 @@ Tests for the visualize command and visualization server authentication.
 """
 
 from pathlib import Path
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, AsyncMock, patch
 
 import pytest
 from aiohttp import web
@@ -254,8 +254,17 @@ class TestVisualizeCommand:
             mock_server.get_magic_link.return_value = "http://localhost:8080/?token=abc123"
             mock_server_class.return_value = mock_server
 
-            # Mock asyncio.run to raise KeyboardInterrupt (simulates Ctrl+C)
-            mock_asyncio_run.side_effect = KeyboardInterrupt()
+            # Mock asyncio.run to properly handle the coroutine before raising KeyboardInterrupt
+            # This prevents "coroutine was never awaited" warnings
+            import inspect
+
+            def mock_run(coro):
+                # Close the coroutine to clean up properly
+                if inspect.iscoroutine(coro):
+                    coro.close()
+                raise KeyboardInterrupt()
+
+            mock_asyncio_run.side_effect = mock_run
 
             # Run command
             result = runner.invoke(visualize, catch_exceptions=False)
@@ -299,8 +308,17 @@ class TestVisualizeCommand:
             mock_server.get_magic_link.return_value = "http://localhost:9000/?token=abc123"
             mock_server_class.return_value = mock_server
 
-            # Mock asyncio.run to raise KeyboardInterrupt
-            mock_asyncio_run.side_effect = KeyboardInterrupt()
+            # Mock asyncio.run to properly handle the coroutine before raising KeyboardInterrupt
+            # This prevents "coroutine was never awaited" warnings
+            import inspect
+
+            def mock_run(coro):
+                # Close the coroutine to clean up properly
+                if inspect.iscoroutine(coro):
+                    coro.close()
+                raise KeyboardInterrupt()
+
+            mock_asyncio_run.side_effect = mock_run
 
             # Run with custom port
             result = runner.invoke(visualize, ["--port", "9000"], catch_exceptions=False)

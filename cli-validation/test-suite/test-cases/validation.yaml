@@ -9,7 +9,7 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 1
         expect_stdout_contains:
-          - "Naming/motivation"
+          - "Naming/api"
 
       - command: "info"
         files_to_compare: []
@@ -62,14 +62,14 @@ pipelines:
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
-      - command: "show inspect-test-goal"
+      - command: "show motivation.goal.inspect-test-goal"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "inspect-test-goal"
           - "Test Goal for Inspection"
 
-      - command: "delete inspect-test-goal --force"
+      - command: "delete motivation.goal.inspect-test-goal --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -82,13 +82,21 @@ pipelines:
         expect_exit_code: 0
 
   - name: "Invalid element ID format"
-    description: "Verify validation of element naming conventions"
+    description: "Verify that underscores in element IDs are normalized to hyphens"
     steps:
       - command: "add motivation goal invalid_id_with_underscore --name 'Invalid ID' --description 'Testing invalid ID format'"
-        files_to_compare: []
-        expect_exit_code: 1
-        expect_stderr_contains:
-          - "Invalid element ID"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "invalid-id-with-underscore"
+
+      - command: "delete motivation.goal.invalid-id-with-underscore --force"
+        files_to_compare:
+          - manifest.yaml
+          - 01_motivation/goals.yaml
+        expect_exit_code: 0
 
   - name: "Duplicate element creation"
     description: "Verify error when attempting to create duplicate element"
@@ -105,20 +113,28 @@ pipelines:
         expect_stderr_contains:
           - "already exists"
 
-      - command: "delete dup-test-goal --force"
+      - command: "delete motivation.goal.dup-test-goal --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
         expect_exit_code: 0
 
   - name: "Missing required properties"
-    description: "Verify validation of required element properties"
+    description: "Verify that name property defaults to element ID when not provided"
     steps:
-      - command: 'add api endpoint invalid-endpoint --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
-        files_to_compare: []
-        expect_exit_code: 1
-        expect_stderr_contains:
-          - "name"
+      - command: 'add api endpoint missing-name-endpoint --description ''Missing required name'' --properties ''{"method":"GET","path":"/test"}'''
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/endpoints.yaml
+        expect_exit_code: 0
+        expect_stdout_contains:
+          - "missing-name-endpoint"
+
+      - command: "delete api.endpoint.missing-name-endpoint --force"
+        files_to_compare:
+          - manifest.yaml
+          - 06_api/endpoints.yaml
+        expect_exit_code: 0
 
   - name: "Reference to non-existent element"
     description: "Verify validation when referencing non-existent elements"
@@ -129,13 +145,13 @@ pipelines:
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "relationship add ref-test-table nonexistent-element --predicate composes"
+      - command: "relationship add datastore.table.ref-test-table nonexistent-element --predicate composes"
         files_to_compare: []
         expect_exit_code: 1
         expect_stderr_contains:
           - "not found"
 
-      - command: "delete ref-test-table --force"
+      - command: "delete datastore.table.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml

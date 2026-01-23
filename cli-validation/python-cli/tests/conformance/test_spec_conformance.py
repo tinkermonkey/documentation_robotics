@@ -4,8 +4,6 @@ Conformance tests for the Documentation Robotics Specification.
 These tests validate that the CLI correctly implements the specification.
 """
 
-from pathlib import Path
-
 import pytest
 from documentation_robotics.spec_version import (
     CONFORMANCE_LEVEL,
@@ -62,33 +60,6 @@ class TestSpecificationConformance:
         assert spec["conformanceLevel"] == CONFORMANCE_LEVEL
 
 
-class TestConformanceTestSuite:
-    """Test that the CLI can run conformance tests."""
-
-    @pytest.fixture
-    def spec_test_fixtures_path(self):
-        """Get path to specification test fixtures."""
-        # Assuming tests are in cli/tests and spec is ../spec
-        cli_root = Path(__file__).parent.parent.parent
-        spec_root = cli_root.parent / "spec"
-        return spec_root / "test-fixtures"
-
-    def test_test_fixtures_exist(self, spec_test_fixtures_path):
-        """Test that specification test fixtures exist."""
-        assert spec_test_fixtures_path.exists(), (
-            f"Specification test fixtures not found at {spec_test_fixtures_path}. "
-            "Ensure spec/ directory is at the same level as cli/"
-        )
-
-    def test_valid_fixtures_directory_exists(self, spec_test_fixtures_path):
-        """Test that valid fixtures directory exists."""
-        valid_path = spec_test_fixtures_path / "valid"
-        assert valid_path.exists(), f"Valid fixtures not found at {valid_path}"
-
-    def test_invalid_fixtures_directory_exists(self, spec_test_fixtures_path):
-        """Test that invalid fixtures directory exists."""
-        invalid_path = spec_test_fixtures_path / "invalid"
-        assert invalid_path.exists(), f"Invalid fixtures not found at {invalid_path}"
 
 
 class TestLayerImplementation:

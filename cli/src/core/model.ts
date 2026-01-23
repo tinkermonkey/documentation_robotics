@@ -2,6 +2,7 @@ import { Layer } from "./layer.js"
 import { Manifest } from "./manifest.js"
 import { Element } from "./element.js";
 import { ProjectionEngine } from "./projection-engine.js";
+import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { Relationships } from "./relationships.js";
 import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
@@ -27,6 +28,7 @@ export class Model {
   lazyLoad: boolean
   private loadedLayers: Set<string>
   private projectionEngine?: ProjectionEngine
+  private virtualProjectionEngine?: VirtualProjectionEngine
   private activeChangesetContext?: ActiveChangesetContext
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
@@ -69,6 +71,16 @@ export class Model {
       this.projectionEngine = new ProjectionEngine(this);
     }
     return this.projectionEngine;
+  }
+
+  /**
+   * Get virtual projection engine (lazily initialized)
+   */
+  getVirtualProjectionEngine(): VirtualProjectionEngine {
+    if (!this.virtualProjectionEngine) {
+      this.virtualProjectionEngine = new VirtualProjectionEngine(this.rootPath);
+    }
+    return this.virtualProjectionEngine;
   }
 
   /**

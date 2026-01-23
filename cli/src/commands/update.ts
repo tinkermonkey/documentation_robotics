@@ -4,8 +4,9 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
-import { CLIError } from '../utils/errors.js';
+import { CLIError, handleError } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
@@ -74,70 +75,68 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
-      console.error(ansis.red(`Error: Element ${id} not found`));
-      process.exit(1);
+      throw new CLIError(`Element ${id} not found`, 1);
     }
 
     const layer = (await model.getLayer(layerName))!;
     const element = layer.getElement(id)!;
 
-    // Capture before state for changeset tracking
-    const beforeState = element.toJSON();
+    // Validate that at least one field is specified
+    const hasUpdates = options.name || options.description !== undefined ||
+                       options.properties || options.sourceFile || options.clearSourceReference;
 
-    // Update fields
-    let updated = false;
-
-    if (options.name) {
-      element.name = options.name;
-      updated = true;
-    }
-
-    if (options.description !== undefined) {
-      element.description = options.description || undefined;
-      updated = true;
-    }
-
-    if (options.properties) {
-      try {
-        const newProperties = JSON.parse(options.properties);
-        element.properties = { ...element.properties, ...newProperties };
-        updated = true;
-      } catch (e) {
-        console.error(ansis.red('Error: Invalid JSON in --properties'));
-        process.exit(1);
-      }
-    }
-
-    // Handle source reference updates
-    if (options.clearSourceReference) {
-      element.setSourceReference(undefined);
-      updated = true;
-    } else if (options.sourceFile) {
-      const newRef = buildSourceReference(options);
-      if (newRef) {
-        element.setSourceReference(newRef);
-        updated = true;
-      }
-    }
-
-    if (!updated) {
+    if (!hasUpdates) {
       console.log(ansis.yellow('No fields specified for update'));
       process.exit(0);
     }
 
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
-      'update',
-      id,
-      layerName,
-      beforeState as unknown as Record<string, unknown>,
-      element.toJSON() as unknown as Record<string, unknown>
-    );
+    // Single unified mutation handler for update
+    const handler = new MutationHandler(model, id, layerName);
 
-    // Save
-    await model.saveLayer(layerName);
-    await model.saveManifest();
+    // Execute update through unified path (handles staging and base model consistently)
+    // The mutator function applies all updates in a single pass with validated JSON parsing
+    await handler.executeUpdate(element, async (elem, after) => {
+      // Parse JSON once here in the mutator - shared by both staging and base paths
+      let parsedProperties: Record<string, unknown> | undefined;
+      if (options.properties) {
+        try {
+          parsedProperties = JSON.parse(options.properties);
+        } catch (e) {
+          throw new CLIError(
+            'Invalid JSON in --properties',
+            1,
+            ['Ensure your JSON is valid and properly formatted']
+          );
+        }
+      }
+
+      // Apply updates to both element and after state
+      if (options.name) {
+        elem.name = options.name;
+        after.name = options.name;
+      }
+
+      if (options.description !== undefined) {
+        elem.description = options.description || undefined;
+        after.description = options.description || undefined;
+      }
+
+      if (parsedProperties) {
+        elem.properties = { ...elem.properties, ...parsedProperties };
+        after.properties = { ...(after.properties as Record<string, unknown>), ...parsedProperties };
+      }
+
+      if (options.clearSourceReference) {
+        elem.setSourceReference(undefined);
+        after.sourceReference = undefined;
+      } else if (options.sourceFile) {
+        const newRef = buildSourceReference(options);
+        if (newRef) {
+          elem.setSourceReference(newRef);
+          after.sourceReference = newRef;
+        }
+      }
+    });
 
     console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));
     if (options.verbose) {
@@ -160,9 +159,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: (error as Error).message });
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   } finally {
     if (isTelemetryEnabled) {
       endSpan(span);

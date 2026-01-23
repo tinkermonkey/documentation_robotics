@@ -3,4 +3,4 @@ Main View:
   description: Primary view displaying todo list and input
   type: dashboard
   route: /
-  id: main-view
+  id: ux-view-main

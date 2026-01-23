@@ -206,6 +206,48 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 - `cli/src/core/reference-registry.ts` - Reference tracking
 - `cli/src/core/relationship-registry.ts` - Relationship tracking
 - `cli/src/validators/semantic.ts` - Business rule validation
+- `cli/src/core/virtual-projection.ts` - Virtual projection engine
+- `cli/src/core/staged-changeset-storage.ts` - Changeset persistence
+- `cli/src/core/drift-detector.ts` - Drift detection logic
+
+### Staging Workflow
+
+The staging feature provides a safe way to prepare changes before committing:
+
+**When to use staging:**
+- **Feature development**: Build features across multiple layers without affecting base model
+- **Collaborative design**: Share work-in-progress changesets with team members
+- **Safe refactoring**: Prepare model changes with drift detection before applying
+- **Model review**: Preview changes before committing to ensure correctness
+
+**Typical workflow:**
+```bash
+# 1. Create changeset
+dr changeset create my-feature
+
+# 2. Stage changes (base model unchanged)
+dr changeset stage my-feature add --element-id ... --layer ...
+
+# 3. Preview merged view
+dr changeset preview my-feature
+
+# 4. Commit when satisfied (drift detection, validation, atomicity)
+dr changeset commit my-feature
+```
+
+**Key concepts:**
+- **Staged Status**: Changes prepared but not applied (default for new changesets)
+- **Committed Status**: Changes applied to base model (set after successful commit)
+- **Discarded Status**: Changes abandoned without applying
+- **Drift Detection**: Alerts when base model changed since changeset creation
+- **Virtual Projection**: Merges staged changes with base model for preview
+
+**Implementation files:**
+- `cli/src/core/changeset-migration.ts` - Auto-migration from old format (.dr/ to documentation-robotics/)
+- `cli/src/commands/changeset.ts` - All changeset commands
+- `cli/tests/integration/staging-workflow.test.ts` - Staging workflow tests
+- `cli/tests/integration/changeset-export-import.test.ts` - Export/import tests
+- `docs/STAGING_GUIDE.md` - Comprehensive staging documentation
 
 ### Testing
 
@@ -213,6 +255,7 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 npm run test              # All tests
 npm run test:unit         # Unit tests only
 npm run test:integration  # Integration tests only
+npm run test:performance  # Performance benchmarks
 ```
 
 ## Standards

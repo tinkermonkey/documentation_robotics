@@ -4,18 +4,18 @@ Main Route:
   type: experience
   path: /
   component: App
-  id: main-route
+  id: navigation-route-main
 API Todos Route:
   name: API Todos Route
   description: Backend API route for todos endpoint
   type: experience
   path: /api/todos
   backend: "true"
-  id: api-todos-route
+  id: navigation-route-api-todos
 API Todo Detail Route:
   name: API Todo Detail Route
   description: Backend API route for individual todo operations
   type: experience
   path: /api/todos/{id}
   backend: "true"
-  id: api-todo-detail-route
+  id: navigation-route-api-todo-detail

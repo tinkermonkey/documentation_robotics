@@ -2,6 +2,6 @@ Task Management Service:
   name: Task Management Service
   description: Business service for managing personal tasks and to-do items
   criticality: high
-  id: task-management
+  id: business-service-task-management
   motivation:
-    supports-goals: manage-tasks
+    supports-goals: motivation-goal-manage-tasks

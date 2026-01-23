@@ -3,4 +3,4 @@ Lightweight Technology Stack:
   description: Use minimal dependencies and simple deployment
   type: technical
   constraintType: technology
-  id: lightweight-stack
+  id: motivation-constraint-lightweight-stack

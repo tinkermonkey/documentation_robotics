@@ -131,9 +131,12 @@
       "Bash(npx markdownlint-cli2:*)",
       "Bash(gh run list:*)",
       "Bash(gh run watch:*)",
-      "Bash(npm pkg:*)"
+      "Bash(npm pkg:*)",
+      "Bash(npx bun test:*)"
     ]
   },
   "enableAllProjectMcpServers": true,
-  "enabledMcpjsonServers": ["context7"]
+  "enabledMcpjsonServers": [
+    "context7"
+  ]
 }

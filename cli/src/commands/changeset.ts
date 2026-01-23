@@ -5,9 +5,21 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { ChangesetManager } from '../core/changeset.js';
+import { StagingAreaManager } from '../core/staging-area.js';
+import { ChangesetExporter } from '../core/changeset-exporter.js';
+import { StagedChangesetStorage } from '../core/staged-changeset-storage.js';
 import { ActiveChangesetContext } from '../core/active-changeset.js';
+import { validateMigration, dryRunMigration, migrateChangesets } from '../core/changeset-migration.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
+import path from 'path';
+
+/**
+ * Generate a unique ID for imported changesets
+ */
+function generateImportedChangesetId(): string {
+  return `imported-${Date.now()}`;
+}
 
 /**
  * Create a new changeset
@@ -421,6 +433,726 @@ export async function changesetStatusCommand(): Promise<void> {
 }
 
 /**
+ * List all staged changes in the active changeset
+ */
+export async function changesetStagedCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    let changes = changeset.getChangesByType('add')
+      .concat(changeset.getChangesByType('update'))
+      .concat(changeset.getChangesByType('delete'));
+
+    if (options.layer) {
+      changes = changes.filter((c: any) => c.layerName === options.layer);
+    }
+
+    if (changes.length === 0) {
+      console.log(ansis.yellow('No staged changes'));
+      return;
+    }
+
+    console.log(ansis.bold(`\nStaged Changes (${changes.length}):\n`));
+
+    const tableData = changes.map((c: any) => ({
+      'Element ID': c.elementId,
+      'Layer': c.layerName,
+      'Type': c.type,
+      'Timestamp': new Date(c.timestamp || Date.now()).toISOString(),
+    }));
+
+    console.table(tableData);
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Remove specific element from staging area
+ */
+export async function changesetUnstageCommand(elementId: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    // Check if element exists in changes
+    const initialCount = changeset.getChangeCount();
+    changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+
+    if (changeset.getChangeCount() === initialCount) {
+      console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+      return;
+    }
+
+    // Save updated changeset
+    changeset.updateModified();
+    await manager.save(changeset);
+
+    console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
+    console.log(
+      ansis.dim(
+        `  Remaining staged changes: ${changeset.getChangeCount()}`
+      )
+    );
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Discard all or single staged changes
+ */
+export async function changesetDiscardCommand(elementId?: string): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    if (elementId) {
+      // Discard single element
+      const initialCount = changeset.getChangeCount();
+      changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
+
+      if (changeset.getChangeCount() === initialCount) {
+        console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+        return;
+      }
+
+      changeset.updateModified();
+      await manager.save(changeset);
+      console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
+    } else {
+      // Discard all changes with confirmation
+      const confirmed = await prompts.confirm({
+        message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
+      });
+
+      if (!confirmed) {
+        console.log(ansis.dim('Cancelled'));
+        return;
+      }
+
+      // Clear all changes
+      changeset.changes = [];
+      changeset.markDiscarded();
+      await manager.save(changeset);
+
+      console.log(ansis.green(`✓ Discarded all staged changes`));
+      console.log(ansis.dim(`  Changeset status: discarded`));
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Preview the merged model state with staged changes applied
+ */
+export async function changesetPreviewCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    console.log(
+      ansis.bold(`\nPreview: Merged Model State (${ansis.cyan('with staged changes')})`)
+    );
+    console.log(ansis.dim(`Changeset: ${activeChangeset}`));
+    console.log();
+
+    // Show summary of changes
+    const additions = changeset.getChangesByType('add').length;
+    const modifications = changeset.getChangesByType('update').length;
+    const deletions = changeset.getChangesByType('delete').length;
+
+    if (additions > 0) {
+      console.log(ansis.green(`+ ${additions} additions`));
+    }
+    if (modifications > 0) {
+      console.log(ansis.yellow(`~ ${modifications} modifications`));
+    }
+    if (deletions > 0) {
+      console.log(ansis.red(`- ${deletions} deletions`));
+    }
+
+    console.log();
+
+    if (options.layer) {
+      // Filter changes by layer
+      const layerChanges = changeset.changes.filter(
+        (c: any) => c.layerName === options.layer
+      );
+
+      if (layerChanges.length === 0) {
+        console.log(ansis.dim(`No staged changes in layer '${options.layer}'`));
+        return;
+      }
+
+      console.log(ansis.bold(`Layer: ${options.layer}`));
+      const tableData = layerChanges.map((c: any) => ({
+        'Element ID': c.elementId + ansis.dim(' (staged)'),
+        'Type': c.type,
+        'Status': c.type === 'add' ? 'new' : c.type === 'delete' ? 'removed' : 'updated',
+      }));
+      console.table(tableData);
+    } else {
+      // Show all layers with staged changes
+      const layerMap = new Map<string, any[]>();
+      changeset.changes.forEach((c: any) => {
+        if (!layerMap.has(c.layerName)) {
+          layerMap.set(c.layerName, []);
+        }
+        layerMap.get(c.layerName)!.push(c);
+      });
+
+      for (const [layerName, changes] of layerMap) {
+        console.log(ansis.bold(`Layer: ${layerName}`));
+        const tableData = changes.map((c: any) => ({
+          'Element ID': c.elementId,
+          'Type': c.type,
+          'Status': c.type === 'add' ? 'new' : c.type === 'delete' ? 'removed' : 'updated',
+        }));
+        console.table(tableData);
+        console.log();
+      }
+    }
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Show delta between base model and staged changes
+ */
+export async function changesetDiffCommand(options: {
+  layer?: string;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const manager = new ChangesetManager(model.rootPath);
+    const changeset = await manager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    console.log(ansis.bold('\nDiff: Base Model vs Staged Changes\n'));
+
+    // Group changes by layer
+    const layerMap = new Map<string, any[]>();
+    changeset.changes.forEach((c: any) => {
+      if (!options.layer || c.layerName === options.layer) {
+        if (!layerMap.has(c.layerName)) {
+          layerMap.set(c.layerName, []);
+        }
+        layerMap.get(c.layerName)!.push(c);
+      }
+    });
+
+    if (layerMap.size === 0) {
+      console.log(
+        ansis.dim(
+          options.layer
+            ? `No changes in layer '${options.layer}'`
+            : 'No staged changes'
+        )
+      );
+      return;
+    }
+
+    // Display changes grouped by layer
+    for (const [layerName, changes] of layerMap) {
+      console.log(ansis.bold(`Layer: ${layerName}`));
+
+      for (const change of changes) {
+        if (change.type === 'add') {
+          console.log(ansis.green(`+ ${change.elementId}`));
+          console.log(ansis.dim(`  ${JSON.stringify(change.after || {}, null, 2)}`));
+        } else if (change.type === 'delete') {
+          console.log(ansis.red(`- ${change.elementId}`));
+          console.log(ansis.dim(`  ${JSON.stringify(change.before || {}, null, 2)}`));
+        } else if (change.type === 'update') {
+          console.log(ansis.yellow(`~ ${change.elementId}`));
+          console.log(ansis.dim(`  Before: ${JSON.stringify(change.before || {})}`));
+          console.log(ansis.dim(`  After:  ${JSON.stringify(change.after || {})}`));
+        }
+      }
+
+      console.log();
+    }
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Apply staged changes to the base model
+ *
+ * Implements atomic commit with validation and rollback on failure.
+ * All changes are applied atomically—on any failure, the model is rolled back.
+ *
+ * @param options - Commit options
+ * @param options.validate - Run validation before commit (default: true).
+ *   When enabled, schema, reference, and semantic validation must pass.
+ *   Validation errors always block the commit and cannot be overridden with --force.
+ * @param options.force - Skip drift detection warnings (default: false).
+ *   When the base model has changed since the changeset was created, drift is detected.
+ *   Use --force to commit despite drift. Validation errors always block commit regardless of --force.
+ *
+ * @throws Error if validation fails, drift detected without --force, or commit fails
+ */
+export async function changesetCommitCommand(options?: {
+  validate?: boolean;
+  force?: boolean;
+}): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const context = new ActiveChangesetContext(model.rootPath);
+    const activeChangeset = await context.getActive();
+
+    if (!activeChangeset) {
+      console.error(ansis.red('Error: No active changeset'));
+      return;
+    }
+
+    const stagingManager = new StagingAreaManager(model.rootPath, model);
+    const changeset = await stagingManager.load(activeChangeset);
+
+    if (!changeset) {
+      console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      process.exit(1);
+    }
+
+    const changeCount = changeset.changes.length;
+
+    if (changeCount === 0) {
+      console.log(ansis.yellow('No staged changes to commit'));
+      return;
+    }
+
+    console.log(ansis.bold(`\nCommitting changeset: ${ansis.cyan(activeChangeset)}`));
+    console.log(ansis.dim(`Staged changes: ${changeCount}`));
+    console.log();
+
+    // Execute atomic commit with validation and rollback
+    try {
+      const result = await stagingManager.commit(model, activeChangeset, {
+        validate: options?.validate !== false,
+        force: options?.force === true,
+      });
+
+      // Show results
+      console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
+
+      if (result.driftWarning) {
+        console.log(
+          ansis.yellow(
+            `⚠ Warning: Model had drifted since changeset creation (--force was used)`
+          )
+        );
+      }
+
+      console.log();
+    } catch (error) {
+      // Commit failed - error was thrown from StagingAreaManager
+      // Model has been automatically rolled back
+      console.log(
+        ansis.red(`✗ Commit failed and rolled back: ${error instanceof Error ? error.message : String(error)}`)
+      );
+      throw error;
+    }
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Export changeset to portable file
+ */
+export async function changesetExportCommand(
+  changesetId: string,
+  options: {
+    output?: string;
+    format?: 'yaml' | 'json' | 'patch';
+  }
+): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const exporter = new ChangesetExporter(model.rootPath);
+
+    // Default output filename based on changeset id and format
+    const format = options.format || 'yaml';
+    const ext = format === 'patch' ? 'patch' : format;
+    const outputPath =
+      options.output || `${changesetId}.${ext}`;
+
+    // Ensure output path is absolute
+    const absolutePath = path.isAbsolute(outputPath)
+      ? outputPath
+      : path.join(process.cwd(), outputPath);
+
+    await exporter.exportToFile(changesetId, absolutePath, format);
+
+    console.log(ansis.green(`✓ Exported changeset to ${ansis.cyan(outputPath)}`));
+    console.log(ansis.dim(`  Format: ${format}`));
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Import changeset from portable file
+ */
+export async function changesetImportCommand(file: string): Promise<void> {
+  try {
+    // Load full model for compatibility validation
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
+    const exporter = new ChangesetExporter(model.rootPath);
+
+    // Ensure file path is absolute
+    const absolutePath = path.isAbsolute(file)
+      ? file
+      : path.join(process.cwd(), file);
+
+    // Import changeset
+    const imported = await exporter.importFromFile(absolutePath);
+
+    // Validate compatibility with current model
+    const compatibility = await exporter.validateCompatibility(
+      imported,
+      model
+    );
+
+    // Check for issues
+    if (!compatibility.compatible) {
+      console.error(ansis.red('✗ Import failed: Changeset is incompatible'));
+      console.error(ansis.dim(`  Issues:`));
+      for (const warning of compatibility.warnings) {
+        console.error(ansis.dim(`    - ${warning}`));
+      }
+      process.exit(1);
+    }
+
+    // Warn about drift if detected
+    if (!compatibility.baseSnapshotMatch) {
+      console.warn(ansis.yellow(`⚠ Warning: Base model has changed`));
+      console.warn(
+        ansis.dim('  The model has been modified since this changeset was created.')
+      );
+      console.warn(
+        ansis.dim(
+          '  Review the changes carefully before committing.'
+        )
+      );
+      console.log();
+    }
+
+    // Assign new ID to avoid conflicts
+    const newId = generateImportedChangesetId();
+    imported.id = newId;
+
+    // Save to staging area using storage
+    const storage = new StagedChangesetStorage(model.rootPath);
+    await storage.save(imported);
+
+    console.log(ansis.green(`✓ Imported changeset: ${ansis.cyan(imported.name)}`));
+    console.log(ansis.dim(`  ID: ${newId}`));
+    console.log(
+      ansis.dim(
+        `  Changes: +${imported.stats?.additions || 0} ~${imported.stats?.modifications || 0} -${imported.stats?.deletions || 0}`
+      )
+    );
+
+    if (!compatibility.baseSnapshotMatch) {
+      console.log(
+        ansis.yellow(
+          `  ⚠ Base model drift detected - review before committing`
+        )
+      );
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Validate migration from old to new changeset format
+ */
+export async function changesetValidateMigrationCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const validation = await validateMigration(model.rootPath, model);
+
+    if (!validation.migrationNeeded) {
+      console.log(ansis.green('✓ Migration not needed - all changesets are in new format'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.bold('\nMigration Validation Report:\n'));
+    console.log(ansis.cyan(`  Total old-format changesets: ${validation.totalOldChangesets}`));
+    console.log(ansis.cyan(`  Already migrated: ${validation.alreadyMigratedCount}`));
+    console.log(ansis.cyan(`  Require migration: ${validation.requiresMigrationCount}`));
+    console.log();
+
+    if (validation.validationIssues.length > 0) {
+      console.log(ansis.red(`✗ Found ${validation.validationIssues.length} validation issue(s):\n`));
+      for (const issue of validation.validationIssues) {
+        console.log(ansis.dim(`  - ${ansis.bold(issue.changeset)}: ${issue.issue}`));
+      }
+      console.log();
+    }
+
+    if (validation.warnings.length > 0) {
+      console.log(ansis.yellow(`⚠ Warnings:\n`));
+      for (const warning of validation.warnings) {
+        console.log(ansis.dim(`  - ${warning}`));
+      }
+      console.log();
+    }
+
+    if (validation.canProceed) {
+      console.log(ansis.green('✓ Migration can proceed'));
+      console.log(ansis.dim('  Run: dr changeset migrate'));
+    } else {
+      console.log(ansis.red('✗ Migration cannot proceed - fix issues above first'));
+    }
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Perform dry-run of changeset migration
+ */
+export async function changesetMigrateDryRunCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    const dryRun = await dryRunMigration(model.rootPath, model);
+
+    console.log(ansis.bold('\nMigration Dry-Run Preview:\n'));
+    console.log(ansis.cyan(`Summary:`));
+    console.log(ansis.dim(`  Total to migrate: ${dryRun.summary.totalToMigrate}`));
+    console.log(ansis.dim(`  Already migrated: ${dryRun.summary.alreadyMigrated}`));
+    console.log(ansis.dim(`  Expected failures: ${dryRun.summary.expectedFailures}`));
+    console.log();
+
+    if (dryRun.changesets.length === 0) {
+      console.log(ansis.yellow('No changesets to migrate'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.cyan(`Changesets:\n`));
+
+    for (const cs of dryRun.changesets) {
+      const statusColor =
+        cs.mappedStatus === 'committed'
+          ? ansis.green
+          : cs.mappedStatus === 'discarded'
+            ? ansis.gray
+            : ansis.yellow;
+
+      console.log(`${ansis.bold(cs.oldName)}`);
+      console.log(ansis.dim(`  ID: ${cs.newId}`));
+      console.log(ansis.dim(`  Status: ${cs.currentStatus} → ${statusColor(cs.mappedStatus)}`));
+      console.log(ansis.dim(`  Changes: ${cs.changes}`));
+
+      if (cs.issues && cs.issues.length > 0) {
+        console.log(ansis.red(`  Issues:`));
+        for (const issue of cs.issues) {
+          console.log(ansis.dim(`    - ${issue}`));
+        }
+      }
+
+      console.log();
+    }
+
+    if (dryRun.summary.expectedFailures === 0) {
+      console.log(ansis.green('✓ All changesets appear valid for migration'));
+      console.log(ansis.dim('  Run: dr changeset migrate'));
+    } else {
+      console.log(ansis.yellow(`⚠ ${dryRun.summary.expectedFailures} changeset(s) may fail`));
+      console.log(ansis.dim('  Fix issues above before running: dr changeset migrate'));
+    }
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
+ * Migrate changesets from old to new format
+ */
+export async function changesetMigrateCommand(): Promise<void> {
+  try {
+    const model = await Model.load(process.cwd(), { lazyLoad: true });
+
+    console.log(ansis.bold('\nMigrating changesets...\n'));
+
+    const result = await migrateChangesets(model.rootPath, model);
+
+    if (result.totalChangesets === 0) {
+      console.log(ansis.yellow('No old-format changesets found'));
+      console.log();
+      return;
+    }
+
+    console.log(ansis.green(`✓ Migration complete!\n`));
+    console.log(ansis.cyan(`Summary:`));
+    console.log(ansis.dim(`  Total processed: ${result.totalChangesets}`));
+    console.log(ansis.dim(`  Successfully migrated: ${result.migratedChangesets}`));
+
+    if (result.skippedChangesets > 0) {
+      console.log(
+        ansis.dim(`  Skipped (already migrated): ${result.skippedChangesets}`)
+      );
+    }
+
+    if (result.failedChangesets > 0) {
+      console.log(ansis.red(`  Failed: ${result.failedChangesets}`));
+      console.log();
+      console.log(ansis.red(`✗ Migration errors:\n`));
+      for (const error of result.errors) {
+        console.log(ansis.dim(`  - ${ansis.bold(error.name)}: ${error.error}`));
+      }
+    }
+
+    console.log();
+  } catch (error) {
+    console.error(
+      ansis.red(
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      )
+    );
+    process.exit(1);
+  }
+}
+
+/**
  * Register changeset subcommands
  */
 export function changesetCommands(program: Command): void {
@@ -529,10 +1261,167 @@ Examples:
       'after',
       `
 Examples:
-  $ dr changeset delete "old-migration"
-  $ dr changeset delete "old-migration" --force`
+  $ dr changeset delete my-feature
+  $ dr changeset delete my-feature --force`
     )
     .action(async (name, options) => {
       await changesetDeleteCommand(name, options);
+    });
+
+  // Staging operation commands
+  changesetGroup
+    .command('staged')
+    .description('List all staged changes in the active changeset')
+    .option('-l, --layer <layer>', 'Filter by layer name')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset staged
+  $ dr changeset staged --layer api`
+    )
+    .action(async (options) => {
+      await changesetStagedCommand(options);
+    });
+
+  changesetGroup
+    .command('unstage <element-id>')
+    .description('Remove specific element from staging area')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset unstage api-endpoint-create-customer`
+    )
+    .action(async (elementId) => {
+      await changesetUnstageCommand(elementId);
+    });
+
+  changesetGroup
+    .command('discard [element-id]')
+    .description('Discard all or single staged changes')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset discard
+  $ dr changeset discard api-endpoint-create-customer`
+    )
+    .action(async (elementId) => {
+      await changesetDiscardCommand(elementId);
+    });
+
+  changesetGroup
+    .command('preview')
+    .description('Preview the merged model state with staged changes applied')
+    .option('-l, --layer <layer>', 'Preview specific layer only')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset preview
+  $ dr changeset preview --layer application`
+    )
+    .action(async (options) => {
+      await changesetPreviewCommand(options);
+    });
+
+  changesetGroup
+    .command('diff')
+    .description('Show delta between base model and staged changes')
+    .option('-l, --layer <layer>', 'Show diff for specific layer only')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset diff
+  $ dr changeset diff --layer api`
+    )
+    .action(async (options) => {
+      await changesetDiffCommand(options);
+    });
+
+  changesetGroup
+    .command('commit')
+    .description('Apply staged changes to the base model')
+    .option('--validate', 'Run validation before commit (default: true)', true)
+    .option('--force', 'Commit despite drift warnings', false)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset commit
+  $ dr changeset commit --validate
+  $ dr changeset commit --force`
+    )
+    .action(async (options) => {
+      await changesetCommitCommand(options);
+    });
+
+  changesetGroup
+    .command('export <changeset-id>')
+    .description('Export changeset to portable file')
+    .option('-o, --output <file>', 'Output file path')
+    .option('-f, --format <format>', 'Export format (yaml|json|patch)', 'yaml')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset export api-updates
+  $ dr changeset export api-updates --output changes.yaml
+  $ dr changeset export api-updates --format json --output changes.json
+  $ dr changeset export api-updates --format patch --output changes.patch`
+    )
+    .action(async (changesetId, options) => {
+      await changesetExportCommand(changesetId, options);
+    });
+
+  changesetGroup
+    .command('import <file>')
+    .description('Import changeset from file')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset import changes.yaml
+  $ dr changeset import ../team-changes.json`
+    )
+    .action(async (file) => {
+      await changesetImportCommand(file);
+    });
+
+  // Migration commands
+  changesetGroup
+    .command('validate-migration')
+    .description('Validate if migration from old to new format is needed')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset validate-migration`
+    )
+    .action(async () => {
+      await changesetValidateMigrationCommand();
+    });
+
+  changesetGroup
+    .command('migrate')
+    .description('Migrate changesets from old .dr/ format to new documentation-robotics/ format')
+    .option('--dry-run', 'Preview migration without making changes', false)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ dr changeset migrate --dry-run
+  $ dr changeset migrate
+
+See docs/MIGRATION.md for detailed migration instructions.`
+    )
+    .action(async (options) => {
+      if (options.dryRun) {
+        await changesetMigrateDryRunCommand();
+      } else {
+        await changesetMigrateCommand();
+      }
     });
 }

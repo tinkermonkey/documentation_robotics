@@ -4,4 +4,4 @@ Public Access Policy:
   enforcement: none
   priority: 2
   target: all
-  id: public-access
+  id: security-policy-public-access

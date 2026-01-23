@@ -168,12 +168,16 @@ async function updateManifestCLIVersion(
  * Validate that both CLI binaries exist and are executable
  * For now, we skip Python CLI validation if not available and focus on TypeScript CLI
  * @throws Error if TypeScript CLI is invalid
+ * @returns Object with flags indicating which CLIs are available
  */
-export async function validateCLIBinaries(config: CLIConfig): Promise<void> {
+export async function validateCLIBinaries(config: CLIConfig): Promise<{ pythonAvailable: boolean; tsAvailable: boolean }> {
+  let pythonAvailable = false;
+
   // Try to validate Python CLI, but don't fail if it's not available
   try {
     await validateCLIBinary(config.pythonCLI);
     console.log('✓ Python CLI available');
+    pythonAvailable = true;
   } catch (error) {
     console.warn(`⚠ Python CLI not available: ${String(error)}`);
   }
@@ -185,6 +189,8 @@ export async function validateCLIBinaries(config: CLIConfig): Promise<void> {
   } catch (error) {
     throw new Error(`TypeScript CLI validation failed: ${String(error)}`);
   }
+
+  return { pythonAvailable, tsAvailable: true };
 }
 
 /**
@@ -201,9 +207,10 @@ export async function cleanupTestArtifacts(paths: TestPaths): Promise<void> {
  * Create fresh copies of baseline test project
  * Copies baseline to isolated python-cli/ and ts-cli/ directories
  * Updates cli_version in manifests to match the CLI being tested
+ * @param pythonAvailable - Whether Python CLI is available (optional)
  * @throws Error if copy operation fails
  */
-export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig): Promise<void> {
+export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig, pythonAvailable: boolean = true): Promise<void> {
   // Clean up previous test artifacts
   await cleanupTestArtifacts(paths);
 
@@ -225,7 +232,10 @@ export async function setupTestEnvironment(paths: TestPaths, config: CLIConfig):
   }
 
   // Update cli_version in manifests to match CLIs being tested
-  await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
+  // Only update Python CLI manifest if Python CLI is available
+  if (pythonAvailable) {
+    await updateManifestCLIVersion(paths.pythonPath, config.pythonCLI);
+  }
   await updateManifestCLIVersion(paths.tsPath, config.tsCLI);
 }
 
@@ -243,10 +253,10 @@ export async function initializeTestEnvironment(
   const paths = getTestPaths(baseDir);
 
   // Validate CLI binaries exist and are executable
-  await validateCLIBinaries(config);
+  const { pythonAvailable } = await validateCLIBinaries(config);
 
   // Setup isolated test environment
-  await setupTestEnvironment(paths, config);
+  await setupTestEnvironment(paths, config, pythonAvailable);
 
   return { config, paths };
 }

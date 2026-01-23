@@ -5,7 +5,9 @@
 import { confirm } from '@clack/prompts';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { CLIError, handleError } from '../utils/errors.js';
 import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
@@ -34,8 +36,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
-      console.error(ansis.red(`Error: Element ${id} not found`));
-      process.exit(1);
+      throw new CLIError(`Element ${id} not found`, 1);
     }
 
     // Confirm deletion unless --force
@@ -52,40 +53,14 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     }
 
     const layer = (await model.getLayer(layerName))!;
-
-    // Capture element state for changeset tracking before deletion
     const element = layer.getElement(id)!;
-    const beforeState = element.toJSON();
 
-    // Delete element
-    const deleted = layer.deleteElement(id);
-    if (!deleted) {
-      console.error(ansis.red(`Error: Failed to delete element ${id}`));
-      process.exit(1);
-    }
+    // Unified mutation handler for delete operation
+    const handler = new MutationHandler(model, id, layerName);
 
-    // Delete all relationships involving this element
-    model.relationships.deleteForElement(id);
-
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
-      'delete',
-      id,
-      layerName,
-      beforeState as unknown as Record<string, unknown>,
-      undefined
-    );
-
-    // Save layer and manifest
-    await model.saveLayer(layerName);
-
-    // Only save relationships if they were modified
-    if (model.relationships.isDirty()) {
-      await model.saveRelationships();
-    }
-
-    await model.saveManifest();
+    // Execute delete through unified path (handles staging and base model consistently)
+    // Delete has no mutator function as the delete operation is handled by MutationHandler.executeDelete
+    await handler.executeDelete(element);
 
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute('layer.name', layerName);
@@ -100,9 +75,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: (error as Error).message });
     }
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   } finally {
     if (isTelemetryEnabled) {
       endSpan(span);

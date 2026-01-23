@@ -323,6 +323,52 @@ dr relationship list business-process-order
 dr relationship delete business-process-order business-process-payment
 ```
 
+### Staging Workflow
+
+The staging feature allows you to safely prepare and review changes before committing them to the base model:
+
+```bash
+# Create a changeset for your changes
+dr changeset create user-mgmt-v2 \
+  --name "User Management v2" \
+  --description "Redesign user management system"
+
+# Stage changes without modifying the base model
+dr changeset stage user-mgmt-v2 add \
+  --element-id api-endpoint-create-user \
+  --layer api \
+  --properties '{"method":"POST","path":"/users"}'
+
+dr changeset stage user-mgmt-v2 add \
+  --element-id data-model-entity-user \
+  --layer data-model
+
+# Preview how staged changes will merge with the base model
+dr changeset preview user-mgmt-v2
+
+# View changeset details
+dr changeset show user-mgmt-v2
+
+# Commit when satisfied (checks for drift and validates changes)
+dr changeset commit user-mgmt-v2
+
+# Or discard if you change your mind
+dr changeset discard user-mgmt-v2
+```
+
+**Key Features:**
+- **Stage without mutation**: Add, update, delete elements without touching the base model
+- **Virtual preview**: See merged view before committing
+- **Drift detection**: Alerts if base model changed since changeset creation
+- **Export/Import**: Share changesets across team or save for backup
+
+**Changeset Status:**
+- `staged`: Changes are prepared but not applied (default)
+- `committed`: Changes have been applied to base model
+- `discarded`: Changes were abandoned
+
+For comprehensive guide, see [STAGING_GUIDE.md](../../docs/STAGING_GUIDE.md).
+
 ### Tracking Changes
 
 > ⚠️ **IMPORTANT**: Changesets must be **ACTIVATED** to track changes.

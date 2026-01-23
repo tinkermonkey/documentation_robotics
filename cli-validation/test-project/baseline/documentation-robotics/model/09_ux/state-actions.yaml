@@ -2,19 +2,19 @@ Fetch Todos Action:
   name: Fetch Todos Action
   description: Action to fetch all todos from API
   action: fetchData
-  id: fetch-todos-action
+  id: ux-action-fetch-todos
 Add Todo Action:
   name: Add Todo Action
   description: Action to create a new todo item
   action: saveData
-  id: add-todo-action
+  id: ux-action-add-todo
 Toggle Todo Action:
   name: Toggle Todo Action
   description: Action to toggle todo completion status
   action: updateState
-  id: toggle-todo-action
+  id: ux-action-toggle-todo
 Delete Todo Action:
   name: Delete Todo Action
   description: Action to delete a todo item
   action: deleteData
-  id: delete-todo-action
+  id: ux-action-delete-todo

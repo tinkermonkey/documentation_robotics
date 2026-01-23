@@ -3,22 +3,22 @@ Text Input:
   description: Flowbite text input component
   type: form-field
   library: flowbite-react
-  id: text-input
+  id: ux-library-component-text-input
 Button:
   name: Button
   description: Flowbite button component
   type: custom
   library: flowbite-react
-  id: button
+  id: ux-library-component-button
 List Group:
   name: List Group
   description: Flowbite list group component
   type: list
   library: flowbite-react
-  id: list-group
+  id: ux-library-component-list-group
 Spinner:
   name: Spinner
   description: Flowbite loading spinner component
   type: custom
   library: flowbite-react
-  id: spinner
+  id: ux-library-component-spinner

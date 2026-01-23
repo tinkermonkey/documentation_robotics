@@ -110,6 +110,7 @@ export class ReferenceValidator {
           layer: sourceLayerName,
           elementId,
           message: `Unknown source layer: ${sourceLayerName}`,
+          fixSuggestion: 'Use one of the valid layers: motivation, business, security, application, technology, api, data-model, datastore, ux, navigation, apm, testing',
         });
         continue;
       }
@@ -119,6 +120,7 @@ export class ReferenceValidator {
           layer: sourceLayerName,
           elementId,
           message: `Target element '${ref.target}' has unknown layer: ${targetLayerName}`,
+          fixSuggestion: `Check that element ID '${ref.target}' uses a valid layer prefix (e.g., motivation-, business-, api-)`,
         });
         continue;
       }

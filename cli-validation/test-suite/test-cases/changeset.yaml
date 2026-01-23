@@ -77,7 +77,7 @@ pipelines:
           - 02_business/services.yaml
         expect_exit_code: 0
 
-      - command: "relationship add changeset-service-001 changeset-service-002 --predicate serves"
+      - command: "relationship add business.service.changeset-service-001 business.service.changeset-service-002 --predicate serves"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
@@ -93,14 +93,14 @@ pipelines:
           - manifest.yaml
         expect_exit_code: 0
 
-      - command: "delete changeset-service-001 --force"
+      - command: "delete business.service.changeset-service-001 --force"
         files_to_compare:
           - manifest.yaml
           - 02_business/services.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete changeset-service-002 --force"
+      - command: "delete business.service.changeset-service-002 --force"
         files_to_compare:
           - manifest.yaml
           - 02_business/services.yaml
@@ -124,7 +124,7 @@ pipelines:
         expect_stdout_contains:
           - "Activated"
 
-      - command: "delete temp-goal-for-deletion --force"
+      - command: "delete motivation.goal.temp-goal-for-deletion --force"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml

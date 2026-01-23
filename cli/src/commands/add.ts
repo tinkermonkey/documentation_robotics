@@ -6,6 +6,7 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { Layer } from '../core/layer.js';
 import { Element } from '../core/element.js';
+import { MutationHandler } from '../core/mutation-handler.js';
 import {
   InvalidJSONError,
   CLIError,
@@ -112,28 +113,37 @@ export async function addCommand(
       );
     }
 
-    // Add to layer
-    layerObj.addElement(element);
+    // Unified mutation handler for add operation
+    const handler = new MutationHandler(model, elementId, layer);
 
-    // Track change in active changeset if present
-    const activeChangeset = model.getActiveChangesetContext();
-    await activeChangeset.trackChange(
-      'add',
-      elementId,
-      layer,
-      undefined,
-      element.toJSON() as unknown as Record<string, unknown>
-    );
-
-    // Save
-    await model.saveLayer(layer);
-    await model.saveManifest();
-
-    handleSuccess(`Added element ${ansis.bold(elementId)} to ${ansis.bold(layer)} layer`, {
-      type,
-      name: options.name || name,
-      description: options.description || '(none)',
+    // Execute add through unified path (handles staging and base model consistently)
+    await handler.executeAdd(element, (elem) => {
+      // This mutator is called by executeAdd for base model path only
+      layerObj.addElement(elem);
     });
+
+    // Determine if operation was staged or applied to base model
+    if (handler.getAfterState()) {
+      // Check if we went through staging path
+      const stagingManager = handler.getStagingManager();
+      const activeChangeset = await stagingManager.getActive();
+      if (activeChangeset && activeChangeset.status === 'staged') {
+        // Staging path
+        handleSuccess(`Staged element ${ansis.bold(elementId)} to ${ansis.bold(activeChangeset.name)}`, {
+          status: 'staged',
+          changeset: activeChangeset.name,
+          type,
+          name: options.name || name,
+        });
+      } else {
+        // Base model path
+        handleSuccess(`Added element ${ansis.bold(elementId)} to ${ansis.bold(layer)} layer`, {
+          type,
+          name: options.name || name,
+          description: options.description || '(none)',
+        });
+      }
+    }
   } catch (error) {
     if (isTelemetryEnabled && span) {
       (span as any).recordException(error as Error);

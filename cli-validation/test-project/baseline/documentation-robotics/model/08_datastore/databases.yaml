@@ -4,4 +4,4 @@ Todo Database:
   type: SQLite
   version: "1.0"
   file: todo.db
-  id: todo-database
+  id: datastore-database-todo
