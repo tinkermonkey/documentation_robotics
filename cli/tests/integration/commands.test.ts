@@ -98,6 +98,47 @@ describe('CLI Commands Integration Tests', () => {
 
       expect(result.exitCode).toBe(1);
     });
+
+    it('should accept model name as positional argument', async () => {
+      const result = await runDr('init', 'My Positional Model');
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('My Positional Model');
+
+      // Verify model directory was created
+      expect(await fileExists(`${tempDir.path}/documentation-robotics/model/manifest.yaml`)).toBe(true);
+
+      // Verify manifest contents
+      const yaml = await import('yaml');
+      const fs = await import('fs/promises');
+      const manifestContent = await fs.readFile(`${tempDir.path}/documentation-robotics/model/manifest.yaml`, 'utf-8');
+      const manifest = yaml.parse(manifestContent);
+      expect(manifest.project.name).toBe('My Positional Model');
+    });
+
+    it('should skip description and author prompts when name is provided', async () => {
+      const result = await runDr('init', 'Quick Init');
+
+      expect(result.exitCode).toBe(0);
+      // Should not contain typical prompt strings
+      expect(result.stdout).not.toContain('Description (optional):');
+      expect(result.stdout).not.toContain('Author (optional):');
+      expect(result.stdout).toContain('Quick Init');
+    });
+
+    it('should prioritize --name option over positional argument', async () => {
+      const result = await runDr('init', 'positional-name', '--name', 'option-name');
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('option-name');
+
+      // Verify the correct name was used
+      const yaml = await import('yaml');
+      const fs = await import('fs/promises');
+      const manifestContent = await fs.readFile(`${tempDir.path}/documentation-robotics/model/manifest.yaml`, 'utf-8');
+      const manifest = yaml.parse(manifestContent);
+      expect(manifest.project.name).toBe('option-name');
+    });
   });
 
   describe('add command', () => {

@@ -37,6 +37,9 @@ export async function initCommand(options: InitOptions): Promise<void> {
     // Check if stdin is a TTY to determine if we should prompt
     const isInteractive = process.stdin.isTTY;
 
+    // If name is provided, skip all prompts
+    const skipPrompts = !!options.name;
+
     const name =
       options.name ||
       (isInteractive
@@ -51,21 +54,25 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
     const description =
       options.description ||
-      (isInteractive
-        ? await text({
-            message: 'Description (optional):',
-            defaultValue: '',
-          })
-        : '');
+      (skipPrompts
+        ? ''
+        : isInteractive
+          ? await text({
+              message: 'Description (optional):',
+              defaultValue: '',
+            })
+          : '');
 
     const author =
       options.author ||
-      (isInteractive
-        ? await text({
-            message: 'Author (optional):',
-            defaultValue: '',
-          })
-        : '');
+      (skipPrompts
+        ? ''
+        : isInteractive
+          ? await text({
+              message: 'Author (optional):',
+              defaultValue: '',
+            })
+          : '');
 
     // Initialize model
     logDebug(`Creating model directory at ${rootPath}/documentation-robotics/model`);

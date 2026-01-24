@@ -133,9 +133,9 @@ program
 
 // Model commands
 program
-  .command('init')
+  .command('init [name]')
   .description('Initialize a new architecture model')
-  .option('--name <name>', 'Model name')
+  .option('--name <name>', 'Model name (overrides positional argument)')
   .option('--author <author>', 'Model author')
   .option('--description <desc>', 'Model description')
   .addHelpText(
@@ -143,10 +143,11 @@ program
     `
 Examples:
   $ dr init
-  $ dr init --name "Enterprise Architecture" --author "Team A"
-  $ dr init --description "12-layer federated model"`
+  $ dr init claudetoreum
+  $ dr init "Enterprise Architecture" --author "Team A"
+  $ dr init --name "My Project" --description "12-layer federated model"`
   )
-  .action(initCommand);
+  .action((name, options) => initCommand({ ...options, name: options.name || name }));
 
 program
   .command('add <layer> <type> <name>')
