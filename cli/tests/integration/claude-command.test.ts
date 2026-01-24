@@ -1,6 +1,6 @@
 /**
  * Integration tests for Claude Code integration management
- * Tests install, update, remove, status, and list subcommands
+ * Tests install, upgrade, remove, status, and list subcommands
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
@@ -238,18 +238,18 @@ describe('Claude Integration Commands', () => {
     });
   });
 
-  describe('dr claude update', () => {
-    it('should indicate no updates needed if freshly installed', async () => {
+  describe('dr claude upgrade', () => {
+    it('should indicate no upgrades needed if freshly installed', async () => {
       await runDr('claude', 'install', '--force');
 
-      const result = await runDr('claude', 'update');
+      const result = await runDr('claude', 'upgrade');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('up to date');
     });
 
     it('should show error if not installed', async () => {
-      const result = await runDr('claude', 'update');
+      const result = await runDr('claude', 'upgrade');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Claude integration not installed');
@@ -258,7 +258,7 @@ describe('Claude Integration Commands', () => {
     it('should support --dry-run flag', async () => {
       await runDr('claude', 'install', '--force');
 
-      const result = await runDr('claude', 'update', '--dry-run');
+      const result = await runDr('claude', 'upgrade', '--dry-run');
 
       expect(result.exitCode).toBe(0);
       // Should indicate dry-run mode
@@ -268,7 +268,7 @@ describe('Claude Integration Commands', () => {
     it('should support --force flag', async () => {
       await runDr('claude', 'install', '--force');
 
-      const result = await runDr('claude', 'update', '--force');
+      const result = await runDr('claude', 'upgrade', '--force');
 
       expect(result.exitCode).toBe(0);
     });
@@ -346,7 +346,7 @@ describe('Claude Integration Commands', () => {
   });
 
   describe('Claude integration workflow', () => {
-    it('should support install -> status -> update -> remove workflow', async () => {
+    it('should support install -> status -> upgrade -> remove workflow', async () => {
       // Install
       let result = await runDr('claude', 'install', '--force');
       expect(result.exitCode).toBe(0);
@@ -356,8 +356,8 @@ describe('Claude Integration Commands', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Installation Status');
 
-      // Update
-      result = await runDr('claude', 'update');
+      // Upgrade
+      result = await runDr('claude', 'upgrade');
       expect(result.exitCode).toBe(0);
 
       // Remove

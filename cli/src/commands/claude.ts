@@ -14,7 +14,7 @@ import ansis from 'ansis';
  *
  * Usage:
  *   dr claude install [--reference-only] [--commands-only] [--agents-only] [--skills-only] [--templates-only] [-f|--force]
- *   dr claude update [--dry-run] [-f|--force]
+ *   dr claude upgrade [--dry-run] [-f|--force]
  *   dr claude remove [--reference] [--commands] [--agents] [--skills] [--templates] [-f|--force]
  *   dr claude status
  *   dr claude list
@@ -71,23 +71,23 @@ Examples:
     });
 
   /**
-   * Update subcommand
+   * Upgrade subcommand
    *
-   * Checks for updates to installed components and optionally applies them.
+   * Checks for upgrades to installed components and optionally applies them.
    * Supports dry-run mode to preview changes without modifying files.
    */
   claude
-    .command('update')
-    .description('Update installed Claude Code integration')
+    .command('upgrade')
+    .description('Upgrade installed Claude Code integration')
     .option('--dry-run', 'Preview changes without applying them')
     .option('-f, --force', 'Skip confirmation prompts')
     .addHelpText(
       'after',
       `
 Examples:
-  $ dr claude update              # Check for updates and prompt to apply
-  $ dr claude update --dry-run    # Preview what would be updated
-  $ dr claude update -f           # Force update without prompting`
+  $ dr claude upgrade              # Check for upgrades and prompt to apply
+  $ dr claude upgrade --dry-run    # Preview what would be upgraded
+  $ dr claude upgrade -f           # Force upgrade without prompting`
     )
     .action(async (options) => {
       const manager = new ClaudeIntegrationManager();

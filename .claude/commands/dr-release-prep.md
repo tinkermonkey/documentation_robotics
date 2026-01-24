@@ -757,7 +757,7 @@ For release candidates (future enhancement):
 
 - `/dr-validate` - Validate model before release
 - `/dr-changeset` - Test changes in isolation
-- `dr claude update` - Update Claude integration files
+- `dr claude upgrade` - Upgrade Claude integration files
 
 **Suggested Workflow:**
 

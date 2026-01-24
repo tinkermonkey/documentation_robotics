@@ -61,7 +61,7 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
         ansis.yellow('⚠') +
           ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude update'));
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude upgrade'));
     }
   }
 
@@ -75,7 +75,7 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
         ansis.yellow('⚠') +
           ` GitHub Copilot integration outdated: ${copilotVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot update'));
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot upgrade'));
     }
   }
 

@@ -14,7 +14,7 @@ import ansis from 'ansis';
  *
  * Usage:
  *   dr copilot install [--agents-only] [--skills-only] [-f|--force]
- *   dr copilot update [--dry-run] [-f|--force]
+ *   dr copilot upgrade [--dry-run] [-f|--force]
  *   dr copilot remove [--agents] [--skills] [-f|--force]
  *   dr copilot status
  *   dr copilot list
@@ -65,23 +65,23 @@ Examples:
     });
 
   /**
-   * Update subcommand
+   * Upgrade subcommand
    *
-   * Checks for updates to installed components and optionally applies them.
+   * Checks for upgrades to installed components and optionally applies them.
    * Supports dry-run mode to preview changes without modifying files.
    */
   copilot
-    .command('update')
-    .description('Update installed GitHub Copilot integration')
+    .command('upgrade')
+    .description('Upgrade installed GitHub Copilot integration')
     .option('--dry-run', 'Preview changes without applying them')
     .option('-f, --force', 'Skip confirmation prompts')
     .addHelpText(
       'after',
       `
 Examples:
-  $ dr copilot update              # Check for updates and prompt to apply
-  $ dr copilot update --dry-run    # Preview what would be updated
-  $ dr copilot update -f           # Force update without prompting`
+  $ dr copilot upgrade              # Check for upgrades and prompt to apply
+  $ dr copilot upgrade --dry-run    # Preview what would be upgraded
+  $ dr copilot upgrade -f           # Force upgrade without prompting`
     )
     .action(async (options) => {
       const manager = new CopilotIntegrationManager();

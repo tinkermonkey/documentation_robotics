@@ -122,7 +122,7 @@ dr claude install
 If already installed:
 
 - Inform the user that integration is already set up
-- Suggest running `dr claude update` if they want the latest version
+- Suggest running `dr claude upgrade` if they want the latest version
 
 ### Step 6: Provide Next Steps
 
