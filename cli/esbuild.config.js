@@ -2,8 +2,17 @@ import * as esbuild from 'esbuild';
 import { globSync } from 'glob';
 import { renameSync, rmSync, cpSync } from 'fs';
 import { join } from 'path';
+import { execSync } from 'child_process';
 
 const isDebug = process.env.DR_TELEMETRY === 'true';
+
+// Capture git hash at build time
+let gitHash = 'unknown';
+try {
+  gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+} catch (error) {
+  console.warn('Warning: Could not determine git hash. Build may not be in a git repository.');
+}
 
 // Find all compiled JS files to process with esbuild
 // This processes all dist/**/*.js files but keeps module structure
@@ -27,6 +36,7 @@ await esbuild.build({
   format: 'esm',
   define: {
     'TELEMETRY_ENABLED': isDebug ? 'true' : 'false',
+    'GIT_HASH': JSON.stringify(gitHash),
   },
   minifySyntax: true, // Enables dead branch elimination for if(TELEMETRY_ENABLED)
   sourcemap: true,

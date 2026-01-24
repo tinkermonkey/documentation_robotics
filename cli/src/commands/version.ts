@@ -6,6 +6,10 @@ import ansis from 'ansis';
 import { readJSON, fileExists } from '../utils/file-io.js';
 import { getCliBundledSpecVersion } from '../utils/spec-version.js';
 
+// Declare GIT_HASH as a build-time constant (substituted by esbuild)
+declare const GIT_HASH: string;
+const gitHash = typeof GIT_HASH !== 'undefined' ? GIT_HASH : 'unknown';
+
 /**
  * Read CLI version from package.json
  */
@@ -31,4 +35,5 @@ export async function versionCommand(): Promise<void> {
   console.log(ansis.bold('Documentation Robotics CLI'));
   console.log(`CLI Version:  ${ansis.cyan(cliVersion)}`);
   console.log(`Spec Version: ${ansis.cyan(specVersion)}`);
+  console.log(`Git Hash:     ${ansis.cyan(gitHash)}`);
 }
