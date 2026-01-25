@@ -797,7 +797,11 @@ Dependency relationships indicate that one element requires or relies on another
 
 ## Integration Points
 
-**For complete link patterns and validation rules**, see [Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md). The following integration points are defined in the registry with specific patterns and validation requirements.
+**For complete link patterns and validation rules**, see:
+- **[Cross-Layer Relationships Guide](../guides/CROSS_LAYER_RELATIONSHIPS.md)** - Clarifies which pattern to use and naming conventions
+- **[Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md)** - Complete catalog of all 60+ patterns
+
+The following integration points are defined in the registry with specific patterns and validation requirements.
 
 ### To Application Layer
 
