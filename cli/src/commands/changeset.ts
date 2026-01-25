@@ -41,12 +41,15 @@ export async function changesetCreateCommand(name: string, options: {
     // Get description if not provided
     let description = options.description;
     if (!description) {
-      const result = await prompts.text({
-        message: 'Changeset description (optional)',
-      });
+      const isInteractive = process.stdin.isTTY;
+      if (isInteractive) {
+        const result = await prompts.text({
+          message: 'Changeset description (optional)',
+        });
 
-      if (typeof result === 'string') {
-        description = result;
+        if (typeof result === 'string') {
+          description = result;
+        }
       }
     }
 
@@ -362,15 +365,23 @@ export async function changesetDeleteCommand(name: string, options: {
       process.exit(1);
     }
 
-    // Confirm deletion unless --force is used
+    // Confirm deletion unless --force is used or in non-interactive environment
     if (!options.force) {
-      const confirm = await prompts.confirm({
-        message: `Delete changeset '${name}'? This cannot be undone.`,
-      });
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (isInteractive) {
+        const confirm = await prompts.confirm({
+          message: `Delete changeset '${name}'? This cannot be undone.`,
+        });
 
-      if (!confirm || typeof confirm !== 'boolean') {
-        console.log(ansis.yellow('Deletion cancelled'));
-        return;
+        if (!confirm || typeof confirm !== 'boolean') {
+          console.log(ansis.yellow('Deletion cancelled'));
+          return;
+        }
+      } else {
+        // In non-interactive environment, require --force flag
+        console.error(ansis.red('Error: Cannot confirm deletion in non-interactive environment'));
+        console.log(ansis.dim('  Use --force flag to confirm deletion'));
+        process.exit(1);
       }
     }
 
@@ -577,13 +588,23 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
       console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
     } else {
       // Discard all changes with confirmation
-      const confirmed = await prompts.confirm({
-        message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
-      });
+      const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      let confirmed = false;
 
-      if (!confirmed) {
-        console.log(ansis.dim('Cancelled'));
-        return;
+      if (isInteractive) {
+        confirmed = await prompts.confirm({
+          message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
+        });
+
+        if (!confirmed) {
+          console.log(ansis.dim('Cancelled'));
+          return;
+        }
+      } else {
+        // In non-interactive environment, require explicit flag or piped input
+        console.error(ansis.red('Error: Cannot confirm discard of all changes in non-interactive environment'));
+        console.log(ansis.dim('  Specify an element ID to discard only that element'));
+        process.exit(1);
       }
 
       // Clear all changes
