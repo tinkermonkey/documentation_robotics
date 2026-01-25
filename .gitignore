@@ -74,4 +74,6 @@ lbug
 # Test suite artifacts (cli-validation)
 cli-validation/test-suite/node_modules/
 cli-validation/test-suite/dist/
+cli-validation/test-suite/results/*.xml
 cli-validation/test-project/ts-cli/
+cli-validation/test-project/python-cli/
