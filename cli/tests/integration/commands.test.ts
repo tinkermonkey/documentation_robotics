@@ -39,7 +39,7 @@ describe('CLI Commands Integration Tests', () => {
       for (let i = 1; i <= 12; i++) {
         const layerNum = String(i).padStart(2, '0');
         const layers = ['motivation', 'business', 'security', 'application', 'technology',
-                       'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'];
+                       'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'];
         const layerDir = `${tempDir.path}/documentation-robotics/model/${layerNum}_${layers[i-1]}`;
         expect(await fileExists(layerDir)).toBe(true);
       }

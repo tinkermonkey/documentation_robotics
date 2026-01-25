@@ -75,10 +75,13 @@ See `cli/README.md` for complete setup and usage documentation.
 
 ### 4. Element Naming Convention
 
-- **Format**: `{layer}-{type}-{kebab-case-name}`
-- **Example**: `api-endpoint-create-customer`
+- **Formats**: Both dot-separated (`layer.type.name`) and kebab-case (`layer-type-name`) formats are supported
+- **Examples**:
+  - `api.endpoint.create-customer` (dot-separated)
+  - `api-endpoint-create-customer` (kebab-case)
 - Must be unique across entire model
 - Use element utilities for consistency
+- See Section 4.1 for canonical layer name requirements in element IDs
 
 ### 4.1 Canonical Layer Naming Format
 
