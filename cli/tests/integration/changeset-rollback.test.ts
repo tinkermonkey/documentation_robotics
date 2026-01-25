@@ -142,10 +142,15 @@ describe('Changeset Rollback Verification', () => {
       const hasManifest = filePaths.includes('manifest.yaml') || filePaths.includes('manifest.json');
       expect(hasManifest).toBe(true);
 
-      // Verify manifest includes all layers (check for files within layer directories)
+      // Verify manifest includes files for non-empty layers
+      // (Empty layers with no elements won't have .yaml files to back up)
       for (const layer of model.layers.values()) {
         const layerFiles = filePaths.filter(p => p.startsWith(`layers/${layer.name}/`));
-        expect(layerFiles.length).toBeGreaterThan(0);
+
+        // Only expect files for layers that have elements
+        if (layer.elements.size > 0) {
+          expect(layerFiles.length).toBeGreaterThan(0);
+        }
       }
 
       // Verify all files have checksums and sizes
