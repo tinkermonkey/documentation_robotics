@@ -238,8 +238,7 @@ describe('NamingValidator', () => {
         }),
       ]);
 
-      const validator_instance = new NamingValidator();
-      const result = validator_instance.validateLayer(layer);
+      const result = validator.validateLayer(layer);
 
       expect(result.isValid()).toBe(testCase.valid,
         `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
@@ -267,8 +266,7 @@ describe('NamingValidator', () => {
         }),
       ]);
 
-      const validator_instance = new NamingValidator();
-      const result = validator_instance.validateLayer(layer);
+      const result = validator.validateLayer(layer);
 
       expect(result.isValid()).toBe(testCase.valid,
         `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
@@ -294,8 +292,7 @@ describe('NamingValidator', () => {
         }),
       ]);
 
-      const validator_instance = new NamingValidator();
-      const result = validator_instance.validateLayer(layer);
+      const result = validator.validateLayer(layer);
 
       expect(result.isValid()).toBe(testCase.valid,
         `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
