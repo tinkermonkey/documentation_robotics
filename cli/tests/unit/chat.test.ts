@@ -91,14 +91,14 @@ You understand the **full 12-layer DR architecture**:
 
 You can use Bash to run DR CLI commands:
 - \`dr list <layer>\` - List elements in a layer
-- \`dr find <id>\` - Find element by ID
+- \`dr show <id>\` - Show element by ID
 - \`dr search <query>\` - Search for elements
 - \`dr trace <id>\` - Trace dependencies
 
 You can use Read to examine model files in the .dr directory.`;
 
     expect(prompt).toContain('dr list');
-    expect(prompt).toContain('dr find');
+    expect(prompt).toContain('dr show');
     expect(prompt).toContain('dr search');
     expect(prompt).toContain('dr trace');
     expect(prompt).toContain('Bash');
