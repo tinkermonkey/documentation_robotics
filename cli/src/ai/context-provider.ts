@@ -141,7 +141,9 @@ export class ModelContextProvider {
     const __dirname = dirname(__filename);
     const specDir = join(__dirname, '../../spec/layers');
 
-    // Handle special case for data-store which is called datastore in spec
+    // Map canonical layer names to actual spec file names
+    // Internal canonical names use hyphens (data-store, data-model)
+    // but spec files have their own naming (08-datastore-layer.md, 11-apm-observability-layer.md)
     let fileName: string;
     if (normalizedName === 'data-store') {
       fileName = `${layerNumber}-datastore-layer.md`;

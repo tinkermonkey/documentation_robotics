@@ -151,7 +151,7 @@ You should:
 2. If found, project:
    dr project business.service.payment-processing --to application
 3. Verify creation:
-   dr find application.service.payment-processing
+   dr show application.service.payment-processing
 4. Suggest:
    "✓ Application service created and linked to business service
 
@@ -182,15 +182,15 @@ User: /dr-model Add PCI-DSS compliance for payment service
 
 You should:
 1. Find payment service:
-   dr find application.service.payment-processing
+   dr show application.service.payment-processing
 2. Create security policy:
    dr add security policy --name "PCI-DSS Compliance" \
      --description "Payment Card Industry Data Security Standard" \
      --property type=compliance \
      --property applies_to=application.service.payment-processing
 3. Update service to reference policy:
-   dr update-element application.service.payment-processing \
-     --set securedBy=security.policy.pci-dss-compliance
+   dr update application.service.payment-processing \
+     --property securedBy=security.policy.pci-dss-compliance
 4. Validate:
    dr validate --layer security
 ```
@@ -216,7 +216,7 @@ User: /dr-model Add availability and latency metrics for payment API
 
 You should:
 1. Find element:
-   dr find application.service.payment-api
+   dr show application.service.payment-api
 2. Create availability metric:
    dr add apm metric --name "payment-api-availability" \
      --description "Payment API availability SLI" \
@@ -296,8 +296,8 @@ You should:
 1. Find service:
    dr search "payment" --layer business --type service
 2. Update:
-   dr update-element business.service.payment-processing \
-     --set criticality=critical
+   dr update business.service.payment-processing \
+     --property criticality=critical
 3. Check implications:
    "✓ Updated business.service.payment-processing to critical
 

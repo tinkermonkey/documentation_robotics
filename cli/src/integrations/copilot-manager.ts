@@ -124,16 +124,16 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
   }
 
   /**
-   * Update installed Copilot integration files
+   * Upgrade installed Copilot integration files
    *
-   * Detects file changes, shows a summary, and applies updates with optional
+   * Detects file changes, shows a summary, and applies upgrades with optional
    * dry-run mode to preview changes without applying them.
    *
-   * @param options Update options
+   * @param options Upgrade options
    * @param options.dryRun Preview changes without applying
    * @param options.force Skip confirmation prompts
    */
-  async update(options: {
+  async upgrade(options: {
     dryRun?: boolean;
     force?: boolean;
   } = {}): Promise<void> {
@@ -231,17 +231,17 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
     // Ask for confirmation
     if (!force) {
       const response = await confirm({
-        message: 'Apply updates?',
+        message: 'Apply upgrades?',
       });
       if (!response) {
-        console.log(ansis.yellow('✗ Update cancelled'));
+        console.log(ansis.yellow('✗ Upgrade cancelled'));
         return;
       }
     }
 
-    // Apply updates
+    // Apply upgrades
     const spinnerObj = spinner();
-    spinnerObj.start('Applying updates...');
+    spinnerObj.start('Applying upgrades...');
 
     try {
       for (const componentName of Object.keys(this.components)) {
@@ -251,15 +251,15 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       // Remove obsolete files
       await this.removeObsoleteFiles();
 
-      spinnerObj.stop('Updates applied');
+      spinnerObj.stop('Upgrades applied');
 
       // Update version file
       const cliVersion = await this.getCliVersion();
       await this.updateVersionFile(cliVersion);
 
-      console.log(ansis.green('✓ Update completed successfully!'));
+      console.log(ansis.green('✓ Upgrade completed successfully!'));
     } catch (error) {
-      spinnerObj.stop('Update failed');
+      spinnerObj.stop('Upgrade failed');
       console.error(ansis.red('✗ Error: ' + (error instanceof Error ? error.message : String(error))));
       process.exit(1);
     }

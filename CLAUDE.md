@@ -83,8 +83,34 @@ See `cli/README.md` for complete setup and usage documentation.
 - Must be unique across entire model
 - Use element utilities for consistency
 - **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation with correct CLI usage
+- See Section 4.1 for canonical layer name requirements in element IDs
 
-### 5. Cross-Layer References
+### 4.1 Canonical Layer Naming Format
+
+**Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
+
+| Layer | Canonical Name | Spec File | Notes |
+|-------|---|---|---|
+| 1 | `motivation` | `01-motivation-layer.md` | Single word, no hyphen |
+| 2 | `business` | `02-business-layer.md` | Single word, no hyphen |
+| 3 | `security` | `03-security-layer.md` | Single word, no hyphen |
+| 4 | `application` | `04-application-layer.md` | Single word, no hyphen |
+| 5 | `technology` | `05-technology-layer.md` | Single word, no hyphen |
+| 6 | `api` | `06-api-layer.md` | Single word, no hyphen |
+| 7 | `data-model` | `07-data-model-layer.md` | **Hyphenated** - use `data-model`, not `data_model` |
+| 8 | `data-store` | `08-datastore-layer.md` | **Hyphenated internally** - spec file has no hyphen |
+| 9 | `ux` | `09-ux-layer.md` | Single word, no hyphen |
+| 10 | `navigation` | `10-navigation-layer.md` | Single word, no hyphen |
+| 11 | `apm` | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |
+| 12 | `testing` | `12-testing-layer.md` | Single word, no hyphen |
+
+**Key Rules**:
+- Always use the canonical name in CLI commands and code (e.g., `--layer data-store` not `--layer datastore`)
+- The CLI automatically maps canonical names to actual spec file paths
+- Accept only canonical names in validators (no underscore variants)
+- Error messages should list canonical names to guide users
+
+### 6. Cross-Layer References
 
 - **Direction**: Higher layers → lower layers only
 - Always validate references exist before creating

@@ -41,7 +41,7 @@ describe('VirtualProjectionEngine Integration Tests', () => {
       'technology',
       'api',
       'data-model',
-      'datastore',
+      'data-store',
       'ux',
       'navigation',
       'apm',

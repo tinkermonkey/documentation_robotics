@@ -175,7 +175,7 @@ dr add business service --name "Payment" --property criticality=high
 
 **If CLI command fails**: Read error → Fix parameters → Retry
 
-**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict --validate-links`
+**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict`
 
 ## Intent Routing
 
@@ -219,7 +219,7 @@ Your first task is always to **understand what the user wants** and route to the
 1. **Run Validation**
 
    ```bash
-   dr validate --strict --validate-links --output json
+   dr validate --strict --output json
    ```
 
 2. **Categorize Issues**
@@ -289,7 +289,7 @@ Your first task is always to **understand what the user wants** and route to the
 Always validate cross-layer relationships after structural changes:
 
 ```bash
-dr validate --validate-links
+dr validate --strict
 ```
 
 Check for:
@@ -348,9 +348,9 @@ dr add application service --name "Order Service"
 dr validate --layer application
 
 # 3. Link layers
-dr update-element api.operation.create-order \
-  --set x-archimate-ref=application.service.order-service
-dr validate --validate-links
+dr update api.operation.create-order \
+  --property x-archimate-ref=application.service.order-service
+dr validate --strict
 
 # 4. Review and apply
 dr changeset diff
@@ -372,11 +372,11 @@ $ dr add api operation --name "X" --property path="/api/x" --property method="GE
 **If validation fails:**
 
 ```bash
-$ dr validate --validate-links
+$ dr validate --strict
 ✗ Error: Missing reference application.service.order-api
 # Fix: Create missing element
 $ dr add application service --name "Order API"
-$ dr validate --validate-links
+$ dr validate --strict
 ✅ Pass
 ```
 
@@ -420,7 +420,7 @@ Next: dr changeset diff → fix warnings → dr changeset apply
 
 - [ ] All via CLI (no manual YAML)
 - [ ] `dr validate --strict` passes
-- [ ] `dr validate --validate-links` passes
+- [ ] `dr validate --strict` passes
 - [ ] `dr changeset diff` reviewed
 - [ ] Low confidence elements verified
 
@@ -482,7 +482,7 @@ Idea → Questions → Research → Model → Validate → Decide
 6. **Validate**
 
    ```bash
-   dr validate --validate-links
+   dr validate
    ```
 
 7. **Compare with Main**
@@ -729,7 +729,7 @@ dr changeset abandon <changeset-id>
 5. **Validate thoroughly:**
 
    ```bash
-   dr validate --strict --validate-links --strict-links
+   dr validate --strict
    ```
 
 6. **Report results:**
@@ -808,7 +808,7 @@ dr add <layer> <type> --name "<name>" --description "<description>"
 **Update Element:**
 
 ```bash
-dr update-element <element-id> --set key=value
+dr update <element-id> --property key=value
 ```
 
 **Query Elements:**
@@ -816,13 +816,13 @@ dr update-element <element-id> --set key=value
 ```bash
 dr list <layer> <type>
 dr search <pattern>
-dr find <element-id>
+dr show <element-id>
 ```
 
-**Remove Element:**
+**Delete Element:**
 
 ```bash
-dr remove <element-id>
+dr delete <element-id>
 ```
 
 ### Best Practices
@@ -869,12 +869,11 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Task             | Command                                            | Example                                                            |
 | ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
 | Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
-| Update element   | `dr update-element <element-id> --set key=value`   | `dr update-element business.service.orders --set criticality=high` |
-| Update with spec | `dr update-element <element-id> --spec file.yaml`  | `dr update-element business.service.orders --spec updates.yaml`    |
-| Find element     | `dr find <element-id>`                             | `dr find business.service.orders`                                  |
+| Update element   | `dr update <element-id> --property key=value`   | `dr update business.service.orders --property criticality=high` |
+| Show element     | `dr show <element-id>`                             | `dr show business.service.orders`                                  |
 | List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
 | Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
-| Remove element   | `dr remove <element-id>`                           | `dr remove business.service.orders`                                |
+| Delete element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                                |
 
 ### Validation Operations
 
@@ -882,8 +881,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ------------------------------ | --------------------------------------------- | --------------------------------------------- |
 | Basic validation               | `dr validate`                                 | `dr validate`                                 |
 | Strict validation              | `dr validate --strict`                        | `dr validate --strict`                        |
-| Validate links                 | `dr validate --validate-links`                | `dr validate --validate-links`                |
-| Strict relationship validation | `dr validate --validate-links --strict-links` | `dr validate --validate-links --strict-links` |
+| Cross-layer relationship check | `dr validate --strict`                        | `dr validate --strict`                        |
 | Layer-specific                 | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
 | JSON output                    | `dr validate --output json`                   | `dr validate --output json > report.json`     |
 
@@ -895,7 +893,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
 | List all links          | `dr links list`                    | `dr links list`                                                     |
 | Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links          | `dr validate --validate-links`     | `dr validate --validate-links`                                      |
+| Validate links          | `dr validate --strict`     | `dr validate --strict`                                      |
 | Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations
@@ -1080,7 +1078,7 @@ Would you like me to address these patterns?
 
 Next steps:
 1. Review changeset: dr changeset diff
-2. Validate links: dr validate --validate-links
+2. Validate relationships: dr validate --strict
 3. Add missing business goals (I found 5 services without goals)
 4. Apply changeset when ready: dr changeset apply
 ```
@@ -1092,7 +1090,7 @@ Next steps:
 After any structural change:
 
 ```bash
-dr validate --strict --validate-links
+dr validate --strict
 ```
 
 ### Pattern Detection
@@ -1197,7 +1195,7 @@ User: Can you check my model?
 
 Agent: I'll run a comprehensive validation.
 
-[Runs: dr validate --strict --validate-links --output json]
+[Runs: dr validate --strict --output json]
 
 ✓ Validation complete
 

@@ -61,7 +61,7 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
         ansis.yellow('⚠') +
           ` Claude integration outdated: ${claudeVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude update'));
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr claude upgrade'));
     }
   }
 
@@ -75,7 +75,7 @@ async function checkIntegrationVersions(cliVersion: string): Promise<Integration
         ansis.yellow('⚠') +
           ` GitHub Copilot integration outdated: ${copilotVersion.version} → ${cliVersion}`
       );
-      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot update'));
+      messages.push(ansis.dim('  Run: ') + ansis.cyan('dr copilot upgrade'));
     }
   }
 
@@ -321,14 +321,14 @@ async function handleUpgrade(
   if (integrationStatus.claudeOutdated) {
     await executeIntegrationUpdate('Claude', async () => {
       const claudeManager = new ClaudeIntegrationManager();
-      await claudeManager.update({ force: true });
+      await claudeManager.upgrade({ force: true });
     });
   }
 
   if (integrationStatus.copilotOutdated) {
     await executeIntegrationUpdate('GitHub Copilot', async () => {
       const copilotManager = new CopilotIntegrationManager();
-      await copilotManager.update({ force: true });
+      await copilotManager.upgrade({ force: true });
     });
   }
 
