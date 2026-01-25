@@ -333,31 +333,31 @@ dr changeset create user-mgmt-v2 \
   --name "User Management v2" \
   --description "Redesign user management system"
 
-# Stage changes without modifying the base model
-dr changeset stage user-mgmt-v2 add \
-  --element-id api-endpoint-create-user \
-  --layer api \
+# Activate the changeset to track changes
+dr changeset activate user-mgmt-v2
+
+# Now make your changes - they will be tracked automatically
+dr add api endpoint create-user \
   --properties '{"method":"POST","path":"/users"}'
 
-dr changeset stage user-mgmt-v2 add \
-  --element-id data-model-entity-user \
-  --layer data-model
+dr add data-model entity user \
+  --name "User Entity"
 
 # Preview how staged changes will merge with the base model
-dr changeset preview user-mgmt-v2
+dr changeset preview
 
 # View changeset details
-dr changeset show user-mgmt-v2
+dr changeset show
 
 # Commit when satisfied (checks for drift and validates changes)
-dr changeset commit user-mgmt-v2
+dr changeset commit
 
 # Or discard if you change your mind
-dr changeset discard user-mgmt-v2
+dr changeset discard
 ```
 
 **Key Features:**
-- **Stage without mutation**: Add, update, delete elements without touching the base model
+- **Activate for tracking**: Activate a changeset to automatically track all changes
 - **Virtual preview**: See merged view before committing
 - **Drift detection**: Alerts if base model changed since changeset creation
 - **Export/Import**: Share changesets across team or save for backup
