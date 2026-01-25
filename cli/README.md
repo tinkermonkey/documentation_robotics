@@ -68,13 +68,13 @@ dr --help
 dr init --name "My Architecture" --author "Your Name"
 
 # Add some elements (format: dr add <layer> <type> <name>)
-dr add motivation Goal customer-satisfaction \
+dr add motivation goal customer-satisfaction \
   --name "Ensure customer satisfaction"
 
-dr add business BusinessService order-management \
+dr add business service order-management \
   --name "Order Management Service"
 
-dr add api Endpoint create-order \
+dr add api endpoint create-order \
   --name "Create Order" \
   --properties '{"method":"POST","path":"/api/orders"}'
 ```
@@ -150,9 +150,9 @@ Examples:
 - `api.endpoint.create-order`
 - `data-model.entity.user-profile`
 
-**Important**: Element types use **PascalCase** (e.g., `Goal`, `BusinessService`, `Endpoint`), while element names use **kebab-case** (e.g., `customer-satisfaction`).
+**Important**: In CLI commands, element types use **lowercase** (e.g., `goal`, `service`, `endpoint`), while element names use **kebab-case** (e.g., `customer-satisfaction`). In generated element IDs, the type segment matches the CLI format (e.g., `motivation.goal.customer-satisfaction`).
 
-See [Element Type Reference](../../docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive documentation of all element types by layer.
+See [Element Type Reference](../docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive documentation of all element types by layer.
 
 ### Source File Tracking
 

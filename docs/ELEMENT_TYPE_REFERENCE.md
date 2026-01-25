@@ -2,6 +2,26 @@
 
 This guide documents the element types available in Documentation Robotics and explains the naming conventions used across the 12-layer architecture model.
 
+## Important: CLI Parameter vs Element ID Format
+
+**When using the CLI**, element types use **lowercase** format:
+```bash
+dr add motivation goal customer-satisfaction
+dr add business service order-management
+dr add api endpoint create-order
+```
+
+**In generated element IDs and documentation**, element types use **lowercase** in the ID segment:
+```
+motivation.goal.customer-satisfaction
+business.service.order-management
+api.endpoint.create-order
+```
+
+**In formal documentation and specifications**, element types are referenced with **PascalCase** for clarity (e.g., `Goal`, `BusinessService`, `Endpoint`).
+
+This reference uses PascalCase for formal names but provides the correct lowercase type names you'll use with the CLI.
+
 ## Overview
 
 ### Element ID Format
@@ -9,12 +29,12 @@ This guide documents the element types available in Documentation Robotics and e
 All elements in the Documentation Robotics model follow this naming convention:
 
 ```
-{layer}.{ElementType}.{kebab-case-name}
+{layer}.{elementType}.{kebab-case-name}
 ```
 
 **Components:**
 - **layer**: The layer abbreviation (e.g., `motivation`, `business`, `api`, `data-model`)
-- **ElementType**: The element type in PascalCase (e.g., `Goal`, `BusinessService`, `Endpoint`)
+- **elementType**: The element type in lowercase (e.g., `goal`, `service`, `endpoint`) - this is what you pass to `dr add` commands
 - **kebab-case-name**: A unique identifier for the element within the layer, using kebab-case
 
 **Examples:**
@@ -25,11 +45,18 @@ All elements in the Documentation Robotics model follow this naming convention:
 
 ### Type Naming Conventions
 
-#### PascalCase Requirement
+#### Naming Format by Context
 
-All element types MUST use **PascalCase** format:
-- ✅ Correct: `Goal`, `BusinessService`, `ApplicationComponent`, `Endpoint`
-- ❌ Incorrect: `goal`, `business-service`, `application_component`, `endpoint`
+**In CLI commands and element IDs**, use **lowercase** format:
+- ✅ CLI: `dr add motivation goal customer-satisfaction`
+- ✅ ID: `motivation.goal.customer-satisfaction`
+- ❌ CLI: `dr add motivation Goal customer-satisfaction`
+- ❌ ID: `motivation.Goal.customer-satisfaction`
+
+**In formal documentation and specifications**, types are referred to with **PascalCase**:
+- ✅ Documentation: "The `Goal` element type"
+- ✅ Schema references: `Goal`, `BusinessService`, `Endpoint`
+- ℹ️ This reference uses PascalCase for clarity but shows lowercase equivalents for CLI usage
 
 #### Layer-Specific Types
 

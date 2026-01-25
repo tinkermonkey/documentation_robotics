@@ -75,12 +75,14 @@ See `cli/README.md` for complete setup and usage documentation.
 
 ### 4. Element Naming Convention
 
-- **Format**: `{layer}.{ElementType}.{kebab-case-name}`
+- **Format**: `{layer}.{elementType}.{kebab-case-name}`
 - **Example**: `api.endpoint.create-customer`
-- **Type Format**: Element types MUST use **PascalCase** (e.g., `Endpoint`, `BusinessService`, `Goal`)
+- **Element ID Type Segment**: Lowercase format (e.g., `endpoint`, `service`, `goal`) - this is what appears in the element ID
+- **CLI Type Parameter**: Use lowercase form when running `dr add <layer> <type> <name>` (e.g., `dr add api endpoint create-customer`)
+- **Conceptual Type Name**: Documentation uses PascalCase (e.g., `Endpoint`, `BusinessService`, `Goal`) for formal reference
 - Must be unique across entire model
 - Use element utilities for consistency
-- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation
+- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation with correct CLI usage
 
 ### 5. Cross-Layer References
 
@@ -166,14 +168,16 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 
 ### 3. Element IDs
 
-- **Must** follow `{layer}.{ElementType}.{kebab-case}` convention
-- Element types are **PascalCase**: `Goal`, `BusinessService`, `Endpoint`, etc.
-- Kebab-case names are **lowercase with hyphens**: `customer-satisfaction`, `order-management`
+- **Must** follow `{layer}.{elementType}.{kebab-case}` convention
+- Element type segment uses **lowercase**: `goal`, `service`, `endpoint`, `component`, etc. (not PascalCase in the ID itself)
+- In CLI commands, use **lowercase** for the type parameter: `dr add motivation goal customer-satisfaction`
+- Element names are **kebab-case**: `customer-satisfaction`, `order-management`
 - Must be unique across entire model
 - Use element utilities, don't manually construct IDs
 - Example: `motivation.goal.customer-satisfaction` (✅ Correct)
 - Example: `api.endpoint.create-order` (✅ Correct)
-- Example: `api-endpoint-create-order` (❌ Incorrect - wrong format and type case)
+- Example: `api-endpoint-create-order` (❌ Incorrect - wrong format)
+- Example: `motivation.Goal.customer-satisfaction` (❌ Incorrect - type segment should be lowercase)
 
 ### 4. Export Format Compatibility
 
