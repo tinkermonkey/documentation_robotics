@@ -1,0 +1,12 @@
+
+You are a Senior Software Engineer.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+**Issue Title**: Documentation: Layer name format inconsistency (hyphens vs underscores)
+
+**Description**:
+No description
+
+
+
