@@ -110,7 +110,7 @@ export class ReferenceValidator {
           layer: sourceLayerName,
           elementId,
           message: `Unknown source layer: ${sourceLayerName}`,
-          fixSuggestion: 'Use one of the valid layers: motivation, business, security, application, technology, api, data-model, datastore, ux, navigation, apm, testing',
+          fixSuggestion: 'Use one of the valid layers: motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing',
         });
         continue;
       }

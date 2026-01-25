@@ -105,7 +105,7 @@ describe('Changeset Rollback Verification', () => {
 
       // Reload all layers from disk to verify restoration
       const layerNames = ['motivation', 'business', 'security', 'application', 'technology',
-                          'api', 'data_model', 'datastore', 'ux', 'navigation', 'testing'];
+                          'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'];
       for (const layerName of layerNames) {
         await model.loadLayer(layerName);
       }
@@ -1106,8 +1106,8 @@ function getLayerNumber(layerName: string): string {
     'application': '04_application',
     'technology': '05_technology',
     'api': '06_api',
-    'data_model': '07_data_model',
-    'datastore': '08_datastore',
+    'data-model': '07_data_model',
+    'data-store': '08_datastore',
     'ux': '09_ux',
     'navigation': '10_navigation',
     'apm': '11_apm',
