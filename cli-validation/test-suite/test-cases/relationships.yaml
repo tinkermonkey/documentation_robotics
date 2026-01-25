@@ -15,47 +15,47 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "add datastore table rel-test-table --name 'test_table' --description 'Table for relationship test'"
+      - command: "add data-store table rel-test-table --name 'test_table' --description 'Table for relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column rel-test-column --name 'test_column' --description 'Column for relationship test'"
+      - command: "add data-store column rel-test-column --name 'test_column' --description 'Column for relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "relationship add datastore.table.rel-test-table datastore.column.rel-test-column --predicate composes"
+      - command: "relationship add data-store.table.rel-test-table data-store.column.rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
 
-      - command: "relationship add datastore.table.rel-test-table datastore.column.rel-test-column --predicate has-primary-key"
+      - command: "relationship add data-store.table.rel-test-table data-store.column.rel-test-column --predicate has-primary-key"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
 
-      - command: "relationship delete datastore.table.rel-test-table datastore.column.rel-test-column --predicate composes"
+      - command: "relationship delete data-store.table.rel-test-table data-store.column.rel-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"
 
-      - command: "delete datastore.table.rel-test-table --force"
+      - command: "delete data-store.table.rel-test-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.column.rel-test-column --force"
+      - command: "delete data-store.column.rel-test-column --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
@@ -69,52 +69,52 @@ pipelines:
 
   - name: "Multiple relationship types"
     steps:
-      - command: "add datastore table multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
+      - command: "add data-store table multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column multi-rel-col-1 --name 'column_1' --description 'First column'"
+      - command: "add data-store column multi-rel-col-1 --name 'column_1' --description 'First column'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column multi-rel-col-2 --name 'column_2' --description 'Second column'"
+      - command: "add data-store column multi-rel-col-2 --name 'column_2' --description 'Second column'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "relationship add datastore.table.multi-rel-table datastore.column.multi-rel-col-1 --predicate composes"
+      - command: "relationship add data-store.table.multi-rel-table data-store.column.multi-rel-col-1 --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship add datastore.table.multi-rel-table datastore.column.multi-rel-col-2 --predicate composes"
+      - command: "relationship add data-store.table.multi-rel-table data-store.column.multi-rel-col-2 --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship list datastore.table.multi-rel-table"
+      - command: "relationship list data-store.table.multi-rel-table"
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "delete datastore.table.multi-rel-table --force"
+      - command: "delete data-store.table.multi-rel-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.column.multi-rel-col-1 --force"
+      - command: "delete data-store.column.multi-rel-col-1 --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.column.multi-rel-col-2 --force"
+      - command: "delete data-store.column.multi-rel-col-2 --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml

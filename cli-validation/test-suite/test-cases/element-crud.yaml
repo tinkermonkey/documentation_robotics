@@ -185,7 +185,7 @@ pipelines:
 
   - name: "Add datastore table with update"
     steps:
-      - command: "add datastore table test-table --name 'test_table' --description 'Test table'"
+      - command: "add data-store table test-table --name 'test_table' --description 'Test table'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
@@ -194,14 +194,14 @@ pipelines:
           - "Added"
           - "test-table"
 
-      - command: "update datastore.table.test-table --name 'updated_table'"
+      - command: "update data-store.table.test-table --name 'updated_table'"
         files_to_compare:
           - 08_datastore/tables.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete datastore.table.test-table --force"
+      - command: "delete data-store.table.test-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml

@@ -19,37 +19,37 @@ pipelines:
 
   - name: "Trace dependencies for element"
     steps:
-      - command: "add datastore table trace-test-table --name 'trace_table' --description 'Table for tracing'"
+      - command: "add data-store table trace-test-table --name 'trace_table' --description 'Table for tracing'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column trace-test-column --name 'trace_col' --description 'Column for tracing'"
+      - command: "add data-store column trace-test-column --name 'trace_col' --description 'Column for tracing'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "relationship add datastore.table.trace-test-table datastore.column.trace-test-column --predicate composes"
+      - command: "relationship add data-store.table.trace-test-table data-store.column.trace-test-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "trace datastore.table.trace-test-table"
+      - command: "trace data-store.table.trace-test-table"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
-          - "datastore.table.trace-test-table"
+          - "data-store.table.trace-test-table"
 
-      - command: "delete datastore.table.trace-test-table --force"
+      - command: "delete data-store.table.trace-test-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.column.trace-test-column --force"
+      - command: "delete data-store.column.trace-test-column --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
@@ -104,39 +104,39 @@ pipelines:
 
   - name: "Relationship operations via relationship command"
     steps:
-      - command: "add datastore table rel-cmd-table --name 'rel_table' --description 'Table for relationship command test'"
+      - command: "add data-store table rel-cmd-table --name 'rel_table' --description 'Table for relationship command test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "add datastore column rel-cmd-column --name 'rel_col' --description 'Column for relationship command test'"
+      - command: "add data-store column rel-cmd-column --name 'rel_col' --description 'Column for relationship command test'"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
         expect_exit_code: 0
 
-      - command: "relationship add datastore.table.rel-cmd-table datastore.column.rel-cmd-column --predicate composes"
+      - command: "relationship add data-store.table.rel-cmd-table data-store.column.rel-cmd-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "relationship show datastore.table.rel-cmd-table datastore.column.rel-cmd-column"
+      - command: "relationship show data-store.table.rel-cmd-table data-store.column.rel-cmd-column"
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "relationship delete datastore.table.rel-cmd-table datastore.column.rel-cmd-column --predicate composes"
+      - command: "relationship delete data-store.table.rel-cmd-table data-store.column.rel-cmd-column --predicate composes"
         files_to_compare:
           - relationships.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.table.rel-cmd-table --force"
+      - command: "delete data-store.table.rel-cmd-table --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/tables.yaml
         expect_exit_code: 0
 
-      - command: "delete datastore.column.rel-cmd-column --force"
+      - command: "delete data-store.column.rel-cmd-column --force"
         files_to_compare:
           - manifest.yaml
           - 08_datastore/columns.yaml
