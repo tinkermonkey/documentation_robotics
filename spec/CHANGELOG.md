@@ -291,7 +291,7 @@ See individual layer specifications for detailed relationship examples and usage
 **Tools Support**:
 - CLI v0.7.3+ required for full spec v0.6.0 support
 - Enhanced relationship validation in `dr validate --strict`
-- Link registry validation in `dr validate --validate-links`
+- Link registry validation in `dr validate `
 
 ## [0.5.0] - 2025-12-09
 
@@ -428,7 +428,7 @@ dr migrate --dry-run
 dr migrate --apply
 
 # Re-validate with link checking
-dr validate --validate-links
+dr validate 
 ```
 
 **What Gets Migrated**:
@@ -483,7 +483,7 @@ dr migrate --dry-run
 dr migrate --apply
 
 # Re-validate with link checking
-dr validate --validate-links
+dr validate 
 ```
 
 **What Gets Migrated**:

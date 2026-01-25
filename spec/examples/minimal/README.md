@@ -114,10 +114,10 @@ cd minimal
 dr validate
 
 # With link validation (recommended)
-dr validate --validate-links
+dr validate 
 
 # Full strict validation
-dr validate --strict --validate-links --strict-links
+dr validate --strict  
 ```
 
 Expected output:

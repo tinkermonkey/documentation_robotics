@@ -52,7 +52,7 @@ npx @documentation-robotics/cli validate
 Run validation checks on every pull request to ensure model quality:
 
 ```bash
-dr validate --strict --validate-links --output json
+dr validate --strict --output json
 ```
 
 **Exit Codes:**
@@ -83,7 +83,7 @@ dr export --format all --output ./exports
 Ensure architectural integrity by validating relationships:
 
 ```bash
-dr validate --validate-links --strict-links
+dr validate --strict
 ```
 
 ### 4. Run Conformance Checks
@@ -135,7 +135,7 @@ jobs:
         run: npm install -g @documentation-robotics/cli
 
       - name: Validate DR Model
-        run: dr validate --strict --validate-links --output json
+        run: dr validate --strict --output json
 
       - name: Upload validation report
         if: always()
@@ -177,7 +177,7 @@ jobs:
 
       - name: Validate Model
         run: |
-          dr validate --strict --validate-links --output json > validation-report.json
+          dr validate --strict --output json > validation-report.json
           cat validation-report.json
 
       - name: Export All Formats
@@ -236,7 +236,7 @@ jobs:
 
       - name: Validate ${{ matrix.model }}
         working-directory: ${{ matrix.model }}
-        run: dr validate --strict --validate-links --output json
+        run: dr validate --strict --output json
 ```
 
 ---
@@ -265,7 +265,7 @@ validate:model:
   image: node:${NODE_VERSION}
   <<: *dr_install
   script:
-    - dr validate --strict --validate-links --output json
+    - dr validate --strict --output json
   artifacts:
     when: always
     paths:
@@ -317,7 +317,7 @@ validate:strict:
     - npm ci --cache .npm --prefer-offline
     - npm install -g @documentation-robotics/cli
   script:
-    - dr validate --strict --validate-links --strict-links --output json
+    - dr validate --strict --output json
   artifacts:
     when: always
     paths:
@@ -372,7 +372,7 @@ jobs:
           command: npm install -g @documentation-robotics/cli
       - run:
           name: Validate DR Model
-          command: dr validate --strict --validate-links --output json
+          command: dr validate --strict --output json
       - store_artifacts:
           path: dr-validation-report.json
       - store_test_results:
@@ -446,11 +446,11 @@ pipeline {
 
         stage('Validate Model') {
             steps {
-                sh 'dr validate --strict --validate-links --output json > validation-report.json || true'
+                sh 'dr validate --strict --output json > validation-report.json || true'
                 archiveArtifacts artifacts: 'validation-report.json', allowEmptyArchive: true
                 script {
                     def validation = sh(
-                        script: 'dr validate --strict --validate-links',
+                        script: 'dr validate --strict',
                         returnStatus: true
                     )
                     if (validation != 0) {
@@ -513,7 +513,7 @@ pipeline {
                 changeRequest()
             }
             steps {
-                sh 'dr validate --strict --validate-links --output json'
+                sh 'dr validate --strict --output json'
                 publishHTML([
                     reportDir: '.',
                     reportFiles: 'dr-validation-report.json',
@@ -612,7 +612,7 @@ Export only if validation passes:
 set -e
 
 # Validate first
-dr validate --strict --validate-links --output json
+dr validate --strict --output json
 
 # Only export if validation succeeded
 if [ $? -eq 0 ]; then
@@ -663,7 +663,7 @@ Increase Node.js memory limit:
 
 ```bash
 export NODE_OPTIONS="--max-old-space-size=4096"
-dr validate --strict --validate-links
+dr validate --strict
 ```
 
 #### Issue: Slow validation in CI
@@ -699,7 +699,7 @@ docker run --user $(id -u):$(id -g) ...
 Configure pipelines to fail immediately on validation errors:
 
 ```yaml
-- run: dr validate --strict --validate-links
+- run: dr validate --strict
   # No continue-on-error, fail pipeline if validation fails
 ```
 

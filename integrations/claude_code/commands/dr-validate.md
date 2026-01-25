@@ -1,6 +1,6 @@
 ---
 description: Comprehensive validation of DR model including schema, references, semantic rules, and cross-layer relationships
-argument-hint: "[--strict] [--validate-links] [--strict-links]"
+argument-hint: "[--strict]"
 ---
 
 # Validate Architecture Model
