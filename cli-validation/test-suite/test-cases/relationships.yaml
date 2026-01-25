@@ -18,13 +18,13 @@ pipelines:
       - command: "add data-store table rel-test-table --name 'test_table' --description 'Table for relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "add data-store column rel-test-column --name 'test_column' --description 'Column for relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.table.rel-test-table data-store.column.rel-test-column --predicate composes"
@@ -51,14 +51,14 @@ pipelines:
       - command: "delete data-store.table.rel-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.rel-test-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "delete motivation.goal.rel-base-goal --force"
@@ -72,19 +72,19 @@ pipelines:
       - command: "add data-store table multi-rel-table --name 'multi_table' --description 'Table for multi-relationship test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "add data-store column multi-rel-col-1 --name 'column_1' --description 'First column'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "add data-store column multi-rel-col-2 --name 'column_2' --description 'Second column'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.table.multi-rel-table data-store.column.multi-rel-col-1 --predicate composes"
@@ -104,20 +104,20 @@ pipelines:
       - command: "delete data-store.table.multi-rel-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.multi-rel-col-1 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.multi-rel-col-2 --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
   - name: "Negative test: Cross-layer relationships not supported"

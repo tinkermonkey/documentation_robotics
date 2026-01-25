@@ -162,7 +162,7 @@ pipelines:
 
   - name: "Add data model entity with update"
     steps:
-      - command: "add data_model entity test-entity --name 'TestEntity' --description 'Test entity'"
+      - command: "add data-model entity test-entity --name 'TestEntity' --description 'Test entity'"
         files_to_compare:
           - manifest.yaml
         expect_exit_code: 0
@@ -170,13 +170,13 @@ pipelines:
           - "Added"
           - "test-entity"
 
-      - command: "update data_model.entity.test-entity --name 'UpdatedEntity'"
+      - command: "update data-model.entity.test-entity --name 'UpdatedEntity'"
         files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
 
-      - command: "delete data_model.entity.test-entity --force"
+      - command: "delete data-model.entity.test-entity --force"
         files_to_compare:
           - manifest.yaml
         expect_exit_code: 0
@@ -188,7 +188,7 @@ pipelines:
       - command: "add data-store table test-table --name 'test_table' --description 'Test table'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Added"
@@ -196,7 +196,7 @@ pipelines:
 
       - command: "update data-store.table.test-table --name 'updated_table'"
         files_to_compare:
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Updated"
@@ -204,7 +204,7 @@ pipelines:
       - command: "delete data-store.table.test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Deleted"

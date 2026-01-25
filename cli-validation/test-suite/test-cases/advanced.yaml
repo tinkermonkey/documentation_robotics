@@ -22,13 +22,13 @@ pipelines:
       - command: "add data-store table trace-test-table --name 'trace_table' --description 'Table for tracing'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "add data-store column trace-test-column --name 'trace_col' --description 'Column for tracing'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.table.trace-test-table data-store.column.trace-test-column --predicate composes"
@@ -45,14 +45,14 @@ pipelines:
       - command: "delete data-store.table.trace-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
           - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.trace-test-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
   - name: "Model information and statistics"
@@ -107,13 +107,13 @@ pipelines:
       - command: "add data-store table rel-cmd-table --name 'rel_table' --description 'Table for relationship command test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "add data-store column rel-cmd-column --name 'rel_col' --description 'Column for relationship command test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.table.rel-cmd-table data-store.column.rel-cmd-column --predicate composes"
@@ -133,11 +133,11 @@ pipelines:
       - command: "delete data-store.table.rel-cmd-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "delete data-store.column.rel-cmd-column --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/columns.yaml
+          - 08_data-store/columns.yaml
         expect_exit_code: 0

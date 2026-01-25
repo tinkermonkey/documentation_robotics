@@ -142,7 +142,7 @@ pipelines:
       - command: "add data-store table ref-test-table --name 'test_table' --description 'Table for reference test'"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
       - command: "relationship add data-store.table.ref-test-table nonexistent-element --predicate composes"
@@ -154,7 +154,7 @@ pipelines:
       - command: "delete data-store.table.ref-test-table --force"
         files_to_compare:
           - manifest.yaml
-          - 08_datastore/tables.yaml
+          - 08_data-store/tables.yaml
         expect_exit_code: 0
 
   - name: "Invalid layer name"

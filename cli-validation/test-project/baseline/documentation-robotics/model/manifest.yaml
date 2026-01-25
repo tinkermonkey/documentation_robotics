@@ -75,7 +75,7 @@ layers:
   data-model:
     order: 7
     name: Data Model
-    path: documentation-robotics/model/07_data_model/
+    path: documentation-robotics/model/07_data-model/
     schema: .dr/schemas/07-data-model-layer.schema.json
     enabled: true
     elements:
@@ -86,7 +86,7 @@ layers:
   data-store:
     order: 8
     name: Data Store
-    path: documentation-robotics/model/08_datastore/
+    path: documentation-robotics/model/08_data-store/
     schema: .dr/schemas/08-datastore-layer.schema.json
     enabled: true
     elements:
