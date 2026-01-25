@@ -71,7 +71,7 @@ dr init --name "My Architecture" --author "Your Name"
 dr add motivation goal customer-satisfaction \
   --name "Ensure customer satisfaction"
 
-dr add business service order-management \
+dr add business BusinessService order-management \
   --name "Order Management Service"
 
 dr add api endpoint create-order \
