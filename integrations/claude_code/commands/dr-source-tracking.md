@@ -263,7 +263,7 @@ dr add api operation <id> \
 
 ```bash
 dr validate --layer api
-dr validate --validate-links
+dr validate --strict
 ```
 
 **Step 5: Review and apply**
@@ -458,7 +458,7 @@ dr validate --strict
 # Link elements that reference related code
 dr add api operation create-order --source-file "api.py" ...
 dr add application service order-svc --source-file "service.py" ...
-dr update api.operation.create-order --set x-archimate-ref=application.service.order-svc
+dr update api.operation.create-order --property x-archimate-ref=application.service.order-svc
 ```
 
 ## Summary

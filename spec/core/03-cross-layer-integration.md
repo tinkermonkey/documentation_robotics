@@ -331,10 +331,10 @@ Layer 04 (Application)
 dr validate --cross-layer
 
 # Validate using link registry (v0.2.0+)
-dr validate --validate-links
+dr validate 
 
 # Strict mode - treat link warnings as errors
-dr validate --validate-links --strict-links
+dr validate  
 
 # Discover all links in the model
 dr links list
@@ -370,10 +370,10 @@ dr impact schema.Checkout
 
 1. **Use Standard References** - Prefer `$ref`, `operationId` over custom references
 2. **Validate Early** - Check references during development, not deployment
-3. **Use Link Validation** - Enable `--validate-links` to catch type mismatches and broken references
+3. **Use Link Validation** - Enable `` to catch type mismatches and broken references
 4. **Bidirectional Consistency** - Maintain both forward and backward references
 5. **Document Intent** - Explain why layers are connected, not just that they are
-6. **Automate Validation** - Use CI/CD with `--strict-links` to catch broken references
+6. **Automate Validation** - Use CI/CD with `` to catch broken references
 7. **Follow Registry Patterns** - Use patterns from the Link Registry for consistency
 
 ---
