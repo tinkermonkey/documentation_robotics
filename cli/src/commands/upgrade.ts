@@ -321,14 +321,14 @@ async function handleUpgrade(
   if (integrationStatus.claudeOutdated) {
     await executeIntegrationUpdate('Claude', async () => {
       const claudeManager = new ClaudeIntegrationManager();
-      await claudeManager.update({ force: true });
+      await claudeManager.upgrade({ force: true });
     });
   }
 
   if (integrationStatus.copilotOutdated) {
     await executeIntegrationUpdate('GitHub Copilot', async () => {
       const copilotManager = new CopilotIntegrationManager();
-      await copilotManager.update({ force: true });
+      await copilotManager.upgrade({ force: true });
     });
   }
 

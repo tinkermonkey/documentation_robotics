@@ -87,7 +87,7 @@ Examples:
       const manager = new CopilotIntegrationManager();
 
       try {
-        await manager.update({
+        await manager.upgrade({
           dryRun: options.dryRun,
           force: options.force,
         });

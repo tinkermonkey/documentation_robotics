@@ -148,16 +148,16 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
   }
 
   /**
-   * Update installed Claude integration files
+   * Upgrade installed Claude integration files
    *
-   * Detects file changes, shows a summary, and applies updates with optional
+   * Detects file changes, shows a summary, and applies upgrades with optional
    * dry-run mode to preview changes without applying them.
    *
-   * @param options Update options
+   * @param options Upgrade options
    * @param options.dryRun Preview changes without applying
    * @param options.force Skip confirmation prompts
    */
-  async update(options: {
+  async upgrade(options: {
     dryRun?: boolean;
     force?: boolean;
   } = {}): Promise<void> {
