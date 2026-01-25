@@ -11,7 +11,8 @@ import type { Layer } from '../core/layer.js';
 export class NamingValidator {
   // Element ID format: {layer}.{type}.{name} (dot-separated, matching Python CLI)
   // Also accepts: {layer}-{type}-{kebab-case-name} (legacy kebab-case format)
-  private readonly DOT_SEPARATED_PATTERN = /^[a-z_][a-z0-9_]*(\.[a-z_][a-z0-9_-]*)+$/;
+  // Layer names can contain hyphens (e.g., data-model, data-store) or underscores
+  private readonly DOT_SEPARATED_PATTERN = /^[a-z_][a-z0-9_-]*(\.[a-z_][a-z0-9_-]*)+$/;
   private readonly KEBAB_CASE_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*(-[a-z0-9]+)+$/;
 
   // Known layer names (including hyphenated and underscored ones)

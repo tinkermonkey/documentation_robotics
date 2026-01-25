@@ -245,4 +245,60 @@ describe('NamingValidator', () => {
         `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
     }
   });
+
+  it('should validate dot-separated format with hyphenated layer names', () => {
+    const validator = new NamingValidator();
+
+    const testCases = [
+      { layerName: 'data-model', elementId: 'data-model.entity.customer', valid: true },
+      { layerName: 'data-store', elementId: 'data-store.table.orders', valid: true },
+      { layerName: 'data-model', elementId: 'data-model.object-schema.task-info', valid: true },
+      { layerName: 'data-store', elementId: 'data-store.index.primary-key', valid: true },
+      { layerName: 'data-model', elementId: 'data-store.entity.customer', valid: false },
+      { layerName: 'data-store', elementId: 'data-model.table.orders', valid: false },
+    ];
+
+    for (const testCase of testCases) {
+      const layer = new Layer(testCase.layerName, [
+        new Element({
+          id: testCase.elementId,
+          type: 'Type',
+          name: 'Test',
+        }),
+      ]);
+
+      const validator_instance = new NamingValidator();
+      const result = validator_instance.validateLayer(layer);
+
+      expect(result.isValid()).toBe(testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+    }
+  });
+
+  it('should validate mixed underscore and hyphenated layer names', () => {
+    const validator = new NamingValidator();
+
+    const testCases = [
+      { layerName: 'data-model', elementId: 'data_model.entity.user', valid: true },
+      { layerName: 'data_model', elementId: 'data-model.entity.user', valid: true },
+      { layerName: 'data-store', elementId: 'data_store.table.users', valid: true },
+      { layerName: 'data_store', elementId: 'data-store.table.users', valid: true },
+    ];
+
+    for (const testCase of testCases) {
+      const layer = new Layer(testCase.layerName, [
+        new Element({
+          id: testCase.elementId,
+          type: 'Type',
+          name: 'Test',
+        }),
+      ]);
+
+      const validator_instance = new NamingValidator();
+      const result = validator_instance.validateLayer(layer);
+
+      expect(result.isValid()).toBe(testCase.valid,
+        `Expected ${testCase.elementId} in layer ${testCase.layerName} to be ${testCase.valid ? 'valid' : 'invalid'}`);
+    }
+  });
 });
