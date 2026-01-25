@@ -17,6 +17,7 @@ This directory contains the complete Documentation Robotics Specification, a sta
 ## Quick Links
 
 - **[Read the Spec](#how-to-read-this-specification)** - Start with [core/00-overview.md](core/00-overview.md)
+- **[Cross-Layer Relationships Guide](guides/CROSS_LAYER_RELATIONSHIPS.md)** - Clarifies confusing syntax patterns
 - **[Cross-Layer Reference Registry](core/06-cross-layer-reference-registry.md)** - Complete link catalog (NEW in v0.2.0)
 - **[Implement a Tool](conformance/conformance-levels.md)** - Conformance requirements
 - **[Browse Examples](examples/)** - Practical patterns
