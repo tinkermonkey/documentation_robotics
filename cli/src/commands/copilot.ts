@@ -1,8 +1,8 @@
 /**
  * GitHub Copilot Integration Management Command
  *
- * Manages installation, updates, and configuration of GitHub Copilot integration files.
- * Provides subcommands for install, update, remove, status, and list operations.
+ * Manages installation, upgrades, and configuration of GitHub Copilot integration files.
+ * Provides subcommands for install, upgrade, remove, status, and list operations.
  */
 
 import { Command } from 'commander';
