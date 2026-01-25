@@ -72,10 +72,10 @@ layers:
       object: 2
       array: 1
       endpoint: 1
-  data_model:
+  data-model:
     order: 7
     name: Data Model
-    path: documentation-robotics/model/07_data_model/
+    path: documentation-robotics/model/07_data-model/
     schema: .dr/schemas/07-data-model-layer.schema.json
     enabled: true
     elements:
@@ -83,10 +83,10 @@ layers:
       integer: 1
       string: 1
       boolean: 1
-  datastore:
+  data-store:
     order: 8
     name: Data Store
-    path: documentation-robotics/model/08_datastore/
+    path: documentation-robotics/model/08_data-store/
     schema: .dr/schemas/08-datastore-layer.schema.json
     enabled: true
     elements:

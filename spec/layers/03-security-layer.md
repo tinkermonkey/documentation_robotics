@@ -2846,6 +2846,7 @@ The following XML example demonstrates intra-layer relationships using ArchiMate
 ## Integration Points
 
 **For complete link patterns and validation rules**, see:
+
 - **[Cross-Layer Relationships Guide](../guides/CROSS_LAYER_RELATIONSHIPS.md)** - Clarifies which pattern to use and naming conventions
 - **[Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md)** - Complete catalog of all 60+ patterns
 

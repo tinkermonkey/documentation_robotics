@@ -589,14 +589,13 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
     } else {
       // Discard all changes with confirmation
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
-      let confirmed = false;
 
       if (isInteractive) {
-        confirmed = await prompts.confirm({
+        const confirmed = await prompts.confirm({
           message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
         });
 
-        if (!confirmed) {
+        if (!confirmed || typeof confirmed !== 'boolean') {
           console.log(ansis.dim('Cancelled'));
           return;
         }

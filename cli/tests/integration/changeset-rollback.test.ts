@@ -101,12 +101,12 @@ describe('Changeset Rollback Verification', () => {
       expect(modifiedElementCount).toBeGreaterThan(originalElementCount);
 
       // Restore from backup
+      // Save layer names before restore since restoreModel clears the layers
+      const layerNamesToReload = [...model.getLayerNames()];
       await (manager as any).restoreModel(model, backupDir);
 
       // Reload all layers from disk to verify restoration
-      const layerNames = ['motivation', 'business', 'security', 'application', 'technology',
-                          'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'];
-      for (const layerName of layerNames) {
+      for (const layerName of layerNamesToReload) {
         await model.loadLayer(layerName);
       }
 
@@ -142,10 +142,15 @@ describe('Changeset Rollback Verification', () => {
       const hasManifest = filePaths.includes('manifest.yaml') || filePaths.includes('manifest.json');
       expect(hasManifest).toBe(true);
 
-      // Verify manifest includes all layers (check for files within layer directories)
+      // Verify manifest includes files for non-empty layers
+      // (Empty layers with no elements won't have .yaml files to back up)
       for (const layer of model.layers.values()) {
         const layerFiles = filePaths.filter(p => p.startsWith(`layers/${layer.name}/`));
-        expect(layerFiles.length).toBeGreaterThan(0);
+
+        // Only expect files for layers that have elements
+        if (layer.elements.size > 0) {
+          expect(layerFiles.length).toBeGreaterThan(0);
+        }
       }
 
       // Verify all files have checksums and sizes
@@ -1106,8 +1111,8 @@ function getLayerNumber(layerName: string): string {
     'application': '04_application',
     'technology': '05_technology',
     'api': '06_api',
-    'data-model': '07_data_model',
-    'data-store': '08_datastore',
+    'data-model': '07_data-model',
+    'data-store': '08_data-store',
     'ux': '09_ux',
     'navigation': '10_navigation',
     'apm': '11_apm',

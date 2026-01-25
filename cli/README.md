@@ -67,7 +67,7 @@ dr --help
 # Initialize a new model
 dr init --name "My Architecture" --author "Your Name"
 
-# Add some elements
+# Add some elements (format: dr add <layer> <type> <name>)
 dr add motivation goal customer-satisfaction \
   --name "Ensure customer satisfaction"
 
@@ -75,6 +75,7 @@ dr add business service order-management \
   --name "Order Management Service"
 
 dr add api endpoint create-order \
+  --name "Create Order" \
   --properties '{"method":"POST","path":"/api/orders"}'
 ```
 
@@ -140,6 +141,18 @@ dr show <element-id>             # Show element details
 dr list <layer>                  # List layer elements
 dr search <query>                # Search elements
 ```
+
+**Element ID Format**: `{layer}.{ElementType}.{kebab-case-name}`
+
+Examples:
+- `motivation.goal.customer-satisfaction`
+- `business.service.order-management`
+- `api.endpoint.create-order`
+- `data-model.entity.user-profile`
+
+**Important**: In CLI commands, element types use **lowercase** (e.g., `goal`, `service`, `endpoint`), while element names use **kebab-case** (e.g., `customer-satisfaction`). In generated element IDs, the type segment matches the CLI format (e.g., `motivation.goal.customer-satisfaction`).
+
+See [Element Type Reference](../docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive documentation of all element types by layer.
 
 ### Source File Tracking
 
@@ -216,10 +229,19 @@ dr search --source-file "src/api/endpoints.ts" --layer "06-api" --type "endpoint
 ### Relationships & Dependencies
 
 ```bash
-dr relationship add <source> <target> --predicate <predicate>
-dr relationship list <element-id>
-dr trace <element-id>                    # Trace dependencies
-dr project <element-id> <target-layer>   # Project to layer
+# Add relationships between elements
+dr relationship add motivation.goal.customer-satisfaction \
+                        business.service.customer-support \
+                        --predicate "supports"
+
+# List relationships for an element
+dr relationship list business.service.order-management
+
+# Trace dependencies (see which elements depend on this one)
+dr trace api.endpoint.create-order
+
+# Project dependencies to another layer
+dr project api.endpoint.create-order business
 ```
 
 ### Visualization & Export
