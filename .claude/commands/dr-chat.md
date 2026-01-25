@@ -11,7 +11,7 @@ Help the user explore and understand their DR model through natural conversation
 Use these via Bash tool as needed:
 
 - `dr list <layer>` - List elements in a layer
-- `dr find <element-id>` - Get details of a specific element
+- `dr show <element-id>` - Get details of a specific element
 - `dr search <pattern>` - Search across all layers
 - `dr trace <element-id>` - Show dependencies for an element
 - `dr validate` - Validate the model

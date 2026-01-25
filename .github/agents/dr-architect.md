@@ -482,7 +482,7 @@ Idea → Questions → Research → Model → Validate → Decide
 6. **Validate**
 
    ```bash
-   dr validate --validate-links
+   dr validate
    ```
 
 7. **Compare with Main**
