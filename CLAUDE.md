@@ -75,10 +75,12 @@ See `cli/README.md` for complete setup and usage documentation.
 
 ### 4. Element Naming Convention
 
-- **Format**: `{layer}-{type}-{kebab-case-name}`
-- **Example**: `api-endpoint-create-customer`
+- **Format**: `{layer}.{ElementType}.{kebab-case-name}`
+- **Example**: `api.endpoint.create-customer`
+- **Type Format**: Element types MUST use **PascalCase** (e.g., `Endpoint`, `BusinessService`, `Goal`)
 - Must be unique across entire model
 - Use element utilities for consistency
+- **See Also**: [Element Type Reference](docs/ELEMENT_TYPE_REFERENCE.md) for comprehensive type documentation
 
 ### 5. Cross-Layer References
 
@@ -164,9 +166,14 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 
 ### 3. Element IDs
 
-- **Must** follow `{layer}-{type}-{kebab-case}` convention
+- **Must** follow `{layer}.{ElementType}.{kebab-case}` convention
+- Element types are **PascalCase**: `Goal`, `BusinessService`, `Endpoint`, etc.
+- Kebab-case names are **lowercase with hyphens**: `customer-satisfaction`, `order-management`
 - Must be unique across entire model
 - Use element utilities, don't manually construct IDs
+- Example: `motivation.goal.customer-satisfaction` (✅ Correct)
+- Example: `api.endpoint.create-order` (✅ Correct)
+- Example: `api-endpoint-create-order` (❌ Incorrect - wrong format and type case)
 
 ### 4. Export Format Compatibility
 

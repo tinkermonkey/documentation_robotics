@@ -101,12 +101,12 @@ describe('Changeset Rollback Verification', () => {
       expect(modifiedElementCount).toBeGreaterThan(originalElementCount);
 
       // Restore from backup
+      // Save layer names before restore since restoreModel clears the layers
+      const layerNamesToReload = [...model.getLayerNames()];
       await (manager as any).restoreModel(model, backupDir);
 
       // Reload all layers from disk to verify restoration
-      const layerNames = ['motivation', 'business', 'security', 'application', 'technology',
-                          'api', 'data_model', 'datastore', 'ux', 'navigation', 'testing'];
-      for (const layerName of layerNames) {
+      for (const layerName of layerNamesToReload) {
         await model.loadLayer(layerName);
       }
 

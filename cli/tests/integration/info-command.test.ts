@@ -62,7 +62,7 @@ describe('info command', () => {
       'technology',
       'api',
       'data-model',
-      'datastore', // Note: displayed as datastore (no hyphen) in output
+      'data-store',
       'ux',
       'navigation',
       'apm',
