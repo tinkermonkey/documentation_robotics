@@ -1,6 +1,6 @@
 /**
  * Integration tests for GitHub Copilot integration management
- * Tests install, update, remove, status, and list subcommands
+ * Tests install, upgrade, remove, status, and list subcommands
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
@@ -192,18 +192,18 @@ describe('Copilot Integration Commands', () => {
     });
   });
 
-  describe('dr copilot update', () => {
-    it('should indicate no updates needed if freshly installed', async () => {
+  describe('dr copilot upgrade', () => {
+    it('should indicate no upgrades needed if freshly installed', async () => {
       await runDr('copilot', 'install', '--force');
 
-      const result = await runDr('copilot', 'update');
+      const result = await runDr('copilot', 'upgrade');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('up to date');
     });
 
     it('should show error if not installed', async () => {
-      const result = await runDr('copilot', 'update');
+      const result = await runDr('copilot', 'upgrade');
 
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('GitHub Copilot integration not installed');
@@ -212,7 +212,7 @@ describe('Copilot Integration Commands', () => {
     it('should support --dry-run flag', async () => {
       await runDr('copilot', 'install', '--force');
 
-      const result = await runDr('copilot', 'update', '--dry-run');
+      const result = await runDr('copilot', 'upgrade', '--dry-run');
 
       expect(result.exitCode).toBe(0);
       // Should indicate dry-run mode
@@ -222,7 +222,7 @@ describe('Copilot Integration Commands', () => {
     it('should support --force flag', async () => {
       await runDr('copilot', 'install', '--force');
 
-      const result = await runDr('copilot', 'update', '--force');
+      const result = await runDr('copilot', 'upgrade', '--force');
 
       expect(result.exitCode).toBe(0);
     });
@@ -279,7 +279,7 @@ describe('Copilot Integration Commands', () => {
   });
 
   describe('Copilot integration workflow', () => {
-    it('should support install -> status -> update -> remove workflow', async () => {
+    it('should support install -> status -> upgrade -> remove workflow', async () => {
       // Install
       let result = await runDr('copilot', 'install', '--force');
       expect(result.exitCode).toBe(0);
@@ -289,8 +289,8 @@ describe('Copilot Integration Commands', () => {
       expect(result.exitCode).toBe(0);
       expect(result.stdout).toContain('Installation Status');
 
-      // Update
-      result = await runDr('copilot', 'update');
+      // Upgrade
+      result = await runDr('copilot', 'upgrade');
       expect(result.exitCode).toBe(0);
 
       // Remove
