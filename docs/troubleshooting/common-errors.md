@@ -267,7 +267,7 @@ You're using a relationship type that's not valid between these two layers.
 
 **Solution:**
 
-Check the valid relationship types for the layer combination. See the [Relationship Reference](../reference/relationships.md) for complete rules.
+Check the valid relationship types for the layer combination. Refer to the relationship types listed below in this guide.
 
 **Common valid relationships:**
 - **motivation → business:** `satisfied-by`

@@ -24,15 +24,6 @@ Progress to **[Microservices Architecture](02-microservices.md)** to learn:
 
 **Best for:** Real-world architecture modeling
 
-### For Security-Focused Teams (20 minutes)
-
-Learn **[Security Policy Hardening](03-security-hardening.md)** to:
-- Add authentication and authorization policies
-- Link security to application services
-- Model compliance requirements
-- Validate security coverage
-
-**Best for:** Securing critical components
 
 ## Tutorial Format
 
@@ -61,15 +52,12 @@ node dist/cli.js --help
 
 - Stuck on a step? See the [Troubleshooting Guide](../troubleshooting/common-errors.md)
 - Need a reference? Check the [Quick Reference](../reference/cheat-sheet.md)
-- Want to explore patterns? Visit the [Patterns Guide](../patterns/rest-api-pattern.md)
 
 ## Learning Order (Recommended)
 
 1. **Simple REST API** - Foundation (15 min)
 2. **Troubleshooting Guide** - Reference as needed (ongoing)
 3. **Microservices Architecture** - Build on foundation (30 min)
-4. **Security Hardening** - Apply to your models (20 min)
-5. **Patterns Guide** - Understand architecture patterns (40 min)
 
 ---
 

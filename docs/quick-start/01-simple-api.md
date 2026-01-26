@@ -504,7 +504,6 @@ Now that you understand the basics:
 2. **Try exporting:** Run `dr export openapi` to generate an OpenAPI specification
 3. **Add more detail:** Add descriptions, criticalities, and additional operations
 4. **Progress to Microservices:** Try the [Microservices Architecture](02-microservices.md) tutorial
-5. **Learn patterns:** Explore the [Patterns Guide](../patterns/rest-api-pattern.md)
 
 ## Troubleshooting
 

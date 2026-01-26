@@ -593,9 +593,7 @@ You've successfully completed this tutorial if:
 
 1. **Explore the model:** Check `.dr/layers/` to see how services are organized
 2. **Export APIs:** Run `dr export openapi` to generate OpenAPI specs for each service
-3. **Try the Security Tutorial:** Learn [Security Policy Hardening](03-security-hardening.md)
-4. **Study Patterns:** Review the [Patterns Guide](../patterns/) for architectural patterns
-5. **Build Your Own:** Start modeling your actual architecture
+3. **Build Your Own:** Start modeling your actual architecture
 
 ## Troubleshooting
 
@@ -606,4 +604,4 @@ Having issues? Check the [Troubleshooting Guide](../troubleshooting/common-error
 
 ---
 
-Ready to add security hardening? Continue to **[Security Policy Hardening](03-security-hardening.md)** →
+For more help, check the [Troubleshooting Guide](../troubleshooting/common-errors.md) and [Quick Reference](../reference/cheat-sheet.md).
