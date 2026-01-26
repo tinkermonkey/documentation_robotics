@@ -12,6 +12,9 @@ import {
   CLIError,
   handleError,
   handleSuccess,
+  ErrorCategory,
+  findSimilar,
+  formatValidOptions,
 } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { displayChangesetStatus } from '../utils/changeset-status.js';
@@ -21,6 +24,22 @@ import { generateElementId } from '../utils/id-generator.js';
 // Telemetry flag check
 declare const TELEMETRY_ENABLED: boolean | undefined;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
+// Valid canonical layer names (from CLAUDE.md section 4.1)
+const VALID_LAYERS = [
+  'motivation',
+  'business',
+  'security',
+  'application',
+  'technology',
+  'api',
+  'data-model',
+  'data-store',
+  'ux',
+  'navigation',
+  'apm',
+  'testing',
+];
 
 export interface AddOptions {
   name?: string;
@@ -41,6 +60,23 @@ export async function addCommand(
   name: string,
   options: AddOptions
 ): Promise<void> {
+  // Validate layer name
+  if (!VALID_LAYERS.includes(layer)) {
+    const similar = findSimilar(layer, VALID_LAYERS, 3);
+    const suggestions: string[] = [
+      `Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`,
+    ];
+    if (similar.length > 0) {
+      suggestions.unshift(`Did you mean: ${similar.join(' or ')}?`);
+    }
+    throw new CLIError(
+      `Invalid layer "${layer}"`,
+      ErrorCategory.USER,
+      suggestions,
+      { operation: 'add', context: `Layer: ${layer}, Type: ${type}, Name: ${name}` }
+    );
+  }
+
   // Generate full element ID: {layer}.{type}.{kebab-name}
   // This matches Python CLI format for compatibility
   const elementId = generateElementId(layer, type, name);
@@ -108,8 +144,13 @@ export async function addCommand(
     if (layerObj.getElement(elementId)) {
       throw new CLIError(
         `Element ${elementId} already exists in ${layer} layer`,
-        1,
-        [`Use "dr show ${elementId}" to view the existing element`, `Use "dr update ${elementId}" to modify it`]
+        ErrorCategory.USER,
+        [
+          `Use "dr show ${elementId}" to view the existing element`,
+          `Use "dr update ${elementId}" to modify it`,
+          `Use "dr delete ${elementId}" to remove it first if you want to recreate it`,
+        ],
+        { operation: 'add', context: `Duplicate element ID` }
       );
     }
 
