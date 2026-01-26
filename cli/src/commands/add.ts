@@ -15,6 +15,7 @@ import {
   ErrorCategory,
   findSimilar,
   formatValidOptions,
+  ModelNotFoundError,
 } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { displayChangesetStatus } from '../utils/changeset-status.js';
@@ -91,8 +92,17 @@ export async function addCommand(
     // Validate source reference options
     validateSourceReferenceOptions(options);
 
-    // Load model
-    const model = await Model.load();
+    // Load model (with error handling for missing models)
+    let model: Model;
+    try {
+      model = await Model.load();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('No DR project') || message.includes('Model not found')) {
+        throw new ModelNotFoundError();
+      }
+      throw error;
+    }
 
     // Display active changeset status
     await displayChangesetStatus(model);
