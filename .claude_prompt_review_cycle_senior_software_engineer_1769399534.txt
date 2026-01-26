@@ -1,0 +1,492 @@
+
+You are the Senior Software Engineer revising your work based on feedback.
+
+I implement clean, well thought out code with proper error handling and maintainable architecture.
+
+## Review Cycle - Revision 3 of 5
+
+The Code Reviewer has reviewed your work and identified issues to address.
+
+**Your Task**: REVISE your previous output to address the feedback. Don't start from scratch.
+
+After 5 iterations, unresolved work escalates for human review.
+
+## Original Context
+**Title**: Documentation: Add comprehensive examples for all major workflows
+**Description**: ## Description
+
+The DR documentation lacks comprehensive, end-to-end examples showing complete workflows for common tasks. Users learn best from examples but must piece together partial examples from different sections.
+
+## Current Documentation Gaps
+
+### 1. Missing End-to-End Examples
+
+Documentation shows individual commands but not complete workflows:
+```bash
+# Individual command examples exist
+dr init my-project
+dr add business capability order-management
+dr add relationship --from X --to Y
+
+# But missing: Complete workflow from init to validated model
+```
+
+### 2. No Real-World Scenarios
+
+Users need examples for:
+- Building a model for a REST API application
+- Modeling a microservices architecture  
+- Extracting architecture from existing code
+- Adding security policies to all services
+- Setting up monitoring for critical components
+- Creating a complete business layer
+
+### 3. Limited Relationship Examples
+
+Most confusing aspect has fewest examples:
+- Only basic relationship examples shown
+- No examples of complex relationship patterns
+- No examples of cross-layer traceability chains
+- No examples of relationship validation errors and fixes
+
+### 4. No Anti-Pattern Examples
+
+Documentation doesn't show:
+- Common mistakes and how to avoid them
+- What NOT to do
+- Error scenarios and recovery steps
+
+## Desired Documentation Enhancements
+
+### 1. Quick Start Tutorial
+
+Complete walkthrough from scratch:
+
+```markdown
+# Quick Start: Model a Simple REST API
+
+This tutorial walks through creating a complete DR model for a simple user management API.
+
+## Step 1: Initialize the Model
+
+dr init user-management-api
+cd documentation-robotics
+
+## Step 2: Define Business Goals
+
+First, establish why this system exists:
+
+dr add motivation goal enable-user-registration \
+  --description "Allow new users to create accounts" \
+  --rationale "Business requires self-service registration"
+
+dr add motivation goal secure-user-data \
+  --description "Protect user personal information" \
+  --rationale "Compliance requirement for data protection"
+
+## Step 3: Define Business Capabilities
+
+Map business functions:
+
+dr add business capability user-account-management \
+  --description "Manage user account lifecycle" \
+  --criticality HIGH
+
+## Step 4: Define Application Services
+
+Implement business capabilities:
+
+dr add application service user-service \
+  --description "RESTful service for user operations" \
+  --criticality HIGH
+
+## Step 5: Link Application to Business
+
+dr add relationship \
+  --from application.service.user-service \
+  --to business.capability.user-account-management \
+  --type realizes
+
+## Step 6: Define API Operations
+
+dr add api operation create-user \
+  --path "/api/v1/users" \
+  --method POST \
+  --description "Create a new user account"
+
+dr add api operation get-user \
+  --path "/api/v1/users/{id}" \
+  --method GET \
+  --description "Retrieve user by ID"
+
+## Step 7: Link API to Application
+
+dr add relationship \
+  --from application.service.user-service \
+  --to api.operation.create-user \
+  --type exposes
+
+dr add relationship \
+  --from application.service.user-service \
+  --to api.operation.get-user \
+  --type exposes
+
+## Step 8: Define Data Models
+
+dr add data-model object-schema user-profile \
+  --description "User account data structure"
+
+## Step 9: Define Security
+
+dr add security authentication-policy oauth2-authentication \
+  --description "OAuth 2.0 authentication for API access"
+
+dr add relationship \
+  --from security.authentication-policy.oauth2-authentication \
+  --to application.service.user-service \
+  --type protects
+
+## Step 10: Validate
+
+dr validate
+
+Expected output:
+✓ 12 elements validated
+✓ 5 relationships validated
+✓ Model is valid
+
+## Next Steps
+
+- Add data storage layer
+- Add monitoring metrics
+- Add test coverage requirements
+```
+
+### 2. Common Patterns Guide
+
+Document recurring patterns:
+
+```markdown
+# Common Architecture Patterns
+
+## Pattern 1: REST API Service Pattern
+
+Business Capability
+    ↑ (realizes)
+Application Service
+    ↓ (exposes)
+API Operations
+    ↓ (uses)
+Data Models
+
+Example:
+dr add business capability order-management
+dr add application service order-service
+dr add relationship --from application.service.order-service \
+  --to business.capability.order-management --type realizes
+
+[... complete example ...]
+
+## Pattern 2: Secured Critical Service Pattern
+
+Application Service (criticality: HIGH)
+    ← (protects) Authentication Policy
+    ← (protects) Authorization Policy
+    → (monitors) APM Metric
+
+[... complete example ...]
+
+## Pattern 3: Data Flow Pattern
+
+API Operation
+    → (uses) Data Model
+    → (stores) Datastore
+
+[... complete example ...]
+```
+
+### 3. Troubleshooting Guide with Examples
+
+```markdown
+# Troubleshooting Common Issues
+
+## Issue: Validation fails with "Invalid element ID"
+
+Error:
+✗ Invalid element ID format: data-model.object-schema.user
+  Expected: data_model.schema.user
+
+Fix:
+The layer name must use underscores, not hyphens.
+
+dr add data-model object-schema user
+# Creates: data-model.object-schema.user ❌
+
+# Manually edit file:
+sed -i 's/data-model\./data_model./g' object-schemas.yaml
+# Now: data_model.schema.user ✅
+
+## Issue: Relationship direction wrong
+
+Error:
+✗ Invalid relationship: business.capability.X realizes application.service.Y
+
+Fix:
+The "realizes" relationship goes FROM implementation TO abstraction.
+Application services realize business capabilities (not the other way).
+
+# Wrong:
+dr add relationship --from business.capability.X \
+  --to application.service.Y --type realizes ❌
+
+# Correct:
+dr add relationship --from application.service.Y \
+  --to business.capability.X --type realizes ✅
+
+[... more troubleshooting examples ...]
+```
+
+### 4. Real-World Case Studies
+
+```markdown
+# Case Study: Microservices E-Commerce Platform
+
+This case study shows how to model a complete microservices architecture.
+
+## System Overview
+- 5 microservices (user, catalog, order, payment, notification)
+- REST APIs
+- Event-driven communication
+- PostgreSQL databases
+- Redis caching
+- Kubernetes deployment
+
+## Complete Model
+[... full step-by-step modeling ...]
+
+## Resulting Architecture
+- 8 business capabilities
+- 5 application services  
+- 23 API operations
+- 12 data models
+- 5 datastores
+- 67 total relationships
+
+[... full element listings and relationships ...]
+```
+
+### 5. Quick Reference Cheat Sheet
+
+```markdown
+# DR CLI Quick Reference
+
+## Common Commands
+
+# Initialize
+dr init <project-name>
+
+# Add elements
+dr add <layer> <type> <name> [--description "..."] [--criticality HIGH|MEDIUM|LOW]
+
+# Add relationships
+dr add relationship --from <source-id> --to <target-id> --type <relationship-type>
+
+# Validate
+dr validate
+
+# Search
+dr search <query>
+
+## Element ID Format
+{layer}.{type}.{name}
+
+Examples:
+- motivation.goal.improve-quality
+- business.capability.order-management  
+- application.service.user-service
+- data_model.schema.user-profile      (note: data_model, not data-model)
+- security.authentication-policy.oauth2
+
+## Common Relationship Patterns
+
+application.service → business.capability (realizes)
+application.service → api.operation (exposes)
+datastore → data_model.schema (stores)
+security.policy → application.service (protects)
+apm.metric → application.service (monitors)
+motivation.requirement → business.capability (satisfied-by)
+
+## Troubleshooting
+
+Invalid ID format → Check layer name uses underscores
+Validation fails → Run dr validate for specific errors
+Relationship wrong direction → Check relationship semantics guide
+```
+
+## Benefits
+
+1. **Faster onboarding** - New users can follow complete examples
+2. **Better understanding** - See how pieces fit together
+3. **Reduced errors** - Learn from correct examples  
+4. **Pattern recognition** - Identify reusable patterns
+5. **Troubleshooting** - Fix issues using documented solutions
+6. **Confidence** - Verify work matches documented patterns
+
+## Suggested Documentation Structure
+
+```
+docs/
+├── quick-start/
+│   ├── 01-simple-api.md          # 15-minute tutorial
+│   ├── 02-microservices.md       # 30-minute tutorial
+│   └── 03-security-hardening.md  # Security patterns
+├── guides/
+│   ├── element-reference.md      # All element types with examples
+│   ├── relationship-guide.md     # All relationships with examples
+│   └── validation-guide.md       # Validation with examples
+├── patterns/
+│   ├── rest-api-pattern.md
+│   ├── event-driven-pattern.md
+│   └── security-patterns.md
+├── troubleshooting/
+│   ├── common-errors.md
+│   └── faq.md
+└── case-studies/
+    ├── ecommerce-platform.md
+    ├── saas-application.md
+    └── monolith-to-microservices.md
+```
+
+## Related Issues
+
+- Issue #239: Relationship syntax needs examples
+- Issue #240: Layer naming needs examples  
+- Issue #241: Element types need examples
+
+## Environment
+
+- DR CLI version: 0.1.0
+
+## Your Previous Output (to be revised)
+# Implementation
+
+---
+
+## Revision Notes
+
+- ✅ **Broken Internal Links**: Removed all references to non-existent documentation files (security-hardening.md, patterns/ directory, relationships.md). Updated cross-references to only point to files that exist in this implementation.
+- ✅ **Inconsistent Link References**: Fixed path references in README.md and tutorial files to accurately reflect the documentation structure that was actually created.
+- ✅ **Navigation Clarity**: Updated README.md with a clearer learning path that doesn't reference missing content.
+
+---
+
+# Implementation
+
+I need to fix the broken internal links in the documentation. Let me update the files:Now let me fix the broken links:Now let me check and fix the 02-microservices.md file for broken references:Now let me check and fix the 01-simple-api.md file:Now let me check the troubleshooting guide for broken links:Now let me commit these fixes:Perfect! Let me verify the changes:Excellent! All fixes have been applied and committed. Here's a summary of the revision:
+
+---
+
+## Revision Summary
+
+**All broken internal links have been removed and documentation is now consistent.**
+
+### Changes Made
+
+1. **Quick Start README** (`docs/quick-start/README.md`)
+   - Removed reference to non-existent `03-security-hardening.md` tutorial section
+   - Removed pattern guide link from "Getting Help" section
+   - Simplified learning path to reference only 2 existing tutorials
+
+2. **Simple API Tutorial** (`docs/quick-start/01-simple-api.md`)
+   - Removed reference to non-existent patterns guide (`../patterns/rest-api-pattern.md`)
+   - Streamlined next steps to focus on existing resources
+
+3. **Microservices Tutorial** (`docs/quick-start/02-microservices.md`)
+   - Removed 2 references to non-existent security hardening tutorial
+   - Removed reference to non-existent patterns guide directory
+   - Updated closing CTA to reference existing troubleshooting and reference guides
+
+4. **Troubleshooting Guide** (`docs/troubleshooting/common-errors.md`)
+   - Removed reference to non-existent `../reference/relationships.md` file
+   - Updated link text to indicate information is available within the current guide
+
+### Result
+
+✅ All documentation links are now valid and working  
+✅ Users won't encounter broken navigation  
+✅ All cross-references point to existing files  
+✅ Documentation maintains consistency with actual deliverables
+
+**Commit:** `0cea7fe` - All changes staged and committed
+
+---
+_Generated by Orchestrator Bot 🤖_
+_Processed by the senior_software_engineer agent_
+
+## Feedback to Address
+I'll review the changes made by the Senior Software Engineer in response to the previous feedback about broken internal links. Let me examine the current state of the documentation files.Let me verify what files exist in the docs directory structure to check if the referenced files actually exist.Now let me check the reference folder to see if the cheat-sheet.md exists and verify all referenced files.Now I have a complete picture. Let me verify the cross-references are valid by checking that:
+1. `docs/reference/cheat-sheet.md` exists ✓
+2. `docs/ELEMENT_TYPE_REFERENCE.md` exists ✓
+3. All quick-start tutorials exist ✓
+4. Troubleshooting guide exists ✓
+
+Let me verify that no broken links remain.All links reference files that exist. Let me verify one anchor link mentioned in 01-simple-api.md that references a section that should exist - "CLI Setup Issues":There's a broken anchor link. The `01-simple-api.md` references `#cli-setup-issues` but that section doesn't exist in the troubleshooting guide. Let me check what sections actually exist:I see - the section is "CLI Command Issues" not "CLI Setup Issues". This is a broken anchor link that was not fixed. Let me also verify the GitHub link:Now I have enough information to write my review.
+
+### Status
+**CHANGES NEEDED**
+
+### Previous Issues Status
+
+- ✅ **Broken Internal Links to Non-Existent Files** - RESOLVED: References to `03-security-hardening.md`, `patterns/` directory, and `relationships.md` have been removed from README.md, 01-simple-api.md, 02-microservices.md, and common-errors.md.
+- ✅ **Inconsistent Link References** - RESOLVED: The documentation now only references files that actually exist in the structure.
+- ✅ **Navigation Clarity** - RESOLVED: README.md learning path updated to reference only the 2 existing tutorials.
+
+### New Issues Found
+
+#### Critical
+None
+
+#### High Priority
+
+- **Broken anchor link in 01-simple-api.md:512**: References `#cli-setup-issues` but the actual section in common-errors.md is `#cli-command-issues`. Update line 512 to use the correct anchor.
+
+### Summary
+
+The revision successfully addressed the main broken file references. One anchor link discrepancy remains - a straightforward fix. Once corrected, the documentation will have fully consistent internal navigation.
+
+## Revision Guidelines
+
+**CRITICAL - How to Revise**:
+1. **Read feedback systematically**: List each distinct issue raised
+2. **Address EVERY feedback point**: Don't leave any issues unresolved
+3. **Make TARGETED changes**: Modify only what was criticized
+4. **Keep working content**: Don't rewrite sections that weren't criticized
+5. **Stay focused**: Don't add new content unless specifically requested
+
+**Required Output Structure**:
+
+**MUST START WITH**:
+```
+## Revision Notes
+- ✅ [Issue 1 Title]: [Brief description of what you changed]
+- ✅ [Issue 2 Title]: [Brief description of what you changed]
+- ✅ [Issue 3 Title]: [Brief description of what you changed]
+...
+```
+
+This checklist is **CRITICAL** - it helps the reviewer see you addressed each point.
+
+**Then provide your COMPLETE, REVISED document**:
+- All sections: Implementation
+- Full content (not just changes)
+- DO NOT include project name, feature name, or date headers (already in discussion)
+
+**Important Don'ts**:
+- ❌ Start from scratch (this is a REVISION, not complete rewrite)
+- ❌ Skip any feedback point without addressing it
+- ❌ Remove content that wasn't criticized
+- ❌ Add new sections unless specifically requested
+- ❌ Make changes to sections that weren't mentioned in feedback
+- ❌ Ignore subtle feedback ("clarify X" means "add more detail about X")
+
+**Format**: Markdown text for GitHub posting.

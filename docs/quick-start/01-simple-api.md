@@ -509,7 +509,7 @@ Now that you understand the basics:
 
 - **"Invalid element ID" errors?** See [Element ID Format Issues](../troubleshooting/common-errors.md#element-id-format-issues)
 - **"Relationship not found" errors?** See [Relationship Direction Issues](../troubleshooting/common-errors.md#relationship-direction-issues)
-- **Commands not working?** See [CLI Setup Issues](../troubleshooting/common-errors.md#cli-setup-issues)
+- **Commands not working?** See [CLI Command Issues](../troubleshooting/common-errors.md#cli-command-issues)
 
 ---
 
