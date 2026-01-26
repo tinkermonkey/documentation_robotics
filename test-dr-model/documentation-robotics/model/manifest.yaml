@@ -1,0 +1,107 @@
+version: 0.1.0
+schema: documentation-robotics-v1
+cli_version: 0.1.0
+spec_version: 0.7.1
+created: 2026-01-26T00:12:52.518Z
+updated: 2026-01-26T00:13:15.926Z
+project:
+  name: Test Model
+  description: ""
+  version: 0.1.0
+documentation: .dr/README.md
+layers:
+  motivation:
+    order: 1
+    name: Motivation
+    path: documentation-robotics/model/01_motivation/
+    schema: .dr/schemas/01-motivation-layer.schema.json
+    enabled: true
+    elements:
+      goal: 1
+  business:
+    order: 2
+    name: Business
+    path: documentation-robotics/model/02_business/
+    schema: .dr/schemas/02-business-layer.schema.json
+    enabled: true
+    elements: {}
+  security:
+    order: 3
+    name: Security
+    path: documentation-robotics/model/03_security/
+    schema: .dr/schemas/03-security-layer.schema.json
+    enabled: true
+    elements: {}
+  application:
+    order: 4
+    name: Application
+    path: documentation-robotics/model/04_application/
+    schema: .dr/schemas/04-application-layer.schema.json
+    enabled: true
+    elements: {}
+  technology:
+    order: 5
+    name: Technology
+    path: documentation-robotics/model/05_technology/
+    schema: .dr/schemas/05-technology-layer.schema.json
+    enabled: true
+    elements: {}
+  api:
+    order: 6
+    name: Api
+    path: documentation-robotics/model/06_api/
+    schema: .dr/schemas/06-api-layer.schema.json
+    enabled: true
+    elements: {}
+  data-model:
+    order: 7
+    name: Data model
+    path: documentation-robotics/model/07_data-model/
+    schema: .dr/schemas/07-data-model-layer.schema.json
+    enabled: true
+    elements: {}
+  datastore:
+    order: 8
+    name: Datastore
+    path: documentation-robotics/model/08_datastore/
+    schema: .dr/schemas/08-datastore-layer.schema.json
+    enabled: true
+    elements: {}
+  ux:
+    order: 9
+    name: Ux
+    path: documentation-robotics/model/09_ux/
+    schema: .dr/schemas/09-ux-layer.schema.json
+    enabled: true
+    elements: {}
+  navigation:
+    order: 10
+    name: Navigation
+    path: documentation-robotics/model/10_navigation/
+    schema: .dr/schemas/10-navigation-layer.schema.json
+    enabled: true
+    elements: {}
+  apm:
+    order: 11
+    name: Apm
+    path: documentation-robotics/model/11_apm/
+    schema: .dr/schemas/11-apm-layer.schema.json
+    enabled: true
+    elements: {}
+  testing:
+    order: 12
+    name: Testing
+    path: documentation-robotics/model/12_testing/
+    schema: .dr/schemas/12-testing-layer.schema.json
+    enabled: true
+    elements: {}
+statistics:
+  total_elements: 1
+  total_relationships: 0
+  completeness: 0
+  last_validation: null
+  validation_status: not_validated
+cross_references:
+  total: 0
+  by_type: {}
+upgrade_history: []

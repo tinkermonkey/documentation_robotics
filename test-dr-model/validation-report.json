@@ -1,0 +1,15 @@
+{
+  "valid": true,
+  "summary": {
+    "totalElements": 0,
+    "totalRelationships": 0,
+    "errorCount": 0,
+    "warningCount": 0,
+    "layersValidated": 0
+  },
+  "layerStats": {},
+  "relationshipsByPredicate": {},
+  "orphanedElements": [],
+  "errors": [],
+  "warnings": []
+}

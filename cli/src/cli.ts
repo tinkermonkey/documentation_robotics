@@ -269,6 +269,9 @@ program
   .description('Validate the architecture model')
   .option('--layers <layers...>', 'Specific layers to validate')
   .option('--strict', 'Treat warnings as errors')
+  .option('--verbose', 'Show detailed validation output with relationship breakdown')
+  .option('--quiet', 'Show minimal output')
+  .option('--output <path>', 'Export validation report to file (JSON or Markdown)')
   .option('--model <path>', 'Path to model root (contains model/manifest.yaml)')
   .option('--all', 'Run all validations (default behavior)')
   .option('--markdown', 'Validate markdown structure')
@@ -284,6 +287,10 @@ program
 Examples:
   $ dr validate
   $ dr validate --all --strict
+  $ dr validate --verbose
+  $ dr validate --quiet
+  $ dr validate --output report.json
+  $ dr validate --output report.md
   $ dr validate --schemas
   $ dr validate --relationships
   $ dr validate --layers business api`
