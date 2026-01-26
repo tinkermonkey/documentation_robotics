@@ -5,6 +5,14 @@ import { Model } from '../../src/core/model.js';
 import { Layer } from '../../src/core/layer.js';
 import { Element } from '../../src/core/element.js';
 
+/**
+ * Strip ANSI escape codes from a string
+ */
+function stripAnsi(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\u001b\[[0-9;]*m/g, '');
+}
+
 describe('ValidationFormatter', () => {
   let model: Model;
   let result: ValidationResult;
@@ -74,11 +82,12 @@ describe('ValidationFormatter', () => {
     });
 
     const output = ValidationFormatter.format(result, model);
+    const cleanOutput = stripAnsi(output);
 
-    expect(output).toContain('✗ Business layer');
-    expect(output).toContain('1. Invalid element ID format');
-    expect(output).toContain('Element: business-process-sales');
-    expect(output).toContain('Suggestion: Use format {layer}.{type}.{name}');
+    expect(cleanOutput).toContain('✗ Business layer');
+    expect(cleanOutput).toContain('1. Invalid element ID format');
+    expect(cleanOutput).toContain('Element: business-process-sales');
+    expect(cleanOutput).toContain('Suggestion: Use format {layer}.{type}.{name}');
   });
 
   it('should format warnings in output', async () => {

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { createTempWorkdir, runDr } from '../helpers/cli-runner.js';
+import { createTempWorkdir, runDr, stripAnsi } from '../helpers/cli-runner.js';
 
 let tempDir: { path: string; cleanup: () => Promise<void> };
 
@@ -43,9 +43,10 @@ describe('stats command', () => {
     const result = await runDr(['stats'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('api');
-    expect(result.stdout).toContain('business');
-    expect(result.stdout).toContain('2 elements');
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain('api');
+    expect(output).toContain('business');
+    expect(output).toContain('2 elements');
   });
 
   it('should display relationship statistics', async () => {
@@ -179,7 +180,8 @@ describe('stats command', () => {
     const result = await runDr(['stats'], { cwd: tempDir.path });
 
     expect(result.exitCode).toBe(0);
-    expect(result.stdout).toContain('8 elements');
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain('8 elements');
   });
 
   it('should show validation status', async () => {
@@ -216,7 +218,8 @@ describe('stats command', () => {
 
     expect(result.exitCode).toBe(0);
     // Should show at least 1 element
-    expect(result.stdout).toContain('1 elements');
+    const output = stripAnsi(result.stdout);
+    expect(output).toContain('1 elements');
   });
 
   it('should format dates nicely in output', async () => {

@@ -189,3 +189,14 @@ export function assertOutputContains(result: CLIResult, text: string, message?: 
     throw new Error(message || `Output does not contain expected text: "${text}"\n\nActual output:\n${output}`);
   }
 }
+
+/**
+ * Strip ANSI escape codes from a string
+ *
+ * @param text Text with ANSI codes
+ * @returns Text without ANSI codes
+ */
+export function stripAnsi(text: string): string {
+  // eslint-disable-next-line no-control-regex
+  return text.replace(/\u001b\[[0-9;]*m/g, '');
+}

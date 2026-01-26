@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { createTempWorkdir, runDr } from '../helpers/cli-runner.js';
+import { createTempWorkdir, runDr, stripAnsi } from '../helpers/cli-runner.js';
 
 let tempDir: { path: string; cleanup: () => Promise<void> };
 
@@ -73,9 +73,14 @@ describe('info command', () => {
     const result = await runDr(['info'], { cwd: tempDir.path });
     expect(result.exitCode).toBe(0);
 
+    // Strip ANSI codes for reliable matching
+    const output = stripAnsi(result.stdout);
+
     // Verify that each layer name appears in the summary
+    // Note: data-store may appear as "datastore" in display
     for (const layer of layers) {
-      expect(result.stdout).toContain(layer);
+      const displayName = layer === 'data-store' ? 'datastore' : layer;
+      expect(output).toContain(displayName);
     }
   });
 
