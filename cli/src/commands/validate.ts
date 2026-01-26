@@ -141,20 +141,19 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     // Format and display output
     if (options.output) {
       // Export to file
-      const exportPath = options.output;
       let content: string;
 
-      if (exportPath.endsWith('.md') || exportPath.endsWith('.markdown')) {
+      if (options.output.endsWith('.md') || options.output.endsWith('.markdown')) {
         content = ValidationFormatter.toMarkdown(result, model);
-      } else if (exportPath.endsWith('.json')) {
+      } else if (options.output.endsWith('.json')) {
         content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
       } else {
         // Default to JSON
         content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
       }
 
-      await fs.writeFile(exportPath, content, 'utf-8');
-      console.log(`\nValidation report exported to ${exportPath}`);
+      await fs.writeFile(options.output, content, 'utf-8');
+      console.log(`\nValidation report exported to ${options.output}`);
 
       if (!result.isValid()) {
         process.exit(1);
