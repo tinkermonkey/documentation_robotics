@@ -8,3 +8,4 @@ export { NamingValidator } from './naming-validator.js';
 export { ReferenceValidator } from './reference-validator.js';
 export { SemanticValidator } from './semantic-validator.js';
 export { Validator } from './validator.js';
+export { ValidationFormatter } from './validation-formatter.js';

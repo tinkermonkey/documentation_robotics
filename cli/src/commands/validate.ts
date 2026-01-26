@@ -8,11 +8,14 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { Model } from '../core/model.js';
 import { Validator } from '../validators/validator.js';
+import { ValidationFormatter } from '../validators/validation-formatter.js';
 
 export interface ValidateOptions {
   layers?: string[];
   strict?: boolean;
   verbose?: boolean;
+  quiet?: boolean;
+  output?: string;
   debug?: boolean;
   model?: string;
   // Python CLI compatibility options
@@ -133,69 +136,48 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     // Validate
     const validator = new Validator();
 
-    console.log('');
-    console.log(ansis.bold('Validating model...'));
-    console.log('');
-
     const result = await validator.validateModel(model);
 
-    // Display errors
-    if (result.errors.length > 0) {
-      console.log(ansis.bold(ansis.red(`✗ ${result.errors.length} error(s):`)));
-      console.log('');
-      for (const error of result.errors) {
-        console.log(ansis.red(`  [${error.layer}] ${error.message}`));
-        if (error.elementId) {
-          console.log(ansis.dim(`    Element: ${error.elementId}`));
-        }
-        if (error.fixSuggestion) {
-          console.log(ansis.dim(`    → Suggestion: ${error.fixSuggestion}`));
-        }
-      }
-      console.log('');
-    }
+    // Format and display output
+    if (options.output) {
+      // Export to file
+      let content: string;
 
-    // Display warnings
-    if (result.warnings.length > 0) {
-      console.log(ansis.bold(ansis.yellow(`⚠ ${result.warnings.length} warning(s):`)));
-      console.log('');
-      for (const warning of result.warnings) {
-        console.log(ansis.yellow(`  [${warning.layer}] ${warning.message}`));
-        if (warning.elementId) {
-          console.log(ansis.dim(`    Element: ${warning.elementId}`));
-        }
-        if (warning.fixSuggestion) {
-          console.log(ansis.dim(`    → Suggestion: ${warning.fixSuggestion}`));
-        }
-      }
-      console.log('');
-    }
-
-    // Display summary
-    if (result.isValid()) {
-      if (result.warnings.length === 0) {
-        console.log(ansis.green('✓ Validation passed'));
-        console.log('');
-        process.exit(0);
+      if (options.output.endsWith('.md') || options.output.endsWith('.markdown')) {
+        content = ValidationFormatter.toMarkdown(result, model);
+      } else if (options.output.endsWith('.json')) {
+        content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
       } else {
-        console.log(
-          ansis.yellow(
-            `✓ Validation passed with ${result.warnings.length} warning(s)`
-          )
-        );
-        console.log('');
-        if (options.strict) {
-          console.log(ansis.red('Strict mode enabled: treating warnings as errors'));
-          process.exit(1);
-        } else {
-          process.exit(0);
-        }
+        // Default to JSON
+        content = JSON.stringify(ValidationFormatter.toJSON(result, model), null, 2);
+      }
+
+      await fs.writeFile(options.output, content, 'utf-8');
+      console.log(`\nValidation report exported to ${options.output}`);
+
+      if (!result.isValid()) {
+        process.exit(1);
+      }
+      process.exit(0);
+    }
+
+    // Display formatted output
+    const formatted = ValidationFormatter.format(result, model, {
+      verbose: options.verbose,
+      quiet: options.quiet,
+    });
+
+    console.log(formatted);
+
+    // Exit with appropriate code
+    if (result.isValid()) {
+      if (options.strict && result.warnings.length > 0) {
+        console.log(ansis.red('Strict mode enabled: treating warnings as errors'));
+        process.exit(1);
+      } else {
+        process.exit(0);
       }
     } else {
-      console.log(
-        ansis.red(`✗ Validation failed with ${result.errors.length} error(s)`)
-      );
-      console.log('');
       process.exit(1);
     }
   } catch (error) {
