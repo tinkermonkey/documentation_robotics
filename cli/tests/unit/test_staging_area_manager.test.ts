@@ -44,12 +44,25 @@ layers: {}`;
   });
 
   afterEach(async () => {
-    // Restore original working directory
-    process.chdir(originalCwd);
-
-    // Clean up test directory
+    // Clean up test directory first
     if (await fileExists(testDir)) {
-      await rm(testDir, { recursive: true, force: true });
+      try {
+        await rm(testDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
+    // Restore original working directory (only if it still exists)
+    try {
+      if (await fileExists(originalCwd)) {
+        process.chdir(originalCwd);
+      } else {
+        process.chdir('/');
+      }
+    } catch {
+      // Ignore chdir errors
+      process.chdir('/');
     }
   });
 

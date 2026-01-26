@@ -332,7 +332,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if element not found', async () => {
       const result = await runDr('delete', 'nonexistent-element', '--force');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2); // NOT_FOUND exit code
     });
 
     it('should display dependency warning for element with dependents', async () => {
