@@ -104,16 +104,6 @@ export async function addCommand(
       model.addLayer(layerObj);
     }
 
-    // Note: ID validation is handled by generateElementId which produces
-    // kebab-case output in format: {layer}.{type}.{kebab-name}
-    if (false && name.includes('_')) {
-      throw new CLIError(
-        `Invalid element name: "${name}". Element names should avoid underscores.`,
-        1,
-        ['Use hyphens (-) or spaces instead of underscores (_)', 'Example: my-element-name or My Element Name']
-      );
-    }
-
     // Parse properties if provided
     let properties: Record<string, unknown> = {};
     if (options.properties) {

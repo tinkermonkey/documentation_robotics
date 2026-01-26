@@ -60,7 +60,9 @@ describe('Error Message Scenarios', () => {
       const result = await runDr('add', 'apis', 'endpoint', 'test');
       expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('Invalid layer');
-      expect(result.stderr).toContain('Valid options') || expect(result.stderr).toContain('Did you mean');
+      expect(
+        result.stderr.includes('Valid options') || result.stderr.includes('Did you mean')
+      ).toBe(true);
     });
 
     it('should provide fuzzy match suggestions for typos', async () => {
@@ -82,7 +84,9 @@ describe('Error Message Scenarios', () => {
       expect(result2.exitCode).toBe(1);
       expect(result2.stderr).toContain('already exists');
       // Should include helpful suggestions
-      expect(result2.stderr).toContain('dr show') || expect(result2.stderr).toContain('dr update');
+      expect(
+        result2.stderr.includes('dr show') || result2.stderr.includes('dr update')
+      ).toBe(true);
     });
 
     it('should error on invalid JSON properties', async () => {
@@ -128,7 +132,9 @@ describe('Error Message Scenarios', () => {
     it('should error when element not found', async () => {
       const result = await runDr('delete', 'api.endpoint.nonexistent', '--force');
       expect(result.exitCode).toBe(2); // Not found
-      expect(result.stderr).toContain('not found') || expect(result.stderr).toContain('Element');
+      expect(
+        result.stderr.includes('not found') || result.stderr.includes('Element')
+      ).toBe(true);
     });
 
     it('should provide helpful suggestions for not found elements', async () => {
@@ -149,7 +155,9 @@ describe('Error Message Scenarios', () => {
 
       const result = await runDr('delete', 'motivation.goal.increase-revenue');
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('dependencies') || expect(result.stderr).toContain('Cannot remove');
+      expect(
+        result.stderr.includes('dependencies') || result.stderr.includes('Cannot remove')
+      ).toBe(true);
     });
 
     it('should suggest options when deletion blocked by dependencies', async () => {
@@ -181,7 +189,9 @@ describe('Error Message Scenarios', () => {
     it('should handle missing model gracefully', async () => {
       const result = await runDr('list', 'api');
       expect(result.exitCode).toBeGreaterThan(0);
-      expect(result.stderr).toContain('not found') || expect(result.stderr).toContain('No model');
+      expect(
+        result.stderr.includes('not found') || result.stderr.includes('No model')
+      ).toBe(true);
     });
 
     it('should suggest running init when model is missing', async () => {
@@ -216,7 +226,7 @@ describe('Error Message Scenarios', () => {
       // This test verifies batching capability
       const result = await runDr('validate', '--verbose');
       // Should not be overwhelming
-      expect(result.stdout.length).toBeLessThan(100000) || expect(true).toBe(true);
+      expect(result.stdout.length).toBeLessThan(100000).toBe(true);
     });
   });
 
@@ -253,7 +263,7 @@ describe('Error Message Scenarios', () => {
       expect(result.exitCode).toBeGreaterThan(0);
       expect(result.stderr).toContain('Error:');
       // Should not be too technical
-      expect(result.stderr.length).toBeLessThan(1000) || expect(true).toBe(true);
+      expect(result.stderr.length).toBeLessThan(1000).toBe(true);
     });
 
     it('should provide actionable suggestions', async () => {
@@ -289,7 +299,9 @@ describe('Error Message Scenarios', () => {
     it('should support --dry-run for delete operations', async () => {
       const result = await runDr('delete', 'motivation.goal.goal-1', '--dry-run');
       expect(result.exitCode).toBe(0);
-      expect(result.stdout).toContain('Dry run') || expect(result.stdout).toContain('Would remove');
+      expect(
+        result.stdout.includes('Dry run') || result.stdout.includes('Would remove')
+      ).toBe(true);
       // Model should be unchanged
       const listResult = await runDr('list', 'motivation');
       expect(listResult.stdout).toContain('goal-1');

@@ -8,12 +8,11 @@
  * - System Error (exit code 3): Permission denied, I/O failure
  * - Validation Error (exit code 4): Schema/reference/semantic validation failed
  * - Breaking Change (exit code 5): Version migration required
- *
- * NOTE: The add.ts command demonstrates usage of CLIError.
- * Future commands should adopt this pattern to ensure consistent error handling.
  */
 
 import ansis from 'ansis';
+
+const MAX_SUGGESTIONS = 5;
 
 export enum ErrorCategory {
   USER = 1,
@@ -61,11 +60,11 @@ export class CLIError extends Error {
 
     if (this.context?.relatedElements && this.context.relatedElements.length > 0) {
       lines.push(ansis.dim('Related elements:'));
-      for (const elem of this.context.relatedElements.slice(0, 5)) {
+      for (const elem of this.context.relatedElements.slice(0, MAX_SUGGESTIONS)) {
         lines.push(ansis.dim(`  • ${elem}`));
       }
-      if (this.context.relatedElements.length > 5) {
-        lines.push(ansis.dim(`  ... and ${this.context.relatedElements.length - 5} more`));
+      if (this.context.relatedElements.length > MAX_SUGGESTIONS) {
+        lines.push(ansis.dim(`  ... and ${this.context.relatedElements.length - MAX_SUGGESTIONS} more`));
       }
     }
 
@@ -113,13 +112,12 @@ export class ValidationError extends CLIError {
       lines.push('');
 
       const layerNames = Object.keys(errorsByLayer).sort();
-      const maxLayerErrors = 5; // Show first 5 errors per layer
 
       for (const layer of layerNames) {
         const layerErrors = errorsByLayer[layer];
         lines.push(ansis.dim(`  [${layer}] ${layerErrors.length} error(s):`));
 
-        for (let i = 0; i < Math.min(layerErrors.length, maxLayerErrors); i++) {
+        for (let i = 0; i < Math.min(layerErrors.length, MAX_SUGGESTIONS); i++) {
           const error = layerErrors[i];
           let detail = '';
           if (error.elementId) {
@@ -130,9 +128,9 @@ export class ValidationError extends CLIError {
           lines.push(ansis.dim(detail));
         }
 
-        if (layerErrors.length > maxLayerErrors) {
+        if (layerErrors.length > MAX_SUGGESTIONS) {
           lines.push(
-            ansis.dim(`    ... and ${layerErrors.length - maxLayerErrors} more in this layer`)
+            ansis.dim(`    ... and ${layerErrors.length - MAX_SUGGESTIONS} more in this layer`)
           );
         }
       }
