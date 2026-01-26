@@ -197,4 +197,129 @@ describe('loadOTLPConfig()', () => {
       expect(config.logsEndpoint).toBe('https://secure.example.com:4318/v1/logs');
     });
   });
+
+  describe('URL Validation', () => {
+    it('should reject invalid endpoint URLs and use default', async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'not-a-valid-url';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      // Should fall back to default when invalid URL provided
+      expect(config.endpoint).toBe('http://localhost:4318/v1/traces');
+    });
+
+    it('should reject invalid logs endpoint URLs and use default', async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'http://[invalid-ipv6]:4318';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      // Should fall back to default when invalid URL provided
+      expect(config.logsEndpoint).toBe('http://localhost:4318/v1/logs');
+    });
+
+    it('should accept valid URLs with ports', async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:9999/v1/traces';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe('http://localhost:9999/v1/traces');
+    });
+
+    it('should accept valid URLs with paths', async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/custom/path/traces';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe('http://localhost:4318/custom/path/traces');
+    });
+
+    it('should accept valid URLs with query parameters', async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/v1/traces?key=value&foo=bar';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      expect(config.endpoint).toBe('http://localhost:4318/v1/traces?key=value&foo=bar');
+    });
+
+    it('should prefer valid file config over invalid env var', async () => {
+      // Set invalid URL in env var
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'invalid-url-string';
+
+      // Create a temporary config file with valid URL
+      const { homedir } = await import('node:os');
+      const { writeFileSync, unlinkSync } = await import('node:fs');
+      const { join } = await import('node:path');
+
+      const configPath = join(homedir(), '.dr-config.yaml');
+      const configContent = `telemetry:
+  otlp:
+    endpoint: 'http://valid-file-config:4318/v1/traces'
+`;
+      writeFileSync(configPath, configContent);
+
+      try {
+        const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+        const config = await loadOTLPConfig();
+
+        // Invalid env var should fall back to file config
+        expect(config.endpoint).toBe('http://valid-file-config:4318/v1/traces');
+      } finally {
+        // Clean up
+        try {
+          unlinkSync(configPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should handle mixed valid and invalid URLs in config file', async () => {
+      // Set invalid logs endpoint in env var
+      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'not a url';
+
+      // Create config file with valid logs endpoint
+      const { homedir } = await import('node:os');
+      const { writeFileSync, unlinkSync } = await import('node:fs');
+      const { join } = await import('node:path');
+
+      const configPath = join(homedir(), '.dr-config.yaml');
+      const configContent = `telemetry:
+  otlp:
+    logs_endpoint: 'http://file-logs:4318/v1/logs'
+`;
+      writeFileSync(configPath, configContent);
+
+      try {
+        const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+        const config = await loadOTLPConfig();
+
+        // Invalid env var for logs endpoint should use file config
+        expect(config.logsEndpoint).toBe('http://file-logs:4318/v1/logs');
+      } finally {
+        // Clean up
+        try {
+          unlinkSync(configPath);
+        } catch {
+          // Ignore cleanup errors
+        }
+      }
+    });
+
+    it('should reject URLs missing scheme', async () => {
+      process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'localhost:4318/v1/traces';
+
+      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
+      const config = await loadOTLPConfig();
+
+      // URL without scheme is invalid, should use default
+      expect(config.endpoint).toBe('http://localhost:4318/v1/traces');
+    });
+  });
 });

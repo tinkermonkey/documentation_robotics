@@ -70,6 +70,32 @@ This document provides a comprehensive guide to verifying the complete telemetry
   - Debug build: `npm run build:debug` (with telemetry enabled)
   - Production build: `npm run build` (zero overhead)
 
+#### 6.5. OTLP Configuration Loading
+
+- **`telemetry/config.ts`**: Multi-source configuration loader
+  - Loads OTLP configuration from three sources with built-in precedence
+  - Configuration source precedence (highest to lowest):
+    1. Environment variables: `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_LOGS_ENDPOINT`, `OTEL_SERVICE_NAME`
+    2. File configuration: `~/.dr-config.yaml` telemetry section
+    3. Hard-coded defaults: `http://localhost:4318/v1/traces` and `/v1/logs`
+  - Gracefully handles missing or malformed config files
+  - Treats empty/whitespace-only environment variable values as unset (falls back to next priority)
+
+- **Configuration file format** (`~/.dr-config.yaml`):
+
+  ```yaml
+  telemetry:
+    otlp:
+      endpoint: 'http://otel-collector:4318/v1/traces'
+      logs_endpoint: 'http://otel-collector:4318/v1/logs'
+      service_name: 'dr-cli'
+  ```
+
+- **Integration with initTelemetry()**:
+  - `initTelemetry()` automatically calls `loadOTLPConfig()` to load configuration
+  - All OTEL endpoints and service name come from the unified configuration loader
+  - No need to set environment variables if using `~/.dr-config.yaml`
+
 #### 7. Project Name Integration
 
 - **Project context propagation** via manifest loading
@@ -191,7 +217,73 @@ This document provides a comprehensive guide to verifying the complete telemetry
 
   Expected: All tests pass (100+ test files)
 
-### Phase 6: Circuit-Breaker Verification
+### Phase 6: OTLP Configuration Loading Verification
+
+- [ ] **Verify configuration loader exists**:
+
+  ```bash
+  grep -n "export async function loadOTLPConfig" /workspace/cli/src/telemetry/config.ts
+  ```
+
+  Expected: Function found with proper export
+
+- [ ] **Test default configuration**:
+
+  ```bash
+  cd /workspace/cli
+  # Clear any existing env vars
+  unset OTEL_EXPORTER_OTLP_ENDPOINT OTEL_EXPORTER_OTLP_LOGS_ENDPOINT OTEL_SERVICE_NAME
+  # Verify defaults are used
+  npm run build:debug
+  /workspace/cli/dist/cli.js validate
+  ```
+
+  Expected: Command completes successfully using default endpoints
+
+- [ ] **Test environment variable precedence**:
+
+  ```bash
+  # Set custom endpoint via env var
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://custom-collector:4318/v1/traces \
+  OTEL_SERVICE_NAME=my-custom-service \
+  /workspace/cli/dist/cli.js validate
+  ```
+
+  Expected: Command uses custom endpoint from environment variable
+
+- [ ] **Test config file configuration** (optional):
+
+  ```bash
+  # Create ~/.dr-config.yaml
+  cat > ~/.dr-config.yaml << 'EOF'
+  telemetry:
+    otlp:
+      endpoint: 'http://file-collector:4318/v1/traces'
+      logs_endpoint: 'http://file-collector:4318/v1/logs'
+      service_name: 'dr-cli-from-file'
+  EOF
+
+  # Verify file config is used (when no env var set)
+  unset OTEL_EXPORTER_OTLP_ENDPOINT OTEL_EXPORTER_OTLP_LOGS_ENDPOINT OTEL_SERVICE_NAME
+  /workspace/cli/dist/cli.js validate
+
+  # Clean up
+  rm ~/.dr-config.yaml
+  ```
+
+  Expected: Command uses endpoints from config file when environment variables not set
+
+- [ ] **Run configuration tests**:
+
+  ```bash
+  cd /workspace/cli
+  npm run test -- tests/unit/telemetry/config.test.ts
+  npm run test -- tests/integration/telemetry-config-integration.test.ts
+  ```
+
+  Expected: All configuration-related tests pass
+
+### Phase 7: Circuit-Breaker Verification
 
 - [ ] **Verify circuit-breaker code**:
 

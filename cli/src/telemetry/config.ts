@@ -47,12 +47,30 @@ export interface OTLPConfig {
 const CONFIG_FILENAME = '.dr-config.yaml';
 
 /**
+ * Validate that a string is a valid URL.
+ * Returns true if valid, false otherwise.
+ *
+ * @param urlString - The string to validate as a URL
+ * @returns true if valid URL, false otherwise
+ */
+function isValidUrl(urlString: string): boolean {
+  try {
+    new URL(urlString);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Load OTLP configuration from multiple sources.
  *
  * Configuration precedence (each field resolved independently):
  * 1. Environment variables (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, OTEL_SERVICE_NAME)
  * 2. File configuration (~/.dr-config.yaml)
  * 3. Hard-coded defaults
+ *
+ * All endpoint URLs are validated. Invalid URLs are treated as not set and fall back to next priority.
  *
  * @returns Resolved OTLP configuration with all required fields
  *
@@ -91,16 +109,29 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     return value !== undefined && value.trim().length > 0 ? value : undefined;
   };
 
+  // Helper to validate URL and return if valid, undefined if invalid
+  const getValidUrl = (url: string | undefined) => {
+    if (!url) return undefined;
+    const trimmed = url.trim();
+    if (trimmed.length === 0) return undefined;
+    if (!isValidUrl(trimmed)) {
+      console.warn(`Warning: Invalid URL "${trimmed}" in OTLP configuration, using fallback`);
+      return undefined;
+    }
+    return trimmed;
+  };
+
   // Merge configuration with precedence: env vars > file config > defaults
   // Note: Empty or whitespace-only strings are treated as not set (fall back to next priority)
+  // Invalid URLs are also rejected and fall back to next priority
   return {
     endpoint:
-      getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT) ??
-      otlp?.endpoint ??
+      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT)) ??
+      getValidUrl(otlp?.endpoint) ??
       defaults.endpoint,
     logsEndpoint:
-      getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT) ??
-      otlp?.logs_endpoint ??
+      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT)) ??
+      getValidUrl(otlp?.logs_endpoint) ??
       defaults.logsEndpoint,
     serviceName:
       getEnvVar(process.env.OTEL_SERVICE_NAME) ??
