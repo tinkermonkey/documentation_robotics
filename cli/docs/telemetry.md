@@ -70,7 +70,7 @@ This document provides a comprehensive guide to verifying the complete telemetry
   - Debug build: `npm run build:debug` (with telemetry enabled)
   - Production build: `npm run build` (zero overhead)
 
-#### 6.5. OTLP Configuration Loading
+#### 7. OTLP Configuration Loading
 
 - **`telemetry/config.ts`**: Multi-source configuration loader
   - Loads OTLP configuration from three sources with built-in precedence
@@ -96,7 +96,7 @@ This document provides a comprehensive guide to verifying the complete telemetry
   - All OTEL endpoints and service name come from the unified configuration loader
   - No need to set environment variables if using `~/.dr-config.yaml`
 
-#### 7. Project Name Integration
+#### 8. Project Name Integration
 
 - **Project context propagation** via manifest loading
   - Attempts to load `.dr/manifest.json` at initialization

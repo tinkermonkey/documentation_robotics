@@ -8,28 +8,26 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { homedir } from 'node:os';
 import { writeFileSync, unlinkSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 // Store original env variables
 const originalOTLPEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 const originalOTLPLogsEndpoint = process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
 const originalServiceName = process.env.OTEL_SERVICE_NAME;
+const originalDRConfigPath = process.env.DR_CONFIG_PATH;
 
-const configPath = join(homedir(), '.dr-config.yaml');
-const configBackupPath = `${configPath}.backup`;
+// Generate unique temp path for each test run
+const testConfigPath = join(tmpdir(), `.dr-config-test-${Date.now()}-${Math.random().toString(36).slice(2)}.yaml`);
 
 beforeEach(() => {
   // Clear environment variables before each test
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
-
-  // Backup existing config if it exists
-  if (existsSync(configPath)) {
-    Bun.sh`cp "${configPath}" "${configBackupPath}"`.sync();
-  }
+  // Set test config path
+  process.env.DR_CONFIG_PATH = testConfigPath;
 });
 
 afterEach(async () => {
@@ -37,16 +35,16 @@ afterEach(async () => {
   if (originalOTLPEndpoint) process.env.OTEL_EXPORTER_OTLP_ENDPOINT = originalOTLPEndpoint;
   if (originalOTLPLogsEndpoint) process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = originalOTLPLogsEndpoint;
   if (originalServiceName) process.env.OTEL_SERVICE_NAME = originalServiceName;
+  if (originalDRConfigPath) process.env.DR_CONFIG_PATH = originalDRConfigPath;
 
   delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
   delete process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT;
   delete process.env.OTEL_SERVICE_NAME;
+  delete process.env.DR_CONFIG_PATH;
 
-  // Restore or remove config file
-  if (existsSync(configBackupPath)) {
-    Bun.sh`mv "${configBackupPath}" "${configPath}"`.sync();
-  } else if (existsSync(configPath)) {
-    unlinkSync(configPath);
+  // Clean up test config file
+  if (existsSync(testConfigPath)) {
+    unlinkSync(testConfigPath);
   }
 });
 
@@ -69,7 +67,7 @@ describe('telemetry initialization with config loading', () => {
     logs_endpoint: 'http://localhost:4318/v1/logs'
     service_name: 'dr-cli-from-file'
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -89,7 +87,7 @@ describe('telemetry initialization with config loading', () => {
     logs_endpoint: 'http://custom-file:4318/v1/logs'
     service_name: 'my-service-from-file'
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -103,8 +101,8 @@ describe('telemetry initialization with config loading', () => {
 
     it('should use defaults when no env vars or config file', async () => {
       // Ensure no config file exists
-      if (existsSync(configPath)) {
-        unlinkSync(configPath);
+      if (existsSync(testConfigPath)) {
+        unlinkSync(testConfigPath);
       }
 
       // Import and call loadOTLPConfig
@@ -127,7 +125,7 @@ describe('telemetry initialization with config loading', () => {
     logs_endpoint: 'http://file-logs:4318/v1/logs'
     service_name: 'from-file'
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -151,7 +149,7 @@ describe('telemetry initialization with config loading', () => {
   otlp:
     endpoint: 'http://from-file:4318/v1/traces'
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -163,7 +161,7 @@ describe('telemetry initialization with config loading', () => {
 
     it('should gracefully handle invalid config file', async () => {
       // Create an invalid YAML file
-      writeFileSync(configPath, 'invalid: yaml: content: [');
+      writeFileSync(testConfigPath, 'invalid: yaml: content: [');
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -181,7 +179,7 @@ describe('telemetry initialization with config loading', () => {
 paths:
   models: ./models
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');
@@ -226,7 +224,7 @@ telemetry:
 validation:
   strict: true
 `;
-      writeFileSync(configPath, configContent);
+      writeFileSync(testConfigPath, configContent);
 
       // Import and call loadOTLPConfig
       const { loadOTLPConfig } = await import('../../src/telemetry/config.js');

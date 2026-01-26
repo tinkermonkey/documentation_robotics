@@ -47,16 +47,17 @@ export interface OTLPConfig {
 const CONFIG_FILENAME = '.dr-config.yaml';
 
 /**
- * Validate that a string is a valid URL.
+ * Validate that a string is a valid URL with http: or https: protocol.
  * Returns true if valid, false otherwise.
  *
  * @param urlString - The string to validate as a URL
- * @returns true if valid URL, false otherwise
+ * @returns true if valid URL with http/https protocol, false otherwise
  */
 function isValidUrl(urlString: string): boolean {
   try {
-    new URL(urlString);
-    return true;
+    const url = new URL(urlString);
+    // Only accept http and https protocols
+    return url.protocol === 'http:' || url.protocol === 'https:';
   } catch {
     return false;
   }
@@ -90,7 +91,8 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
 
   // Load file configuration (Priority 2)
   let fileConfig: DRConfig = {};
-  const configPath = join(homedir(), CONFIG_FILENAME);
+  // Support DR_CONFIG_PATH override for testing; default to ~/.dr-config.yaml
+  const configPath = process.env.DR_CONFIG_PATH ?? join(homedir(), CONFIG_FILENAME);
 
   if (existsSync(configPath)) {
     try {
