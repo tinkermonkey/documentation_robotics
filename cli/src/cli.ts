@@ -32,6 +32,7 @@ import { changesetCommands } from './commands/changeset.js';
 import { claudeCommands } from './commands/claude.js';
 import { copilotCommands } from './commands/copilot.js';
 import { versionCommand } from './commands/version.js';
+import { statsCommand } from './commands/stats.js';
 import { initTelemetry, startActiveSpan, shutdownTelemetry } from './telemetry/index.js';
 import { installConsoleInterceptor } from './telemetry/console-interceptor.js';
 import { readJSON, fileExists } from './utils/file-io.js';
@@ -343,6 +344,33 @@ Examples:
   $ dr info --layer business`
   )
   .action(infoCommand);
+
+program
+  .command('stats')
+  .description('Display model statistics and health metrics')
+  .option('--model <path>', 'Path to the model directory')
+  .option('--format <format>', 'Output format: text (default), json, markdown, compact')
+  .option('--output <path>', 'Output file path (auto-detects format from extension)')
+  .option('--compact', 'Show compact one-line summary')
+  .option('--verbose', 'Show detailed information')
+  .addHelpText(
+    'after',
+    `
+Output formats:
+  text       Full formatted statistics (default)
+  json       JSON output for automation
+  markdown   Markdown report format
+  compact    Single-line summary
+
+Examples:
+  $ dr stats                           # Show full statistics
+  $ dr stats --compact                 # Show one-line summary
+  $ dr stats --format json             # Output as JSON
+  $ dr stats --output stats.md         # Save as markdown file
+  $ dr stats --output stats.json       # Save as JSON file
+  $ dr stats --verbose                 # Show detailed information`
+  )
+  .action((options) => statsCommand(options));
 
 // Element subcommands
 const elementGroup = program
