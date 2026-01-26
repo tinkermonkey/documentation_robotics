@@ -79,7 +79,7 @@ function formatText(stats: ModelStats, verbose?: boolean): string {
   // Summary stats
   lines.push('');
   lines.push(
-    ansis.bold(`Total: ${ansis.cyan(stats.statistics.totalElements)} elements across ${ansis.cyan(stats.statistics.totalLayers)} layers`)
+    ansis.bold(`Total: ${ansis.cyan(`${stats.statistics.totalElements} elements`)} across ${ansis.cyan(`${stats.statistics.totalLayers} layers`)}`)
   );
 
   // Relationships section
