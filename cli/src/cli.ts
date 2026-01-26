@@ -341,6 +341,7 @@ Examples:
 program
   .command('stats')
   .description('Display model statistics and health metrics')
+  .option('--model <path>', 'Path to the model directory')
   .option('--format <format>', 'Output format: text (default), json, markdown, compact')
   .option('--output <path>', 'Output file path (auto-detects format from extension)')
   .option('--compact', 'Show compact one-line summary')

@@ -14,7 +14,7 @@ export interface StatsOptions {
   output?: string;
   compact?: boolean;
   verbose?: boolean;
-  layer?: string;
+  model?: string;
   debug?: boolean;
 }
 
@@ -24,7 +24,7 @@ export interface StatsOptions {
 export async function statsCommand(options: StatsOptions): Promise<void> {
   try {
     // Load model
-    const model = await Model.load();
+    const model = await Model.load(options.model);
 
     // Collect statistics
     const collector = new StatsCollector(model);

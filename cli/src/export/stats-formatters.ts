@@ -5,6 +5,7 @@
 
 import ansis from 'ansis';
 import { ModelStats } from '../core/stats-collector.js';
+import { getLayerNumber } from '../core/layer-utils.js';
 
 export type StatsFormat = 'text' | 'json' | 'markdown' | 'compact';
 
@@ -279,23 +280,3 @@ function formatDate(dateString: string): string {
   }
 }
 
-/**
- * Get the layer number from layer name
- */
-function getLayerNumber(layerName: string): number {
-  const numbers: Record<string, number> = {
-    motivation: 1,
-    business: 2,
-    security: 3,
-    application: 4,
-    technology: 5,
-    api: 6,
-    'data-model': 7,
-    'data-store': 8,
-    ux: 9,
-    navigation: 10,
-    apm: 11,
-    testing: 12,
-  };
-  return numbers[layerName] || 0;
-}

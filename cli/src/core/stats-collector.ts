@@ -4,6 +4,7 @@
  */
 
 import { Model } from './model.js';
+import { Validator } from '../validators/validator.js';
 
 export interface ElementTypeCount {
   [type: string]: number;
@@ -212,15 +213,27 @@ export class StatsCollector {
 
   /**
    * Collect validation information
-   * Returns placeholder for now - can be enhanced with actual validation state
+   * Runs model validation and returns actual validation status
    */
   private async collectValidationInfo(): Promise<ValidationInfo> {
-    // This would integrate with the validation system in a full implementation
-    return {
-      isValid: true,
-      errors: 0,
-      warnings: 0,
-    };
+    try {
+      const validator = new Validator();
+      const result = await validator.validateModel(this.model);
+
+      return {
+        isValid: result.isValid(),
+        lastValidated: new Date().toISOString(),
+        errors: result.errors.length,
+        warnings: result.warnings.length,
+      };
+    } catch (error) {
+      // If validation fails for any reason, return a neutral state
+      return {
+        isValid: false,
+        errors: 1,
+        warnings: 0,
+      };
+    }
   }
 
   /**
