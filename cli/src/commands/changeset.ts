@@ -25,7 +25,9 @@ export async function changesetCreateCommand(name: string, options: {
   description?: string;
 }): Promise<void> {
   try {
-    const model = await Model.load(process.cwd(), { lazyLoad: true });
+    // Load with lazyLoad: false to ensure consistent snapshot hashing
+    // (base snapshot must include all layers for accurate drift detection)
+    const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
 
     // Check if changeset already exists

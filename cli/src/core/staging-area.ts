@@ -743,7 +743,11 @@ export class StagingAreaManager {
     await ensureDir(changesetDir);
 
     const activePath = path.join(changesetDir, '.active');
-    await writeFile(activePath, changesetId);
+    // Write the actual changeset ID (not the user-provided name)
+    if (!changeset.id) {
+      throw new Error(`Changeset has no ID, cannot activate`);
+    }
+    await writeFile(activePath, changeset.id);
   }
 
   /**
