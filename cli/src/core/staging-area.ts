@@ -646,21 +646,20 @@ export class StagingAreaManager {
           `\n` +
           `Backup location: ${backup}\n`;
 
-        // Add backup health status with validation process failure check
+        // Add backup health status (always show header for consistency with tests)
+        compositeMessage += `Backup integrity check:\n`;
         if (validationProcessFailed) {
+          compositeMessage += `  ✗ Backup integrity issues found:\n`;
+          compositeMessage += `    - Validation process failed: ${backupValidationError}\n`;
           compositeMessage += `\n⚠ CRITICAL: Backup validation process crashed.\n`;
           compositeMessage += `This indicates a system-level issue (filesystem, memory, permissions).\n`;
           compositeMessage += `DO NOT attempt manual restoration until this is resolved.\n`;
-          compositeMessage += `Error: ${backupValidationError}\n`;
+        } else if (backupHealth.isValid) {
+          compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
         } else {
-          compositeMessage += `Backup integrity check:\n`;
-          if (backupHealth.isValid) {
-            compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
-          } else {
-            compositeMessage += `  ✗ Backup integrity issues found:\n`;
-            for (const error of backupHealth.errors) {
-              compositeMessage += `    - ${error}\n`;
-            }
+          compositeMessage += `  ✗ Backup integrity issues found:\n`;
+          for (const error of backupHealth.errors) {
+            compositeMessage += `    - ${error}\n`;
           }
         }
 

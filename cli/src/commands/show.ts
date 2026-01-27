@@ -17,7 +17,7 @@ export async function showCommand(id: string, options: { model?: string } = {}):
     if (!layerName) {
       throw new CLIError(
         `Element ${id} not found`,
-        ErrorCategory.NOT_FOUND,
+        ErrorCategory.USER,
         [
           `Use "dr search ${id}" to find similar elements`,
           'Use "dr list <layer>" to list all elements in a layer',
