@@ -8,7 +8,6 @@ import { MutationHandler } from '../core/mutation-handler.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { CLIError, handleError } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
-import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -68,9 +67,6 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
     // Load model
     const model = await Model.load();
-
-    // Display active changeset status
-    await displayChangesetStatus(model);
 
     // Find element
     const layerName = await findElementLayer(model, id);

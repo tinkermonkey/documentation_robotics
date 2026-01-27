@@ -309,16 +309,6 @@ export class MutationHandler {
    */
   private async _persistChanges(type?: string): Promise<void> {
     try {
-      // Track change
-      const activeChangesetContext = this.context.model.getActiveChangesetContext();
-      await activeChangesetContext.trackChange(
-        (type as 'add' | 'update' | 'delete') || 'update',
-        this.context.elementId,
-        this.context.layerName,
-        this.context.before,
-        this.context.after
-      );
-
       // Save layer
       await this.context.model.saveLayer(this.context.layerName);
 

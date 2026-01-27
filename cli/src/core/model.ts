@@ -4,7 +4,6 @@ import { Element } from "./element.js";
 import { ProjectionEngine } from "./projection-engine.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { Relationships } from "./relationships.js";
-import { ActiveChangesetContext } from "./active-changeset.js";
 import { ensureDir, writeFile } from "../utils/file-io.js";
 import { getCliVersion } from "../utils/spec-version.js";
 import { startSpan, endSpan } from "../telemetry/index.js";
@@ -29,7 +28,6 @@ export class Model {
   private loadedLayers: Set<string>
   private projectionEngine?: ProjectionEngine
   private virtualProjectionEngine?: VirtualProjectionEngine
-  private activeChangesetContext?: ActiveChangesetContext
 
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath
@@ -81,16 +79,6 @@ export class Model {
       this.virtualProjectionEngine = new VirtualProjectionEngine(this.rootPath);
     }
     return this.virtualProjectionEngine;
-  }
-
-  /**
-   * Get active changeset context (lazily initialized)
-   */
-  getActiveChangesetContext(): ActiveChangesetContext {
-    if (!this.activeChangesetContext) {
-      this.activeChangesetContext = new ActiveChangesetContext(this.rootPath);
-    }
-    return this.activeChangesetContext;
   }
 
   /**
