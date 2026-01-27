@@ -22,7 +22,11 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
       model = await Model.load(options.model);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
-      if (message.includes('No DR project') || message.includes('Model not found')) {
+      // Check for any model-not-found error pattern
+      if (message.includes('No DR project') ||
+          message.includes('Model not found') ||
+          message.includes('No model found') ||
+          message.includes('Could not find documentation_robotics')) {
         throw new ModelNotFoundError();
       }
       throw error;

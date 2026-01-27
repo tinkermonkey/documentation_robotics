@@ -50,7 +50,7 @@ describe('Error Message Scenarios', () => {
       const result = await runDr('list', 'api');
       expect(result.exitCode).toBe(2); // Exit code 2 for NOT_FOUND
       const output = result.stdout + result.stderr;
-      expect(output.includes('No DR project') || output.includes('not found') || output.includes('Could not find')).toBe(true);
+      expect(output.includes('No model found') || output.includes('No DR project') || output.includes('not found') || output.includes('Could not find')).toBe(true);
     });
   });
 
