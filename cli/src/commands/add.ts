@@ -74,7 +74,7 @@ export async function addCommand(
         suggestions.unshift(`Did you mean: ${similar.join(' or ')}?`);
       }
       throw new CLIError(
-        `Invalid layer "${layer}"`,
+        `Unknown layer "${layer}"`,
         ErrorCategory.USER,
         suggestions,
         { operation: 'add', context: `Layer: ${layer}, Type: ${type}, Name: ${name}` }

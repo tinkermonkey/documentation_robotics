@@ -53,7 +53,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
     if (!layerName) {
       throw new CLIError(
         `Element ${id} not found`,
-        ErrorCategory.NOT_FOUND,
+        ErrorCategory.USER,
         [
           `Use "dr search ${id}" to find similar elements`,
           'Use "dr list <layer>" to list all elements in a layer',
