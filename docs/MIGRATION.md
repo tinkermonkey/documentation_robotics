@@ -1,5 +1,7 @@
 # Changeset Migration Guide
 
+> **⚠️ Deprecation Notice**: This guide is provided for reference only. As of DR CLI v0.1.0, changeset migration from the old `.dr/` format to `documentation-robotics/` is **automatic and transparent**. This occurs on first use without requiring manual action. This document is maintained for historical reference and for users needing to understand the migration path.
+
 This guide walks you through migrating changesets from the old `.dr/` directory structure to the new `documentation-robotics/` structure introduced in DR CLI v0.1.0.
 
 ## Overview

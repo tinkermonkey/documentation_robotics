@@ -271,11 +271,14 @@ Model data and changesets are stored in the `documentation-robotics/` directory:
 ```
 your-project/
 ├── documentation-robotics/
-│   ├── manifest.json           # Model metadata
-│   ├── layers/
-│   │   ├── 01-motivation.json
-│   │   ├── 02-business.json
-│   │   ├── 06-api.json
+│   ├── model/
+│   │   ├── manifest.yaml                    # Model metadata
+│   │   ├── 01_motivation/
+│   │   │   ├── goals.yaml
+│   │   │   └── ...
+│   │   ├── 02_business/
+│   │   │   ├── services.yaml
+│   │   │   └── ...
 │   │   └── ...
 │   └── changesets/
 │       ├── feature-x/

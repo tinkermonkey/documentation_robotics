@@ -584,10 +584,10 @@ $ dr version
 dr changeset list
 ```
 
-Old changesets are automatically converted:
+Old changesets are automatically migrated and converted on first use:
 - `draft` status → `staged`
 - `applied` status → `committed`
-- Location: `.dr/changesets/` → `documentation-robotics/changesets/`
+- Stored in `documentation-robotics/changesets/` with automatic `.dr/changesets/` migration support
 
 ## See Also
 
