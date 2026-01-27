@@ -293,7 +293,7 @@ export class Model {
       const layerNameWithoutPrefix = name.replace(/^\d{2}-/, '')
       const layerOrder = [
         'motivation', 'business', 'security', 'application', 'technology',
-        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+        'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'
       ]
       const index = layerOrder.indexOf(layerNameWithoutPrefix)
       if (index >= 0) {
@@ -423,7 +423,7 @@ export class Model {
     if (!this.manifest.layers || Object.keys(this.manifest.layers).length === 0) {
       const layerOrder = [
         'motivation', 'business', 'security', 'application', 'technology',
-        'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+        'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'
       ]
 
       for (let i = 0; i < layerOrder.length; i++) {
