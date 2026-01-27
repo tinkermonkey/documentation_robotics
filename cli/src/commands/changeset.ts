@@ -4,11 +4,9 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
-import { ChangesetManager } from '../core/changeset.js';
 import { StagingAreaManager } from '../core/staging-area.js';
 import { ChangesetExporter } from '../core/changeset-exporter.js';
 import { StagedChangesetStorage } from '../core/staged-changeset-storage.js';
-import { ActiveChangesetContext } from '../core/active-changeset.js';
 import { validateMigration, dryRunMigration, migrateChangesets } from '../core/changeset-migration.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
@@ -29,7 +27,7 @@ export async function changesetCreateCommand(name: string, options: {
 }): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const manager = new ChangesetManager(model.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
 
     // Check if changeset already exists
     const existing = await manager.load(name);
@@ -53,16 +51,17 @@ export async function changesetCreateCommand(name: string, options: {
       }
     }
 
-    const changeset = await manager.create(name, description || undefined);
+    const changesetId = await manager.create(name, description || undefined);
+    const changeset = await manager.load(changesetId);
 
     console.log(
       ansis.green(`✓ Created changeset: ${ansis.bold(name)}`)
     );
-    if (changeset.description) {
+    if (changeset?.description) {
       console.log(ansis.dim(`  ${changeset.description}`));
     }
     console.log(
-      ansis.dim(`  Path: .dr/changesets/${name.toLowerCase().replace(/\s+/g, '-')}.json`)
+      ansis.dim(`  Path: documentation-robotics/changesets/${changesetId}/`)
     );
     console.log();
   } catch (error) {
@@ -81,7 +80,7 @@ export async function changesetCreateCommand(name: string, options: {
 export async function changesetListCommand(): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const manager = new ChangesetManager(model.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
     const changesets = await manager.list();
 
     if (changesets.length === 0) {
@@ -151,7 +150,7 @@ export async function changesetListCommand(): Promise<void> {
 export async function changesetApplyCommand(name: string): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
-    const manager = new ChangesetManager(model.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -163,7 +162,7 @@ export async function changesetApplyCommand(name: string): Promise<void> {
       ansis.bold(`\nApplying changeset: ${ansis.cyan(name)}\n`)
     );
     console.log(
-      ansis.dim(`Changes: ${changeset.getChangeCount()}`)
+      ansis.dim(`Changes: ${changeset.changes.length}`)
     );
 
     const result = await manager.apply(model, name);
@@ -224,7 +223,7 @@ export async function changesetApplyCommand(name: string): Promise<void> {
 export async function changesetRevertCommand(name: string): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
-    const manager = new ChangesetManager(model.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -236,7 +235,7 @@ export async function changesetRevertCommand(name: string): Promise<void> {
       ansis.bold(`\nReverting changeset: ${ansis.cyan(name)}\n`)
     );
     console.log(
-      ansis.dim(`Changes to revert: ${changeset.getChangeCount()}`)
+      ansis.dim(`Changes to revert: ${changeset.changes.length}`)
     );
 
     const result = await manager.revert(model, name);
@@ -297,8 +296,8 @@ export async function changesetRevertCommand(name: string): Promise<void> {
 export async function changesetActivateCommand(name: string): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    await context.setActive(name);
+    const manager = new StagingAreaManager(model.rootPath, model);
+    await manager.setActive(name);
 
     console.log(ansis.green(`✓ Activated changeset: ${ansis.bold(name)}`));
     console.log(ansis.dim('  All model changes will now be tracked in this changeset'));
@@ -318,15 +317,15 @@ export async function changesetActivateCommand(name: string): Promise<void> {
 export async function changesetDeactivateCommand(): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    const active = await context.getActive();
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const active = await manager.getActiveId();
 
     if (!active) {
       console.log(ansis.yellow('No active changeset'));
       return;
     }
 
-    await context.clearActive();
+    await manager.clearActive();
     console.log(ansis.green(`✓ Deactivated changeset: ${ansis.bold(active)}`));
   } catch (error) {
     console.error(
@@ -346,7 +345,7 @@ export async function changesetDeleteCommand(name: string, options: {
 }): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const manager = new ChangesetManager(model.rootPath);
+    const manager = new StagingAreaManager(model.rootPath, model);
 
     const changeset = await manager.load(name);
     if (!changeset) {
@@ -355,8 +354,7 @@ export async function changesetDeleteCommand(name: string, options: {
     }
 
     // Check if changeset is currently active
-    const context = new ActiveChangesetContext(model.rootPath);
-    const active = await context.getActive();
+    const active = await manager.getActiveId();
     if (active === name) {
       console.error(
         ansis.red(`Error: Cannot delete active changeset '${name}'`)
@@ -404,8 +402,8 @@ export async function changesetDeleteCommand(name: string, options: {
 export async function changesetStatusCommand(): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    const active = await context.getActive();
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const active = await manager.getActiveId();
 
     if (!active) {
       console.log(ansis.dim('No active changeset'));
@@ -415,15 +413,14 @@ export async function changesetStatusCommand(): Promise<void> {
     console.log(ansis.bold(`Active changeset: ${ansis.cyan(active)}`));
 
     // Load and show changeset details
-    const manager = new ChangesetManager(model.rootPath);
     const changeset = await manager.load(active);
 
     if (changeset) {
-      console.log(ansis.dim(`  Changes tracked: ${changeset.getChangeCount()}`));
+      console.log(ansis.dim(`  Changes tracked: ${changeset.changes.length}`));
       const changesByType = {
-        add: changeset.getChangesByType('add').length,
-        update: changeset.getChangesByType('update').length,
-        delete: changeset.getChangesByType('delete').length,
+        add: changeset.changes.filter((c) => c.type === 'add').length,
+        update: changeset.changes.filter((c) => c.type === 'update').length,
+        delete: changeset.changes.filter((c) => c.type === 'delete').length,
       };
       const parts = [];
       if (changesByType.add > 0) parts.push(`+${changesByType.add}`);
@@ -451,15 +448,14 @@ export async function changesetStagedCommand(options: {
 }): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    const activeChangeset = await context.getActive();
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const activeChangeset = await manager.getActiveId();
 
     if (!activeChangeset) {
       console.error(ansis.red('Error: No active changeset'));
       return;
     }
 
-    const manager = new ChangesetManager(model.rootPath);
     const changeset = await manager.load(activeChangeset);
 
     if (!changeset) {
@@ -467,9 +463,7 @@ export async function changesetStagedCommand(options: {
       process.exit(1);
     }
 
-    let changes = changeset.getChangesByType('add')
-      .concat(changeset.getChangesByType('update'))
-      .concat(changeset.getChangesByType('delete'));
+    let changes = changeset.changes;
 
     if (options.layer) {
       changes = changes.filter((c: any) => c.layerName === options.layer);
@@ -506,15 +500,14 @@ export async function changesetStagedCommand(options: {
 export async function changesetUnstageCommand(elementId: string): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    const activeChangeset = await context.getActive();
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const activeChangeset = await manager.getActiveId();
 
     if (!activeChangeset) {
       console.error(ansis.red('Error: No active changeset'));
       return;
     }
 
-    const manager = new ChangesetManager(model.rootPath);
     const changeset = await manager.load(activeChangeset);
 
     if (!changeset) {
@@ -523,17 +516,16 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
     }
 
     // Check if element exists in changes
-    const initialCount = changeset.getChangeCount();
+    const initialCount = changeset.changes.length;
     changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
 
-    if (changeset.getChangeCount() === initialCount) {
+    if (changeset.changes.length === initialCount) {
       console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
       return;
     }
 
     // Save updated changeset
-    changeset.updateModified();
-    await manager.save(changeset);
+    await manager.save(activeChangeset, changeset);
 
     console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
     console.log(
@@ -557,15 +549,14 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
 export async function changesetDiscardCommand(elementId?: string): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
-    const context = new ActiveChangesetContext(model.rootPath);
-    const activeChangeset = await context.getActive();
+    const manager = new StagingAreaManager(model.rootPath, model);
+    const activeChangeset = await manager.getActiveId();
 
     if (!activeChangeset) {
       console.error(ansis.red('Error: No active changeset'));
       return;
     }
 
-    const manager = new ChangesetManager(model.rootPath);
     const changeset = await manager.load(activeChangeset);
 
     if (!changeset) {
@@ -575,16 +566,15 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
     if (elementId) {
       // Discard single element
-      const initialCount = changeset.getChangeCount();
+      const initialCount = changeset.changes.length;
       changeset.changes = changeset.changes.filter((c) => c.elementId !== elementId);
 
-      if (changeset.getChangeCount() === initialCount) {
+      if (changeset.changes.length === initialCount) {
         console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
         return;
       }
 
-      changeset.updateModified();
-      await manager.save(changeset);
+      await manager.save(activeChangeset, changeset);
       console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
     } else {
       // Discard all changes with confirmation
@@ -592,7 +582,7 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
       if (isInteractive) {
         const confirmed = await prompts.confirm({
-          message: `Discard all ${changeset.getChangeCount()} staged changes? This cannot be undone.`,
+          message: `Discard all ${changeset.changes.length} staged changes? This cannot be undone.`,
         });
 
         if (!confirmed || typeof confirmed !== 'boolean') {
@@ -608,8 +598,8 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
       // Clear all changes
       changeset.changes = [];
-      changeset.markDiscarded();
-      await manager.save(changeset);
+      changeset.status = 'discarded';
+      await manager.save(activeChangeset, changeset);
 
       console.log(ansis.green(`✓ Discarded all staged changes`));
       console.log(ansis.dim(`  Changeset status: discarded`));
