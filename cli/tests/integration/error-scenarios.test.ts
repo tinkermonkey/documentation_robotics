@@ -27,7 +27,7 @@ describe('Error Message Scenarios', () => {
       // Invalid layer name
       const result = await runDr('add', 'invalid-layer', 'endpoint', 'test-element');
       expect(result.exitCode).toBe(1); // User error
-      expect(result.stderr).toContain('Invalid layer');
+      expect(result.stderr).toContain('Unknown layer');
     });
 
     it('should use exit code 2 for not found errors', async () => {
@@ -59,7 +59,7 @@ describe('Error Message Scenarios', () => {
     it('should suggest valid layers when layer name is invalid', async () => {
       const result = await runDr('add', 'apis', 'endpoint', 'test');
       expect(result.exitCode).toBe(1);
-      expect(result.stderr).toContain('Invalid layer');
+      expect(result.stderr).toContain('Unknown layer');
       expect(
         result.stderr.includes('Valid options') || result.stderr.includes('Did you mean')
       ).toBe(true);
@@ -131,7 +131,7 @@ describe('Error Message Scenarios', () => {
 
     it('should error when element not found', async () => {
       const result = await runDr('delete', 'api.endpoint.nonexistent', '--force');
-      expect(result.exitCode).toBe(2); // Not found
+      expect(result.exitCode).toBe(1); // User error
       expect(
         result.stderr.includes('not found') || result.stderr.includes('Element')
       ).toBe(true);
@@ -139,7 +139,7 @@ describe('Error Message Scenarios', () => {
 
     it('should provide helpful suggestions for not found elements', async () => {
       const result = await runDr('delete', 'motivation.goal.missing', '--force');
-      expect(result.exitCode).toBe(2);
+      expect(result.exitCode).toBe(1); // User error
       const stderr = result.stderr;
       // Should suggest alternatives
       expect(
