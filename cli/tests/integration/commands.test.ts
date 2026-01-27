@@ -65,7 +65,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if no model found for other commands', async () => {
       const result = await runDr('list', 'motivation');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2);
     });
 
     it('should support --author option', async () => {
@@ -332,7 +332,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if element not found', async () => {
       const result = await runDr('delete', 'nonexistent-element', '--force');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2);
     });
 
     it('should display dependency warning for element with dependents', async () => {
@@ -409,7 +409,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if element not found', async () => {
       const result = await runDr('show', 'nonexistent-element');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2);
     });
   });
 
@@ -442,7 +442,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if layer not found', async () => {
       const result = await runDr('list', 'nonexistent-layer');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2);
     });
 
     it('should support --json output format', async () => {
@@ -652,7 +652,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail to show non-existent element', async () => {
       const result = await runDr('show', 'non-existent-element');
 
-      expect(result.exitCode).toBe(1);
+      expect(result.exitCode).toBe(2);
       expect(result.stderr).toContain('not found');
     });
 

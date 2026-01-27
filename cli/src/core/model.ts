@@ -727,7 +727,7 @@ export class Model {
 
     const layerOrder = [
       'motivation', 'business', 'security', 'application', 'technology',
-      'api', 'data-model', 'datastore', 'ux', 'navigation', 'apm', 'testing'
+      'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'
     ];
 
     for (let i = 0; i < layerOrder.length; i++) {

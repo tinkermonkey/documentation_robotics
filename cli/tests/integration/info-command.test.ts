@@ -77,10 +77,8 @@ describe('info command', () => {
     const output = stripAnsi(result.stdout);
 
     // Verify that each layer name appears in the summary
-    // Note: data-store may appear as "datastore" in display
     for (const layer of layers) {
-      const displayName = layer === 'data-store' ? 'datastore' : layer;
-      expect(output).toContain(displayName);
+      expect(output).toContain(layer);
     }
   });
 
