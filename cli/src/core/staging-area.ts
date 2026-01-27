@@ -208,7 +208,7 @@ export class StagingAreaManager {
   async stage(changesetId: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -245,7 +245,7 @@ export class StagingAreaManager {
   async unstage(changesetId: string, elementId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -276,7 +276,7 @@ export class StagingAreaManager {
   async discard(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -308,7 +308,7 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error('Model required for capturing base snapshot');
     }
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -342,7 +342,7 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error('Model required for drift detection');
     }
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -407,7 +407,7 @@ export class StagingAreaManager {
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
