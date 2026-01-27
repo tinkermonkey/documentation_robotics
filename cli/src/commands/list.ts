@@ -4,6 +4,7 @@
 
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
+import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from '../utils/errors.js';
 
 export interface ListOptions {
   type?: string;
@@ -15,14 +16,29 @@ export interface ListOptions {
 
 export async function listCommand(layer: string, options: ListOptions): Promise<void> {
   try {
-    // Load model
-    const model = await Model.load(options.model);
+    // Load model (with error handling for missing models)
+    let model: Model;
+    try {
+      model = await Model.load(options.model);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('No DR project') || message.includes('Model not found')) {
+        throw new ModelNotFoundError();
+      }
+      throw error;
+    }
 
     // Get layer
     const layerObj = await model.getLayer(layer);
     if (!layerObj) {
-      console.error(ansis.red(`Error: Layer ${layer} not found`));
-      process.exit(1);
+      throw new CLIError(
+        `Layer ${layer} not found`,
+        ErrorCategory.NOT_FOUND,
+        [
+          'Use "dr list" to see all available layers',
+          'Use "dr add <layer> <type> <name>" to add an element to a new layer',
+        ]
+      );
     }
 
     // Get elements
@@ -76,8 +92,6 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     console.log(ansis.dim(`Total: ${elements.length} element(s)`));
     console.log('');
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   }
 }

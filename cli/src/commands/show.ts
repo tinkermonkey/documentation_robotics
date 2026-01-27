@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { CLIError, ErrorCategory, handleError } from '../utils/errors.js';
 
 export async function showCommand(id: string, options: { model?: string } = {}): Promise<void> {
   try {
@@ -14,8 +15,14 @@ export async function showCommand(id: string, options: { model?: string } = {}):
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
-      console.error(ansis.red(`Error: Element ${id} not found`));
-      process.exit(1);
+      throw new CLIError(
+        `Element ${id} not found`,
+        ErrorCategory.NOT_FOUND,
+        [
+          `Use "dr search ${id}" to find similar elements`,
+          'Use "dr list <layer>" to list all elements in a layer',
+        ]
+      );
     }
 
     const layer = (await model.getLayer(layerName))!;
@@ -99,8 +106,6 @@ export async function showCommand(id: string, options: { model?: string } = {}):
 
     console.log('');
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    handleError(error);
   }
 }
