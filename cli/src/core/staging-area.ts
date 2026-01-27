@@ -762,6 +762,59 @@ export class StagingAreaManager {
   }
 
   /**
+   * Get the ID of the active changeset without loading the full changeset object.
+   * Useful for status display and quick active changeset checks.
+   *
+   * @returns The active changeset ID or null if no active changeset exists
+   */
+  async getActiveId(): Promise<string | null> {
+    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+
+    if (!(await fileExists(activePath))) {
+      return null;
+    }
+
+    const { readFile } = await import('../utils/file-io.js');
+    const activeId = await readFile(activePath);
+    const id = activeId.trim();
+
+    return id || null;
+  }
+
+  /**
+   * Apply a changeset to the base model.
+   * Alias for commit() to match legacy command terminology.
+   *
+   * @param model - The model to apply changes to
+   * @param changesetId - ID of the changeset to apply
+   * @param options - Commit options (force, validate, dryRun)
+   * @returns CommitResult with count of applied changes and validation status
+   * @throws Error if validation fails, drift detected without --force, or apply fails
+   *
+   * @remarks
+   * This method provides backward compatibility with changeset commands that use
+   * "apply" instead of "commit" terminology. All logic is delegated to commit().
+   */
+  async apply(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
+    return this.commit(model, changesetId, options);
+  }
+
+  /**
+   * Revert a changeset without applying changes.
+   * Alias for discard() to match legacy command terminology.
+   *
+   * @param changesetId - ID of the changeset to revert
+   * @throws Error if changeset ID is invalid or changeset not found
+   *
+   * @remarks
+   * This method provides backward compatibility with changeset commands that use
+   * "revert" instead of "discard" terminology. All logic is delegated to discard().
+   */
+  async revert(changesetId: string): Promise<void> {
+    return this.discard(changesetId);
+  }
+
+  /**
    * Backup the current model state for atomic rollback on commit failure.
    * Creates a temporary backup directory with copies of all layer files and manifest.
    * Validates backup completeness and calculates checksums for integrity verification.

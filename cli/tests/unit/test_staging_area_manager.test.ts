@@ -391,4 +391,184 @@ layers: {}`;
       expect(error?.message).toContain('not found');
     });
   });
+
+  describe('getActiveId() method', () => {
+    it('should return the active changeset ID as string', async () => {
+      const changeset = await manager.create('active-id-test');
+      await manager.setActive(changeset.id!);
+
+      const activeId = await manager.getActiveId();
+
+      expect(activeId).toBeDefined();
+      expect(typeof activeId).toBe('string');
+      expect(activeId).toBe(changeset.id);
+    });
+
+    it('should return null when no active changeset exists', async () => {
+      const activeId = await manager.getActiveId();
+
+      expect(activeId).toBeNull();
+    });
+
+    it('should return null after clearing active changeset', async () => {
+      const changeset = await manager.create('clear-id-test');
+      await manager.setActive(changeset.id!);
+
+      // Verify it's active
+      let activeId = await manager.getActiveId();
+      expect(activeId).toBe(changeset.id);
+
+      // Clear and verify it's null
+      await manager.clearActive();
+      activeId = await manager.getActiveId();
+
+      expect(activeId).toBeNull();
+    });
+
+    it('should return the active changeset ID without loading full changeset', async () => {
+      const changeset1 = await manager.create('id-test-1');
+      const changeset2 = await manager.create('id-test-2');
+
+      await manager.setActive(changeset1.id!);
+
+      const activeId = await manager.getActiveId();
+
+      expect(activeId).toBe(changeset1.id);
+      expect(activeId).not.toBe(changeset2.id);
+    });
+  });
+
+  describe('apply() method (alias for commit)', () => {
+    it('should apply a changeset as alias for commit by calling commit', async () => {
+      // Test that apply() delegates to commit() by verifying it returns CommitResult
+      const changeset = await manager.create('apply-test');
+
+      // Stage a simple change for dry-run test
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'application.component.test-comp',
+        layerName: 'application',
+        after: {
+          id: 'application.component.test-comp',
+          type: 'component',
+          name: 'Test Component',
+        },
+      });
+
+      // Call apply with dry-run to verify it delegates to commit and returns CommitResult
+      const result = await manager.apply(model, changeset.id!, {
+        validate: false,
+        dryRun: true,
+      });
+
+      expect(result).toBeDefined();
+      expect(result.changeset).toBe('apply-test');
+      expect(result.committed).toBe(1);
+      expect(result.failed).toBe(0);
+    });
+
+    it('should support commit options in apply method', async () => {
+      const changeset = await manager.create('apply-options-test');
+      await manager.setActive(changeset.id!);
+
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'application.component.test',
+        layerName: 'application',
+        after: {
+          id: 'application.component.test',
+          type: 'component',
+          name: 'Test',
+        },
+      });
+
+      // Test with dry-run option
+      const dryRunResult = await manager.apply(model, changeset.id!, {
+        validate: false,
+        dryRun: true,
+      });
+
+      expect(dryRunResult.committed).toBe(1);
+      expect(dryRunResult.failed).toBe(0);
+
+      // Verify changeset is still staged (not committed due to dry-run)
+      const loaded = await manager.load(changeset.id!);
+      expect(loaded?.status).toBe('staged');
+    });
+  });
+
+  describe('revert() method (alias for discard)', () => {
+    it('should revert a changeset as alias for discard', async () => {
+      const changeset = await manager.create('revert-test');
+      await manager.setActive(changeset.id!);
+
+      // Stage some changes
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'elem-1',
+        layerName: 'application',
+        after: { id: 'elem-1' },
+      });
+
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'elem-2',
+        layerName: 'application',
+        after: { id: 'elem-2' },
+      });
+
+      const beforeRevert = await manager.load(changeset.id!);
+      expect(beforeRevert?.changes.length).toBe(2);
+      expect(beforeRevert?.status).toBe('staged');
+
+      // Revert using the alias method
+      await manager.revert(changeset.id!);
+
+      const afterRevert = await manager.load(changeset.id!);
+      expect(afterRevert?.changes.length).toBe(0);
+      expect(afterRevert?.status).toBe('discarded');
+      expect(afterRevert?.stats?.additions).toBe(0);
+    });
+
+    it('should clear changes without affecting base model', async () => {
+      const changeset = await manager.create('revert-no-apply-test');
+      await manager.setActive(changeset.id!);
+
+      // Stage changes
+      await manager.stage(changeset.id!, {
+        type: 'add',
+        elementId: 'test-elem',
+        layerName: 'application',
+        after: { id: 'test-elem', type: 'component' },
+      });
+
+      // Get list count before revert
+      const allBefore = await manager.list();
+      const countBefore = allBefore.length;
+
+      // Revert (should not apply changes)
+      await manager.revert(changeset.id!);
+
+      // Verify changeset still exists but is discarded
+      const loaded = await manager.load(changeset.id!);
+      expect(loaded).toBeDefined();
+      expect(loaded?.status).toBe('discarded');
+
+      // Verify changeset count is unchanged (revert doesn't delete, only discards)
+      const allAfter = await manager.list();
+      expect(allAfter.length).toBe(countBefore);
+    });
+
+    it('should handle revert of non-existent changeset', async () => {
+      let error: Error | null = null;
+      try {
+        await manager.revert('nonexistent-revert-id');
+      } catch (e) {
+        error = e as Error;
+      }
+
+      expect(error).toBeDefined();
+      expect(error?.message).toContain('not found');
+    });
+  });
 });
