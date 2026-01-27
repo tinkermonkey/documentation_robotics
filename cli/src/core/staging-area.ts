@@ -727,7 +727,7 @@ export class StagingAreaManager {
   async setActive(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
