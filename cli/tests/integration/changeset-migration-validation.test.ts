@@ -1,5 +1,5 @@
 /**
- * Phase 4: Changeset Migration Validation Tests
+ * Changeset Migration Validation Tests
  *
  * These tests validate the migration process from the old .dr/changesets/ format
  * to the new documentation-robotics/changesets/ format.
@@ -18,6 +18,10 @@
  * - Data preservation during migration
  * - Fallback to new format if both exist
  * - No loss of changeset data
+ *
+ * Note: These tests validate the low-level StagedChangesetStorage implementation
+ * used during migration. Higher-level StagingAreaManager provides apply/revert aliases
+ * and status mapping for user-facing operations.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -58,7 +62,7 @@ async function createOldFormatChangeset(
   return changesetFile;
 }
 
-describe('Phase 4: Changeset Migration Validation', () => {
+describe('Changeset Migration Validation', () => {
   let baseModel: Model;
   let storage: StagedChangesetStorage;
   let snapshotManager: BaseSnapshotManager;

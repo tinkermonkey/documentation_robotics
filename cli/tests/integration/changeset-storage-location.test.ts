@@ -1,5 +1,5 @@
 /**
- * Phase 4: Changeset Storage Location Validation Tests
+ * Changeset Storage Location Validation Tests
  *
  * These tests validate that changesets are stored in the correct location:
  * documentation-robotics/changesets/{changeset-id}/
@@ -14,10 +14,16 @@
  * - Files (metadata.yaml, changes.yaml) exist and contain valid data
  * - Old .dr/changesets/ location is not used
  * - Changeset data persists correctly across operations
+ * - Active marker file tracked in correct location
+ *
+ * Note: These tests validate the low-level StagedChangesetStorage implementation.
+ * Higher-level StagingAreaManager tests (which map draft→staged status and provide
+ * apply/revert aliases) are in test_staging_area_manager.test.ts.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
+import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
 import { Model } from '../../src/core/model.js';
 import { Manifest } from '../../src/core/manifest.js';
@@ -29,7 +35,7 @@ import { join } from 'path';
 import { fileExists } from '../../src/utils/file-io.js';
 import yaml from 'yaml';
 
-describe('Phase 4: Changeset Storage Location', () => {
+describe('Changeset Storage Location', () => {
   let baseModel: Model;
   let storage: StagedChangesetStorage;
   let snapshotManager: BaseSnapshotManager;
@@ -148,6 +154,8 @@ describe('Phase 4: Changeset Storage Location', () => {
       expect(metadata.id).toBe(changesetId);
       expect(metadata.name).toBe('Metadata Test');
       expect(metadata.description).toBe('Test metadata file structure');
+      // Status is 'draft' at the StagedChangesetStorage level (low-level storage layer).
+      // StagingAreaManager maps this to 'staged' for user-facing operations.
       expect(metadata.status).toBe('draft');
       expect(metadata.baseSnapshot).toBe(baseSnapshot);
       expect(metadata.stats).toEqual({
@@ -418,6 +426,54 @@ describe('Phase 4: Changeset Storage Location', () => {
       const changesetsDir = join(tempDir, 'documentation-robotics', 'changesets');
       const dirs = await readdir(changesetsDir);
       expect(dirs).toContain('kebab-case-id');
+    });
+  });
+
+  describe('Active Changeset Tracking', () => {
+    it('should create .active marker in documentation-robotics/changesets/', async () => {
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+      const changesetId = 'active-marker-test';
+      const stagingManager = new StagingAreaManager(tempDir, baseModel);
+
+      // Create and set active
+      await storage.create(
+        changesetId,
+        'Active Marker Test',
+        'Test active marker location',
+        baseSnapshot
+      );
+      await stagingManager.setActive(changesetId);
+
+      // Verify .active marker exists in correct location
+      const activeMarkerPath = join(
+        tempDir,
+        'documentation-robotics',
+        'changesets',
+        '.active'
+      );
+      expect(await fileExists(activeMarkerPath)).toBe(true);
+
+      // Verify marker contains correct changeset ID
+      const markerContent = await readFile(activeMarkerPath, 'utf-8');
+      expect(markerContent.trim()).toBe(changesetId);
+    });
+
+    it('should not create .active marker in .dr/changesets/', async () => {
+      const baseSnapshot = await snapshotManager.captureSnapshot(baseModel);
+      const changesetId = 'not-in-dr-active';
+      const stagingManager = new StagingAreaManager(tempDir, baseModel);
+
+      await storage.create(
+        changesetId,
+        'Not in DR',
+        'Verify .active not in .dr',
+        baseSnapshot
+      );
+      await stagingManager.setActive(changesetId);
+
+      // Verify old location is not used
+      const oldActiveMarkerPath = join(tempDir, '.dr', 'changesets', 'active');
+      expect(await fileExists(oldActiveMarkerPath)).toBe(false);
     });
   });
 
