@@ -409,7 +409,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail if element not found', async () => {
       const result = await runDr('show', 'nonexistent-element');
 
-      expect(result.exitCode).toBe(2);
+      expect(result.exitCode).toBe(1); // User error - consistent with delete command
     });
   });
 
@@ -652,7 +652,7 @@ describe('CLI Commands Integration Tests', () => {
     it('should fail to show non-existent element', async () => {
       const result = await runDr('show', 'non-existent-element');
 
-      expect(result.exitCode).toBe(2);
+      expect(result.exitCode).toBe(1);
       expect(result.stderr).toContain('not found');
     });
 
