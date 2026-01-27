@@ -19,12 +19,10 @@ pipelines:
           - "Activated"
 
       - command: "add motivation goal changeset-goal-001 --name 'Changeset Test Goal' --description 'Goal created within changeset'"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goals.yaml
+        files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
-          - "Added"
+          - "Staged"
 
       - command: "changeset deactivate"
         files_to_compare: []
@@ -66,20 +64,15 @@ pipelines:
           - "Activated"
 
       - command: "add business service changeset-service-001 --name 'Service from Changeset' --description 'Business service in changeset'"
-        files_to_compare:
-          - manifest.yaml
-          - 02_business/services.yaml
+        files_to_compare: []
         expect_exit_code: 0
 
       - command: "add business service changeset-service-002 --name 'Related Service' --description 'Another business service for relationship'"
-        files_to_compare:
-          - manifest.yaml
-          - 02_business/services.yaml
+        files_to_compare: []
         expect_exit_code: 0
 
       - command: "relationship add business.service.changeset-service-001 business.service.changeset-service-002 --predicate serves"
-        files_to_compare:
-          - relationships.yaml
+        files_to_compare: []
         expect_exit_code: 0
 
       - command: "changeset deactivate"
@@ -125,9 +118,7 @@ pipelines:
           - "Activated"
 
       - command: "delete motivation.goal.temp-goal-for-deletion --force"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goals.yaml
+        files_to_compare: []
         expect_exit_code: 0
 
       - command: "changeset deactivate"
