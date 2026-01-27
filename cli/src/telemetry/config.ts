@@ -47,23 +47,6 @@ export interface OTLPConfig {
 const CONFIG_FILENAME = '.dr-config.yaml';
 
 /**
- * Validate that a string is a valid URL with http: or https: protocol.
- * Returns true if valid, false otherwise.
- *
- * @param urlString - The string to validate as a URL
- * @returns true if valid URL with http/https protocol, false otherwise
- */
-function isValidUrl(urlString: string): boolean {
-  try {
-    const url = new URL(urlString);
-    // Only accept http and https protocols
-    return url.protocol === 'http:' || url.protocol === 'https:';
-  } catch {
-    return false;
-  }
-}
-
-/**
  * Load OTLP configuration from multiple sources.
  *
  * Configuration precedence (each field resolved independently):
@@ -98,9 +81,41 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
     try {
       const content = await readFile(configPath, 'utf-8');
       fileConfig = parse(content) as DRConfig;
-    } catch {
-      // Gracefully handle parse errors and fall back to defaults
-      console.warn(`Warning: Failed to parse ${configPath}, using defaults`);
+    } catch (error) {
+      // Provide specific error messages based on error type
+      if (error instanceof Error) {
+        const errorMsg = error.message;
+
+        // File permission errors
+        if (errorMsg.includes('EACCES') || errorMsg.includes('permission denied')) {
+          console.error(`Error: Cannot read config file ${configPath} - permission denied`);
+          console.error('Suggestions:');
+          console.error('  • Check file permissions with: ls -l ${configPath}');
+          console.error('  • Ensure you have read access to the file');
+          console.error('  • Try: chmod 644 ${configPath}');
+        }
+        // YAML parse errors
+        else if (errorMsg.includes('YAMLException') || error.name === 'YAMLException' || errorMsg.includes('bad indentation') || errorMsg.includes('unexpected')) {
+          console.error(`Error: Invalid YAML syntax in ${configPath}`);
+          console.error(`Details: ${errorMsg}`);
+          console.error('Suggestions:');
+          console.error('  • Validate your YAML syntax at https://www.yamllint.com/');
+          console.error('  • Check for proper indentation (use spaces, not tabs)');
+          console.error('  • Verify colons have spaces after them');
+        }
+        // File encoding or other I/O errors
+        else {
+          console.error(`Error: Failed to load config file ${configPath}`);
+          console.error(`Details: ${errorMsg}`);
+          console.error('Suggestions:');
+          console.error('  • Verify the file is valid UTF-8 encoded text');
+          console.error('  • Check if the file system is accessible');
+          console.error('  • Try recreating the file if it may be corrupted');
+        }
+        console.warn(`Using default OTLP configuration due to config file error`);
+      } else {
+        console.warn(`Warning: Failed to parse ${configPath}, using defaults`);
+      }
     }
   }
 
@@ -112,15 +127,37 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
   };
 
   // Helper to validate URL and return if valid, undefined if invalid
-  const getValidUrl = (url: string | undefined) => {
+  const getValidUrl = (url: string | undefined, fieldName: string = 'URL') => {
     if (!url) return undefined;
     const trimmed = url.trim();
     if (trimmed.length === 0) return undefined;
-    if (!isValidUrl(trimmed)) {
-      console.warn(`Warning: Invalid URL "${trimmed}" in OTLP configuration, using fallback`);
+
+    try {
+      const parsedUrl = new URL(trimmed);
+
+      // Only accept http and https protocols
+      if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+        console.error(`Error: Invalid protocol "${parsedUrl.protocol}" in ${fieldName}`);
+        console.error(`  Provided: ${trimmed}`);
+        console.error(`  Expected: URL must start with http:// or https://`);
+        console.error(`  Using fallback configuration for this field`);
+        return undefined;
+      }
+
+      return trimmed;
+    } catch (error) {
+      console.error(`Error: Invalid URL in ${fieldName}: "${trimmed}"`);
+      if (error instanceof Error) {
+        console.error(`  Reason: ${error.message}`);
+      }
+      console.error('Suggestions:');
+      console.error('  • Ensure URL starts with http:// or https://');
+      console.error('  • Check for typos in hostname');
+      console.error('  • Verify port number if specified (e.g., :4318)');
+      console.error('  • Example: http://localhost:4318/v1/traces');
+      console.error(`  Using fallback configuration for this field`);
       return undefined;
     }
-    return trimmed;
   };
 
   // Merge configuration with precedence: env vars > file config > defaults
@@ -128,12 +165,12 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
   // Invalid URLs are also rejected and fall back to next priority
   return {
     endpoint:
-      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT)) ??
-      getValidUrl(otlp?.endpoint) ??
+      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_ENDPOINT), 'OTEL_EXPORTER_OTLP_ENDPOINT') ??
+      getValidUrl(otlp?.endpoint, 'telemetry.otlp.endpoint') ??
       defaults.endpoint,
     logsEndpoint:
-      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT)) ??
-      getValidUrl(otlp?.logs_endpoint) ??
+      getValidUrl(getEnvVar(process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT), 'OTEL_EXPORTER_OTLP_LOGS_ENDPOINT') ??
+      getValidUrl(otlp?.logs_endpoint, 'telemetry.otlp.logs_endpoint') ??
       defaults.logsEndpoint,
     serviceName:
       getEnvVar(process.env.OTEL_SERVICE_NAME) ??
