@@ -162,10 +162,14 @@ Federated architecture model spanning 12 interconnected layers:
 
 ### Data Storage
 
-- Filesystem-based (no database)
-- Models in `.dr/` directory
-- Manifest: `.dr/manifest.json`
-- Layers: `.dr/layers/{layer-name}.json`
+- **Filesystem-based** (no database)
+- **Base model** in `documentation-robotics/` directory
+  - Manifest: `documentation-robotics/manifest.json`
+  - Layers: `documentation-robotics/layers/{layer-name}.json`
+- **Changesets** in `documentation-robotics/changesets/` directory
+  - Each changeset: `{changeset-id}/metadata.yaml` and `changes.yaml`
+  - Migration: Old `.dr/changesets/` auto-migrates to new location on first use
+  - Backup: `.dr.backup/changesets/` created during migration for rollback
 
 ## Common Pitfalls
 

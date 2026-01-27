@@ -548,7 +548,7 @@ dr changeset create feature-x
 dr changeset stage feature-x ...
 
 # Commit with git
-git add .dr/
+git add documentation-robotics/
 git commit -m "feat: Add feature X to architecture model"
 
 # Export for code review
@@ -563,7 +563,7 @@ git push origin feature-x
 
 ### Changeset History
 
-Changesets are stored in `.dr/changesets/` (legacy) or `documentation-robotics/changesets/` (new):
+Changesets are stored in `documentation-robotics/changesets/` directory:
 
 ```bash
 # View commit history

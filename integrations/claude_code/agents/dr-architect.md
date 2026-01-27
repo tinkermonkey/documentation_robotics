@@ -573,11 +573,10 @@ Idea → Questions → Research → Model → Validate → Decide
 1. **Check Changeset Context**
 
    ```bash
-   ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
    dr changeset list
    ```
 
-   Communicate current status to user.
+   Communicate current status to user - show any active changesets.
 
 2. **Ask Clarifying Questions**
    - What is the core idea?
@@ -1158,7 +1157,7 @@ Adjust your autonomy based on:
 **Always know where you are:**
 
 ```bash
-ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
+dr changeset list --status staged
 ```
 
 **Communicate context:**
@@ -1166,6 +1165,7 @@ ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
 ```
 📍 Working in changeset: explore-caching
 Changes so far: 5 elements added
+Storage: documentation-robotics/changesets/explore-caching/
 ```
 
 **Suggest changesets when appropriate:**
