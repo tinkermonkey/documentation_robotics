@@ -35,15 +35,18 @@ let cachedTrace: any = null;
  * No-op when TELEMETRY_ENABLED is false.
  *
  * Initializes both TracerProvider and LoggerProvider with:
- * - Service name: "dr-cli"
+ * - Service name: from environment/config (default "dr-cli")
  * - Service version: from package.json
  * - Project name: from model manifest (if available)
  * - Processors: SimpleSpanProcessor and SimpleLogRecordProcessor
  * - Exporters: ResilientOTLPExporter with circuit-breaker pattern
  *
- * The exporters target http://localhost:4318/v1/traces and /v1/logs by default,
- * configurable via OTEL_EXPORTER_OTLP_ENDPOINT environment variable.
- * Log endpoint can be overridden with OTEL_EXPORTER_OTLP_LOGS_ENDPOINT.
+ * OTLP configuration is loaded from multiple sources with precedence:
+ * 1. Environment variables (OTEL_EXPORTER_OTLP_ENDPOINT, OTEL_EXPORTER_OTLP_LOGS_ENDPOINT, OTEL_SERVICE_NAME)
+ * 2. ~/.dr-config.yaml telemetry.otlp section
+ * 3. Hard-coded defaults (http://localhost:4318/v1/traces and /v1/logs)
+ *
+ * See: cli/src/telemetry/config.ts for configuration loading details
  */
 export async function initTelemetry(): Promise<void> {
   if (isTelemetryEnabled) {
@@ -58,6 +61,7 @@ export async function initTelemetry(): Promise<void> {
       { LoggerProvider },
       { ResilientOTLPExporter },
       { ResilientLogExporter },
+      { loadOTLPConfig },
     ] = await Promise.all([
       import('@opentelemetry/sdk-node'),
       import('@opentelemetry/sdk-trace-base'),
@@ -67,12 +71,24 @@ export async function initTelemetry(): Promise<void> {
       import('@opentelemetry/sdk-logs'),
       import('./resilient-exporter.js'),
       import('./resilient-log-exporter.js'),
+      import('./config.js'),
     ]);
 
     // Cache API imports for synchronous access in other functions
     const { trace, context } = otelApi;
     cachedTrace = trace;
     cachedContext = context;
+
+    // Load OTLP configuration from environment variables, config file, and defaults
+    const otlpConfig = await loadOTLPConfig();
+
+    // Debug: Log loaded configuration
+    if (process.env.DR_TELEMETRY_DEBUG) {
+      process.stderr.write('[TELEMETRY] Configuration loaded:\n');
+      process.stderr.write(`  - Traces endpoint: ${otlpConfig.endpoint}\n`);
+      process.stderr.write(`  - Logs endpoint: ${otlpConfig.logsEndpoint}\n`);
+      process.stderr.write(`  - Service name: ${otlpConfig.serviceName}\n`);
+    }
 
     // Attempt to get CLI version from package.json
     let cliVersion = '0.1.0';
@@ -117,16 +133,14 @@ export async function initTelemetry(): Promise<void> {
 
     // Create resource with service attributes
     const resource = new Resource({
-      'service.name': process.env.OTEL_SERVICE_NAME || 'dr-cli',
+      'service.name': otlpConfig.serviceName,
       'service.version': cliVersion,
       'dr.project.name': projectName,
     });
 
     // Create trace exporter with circuit-breaker pattern
     const traceExporter = new ResilientOTLPExporter({
-      url:
-        process.env.OTEL_EXPORTER_OTLP_ENDPOINT ||
-        'http://localhost:4318/v1/traces',
+      url: otlpConfig.endpoint,
       timeoutMillis: 500,
     });
 
@@ -143,14 +157,14 @@ export async function initTelemetry(): Promise<void> {
     // Get tracer instance for span creation
     tracer = trace.getTracer('dr-cli', cliVersion);
 
-    // Create log exporter with circuit-breaker pattern
-    const logEndpoint =
-      process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT ||
-      process.env.OTEL_EXPORTER_OTLP_ENDPOINT?.replace(/\/v1\/traces$/, '/v1/logs') ||
-      'http://localhost:4318/v1/logs';
+    // Debug: Log SDK initialization
+    if (process.env.DR_TELEMETRY_DEBUG) {
+      process.stderr.write('[TELEMETRY] SDK initialized successfully\n');
+    }
 
+    // Create log exporter with circuit-breaker pattern
     const logExporter = new ResilientLogExporter({
-      url: logEndpoint,
+      url: otlpConfig.logsEndpoint,
       timeoutMillis: 500,
     });
 

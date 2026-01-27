@@ -15,6 +15,7 @@ import {
   ErrorCategory,
   findSimilar,
   formatValidOptions,
+  ModelNotFoundError,
 } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
@@ -59,39 +60,50 @@ export async function addCommand(
   name: string,
   options: AddOptions
 ): Promise<void> {
-  // Validate layer name
-  if (!VALID_LAYERS.includes(layer)) {
-    const similar = findSimilar(layer, VALID_LAYERS, 3);
-    const suggestions: string[] = [
-      `Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`,
-    ];
-    if (similar.length > 0) {
-      suggestions.unshift(`Did you mean: ${similar.join(' or ')}?`);
-    }
-    throw new CLIError(
-      `Invalid layer "${layer}"`,
-      ErrorCategory.USER,
-      suggestions,
-      { operation: 'add', context: `Layer: ${layer}, Type: ${type}, Name: ${name}` }
-    );
-  }
-
-  // Generate full element ID: {layer}.{type}.{kebab-name}
-  // This matches Python CLI format for compatibility
-  const elementId = generateElementId(layer, type, name);
-
-  const span = isTelemetryEnabled ? startSpan('element.add', {
-    'layer.name': layer,
-    'element.type': type,
-    'element.id': elementId,
-  }) : null;
+  let span = null;
 
   try {
+    // Validate layer name
+    if (!VALID_LAYERS.includes(layer)) {
+      const similar = findSimilar(layer, VALID_LAYERS, 3);
+      const suggestions: string[] = [
+        `Use a valid layer name: ${formatValidOptions(VALID_LAYERS)}`,
+      ];
+      if (similar.length > 0) {
+        suggestions.unshift(`Did you mean: ${similar.join(' or ')}?`);
+      }
+      throw new CLIError(
+        `Unknown layer "${layer}"`,
+        ErrorCategory.USER,
+        suggestions,
+        { operation: 'add', context: `Layer: ${layer}, Type: ${type}, Name: ${name}` }
+      );
+    }
+
+    // Generate full element ID: {layer}.{type}.{kebab-name}
+    // This matches Python CLI format for compatibility
+    const elementId = generateElementId(layer, type, name);
+
+    span = isTelemetryEnabled ? startSpan('element.add', {
+      'layer.name': layer,
+      'element.type': type,
+      'element.id': elementId,
+    }) : null;
+
     // Validate source reference options
     validateSourceReferenceOptions(options);
 
-    // Load model
-    const model = await Model.load();
+    // Load model (with error handling for missing models)
+    let model: Model;
+    try {
+      model = await Model.load();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('No DR project') || message.includes('Model not found')) {
+        throw new ModelNotFoundError();
+      }
+      throw error;
+    }
 
     // Get or create layer
     let layerObj = await model.getLayer(layer);

@@ -9,7 +9,7 @@ import { MutationHandler } from '../core/mutation-handler.js';
 import { ReferenceRegistry } from '../core/reference-registry.js';
 import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
 import { findElementLayer } from '../utils/element-utils.js';
-import { CLIError, handleError, ErrorCategory } from '../utils/errors.js';
+import { CLIError, handleError, ErrorCategory, ModelNotFoundError } from '../utils/errors.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -32,15 +32,24 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
   }) : null;
 
   try {
-    // Load model
-    const model = await Model.load();
+    // Load model (with error handling for missing models)
+    let model: Model;
+    try {
+      model = await Model.load();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      if (message.includes('No DR project') || message.includes('Model not found')) {
+        throw new ModelNotFoundError();
+      }
+      throw error;
+    }
 
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
       throw new CLIError(
         `Element ${id} not found`,
-        ErrorCategory.NOT_FOUND,
+        ErrorCategory.USER,
         [
           `Use "dr search ${id}" to find similar elements`,
           'Use "dr list <layer>" to list all elements in a layer',
