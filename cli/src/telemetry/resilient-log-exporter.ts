@@ -25,6 +25,8 @@ import { OTLPLogExporter } from '@opentelemetry/exporter-logs-otlp-http';
 export class ResilientLogExporter implements LogRecordExporter {
   private delegate: OTLPLogExporter;
   private retryAfter = 0;  // Circuit-breaker timestamp
+  private readonly url: string;
+  private readonly debug: boolean;
 
   constructor(
     config?: Record<string, unknown> & {
@@ -32,11 +34,18 @@ export class ResilientLogExporter implements LogRecordExporter {
       timeoutMillis?: number;
     }
   ) {
+    this.url = config?.url || 'http://localhost:4318/v1/logs';
+    this.debug = process.env.DR_TELEMETRY_DEBUG === '1';
+
     this.delegate = new OTLPLogExporter({
       ...config,
-      url: config?.url || 'http://localhost:4318/v1/logs',
+      url: this.url,
       timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
     });
+
+    if (this.debug) {
+      process.stderr.write(`[TELEMETRY] Log exporter initialized: ${this.url}\n`);
+    }
   }
 
   export(
@@ -47,18 +56,34 @@ export class ResilientLogExporter implements LogRecordExporter {
     // Boundary: when Date.now() === this.retryAfter, retry immediately (intended behavior).
     if (Date.now() < this.retryAfter) {
       // Pretend success and silently discard log records
+      if (this.debug) {
+        process.stderr.write(`[TELEMETRY] Circuit breaker OPEN - discarding ${records.length} log(s)\n`);
+      }
       resultCallback({ code: ExportResultCode.SUCCESS });
       return;
     }
 
+    if (this.debug) {
+      process.stderr.write(`[TELEMETRY] Exporting ${records.length} log(s) to ${this.url}\n`);
+    }
+
     this.delegate.export(records, (result: ExportResult) => {
       if (result.code === ExportResultCode.FAILED) {
+        if (this.debug) {
+          process.stderr.write(`[TELEMETRY] Export FAILED - circuit breaker opening for 30s\n`);
+          if (result.error) {
+            process.stderr.write(`[TELEMETRY] Error: ${result.error.message}\n`);
+          }
+        }
         // Set 30-second backoff window after first failure
         this.retryAfter = Date.now() + 30000;
         // Report success to SDK so it doesn't queue/retry internally
         // The backoff mechanism prevents further export attempts
         resultCallback({ code: ExportResultCode.SUCCESS });
       } else {
+        if (this.debug) {
+          process.stderr.write(`[TELEMETRY] Export SUCCESS - ${records.length} log(s) sent\n`);
+        }
         // Clear backoff on successful export
         this.retryAfter = 0;
         resultCallback(result);

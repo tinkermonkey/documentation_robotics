@@ -88,33 +88,33 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
 
         // File permission errors
         if (errorMsg.includes('EACCES') || errorMsg.includes('permission denied')) {
-          console.error(`Error: Cannot read config file ${configPath} - permission denied`);
-          console.error('Suggestions:');
-          console.error('  • Check file permissions with: ls -l ${configPath}');
-          console.error('  • Ensure you have read access to the file');
-          console.error('  • Try: chmod 644 ${configPath}');
+          process.stderr.write(`Error: Cannot read config file ${configPath} - permission denied\n`);
+          process.stderr.write('Suggestions:\n');
+          process.stderr.write('  • Check file permissions with: ls -l ${configPath}\n');
+          process.stderr.write('  • Ensure you have read access to the file\n');
+          process.stderr.write('  • Try: chmod 644 ${configPath}\n');
         }
         // YAML parse errors
         else if (errorMsg.includes('YAMLException') || error.name === 'YAMLException' || errorMsg.includes('bad indentation') || errorMsg.includes('unexpected')) {
-          console.error(`Error: Invalid YAML syntax in ${configPath}`);
-          console.error(`Details: ${errorMsg}`);
-          console.error('Suggestions:');
-          console.error('  • Validate your YAML syntax at https://www.yamllint.com/');
-          console.error('  • Check for proper indentation (use spaces, not tabs)');
-          console.error('  • Verify colons have spaces after them');
+          process.stderr.write(`Error: Invalid YAML syntax in ${configPath}\n`);
+          process.stderr.write(`Details: ${errorMsg}\n`);
+          process.stderr.write('Suggestions:\n');
+          process.stderr.write('  • Validate your YAML syntax at https://www.yamllint.com/\n');
+          process.stderr.write('  • Check for proper indentation (use spaces, not tabs)\n');
+          process.stderr.write('  • Verify colons have spaces after them\n');
         }
         // File encoding or other I/O errors
         else {
-          console.error(`Error: Failed to load config file ${configPath}`);
-          console.error(`Details: ${errorMsg}`);
-          console.error('Suggestions:');
-          console.error('  • Verify the file is valid UTF-8 encoded text');
-          console.error('  • Check if the file system is accessible');
-          console.error('  • Try recreating the file if it may be corrupted');
+          process.stderr.write(`Error: Failed to load config file ${configPath}\n`);
+          process.stderr.write(`Details: ${errorMsg}\n`);
+          process.stderr.write('Suggestions:\n');
+          process.stderr.write('  • Verify the file is valid UTF-8 encoded text\n');
+          process.stderr.write('  • Check if the file system is accessible\n');
+          process.stderr.write('  • Try recreating the file if it may be corrupted\n');
         }
-        console.warn(`Using default OTLP configuration due to config file error`);
+        process.stderr.write(`Using default OTLP configuration due to config file error\n`);
       } else {
-        console.warn(`Warning: Failed to parse ${configPath}, using defaults`);
+        process.stderr.write(`Warning: Failed to parse ${configPath}, using defaults\n`);
       }
     }
   }
@@ -137,25 +137,25 @@ export async function loadOTLPConfig(): Promise<OTLPConfig> {
 
       // Only accept http and https protocols
       if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-        console.error(`Error: Invalid protocol "${parsedUrl.protocol}" in ${fieldName}`);
-        console.error(`  Provided: ${trimmed}`);
-        console.error(`  Expected: URL must start with http:// or https://`);
-        console.error(`  Using fallback configuration for this field`);
+        process.stderr.write(`Error: Invalid protocol "${parsedUrl.protocol}" in ${fieldName}\n`);
+        process.stderr.write(`  Provided: ${trimmed}\n`);
+        process.stderr.write(`  Expected: URL must start with http:// or https://\n`);
+        process.stderr.write(`  Using fallback configuration for this field\n`);
         return undefined;
       }
 
       return trimmed;
     } catch (error) {
-      console.error(`Error: Invalid URL in ${fieldName}: "${trimmed}"`);
+      process.stderr.write(`Error: Invalid URL in ${fieldName}: "${trimmed}"\n`);
       if (error instanceof Error) {
-        console.error(`  Reason: ${error.message}`);
+        process.stderr.write(`  Reason: ${error.message}\n`);
       }
-      console.error('Suggestions:');
-      console.error('  • Ensure URL starts with http:// or https://');
-      console.error('  • Check for typos in hostname');
-      console.error('  • Verify port number if specified (e.g., :4318)');
-      console.error('  • Example: http://localhost:4318/v1/traces');
-      console.error(`  Using fallback configuration for this field`);
+      process.stderr.write('Suggestions:\n');
+      process.stderr.write('  • Ensure URL starts with http:// or https://\n');
+      process.stderr.write('  • Check for typos in hostname\n');
+      process.stderr.write('  • Verify port number if specified (e.g., :4318)\n');
+      process.stderr.write('  • Example: http://localhost:4318/v1/traces\n');
+      process.stderr.write(`  Using fallback configuration for this field\n`);
       return undefined;
     }
   };

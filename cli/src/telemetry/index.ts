@@ -82,6 +82,14 @@ export async function initTelemetry(): Promise<void> {
     // Load OTLP configuration from environment variables, config file, and defaults
     const otlpConfig = await loadOTLPConfig();
 
+    // Debug: Log loaded configuration
+    if (process.env.DR_TELEMETRY_DEBUG) {
+      process.stderr.write('[TELEMETRY] Configuration loaded:\n');
+      process.stderr.write(`  - Traces endpoint: ${otlpConfig.endpoint}\n`);
+      process.stderr.write(`  - Logs endpoint: ${otlpConfig.logsEndpoint}\n`);
+      process.stderr.write(`  - Service name: ${otlpConfig.serviceName}\n`);
+    }
+
     // Attempt to get CLI version from package.json
     let cliVersion = '0.1.0';
     try {
@@ -148,6 +156,11 @@ export async function initTelemetry(): Promise<void> {
 
     // Get tracer instance for span creation
     tracer = trace.getTracer('dr-cli', cliVersion);
+
+    // Debug: Log SDK initialization
+    if (process.env.DR_TELEMETRY_DEBUG) {
+      process.stderr.write('[TELEMETRY] SDK initialized successfully\n');
+    }
 
     // Create log exporter with circuit-breaker pattern
     const logExporter = new ResilientLogExporter({

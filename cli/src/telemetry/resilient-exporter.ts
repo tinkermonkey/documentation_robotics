@@ -25,6 +25,8 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
 export class ResilientOTLPExporter implements SpanExporter {
   private delegate: OTLPTraceExporter;
   private retryAfter = 0;  // Circuit-breaker timestamp
+  private readonly url: string;
+  private readonly debug: boolean;
 
   constructor(
     config?: Record<string, unknown> & {
@@ -32,11 +34,18 @@ export class ResilientOTLPExporter implements SpanExporter {
       timeoutMillis?: number;
     }
   ) {
+    this.url = config?.url || 'http://localhost:4318/v1/traces';
+    this.debug = process.env.DR_TELEMETRY_DEBUG === '1';
+
     this.delegate = new OTLPTraceExporter({
       ...config,
-      url: config?.url || 'http://localhost:4318/v1/traces',
+      url: this.url,
       timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
     });
+
+    if (this.debug) {
+      process.stderr.write(`[TELEMETRY] Trace exporter initialized: ${this.url}\n`);
+    }
   }
 
   export(spans: ReadableSpan[], resultCallback: (result: ExportResult) => void): void {
@@ -44,18 +53,34 @@ export class ResilientOTLPExporter implements SpanExporter {
     // Boundary: when Date.now() === this.retryAfter, retry immediately (intended behavior).
     if (Date.now() < this.retryAfter) {
       // Pretend success and silently discard spans
+      if (this.debug) {
+        process.stderr.write(`[TELEMETRY] Circuit breaker OPEN - discarding ${spans.length} span(s)\n`);
+      }
       resultCallback({ code: ExportResultCode.SUCCESS });
       return;
     }
 
+    if (this.debug) {
+      process.stderr.write(`[TELEMETRY] Exporting ${spans.length} span(s) to ${this.url}\n`);
+    }
+
     this.delegate.export(spans, (result: ExportResult) => {
         if (result.code === ExportResultCode.FAILED) {
+          if (this.debug) {
+            process.stderr.write(`[TELEMETRY] Export FAILED - circuit breaker opening for 30s\n`);
+            if (result.error) {
+              process.stderr.write(`[TELEMETRY] Error: ${result.error.message}\n`);
+            }
+          }
           // Set 30-second backoff window after first failure
           this.retryAfter = Date.now() + 30000;
           // Report success to SDK so it doesn't queue/retry internally
           // The backoff mechanism prevents further export attempts
           resultCallback({ code: ExportResultCode.SUCCESS });
         } else {
+          if (this.debug) {
+            process.stderr.write(`[TELEMETRY] Export SUCCESS - ${spans.length} span(s) sent\n`);
+          }
           // Clear backoff on successful export
           this.retryAfter = 0;
           resultCallback(result);

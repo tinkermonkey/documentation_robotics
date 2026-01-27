@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { readJSON, fileExists } from '../utils/file-io.js';
 import { getCliBundledSpecVersion } from '../utils/spec-version.js';
+import { isTelemetryBuiltIn } from '../telemetry/detect.js';
 
 // Declare GIT_HASH as a build-time constant (substituted by esbuild)
 declare const GIT_HASH: string;
@@ -31,9 +32,11 @@ async function getPackageVersion(): Promise<string> {
 export async function versionCommand(): Promise<void> {
   const cliVersion = await getPackageVersion();
   const specVersion = getCliBundledSpecVersion();
+  const telemetryEnabled = isTelemetryBuiltIn();
 
   console.log(ansis.bold('Documentation Robotics CLI'));
   console.log(`CLI Version:  ${ansis.cyan(cliVersion)}`);
   console.log(`Spec Version: ${ansis.cyan(specVersion)}`);
   console.log(`Git Hash:     ${ansis.cyan(gitHash)}`);
+  console.log(`Telemetry:    ${telemetryEnabled ? ansis.green('enabled') : ansis.dim('disabled')}`);
 }
