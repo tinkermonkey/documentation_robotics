@@ -165,7 +165,14 @@ export async function changesetApplyCommand(name: string): Promise<void> {
 
     const changesetId = changeset.id || name;
     if (!changesetId) {
-      console.error(ansis.red('Error: Changeset ID could not be determined'));
+      console.error(
+        ansis.red('Error: Changeset ID could not be determined') + '\n' +
+        ansis.dim('This indicates a corrupted changeset. The changeset exists but has no ID field.') + '\n' +
+        ansis.dim(`Try:\n`) +
+        ansis.dim(`  1. Run 'dr changeset list' to see available changesets\n`) +
+        ansis.dim(`  2. Delete and recreate the changeset if possible\n`) +
+        ansis.dim(`  3. Contact support if this persists`)
+      );
       process.exit(1);
     }
     const result = await manager.apply(model, changesetId);
@@ -892,7 +899,7 @@ export async function changesetExportCommand(
 /**
  * Import changeset from portable file
  */
-export async function changesetImportCommand(file: string): Promise<void> {
+export async function changesetImportCommand(file: string, options: { force?: boolean } = {}): Promise<void> {
   try {
     // Load full model for compatibility validation
     const model = await Model.load(process.cwd(), { lazyLoad: false });
@@ -922,16 +929,21 @@ export async function changesetImportCommand(file: string): Promise<void> {
       process.exit(1);
     }
 
-    // Warn about drift if detected
+    // Check for drift and require --force if detected
     if (!compatibility.baseSnapshotMatch) {
-      console.warn(ansis.yellow(`⚠ Warning: Base model has changed`));
+      if (!options.force) {
+        console.error(
+          ansis.red('Error: Imported changeset has base model drift') + '\n' +
+          ansis.dim('The model has been modified since this changeset was created.') + '\n' +
+          ansis.dim('This may cause conflicts or unexpected behavior when committing.') + '\n\n' +
+          ansis.dim('To import anyway, use: --force')
+        );
+        process.exit(1);
+      }
+
       console.warn(
-        ansis.dim('  The model has been modified since this changeset was created.')
-      );
-      console.warn(
-        ansis.dim(
-          '  Review the changes carefully before committing.'
-        )
+        ansis.yellow(`⚠ Warning: Base model drift detected (--force used)`) + '\n' +
+        ansis.dim('Review changes carefully before committing.')
       );
       console.log();
     }
@@ -1199,14 +1211,16 @@ Examples:
   changesetGroup
     .command('import <file>')
     .description('Import changeset from file')
+    .option('-f, --force', 'Import despite base model drift', false)
     .addHelpText(
       'after',
       `
 Examples:
   $ dr changeset import changes.yaml
-  $ dr changeset import ../team-changes.json`
+  $ dr changeset import ../team-changes.json
+  $ dr changeset import changes.yaml --force`
     )
-    .action(async (file) => {
-      await changesetImportCommand(file);
+    .action(async (file, options) => {
+      await changesetImportCommand(file, options);
     });
 }
