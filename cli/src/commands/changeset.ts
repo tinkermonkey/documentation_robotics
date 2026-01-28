@@ -147,7 +147,7 @@ export async function changesetListCommand(): Promise<void> {
 /**
  * Apply a changeset to the model
  */
-export async function changesetApplyCommand(name: string): Promise<void> {
+export async function changesetApplyCommand(name: string, options?: { validate?: boolean }): Promise<void> {
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -177,7 +177,7 @@ export async function changesetApplyCommand(name: string): Promise<void> {
       );
       process.exit(1);
     }
-    const result = await manager.apply(model, changesetId);
+    const result = await manager.apply(model, changesetId, { validate: options?.validate });
 
     console.log();
 
@@ -1025,14 +1025,16 @@ Examples:
   changesetGroup
     .command('apply <name>')
     .description('Apply a changeset to the model')
+    .option('--no-validate', 'Skip validation before applying')
     .addHelpText(
       'after',
       `
 Examples:
-  $ dr changeset apply "v1.1 migration"`
+  $ dr changeset apply "v1.1 migration"
+  $ dr changeset apply "v1.1 migration" --no-validate`
     )
-    .action(async (name) => {
-      await changesetApplyCommand(name);
+    .action(async (name, options) => {
+      await changesetApplyCommand(name, options);
     });
 
   changesetGroup

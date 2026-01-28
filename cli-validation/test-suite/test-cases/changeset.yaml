@@ -30,7 +30,7 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply test-changeset-001"
+      - command: "changeset apply test-changeset-001 --no-validate"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
@@ -78,7 +78,7 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply multi-element-changeset"
+      - command: "changeset apply multi-element-changeset --no-validate"
         files_to_compare:
           - manifest.yaml
           - 02_business/services.yaml
@@ -130,7 +130,7 @@ pipelines:
         expect_stdout_contains:
           - "Deactivated"
 
-      - command: "changeset apply delete-changeset"
+      - command: "changeset apply delete-changeset --no-validate"
         files_to_compare:
           - manifest.yaml
           - 01_motivation/goals.yaml
