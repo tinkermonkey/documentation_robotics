@@ -192,3 +192,34 @@ export function getGoldenCopyStats() {
 export function resetGoldenCopyManager(): void {
   GoldenCopyCacheManager.resetInstance();
 }
+
+/**
+ * Create an isolated test working directory from the golden copy.
+ * Each test receives a unique directory pre-populated with baseline data.
+ *
+ * This is the spec-required function that returns { path, cleanup }.
+ *
+ * Usage:
+ * ```typescript
+ * const { path, cleanup } = await createTestWorkdir();
+ * // use path for test working directory...
+ * await cleanup();
+ * ```
+ *
+ * @returns Promise resolving to working directory path and cleanup handler
+ */
+export async function createTestWorkdir(): Promise<{
+  path: string;
+  cleanup: () => Promise<void>;
+}> {
+  const manager = GoldenCopyCacheManager.getInstance();
+  if (!manager.isInitialized()) {
+    await manager.init();
+  }
+
+  const cloned = await manager.clone();
+  return {
+    path: cloned.rootPath,
+    cleanup: cloned.cleanup,
+  };
+}

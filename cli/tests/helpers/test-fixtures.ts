@@ -2,7 +2,7 @@
  * Test Fixtures and Model Helpers
  * Provides reusable fixtures for creating test models and elements
  *
- * Phase 5: Golden copy integration
+ * Golden Copy Integration:
  * - createTestModel() can now use shared golden copy for better performance
  * - Set USE_GOLDEN_COPY=true to enable (defaults to true if available)
  * - Falls back to original behavior if golden copy is unavailable
@@ -36,7 +36,7 @@ export interface TestModelOptions {
  * Create a test model with standard configuration
  * Automatically cleans up temporary directory on creation
  *
- * Phase 5 Enhancement: Optionally uses shared golden copy for better performance
+ * Golden Copy Enhancement: Optionally uses shared golden copy for better performance
  * - Set USE_GOLDEN_COPY=true to enable (will attempt to use if available)
  * - Respects DISABLE_GOLDEN_COPY=true to force fresh creation
  * - Falls back gracefully if golden copy initialization fails

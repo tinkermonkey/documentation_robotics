@@ -15,7 +15,7 @@
 import { Model } from './model.js';
 import { Layer } from './layer.js';
 import { Element } from './element.js';
-import { mkdir, cp, rm } from 'fs/promises';
+import { mkdir, cp, rm, access } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 
@@ -147,8 +147,7 @@ export class GoldenCopyCacheManager {
       let modelExists = false;
 
       try {
-        const fs = await import('fs/promises');
-        await fs.access(goldenPath);
+        await access(goldenPath);
         modelExists = true;
       } catch {
         // Directory doesn't exist, will create new

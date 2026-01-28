@@ -30,7 +30,7 @@ describe('Golden Copy Integration', () => {
     testCacheDir = join(tmpdir(), `golden-copy-integration-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
 
     // Configure manager with test cache directory
-    const manager = GoldenCopyCacheManager.getInstance({
+    GoldenCopyCacheManager.getInstance({
       cacheDir: testCacheDir,
     });
   });

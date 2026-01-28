@@ -5,7 +5,7 @@
  * It initializes shared resources, configures isolation, and sets up
  * metrics collection for test execution analysis.
  *
- * Phase 5: Shared golden copy initialization
+ * Shared Golden Copy Initialization:
  * - Creates a shared golden model on first use per worker
  * - Enables efficient cloning for test initialization
  */
