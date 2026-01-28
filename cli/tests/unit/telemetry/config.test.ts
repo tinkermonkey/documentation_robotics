@@ -3,6 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
+import { loadOTLPConfig } from '../../../src/telemetry/config';
 
 // Store original env variables
 const originalOTLPEndpoint = process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
@@ -30,9 +31,6 @@ afterEach(() => {
 describe('loadOTLPConfig()', () => {
   describe('Default Configuration', () => {
     it('should return defaults when no env vars or config file', async () => {
-      // Use a homedir that won't have a config file
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
-
       const config = await loadOTLPConfig();
 
       expect(config).toEqual({
@@ -47,7 +45,6 @@ describe('loadOTLPConfig()', () => {
     it('should use OTEL_EXPORTER_OTLP_ENDPOINT when set', async () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://custom:4318/v1/traces';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe('http://custom:4318/v1/traces');
@@ -56,7 +53,6 @@ describe('loadOTLPConfig()', () => {
     it('should use OTEL_EXPORTER_OTLP_LOGS_ENDPOINT when set', async () => {
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'http://custom:4318/v1/logs';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.logsEndpoint).toBe('http://custom:4318/v1/logs');
@@ -65,7 +61,6 @@ describe('loadOTLPConfig()', () => {
     it('should use OTEL_SERVICE_NAME when set', async () => {
       process.env.OTEL_SERVICE_NAME = 'custom-service';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.serviceName).toBe('custom-service');
@@ -76,7 +71,6 @@ describe('loadOTLPConfig()', () => {
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'http://env-logs:4318/v1/logs';
       process.env.OTEL_SERVICE_NAME = 'env-service';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config).toEqual({
@@ -91,7 +85,6 @@ describe('loadOTLPConfig()', () => {
     it('should handle missing config file gracefully', async () => {
       // When config file doesn't exist (which is the normal case for most users)
       // the function should return defaults without errors
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config).toEqual({
@@ -108,7 +101,6 @@ describe('loadOTLPConfig()', () => {
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'http://env-logs:4318/v1/logs';
       process.env.OTEL_SERVICE_NAME = 'env-service';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config).toEqual({
@@ -122,7 +114,6 @@ describe('loadOTLPConfig()', () => {
       // When no env var is set, should use default
       delete process.env.OTEL_EXPORTER_OTLP_ENDPOINT;
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // endpoint should be the default
@@ -132,7 +123,6 @@ describe('loadOTLPConfig()', () => {
 
   describe('Return Type', () => {
     it('should return OTLPConfig interface with required fields', async () => {
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(typeof config.endpoint).toBe('string');
@@ -141,7 +131,6 @@ describe('loadOTLPConfig()', () => {
     });
 
     it('should return non-empty string values', async () => {
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint.length).toBeGreaterThan(0);
@@ -155,7 +144,6 @@ describe('loadOTLPConfig()', () => {
       // Empty string env var should be treated as not set
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = '';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // Empty string is falsy, so should fall back to default
@@ -165,7 +153,6 @@ describe('loadOTLPConfig()', () => {
     it('should preserve whitespace in configuration values', async () => {
       process.env.OTEL_SERVICE_NAME = 'my-service ';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // Should preserve the trailing space
@@ -178,7 +165,6 @@ describe('loadOTLPConfig()', () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT =
         'http://localhost:4318/v1/traces?api_key=secret&version=1';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe(
@@ -190,7 +176,6 @@ describe('loadOTLPConfig()', () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'https://secure.example.com:4318/v1/traces';
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'https://secure.example.com:4318/v1/logs';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe('https://secure.example.com:4318/v1/traces');
@@ -203,7 +188,6 @@ describe('loadOTLPConfig()', () => {
       // Set invalid URL in env var
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'not-a-valid-url';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // Should fall back to default when invalid URL provided
@@ -214,7 +198,6 @@ describe('loadOTLPConfig()', () => {
       // Set invalid URL in env var
       process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT = 'http://[invalid-ipv6]:4318';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // Should fall back to default when invalid URL provided
@@ -224,7 +207,6 @@ describe('loadOTLPConfig()', () => {
     it('should accept valid URLs with ports', async () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:9999/v1/traces';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe('http://localhost:9999/v1/traces');
@@ -233,7 +215,6 @@ describe('loadOTLPConfig()', () => {
     it('should accept valid URLs with paths', async () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/custom/path/traces';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe('http://localhost:4318/custom/path/traces');
@@ -242,7 +223,6 @@ describe('loadOTLPConfig()', () => {
     it('should accept valid URLs with query parameters', async () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'http://localhost:4318/v1/traces?key=value&foo=bar';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       expect(config.endpoint).toBe('http://localhost:4318/v1/traces?key=value&foo=bar');
@@ -265,7 +245,6 @@ describe('loadOTLPConfig()', () => {
       writeFileSync(configPath, configContent);
 
       try {
-        const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
         const config = await loadOTLPConfig();
 
         // Invalid env var should fall back to file config
@@ -297,7 +276,6 @@ describe('loadOTLPConfig()', () => {
       writeFileSync(configPath, configContent);
 
       try {
-        const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
         const config = await loadOTLPConfig();
 
         // Invalid env var for logs endpoint should use file config
@@ -315,7 +293,6 @@ describe('loadOTLPConfig()', () => {
     it('should reject URLs missing scheme', async () => {
       process.env.OTEL_EXPORTER_OTLP_ENDPOINT = 'localhost:4318/v1/traces';
 
-      const { loadOTLPConfig } = await import('../../../src/telemetry/config.js');
       const config = await loadOTLPConfig();
 
       // URL without scheme is invalid, should use default
