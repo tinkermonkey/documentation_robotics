@@ -12,6 +12,7 @@ import { fileExists, ensureDir } from '../utils/file-io.js';
 import { FileLock } from '../utils/file-lock.js';
 import path from 'path';
 import yaml from 'yaml';
+import ansis from 'ansis';
 import type { StagedChangesetData, StagedChange } from './changeset.js';
 import { Changeset } from './changeset.js';
 
@@ -91,9 +92,22 @@ export class StagedChangesetStorage {
     const metadataPath = path.join(changesetPath, 'metadata.yaml');
     const changesPath = path.join(changesetPath, 'changes.yaml');
 
-    // Check if paths exist
-    if (!(await fileExists(metadataPath)) || !(await fileExists(changesPath))) {
-      return null;
+    // Check if changeset directory exists
+    if (!(await fileExists(changesetPath))) {
+      return null; // Changeset doesn't exist - this is OK
+    }
+
+    // Changeset directory exists - files SHOULD be present
+    const metadataExists = await fileExists(metadataPath);
+    const changesExists = await fileExists(changesPath);
+
+    if (!metadataExists || !changesExists) {
+      // Changeset directory exists but required files are missing - this is corruption
+      throw new Error(
+        `Changeset '${id}' is corrupted (missing ${!metadataExists ? 'metadata.yaml' : 'changes.yaml'}). ` +
+        `Location: ${changesetPath}\n` +
+        `This may indicate disk failure or incomplete write. Check disk health and restore from backup if available.`
+      );
     }
 
     try {
@@ -120,8 +134,15 @@ export class StagedChangesetStorage {
 
       return Changeset.fromJSON(data);
     } catch (error) {
+      // YAML parsing or file read error - provide detailed guidance
       throw new Error(
-        `Failed to load changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+        `Failed to load changeset '${id}': YAML parsing failed.\n` +
+        `Error: ${error instanceof Error ? error.message : String(error)}\n` +
+        `Location: ${metadataPath}\n` +
+        `This indicates file corruption. Try:\n` +
+        `  1. Validate YAML syntax with: yamllint ${metadataPath}\n` +
+        `  2. Restore from backup if available\n` +
+        `  3. Manually edit to fix syntax errors`
       );
     }
   }
@@ -172,14 +193,37 @@ export class StagedChangesetStorage {
     try {
       const entries = await readdir(this.changesetsDir, { withFileTypes: true });
       const changesets: Changeset[] = [];
+      let skippedCount = 0;
 
       for (const entry of entries) {
         if (entry.isDirectory()) {
-          const changeset = await this.load(entry.name);
-          if (changeset) {
-            changesets.push(changeset);
+          try {
+            const changeset = await this.load(entry.name);
+            if (changeset) {
+              changesets.push(changeset);
+            } else {
+              // load() returned null - directory exists but no valid changeset
+              console.warn(
+                ansis.yellow(`⚠ Warning: Changeset directory '${entry.name}' exists but could not be loaded (may be corrupted)`)
+              );
+              skippedCount++;
+            }
+          } catch (loadError) {
+            // load() threw an error - this is a corrupted changeset
+            console.warn(
+              ansis.yellow(`⚠ Warning: Failed to load changeset '${entry.name}': ${loadError instanceof Error ? loadError.message : String(loadError)}`)
+            );
+            skippedCount++;
           }
         }
+      }
+
+      // Show summary if any were skipped
+      if (skippedCount > 0) {
+        console.warn(
+          ansis.yellow(`\n⚠ ${skippedCount} changeset(s) could not be loaded and were skipped.`) +
+          ansis.dim(`\nRun 'dr changeset validate' to check for corruption and repair options.`)
+        );
       }
 
       return changesets;
@@ -198,7 +242,15 @@ export class StagedChangesetStorage {
     const changesetPath = path.join(this.changesetsDir, sanitizedId);
 
     if (!(await fileExists(changesetPath))) {
-      throw new Error(`Changeset '${id}' not found`);
+      // List available changesets to help user
+      const available = await this.list();
+      const availableIds = available.map(cs => cs.id).join(', ');
+
+      throw new Error(
+        `Changeset '${id}' not found.\n` +
+        `Available changesets: ${availableIds || '(none)'}\n` +
+        `Run 'dr changeset list' to see all changesets.`
+      );
     }
 
     try {
@@ -248,9 +300,29 @@ export class StagedChangesetStorage {
         return sequenceNumber;
       });
     } catch (error) {
-      // Provide context about which changeset operation failed
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Detect lock-specific errors
+      if (errorMessage.includes('lock') || errorMessage.includes('timeout')) {
+        const lockFilePath = path.join(changesetPath, '.lock');
+
+        throw new Error(
+          `Failed to add change to changeset '${id}': Lock acquisition failed.\n` +
+          `Error: ${errorMessage}\n\n` +
+          `This usually means another dr process is modifying this changeset.\n` +
+          `If no other processes are running, a stale lock file may exist.\n\n` +
+          `To resolve:\n` +
+          `  1. Wait for other operations to complete\n` +
+          `  2. Check for running dr processes: ps aux | grep dr\n` +
+          `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
+          `  4. Retry the operation`
+        );
+      }
+
+      // Generic error with context
       throw new Error(
-        `Failed to add change to changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+        `Failed to add change to changeset '${id}': ${errorMessage}\n` +
+        `Changeset path: ${changesetPath}`
       );
     }
   }
@@ -288,9 +360,29 @@ export class StagedChangesetStorage {
         await this.save(changeset);
       });
     } catch (error) {
-      // Provide context about which changeset operation failed
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      // Detect lock-specific errors
+      if (errorMessage.includes('lock') || errorMessage.includes('timeout')) {
+        const lockFilePath = path.join(changesetPath, '.lock');
+
+        throw new Error(
+          `Failed to remove change from changeset '${id}': Lock acquisition failed.\n` +
+          `Error: ${errorMessage}\n\n` +
+          `This usually means another dr process is modifying this changeset.\n` +
+          `If no other processes are running, a stale lock file may exist.\n\n` +
+          `To resolve:\n` +
+          `  1. Wait for other operations to complete\n` +
+          `  2. Check for running dr processes: ps aux | grep dr\n` +
+          `  3. If no processes found, remove stale lock: rm "${lockFilePath}"\n` +
+          `  4. Retry the operation`
+        );
+      }
+
+      // Generic error with context
       throw new Error(
-        `Failed to remove change from changeset '${id}': ${error instanceof Error ? error.message : String(error)}`
+        `Failed to remove change from changeset '${id}': ${errorMessage}\n` +
+        `Changeset path: ${changesetPath}`
       );
     }
   }
@@ -324,7 +416,10 @@ export class StagedChangesetStorage {
       .replace(/[^a-z0-9-]/g, '');    // Keep only alphanumeric and hyphens
 
     if (!sanitized) {
-      throw new Error('Invalid changeset ID: results in empty string after sanitization');
+      throw new Error(
+        `Invalid changeset ID '${id}': results in empty string after sanitization. ` +
+        `ID must contain at least one alphanumeric character.`
+      );
     }
 
     return sanitized;

@@ -266,18 +266,28 @@ dr chat github-copilot                   # Use GitHub Copilot, save as preferenc
 
 ### Model Structure
 
-All model data is stored in the `.dr/` directory in your project:
+Model data and changesets are stored in the `documentation-robotics/` directory:
 
 ```
 your-project/
-├── .dr/
-│   ├── manifest.json           # Model metadata
-│   └── layers/
-│       ├── 01-motivation.json
-│       ├── 02-business.json
-│       ├── 06-api.json
+├── documentation-robotics/
+│   ├── model/
+│   │   ├── manifest.yaml                    # Model metadata
+│   │   ├── 01_motivation/
+│   │   │   ├── goals.yaml
+│   │   │   └── ...
+│   │   ├── 02_business/
+│   │   │   ├── services.yaml
+│   │   │   └── ...
+│   │   └── ...
+│   └── changesets/
+│       ├── feature-x/
+│       │   ├── metadata.yaml   # Changeset metadata
+│       │   └── changes.yaml    # Staged changes
 │       └── ...
 ```
+
+**Legacy models**: Old projects using `.dr/` directory will auto-migrate changesets to `documentation-robotics/changesets/` on first use.
 
 ### AI Chat Setup (for Chat Features)
 

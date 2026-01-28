@@ -125,20 +125,6 @@ You can use Read to examine model files in the .dr directory.`;
   });
 });
 
-describe('Claude Code CLI Availability', () => {
-  it('should check Claude Code CLI with which command', async () => {
-    // This test verifies the check mechanism works
-    const result = Bun.spawnSync({
-      cmd: ['which', 'which'],
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-
-    // The 'which' command itself should exist
-    expect(result.exitCode).toBe(0);
-  });
-});
-
 describe('JSON-RPC 2.0 Message Formatting', () => {
   describe('chat.response.chunk notification', () => {
     it('should format correctly with text content', () => {

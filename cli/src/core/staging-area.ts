@@ -9,6 +9,7 @@
  */
 
 import path from 'path';
+import ansis from 'ansis';
 import { StagedChangesetStorage } from './staged-changeset-storage.js';
 import { BaseSnapshotManager } from './base-snapshot-manager.js';
 import { Changeset, StagedChange } from './changeset.js';
@@ -207,7 +208,7 @@ export class StagingAreaManager {
   async stage(changesetId: string, change: Omit<StagedChange, 'sequenceNumber'>): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -244,7 +245,7 @@ export class StagingAreaManager {
   async unstage(changesetId: string, elementId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -275,7 +276,7 @@ export class StagingAreaManager {
   async discard(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -307,7 +308,7 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error('Model required for capturing base snapshot');
     }
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -341,7 +342,7 @@ export class StagingAreaManager {
     if (!this.model) {
       throw new Error('Model required for drift detection');
     }
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -406,7 +407,7 @@ export class StagingAreaManager {
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -440,7 +441,9 @@ export class StagingAreaManager {
         result.validation.passed = false;
         result.validation.errors = validation.errors.map(e => e.message);
         throw new Error(
-          `Validation failed: ${result.validation.errors.join('; ')}`
+          `Validation failed with ${result.validation.errors.length} error(s):\n` +
+          result.validation.errors.map(e => `  - ${e}`).join('\n') +
+          `\n\nFix these validation errors before committing.`
         );
       }
     }
@@ -546,8 +549,11 @@ export class StagingAreaManager {
       try {
         await this.storage.save(changeset);
       } catch (error) {
-        // Even if changeset save fails, continue to save manifest
-        console.warn(`Warning: Failed to save changeset status to storage: ${error instanceof Error ? error.message : String(error)}`);
+        // Changeset status is critical metadata - must be persisted with model changes
+        throw new Error(
+          `Failed to save changeset status after commit: ${error instanceof Error ? error.message : String(error)}. ` +
+          `This is a critical error that requires rollback to maintain consistency between model state and changeset metadata.`
+        );
       }
 
       // Step 8: Add changeset to manifest history
@@ -564,11 +570,11 @@ export class StagingAreaManager {
       try {
         await model.saveManifest();
       } catch (manifestError) {
-        // Manifest save failed - this is critical
-        // Attempt to rollback since manifest wasn't saved
-        console.error(`Manifest save failed: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}`);
+        // Manifest save failed - this is CRITICAL and will trigger rollback
+        // Don't log here - let the rollback handler provide comprehensive error output
         throw new Error(
-          `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}`
+          `Failed to save manifest with changeset history: ${manifestError instanceof Error ? manifestError.message : String(manifestError)}. ` +
+          `Model will be rolled back to maintain consistency.`
         );
       }
 
@@ -593,12 +599,22 @@ export class StagingAreaManager {
       // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
       let backupHealth: { isValid: boolean; filesChecked: number; errors: string[] };
       let backupValidationError: string | null = null;
+      let validationProcessFailed = false;
 
       try {
         backupHealth = await this.validateBackupIntegrity(backup);
       } catch (validationErr) {
+        validationProcessFailed = true;
         backupValidationError = validationErr instanceof Error ? validationErr.message : String(validationErr);
-        backupHealth = { isValid: false, filesChecked: 0, errors: [backupValidationError] };
+        backupHealth = {
+          isValid: false,
+          filesChecked: 0,
+          errors: [
+            `Validation process failed: ${backupValidationError}`,
+            `This indicates a critical issue with the backup infrastructure, not the backup content.`,
+            `Contact support before attempting manual restoration.`
+          ]
+        };
       }
 
       // Build comprehensive error message
@@ -630,9 +646,15 @@ export class StagingAreaManager {
           `\n` +
           `Backup location: ${backup}\n`;
 
-        // Add backup health status
+        // Add backup health status (always show header for consistency with tests)
         compositeMessage += `Backup integrity check:\n`;
-        if (backupHealth.isValid) {
+        if (validationProcessFailed) {
+          compositeMessage += `  ✗ Backup integrity issues found:\n`;
+          compositeMessage += `    - Validation process failed: ${backupValidationError}\n`;
+          compositeMessage += `\n⚠ CRITICAL: Backup validation process crashed.\n`;
+          compositeMessage += `This indicates a system-level issue (filesystem, memory, permissions).\n`;
+          compositeMessage += `DO NOT attempt manual restoration until this is resolved.\n`;
+        } else if (backupHealth.isValid) {
           compositeMessage += `  ✓ Backup is valid (${backupHealth.filesChecked} files checked)\n`;
         } else {
           compositeMessage += `  ✗ Backup integrity issues found:\n`;
@@ -705,7 +727,7 @@ export class StagingAreaManager {
   async setActive(changesetId: string): Promise<void> {
     this.validateChangesetId(changesetId);
 
-    const changeset = await this.storage.load(changesetId);
+    const changeset = await this.load(changesetId);
     if (!changeset) {
       throw new Error(`Changeset '${changesetId}' not found`);
     }
@@ -721,7 +743,11 @@ export class StagingAreaManager {
     await ensureDir(changesetDir);
 
     const activePath = path.join(changesetDir, '.active');
-    await writeFile(activePath, changesetId);
+    // Write the actual changeset ID (not the user-provided name)
+    if (!changeset.id) {
+      throw new Error(`Changeset has no ID, cannot activate`);
+    }
+    await writeFile(activePath, changeset.id);
   }
 
   /**
@@ -759,6 +785,59 @@ export class StagingAreaManager {
     }
 
     return this.storage.load(id);
+  }
+
+  /**
+   * Get the ID of the active changeset without loading the full changeset object.
+   * Useful for status display and quick active changeset checks.
+   *
+   * @returns The active changeset ID or null if no active changeset exists
+   */
+  async getActiveId(): Promise<string | null> {
+    const activePath = path.join(this.rootPath, 'documentation-robotics', 'changesets', '.active');
+
+    if (!(await fileExists(activePath))) {
+      return null;
+    }
+
+    const { readFile } = await import('../utils/file-io.js');
+    const activeId = await readFile(activePath);
+    const id = activeId.trim();
+
+    return id || null;
+  }
+
+  /**
+   * Apply a changeset to the base model.
+   * Alias for commit() to match legacy command terminology.
+   *
+   * @param model - The model to apply changes to
+   * @param changesetId - ID of the changeset to apply
+   * @param options - Commit options (force, validate, dryRun)
+   * @returns CommitResult with count of applied changes and validation status
+   * @throws Error if validation fails, drift detected without --force, or apply fails
+   *
+   * @remarks
+   * This method provides backward compatibility with changeset commands that use
+   * "apply" instead of "commit" terminology. All logic is delegated to commit().
+   */
+  async apply(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
+    return this.commit(model, changesetId, options);
+  }
+
+  /**
+   * Revert a changeset without applying changes.
+   * Alias for discard() to match legacy command terminology.
+   *
+   * @param changesetId - ID of the changeset to revert
+   * @throws Error if changeset ID is invalid or changeset not found
+   *
+   * @remarks
+   * This method provides backward compatibility with changeset commands that use
+   * "revert" instead of "discard" terminology. All logic is delegated to discard().
+   */
+  async revert(changesetId: string): Promise<void> {
+    return this.discard(changesetId);
   }
 
   /**
@@ -880,11 +959,18 @@ export class StagingAreaManager {
       const cleanupError = await this.forceRemoveBackupDir(backupDir);
 
       if (cleanupError) {
-        console.error(
-          `[ERROR] Failed to clean up incomplete backup at ${backupDir}: ${cleanupError}\n` +
-          `[ACTION REQUIRED] Please manually remove this directory:\n` +
-          `rm -rf "${backupDir}"\n` +
-          `This can accumulate if backup creation is retried multiple times.`
+        // This is CRITICAL - orphaned backups accumulate
+        throw new Error(
+          `Backup creation failed AND cleanup failed.\n` +
+          `Original error: ${error instanceof Error ? error.message : String(error)}\n` +
+          `Cleanup error: ${cleanupError}\n\n` +
+          `Orphaned backup directory: ${backupDir}\n` +
+          `This directory will accumulate and consume disk space.\n\n` +
+          `REQUIRED ACTIONS:\n` +
+          `  1. Manually remove: rm -rf "${backupDir}"\n` +
+          `  2. Check disk space: df -h\n` +
+          `  3. Check permissions: ls -la "${path.dirname(backupDir)}"\n\n` +
+          `Cannot proceed with commit until this is resolved.`
         );
       }
 
@@ -1087,22 +1173,34 @@ export class StagingAreaManager {
 
       let suggestions = '';
 
-      // Provide specific guidance based on error type
+      // Handle ENOENT specially - backup already deleted is not an error
+      if (errorCode === 'ENOENT') {
+        // Backup was already deleted - directory removal goal is achieved
+        return;
+      }
+
+      // ENOSPC is CRITICAL - orphaned backups will accumulate and fill disk
       if (errorCode === 'ENOSPC') {
-        suggestions =
-          '\n\n[ACTION REQUIRED] Disk space is full. Backup cleanup failed.\n' +
-          'This will cause backup directories to accumulate and fill your disk.\n' +
-          `Manual cleanup: rm -rf "${backupDir}"\n` +
-          'Then free up disk space before attempting another commit.';
-      } else if (errorCode === 'EACCES') {
+        throw new Error(
+          `Backup cleanup failed due to disk full.\n` +
+          `Original error: ${errorMsg}\n\n` +
+          `Orphaned backup directory: ${backupDir}\n` +
+          `This directory will accumulate and consume disk space.\n\n` +
+          `REQUIRED ACTIONS:\n` +
+          `  1. Manually remove: rm -rf "${backupDir}"\n` +
+          `  2. Free up disk space: df -h\n` +
+          `  3. Check disk usage: du -sh ${path.dirname(backupDir)}/*\n\n` +
+          `Cannot proceed with future commits until disk space is freed.`
+        );
+      }
+
+      // Provide specific guidance based on error type
+      if (errorCode === 'EACCES') {
         suggestions =
           '\n\n[PERMISSION ERROR] Cannot delete backup directory.\n' +
           `Directory: ${backupDir}\n` +
           'Check file permissions or try manual cleanup:\n' +
           `sudo rm -rf "${backupDir}"`;
-      } else if (errorCode === 'ENOENT') {
-        // Backup was already deleted - not an error, directory removal goal is achieved
-        return;
       } else {
         suggestions =
           '\n\n[ACTION REQUIRED] Backup cleanup failed due to file system error.\n' +
@@ -1138,6 +1236,9 @@ export class StagingAreaManager {
     } catch (error) {
       // If standard removal fails, try more aggressive approach
       try {
+        // Accumulate removal failures for detailed error reporting
+        const removalFailures: Array<{ path: string; error: string }> = [];
+
         // List directory contents and try to remove each item
         const entries = await fs.readdir(backupDir, { withFileTypes: true });
         for (const entry of entries) {
@@ -1149,7 +1250,10 @@ export class StagingAreaManager {
               await fs.unlink(fullPath);
             }
           } catch (itemError) {
-            console.warn(`Failed to remove ${fullPath}: ${itemError instanceof Error ? itemError.message : String(itemError)}`);
+            removalFailures.push({
+              path: fullPath,
+              error: itemError instanceof Error ? itemError.message : String(itemError)
+            });
           }
         }
 
@@ -1158,7 +1262,19 @@ export class StagingAreaManager {
           await fs.rmdir(backupDir);
           return null;
         } catch {
-          // Directory may not be empty, return error
+          // Directory may not be empty due to removal failures
+          if (removalFailures.length > 0) {
+            const failureDetails = removalFailures
+              .map(f => `  - ${f.path}: ${f.error}`)
+              .join('\n');
+
+            return (
+              `Could not remove ${removalFailures.length} items from backup directory:\n` +
+              failureDetails +
+              `\n\nManual cleanup required: rm -rf "${backupDir}"`
+            );
+          }
+
           return `Could not remove directory ${backupDir} - may contain leftover files`;
         }
       } catch (aggressiveError) {
@@ -1272,6 +1388,12 @@ export class StagingAreaManager {
               } catch (fileError) {
                 // Individual file restoration failure - still critical for data integrity
                 const errorMsg = fileError instanceof Error ? fileError.message : String(fileError);
+
+                // Log immediately with ERROR severity
+                console.error(
+                  ansis.red(`✗ Failed to restore ${layer.name}/${file}: ${errorMsg}`)
+                );
+
                 failedFiles.push({
                   path: `layers/${layer.name}/${file}`,
                   error: errorMsg,
@@ -1368,11 +1490,28 @@ export class StagingAreaManager {
       if (layerDir) {
         return path.join(modelDir, layerDir.name);
       }
-    } catch {
-      // Model directory doesn't exist or can't be read
-    }
 
-    return null;
+      // Layer directory legitimately not found
+      return null;
+    } catch (error) {
+      const errorCode = (error as NodeJS.ErrnoException)?.code;
+
+      if (errorCode === 'ENOENT') {
+        // Model directory doesn't exist - this might be OK during restore
+        return null;
+      }
+
+      // All other errors are CRITICAL during restore operations
+      throw new Error(
+        `Cannot access model directory for layer '${layerName}': ${error instanceof Error ? error.message : String(error)}\n` +
+        `Location: ${modelDir}\n` +
+        `Error code: ${errorCode}\n` +
+        `This indicates a filesystem or permissions issue. Check:\n` +
+        `  1. Directory permissions: ls -la ${path.dirname(modelDir)}\n` +
+        `  2. Disk health: df -h\n` +
+        `  3. Filesystem errors: dmesg | tail`
+      );
+    }
   }
 
   /**

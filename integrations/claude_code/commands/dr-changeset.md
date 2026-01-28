@@ -60,12 +60,10 @@ When the user runs this command, interpret their intent and execute the appropri
 
 ```bash
 # Check if changeset is active
-dr changeset list | grep "►"  # Active changeset marked with ►
+dr changeset list --status staged | head -1  # Show active changeset
 
-# Or check active file directly
-if [ -f .dr/changesets/active ]; then
-  echo "Working in changeset: $(cat .dr/changesets/active)"
-fi
+# Or list all changesets to see which is in use
+dr changeset list
 ```
 
 **Inform the user:**
@@ -118,22 +116,23 @@ fi
 **Your process:**
 
 ```bash
-# 1. Check for active changeset
-ACTIVE=$(dr changeset list --status active | grep "►" | awk '{print $2}')
+# 1. Check for existing changesets
+EXISTING=$(dr changeset list --status staged)
 
-# 2. If active, inform user and ask
-if [ -n "$ACTIVE" ]; then
-  echo "Currently in changeset: $ACTIVE"
+# 2. If changesets exist, inform user and ask
+if [ -n "$EXISTING" ]; then
+  echo "Found existing staged changesets:"
+  echo "$EXISTING"
   echo "Options:"
-  echo "1. Continue in current changeset"
-  echo "2. Apply current and start new"
-  echo "3. Switch to new without applying"
+  echo "1. Continue in current work"
+  echo "2. Create new changeset for different work"
   # Get user choice
 fi
 
-# 3. Create changeset with appropriate type
-dr changeset create "feature-name" --type feature
-# Types: feature | bugfix | exploration
+# 3. Create changeset
+dr changeset create "feature-name"
+# Add optional description
+dr changeset create "feature-name" --description "Detailed description"
 ```
 
 **Example:**
@@ -165,16 +164,14 @@ You should:
 **Your process:**
 
 ```bash
-# 1. Check active
-ACTIVE=$(cat .dr/changesets/active 2>/dev/null || echo "none")
+# 1. List all changesets
+dr changeset list
 
-# 2. If active, show status
-if [ "$ACTIVE" != "none" ]; then
-  dr changeset status --verbose
-else
-  echo "No active changeset - working in main model"
-  echo "Create one with: dr changeset create \"name\""
-fi
+# 2. Show details for a specific changeset
+dr changeset show <changeset-id>
+
+# 3. Preview staged changes
+dr changeset preview <changeset-id>
 ```
 
 **Example:**
@@ -398,27 +395,22 @@ You should:
 **Your process:**
 
 ```bash
-# 1. Check if changeset is active
-ACTIVE=$(cat .dr/changesets/active 2>/dev/null)
-if [ "$ACTIVE" = "changeset-name" ]; then
-  echo "Error: Cannot delete active changeset"
-  echo "Deactivate first: dr changeset deactivate"
-  exit 1
-fi
+# 1. List all changesets to see their status
+dr changeset list
 
-# 2. Show changeset details
-dr changeset list | grep "changeset-name"
+# 2. Show changeset details before deletion
+dr changeset show changeset-id
 
 # 3. Confirm deletion
-echo "This will PERMANENTLY delete the changeset file."
+echo "This will PERMANENTLY delete the changeset."
 echo "This cannot be undone."
 read -p "Type 'delete' to confirm: "
 
 # 4. Delete
-dr changeset delete changeset-name
+dr changeset delete changeset-id
 
 # Or with --force to skip confirmation
-dr changeset delete changeset-name --force
+dr changeset delete changeset-id --force
 ```
 
 **Example - Discard changes:**
@@ -540,31 +532,30 @@ dr delete business.service.old
 ### Quick Reference
 
 ```bash
-# Status and context
-dr changeset list                    # All changesets
-dr changeset status                  # Current changeset
-cat .dr/changesets/active            # Active changeset ID
+# Status and viewing
+dr changeset list                    # List all changesets
+dr changeset show <id>               # View specific changeset details
+dr changeset preview <id>            # Preview staged changes merged with model
 
 # Lifecycle
 dr changeset create "name"           # Create new changeset
-dr changeset activate "name"         # Make it active
-dr changeset apply "name"            # Apply to main model
-dr changeset revert "name"           # Reverse applied changes
-dr changeset deactivate              # Clear active changeset
+dr changeset stage <id> add ...      # Stage changes to add/modify/delete
+dr changeset commit <id>             # Commit staged changes to model
+dr changeset discard <id>            # Abandon staged changes
+
+# Export and import
+dr changeset export <id> --format yaml  # Export for sharing
+dr changeset import --format yaml --input file.yaml  # Import changeset
 
 # Cleanup (DESTRUCTIVE)
-dr changeset delete "name"           # Permanent deletion (with prompt)
-dr changeset delete "name" --force   # Delete without confirmation
-
-# Navigation
-dr changeset activate changeset-id   # Switch to different
-dr changeset deactivate              # Return to main
+dr changeset delete <id>             # Permanent deletion (with prompt)
+dr changeset delete <id> --force     # Delete without confirmation
 
 # When to delete:
-# - After changeset is applied and verified
-# - After changeset is reverted and obsolete
+# - After changeset is committed and verified
+# - After changeset is discarded (no longer needed)
 # - To clean up experimental/abandoned work
-# - Cannot delete active changeset (deactivate first)
+# - Storage location: documentation-robotics/changesets/{id}/
 ```
 
 ### Python API for Advanced Operations

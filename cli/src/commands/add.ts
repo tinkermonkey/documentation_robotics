@@ -18,7 +18,6 @@ import {
   ModelNotFoundError,
 } from '../utils/errors.js';
 import { validateSourceReferenceOptions, buildSourceReference } from '../utils/source-reference.js';
-import { displayChangesetStatus } from '../utils/changeset-status.js';
 import { startSpan, endSpan } from '../telemetry/index.js';
 import { generateElementId } from '../utils/id-generator.js';
 
@@ -105,9 +104,6 @@ export async function addCommand(
       }
       throw error;
     }
-
-    // Display active changeset status
-    await displayChangesetStatus(model);
 
     // Get or create layer
     let layerObj = await model.getLayer(layer);
