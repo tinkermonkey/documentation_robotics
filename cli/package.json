@@ -19,7 +19,7 @@
     "dev": "node dist/cli.js",
     "lint": "tsc --noEmit",
     "type-check": "tsc --noEmit",
-    "test": "bun test --concurrent tests/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/integrations/base-manager.test.ts",
+    "test": "bun test --concurrent tests/unit/**/*.test.ts tests/compatibility/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/integrations/base-manager.test.ts tests/integration/**/*.test.ts",
     "test:unit": "bun test --concurrent tests/unit/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/integrations/base-manager.test.ts",
     "test:integration": "bun test tests/integration/*.test.ts",
     "test:validators": "bun test --concurrent tests/unit/validators/**/*.test.ts",
