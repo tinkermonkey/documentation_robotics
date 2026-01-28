@@ -1,0 +1,7 @@
+business-service-s1:
+  id: business-service-s1
+  name: Test Service
+  type: service
+  documentation: A test business service
+  references:
+    - motivation-goal-g1

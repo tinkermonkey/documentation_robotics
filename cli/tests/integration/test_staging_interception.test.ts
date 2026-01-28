@@ -22,8 +22,11 @@ describe('Staging Interception Integration', () => {
   let testDir: string;
   let model: Model;
   let stagingManager: StagingAreaManager;
+  let originalCwd: string;
 
   beforeEach(async () => {
+    // Save original working directory
+    originalCwd = process.cwd();
     // Create unique temporary test directory
     testDir = await mkdtemp(path.join(tmpdir(), 'test-staging-int-'));
 
@@ -60,12 +63,22 @@ layers:
     await writeFile(appLayerPath, '{}');
     await writeFile(dataLayerPath, '{}');
 
+    // Change to test directory so that commands discover the correct model
+    process.chdir(testDir);
+
     // Load model with explicit path and manager
     model = await Model.load(testDir);
     stagingManager = new StagingAreaManager(testDir, model);
   });
 
   afterEach(async () => {
+    // Restore original working directory
+    try {
+      process.chdir(originalCwd);
+    } catch {
+      // Ignore if restore fails
+    }
+
     // Clean up test directory
     if (await fileExists(testDir)) {
       try {
@@ -312,7 +325,7 @@ layers:
       });
 
       // Reload model to see persisted changes
-      model = await Model.load();
+      model = await Model.load(testDir);
 
       // Verify element IS in base model (not staged)
       const appLayer = await model.getLayer('application');
