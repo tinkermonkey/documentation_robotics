@@ -17,30 +17,12 @@ import { GoldenCopyCacheManager } from '../dist/core/golden-copy-cache.js';
 declare global {
   var __TEST_ID__: string;
   var __TEST_START_TIME__: number;
-  var __TEST_METRICS__: {
-    totalTests: number;
-    passedTests: number;
-    failedTests: number;
-    executionStartTime: number;
-    executionEndTime: number;
-    totalDuration: number;
-  };
   var __GOLDEN_COPY_INITIALIZED__: boolean;
 }
 
 // Initialize per-worker test context
 globalThis.__TEST_ID__ = randomUUID();
 globalThis.__TEST_START_TIME__ = Date.now();
-
-// Initialize metrics collection
-globalThis.__TEST_METRICS__ = {
-  totalTests: 0,
-  passedTests: 0,
-  failedTests: 0,
-  executionStartTime: Date.now(),
-  executionEndTime: 0,
-  totalDuration: 0,
-};
 
 // Initialize golden copy cache flag
 globalThis.__GOLDEN_COPY_INITIALIZED__ = false;

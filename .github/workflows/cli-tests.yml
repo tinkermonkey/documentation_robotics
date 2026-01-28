@@ -98,7 +98,23 @@ jobs:
         working-directory: ./cli
         run: |
           echo "Running test shard ${{ matrix.shard }} of 4"
-          time bun test --concurrent --coverage --reporter json --reporter default tests/**/*.test.ts 2>&1 | tee test-results.json
+          # Distribute tests across shards using modulo arithmetic on file list
+          SHARD=${{ matrix.shard }}
+          TOTAL_SHARDS=4
+          TEST_FILES=$(find tests -name "*.test.ts" | sort)
+          TEST_COUNT=$(echo "$TEST_FILES" | wc -l)
+          echo "Total test files: $TEST_COUNT"
+
+          # Filter test files for this shard using line number modulo
+          SHARD_TESTS=$(echo "$TEST_FILES" | awk -v shard=$SHARD -v total=$TOTAL_SHARDS 'NR % total == shard - 1 { print }' | tr '\n' ' ')
+
+          if [ -z "$SHARD_TESTS" ]; then
+            echo "No tests assigned to shard $SHARD"
+            exit 0
+          fi
+
+          echo "Tests for shard $SHARD: $(echo $SHARD_TESTS | wc -w) files"
+          time bun test --concurrent --coverage --reporter json --reporter default $SHARD_TESTS 2>&1 | tee test-results.json
 
       - name: Upload shard coverage report
         if: always()

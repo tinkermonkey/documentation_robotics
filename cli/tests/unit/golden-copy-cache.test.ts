@@ -14,6 +14,7 @@ import { GoldenCopyCacheManager, type GoldenCopyCacheConfig } from '../../src/co
 import { rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { randomUUID } from 'crypto';
 
 describe('GoldenCopyCacheManager', () => {
   let manager: GoldenCopyCacheManager;
@@ -23,8 +24,8 @@ describe('GoldenCopyCacheManager', () => {
     // Reset singleton for each test
     GoldenCopyCacheManager.resetInstance();
 
-    // Use a unique temp directory for this test
-    testCacheDir = join(tmpdir(), `golden-copy-test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+    // Use UUID for unique directory per test in concurrent execution
+    testCacheDir = join(tmpdir(), `golden-copy-test-${randomUUID()}`);
   });
 
   afterEach(async () => {

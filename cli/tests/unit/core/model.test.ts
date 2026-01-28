@@ -5,12 +5,14 @@ import { Element } from "@/core/element";
 import { Manifest } from "@/core/manifest";
 import { readFile, fileExists } from "@/utils/file-io";
 import { $ } from "bun";
+import { randomUUID } from "crypto";
 
 describe("Model", () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = `/tmp/dr-test-${Date.now()}-${Math.random()}`;
+    // Use UUID for completely unique directory per test to avoid collisions in concurrent execution
+    testDir = `/tmp/dr-test-${randomUUID()}`;
     await $`mkdir -p ${testDir}`;
   });
 

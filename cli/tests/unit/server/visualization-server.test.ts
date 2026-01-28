@@ -8,6 +8,7 @@ import { VisualizationServer } from '../../../src/server/server.js';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { mkdirSync, rmSync, writeFileSync } from 'fs';
+import { randomUUID } from 'crypto';
 
 // Test fixture setup
 async function createTestModel(rootPath: string): Promise<Model> {
@@ -63,7 +64,8 @@ describe('VisualizationServer', () => {
   let server: VisualizationServer;
 
   beforeAll(async () => {
-    testDir = join(tmpdir(), `dr-test-${Date.now()}`);
+    // Use UUID for completely unique directory
+    testDir = join(tmpdir(), `dr-test-${randomUUID()}`);
     mkdirSync(testDir, { recursive: true });
     model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
