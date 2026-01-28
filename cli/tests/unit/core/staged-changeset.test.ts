@@ -194,163 +194,172 @@ describe('BaseSnapshotManager', () => {
 });
 
 describe('StagedChangesetStorage', () => {
-  beforeAll(async () => {
-    // Create fresh test directory for this test suite
-    TEST_DIR = await mkdtemp(join(tmpdir(), 'dr-storage-test-'));
-  });
-
-  afterAll(async () => {
+  // Helper to create isolated test directory for each test
+  const withTestDir = async (testFn: (testDir: string) => Promise<void>) => {
+    const testDir = await mkdtemp(join(tmpdir(), 'dr-storage-test-'));
     try {
-      await rm(TEST_DIR, { recursive: true });
-    } catch {
-      // Ignore
+      await testFn(testDir);
+    } finally {
+      try {
+        await rm(testDir, { recursive: true });
+      } catch {
+        // Ignore
+      }
     }
-  });
+  };
 
   it('should create changeset with YAML files', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    const changeset = await storage.create(
-      'test-001',
-      'Test Changeset',
-      'Test description',
-      'sha256:abc123'
-    );
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      const changeset = await storage.create(
+        'test-001',
+        'Test Changeset',
+        'Test description',
+        'sha256:abc123'
+      );
 
-    expect(changeset.id).toBe('test-001');
-    expect(changeset.name).toBe('Test Changeset');
-    expect(changeset.baseSnapshot).toBe('sha256:abc123');
-    expect(changeset.status).toBe('draft');
+      expect(changeset.id).toBe('test-001');
+      expect(changeset.name).toBe('Test Changeset');
+      expect(changeset.baseSnapshot).toBe('sha256:abc123');
+      expect(changeset.status).toBe('draft');
+    });
   });
 
   it('should load changeset from YAML files', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    await storage.create('load-test', 'Load Test', 'Test', 'sha256:def456');
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      await storage.create('load-test', 'Load Test', 'Test', 'sha256:def456');
 
-    const loaded = await storage.load('load-test');
+      const loaded = await storage.load('load-test');
 
-    expect(loaded).not.toBeNull();
-    expect(loaded?.name).toBe('Load Test');
-    expect(loaded?.baseSnapshot).toBe('sha256:def456');
+      expect(loaded).not.toBeNull();
+      expect(loaded?.name).toBe('Load Test');
+      expect(loaded?.baseSnapshot).toBe('sha256:def456');
+    });
   });
 
   it('should return null for non-existent changeset', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    const loaded = await storage.load('non-existent');
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      const loaded = await storage.load('non-existent');
 
-    expect(loaded).toBeNull();
+      expect(loaded).toBeNull();
+    });
   });
 
   it('should save changeset with updates', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    let changeset = await storage.create('save-test', 'Save Test', 'Test', 'sha256:xyz789');
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      let changeset = await storage.create('save-test', 'Save Test', 'Test', 'sha256:xyz789');
 
-    // Add changes
-    changeset.addChange('add', 'elem-1', 'api', undefined, { name: 'New' });
-    changeset.addChange('update', 'elem-2', 'application', {}, {});
-    changeset.updateStats();
+      // Add changes
+      changeset.addChange('add', 'elem-1', 'api', undefined, { name: 'New' });
+      changeset.addChange('update', 'elem-2', 'application', {}, {});
+      changeset.updateStats();
 
-    // Save
-    await storage.save(changeset);
+      // Save
+      await storage.save(changeset);
 
-    // Reload and verify
-    const loaded = await storage.load('save-test');
-    expect(loaded?.changes).toHaveLength(2);
-    expect(loaded?.stats?.additions).toBe(1);
-    expect(loaded?.stats?.modifications).toBe(1);
+      // Reload and verify
+      const loaded = await storage.load('save-test');
+      expect(loaded?.changes).toHaveLength(2);
+      expect(loaded?.stats?.additions).toBe(1);
+      expect(loaded?.stats?.modifications).toBe(1);
+    });
   });
 
   it('should list all changesets', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
 
-    // Clean up first
-    try {
-      const existing = await storage.list();
-      for (const cs of existing) {
-        if (cs.id) await storage.delete(cs.id);
-      }
-    } catch {
-      // Ignore
-    }
+      // Create test changesets
+      await storage.create('cs-1', 'Changeset 1', '', 'sha256:aaa');
+      await storage.create('cs-2', 'Changeset 2', '', 'sha256:bbb');
 
-    // Create test changesets
-    await storage.create('cs-1', 'Changeset 1', '', 'sha256:aaa');
-    await storage.create('cs-2', 'Changeset 2', '', 'sha256:bbb');
+      const list = await storage.list();
 
-    const list = await storage.list();
-
-    expect(list.length).toBeGreaterThanOrEqual(2);
-    const ids = list.map((c) => c.id);
-    expect(ids).toContain('cs-1');
-    expect(ids).toContain('cs-2');
+      expect(list.length).toBeGreaterThanOrEqual(2);
+      const ids = list.map((c) => c.id);
+      expect(ids).toContain('cs-1');
+      expect(ids).toContain('cs-2');
+    });
   });
 
   it('should delete changeset', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
 
-    // Create and delete
-    await storage.create('to-delete', 'To Delete', '', 'sha256:zzz');
-    let loaded = await storage.load('to-delete');
-    expect(loaded).not.toBeNull();
+      // Create and delete
+      await storage.create('to-delete', 'To Delete', '', 'sha256:zzz');
+      let loaded = await storage.load('to-delete');
+      expect(loaded).not.toBeNull();
 
-    await storage.delete('to-delete');
-    loaded = await storage.load('to-delete');
-    expect(loaded).toBeNull();
+      await storage.delete('to-delete');
+      loaded = await storage.load('to-delete');
+      expect(loaded).toBeNull();
+    });
   });
 
   it('should throw error when deleting non-existent changeset', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
 
-    try {
-      await storage.delete('non-existent');
-      expect(true).toBe(false); // Should not reach
-    } catch (error) {
-      expect(error instanceof Error).toBe(true);
-    }
+      try {
+        await storage.delete('non-existent');
+        expect(true).toBe(false); // Should not reach
+      } catch (error) {
+        expect(error instanceof Error).toBe(true);
+      }
+    });
   });
 
   it('should add change to changeset', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    await storage.create('change-test', 'Change Test', '', 'sha256:aaa');
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      await storage.create('change-test', 'Change Test', '', 'sha256:aaa');
 
-    await storage.addChange('change-test', {
-      type: 'add',
-      elementId: 'elem-1',
-      layerName: 'api',
-      timestamp: new Date().toISOString(),
-      after: { name: 'New Element' },
+      await storage.addChange('change-test', {
+        type: 'add',
+        elementId: 'elem-1',
+        layerName: 'api',
+        timestamp: new Date().toISOString(),
+        after: { name: 'New Element' },
+      });
+
+      const loaded = await storage.load('change-test');
+      expect(loaded?.changes).toHaveLength(1);
+      expect(loaded?.changes[0].elementId).toBe('elem-1');
     });
-
-    const loaded = await storage.load('change-test');
-    expect(loaded?.changes).toHaveLength(1);
-    expect(loaded?.changes[0].elementId).toBe('elem-1');
   });
 
   it('should remove change from changeset', async () => {
-    const storage = new StagedChangesetStorage(TEST_DIR);
-    await storage.create('remove-test', 'Remove Test', '', 'sha256:aaa');
+    await withTestDir(async (testDir) => {
+      const storage = new StagedChangesetStorage(testDir);
+      await storage.create('remove-test', 'Remove Test', '', 'sha256:aaa');
 
-    // Add multiple changes
-    await storage.addChange('remove-test', {
-      type: 'add',
-      elementId: 'elem-1',
-      layerName: 'api',
-      timestamp: new Date().toISOString(),
-      after: { name: 'Elem 1' },
+      // Add multiple changes
+      await storage.addChange('remove-test', {
+        type: 'add',
+        elementId: 'elem-1',
+        layerName: 'api',
+        timestamp: new Date().toISOString(),
+        after: { name: 'Elem 1' },
+      });
+
+      await storage.addChange('remove-test', {
+        type: 'add',
+        elementId: 'elem-2',
+        layerName: 'api',
+        timestamp: new Date().toISOString(),
+        after: { name: 'Elem 2' },
+      });
+
+      // Remove one
+      await storage.removeChange('remove-test', 'elem-1');
+
+      const loaded = await storage.load('remove-test');
+      expect(loaded?.changes).toHaveLength(1);
+      expect(loaded?.changes[0].elementId).toBe('elem-2');
     });
-
-    await storage.addChange('remove-test', {
-      type: 'add',
-      elementId: 'elem-2',
-      layerName: 'api',
-      timestamp: new Date().toISOString(),
-      after: { name: 'Elem 2' },
-    });
-
-    // Remove one
-    await storage.removeChange('remove-test', 'elem-1');
-
-    const loaded = await storage.load('remove-test');
-    expect(loaded?.changes).toHaveLength(1);
-    expect(loaded?.changes[0].elementId).toBe('elem-2');
   });
 });
