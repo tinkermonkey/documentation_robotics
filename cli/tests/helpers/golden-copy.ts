@@ -132,26 +132,6 @@ export async function initGoldenCopy(): Promise<string> {
  *
  * @returns Promise resolving to { path: string, cleanup: () => Promise<void> }
  */
-/**
- * Wait for a file/directory to exist with retries (handles copy-in-progress scenarios)
- * Uses exponential backoff to avoid busy-waiting
- */
-async function waitForFile(path: string, maxRetries: number = 30): Promise<void> {
-  for (let i = 0; i < maxRetries; i++) {
-    try {
-      await access(path);
-      return; // File/directory exists
-    } catch {
-      if (i < maxRetries - 1) {
-        // Exponential backoff: 5ms, 10ms, 15ms, etc.
-        const delay = Math.min(5 * (i + 1), 100);
-        await new Promise(resolve => setTimeout(resolve, delay));
-      }
-    }
-  }
-  throw new Error(`File not found after ${maxRetries} retries: ${path}`);
-}
-
 export async function createTestWorkdir(): Promise<{
   path: string;
   cleanup: () => Promise<void>;

@@ -107,7 +107,11 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
       try {
         await rm(rootPath, { recursive: true, force: true });
       } catch (e) {
-        // Silently ignore cleanup errors
+        console.error(
+          `[GoldenCopy] ERROR: Failed to clean up test fixture directory at ${rootPath}. ` +
+          `This may cause disk space issues. ` +
+          `Error: ${e instanceof Error ? e.message : String(e)}`
+        );
       }
     },
   };
