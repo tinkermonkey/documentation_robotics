@@ -5,6 +5,11 @@
  * - When a changeset is active with 'staged' status, mutations redirect to staging
  * - Multiple accumulated changes are stored without affecting base model
  * - Base model remains unchanged while staging is active
+ *
+ * REQUIRES SERIAL EXECUTION: This test uses describe.serial because:
+ * - Tests modify the global working directory via process.chdir()
+ * - Tests interact with the file system in ways that require sequential execution
+ * - Concurrent execution would cause race conditions and directory state conflicts
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';

@@ -9,6 +9,11 @@
  * 4. Adding and removing annotations
  * 5. WebSocket protocol
  * 6. File monitoring
+ *
+ * REQUIRES SERIAL EXECUTION: Multiple describe.serial blocks are used because:
+ * - Tests start/stop the visualization server which requires exclusive port access
+ * - Tests watch the file system for changes which must happen sequentially
+ * - Concurrent execution would cause port conflicts and file monitoring race conditions
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';

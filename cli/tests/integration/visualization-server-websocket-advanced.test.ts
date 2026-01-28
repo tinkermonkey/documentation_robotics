@@ -2,6 +2,11 @@
  * Advanced WebSocket Tests for Visualization Server
  * Tests WebSocket connection lifecycle, concurrent clients, file watcher integration,
  * and real-time event broadcasting
+ *
+ * REQUIRES SERIAL EXECUTION: Multiple describe.serial blocks are used because:
+ * - Tests start/stop the visualization server requiring exclusive port access
+ * - Tests establish WebSocket connections which cannot overlap on same port
+ * - Concurrent execution would cause port conflicts and WebSocket binding failures
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';

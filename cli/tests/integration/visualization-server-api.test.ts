@@ -1,6 +1,10 @@
 /**
  * Visualization Server API Endpoint Tests
  * Tests the actual HTTP API endpoints of the Bun CLI visualization server
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
+ * - Tests start/stop the visualization server requiring exclusive port access
+ * - Concurrent execution would cause port conflicts and server startup failures
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';

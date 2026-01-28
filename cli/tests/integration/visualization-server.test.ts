@@ -1,5 +1,9 @@
 /**
  * Integration tests for VisualizationServer
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
+ * - Tests start/stop the visualization server requiring exclusive port access
+ * - Concurrent execution would cause port conflicts and server state issues
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';

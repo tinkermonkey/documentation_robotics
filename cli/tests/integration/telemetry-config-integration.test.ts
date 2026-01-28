@@ -5,6 +5,11 @@
  * 1. Environment variables (highest priority)
  * 2. ~/.dr-config.yaml file (medium priority)
  * 3. Hard-coded defaults (lowest priority)
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
+ * - Tests modify environment variables that are global process state
+ * - Tests create/delete config files which could race when concurrent
+ * - Concurrent execution would cause environment variable pollution between tests
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
