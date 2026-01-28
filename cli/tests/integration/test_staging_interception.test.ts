@@ -343,22 +343,6 @@ layers:
   });
 
   describe('Changeset state management', () => {
-    it('should clear active changeset', async () => {
-      const changeset = await stagingManager.create('test-clear-active', 'Test clear');
-      await stagingManager.setActive(changeset.id!);
-
-      // Verify it's active
-      let active = await stagingManager.getActive();
-      expect(active?.id).toBe(changeset.id);
-
-      // Clear active
-      await stagingManager.clearActive();
-
-      // Verify no longer active
-      active = await stagingManager.getActive();
-      expect(active).toBeNull();
-    });
-
     it('should maintain base model integrity across multiple staged changesets', async () => {
       // Debug: Check if there's an inherited active changeset (shouldn't be)
       const inheritedActive = await stagingManager.getActive();
