@@ -20,7 +20,10 @@ import { Manifest } from '../../src/core/manifest';
 import { portAllocator } from '../helpers/port-allocator.js';
 import * as fs from 'fs/promises';
 
-const TEST_DIR = '/tmp/dr-viz-server-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 const TEST_MODEL_ROOT = `${TEST_DIR}/documentation-robotics`;
 let testPort: number;
 

@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, mkdtemp } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
 import { Model } from '../../src/core/model';
@@ -16,14 +16,10 @@ import { CopilotClient } from '../../src/ai/copilot-client';
 describe('Chat Command with Explicit Client Selection', () => {
   let testDir: string;
   let model: Model;
-  let originalCwd: string;
 
   beforeEach(async () => {
-    // Save original cwd
-    originalCwd = process.cwd();
-
-    // Create a temporary directory for testing with unique name including random component
-    testDir = join(tmpdir(), `dr-chat-explicit-test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+    // Create unique temporary directory for this test
+    testDir = await mkdtemp(join(tmpdir(), 'dr-chat-explicit-'));
     await mkdir(testDir, { recursive: true });
 
     // Create a test model
@@ -34,19 +30,9 @@ describe('Chat Command with Explicit Client Selection', () => {
     });
     model = new Model(testDir, manifest);
     await model.save();
-
-    // Change to test directory
-    process.chdir(testDir);
   });
 
   afterEach(async () => {
-    // Restore cwd first before cleanup
-    try {
-      process.chdir(originalCwd);
-    } catch (e) {
-      // Ignore errors changing directory
-    }
-
     // Clean up temporary directory
     if (testDir) {
       try {

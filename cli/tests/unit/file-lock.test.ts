@@ -4,7 +4,10 @@ import { mkdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 
-const TEST_DIR = '/tmp/file-lock-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 
 describe('FileLock', () => {
   beforeEach(async () => {

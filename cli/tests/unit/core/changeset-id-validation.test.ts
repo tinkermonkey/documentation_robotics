@@ -1,41 +1,33 @@
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { StagingAreaManager } from '../../../src/core/staging-area.js';
 import { Model } from '../../../src/core/model.js';
-import { rm, mkdir, cp } from 'fs/promises';
+import { rm, mkdir, cp, mkdtemp } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { tmpdir } from 'os';
 
-const TEST_DIR = '/tmp/changeset-id-validation-test';
 const BASELINE_DIR = fileURLToPath(new URL('../../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset ID Validation', () => {
   let model: Model;
   let manager: StagingAreaManager;
-  let originalCwd: string;
+  let TEST_DIR: string;
 
   beforeEach(async () => {
-    originalCwd = process.cwd();
-
-    // Clean test directory
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
+    // Create unique temporary directory for this test
+    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'changeset-id-validation-'));
 
     await mkdir(TEST_DIR, { recursive: true });
 
     // Copy baseline project
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
 
-    // Change to test directory and load model
-    process.chdir(TEST_DIR);
-    model = await Model.load(undefined, { lazyLoad: false });
+    // Load model with explicit path
+    model = await Model.load(TEST_DIR, { lazyLoad: false });
     manager = new StagingAreaManager(TEST_DIR, model);
   });
 
-  afterAll(async () => {
-    process.chdir(originalCwd);
+  afterEach(async () => {
     try {
       await rm(TEST_DIR, { recursive: true, force: true });
     } catch {

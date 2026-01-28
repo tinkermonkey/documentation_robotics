@@ -14,22 +14,18 @@ import { addCommand } from '../../src/commands/add.js';
 import { updateCommand } from '../../src/commands/update.js';
 import { deleteCommand } from '../../src/commands/delete.js';
 import path from 'path';
-import { rm } from 'fs/promises';
+import { rm, mkdtemp } from 'fs/promises';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
+import { tmpdir } from 'os';
 
 describe('Staging Interception Integration', () => {
   let testDir: string;
   let model: Model;
   let stagingManager: StagingAreaManager;
-  let originalCwd: string;
 
   beforeEach(async () => {
-    // Save original working directory
-    originalCwd = process.cwd();
-
-    // Create temporary test directory
-    testDir = path.join('/tmp', `test-staging-int-${Date.now()}-${Math.random()}`);
-    await ensureDir(testDir);
+    // Create unique temporary test directory
+    testDir = await mkdtemp(path.join(tmpdir(), 'test-staging-int-'));
 
     // Initialize model with base directory structure
     const modelDir = path.join(testDir, 'documentation-robotics', 'model');
@@ -64,19 +60,19 @@ layers:
     await writeFile(appLayerPath, '{}');
     await writeFile(dataLayerPath, '{}');
 
-    // Load model and manager
-    process.chdir(testDir);
-    model = await Model.load();
+    // Load model with explicit path and manager
+    model = await Model.load(testDir);
     stagingManager = new StagingAreaManager(testDir, model);
   });
 
   afterEach(async () => {
-    // Restore original working directory
-    process.chdir(originalCwd);
-
     // Clean up test directory
     if (await fileExists(testDir)) {
-      await rm(testDir, { recursive: true, force: true });
+      try {
+        await rm(testDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   });
 

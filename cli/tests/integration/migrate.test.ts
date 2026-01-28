@@ -3,7 +3,10 @@ import { Model } from '../../src/core/model.js';
 import { MigrationRegistry } from '../../src/core/migration-registry.js';
 import { rm } from 'fs/promises';
 
-const TEST_DIR = '/tmp/migrate-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 
 describe('migrate command integration', () => {
   beforeAll(async () => {

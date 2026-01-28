@@ -8,7 +8,10 @@ import { Layer } from '../../../src/core/layer.js';
 import { Element } from '../../../src/core/element.js';
 import { rm, mkdir } from 'fs/promises';
 
-const TEST_DIR = '/tmp/staged-changeset-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 
 describe('Staged Changeset Data Model', () => {
   describe('Changeset with extended fields', () => {

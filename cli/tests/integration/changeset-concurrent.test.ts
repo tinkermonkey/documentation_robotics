@@ -5,7 +5,10 @@ import { rm, mkdir, cp } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
-const TEST_DIR = '/tmp/changeset-concurrent-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset Concurrent Operations', () => {

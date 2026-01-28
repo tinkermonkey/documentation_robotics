@@ -1,36 +1,29 @@
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
-import { rm, mkdir, readFile, writeFile, cp, readdir, chmod } from 'fs/promises';
+import { rm, mkdir, readFile, writeFile, cp, readdir, chmod, mkdtemp } from 'fs/promises';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
+import { tmpdir } from 'os';
 
-const TEST_DIR = '/tmp/backup-validation-failures-test';
 const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Backup Validation Failure Paths', () => {
   let model: Model;
-  let originalCwd: string;
+  let TEST_DIR: string;
 
   beforeEach(async () => {
-    originalCwd = process.cwd();
-
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
+    // Create unique temporary directory for this test
+    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'backup-validation-failures-'));
 
     await mkdir(TEST_DIR, { recursive: true });
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
-    process.chdir(TEST_DIR);
-    model = await Model.load(undefined, { lazyLoad: false });
+    model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 
-  afterAll(async () => {
-    process.chdir(originalCwd);
+  afterEach(async () => {
     try {
       await rm(TEST_DIR, { recursive: true, force: true });
     } catch {
