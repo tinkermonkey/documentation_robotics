@@ -2,8 +2,8 @@ version: 1.0.0
 schema: documentation-robotics-v1
 cli_version: 0.1.0
 spec_version: 0.5.0
-created: 2026-01-28T12:42:09.119Z
-updated: 2026-01-28T12:42:09.121Z
+created: 2026-01-28T12:47:41.187Z
+updated: 2026-01-28T12:47:41.194Z
 project:
   name: test-model
   version: 1.0.0
