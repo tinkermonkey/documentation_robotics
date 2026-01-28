@@ -21,7 +21,7 @@
  * apply/revert aliases) are in test_staging_area_manager.test.ts.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
