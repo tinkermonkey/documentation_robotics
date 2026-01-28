@@ -23,10 +23,10 @@ The golden copy is a **canonical, pre-initialized test model** that serves as th
 The golden copy is **transparent** to most tests. The existing `createTestModel()` function automatically uses it when available:
 
 ```typescript
-import { createTestModel } from '../helpers';
+import { createTestModel } from "../helpers";
 
-describe('My Feature', () => {
-  it('should work', async () => {
+describe("My Feature", () => {
+  it("should work", async () => {
     const { model, cleanup } = await createTestModel();
     // Your test code here
     await cleanup();
@@ -41,13 +41,13 @@ No changes needed! The golden copy is used automatically.
 In your test suite setup (optional, but recommended for best performance):
 
 ```typescript
-import { initializeGoldenCopy, cleanupGoldenCopy } from '../helpers';
+import { initializeGoldenCopy, cleanupGoldenCopy } from "../helpers";
 
 beforeAll(async () => {
   // Initialize golden copy with sample data
   await initializeGoldenCopy({
-    warmup: true,  // Populate with canonical test elements
-    eagerLoad: false  // Load layers on demand
+    warmup: true, // Populate with canonical test elements
+    eagerLoad: false, // Load layers on demand
   });
 });
 
@@ -62,16 +62,16 @@ afterAll(async () => {
 If you want to explicitly use the golden copy with custom configuration:
 
 ```typescript
-import { createTestModelWithGoldenCopy } from '../helpers';
+import { createTestModelWithGoldenCopy } from "../helpers";
 
-describe('Performance-Critical Tests', () => {
-  it('should run fast', async () => {
+describe("Performance-Critical Tests", () => {
+  it("should run fast", async () => {
     const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
       useGoldenCopy: true,
       goldenCopyConfig: {
         warmup: true,
-        eagerLoad: false
-      }
+        eagerLoad: false,
+      },
     });
 
     console.log(`Using golden copy: ${fromGoldenCopy}`);
@@ -79,10 +79,10 @@ describe('Performance-Critical Tests', () => {
     await cleanup();
   });
 
-  it('should use fresh model', async () => {
+  it("should use fresh model", async () => {
     // Force creation of fresh model (not cloned from golden copy)
     const { model, cleanup } = await createTestModelWithGoldenCopy({
-      useGoldenCopy: false
+      useGoldenCopy: false,
     });
     // Your test code here
     await cleanup();
@@ -101,20 +101,20 @@ The core cache management system:
 ```typescript
 class GoldenCopyCacheManager {
   // Singleton instance per test worker
-  static getInstance(config?: GoldenCopyCacheConfig): GoldenCopyCacheManager
+  static getInstance(config?: GoldenCopyCacheConfig): GoldenCopyCacheManager;
 
   // Initialize golden copy (creates or loads cached model)
-  async init(): Promise<void>
+  async init(): Promise<void>;
 
   // Clone golden model for test use
-  async clone(): Promise<ClonedModel>
+  async clone(): Promise<ClonedModel>;
 
   // Query cache status
-  isInitialized(): boolean
-  getStats(): GoldenCopyStats
+  isInitialized(): boolean;
+  getStats(): GoldenCopyStats;
 
   // Cleanup resources
-  async cleanup(): Promise<void>
+  async cleanup(): Promise<void>;
 }
 ```
 
@@ -132,23 +132,21 @@ Convenient functions for test authors:
 
 ```typescript
 // Create test model with optional golden copy
-async function createTestModelWithGoldenCopy(
-  options: CreateTestModelFromGoldenOptions
-): Promise<{
+async function createTestModelWithGoldenCopy(options: CreateTestModelFromGoldenOptions): Promise<{
   model: Model;
   rootPath: string;
   cleanup: () => Promise<void>;
   fromGoldenCopy: boolean;
-}>
+}>;
 
 // Explicit initialization
-async function initializeGoldenCopy(config?: GoldenCopyCacheConfig): Promise<void>
+async function initializeGoldenCopy(config?: GoldenCopyCacheConfig): Promise<void>;
 
 // Cleanup after testing
-async function cleanupGoldenCopy(): Promise<void>
+async function cleanupGoldenCopy(): Promise<void>;
 
 // Get performance statistics
-function getGoldenCopyStats(): GoldenCopyStats
+function getGoldenCopyStats(): GoldenCopyStats;
 ```
 
 #### 3. **Test Setup Integration** (`tests/setup.ts`)
@@ -196,14 +194,15 @@ When initializing manually:
 
 ```typescript
 await initializeGoldenCopy({
-  cacheDir: '/custom/cache/path',  // Custom cache location
-  eagerLoad: true,                 // Load all layers upfront
-  warmup: true,                    // Populate sample data
-  modelOptions: {                  // Custom model options
-    name: 'Custom Model',
-    specVersion: '0.7.1',
+  cacheDir: "/custom/cache/path", // Custom cache location
+  eagerLoad: true, // Load all layers upfront
+  warmup: true, // Populate sample data
+  modelOptions: {
+    // Custom model options
+    name: "Custom Model",
+    specVersion: "0.7.1",
     // ...
-  }
+  },
 });
 ```
 
@@ -212,26 +211,32 @@ await initializeGoldenCopy({
 When `warmup: true` is used, the golden copy is populated with canonical test data:
 
 ### Motivation Layer
+
 - `motivation.goal.golden-1`, `motivation.goal.golden-2`
 - `motivation.requirement.golden-1`
 
 ### Business Layer
+
 - `business.process.golden-1`
 - `business.service.golden-1`
 
 ### Application Layer
+
 - `application.component.golden-1`
 - `application.service.golden-1`
 
 ### Technology Layer
+
 - `technology.infrastructure.golden-1`
 - `technology.platform.golden-1`
 
 ### API Layer
+
 - `api.endpoint.golden-1` (GET /golden/1)
 - `api.endpoint.golden-2` (POST /golden/2)
 
 ### Data Model Layer
+
 - `data-model.entity.golden-1`, `data-model.entity.golden-2`
 
 ## Usage Patterns
@@ -239,19 +244,19 @@ When `warmup: true` is used, the golden copy is populated with canonical test da
 ### Pattern 1: Default Usage (Recommended)
 
 ```typescript
-describe('Feature Tests', () => {
-  it('should work', async () => {
+describe("Feature Tests", () => {
+  it("should work", async () => {
     // Automatically uses golden copy if available
     const { model, cleanup } = await createTestModel();
 
     // Add custom elements as needed
-    const element = await addTestElement(model, 'api', 'endpoint', 'api.endpoint.custom', {
-      name: 'Custom Endpoint',
-      properties: { method: 'GET', path: '/custom' }
+    const element = await addTestElement(model, "api", "endpoint", "api.endpoint.custom", {
+      name: "Custom Endpoint",
+      properties: { method: "GET", path: "/custom" },
     });
 
     // Your test code
-    expect(model.getElementById('api.endpoint.custom')).toBeDefined();
+    expect(model.getElementById("api.endpoint.custom")).toBeDefined();
 
     await cleanup();
   });
@@ -261,7 +266,7 @@ describe('Feature Tests', () => {
 ### Pattern 2: Suite-Level Setup
 
 ```typescript
-describe('Complex Feature Suite', () => {
+describe("Complex Feature Suite", () => {
   let cachedModel: Model;
 
   beforeAll(async () => {
@@ -284,9 +289,9 @@ describe('Complex Feature Suite', () => {
     await cleanupGoldenCopy();
   });
 
-  it('should work with suite model', async () => {
+  it("should work with suite model", async () => {
     // Reuse the cached model
-    const element = cachedModel.getElementById('api.endpoint.golden-1');
+    const element = cachedModel.getElementById("api.endpoint.golden-1");
     expect(element).toBeDefined();
   });
 });
@@ -295,8 +300,8 @@ describe('Complex Feature Suite', () => {
 ### Pattern 3: Performance Testing
 
 ```typescript
-describe('Performance Characteristics', () => {
-  it('should measure clone performance', async () => {
+describe("Performance Characteristics", () => {
+  it("should measure clone performance", async () => {
     await initializeGoldenCopy({ warmup: true });
 
     const times: number[] = [];
@@ -318,7 +323,7 @@ describe('Performance Characteristics', () => {
 
     // Get and log statistics
     const stats = getGoldenCopyStats();
-    console.log('Golden copy stats:', stats);
+    console.log("Golden copy stats:", stats);
 
     await cleanupGoldenCopy();
   });
@@ -328,16 +333,16 @@ describe('Performance Characteristics', () => {
 ### Pattern 4: Conditional Golden Copy Usage
 
 ```typescript
-describe('Mixed Test Suite', () => {
-  it('should use golden copy for fast tests', async () => {
+describe("Mixed Test Suite", () => {
+  it("should use golden copy for fast tests", async () => {
     const { model, fromGoldenCopy } = await createTestModelWithGoldenCopy();
     expect(fromGoldenCopy).toBe(true); // Should use golden copy
     await cleanup();
   });
 
-  it('should use fresh model for isolation tests', async () => {
+  it("should use fresh model for isolation tests", async () => {
     const { model, fromGoldenCopy } = await createTestModelWithGoldenCopy({
-      useGoldenCopy: false // Force fresh model
+      useGoldenCopy: false, // Force fresh model
     });
     expect(fromGoldenCopy).toBe(false);
     await cleanup();
@@ -349,11 +354,11 @@ describe('Mixed Test Suite', () => {
 
 ### Expected Improvements
 
-| Operation | Before | After | Speedup |
-|-----------|-----------------|-----------------|---------|
-| Test model creation | ~40ms | ~10-15ms (clone) | 2.7-4x |
-| Worker setup | ~200ms | ~150ms | 1.3x |
-| Full test suite (94 files) | 110s | 75-85s | 1.3-1.5x |
+| Operation                  | Before | After            | Speedup  |
+| -------------------------- | ------ | ---------------- | -------- |
+| Test model creation        | ~40ms  | ~10-15ms (clone) | 2.7-4x   |
+| Worker setup               | ~200ms | ~150ms           | 1.3x     |
+| Full test suite (94 files) | 110s   | 75-85s           | 1.3-1.5x |
 
 ### Measuring Performance
 
@@ -364,6 +369,7 @@ DEBUG_GOLDEN_COPY=true npm run test
 ```
 
 Output includes:
+
 ```
 [GoldenCopy] Initialized in 45ms
 [GoldenCopy] Cloned model in 12ms (clone 1)
@@ -387,17 +393,21 @@ Output includes:
 **Solutions:**
 
 1. **Verify initialization:**
+
    ```bash
    DEBUG_TEST_SETUP=true npm run test
    ```
+
    Look for `[Setup] Golden copy initialized` message.
 
 2. **Check environment:**
+
    ```bash
    DISABLE_GOLDEN_COPY=true  # Would disable golden copy
    ```
 
 3. **Enable strict mode to catch issues:**
+
    ```bash
    GOLDEN_COPY_STRICT=true npm run test
    ```
@@ -409,19 +419,22 @@ Output includes:
 **Solutions:**
 
 1. **Check system resources:**
+
    ```bash
    DEBUG_GOLDEN_COPY=true npm run test
    ```
 
 2. **Verify cache location:**
    The cache is stored in the system temp directory by default. If it's on a slow filesystem, custom cache location:
+
    ```typescript
    await initializeGoldenCopy({
-     cacheDir: '/fast/ssd/path'
+     cacheDir: "/fast/ssd/path",
    });
    ```
 
 3. **Profile individual tests:**
+
    ```typescript
    const { model, cleanup, stats } = await createTestModelWithGoldenCopy();
    console.log(`Clone took ${stats.cloneTime}ms`);
@@ -456,8 +469,8 @@ DISABLE_GOLDEN_COPY=true npm run test
 To pre-populate golden copy with custom data:
 
 ```typescript
-import { Model } from '../src/core/model';
-import { addTestElements } from './helpers';
+import { Model } from "../src/core/model";
+import { addTestElements } from "./helpers";
 
 async function setupCustomGoldenCopy() {
   const manager = GoldenCopyCacheManager.getInstance();
@@ -468,13 +481,13 @@ async function setupCustomGoldenCopy() {
   const goldenModel = manager.getGoldenModel();
 
   // Add custom elements
-  await addTestElements(goldenModel, 'api', [
+  await addTestElements(goldenModel, "api", [
     {
-      type: 'endpoint',
-      id: 'api.endpoint.custom-golden',
-      name: 'Custom Golden Endpoint',
-      properties: { method: 'POST', path: '/custom' }
-    }
+      type: "endpoint",
+      id: "api.endpoint.custom-golden",
+      name: "Custom Golden Endpoint",
+      properties: { method: "POST", path: "/custom" },
+    },
   ]);
 
   await goldenModel.save();
@@ -502,7 +515,7 @@ console.log(`Average clone time: ${stats.avgCloneTime}ms`);
 
 // Check initialization
 if (manager.isInitialized()) {
-  console.log('Golden copy is ready');
+  console.log("Golden copy is ready");
 }
 
 // Cleanup
@@ -526,13 +539,14 @@ const { model, cleanup } = await createTestModelWithGoldenCopy();
 
 // With explicit control
 const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
-  useGoldenCopy: true // Optional, defaults to true
+  useGoldenCopy: true, // Optional, defaults to true
 });
 ```
 
 ## Best Practices
 
 1. **Always call cleanup()**
+
    ```typescript
    const { model, cleanup } = await createTestModel();
    try {
@@ -543,6 +557,7 @@ const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
    ```
 
 2. **Use beforeAll/afterAll for suite-level setup**
+
    ```typescript
    beforeAll(async () => {
      await initializeGoldenCopy({ warmup: true });
@@ -557,6 +572,7 @@ const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
    Each cloned model is independent. Modifications don't affect others.
 
 4. **Monitor performance in CI/CD**
+
    ```typescript
    const stats = getGoldenCopyStats();
    console.log(`Golden copy performance: ${JSON.stringify(stats)}`);
@@ -564,6 +580,7 @@ const { model, cleanup, fromGoldenCopy } = await createTestModelWithGoldenCopy({
 
 5. **Use `DISABLE_GOLDEN_COPY` for debugging**
    If tests behave differently with/without golden copy:
+
    ```bash
    # Baseline with golden copy
    npm run test
@@ -587,9 +604,10 @@ A: No. The golden copy is used transparently. Your existing tests automatically 
 
 **Q: What if I need a completely fresh model with no shared state?**
 A: Use `useGoldenCopy: false`:
+
 ```typescript
 const { model, cleanup } = await createTestModelWithGoldenCopy({
-  useGoldenCopy: false
+  useGoldenCopy: false,
 });
 ```
 
