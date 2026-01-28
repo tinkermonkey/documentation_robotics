@@ -47,15 +47,7 @@ jobs:
         continue-on-error: true
         run: npm run lint || echo "Linting not configured"
 
-      - name: Run unit tests
-        working-directory: ./cli
-        run: npm run test:unit
-
-      - name: Run integration tests
-        working-directory: ./cli
-        run: npm run test:integration
-
-      - name: Run tests with coverage
+      - name: Run all tests with coverage
         working-directory: ./cli
         run: npm run test:coverage
 
