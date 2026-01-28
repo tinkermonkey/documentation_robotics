@@ -14,7 +14,7 @@ The spec-writer will create `spec.md` inside the spec folder.
 
 Once the spec-writer has created `spec.md` output the following to inform the user:
 
-```
+```text
 Your spec.md is ready!
 
 ✅ Spec document created: `[spec-path]`
