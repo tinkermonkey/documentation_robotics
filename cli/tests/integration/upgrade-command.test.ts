@@ -440,10 +440,10 @@ describe('upgrade command - unified flow', () => {
 
       expect(result.exitCode).toBe(0);
 
-      // Verify model spec version was updated
+      // Verify model spec version was updated to latest (0.7.1)
       const updatedContent = await fs.readFile(manifestPath, 'utf-8');
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe('0.7.0');
+      expect(updatedManifest.spec_version).toBe('0.7.1');
     });
 
     it('should handle chained migrations across multiple versions', async () => {
@@ -464,10 +464,10 @@ describe('upgrade command - unified flow', () => {
       const result = await runDr(['upgrade', '--yes'], { cwd: tempDir.path });
 
       expect(result.exitCode).toBe(0);
-      // Should complete all migrations and reach latest version
+      // Should complete all migrations and reach latest version (0.7.1)
       const updatedContent = await fs.readFile(manifestPath, 'utf-8');
       const updatedManifest = yaml.parse(updatedContent);
-      expect(updatedManifest.spec_version).toBe('0.7.0');
+      expect(updatedManifest.spec_version).toBe('0.7.1');
     });
 
     it('should show migration steps in output', async () => {
@@ -527,11 +527,10 @@ describe('upgrade command - unified flow', () => {
       // .dr folder should be created/restored
       expect(await fileExists(drPath)).toBe(true);
 
-      // Model should be upgraded if upgrade ran
+      // Model should be upgraded to latest version (0.7.1)
       const updatedContent = await fs.readFile(manifestPath, 'utf-8');
       const updatedManifest = yaml.parse(updatedContent);
-      // Version should be either upgraded to 0.7.0 or stayed at 0.5.0 if migration didn't run
-      expect(['0.5.0', '0.6.0', '0.7.0'].includes(updatedManifest.spec_version)).toBe(true);
+      expect(updatedManifest.spec_version).toBe('0.7.1');
     });
 
     it('should complete both upgrades successfully', async () => {
