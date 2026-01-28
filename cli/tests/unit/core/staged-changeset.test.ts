@@ -6,10 +6,9 @@ import { Model } from '../../../src/core/model.js';
 import { Manifest } from '../../../src/core/manifest.js';
 import { Layer } from '../../../src/core/layer.js';
 import { Element } from '../../../src/core/element.js';
-import { rm, mkdir } from 'fs/promises';
-
-import { mkdtemp } from 'fs/promises';
+import { rm, mkdtemp } from 'fs/promises';
 import { tmpdir } from 'os';
+import { join } from 'path';
 
 let TEST_DIR: string;
 
@@ -85,12 +84,7 @@ describe('BaseSnapshotManager', () => {
 
   beforeAll(async () => {
     // Create test directory
-    try {
-      await rm(TEST_DIR, { recursive: true });
-    } catch {
-      // Ignore
-    }
-    await mkdir(TEST_DIR, { recursive: true });
+    TEST_DIR = await mkdtemp(join(tmpdir(), 'dr-snapshot-test-'));
 
     // Create a test model
     const manifest = new Manifest({
@@ -201,12 +195,8 @@ describe('BaseSnapshotManager', () => {
 
 describe('StagedChangesetStorage', () => {
   beforeAll(async () => {
-    try {
-      await rm(TEST_DIR, { recursive: true });
-    } catch {
-      // Ignore
-    }
-    await mkdir(TEST_DIR, { recursive: true });
+    // Create fresh test directory for this test suite
+    TEST_DIR = await mkdtemp(join(tmpdir(), 'dr-storage-test-'));
   });
 
   afterAll(async () => {
