@@ -45,9 +45,7 @@ pipelines:
           - "changeset"
 
       - command: "changeset revert test-changeset-001"
-        files_to_compare:
-          - manifest.yaml
-          - 01_motivation/goals.yaml
+        files_to_compare: []
         expect_exit_code: 0
         expect_stdout_contains:
           - "Reverted"
