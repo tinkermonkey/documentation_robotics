@@ -533,3 +533,4 @@ dr links registry --format html > link-registry.html
 - **Machine Registry:** `/spec/schemas/link-registry.json` - Complete link catalog in JSON format (auto-generated)
 - **Cross-Layer Integration:** `/spec/core/03-cross-layer-integration.md` - Integration patterns and examples
 - **Schema Generation:** `/scripts/generate_schemas.py` - Auto-generates schemas and link registry from markdown specs
+
