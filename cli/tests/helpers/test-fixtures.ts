@@ -1,6 +1,11 @@
 /**
  * Test Fixtures and Model Helpers
  * Provides reusable fixtures for creating test models and elements
+ *
+ * Phase 5: Golden copy integration
+ * - createTestModel() can now use shared golden copy for better performance
+ * - Set USE_GOLDEN_COPY=true to enable (defaults to true if available)
+ * - Falls back to original behavior if golden copy is unavailable
  */
 
 import { Model } from '../../src/core/model.js';
@@ -9,6 +14,11 @@ import { Element } from '../../src/core/element.js';
 import { mkdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { GoldenCopyCacheManager } from '../../src/core/golden-copy-cache.js';
+
+declare global {
+  var __GOLDEN_COPY_INITIALIZED__: boolean;
+}
 
 /**
  * Interface for test model creation options
@@ -26,6 +36,11 @@ export interface TestModelOptions {
  * Create a test model with standard configuration
  * Automatically cleans up temporary directory on creation
  *
+ * Phase 5 Enhancement: Optionally uses shared golden copy for better performance
+ * - Set USE_GOLDEN_COPY=true to enable (will attempt to use if available)
+ * - Respects DISABLE_GOLDEN_COPY=true to force fresh creation
+ * - Falls back gracefully if golden copy initialization fails
+ *
  * @param options Optional configuration for the test model
  * @returns Promise resolving to the initialized Model
  */
@@ -34,6 +49,41 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
   rootPath: string;
   cleanup: () => Promise<void>;
 }> {
+  // Check if golden copy should be used
+  const useGoldenCopy = process.env.DISABLE_GOLDEN_COPY !== 'true' &&
+                        (process.env.USE_GOLDEN_COPY === 'true' ||
+                         globalThis.__GOLDEN_COPY_INITIALIZED__ === true);
+
+  if (useGoldenCopy) {
+    try {
+      const manager = GoldenCopyCacheManager.getInstance();
+
+      // Only try to use golden copy if it's been initialized
+      if (manager.isInitialized()) {
+        const cloned = await manager.clone();
+
+        if (process.env.DEBUG_GOLDEN_COPY) {
+          console.log(`[Fixtures] Using golden copy clone (${cloned.stats.cloneTime}ms)`);
+        }
+
+        return {
+          model: cloned.model,
+          rootPath: cloned.rootPath,
+          cleanup: cloned.cleanup,
+        };
+      }
+    } catch (error) {
+      // Log but don't fail - fall through to normal creation
+      if (process.env.DEBUG_GOLDEN_COPY) {
+        console.warn(
+          `[Fixtures] Golden copy unavailable, falling back to createTestModel:`,
+          error instanceof Error ? error.message : String(error)
+        );
+      }
+    }
+  }
+
+  // Fallback: Create fresh model (original behavior)
   const rootPath = join(tmpdir(), `dr-test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   await mkdir(rootPath, { recursive: true });
@@ -85,7 +135,7 @@ export async function addTestElement(
     properties?: Record<string, unknown>;
   }
 ): Promise<Element> {
-  let layer = model.getLayer(layerName);
+  let layer = await model.getLayer(layerName);
 
   if (!layer) {
     layer = new Layer(layerName);
