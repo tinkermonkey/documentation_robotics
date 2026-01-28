@@ -276,8 +276,7 @@ cd cli && pytest tests/unit/test_schema_validation.py
 3. Update CHANGELOG if spec version needs bump
 4. Re-run consistency check after fixes
 
-```markdown
-
+````markdown
 ### Phase 4: Suggest Fixes (10% of time)
 
 For each issue, provide:
@@ -297,16 +296,19 @@ For each issue, provide:
 ## Confidence Scoring
 
 **High (90-100%):**
+
 - Schema file content mismatch (byte-for-byte comparison)
 - Missing files (file exists in one location but not other)
 - Version number comparisons
 
 **Medium (70-89%):**
+
 - Layer enum mismatches (name comparison with fuzzy matching)
 - Element type mismatches (requires parsing docs and code)
 - Export format mapping issues
 
 **Low (50-69%):**
+
 - Validation rule documentation gaps (requires semantic analysis)
 - Description mismatches between spec and CLI
 
@@ -329,10 +331,12 @@ Running consistency checks:
 **Issues Found:**
 
 ### ❌ New Element Type Not in Schema
+
 You added `webhook` as a new element type in `spec/layers/06-api-layer.md`, but the JSON schema doesn't include it.
 
 **Fix (High Confidence 95%):**
 Add to `spec/schemas/06-api-layer.schema.json`:
+
 ```json
 {
   "type": "webhook",
@@ -342,6 +346,7 @@ Add to `spec/schemas/06-api-layer.schema.json`:
     "method": { "enum": ["POST", "PUT"] }
   }
 }
+```
 ````
 
 Then sync to CLI:

@@ -149,7 +149,6 @@ Your choice?
    ```
 
 3. Categorize changes:
-
    - **Added**: New features, capabilities, commands
    - **Changed**: Modifications to existing functionality
    - **Fixed**: Bug fixes
@@ -413,7 +412,6 @@ Ready for installation/upgrade testing.
    ```
 
 4. Handle failures:
-
    - If auto-fixable: Show what was fixed
    - If manual fix needed: Show errors and stop
 
@@ -446,13 +444,11 @@ All checks passed! (3 files auto-formatted)
    ```
 
 2. **Monitor for failures:**
-
    - Stop immediately if any test fails
    - Show detailed failure information
    - Suggest fixes based on error type
 
 3. **Verify coverage thresholds:**
-
    - Overall coverage should be > 80%
    - New code should be > 90% covered
 

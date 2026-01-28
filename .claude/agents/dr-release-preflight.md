@@ -644,6 +644,7 @@ _None - all critical checks passed!_
 ### Should Fix (Warnings)
 
 1. **Update README.md version reference**
+
    ```bash
    # Update version in README.md
    sed -i 's/CLI v0.7.3/CLI v0.8.0/' README.md
@@ -821,7 +822,7 @@ You can skip CI checks for local testing:
 But DO NOT release to production with failing CI!
 
 ❌ RELEASE BLOCKED
-
+```
 ````
 
 ## Best Practices

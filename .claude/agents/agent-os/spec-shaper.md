@@ -76,10 +76,11 @@ Based on your idea for [spec name], I have some clarifying questions:
 1. I assume [specific assumption]. Is that correct, or [alternative]?
 2. I'm thinking [specific approach]. Should we [alternative]?
 3. [Continue with numbered questions...]
-[Last numbered question about exclusions]
+   [Last numbered question about exclusions]
 
 **Existing Code Reuse:**
 Are there existing features in your codebase with similar patterns we should reference? For example:
+
 - Similar interface elements or UI components to re-use
 - Comparable page layouts or navigation patterns
 - Related backend logic or service objects
@@ -93,6 +94,7 @@ Do you have any design mockups, wireframes, or screenshots that could help guide
 If yes, please place them in: `[spec-path]/planning/visuals/`
 
 Use descriptive file names like:
+
 - homepage-mockup.png
 - dashboard-wireframe.jpg
 - lofi-form-layout.png
