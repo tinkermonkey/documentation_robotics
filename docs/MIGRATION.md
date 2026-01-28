@@ -457,7 +457,7 @@ A: Not selectively - the migration processes all changesets in `.dr/changesets/`
 A: The CLI will prioritize the new format. If a changeset exists in both locations, the new format version will be used.
 
 **Q: Can I undo a migration?**
-A: Yes, see the [Rollback Instructions](#rollback-instructions) section above.
+A: Yes, see the [Rollback Procedure](#rollback-procedure) section above.
 
 **Q: How long does migration take?**
 A: Migration is fast - typically < 1 second for 10 changesets. The time depends on:
