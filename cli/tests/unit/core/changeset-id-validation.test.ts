@@ -22,7 +22,8 @@ describe('Changeset ID Validation', () => {
     // Copy baseline project
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
 
-    // Load model with explicit path
+    // Eager loading required: Test validates changeset ID handling across all layers
+    // to ensure consistent element ID generation across the entire model
     model = await Model.load(TEST_DIR, { lazyLoad: false });
     manager = new StagingAreaManager(TEST_DIR, model);
   });

@@ -52,6 +52,8 @@ layers:
     motivationYaml
   );
 
+  // Eager loading required: Visualization server rendering requires all layers
+  // to be available for complete UI composition and cross-layer reference display
   return Model.load(rootPath, { lazyLoad: false });
 }
 
