@@ -12,12 +12,14 @@
  * - Cleanup occurs at test suite shutdown via cleanupGoldenCopy()
  */
 
-import { mkdir, cp, rm } from 'fs/promises';
+import { mkdir, cp, rm, access } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join, resolve } from 'path';
 import { cwd } from 'process';
 
 let goldenCopyPath: string | null = null;
+let initializationPromise: Promise<string> | null = null;
+let initializationError: Error | null = null;
 
 /**
  * Initialize the shared golden copy of the baseline test project.
@@ -41,30 +43,57 @@ let goldenCopyPath: string | null = null;
  * @returns Promise<string> Path to the golden copy directory
  */
 export async function initGoldenCopy(): Promise<string> {
+  // Return cached path if already initialized
   if (goldenCopyPath) return goldenCopyPath;
 
-  // Resolve baseline path relative to project root (parent of cli/)
-  // Works both when running from source and from compiled code
-  const projectRoot = resolve(cwd(), '..');
-  const BASELINE = resolve(projectRoot, 'cli-validation/test-project/baseline');
-
-  goldenCopyPath = join(tmpdir(), `dr-golden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
-
-  try {
-    await mkdir(goldenCopyPath, { recursive: true });
-    await cp(BASELINE, goldenCopyPath, { recursive: true });
-
-    if (process.env.DEBUG_GOLDEN_COPY) {
-      console.log(`Golden copy initialized at: ${goldenCopyPath}`);
-    }
-  } catch (error) {
-    goldenCopyPath = null;
-    throw new Error(
-      `Failed to initialize golden copy: ${error instanceof Error ? error.message : String(error)}`
-    );
+  // If there was a previous error, throw it again
+  if (initializationError) {
+    throw initializationError;
   }
 
-  return goldenCopyPath;
+  // If initialization is in progress, wait for it to complete
+  if (initializationPromise) return initializationPromise;
+
+  // Create a new initialization promise and cache it to prevent concurrent initialization
+  initializationPromise = (async () => {
+    // Resolve baseline path - try both possible locations
+    let BASELINE = resolve('/workspace', 'cli-validation/test-project/baseline');
+
+    // Fallback: try relative to current working directory
+    try {
+      await access(BASELINE);
+    } catch {
+      const projectRoot = resolve(cwd(), '..');
+      BASELINE = resolve(projectRoot, 'cli-validation/test-project/baseline');
+    }
+
+    goldenCopyPath = join(tmpdir(), `dr-golden-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+
+    try {
+      await mkdir(goldenCopyPath, { recursive: true });
+      await cp(BASELINE, goldenCopyPath, { recursive: true });
+
+      // Delay to ensure filesystem operations are fully committed across all devices/conditions
+      // Using 200ms to account for slower systems and highly concurrent test execution
+      await new Promise(resolve => setTimeout(resolve, 200));
+
+      if (process.env.DEBUG_GOLDEN_COPY) {
+        console.log(`Golden copy initialized at: ${goldenCopyPath}`);
+      }
+    } catch (error) {
+      goldenCopyPath = null;
+      initializationPromise = null;
+      const err = new Error(
+        `Failed to initialize golden copy: ${error instanceof Error ? error.message : String(error)}`
+      );
+      initializationError = err;
+      throw err;
+    }
+
+    return goldenCopyPath!;
+  })();
+
+  return initializationPromise;
 }
 
 /**
@@ -103,6 +132,26 @@ export async function initGoldenCopy(): Promise<string> {
  *
  * @returns Promise resolving to { path: string, cleanup: () => Promise<void> }
  */
+/**
+ * Wait for a file/directory to exist with retries (handles copy-in-progress scenarios)
+ * Uses exponential backoff to avoid busy-waiting
+ */
+async function waitForFile(path: string, maxRetries: number = 30): Promise<void> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      await access(path);
+      return; // File/directory exists
+    } catch {
+      if (i < maxRetries - 1) {
+        // Exponential backoff: 5ms, 10ms, 15ms, etc.
+        const delay = Math.min(5 * (i + 1), 100);
+        await new Promise(resolve => setTimeout(resolve, delay));
+      }
+    }
+  }
+  throw new Error(`File not found after ${maxRetries} retries: ${path}`);
+}
+
 export async function createTestWorkdir(): Promise<{
   path: string;
   cleanup: () => Promise<void>;
@@ -114,6 +163,7 @@ export async function createTestWorkdir(): Promise<{
 
   try {
     await mkdir(testDir, { recursive: true });
+    // Copy golden copy to test directory
     await cp(golden, testDir, { recursive: true });
 
     if (process.env.DEBUG_GOLDEN_COPY) {
@@ -181,6 +231,8 @@ export async function cleanupGoldenCopy(): Promise<void> {
     }
     goldenCopyPath = null;
   }
+  initializationPromise = null;
+  initializationError = null;
 }
 
 /**
