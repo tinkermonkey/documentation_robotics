@@ -276,7 +276,7 @@ cd cli && pytest tests/unit/test_schema_validation.py
 3. Update CHANGELOG if spec version needs bump
 4. Re-run consistency check after fixes
 
-````
+```markdown
 
 ### Phase 4: Suggest Fixes (10% of time)
 
@@ -400,7 +400,7 @@ fi
 
 ### Scenario: File Not Found
 
-```
+```text
 Error: spec/schemas/06-api-layer.schema.json not found
 
 Recovery:
@@ -411,7 +411,7 @@ Recovery:
 
 ### Scenario: Malformed JSON Schema
 
-```
+```text
 Error: Invalid JSON in spec/schemas/07-data-model-layer.schema.json
 Line 42: Unexpected token '}'
 
@@ -423,7 +423,7 @@ Recovery:
 
 ### Scenario: Git Not Available
 
-```
+```text
 Warning: Cannot detect recent changes (git not installed)
 
 Fallback:
