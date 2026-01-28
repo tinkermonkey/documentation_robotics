@@ -9,12 +9,13 @@ import {
   atomicWrite,
 } from "@/utils/file-io";
 import { rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 
 describe("File I/O Utilities", () => {
   let testDir: string;
 
   beforeEach(async () => {
-    testDir = `/tmp/dr-fileio-test-${Date.now()}-${Math.random()}`;
+    testDir = `/tmp/dr-fileio-test-${randomUUID()}`;
     await ensureDir(testDir);
   });
 

@@ -15,8 +15,12 @@ describe("Model", () => {
   });
 
   afterEach(async () => {
-    if (await fileExists(testDir)) {
-      await $`rm -rf ${testDir}`;
+    try {
+      if (await fileExists(testDir)) {
+        await $`rm -rf ${testDir}`;
+      }
+    } catch (e) {
+      // Ignore errors during cleanup
     }
   });
 
@@ -163,7 +167,7 @@ describe("Model", () => {
 
     const element = new Element({
       id: "motivation-goal-test",
-      type: "Goal",
+      type: "goal",
       name: "Test Goal",
       description: "A test goal",
     });
@@ -194,13 +198,13 @@ describe("Model", () => {
 
     const element1 = new Element({
       id: "motivation-goal-test1",
-      type: "Goal",
+      type: "goal",
       name: "Goal 1",
     });
 
     const element2 = new Element({
       id: "business-process-test1",
-      type: "Process",
+      type: "process",
       name: "Process 1",
     });
 
