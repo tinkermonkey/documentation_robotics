@@ -49,7 +49,7 @@ jobs:
 
       - name: Run all tests with coverage
         working-directory: ./cli
-        run: npm run test:coverage
+        run: time npm run test:coverage
 
       - name: Generate HTML coverage report
         working-directory: ./cli
