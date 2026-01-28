@@ -309,6 +309,7 @@ npm run test:performance  # Performance benchmarks
 The test suite uses a **shared golden copy** pattern to optimize test initialization:
 
 **Architecture:**
+
 - **Single baseline copy**: Created once at test suite startup from `cli-validation/test-project/baseline/`
 - **Per-test clones**: Each test receives a unique working directory cloned from the golden copy
 - **Reduced overhead**: Tests copy from cached golden copy (faster than copying from source baseline)
@@ -317,9 +318,9 @@ The test suite uses a **shared golden copy** pattern to optimize test initializa
 **Usage in Tests:**
 
 ```typescript
-import { createTestWorkdir } from '../helpers/golden-copy.js';
+import { createTestWorkdir } from "../helpers/golden-copy.js";
 
-describe('My Test Suite', () => {
+describe("My Test Suite", () => {
   let testDir: string;
   let cleanup: () => Promise<void>;
 
@@ -333,7 +334,7 @@ describe('My Test Suite', () => {
     await cleanup();
   });
 
-  test('validates model', async () => {
+  test("validates model", async () => {
     // testDir contains a complete copy of the baseline project
     const model = await Model.load(testDir);
     expect(model.getLayerNames().length).toBeGreaterThan(0);
@@ -342,11 +343,13 @@ describe('My Test Suite', () => {
 ```
 
 **Key Functions** (`cli/tests/helpers/golden-copy.ts`):
+
 - `initGoldenCopy()` - Initialize shared golden copy (called automatically on first use)
 - `createTestWorkdir()` - Create isolated test directory from golden copy
 - `cleanupGoldenCopy()` - Clean up golden copy at suite shutdown
 
 **Global Initialization:**
+
 - Configured in `cli/tests/setup.ts` (preloaded by Bun)
 - Initialized once per test worker on startup
 - Cleaned up automatically on process exit
@@ -366,6 +369,7 @@ When you need to add test data to the baseline:
 3. **Document baseline changes**: Update `cli-validation/test-project/baseline/README.md` explaining what test data is available
 
 **Performance Characteristics:**
+
 - **One-time cost**: Single copy from baseline at suite startup (~100-200ms)
 - **Per-test savings**: Clone from golden copy is much faster than copy from source baseline
 - **Expected improvement**: 20-30% reduction in test suite initialization time, especially with parallel execution
