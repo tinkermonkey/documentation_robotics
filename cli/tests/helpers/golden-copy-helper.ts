@@ -197,3 +197,4 @@ export function getGoldenCopyStats() {
 export function resetGoldenCopyManager(): void {
   GoldenCopyCacheManager.resetInstance();
 }
+
