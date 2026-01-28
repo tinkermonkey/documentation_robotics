@@ -346,12 +346,14 @@ class UnifiedValidator:
 
                     if data.get('errors'):
                         lines.append("### Errors")
+                        lines.append("")
                         for error in data['errors']:
                             lines.append(f"- {error}")
                         lines.append("")
 
                     if data.get('warnings'):
                         lines.append("### Warnings")
+                        lines.append("")
                         for warning in data['warnings']:
                             lines.append(f"- {warning}")
                         lines.append("")
