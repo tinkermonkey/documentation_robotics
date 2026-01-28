@@ -33,6 +33,7 @@ pipelines:
       - command: "changeset apply test-changeset-001"
         files_to_compare:
           - manifest.yaml
+          - 01_motivation/goals.yaml
         expect_exit_code: 0
         expect_stdout_contains:
           - "Applied"
@@ -71,10 +72,6 @@ pipelines:
         files_to_compare: []
         expect_exit_code: 0
 
-      - command: "relationship add business.service.changeset-service-001 business.service.changeset-service-002 --predicate serves"
-        files_to_compare: []
-        expect_exit_code: 0
-
       - command: "changeset deactivate"
         files_to_compare: []
         expect_exit_code: 0
@@ -84,6 +81,12 @@ pipelines:
       - command: "changeset apply multi-element-changeset"
         files_to_compare:
           - manifest.yaml
+          - 02_business/services.yaml
+        expect_exit_code: 0
+
+      - command: "relationship add business.service.changeset-service-001 business.service.changeset-service-002 --predicate serves"
+        files_to_compare:
+          - relationships.yaml
         expect_exit_code: 0
 
       - command: "delete business.service.changeset-service-001 --force"
@@ -130,4 +133,5 @@ pipelines:
       - command: "changeset apply delete-changeset"
         files_to_compare:
           - manifest.yaml
+          - 01_motivation/goals.yaml
         expect_exit_code: 0
