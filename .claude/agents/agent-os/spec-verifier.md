@@ -294,7 +294,7 @@ Create `agent-os/specs/[this-spec]/verification/spec-verification.md` with the f
 
 OUTPUT the following:
 
-```
+```text
 Specification verification complete!
 
 ✅ Verified requirements accuracy

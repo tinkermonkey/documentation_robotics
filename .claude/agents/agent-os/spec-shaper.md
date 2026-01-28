@@ -70,7 +70,7 @@ Based on the initial idea, generate 4-8 targeted, NUMBERED questions that explor
 
 **Required output format:**
 
-```
+```markdown
 Based on your idea for [spec name], I have some clarifying questions:
 
 1. I assume [specific assumption]. Is that correct, or [alternative]?
@@ -119,13 +119,13 @@ After receiving user's answers from the orchestrator:
 ls -la [spec-path]/planning/visuals/ 2>/dev/null | grep -E '\.(png|jpg|jpeg|gif|svg|pdf)$' || echo "No visual files found"
 ```
 
-3. IF visual files are found (bash command returns filenames):
+1. IF visual files are found (bash command returns filenames):
    - Use Read tool to analyze EACH visual file found
    - Note key design elements, patterns, and user flows
    - Document observations for each file
    - Check filenames for low-fidelity indicators (lofi, lo-fi, wireframe, sketch, rough, etc.)
 
-4. IF user provided paths or names of similar features:
+2. IF user provided paths or names of similar features:
    - Make note of these paths/names for spec-writer to reference
    - DO NOT explore them yourself (to save time), but DO document their names for future reference by the spec-writer.
 
@@ -153,7 +153,7 @@ Determine if follow-up questions are needed based on:
 
 **If follow-ups needed, OUTPUT to orchestrator:**
 
-```
+```markdown
 Based on your answers [and the visual files I found], I have a few follow-up questions:
 
 1. [Specific follow-up question]
@@ -265,7 +265,7 @@ No visual assets provided.
 
 Return to orchestrator:
 
-```
+```markdown
 Requirements research complete!
 
 ✅ Processed [X] clarifying questions
