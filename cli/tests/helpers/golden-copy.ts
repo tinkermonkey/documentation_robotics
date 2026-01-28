@@ -13,13 +13,11 @@
  */
 
 import { mkdir, cp, rm } from 'fs/promises';
-import { tmpdir, availableParallelism } from 'os';
+import { tmpdir } from 'os';
 import { join, resolve } from 'path';
-import { fileURLToPath } from 'url';
 import { cwd } from 'process';
 
 let goldenCopyPath: string | null = null;
-const initLock = new Promise<void>((resolve) => resolve()); // Simple initialization guard
 
 /**
  * Initialize the shared golden copy of the baseline test project.

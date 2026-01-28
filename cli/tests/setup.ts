@@ -5,9 +5,19 @@
  * It initializes shared resources, configures isolation, and sets up
  * metrics collection for test execution analysis.
  *
- * Shared Golden Copy Initialization:
- * - Creates a shared golden model on first use per worker
- * - Enables efficient cloning for test initialization
+ * Golden Copy Systems (Two separate optimization paths):
+ *
+ * 1. GoldenCopyCacheManager (initialized here):
+ *    - Caches Model instances for tests that need programmatic Model access
+ *    - Used by createTestModelWithGoldenCopy() in golden-copy-helper.ts
+ *    - Creates fresh models with optional warmup data
+ *
+ * 2. Filesystem Golden Copy (golden-copy.ts):
+ *    - Copies the baseline directory structure for CLI/integration tests
+ *    - Used by createTestWorkdir() which clones from baseline
+ *    - Tests that need the actual baseline directory use this approach
+ *
+ * These are complementary systems serving different test requirements.
  */
 
 import { randomUUID } from 'crypto';
