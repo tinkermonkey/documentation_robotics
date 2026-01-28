@@ -725,169 +725,74 @@ Function:
 
 ### x-apm-performance-metrics Extension
 
-```yaml
-x-apm-performance-metrics:
-  description: "Database performance metrics for table monitoring"
-  type: string[] (Metric IDs from APM Layer, optional)
-  purpose: "Links physical tables to operational performance metrics"
+This extension links physical tables to operational performance metrics from the APM Layer (Layer 11).
 
-  rationale: |
-    Database performance is a critical operational concern that directly impacts:
-    - User experience (query response times)
-    - Business SLAs (availability, performance targets)
-    - Cost optimization (capacity planning, resource utilization)
-    - System reliability (identifying bottlenecks before failures)
+**Type**: `string[]` (Metric IDs from APM Layer, optional)
 
-  metricCategories:
-    queryPerformance:
-      - Query latency (p50, p95, p99)
-      - Query execution plans
-      - Slow query frequency
-      - Query cache hit rates
+**Purpose**: Links physical tables to operational performance metrics
 
-    tableMetrics:
-      - Table size (bytes, rows)
-      - Table growth rate
-      - Vacuum/analyze statistics
-      - Table bloat percentage
+**Rationale**:
+- Database performance directly impacts user experience and business outcomes
+- Links provide complete traceability from goals through metrics
+- Enables proactive monitoring before performance degrades
+- Supports capacity planning through historical metrics
 
-    indexHealth:
-      - Index hit rate
-      - Index size
-      - Unused index detection
-      - Index bloat percentage
+**Metric Categories**:
+- Query Performance: latency (p50, p95, p99), execution plans, slow queries
+- Table Metrics: size, growth rate, vacuum/analyze statistics, bloat
+- Index Health: hit rate, size, unused indexes, bloat
+- Write Performance: insert/update/delete throughput, lock contention
+- Connection Metrics: active connections, transaction duration, deadlocks
 
-    writePerformance:
-      - Insert throughput
-      - Update throughput
-      - Delete throughput
-      - Lock contention frequency
-
-    connectionMetrics:
-      - Active connections per table
-      - Transaction duration
-      - Deadlock frequency
-
-  examples:
-    # High-traffic transactional table
-    - x-apm-performance-metrics:
-        - "metric-orders-query-latency-p95"
-        - "metric-orders-write-throughput-per-second"
-        - "metric-orders-table-size-bytes"
-        - "metric-orders-index-hit-rate"
-        - "metric-orders-lock-wait-time-ms"
-        - "metric-orders-connection-pool-usage"
-
-    # Large analytical table
-    - x-apm-performance-metrics:
-        - "metric-analytics-table-growth-rate-daily"
-        - "metric-analytics-sequential-scan-percentage"
-        - "metric-analytics-partition-size-distribution"
-        - "metric-analytics-vacuum-duration-seconds"
-
-    # Customer-facing critical table
-    - x-apm-performance-metrics:
-        - "metric-products-query-latency-p99"
-        - "metric-products-cache-hit-rate"
-        - "metric-products-api-response-time-contribution"
-
-  benefits:
-    - Complete traceability: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
-    - Proactive monitoring: Alerts before performance degrades to user-impacting levels
-    - Capacity planning: Historical trends inform scaling decisions
-    - Cost optimization: Identify oversized tables, unused indexes, inefficient queries
-    - SLA validation: Prove database layer meets business performance requirements
+**Example Usage** (in table COMMENT):
+```sql
+x-apm-performance-metrics: metric-orders-query-latency-p95,metric-orders-write-throughput
 ```
+
+**Benefits**:
+- Complete traceability: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
+- Proactive monitoring: Alerts before performance degrades to user-impacting levels
+- Capacity planning: Historical trends inform scaling decisions
+- Cost optimization: Identify oversized tables, unused indexes, inefficient queries
+- SLA validation: Prove database layer meets business performance requirements
 
 ### x-apm-data-quality-metrics Extension
 
-```yaml
-x-apm-data-quality-metrics:
-  description: "Database-level data quality metrics for integrity monitoring"
-  type: string[] (Metric IDs from APM Layer, optional)
-  purpose: "Links physical tables to operational data quality metrics"
+This extension links physical tables to operational data quality metrics from the APM Layer (Layer 11).
 
-  rationale: |
-    Physical data quality monitoring complements logical schema validation:
-    - Logical Layer (07): Validates data matches schema contracts (JSON Schema validation)
-    - Physical Layer (08): Monitors database integrity constraints and operational quality
+**Type**: `string[]` (Metric IDs from APM Layer, optional)
 
-    Both layers are necessary for complete data quality governance.
+**Purpose**: Links physical tables to operational data quality metrics
 
-  metricCategories:
-    constraintViolations:
-      - CHECK constraint failures
-      - UNIQUE constraint violations
-      - NOT NULL violations
-      - EXCLUSION constraint failures
-      - Total constraint violation rate
+**Rationale**:
+Physical data quality monitoring complements logical schema validation:
+- **Logical Layer (07)**: Validates data matches schema contracts (JSON Schema validation, pre-persistence)
+- **Physical Layer (08)**: Monitors database integrity constraints and operational quality (post-persistence)
 
-    referentialIntegrity:
-      - Foreign key violation attempts
-      - Orphaned record detection
-      - Cascading delete impact
-      - Referential integrity rate (%)
+Both layers are necessary for complete data quality governance.
 
-    dataCompleteness:
-      - Null values in critical columns
-      - Missing required relationships
-      - Incomplete record detection
+**Metric Categories**:
+- Constraint Violations: CHECK, UNIQUE, NOT NULL failures
+- Referential Integrity: foreign key violations, orphaned records, cascading impacts
+- Data Completeness: null values, missing relationships, incomplete records
+- Data Consistency: duplicate primary keys, type coercion failures, cross-table checks
+- Operational Metrics: daily record counts, anomalies, unexpected modifications
 
-    dataConsistency:
-      - Duplicate primary key attempts
-      - Data type coercion failures
-      - Cross-table consistency checks
-
-    operationalMetrics:
-      - Daily record count
-      - Record count anomalies
-      - Unexpected deletes/updates
-      - Row-level trigger failures
-
-  examples:
-    # Financial transaction table
-    - x-apm-data-quality-metrics:
-        - "metric-transactions-fk-violation-rate"
-        - "metric-transactions-amount-check-constraint-failures"
-        - "metric-transactions-duplicate-detection"
-        - "metric-transactions-orphaned-records"
-        - "metric-transactions-daily-record-count"
-        - "metric-transactions-negative-amount-violations"
-
-    # Customer master data table
-    - x-apm-data-quality-metrics:
-        - "metric-customers-email-null-rate"
-        - "metric-customers-duplicate-email-detection"
-        - "metric-customers-referential-integrity-rate"
-        - "metric-customers-record-count-anomaly-detection"
-
-    # Product catalog table
-    - x-apm-data-quality-metrics:
-        - "metric-products-constraint-violations"
-        - "metric-products-fk-integrity-rate"
-        - "metric-products-null-violations"
-        - "metric-products-record-count-daily"
-
-  differences:
-    logicalQuality (Layer 07):
-      - Schema validation (format, type, range)
-      - Application-level validation
-      - API request/response validation
-      - Pre-persistence validation
-
-    physicalQuality (Layer 08):
-      - Database constraint enforcement
-      - Post-persistence validation
-      - Cross-record integrity checks
-      - Operational anomaly detection
-
-  benefits:
-    - Database integrity monitoring: Detect constraint violations in real-time
-    - Compliance validation: Prove data meets regulatory requirements at database level
-    - Anomaly detection: Identify unexpected data patterns (sudden record count changes)
-    - Impact analysis: Understand scope of data quality issues
-    - Governance reporting: Automated data quality dashboards for auditors
+**Example Usage** (in table COMMENT):
+```sql
+x-apm-data-quality-metrics: metric-transactions-fk-violation-rate,metric-transactions-amount-check-failures
 ```
+
+**Distinction from Layer 07**:
+- Layer 07 (logical): Schema validation, format/type/range checks, pre-persistence
+- Layer 08 (physical): Constraint enforcement, post-persistence, cross-record checks, anomaly detection
+
+**Benefits**:
+- Database integrity monitoring: Detect constraint violations in real-time
+- Compliance validation: Prove data meets regulatory requirements at database level
+- Anomaly detection: Identify unexpected data patterns (sudden record count changes)
+- Impact analysis: Understand scope of data quality issues
+- Governance reporting: Automated data quality dashboards for auditors
 
 ## Complete Example: Product Table
 
@@ -1107,13 +1012,12 @@ MigrationFile:
       - seed       # Initial data seeding
 
   examples:
-    # File: migrations/V001__create_products_table.sql
-    -- Up migration
-    CREATE TABLE products (...);
-
-    # File: migrations/V001__create_products_table.down.sql
-    -- Down migration
-    DROP TABLE products;
+    - name: "V001__create_products_table.sql"
+      description: "Create products table"
+    - name: "V002__add_products_category_index.sql"
+      description: "Add category index"
+    - name: "V003__migrate_product_categories.sql"
+      description: "Migrate product categories"
 ```
 
 ### Migration Tools
