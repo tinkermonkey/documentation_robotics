@@ -41,7 +41,7 @@ When the user runs this command, perform intelligent validation with helpful sug
 **RECOMMENDED: Always include relationship validation**
 
 ```bash
-dr validate --strict 
+dr validate --strict
 ```
 
 **Basic validation** (default):
@@ -53,13 +53,13 @@ dr validate
 **Comprehensive validation with link checking**:
 
 ```bash
-dr validate --strict  
+dr validate --strict
 ```
 
 **Most thorough validation**:
 
 ```bash
-dr validate --strict  
+dr validate --strict
 ```
 
 ### Relationship Validation
@@ -494,7 +494,7 @@ You: Running model validation...
 ### Example 2: With Fixes
 
 ```
-User: /dr-validate --strict 
+User: /dr-validate --strict
 
 You: Running validation with auto-fix...
 

@@ -18,6 +18,7 @@ This guide helps you resolve the most common issues when using the DR CLI.
 ### Issue: "Invalid element ID format"
 
 **Error Message:**
+
 ```
 ✗ Invalid element ID format: user-api.goal.increase-sales
   Expected format: {layer}.{type}.{kebab-case-name}
@@ -29,11 +30,13 @@ You used an invalid layer name in the element ID. Layer names must be one of the
 **Solution:**
 
 Check your element ID format carefully. It should be:
+
 ```
 {canonical-layer-name}.{element-type}.{kebab-case-name}
 ```
 
 Valid layer names are:
+
 - `motivation`, `business`, `security`, `application`, `technology`, `api`
 - `data-model` (hyphenated!), `data-store` (hyphenated!)
 - `ux`, `navigation`, `apm`, `testing`
@@ -41,12 +44,14 @@ Valid layer names are:
 **Example:**
 
 Wrong:
+
 ```bash
 dr add user-api goal increase-sales  # ✗ "user-api" is not a valid layer
 dr add api-operation create-user     # ✗ "api-operation" is not a valid layer
 ```
 
 Correct:
+
 ```bash
 dr add motivation goal increase-sales         # ✓
 dr add api operation create-user               # ✓
@@ -58,6 +63,7 @@ dr add data-model object-schema user-profile   # ✓
 ### Issue: "Element ID already exists"
 
 **Error Message:**
+
 ```
 ✗ Element with ID 'motivation.goal.increase-sales' already exists
 ```
@@ -80,6 +86,7 @@ dr add motivation goal improve-user-satisfaction  # ✓ Different name
 ```
 
 **Finding Duplicates:**
+
 ```bash
 dr search increase-sales  # Find all elements with this name
 ```
@@ -89,6 +96,7 @@ dr search increase-sales  # Find all elements with this name
 ### Issue: "Invalid element type"
 
 **Error Message:**
+
 ```
 ✗ Invalid element type 'operation' for layer 'api'
   Valid types for 'api' layer: operation, endpoint
@@ -102,14 +110,17 @@ You used an element type that doesn't exist for that layer.
 Each layer has specific element types. Check the [Element Type Reference](../ELEMENT_TYPE_REFERENCE.md) for valid types:
 
 **API Layer types:**
+
 - `operation` (REST API operations)
 - `endpoint` (API endpoints)
 
 **Application Layer types:**
+
 - `service` (application services)
 - `component` (application components)
 
 **Correct usage:**
+
 ```bash
 dr add api operation create-user           # ✓
 dr add application service user-service    # ✓
@@ -123,6 +134,7 @@ dr add business capability payment        # ✓
 ### Issue: "Invalid layer name: data_model"
 
 **Error Message:**
+
 ```
 ✗ Invalid layer name 'data_model'
   Did you mean 'data-model'? (use hyphens, not underscores)
@@ -134,16 +146,19 @@ You used underscores instead of hyphens in the layer name. DR uses **hyphens** f
 **Solution:**
 
 Use the correct canonical layer names. Remember:
+
 - **Compound layers use hyphens:** `data-model`, `data-store`
 - **Single-word layers:** no hyphens
 
 **Wrong:**
+
 ```bash
 dr add data_model object-schema user      # ✗ underscore
 dr add datastore database postgresql      # ✗ no hyphen, no space
 ```
 
 **Correct:**
+
 ```bash
 dr add data-model object-schema user      # ✓
 dr add data-store database postgresql     # ✓
@@ -154,6 +169,7 @@ dr add data-store database postgresql     # ✓
 ### Issue: "Invalid layer name: data_store"
 
 **Error Message:**
+
 ```
 ✗ Invalid layer name 'data_store'
   Did you mean 'data-store'? (use hyphens, not underscores)
@@ -164,6 +180,7 @@ dr add data-store database postgresql     # ✓
 The data storage layer is `data-store`, not `data_store`.
 
 **Correct:**
+
 ```bash
 dr add data-store database postgresql  # ✓
 dr add data-store table users          # ✓
@@ -176,6 +193,7 @@ dr add data-store table users          # ✓
 ### Issue: "Invalid relationship direction"
 
 **Error Message:**
+
 ```
 ✗ Invalid relationship: business.capability.x realizes application.service.y
   The 'realizes' relationship requires: application → business
@@ -189,17 +207,18 @@ You created a relationship in the wrong direction. Each relationship type has sp
 
 Understand the relationship direction rules. Key ones:
 
-| Relationship | Correct Direction | Meaning |
-|--------------|-------------------|---------|
-| `realizes` | application → business | Services **realize** (implement) business capabilities |
-| `satisfied-by` | business → motivation | Capabilities **satisfy** business goals |
-| `exposes` | application → api | Services **expose** API operations |
-| `uses` | api → data-model | API operations **use** data models |
-| `stores` | data-store → data-model | Databases **store** data models |
-| `protected-by` | application → security | Services are **protected-by** security policies |
-| `complies-with` | application → security | Services **comply-with** regulations |
+| Relationship    | Correct Direction       | Meaning                                                |
+| --------------- | ----------------------- | ------------------------------------------------------ |
+| `realizes`      | application → business  | Services **realize** (implement) business capabilities |
+| `satisfied-by`  | business → motivation   | Capabilities **satisfy** business goals                |
+| `exposes`       | application → api       | Services **expose** API operations                     |
+| `uses`          | api → data-model        | API operations **use** data models                     |
+| `stores`        | data-store → data-model | Databases **store** data models                        |
+| `protected-by`  | application → security  | Services are **protected-by** security policies        |
+| `complies-with` | application → security  | Services **comply-with** regulations                   |
 
 **Wrong:**
+
 ```bash
 # Backwards
 dr add relationship \
@@ -209,6 +228,7 @@ dr add relationship \
 ```
 
 **Correct:**
+
 ```bash
 # Correct direction
 dr add relationship \
@@ -222,6 +242,7 @@ dr add relationship \
 ### Issue: "Cross-layer reference not found"
 
 **Error Message:**
+
 ```
 ✗ Cannot create relationship: target element 'api.operation.create-user' not found
   Create this element before creating the relationship
@@ -233,11 +254,13 @@ You're trying to create a relationship to an element that doesn't exist.
 **Solution:**
 
 Always create elements before creating relationships to them. Check that:
+
 1. The element exists: `dr search create-user`
 2. The element ID is correct (matches case, hyphens, etc.)
 3. You created it in the correct layer
 
 **Process:**
+
 ```bash
 # Step 1: Create the element first
 dr add api operation create-user \
@@ -257,6 +280,7 @@ dr add relationship \
 ### Issue: "Relationship type not allowed between layers"
 
 **Error Message:**
+
 ```
 ✗ Relationship type 'exposes' not allowed between 'data-model' and 'api' layers
   Valid relationships for this combination: uses
@@ -270,6 +294,7 @@ You're using a relationship type that's not valid between these two layers.
 Check the valid relationship types for the layer combination. Refer to the relationship types listed below in this guide.
 
 **Common valid relationships:**
+
 - **motivation → business:** `satisfied-by`
 - **business → application:** `realizes`
 - **application → api:** `exposes`
@@ -278,6 +303,7 @@ Check the valid relationship types for the layer combination. Refer to the relat
 - **application → security:** `protected-by`
 
 **Wrong:**
+
 ```bash
 dr add relationship \
   --from api.operation.create-user \
@@ -286,6 +312,7 @@ dr add relationship \
 ```
 
 **Correct:**
+
 ```bash
 dr add relationship \
   --from api.operation.create-user \
@@ -300,6 +327,7 @@ dr add relationship \
 ### Issue: "Model validation failed"
 
 **Error Message:**
+
 ```
 ✗ Model validation failed
   • Element 'api.operation.create-user' references 'data-model.nonexistent' which doesn't exist
@@ -316,6 +344,7 @@ The validation output shows you what's wrong. Address each issue:
 3. **Naming issues:** Check element ID format
 
 **Fix process:**
+
 ```bash
 # 1. Run validation to see all issues
 dr validate
@@ -334,6 +363,7 @@ dr validate
 ### Issue: "Element has incomplete properties"
 
 **Error Message:**
+
 ```
 ✗ Element 'api.operation.create-user' is missing required properties
   Required: method, path
@@ -348,12 +378,14 @@ You created an element without providing required properties.
 Different element types require different properties. Check what's required:
 
 **API Operation properties:**
+
 - `name` - Human-readable name
 - `method` - HTTP method (GET, POST, PUT, DELETE, etc.)
 - `path` - URL path (e.g., `/api/v1/users`)
 - `description` (optional) - What the operation does
 
 **Correct creation:**
+
 ```bash
 dr add api operation create-user \
   --name "Create User" \
@@ -369,6 +401,7 @@ dr add api operation create-user \
 ### Issue: "Command not found"
 
 **Error Message:**
+
 ```
 ✗ Unknown command: 'dr create'
   Did you mean 'dr add'?
@@ -400,6 +433,7 @@ dr changeset         # Manage changesets for staging
 ### Issue: "Missing required parameter"
 
 **Error Message:**
+
 ```
 ✗ Missing required parameter: --from
   Usage: dr add relationship --from <id> --to <id> --type <type>
@@ -413,6 +447,7 @@ You didn't provide all required parameters for the command.
 Check the command syntax. Each command has required parameters:
 
 **Adding elements:**
+
 ```bash
 dr add <layer> <type> <name> [options]
 # Required: layer, type, name
@@ -420,12 +455,14 @@ dr add <layer> <type> <name> [options]
 ```
 
 **Adding relationships:**
+
 ```bash
 dr add relationship --from <id> --to <id> --type <type>
 # Required: --from, --to, --type
 ```
 
 **Correct usage:**
+
 ```bash
 # With all required parameters
 dr add api operation create-user \
@@ -439,6 +476,7 @@ dr add api operation create-user \
 ### Issue: "Invalid parameter value"
 
 **Error Message:**
+
 ```
 ✗ Invalid value for parameter --method: 'GETT'
   Valid values: GET, POST, PUT, DELETE, PATCH, HEAD, OPTIONS
@@ -452,6 +490,7 @@ You provided an invalid value for a parameter. In this case, `GETT` is not a val
 Check the valid values for the parameter:
 
 **HTTP Methods:**
+
 - `GET` - Retrieve data
 - `POST` - Create data
 - `PUT` - Update entire resource
@@ -461,12 +500,14 @@ Check the valid values for the parameter:
 - `OPTIONS` - Describe communication options
 
 **Criticality levels:**
+
 - `LOW`
 - `MEDIUM`
 - `HIGH`
 - `CRITICAL`
 
 **Correct usage:**
+
 ```bash
 dr add api operation create-user \
   --method "POST"  # ✓ Valid HTTP method
@@ -482,6 +523,7 @@ dr add application service payment-service \
 ### Issue: "Orphaned element"
 
 **Warning Message:**
+
 ```
 ⚠ Element 'api.operation.old-endpoint' has no incoming or outgoing relationships
   This element is not connected to the rest of the model
@@ -495,6 +537,7 @@ You created an element but didn't create any relationships for it.
 All elements should be connected to the model via relationships. Either:
 
 1. **Create relationships to connect it:**
+
 ```bash
 dr add relationship \
   --from application.service.user-service \
@@ -503,6 +546,7 @@ dr add relationship \
 ```
 
 2. **Or remove it if not needed:**
+
 ```bash
 dr remove api.operation.old-endpoint
 ```
@@ -512,6 +556,7 @@ dr remove api.operation.old-endpoint
 ### Issue: "Circular dependency detected"
 
 **Error Message:**
+
 ```
 ✗ Circular relationship detected:
   application.service.A → business.capability.B → application.service.A
@@ -525,6 +570,7 @@ You created relationships that form a cycle. The architecture should flow from h
 **Solution:**
 
 Review your relationships and remove the cycle. The correct flow is:
+
 ```
 Motivation → Business → Security → Application → API → Data Model → Data Store
 ```
@@ -532,6 +578,7 @@ Motivation → Business → Security → Application → API → Data Model → 
 **Example fix:**
 
 Wrong:
+
 ```bash
 # This creates a cycle:
 dr add relationship --from application.service.A --to business.capability.B --type realizes
@@ -539,6 +586,7 @@ dr add relationship --from business.capability.B --to application.service.A --ty
 ```
 
 Correct:
+
 ```bash
 # Only goes one direction:
 dr add relationship --from application.service.A --to business.capability.B --type realizes  # ✓

@@ -89,22 +89,23 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
 
-| Layer | Canonical Name | Spec File | Notes |
-|-------|---|---|---|
-| 1 | `motivation` | `01-motivation-layer.md` | Single word, no hyphen |
-| 2 | `business` | `02-business-layer.md` | Single word, no hyphen |
-| 3 | `security` | `03-security-layer.md` | Single word, no hyphen |
-| 4 | `application` | `04-application-layer.md` | Single word, no hyphen |
-| 5 | `technology` | `05-technology-layer.md` | Single word, no hyphen |
-| 6 | `api` | `06-api-layer.md` | Single word, no hyphen |
-| 7 | `data-model` | `07-data-model-layer.md` | **Hyphenated** - use `data-model`, not `data_model` |
-| 8 | `data-store` | `08-datastore-layer.md` | **Hyphenated internally** - spec file has no hyphen |
-| 9 | `ux` | `09-ux-layer.md` | Single word, no hyphen |
-| 10 | `navigation` | `10-navigation-layer.md` | Single word, no hyphen |
-| 11 | `apm` | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |
-| 12 | `testing` | `12-testing-layer.md` | Single word, no hyphen |
+| Layer | Canonical Name | Spec File                       | Notes                                                |
+| ----- | -------------- | ------------------------------- | ---------------------------------------------------- |
+| 1     | `motivation`   | `01-motivation-layer.md`        | Single word, no hyphen                               |
+| 2     | `business`     | `02-business-layer.md`          | Single word, no hyphen                               |
+| 3     | `security`     | `03-security-layer.md`          | Single word, no hyphen                               |
+| 4     | `application`  | `04-application-layer.md`       | Single word, no hyphen                               |
+| 5     | `technology`   | `05-technology-layer.md`        | Single word, no hyphen                               |
+| 6     | `api`          | `06-api-layer.md`               | Single word, no hyphen                               |
+| 7     | `data-model`   | `07-data-model-layer.md`        | **Hyphenated** - use `data-model`, not `data_model`  |
+| 8     | `data-store`   | `08-datastore-layer.md`         | **Hyphenated internally** - spec file has no hyphen  |
+| 9     | `ux`           | `09-ux-layer.md`                | Single word, no hyphen                               |
+| 10    | `navigation`   | `10-navigation-layer.md`        | Single word, no hyphen                               |
+| 11    | `apm`          | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |
+| 12    | `testing`      | `12-testing-layer.md`           | Single word, no hyphen                               |
 
 **Key Rules**:
+
 - Always use the canonical name in CLI commands and code (e.g., `--layer data-store` not `--layer datastore`)
 - The CLI automatically maps canonical names to actual spec file paths
 - Accept only canonical names in validators (no underscore variants)
@@ -256,12 +257,14 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 The staging feature provides a safe way to prepare changes before committing:
 
 **When to use staging:**
+
 - **Feature development**: Build features across multiple layers without affecting base model
 - **Collaborative design**: Share work-in-progress changesets with team members
 - **Safe refactoring**: Prepare model changes with drift detection before applying
 - **Model review**: Preview changes before committing to ensure correctness
 
 **Typical workflow:**
+
 ```bash
 # 1. Create changeset
 dr changeset create my-feature
@@ -277,6 +280,7 @@ dr changeset commit my-feature
 ```
 
 **Key concepts:**
+
 - **Staged Status**: Changes prepared but not applied (default for new changesets)
 - **Committed Status**: Changes applied to base model (set after successful commit)
 - **Discarded Status**: Changes abandoned without applying
@@ -284,6 +288,7 @@ dr changeset commit my-feature
 - **Virtual Projection**: Merges staged changes with base model for preview
 
 **Implementation files:**
+
 - `cli/src/core/changeset-migration.ts` - Auto-migration from old format (.dr/ to documentation-robotics/)
 - `cli/src/commands/changeset.ts` - All changeset commands
 - `cli/tests/integration/staging-workflow.test.ts` - Staging workflow tests

@@ -5,6 +5,7 @@ Fast lookup for common commands, syntax, and patterns.
 ## Command Quick Reference
 
 ### Project Initialization
+
 ```bash
 dr init <project-name>              # Initialize new DR project
 dr info                              # Show model information
@@ -12,6 +13,7 @@ dr validate                          # Validate entire model
 ```
 
 ### Adding Elements
+
 ```bash
 # Basic syntax
 dr add <layer> <type> <name> [--options]
@@ -27,6 +29,7 @@ dr add security authentication-policy oauth2
 ```
 
 ### Adding Relationships
+
 ```bash
 # Syntax
 dr add relationship --from <source-id> --to <target-id> --type <type>
@@ -39,17 +42,20 @@ dr add relationship \
 ```
 
 ### Searching & Viewing
+
 ```bash
 dr search <query>                   # Search for elements
 dr list <layer>                     # List all elements in layer
 ```
 
 ### Removing Elements
+
 ```bash
 dr remove <element-id>              # Remove element
 ```
 
 ### Exporting
+
 ```bash
 dr export openapi                   # Export to OpenAPI
 dr export plantuml                  # Export to PlantUML diagram
@@ -62,22 +68,23 @@ dr export markdown                  # Export to Markdown docs
 
 **Always use these exact names:**
 
-| Layer | Canonical Name | Example |
-|-------|---|---|
-| 1 | `motivation` | `dr add motivation goal ...` |
-| 2 | `business` | `dr add business capability ...` |
-| 3 | `security` | `dr add security authentication-policy ...` |
-| 4 | `application` | `dr add application service ...` |
-| 5 | `technology` | `dr add technology platform ...` |
-| 6 | `api` | `dr add api operation ...` |
-| 7 | `data-model` | `dr add data-model object-schema ...` |
-| 8 | `data-store` | `dr add data-store database ...` |
-| 9 | `ux` | `dr add ux component ...` |
-| 10 | `navigation` | `dr add navigation page ...` |
-| 11 | `apm` | `dr add apm metric ...` |
-| 12 | `testing` | `dr add testing test-case ...` |
+| Layer | Canonical Name | Example                                     |
+| ----- | -------------- | ------------------------------------------- |
+| 1     | `motivation`   | `dr add motivation goal ...`                |
+| 2     | `business`     | `dr add business capability ...`            |
+| 3     | `security`     | `dr add security authentication-policy ...` |
+| 4     | `application`  | `dr add application service ...`            |
+| 5     | `technology`   | `dr add technology platform ...`            |
+| 6     | `api`          | `dr add api operation ...`                  |
+| 7     | `data-model`   | `dr add data-model object-schema ...`       |
+| 8     | `data-store`   | `dr add data-store database ...`            |
+| 9     | `ux`           | `dr add ux component ...`                   |
+| 10    | `navigation`   | `dr add navigation page ...`                |
+| 11    | `apm`          | `dr add apm metric ...`                     |
+| 12    | `testing`      | `dr add testing test-case ...`              |
 
 **Key Rules:**
+
 - ✅ Use hyphens for compound names: `data-model`, `data-store`
 - ✅ Use lowercase
 - ❌ Don't use underscores: `data_model` is wrong
@@ -90,6 +97,7 @@ dr export markdown                  # Export to Markdown docs
 **Format:** `{layer}.{type}.{kebab-case-name}`
 
 **Examples:**
+
 ```
 motivation.goal.improve-customer-satisfaction
 business.capability.order-management
@@ -101,6 +109,7 @@ security.authentication-policy.oauth2
 ```
 
 **Rules:**
+
 - Layer: Canonical name (see above)
 - Type: Element type (lowercase)
 - Name: Kebab-case (words separated by hyphens)
@@ -110,20 +119,20 @@ security.authentication-policy.oauth2
 
 ## Common Element Types by Layer
 
-| Layer | Types |
-|-------|-------|
-| motivation | goal, requirement, constraint |
-| business | capability, service, process |
-| security | authentication-policy, authorization-policy, data-protection |
-| application | service, component |
-| technology | platform, infrastructure, framework |
-| api | operation, endpoint |
-| data-model | object-schema, field, constraint |
-| data-store | database, table, index |
-| ux | page, component, flow |
-| navigation | page, link, menu |
-| apm | metric, trace, log |
-| testing | test-case, test-plan, test-data |
+| Layer       | Types                                                        |
+| ----------- | ------------------------------------------------------------ |
+| motivation  | goal, requirement, constraint                                |
+| business    | capability, service, process                                 |
+| security    | authentication-policy, authorization-policy, data-protection |
+| application | service, component                                           |
+| technology  | platform, infrastructure, framework                          |
+| api         | operation, endpoint                                          |
+| data-model  | object-schema, field, constraint                             |
+| data-store  | database, table, index                                       |
+| ux          | page, component, flow                                        |
+| navigation  | page, link, menu                                             |
+| apm         | metric, trace, log                                           |
+| testing     | test-case, test-plan, test-data                              |
 
 ---
 
@@ -131,20 +140,21 @@ security.authentication-policy.oauth2
 
 ### Common Relationships
 
-| Relationship | Valid Directions | Meaning |
-|---|---|---|
-| `realizes` | application → business | Services implement capabilities |
-| `satisfied-by` | business → motivation | Capabilities satisfy goals |
-| `exposes` | application → api | Services expose operations |
-| `uses` | api → data-model | Operations use data models |
-| `stores` | data-store → data-model | Databases store models |
-| `protected-by` | application → security | Services are protected by policies |
-| `complies-with` | application → security | Services comply with regulations |
-| `depends-on` | application → application | Service dependencies |
-| `monitors` | apm → application | Metrics monitor services |
-| `validates` | testing → application | Tests validate services |
+| Relationship    | Valid Directions          | Meaning                            |
+| --------------- | ------------------------- | ---------------------------------- |
+| `realizes`      | application → business    | Services implement capabilities    |
+| `satisfied-by`  | business → motivation     | Capabilities satisfy goals         |
+| `exposes`       | application → api         | Services expose operations         |
+| `uses`          | api → data-model          | Operations use data models         |
+| `stores`        | data-store → data-model   | Databases store models             |
+| `protected-by`  | application → security    | Services are protected by policies |
+| `complies-with` | application → security    | Services comply with regulations   |
+| `depends-on`    | application → application | Service dependencies               |
+| `monitors`      | apm → application         | Metrics monitor services           |
+| `validates`     | testing → application     | Tests validate services            |
 
 ### Relationship Direction Rule
+
 - Always flows from implementation toward abstraction
 - Cannot go backwards (no circular dependencies)
 - API → Data Model → Database (never reverse)
@@ -169,6 +179,7 @@ OPTIONS # Describe communication options
 ## Common Parameters
 
 ### Element Properties
+
 ```bash
 --name "Human Readable Name"        # Display name
 --description "What this does"      # Description
@@ -176,6 +187,7 @@ OPTIONS # Describe communication options
 ```
 
 ### API Operation Properties
+
 ```bash
 --method GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS
 --path "/api/v1/resource"
@@ -183,6 +195,7 @@ OPTIONS # Describe communication options
 ```
 
 ### Data Model Field Properties
+
 ```bash
 --data-type string|number|boolean|object|array|etc
 --is-required true|false
@@ -194,6 +207,7 @@ OPTIONS # Describe communication options
 ## Common Command Patterns
 
 ### Complete REST API Workflow
+
 ```bash
 # 1. Create project
 dr init my-api
@@ -243,6 +257,7 @@ dr validate
 ```
 
 ### Add Security Controls
+
 ```bash
 # Create security policy
 dr add security authentication-policy oauth2
@@ -255,6 +270,7 @@ dr add relationship \
 ```
 
 ### Create Microservice
+
 ```bash
 # Service
 dr add application service inventory-service
@@ -291,14 +307,14 @@ dr add relationship --from data-store.database.inventory-db --to data-model.obje
 
 ## Troubleshooting Quick Fix
 
-| Problem | Solution |
-|---------|----------|
-| "Invalid layer name" | Check hyphens: use `data-model` and `data-store` |
-| "Invalid element ID format" | Check format: `{layer}.{type}.{kebab-case}` |
-| "Element not found" | Create element before creating relationships to it |
-| "Invalid relationship type" | Check relationship is allowed for these layers |
+| Problem                        | Solution                                                      |
+| ------------------------------ | ------------------------------------------------------------- |
+| "Invalid layer name"           | Check hyphens: use `data-model` and `data-store`              |
+| "Invalid element ID format"    | Check format: `{layer}.{type}.{kebab-case}`                   |
+| "Element not found"            | Create element before creating relationships to it            |
+| "Invalid relationship type"    | Check relationship is allowed for these layers                |
 | "Relationship direction wrong" | Remember: higher → lower layers, implementation → abstraction |
-| "Element already exists" | Use a different name or kebab-case format |
+| "Element already exists"       | Use a different name or kebab-case format                     |
 
 ---
 
@@ -340,6 +356,7 @@ CRITICAL    # Essential, must always be available
 ```
 
 **Example:**
+
 ```bash
 dr add application service payment-service --criticality CRITICAL
 dr add application service logging-service --criticality MEDIUM
@@ -350,6 +367,7 @@ dr add application service logging-service --criticality MEDIUM
 ## Common Mistakes & Fixes
 
 **Mistake 1: Underscore instead of hyphen**
+
 ```bash
 # ❌ Wrong
 dr add data_model object-schema user
@@ -359,6 +377,7 @@ dr add data-model object-schema user
 ```
 
 **Mistake 2: Element name with spaces**
+
 ```bash
 # ❌ Wrong
 dr add motivation goal improve customer satisfaction
@@ -368,6 +387,7 @@ dr add motivation goal improve-customer-satisfaction
 ```
 
 **Mistake 3: Relationship in wrong direction**
+
 ```bash
 # ❌ Wrong (backwards)
 dr add relationship \
@@ -383,6 +403,7 @@ dr add relationship \
 ```
 
 **Mistake 4: Relationship to non-existent element**
+
 ```bash
 # ❌ Wrong (element doesn't exist)
 dr add relationship \

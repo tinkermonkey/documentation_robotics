@@ -292,7 +292,7 @@ dr add business service --name "Payment" --property criticality=high
 
 **If CLI command fails**: Read error → Fix parameters → Retry
 
-**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict `
+**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict`
 
 ## Intent Routing
 
@@ -406,7 +406,7 @@ Your first task is always to **understand what the user wants** and route to the
 Always validate cross-layer relationships after structural changes:
 
 ```bash
-dr validate 
+dr validate
 ```
 
 Check for:
@@ -467,7 +467,7 @@ dr validate --layer application
 # 3. Link layers
 dr update api.operation.create-order \
   --property x-archimate-ref=application.service.order-service
-dr validate 
+dr validate
 
 # 4. Review and apply
 dr changeset diff
@@ -489,11 +489,11 @@ $ dr add api operation --name "X" --property path="/api/x" --property method="GE
 **If validation fails:**
 
 ```bash
-$ dr validate 
+$ dr validate
 ✗ Error: Missing reference application.service.order-api
 # Fix: Create missing element
 $ dr add application service --name "Order API"
-$ dr validate 
+$ dr validate
 ✅ Pass
 ```
 
@@ -537,7 +537,7 @@ Next: dr changeset diff → fix warnings → dr changeset apply
 
 - [ ] All via CLI (no manual YAML)
 - [ ] `dr validate --strict` passes
-- [ ] `dr validate ` passes
+- [ ] `dr validate` passes
 - [ ] `dr changeset diff` reviewed
 - [ ] Low confidence elements verified
 
@@ -598,7 +598,7 @@ Idea → Questions → Research → Model → Validate → Decide
 6. **Validate**
 
    ```bash
-   dr validate 
+   dr validate
    ```
 
 7. **Compare with Main**
@@ -845,7 +845,7 @@ dr changeset abandon <changeset-id>
 5. **Validate thoroughly:**
 
    ```bash
-   dr validate --strict  
+   dr validate --strict
    ```
 
 6. **Report results:**
@@ -982,26 +982,26 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                            |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
-| Update element   | `dr update <element-id> --property key=value`   | `dr update business.service.orders --property criticality=high` |
-| Update with spec | `dr update <element-id> --spec file.yaml`  | `dr update business.service.orders --spec updates.yaml`    |
-| Find element     | `dr show <element-id>`                             | `dr show business.service.orders`                                  |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
-| Remove element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                                |
+| Task             | Command                                            | Example                                                         |
+| ---------------- | -------------------------------------------------- | --------------------------------------------------------------- |
+| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                       |
+| Update element   | `dr update <element-id> --property key=value`      | `dr update business.service.orders --property criticality=high` |
+| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`         |
+| Find element     | `dr show <element-id>`                             | `dr show business.service.orders`                               |
+| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                   |
+| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                           |
+| Remove element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                             |
 
 ### Validation Operations
 
-| Task                           | Command                                       | Example                                       |
-| ------------------------------ | --------------------------------------------- | --------------------------------------------- |
-| Basic validation               | `dr validate`                                 | `dr validate`                                 |
-| Strict validation              | `dr validate --strict`                        | `dr validate --strict`                        |
-| Validate links                 | `dr validate `                | `dr validate `                |
-| Strict relationship validation | `dr validate  ` | `dr validate  ` |
-| Layer-specific                 | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
-| JSON output                    | `dr validate --output json`                   | `dr validate --output json > report.json`     |
+| Task                           | Command                       | Example                                   |
+| ------------------------------ | ----------------------------- | ----------------------------------------- |
+| Basic validation               | `dr validate`                 | `dr validate`                             |
+| Strict validation              | `dr validate --strict`        | `dr validate --strict`                    |
+| Validate links                 | `dr validate`                | `dr validate`                            |
+| Strict relationship validation | `dr validate`               | `dr validate`                           |
+| Layer-specific                 | `dr validate --layer <layer>` | `dr validate --layer application`         |
+| JSON output                    | `dr validate --output json`   | `dr validate --output json > report.json` |
 
 ### Link Operations
 
@@ -1011,7 +1011,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
 | List all links          | `dr links list`                    | `dr links list`                                                     |
 | Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links          | `dr validate `     | `dr validate `                                      |
+| Validate links          | `dr validate`                     | `dr validate`                                                      |
 | Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations
@@ -1197,7 +1197,7 @@ Would you like me to address these patterns?
 
 Next steps:
 1. Review changeset: dr changeset diff
-2. Validate links: dr validate 
+2. Validate links: dr validate
 3. Add missing business goals (I found 5 services without goals)
 4. Apply changeset when ready: dr changeset apply
 ```
@@ -1209,7 +1209,7 @@ Next steps:
 After any structural change:
 
 ```bash
-dr validate --strict 
+dr validate --strict
 ```
 
 ### Pattern Detection

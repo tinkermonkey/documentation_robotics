@@ -865,24 +865,24 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                            |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
-| Update element   | `dr update <element-id> --property key=value`   | `dr update business.service.orders --property criticality=high` |
-| Show element     | `dr show <element-id>`                             | `dr show business.service.orders`                                  |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
-| Delete element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                                |
+| Task            | Command                                            | Example                                                         |
+| --------------- | -------------------------------------------------- | --------------------------------------------------------------- |
+| Add element     | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                       |
+| Update element  | `dr update <element-id> --property key=value`      | `dr update business.service.orders --property criticality=high` |
+| Show element    | `dr show <element-id>`                             | `dr show business.service.orders`                               |
+| List elements   | `dr list <layer> [type]`                           | `dr list application service`                                   |
+| Search elements | `dr search <pattern>`                              | `dr search "payment"`                                           |
+| Delete element  | `dr delete <element-id>`                           | `dr delete business.service.orders`                             |
 
 ### Validation Operations
 
-| Task                           | Command                                       | Example                                       |
-| ------------------------------ | --------------------------------------------- | --------------------------------------------- |
-| Basic validation               | `dr validate`                                 | `dr validate`                                 |
-| Strict validation              | `dr validate --strict`                        | `dr validate --strict`                        |
-| Cross-layer relationship check | `dr validate --strict`                        | `dr validate --strict`                        |
-| Layer-specific                 | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
-| JSON output                    | `dr validate --output json`                   | `dr validate --output json > report.json`     |
+| Task                           | Command                       | Example                                   |
+| ------------------------------ | ----------------------------- | ----------------------------------------- |
+| Basic validation               | `dr validate`                 | `dr validate`                             |
+| Strict validation              | `dr validate --strict`        | `dr validate --strict`                    |
+| Cross-layer relationship check | `dr validate --strict`        | `dr validate --strict`                    |
+| Layer-specific                 | `dr validate --layer <layer>` | `dr validate --layer application`         |
+| JSON output                    | `dr validate --output json`   | `dr validate --output json > report.json` |
 
 ### Link Operations
 
@@ -892,7 +892,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
 | List all links          | `dr links list`                    | `dr links list`                                                     |
 | Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links          | `dr validate --strict`     | `dr validate --strict`                                      |
+| Validate links          | `dr validate --strict`             | `dr validate --strict`                                              |
 | Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations

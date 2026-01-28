@@ -86,9 +86,9 @@ This document provides a comprehensive guide to verifying the complete telemetry
   ```yaml
   telemetry:
     otlp:
-      endpoint: 'http://otel-collector:4318/v1/traces'
-      logs_endpoint: 'http://otel-collector:4318/v1/logs'
-      service_name: 'dr-cli'
+      endpoint: "http://otel-collector:4318/v1/traces"
+      logs_endpoint: "http://otel-collector:4318/v1/logs"
+      service_name: "dr-cli"
   ```
 
 - **Integration with initTelemetry()**:

@@ -9,6 +9,7 @@ This guide walks you through migrating changesets from the old `.dr/` directory 
 The DR CLI has evolved to use a new changeset storage format with improved metadata management and staging capabilities. This migration is **optional but recommended** for projects using the older changeset format.
 
 **Key Changes:**
+
 - **Old format**: `.dr/changesets/{name}.json` (flat structure)
 - **New format**: `documentation-robotics/changesets/{id}/metadata.yaml + changes.yaml` (structured directories)
 - **Status mapping**: `draft` → `staged`, `applied` → `committed`, `reverted` → `discarded`
@@ -19,21 +20,25 @@ The DR CLI has evolved to use a new changeset storage format with improved metad
 ### Before You Migrate
 
 1. **Backup your repository**: This is critical. Create a git commit or full backup of your project before proceeding.
+
    ```bash
    git add -A && git commit -m "Pre-migration backup"
    ```
 
 2. **Stop active CLI operations**: Ensure no other CLI processes are running that might access changesets.
+
    ```bash
    ps aux | grep "dr"  # Check for running DR processes
    ```
 
 3. **Review changeset status**: Understand which changesets will be migrated and their current status.
+
    ```bash
    dr changeset list
    ```
 
 4. **Check migration readiness**: Validate that all changesets are compatible.
+
    ```bash
    dr changeset validate-migration
    ```
@@ -57,6 +62,7 @@ dr changeset validate-migration
 ```
 
 This command will:
+
 - Detect old-format changesets
 - Check for already-migrated changesets
 - Validate changeset structure
@@ -64,6 +70,7 @@ This command will:
 - Show warnings if all changesets are already migrated
 
 **Expected output:**
+
 ```
 ✓ Validation complete
 
@@ -83,12 +90,14 @@ dr changeset migrate --dry-run
 ```
 
 This shows:
+
 - How many changesets will be migrated
 - Status mapping for each changeset
 - Any potential issues
 - A summary of changes
 
 **Expected output:**
+
 ```
 Migration Preview (dry-run mode)
 
@@ -116,6 +125,7 @@ dr changeset migrate --backup
 ```
 
 This creates:
+
 - Backup directory: `.dr.backup/changesets/`
 - Preserves old format for rollback
 - Enables recovery if migration fails
@@ -129,6 +139,7 @@ dr changeset migrate
 ```
 
 This performs:
+
 1. Pre-migration validation
 2. Backup creation (if not already done)
 3. Changeset format conversion
@@ -137,6 +148,7 @@ This performs:
 6. Cleanup of old format (optional)
 
 **Expected output:**
+
 ```
 ✓ Migration complete
 
@@ -164,6 +176,7 @@ dr changeset list
 ```
 
 Confirm:
+
 - All changesets appear with correct names
 - Statuses are properly mapped
 - Change counts match original changesets
@@ -173,11 +186,11 @@ Confirm:
 
 Understanding how statuses change during migration:
 
-| Old Status | New Status | Meaning |
-|------------|------------|---------|
-| `draft` | `staged` | In-progress changesets moved to staging area |
-| `applied` | `committed` | Already-applied changes marked as committed |
-| `reverted` | `discarded` | Reverted changes marked as discarded |
+| Old Status | New Status  | Meaning                                      |
+| ---------- | ----------- | -------------------------------------------- |
+| `draft`    | `staged`    | In-progress changesets moved to staging area |
+| `applied`  | `committed` | Already-applied changes marked as committed  |
+| `reverted` | `discarded` | Reverted changes marked as discarded         |
 
 **Important**: Staged changesets are in the staging area and require explicit commit to be applied to the model.
 
@@ -190,10 +203,13 @@ If the migration process encounters an error:
 1. **Automatic rollback**: The CLI automatically rolls back on failure.
 2. **Check backup**: Verify `.dr.backup/changesets/` exists.
 3. **Restore manually**: If automatic rollback fails:
+
    ```bash
    cp -r .dr.backup/changesets .dr/changesets
    ```
+
 4. **Verify restoration**: Check that old changesets are accessible:
+
    ```bash
    dr changeset list
    ```
@@ -203,22 +219,26 @@ If the migration process encounters an error:
 To revert a successful migration:
 
 1. **Restore from backup**:
+
    ```bash
    dr changeset rollback-migration --from-backup
    ```
 
    Or manually:
+
    ```bash
    rm -rf documentation-robotics/changesets
    cp -r .dr.backup/changesets .dr/changesets
    ```
 
 2. **Verify restoration**:
+
    ```bash
    dr changeset list
    ```
 
 3. **Commit to git**:
+
    ```bash
    git add -A && git commit -m "Reverted changeset migration"
    ```
@@ -242,12 +262,16 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Migration failed and backup is missing.
 
 **Solutions**:
+
 1. Check if `.dr.backup/` exists in parent directories
 2. Try rollback with force:
+
    ```bash
    dr changeset rollback-migration --force
    ```
+
 3. Manually restore from git:
+
    ```bash
    git checkout HEAD -- .dr/changesets/
    ```
@@ -257,15 +281,20 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Some changesets couldn't be migrated.
 
 **Solutions**:
+
 1. Review error messages to identify problematic changesets
 2. Run validation again:
+
    ```bash
    dr changeset validate-migration
    ```
+
 3. Check changeset files for corruption:
+
    ```bash
    cat .dr/changesets/{problematic-name}.json | jq .
    ```
+
 4. Fix issues in old changesets, then re-run migration
 
 ### Issue: "Already migrated changesets skipped"
@@ -273,11 +302,15 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Some changesets appear in both old and new formats.
 
 **Solutions**:
+
 1. Remove old format if confident in new format:
+
    ```bash
    rm -rf .dr/changesets
    ```
+
 2. Or remove new format to re-migrate:
+
    ```bash
    rm -rf documentation-robotics/changesets
    dr changeset migrate
@@ -288,10 +321,13 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Changesets have unexpected statuses after migration.
 
 **Solutions**:
+
 1. Check old status values:
+
    ```bash
    cat .dr/changesets/*.json | jq '.status'
    ```
+
 2. Verify mapping is correct (see Status Mapping Reference above)
 3. If incorrect, rollback and investigate changeset files
 4. Report issue with sample changeset JSON
@@ -301,11 +337,13 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Large number of changesets causes long migration time.
 
 **Context**:
+
 - Migration processes one changeset at a time
 - For 100+ changesets, expect several seconds
 - For 1000+ changesets, expect 1+ minute
 
 **Solutions**:
+
 1. Run migration during off-hours
 2. Ensure no other processes are accessing changesets
 3. Check disk space (backup requires temporary space)
@@ -316,10 +354,13 @@ git add -A && git commit -m "Remove old changeset backup"
 **Problem**: Migration fails because other CLI processes are active.
 
 **Solutions**:
+
 1. Stop all running DR processes:
+
    ```bash
    pkill -f "dr"
    ```
+
 2. Wait for scheduled tasks to complete
 3. Disable auto-save if configured
 4. Re-run migration
@@ -384,6 +425,7 @@ This alerts you to potential conflicts before committing.
 7. **Monitor for issues**: Watch for unexpected behavior after migration.
 
 8. **Use pre-commit hooks**: Add validation to prevent accidental corruption of new format:
+
    ```bash
    pre-commit run --all-files
    ```
@@ -419,6 +461,7 @@ A: Yes, see the [Rollback Instructions](#rollback-instructions) section above.
 
 **Q: How long does migration take?**
 A: Migration is fast - typically < 1 second for 10 changesets. The time depends on:
+
 - Number of changesets
 - Size of changes in each changeset
 - Filesystem performance
@@ -491,16 +534,19 @@ Processing changesets...
 After successful migration:
 
 1. **Review Staged Changesets**: Check any `staged` changesets (previously `draft`)
+
    ```bash
    dr changeset show feature-1
    ```
 
 2. **Commit Ready Changesets**: Apply `staged` changesets to your model
+
    ```bash
    dr changeset commit feature-1
    ```
 
 3. **Archive Old Format**: Delete or archive the `.dr/` backup
+
    ```bash
    rm -rf .dr.backup
    ```
@@ -514,11 +560,13 @@ After successful migration:
 If you encounter issues not covered here:
 
 1. Check changeset validation:
+
    ```bash
    dr changeset validate-migration --verbose
    ```
 
 2. View detailed error logs:
+
    ```bash
    dr changeset migrate --verbose
    ```
@@ -556,11 +604,13 @@ documentation-robotics/
 ### Idempotence
 
 The migration is **idempotent** - running it multiple times is safe:
+
 - Already-migrated changesets are skipped (detected by ID)
 - Failed changesets can be retried
 - Partial migrations can be recovered
 
 This makes it safe to:
+
 - Retry after fixing errors
 - Re-run after adding new changesets to migrate
 - Recover from interruptions
