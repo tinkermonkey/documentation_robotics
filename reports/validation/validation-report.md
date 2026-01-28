@@ -12,6 +12,7 @@
 **Warnings**: 1
 
 ### Warnings
+
 - Entity 'ComponentConfig' has no attributes defined
 
 ## Schemas Validation
