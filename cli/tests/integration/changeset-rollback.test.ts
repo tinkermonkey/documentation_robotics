@@ -2,25 +2,22 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { Element } from '../../src/core/element.js';
-import { rm, mkdir, readFile, writeFile, cp, readdir, mkdtemp } from 'fs/promises';
+import { readFile, writeFile, readdir, mkdir } from 'fs/promises';
 import path from 'path';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
-import { fileURLToPath } from 'url';
-import { tmpdir } from 'os';
-
-const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
+import { createTestWorkdir } from '../helpers/golden-copy.js';
 
 describe('Changeset Rollback Verification', () => {
   let model: Model;
   let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Create unique temporary directory for this test
-    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'changeset-rollback-'));
-
-    // Copy baseline project
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
 
     // Eager loading required: Test validates changeset rollback functionality
     // which requires all layers loaded to verify state restoration
@@ -30,7 +27,7 @@ describe('Changeset Rollback Verification', () => {
   afterEach(async () => {
     // Clean up test directory
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }
@@ -1173,18 +1170,18 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
   // 5. Multi-layer saves are coordinated to prevent partial saves
 
   let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Create unique temporary directory for this test
-    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'backup-failure-critical-'));
-
-    await mkdir(TEST_DIR, { recursive: true });
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
   });
 
   afterEach(async () => {
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }

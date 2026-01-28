@@ -84,4 +84,22 @@ if (process.env.DEBUG_TEST_SETUP) {
   console.log(`[Setup] Golden copy will initialize asynchronously`);
 }
 
+// Set up cleanup on process exit
+// This ensures golden copy is cleaned up after all tests complete
+process.on('exit', async () => {
+  if (globalThis.__GOLDEN_COPY_INITIALIZED__) {
+    try {
+      const manager = GoldenCopyCacheManager.getInstance();
+      await manager.cleanup();
+      if (process.env.DEBUG_TEST_SETUP) {
+        console.log(`[Setup] Golden copy cleaned up on process exit`);
+      }
+    } catch (error) {
+      if (process.env.DEBUG_TEST_SETUP) {
+        console.warn(`[Setup] Error during golden copy cleanup:`, error instanceof Error ? error.message : String(error));
+      }
+    }
+  }
+});
+
 export {};

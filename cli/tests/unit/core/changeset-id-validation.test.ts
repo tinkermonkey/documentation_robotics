@@ -1,26 +1,19 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { StagingAreaManager } from '../../../src/core/staging-area.js';
 import { Model } from '../../../src/core/model.js';
-import { rm, mkdir, cp, mkdtemp } from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import { tmpdir } from 'os';
-
-const BASELINE_DIR = fileURLToPath(new URL('../../../../cli-validation/test-project/baseline', import.meta.url));
+import { createTestWorkdir } from '../../helpers/golden-copy.js';
 
 describe('Changeset ID Validation', () => {
   let model: Model;
   let manager: StagingAreaManager;
   let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Create unique temporary directory for this test
-    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'changeset-id-validation-'));
-
-    await mkdir(TEST_DIR, { recursive: true });
-
-    // Copy baseline project
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
 
     // Eager loading required: Test validates changeset ID handling across all layers
     // to ensure consistent element ID generation across the entire model
@@ -30,7 +23,7 @@ describe('Changeset ID Validation', () => {
 
   afterEach(async () => {
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }

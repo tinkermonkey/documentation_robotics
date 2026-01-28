@@ -1,25 +1,22 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
-import { rm, mkdir, readFile, writeFile, cp, readdir, chmod, mkdtemp } from 'fs/promises';
+import { rm, readFile, writeFile, readdir, chmod } from 'fs/promises';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
-import { tmpdir } from 'os';
-
-const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
+import { createTestWorkdir } from '../helpers/golden-copy.js';
 
 describe('Backup Validation Failure Paths', () => {
   let model: Model;
   let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Create unique temporary directory for this test
-    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'backup-validation-failures-'));
-
-    await mkdir(TEST_DIR, { recursive: true });
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
     // Eager loading required: Test validates backup integrity in failure scenarios
     // which requires all layers loaded to detect incomplete or corrupted backups
     model = await Model.load(TEST_DIR, { lazyLoad: false });
@@ -27,7 +24,7 @@ describe('Backup Validation Failure Paths', () => {
 
   afterEach(async () => {
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }
