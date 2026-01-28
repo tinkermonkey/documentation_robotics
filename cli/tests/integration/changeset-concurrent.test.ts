@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { rm, mkdir, cp } from 'fs/promises';
@@ -8,19 +8,15 @@ import { fileURLToPath } from 'url';
 import { mkdtemp } from 'fs/promises';
 import { tmpdir } from 'os';
 
-let TEST_DIR: string;
 const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
 
 describe('Changeset Concurrent Operations', () => {
   let model: Model;
+  let TEST_DIR: string;
 
   beforeEach(async () => {
-    // Clean test directory
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
+    // Create unique temporary directory for this test
+    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'changeset-concurrent-'));
 
     await mkdir(TEST_DIR, { recursive: true });
 
@@ -31,7 +27,7 @@ describe('Changeset Concurrent Operations', () => {
     model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     try {
       await rm(TEST_DIR, { recursive: true, force: true });
     } catch {
