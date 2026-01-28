@@ -105,7 +105,7 @@ async function addTestElements(dir: string): Promise<void> {
   // They can be added in specific tests if needed
 }
 
-describe('Visualization Server API Endpoints', () => {
+describe.serial('Visualization Server API Endpoints', () => {
   beforeEach(async () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
     testPort = await portAllocator.allocatePort();

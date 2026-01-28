@@ -48,7 +48,7 @@ afterEach(async () => {
   }
 });
 
-describe('telemetry initialization with config loading', () => {
+describe.serial('telemetry initialization with config loading', () => {
   describe('Configuration precedence in initTelemetry()', () => {
     it('should use environment variables when set (highest priority)', async () => {
       // Set environment variables

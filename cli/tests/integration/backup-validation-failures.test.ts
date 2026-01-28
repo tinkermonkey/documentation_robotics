@@ -20,6 +20,8 @@ describe('Backup Validation Failure Paths', () => {
 
     await mkdir(TEST_DIR, { recursive: true });
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
+    // Eager loading required: Test validates backup integrity in failure scenarios
+    // which requires all layers loaded to detect incomplete or corrupted backups
     model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 

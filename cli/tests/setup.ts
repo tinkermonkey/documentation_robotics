@@ -1,5 +1,5 @@
 /**
- * Phase 4: Parallel Test Execution Setup
+ * Parallel Test Execution Setup
  *
  * This file is preloaded by Bun before running tests in parallel.
  * It initializes shared resources, configures isolation, and sets up

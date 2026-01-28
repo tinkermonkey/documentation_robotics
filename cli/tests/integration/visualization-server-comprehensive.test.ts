@@ -38,6 +38,8 @@ async function createTestModel(testDir: string): Promise<Model> {
     created: new Date().toISOString(),
   };
 
+  // Eager loading required: Visualization server renders complete model in UI
+  // which requires all layers loaded upfront for comprehensive visualization
   const model = await Model.init(testDir, manifestData, { lazyLoad: false });
 
   // Manually create and add layers since init doesn't load them
@@ -89,7 +91,7 @@ async function createTestModel(testDir: string): Promise<Model> {
   return model;
 }
 
-describe('Visualization Server - Model Loading', () => {
+describe.serial('Visualization Server - Model Loading', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
@@ -165,7 +167,7 @@ describe('Visualization Server - Model Loading', () => {
   });
 });
 
-describe('Visualization Server - Annotations', () => {
+describe.serial('Visualization Server - Annotations', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
@@ -276,7 +278,7 @@ describe('Visualization Server - Annotations', () => {
 });
 
 // WebSocket tests now enabled - fixed by adding websocket handler to Bun.serve()
-describe('Visualization Server - WebSocket', () => {
+describe.serial('Visualization Server - WebSocket', () => {
   let server: VisualizationServer;
   let model: Model;
   let ws: WebSocket;
@@ -387,7 +389,7 @@ describe('Visualization Server - WebSocket', () => {
   }, 10000);
 });
 
-describe('Visualization Server - File Watching', () => {
+describe.serial('Visualization Server - File Watching', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
@@ -441,7 +443,7 @@ describe('Visualization Server - File Watching', () => {
   });
 });
 
-describe('Visualization Server - Changesets', () => {
+describe.serial('Visualization Server - Changesets', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;

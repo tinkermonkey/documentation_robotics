@@ -53,6 +53,8 @@ describe('migrate command integration', () => {
 
   describe('migration execution', () => {
     it('should apply migration and update model version', async () => {
+      // Eager loading required: Test validates schema migration across spec versions
+      // which requires all layers loaded to verify migration correctness
       const model = await Model.load(TEST_DIR, { lazyLoad: false });
       expect(model.manifest.specVersion).toBe('0.5.0');
 

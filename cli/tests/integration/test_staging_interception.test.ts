@@ -18,7 +18,7 @@ import { rm, mkdtemp } from 'fs/promises';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
 import { tmpdir } from 'os';
 
-describe('Staging Interception Integration', () => {
+describe.serial('Staging Interception Integration', () => {
   let testDir: string;
   let model: Model;
   let stagingManager: StagingAreaManager;

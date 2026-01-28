@@ -51,7 +51,7 @@ function waitForMessage(
   });
 }
 
-describe('WebSocket Connection Lifecycle', () => {
+describe.serial('WebSocket Connection Lifecycle', () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -195,7 +195,7 @@ describe('WebSocket Connection Lifecycle', () => {
   });
 });
 
-describe('WebSocket Real-time Event Streaming', () => {
+describe.serial('WebSocket Real-time Event Streaming', () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -375,7 +375,7 @@ describe('WebSocket Real-time Event Streaming', () => {
   });
 });
 
-describe('WebSocket Concurrent Client Handling', () => {
+describe.serial('WebSocket Concurrent Client Handling', () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;
@@ -571,7 +571,7 @@ describe('WebSocket Concurrent Client Handling', () => {
   });
 });
 
-describe('WebSocket Subscription Management', () => {
+describe.serial('WebSocket Subscription Management', () => {
   let server: VisualizationServer;
   let model: Model;
   let port: number;

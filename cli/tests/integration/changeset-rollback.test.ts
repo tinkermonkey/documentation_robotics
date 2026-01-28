@@ -22,7 +22,8 @@ describe('Changeset Rollback Verification', () => {
     // Copy baseline project
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
 
-    // Load model with explicit path
+    // Eager loading required: Test validates changeset rollback functionality
+    // which requires all layers loaded to verify state restoration
     model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 
@@ -1196,6 +1197,8 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 2. Uses forceRemoveBackupDir for aggressive cleanup on failure
     // 3. Logs cleanup failures but doesn't throw
 
+    // Eager loading required: Test validates backup directory cleanup after failed commits
+    // which requires all layers loaded to verify backup files are properly removed
     const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const backupBaseDir = path.join(TEST_DIR, 'documentation-robotics', '.backups');
 
@@ -1217,6 +1220,8 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 3. ONLY THEN marks changeset as 'committed'
     // 4. Updates manifest history
 
+    // Eager loading required: Test validates atomic commit sequencing
+    // which requires all layers loaded to verify proper change application order
     const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const stagingManager = new StagingAreaManager(TEST_DIR);
 
@@ -1235,6 +1240,8 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 2. Logs cleanup failures but doesn't throw
     // 3. Successful commits always succeed even if cleanup fails
 
+    // Eager loading required: Test validates graceful handling of cleanup failures
+    // which requires all layers loaded to verify model state after cleanup errors
     const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const backupBaseDir = path.join(TEST_DIR, 'documentation-robotics', '.backups');
 

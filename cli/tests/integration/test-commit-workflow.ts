@@ -26,7 +26,8 @@ describe('Atomic Commit Workflow', () => {
     testDir = path.join('/tmp', `dr-commit-test-${Date.now()}-${Math.random()}`);
     await fs.mkdir(testDir, { recursive: true });
 
-    // Initialize test model
+    // Eager loading required: Test validates atomic commit workflow with drift detection
+    // which requires all layers loaded upfront for complete state validation
     model = await Model.load(testDir, { lazyLoad: false });
     stagingManager = new StagingAreaManager(testDir, model);
   });
@@ -229,7 +230,8 @@ describe('Atomic Commit Workflow', () => {
       });
     }).toThrow();
 
-    // Reload model to verify it wasn't partially modified
+    // Eager loading required: Reload model to verify atomicity - rollback integrity test
+    // needs all layers to ensure no partial modifications occurred
     const reloadedModel = await Model.load(testDir, { lazyLoad: false });
     const reloadedLayer = await reloadedModel.getLayer('api');
     const postFailureCount = reloadedLayer?.listElements().length || 0;

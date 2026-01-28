@@ -23,7 +23,8 @@ describe('Changeset Concurrent Operations', () => {
     // Copy baseline project
     await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
 
-    // Load model
+    // Eager loading required: Test validates concurrent changeset operations
+    // which requires all layers loaded upfront to detect staging conflicts
     model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 

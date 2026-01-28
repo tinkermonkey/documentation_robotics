@@ -2,7 +2,7 @@
 root = "."
 timeoutMs = 30000
 
-# Phase 4: Parallel Test Execution Configuration
+# Parallel Test Execution Configuration
 # Enables parallel test execution using worker threads
 # Workers are set to number of CPU cores for optimal performance
 # Batching is enabled to group related tests for better cache locality

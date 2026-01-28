@@ -51,7 +51,7 @@ jobs:
 
       - name: Run fast-track tests (Critical + High priority)
         working-directory: ./cli
-        run: time npm run test:parallel:fast
+        run: time bun test --concurrent tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
 
   test-full:
     name: Full Test Suite (Parallel)
@@ -61,7 +61,7 @@ jobs:
 
     strategy:
       matrix:
-        # Phase 4: Parallel execution across multiple job instances
+        # Parallel execution across multiple job instances
         shard: [1, 2, 3, 4]
       fail-fast: false
 
@@ -98,7 +98,7 @@ jobs:
         working-directory: ./cli
         run: |
           echo "Running test shard ${{ matrix.shard }} of 4"
-          time npm run test:parallel:ci
+          time bun test --concurrent --coverage --reporter json --reporter default tests/**/*.test.ts 2>&1 | tee test-results.json
 
       - name: Upload shard coverage report
         if: always()
@@ -171,7 +171,7 @@ jobs:
               console.log(`Found test result files: ${files}`);
             }
 
-            const comment = `## Test Results (Parallel Execution - Phase 4)
+            const comment = `## Test Results (Parallel Execution)
 
             **Total Tests:** ${totalTests}
             **Passed:** ${passedTests}
