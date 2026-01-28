@@ -998,8 +998,8 @@ Use this reference when executing DR operations. All model modifications MUST us
 | ------------------------------ | ----------------------------- | ----------------------------------------- |
 | Basic validation               | `dr validate`                 | `dr validate`                             |
 | Strict validation              | `dr validate --strict`        | `dr validate --strict`                    |
-| Validate links                 | `dr validate`                | `dr validate`                            |
-| Strict relationship validation | `dr validate`               | `dr validate`                           |
+| Validate links                 | `dr validate`                 | `dr validate`                             |
+| Strict relationship validation | `dr validate`                 | `dr validate`                             |
 | Layer-specific                 | `dr validate --layer <layer>` | `dr validate --layer application`         |
 | JSON output                    | `dr validate --output json`   | `dr validate --output json > report.json` |
 
@@ -1011,7 +1011,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
 | List all links          | `dr links list`                    | `dr links list`                                                     |
 | Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links          | `dr validate`                     | `dr validate`                                                      |
+| Validate links          | `dr validate`                      | `dr validate`                                                       |
 | Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations

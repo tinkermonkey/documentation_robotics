@@ -732,12 +732,14 @@ This extension links physical tables to operational performance metrics from the
 **Purpose**: Links physical tables to operational performance metrics
 
 **Rationale**:
+
 - Database performance directly impacts user experience and business outcomes
 - Links provide complete traceability from goals through metrics
 - Enables proactive monitoring before performance degrades
 - Supports capacity planning through historical metrics
 
 **Metric Categories**:
+
 - Query Performance: latency (p50, p95, p99), execution plans, slow queries
 - Table Metrics: size, growth rate, vacuum/analyze statistics, bloat
 - Index Health: hit rate, size, unused indexes, bloat
@@ -745,11 +747,13 @@ This extension links physical tables to operational performance metrics from the
 - Connection Metrics: active connections, transaction duration, deadlocks
 
 **Example Usage** (in table COMMENT):
+
 ```sql
 x-apm-performance-metrics: metric-orders-query-latency-p95,metric-orders-write-throughput
 ```
 
 **Benefits**:
+
 - Complete traceability: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
 - Proactive monitoring: Alerts before performance degrades to user-impacting levels
 - Capacity planning: Historical trends inform scaling decisions
@@ -766,12 +770,14 @@ This extension links physical tables to operational data quality metrics from th
 
 **Rationale**:
 Physical data quality monitoring complements logical schema validation:
+
 - **Logical Layer (07)**: Validates data matches schema contracts (JSON Schema validation, pre-persistence)
 - **Physical Layer (08)**: Monitors database integrity constraints and operational quality (post-persistence)
 
 Both layers are necessary for complete data quality governance.
 
 **Metric Categories**:
+
 - Constraint Violations: CHECK, UNIQUE, NOT NULL failures
 - Referential Integrity: foreign key violations, orphaned records, cascading impacts
 - Data Completeness: null values, missing relationships, incomplete records
@@ -779,15 +785,18 @@ Both layers are necessary for complete data quality governance.
 - Operational Metrics: daily record counts, anomalies, unexpected modifications
 
 **Example Usage** (in table COMMENT):
+
 ```sql
 x-apm-data-quality-metrics: metric-transactions-fk-violation-rate,metric-transactions-amount-check-failures
 ```
 
 **Distinction from Layer 07**:
+
 - Layer 07 (logical): Schema validation, format/type/range checks, pre-persistence
 - Layer 08 (physical): Constraint enforcement, post-persistence, cross-record checks, anomaly detection
 
 **Benefits**:
+
 - Database integrity monitoring: Detect constraint violations in real-time
 - Compliance validation: Prove data meets regulatory requirements at database level
 - Anomaly detection: Identify unexpected data patterns (sudden record count changes)
@@ -1007,9 +1016,9 @@ MigrationFile:
 
   enums:
     MigrationType:
-      - schema     # Schema changes (DDL)
-      - data       # Data migrations (DML)
-      - seed       # Initial data seeding
+      - schema # Schema changes (DDL)
+      - data # Data migrations (DML)
+      - seed # Initial data seeding
 
   examples:
     - name: "V001__create_products_table.sql"
