@@ -179,9 +179,12 @@ export async function createTestWorkdir(): Promise<{
             console.log(`Test workdir cleaned up: ${testDir}`);
           }
         } catch (error) {
-          if (process.env.DEBUG_GOLDEN_COPY) {
-            console.warn(`Failed to clean up test workdir ${testDir}:`, error);
-          }
+          // Always log cleanup errors - they can cause disk space issues
+          console.error(
+            `[GoldenCopy] ERROR: Failed to clean up test workdir at ${testDir}. ` +
+            `This may cause disk space issues. ` +
+            `Error: ${error instanceof Error ? error.message : String(error)}`
+          );
         }
       },
     };
@@ -189,8 +192,14 @@ export async function createTestWorkdir(): Promise<{
     // Attempt cleanup on error
     try {
       await rm(testDir, { recursive: true, force: true });
-    } catch {
-      // Ignore cleanup errors
+    } catch (cleanupError) {
+      // Log cleanup failures even in error paths
+      console.error(
+        `[GoldenCopy] ERROR: Test workdir creation failed AND cleanup failed. ` +
+        `Orphaned directory may exist at ${testDir}. ` +
+        `Creation error: ${error instanceof Error ? error.message : String(error)}. ` +
+        `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+      );
     }
     throw new Error(
       `Failed to create test workdir: ${error instanceof Error ? error.message : String(error)}`
@@ -225,9 +234,12 @@ export async function cleanupGoldenCopy(): Promise<void> {
         console.log(`Golden copy cleaned up: ${goldenCopyPath}`);
       }
     } catch (error) {
-      if (process.env.DEBUG_GOLDEN_COPY) {
-        console.warn(`Failed to clean up golden copy ${goldenCopyPath}:`, error);
-      }
+      // Always log cleanup errors
+      console.error(
+        `[GoldenCopy] ERROR: Failed to clean up golden copy at ${goldenCopyPath}. ` +
+        `This may cause disk space issues. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
     goldenCopyPath = null;
   }

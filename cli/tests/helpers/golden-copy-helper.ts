@@ -108,12 +108,13 @@ export async function createTestModelWithGoldenCopy(
       throw error;
     }
 
-    if (process.env.DEBUG_GOLDEN_COPY) {
-      console.warn(
-        `[GoldenCopy] Failed to use golden copy, falling back to createTestModel:`,
-        error instanceof Error ? error.message : String(error)
-      );
-    }
+    // Always log the fallback - users need to know they're losing the performance optimization
+    console.warn(
+      `[GoldenCopy] WARNING: Failed to use golden copy optimization, ` +
+      `falling back to slower fresh model creation. ` +
+      `This reduces test performance by 1.3-4x. ` +
+      `Error: ${error instanceof Error ? error.message : String(error)}`
+    );
 
     // Fall back to original behavior
     const { createTestModel } = await import('./test-fixtures.js');

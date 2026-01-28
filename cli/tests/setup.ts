@@ -95,19 +95,23 @@ if (process.env.DEBUG_TEST_SETUP) {
 }
 
 // Set up cleanup on process exit
-// This ensures golden copy is cleaned up after all tests complete
-process.on('exit', async () => {
+// The 'exit' event is synchronous, so we use 'beforeExit' for async cleanup
+// beforeExit is fired when the event loop drains with no pending work
+process.on('beforeExit', async () => {
   if (globalThis.__GOLDEN_COPY_INITIALIZED__) {
     try {
       const manager = GoldenCopyCacheManager.getInstance();
       await manager.cleanup();
       if (process.env.DEBUG_TEST_SETUP) {
-        console.log(`[Setup] Golden copy cleaned up on process exit`);
+        console.log(`[Setup] Golden copy cleaned up on process beforeExit`);
       }
     } catch (error) {
-      if (process.env.DEBUG_TEST_SETUP) {
-        console.warn(`[Setup] Error during golden copy cleanup:`, error instanceof Error ? error.message : String(error));
-      }
+      // Always log cleanup errors, not just in debug mode
+      console.error(
+        `[Setup] ERROR: Failed to clean up golden copy cache. ` +
+        `This may cause disk space issues. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 });

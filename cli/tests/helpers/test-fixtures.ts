@@ -73,13 +73,12 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
         };
       }
     } catch (error) {
-      // Log but don't fail - fall through to normal creation
-      if (process.env.DEBUG_GOLDEN_COPY) {
-        console.warn(
-          `[Fixtures] Golden copy unavailable, falling back to createTestModel:`,
-          error instanceof Error ? error.message : String(error)
-        );
-      }
+      // Always log when falling back - users need to know they're losing the performance optimization
+      console.warn(
+        `[Fixtures] WARNING: Golden copy unavailable, falling back to slower fresh model creation. ` +
+        `This reduces test performance by 1.3-4x. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 
@@ -192,39 +191,40 @@ export async function addTestElements(
 /**
  * Populate a test model with sample data across multiple layers
  *
+ * Element IDs follow the format: {layer}.{elementType}.{kebab-case-name}
  * @param model The model to populate
  * @returns Promise that resolves when population is complete
  */
 export async function populateTestModel(model: Model): Promise<void> {
   // Motivation layer
   await addTestElements(model, 'motivation', [
-    { type: 'goal', id: 'motivation-goal-test-1', name: 'Test Goal 1' },
-    { type: 'requirement', id: 'motivation-requirement-test-1', name: 'Test Requirement 1' },
+    { type: 'goal', id: 'motivation.goal.test-1', name: 'Test Goal 1' },
+    { type: 'requirement', id: 'motivation.requirement.test-1', name: 'Test Requirement 1' },
   ]);
 
   // Business layer
   await addTestElements(model, 'business', [
-    { type: 'process', id: 'business-process-test-1', name: 'Test Process 1' },
-    { type: 'service', id: 'business-service-test-1', name: 'Test Service 1' },
+    { type: 'process', id: 'business.process.test-1', name: 'Test Process 1' },
+    { type: 'service', id: 'business.service.test-1', name: 'Test Service 1' },
   ]);
 
   // Application layer
   await addTestElements(model, 'application', [
-    { type: 'component', id: 'application-component-test-1', name: 'Test Component 1' },
-    { type: 'service', id: 'application-service-test-1', name: 'Test Service 1' },
+    { type: 'component', id: 'application.component.test-1', name: 'Test Component 1' },
+    { type: 'service', id: 'application.service.test-1', name: 'Test Service 1' },
   ]);
 
   // Technology layer
   await addTestElements(model, 'technology', [
-    { type: 'infrastructure', id: 'technology-infrastructure-test-1', name: 'Test Infrastructure 1' },
-    { type: 'platform', id: 'technology-platform-test-1', name: 'Test Platform 1' },
+    { type: 'infrastructure', id: 'technology.infrastructure.test-1', name: 'Test Infrastructure 1' },
+    { type: 'platform', id: 'technology.platform.test-1', name: 'Test Platform 1' },
   ]);
 
   // API layer
   await addTestElements(model, 'api', [
     {
       type: 'endpoint',
-      id: 'api-endpoint-test-1',
+      id: 'api.endpoint.test-1',
       name: 'Test Endpoint 1',
       properties: { method: 'GET', path: '/test' },
     },
@@ -232,7 +232,7 @@ export async function populateTestModel(model: Model): Promise<void> {
 
   // Data Model layer
   await addTestElements(model, 'data-model', [
-    { type: 'entity', id: 'data-model-entity-test-1', name: 'Test Entity 1' },
+    { type: 'entity', id: 'data-model.entity.test-1', name: 'Test Entity 1' },
   ]);
 
   // Save after all additions

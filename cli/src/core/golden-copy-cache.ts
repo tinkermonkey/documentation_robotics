@@ -103,6 +103,11 @@ export class GoldenCopyCacheManager {
 
   /**
    * Get or create the singleton instance
+   *
+   * Thread-safe: If multiple threads/workers call getInstance() concurrently
+   * with different configs, the first one wins. This is acceptable because
+   * getInstance() should be called early in test setup with consistent config.
+   * Use GOLDEN_COPY_STRICT=true in tests to enforce config consistency if needed.
    */
   static getInstance(config?: GoldenCopyCacheConfig): GoldenCopyCacheManager {
     if (!GoldenCopyCacheManager.instance) {
@@ -235,9 +240,12 @@ export class GoldenCopyCacheManager {
           try {
             await rm(clonePath, { recursive: true, force: true });
           } catch (e) {
-            if (process.env.DEBUG_GOLDEN_COPY) {
-              console.warn(`[GoldenCopy] Failed to clean up clone at ${clonePath}:`, e);
-            }
+            // Always log cleanup errors - they can cause disk space issues
+            console.error(
+              `[GoldenCopy] ERROR: Failed to clean up cloned model at ${clonePath}. ` +
+              `This may cause disk space issues. ` +
+              `Error: ${e instanceof Error ? e.message : String(e)}`
+            );
           }
         },
         stats: {
@@ -248,8 +256,14 @@ export class GoldenCopyCacheManager {
       // Ensure cleanup on error
       try {
         await rm(clonePath, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors on failure
+      } catch (cleanupError) {
+        // Log cleanup failures even in error paths
+        console.error(
+          `[GoldenCopy] ERROR: Clone failed AND cleanup failed. ` +
+          `Orphaned directory may exist at ${clonePath}. ` +
+          `Clone error: ${error instanceof Error ? error.message : String(error)}. ` +
+          `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+        );
       }
       throw new Error(`Failed to clone golden copy: ${error instanceof Error ? error.message : String(error)}`);
     }
@@ -374,9 +388,12 @@ export class GoldenCopyCacheManager {
         console.log('[GoldenCopy] Stats:', this.stats);
       }
     } catch (error) {
-      if (process.env.DEBUG_GOLDEN_COPY) {
-        console.warn('[GoldenCopy] Failed to clean up cache:', error);
-      }
+      // Always log cleanup errors
+      console.error(
+        `[GoldenCopy] ERROR: Failed to clean up golden copy cache at ${this.goldenRootPath}. ` +
+        `This may cause disk space issues. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   }
 }
