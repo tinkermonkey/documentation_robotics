@@ -175,17 +175,20 @@ describe('Golden Copy Integration', () => {
         cacheDir: testCacheDir,
       });
 
-      const goldenModel1 = manager.getGoldenModel();
+      // Verify initialization status before and after second init call
+      expect(manager.isInitialized()).toBe(true);
+      const statsBeforeReinit = manager.getStats();
 
       // Call init again
       await initializeGoldenCopy({
         cacheDir: testCacheDir,
       });
 
-      const goldenModel2 = manager.getGoldenModel();
-
-      // Should be the same instance
-      expect(goldenModel1).toBe(goldenModel2);
+      // Should still be initialized and stats should not have incremented
+      // (proving no reinitialization occurred)
+      expect(manager.isInitialized()).toBe(true);
+      const statsAfterReinit = manager.getStats();
+      expect(statsAfterReinit.initCount).toBe(statsBeforeReinit.initCount);
     });
   });
 

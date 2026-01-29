@@ -140,10 +140,59 @@ export async function createTestWorkdir(): Promise<{
   const testId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
   const testDir = join(tmpdir(), `dr-test-${testId}`);
 
+  let copyAttempts = 0;
+  const maxCopyAttempts = 3;
+  let lastCopyError: Error | null = null;
+
   try {
-    await mkdir(testDir, { recursive: true });
-    // Copy golden copy to test directory
-    await cp(golden, testDir, { recursive: true });
+    // Attempt to copy with retries for race conditions
+    for (copyAttempts = 0; copyAttempts < maxCopyAttempts; copyAttempts++) {
+      try {
+        await mkdir(testDir, { recursive: true });
+        // Copy golden copy to test directory with timeout
+        await Promise.race([
+          cp(golden, testDir, { recursive: true }),
+          new Promise((_, reject) =>
+            setTimeout(() => reject(new Error('Copy operation timed out after 30s')), 30000)
+          ),
+        ]);
+
+        // After copy, add explicit sync to ensure all filesystem operations are flushed
+        // This is a workaround for concurrent test execution race conditions
+        if (process.platform !== 'win32') {
+          try {
+            // Try to access a key file to force filesystem sync
+            const { spawnSync } = await import('child_process');
+            spawnSync('sync', [], { stdio: 'ignore' });
+          } catch {
+            // Ignore sync errors on systems that don't support it
+          }
+        }
+
+        // Verify filesystem is ready for the test directory
+        // This is critical for concurrent test execution
+        // Use higher retry count for test directory since it just had a large copy operation
+        await verifyFilesystemReady(testDir, 20);
+        break; // Success
+      } catch (error) {
+        lastCopyError = error instanceof Error ? error : new Error(String(error));
+        if (copyAttempts < maxCopyAttempts - 1) {
+          // Clean up partial copy before retrying
+          try {
+            await rm(testDir, { recursive: true, force: true });
+          } catch {
+            // Ignore cleanup errors during retry
+          }
+          // Wait before retrying
+          const backoffMs = 100 * Math.pow(2, copyAttempts);
+          await new Promise(resolve => setTimeout(resolve, backoffMs));
+        }
+      }
+    }
+
+    if (copyAttempts === maxCopyAttempts && lastCopyError) {
+      throw lastCopyError;
+    }
 
     if (process.env.DEBUG_GOLDEN_COPY) {
       console.log(`Test workdir created at: ${testDir}`);
@@ -265,6 +314,18 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
       // Check that manifest exists (key indicator of successful copy)
       const manifestPath = join(path, 'documentation-robotics', 'model', 'manifest.yaml');
       await access(manifestPath);
+
+      // Check that key layer directories exist (especially the problematic testing layer)
+      const testingLayerPath = join(path, 'documentation-robotics', 'model', '12_testing');
+      await access(testingLayerPath);
+
+      // Verify that all expected YAML files in testing layer are accessible
+      // This helps catch filesystem sync issues during concurrent test execution
+      const expectedTestingFiles = ['input-space-partitions.yaml', 'test-case-sketchs.yaml', 'test-coverage-models.yaml'];
+      for (const file of expectedTestingFiles) {
+        const filePath = join(testingLayerPath, file);
+        await access(filePath);
+      }
 
       // All checks passed, filesystem is ready
       return;
