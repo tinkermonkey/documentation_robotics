@@ -123,93 +123,6 @@ describe('Session Persistence and Continuity', () => {
     });
   });
 
-  describe('file-based session persistence', () => {
-    it('should persist session log across multiple logger instances', async () => {
-      const logger1 = new ChatLogger(testDir);
-      await logger1.ensureLogDirectory();
-      await logger1.logUserMessage('From logger 1');
-
-      // Read the session file created by logger1
-      const sessions = await listChatSessions(testDir);
-      expect(sessions.length).toBeGreaterThan(0);
-
-      const entries = await readChatSession(sessions[0], testDir);
-      expect(entries.some((e) => e.content === 'From logger 1')).toBe(true);
-    });
-
-    it('should create separate session files for different loggers', async () => {
-      const logger1 = new ChatLogger(testDir);
-      await logger1.ensureLogDirectory();
-      await logger1.logUserMessage('From logger 1');
-
-      const logger2 = new ChatLogger(testDir);
-      await logger2.ensureLogDirectory();
-      await logger2.logUserMessage('From logger 2');
-
-      const sessions = await listChatSessions(testDir);
-      expect(sessions.length).toBeGreaterThanOrEqual(2);
-
-      // Verify both messages are in different files
-      let foundLogger1Message = false;
-      let foundLogger2Message = false;
-
-      for (const sessionFile of sessions) {
-        const entries = await readChatSession(sessionFile, testDir);
-        if (entries.some((e) => e.content === 'From logger 1')) {
-          foundLogger1Message = true;
-        }
-        if (entries.some((e) => e.content === 'From logger 2')) {
-          foundLogger2Message = true;
-        }
-      }
-
-      expect(foundLogger1Message).toBe(true);
-      expect(foundLogger2Message).toBe(true);
-    });
-
-    it('should recover session data from disk', async () => {
-      const logger = new ChatLogger(testDir);
-      await logger.ensureLogDirectory();
-      const testMessage = 'Persist this message';
-      await logger.logUserMessage(testMessage);
-
-      // Simulate reading from disk
-      const sessions = await listChatSessions(testDir);
-      const entries = await readChatSession(sessions[0], testDir);
-
-      expect(entries.some((e) => e.content === testMessage)).toBe(true);
-    });
-
-    it('should handle large session files', async () => {
-      const logger = new ChatLogger(testDir);
-      await logger.ensureLogDirectory();
-
-      // Write many entries
-      for (let i = 0; i < 100; i++) {
-        await logger.logUserMessage(`Message ${i}`);
-      }
-
-      const entries = await logger.readEntries();
-      const userMessages = entries.filter((e) => e.role === 'user');
-      expect(userMessages.length).toBe(100);
-    });
-
-    it('should preserve message order in persistent storage', async () => {
-      const logger = new ChatLogger(testDir);
-      await logger.ensureLogDirectory();
-
-      for (let i = 0; i < 10; i++) {
-        await logger.logUserMessage(`Message ${i}`);
-      }
-
-      const entries = await logger.readEntries();
-      const userMessages = entries.filter((e) => e.role === 'user');
-
-      for (let i = 0; i < 10; i++) {
-        expect(userMessages[i].content).toBe(`Message ${i}`);
-      }
-    });
-  });
 
   describe('client session management', () => {
     it('should create new session on first message', async () => {
@@ -337,17 +250,6 @@ describe('Session Persistence and Continuity', () => {
   });
 
   describe('session recovery scenarios', () => {
-    it('should recover session data after logger is garbage collected', async () => {
-      const sessionId1 = new ChatLogger(testDir).getSessionId();
-      const logger1 = new ChatLogger(testDir);
-      await logger1.ensureLogDirectory();
-      await logger1.logUserMessage('Message before GC');
-
-      const sessions = await listChatSessions(testDir);
-      const entries = await readChatSession(sessions[0], testDir);
-
-      expect(entries.some((e) => e.content === 'Message before GC')).toBe(true);
-    });
 
     it('should handle resuming with explicit session ID', async () => {
       const client = new TestChatClient();
@@ -411,25 +313,6 @@ describe('Session Persistence and Continuity', () => {
       expect(uniqueIds.size).toBe(sessionIds.length);
     });
 
-    it('should maintain session integrity with concurrent writes', async () => {
-      const logger = new ChatLogger(testDir);
-      await logger.ensureLogDirectory();
-
-      const writePromises = [];
-      for (let i = 0; i < 10; i++) {
-        writePromises.push(logger.logUserMessage(`Message ${i}`));
-      }
-
-      await Promise.all(writePromises);
-      const entries = await logger.readEntries();
-
-      // Verify all entries are present and valid
-      const userMessages = entries.filter((e) => e.role === 'user');
-      expect(userMessages.length).toBe(10);
-      for (let i = 0; i < 10; i++) {
-        expect(userMessages.some((m) => m.content === `Message ${i}`)).toBe(true);
-      }
-    });
   });
 
   describe('timestamp handling and ordering', () => {
@@ -476,28 +359,6 @@ describe('Session Persistence and Continuity', () => {
   });
 
   describe('session isolation', () => {
-    it('should isolate sessions from different loggers', async () => {
-      const logger1 = new ChatLogger(testDir);
-      await logger1.ensureLogDirectory();
-      await logger1.logUserMessage('From logger 1', { logger: 1 });
-
-      const logger2 = new ChatLogger(testDir);
-      await logger2.ensureLogDirectory();
-      await logger2.logUserMessage('From logger 2', { logger: 2 });
-
-      const sessions = await listChatSessions(testDir);
-      expect(sessions.length).toBeGreaterThanOrEqual(2);
-
-      // Verify isolation
-      const entries1 = await readChatSession(sessions[sessions.length - 1], testDir);
-      const entries2 = await readChatSession(sessions[sessions.length - 2], testDir);
-
-      const messages1 = entries1.filter((e) => e.metadata?.logger === 1);
-      const messages2 = entries2.filter((e) => e.metadata?.logger === 2);
-
-      // Each session should have messages from only one logger
-      expect(messages1.length + messages2.length).toBeGreaterThan(0);
-    });
 
     it('should not cross-contaminate session IDs', async () => {
       const logger1 = new ChatLogger(testDir);

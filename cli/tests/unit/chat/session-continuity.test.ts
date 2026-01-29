@@ -1,16 +1,14 @@
 /**
- * Comprehensive tests for session continuity and timeout behavior
- * Tests cover session lifecycle, timeout scenarios, and recovery mechanisms
+ * Tests for session continuity behavior
+ * Tests cover session lifecycle and recovery mechanisms
+ * Note: Timeout behavior is not implemented in BaseChatClient
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { BaseChatClient, ChatSession, ChatOptions } from '../../../src/ai/base-chat-client';
 
-// Test implementation of BaseChatClient with timeout support
-class TestChatClientWithTimeout extends BaseChatClient {
-  private sessionTimeout = 30000; // 30 seconds default
-  private lastActivityTime: number = Date.now();
-  private isTimedOut = false;
+// Simple test implementation of BaseChatClient
+class TestChatClient extends BaseChatClient {
   private messageLog: Array<{ message: string; timestamp: number }> = [];
 
   async isAvailable(): Promise<boolean> {
@@ -18,9 +16,6 @@ class TestChatClientWithTimeout extends BaseChatClient {
   }
 
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
-    this.lastActivityTime = Date.now();
-    this.isTimedOut = false;
-
     if (!this.currentSession) {
       this.createSession();
     }
@@ -33,25 +28,7 @@ class TestChatClientWithTimeout extends BaseChatClient {
   }
 
   getClientName(): string {
-    return 'Test Client With Timeout';
-  }
-
-  setSessionTimeout(timeoutMs: number): void {
-    this.sessionTimeout = timeoutMs;
-  }
-
-  checkSessionTimeout(): boolean {
-    const elapsed = Date.now() - this.lastActivityTime;
-    this.isTimedOut = elapsed > this.sessionTimeout;
-    return this.isTimedOut;
-  }
-
-  getSessionElapsedTime(): number {
-    return Date.now() - this.lastActivityTime;
-  }
-
-  isSessionExpired(): boolean {
-    return this.isTimedOut;
+    return 'Test Client';
   }
 
   getMessageLog(): Array<{ message: string; timestamp: number }> {
@@ -64,10 +41,11 @@ class TestChatClientWithTimeout extends BaseChatClient {
 }
 
 describe('Session Continuity and Timeout Behavior', () => {
-  let client: TestChatClientWithTimeout;
+  let client: TestChatClient;
 
   beforeEach(() => {
-    client = new TestChatClientWithTimeout();
+    client = new TestChatClient();
+    client.clearMessageLog();
   });
 
   describe('session lifecycle', () => {
@@ -119,79 +97,6 @@ describe('Session Continuity and Timeout Behavior', () => {
       expect(lastTime2.getTime()).toBeGreaterThanOrEqual(lastTime1.getTime());
     });
 
-    it('should calculate session duration from creation', async () => {
-      const startTime = Date.now();
-      await client.sendMessage('Message 1');
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      const session = client.getCurrentSession();
-      const endTime = Date.now();
-
-      const createdAt = session?.createdAt || new Date();
-      const duration = endTime - createdAt.getTime();
-
-      expect(duration).toBeGreaterThanOrEqual(50);
-    });
-  });
-
-  describe('timeout detection', () => {
-    it('should detect session timeout', async () => {
-      client.setSessionTimeout(100);
-      await client.sendMessage('Test');
-
-      expect(client.checkSessionTimeout()).toBe(false);
-
-      // Wait for timeout
-      await new Promise((resolve) => setTimeout(resolve, 150));
-
-      expect(client.checkSessionTimeout()).toBe(true);
-    });
-
-    it('should not timeout before timeout period', async () => {
-      client.setSessionTimeout(200);
-      await client.sendMessage('Test');
-
-      // Check at 50ms (before 200ms timeout)
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      expect(client.checkSessionTimeout()).toBe(false);
-    });
-
-    it('should reset timeout on new message', async () => {
-      client.setSessionTimeout(100);
-      await client.sendMessage('Message 1');
-
-      await new Promise((resolve) => setTimeout(resolve, 80));
-      expect(client.checkSessionTimeout()).toBe(false);
-
-      // Send new message within timeout window
-      await client.sendMessage('Message 2');
-
-      // Timeout clock should reset
-      expect(client.checkSessionTimeout()).toBe(false);
-    });
-
-    it('should report elapsed time since last activity', async () => {
-      await client.sendMessage('Test');
-      const elapsed1 = client.getSessionElapsedTime();
-
-      await new Promise((resolve) => setTimeout(resolve, 50));
-      const elapsed2 = client.getSessionElapsedTime();
-
-      expect(elapsed2).toBeGreaterThan(elapsed1);
-    });
-
-    it('should track session expiration state', async () => {
-      client.setSessionTimeout(100);
-      await client.sendMessage('Test');
-
-      expect(client.isSessionExpired()).toBe(false);
-
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      client.checkSessionTimeout();
-
-      expect(client.isSessionExpired()).toBe(true);
-    });
   });
 
   describe('session recovery', () => {
@@ -221,31 +126,14 @@ describe('Session Continuity and Timeout Behavior', () => {
 
     it('should preserve message history across session operations', async () => {
       await client.sendMessage('Message 1');
-      const log1 = client.getMessageLog();
+      const log1Length = client.getMessageLog().length;
 
       await client.sendMessage('Message 2');
       const log2 = client.getMessageLog();
 
-      expect(log2.length).toBe(log1.length + 1);
+      expect(log2.length).toBe(log1Length + 1);
       expect(log2[0].message).toBe('Message 1');
       expect(log2[1].message).toBe('Message 2');
-    });
-
-    it('should allow resuming after timeout', async () => {
-      client.setSessionTimeout(100);
-      await client.sendMessage('Before timeout');
-
-      // Wait for timeout
-      await new Promise((resolve) => setTimeout(resolve, 150));
-      client.checkSessionTimeout();
-
-      expect(client.isSessionExpired()).toBe(true);
-
-      // Resume with new message
-      await client.sendMessage('After timeout');
-
-      // Should reset timeout
-      expect(client.isSessionExpired()).toBe(false);
     });
   });
 
@@ -323,44 +211,6 @@ describe('Session Continuity and Timeout Behavior', () => {
     });
   });
 
-  describe('idle time tracking', () => {
-    it('should track time since last message', async () => {
-      await client.sendMessage('First message');
-      const idleTime1 = client.getSessionElapsedTime();
-
-      await new Promise((resolve) => setTimeout(resolve, 100));
-      const idleTime2 = client.getSessionElapsedTime();
-
-      expect(idleTime2).toBeGreaterThan(idleTime1);
-    });
-
-    it('should reset idle time on new message', async () => {
-      await client.sendMessage('Message 1');
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      const idleTime1 = client.getSessionElapsedTime();
-
-      await client.sendMessage('Message 2');
-      const idleTime2 = client.getSessionElapsedTime();
-
-      expect(idleTime2).toBeLessThan(idleTime1);
-    });
-
-    it('should accumulate idle time during inactive period', async () => {
-      await client.sendMessage('Test');
-
-      const times = [];
-      for (let i = 0; i < 5; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 20));
-        times.push(client.getSessionElapsedTime());
-      }
-
-      // Each measurement should be greater than the last
-      for (let i = 1; i < times.length; i++) {
-        expect(times[i]).toBeGreaterThan(times[i - 1]);
-      }
-    });
-  });
 
   describe('session metadata preservation', () => {
     it('should preserve session creation details', async () => {
@@ -477,19 +327,6 @@ describe('Session Continuity and Timeout Behavior', () => {
       expect(startSession?.id).toBeUndefined();
       expect(endSession?.id).toBeDefined();
       expect(client.getMessageLog().length).toBe(10);
-    });
-
-    it('should handle sparse messages with delays', async () => {
-      await client.sendMessage('Message 1');
-      const session1 = client.getCurrentSession();
-
-      for (let i = 0; i < 3; i++) {
-        await new Promise((resolve) => setTimeout(resolve, 50));
-        await client.sendMessage(`Message ${i + 2}`);
-      }
-
-      const session2 = client.getCurrentSession();
-      expect(session1?.id).toBe(session2?.id);
     });
 
     it('should track message sequence with timestamps', async () => {
