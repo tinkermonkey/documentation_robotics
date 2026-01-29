@@ -321,7 +321,7 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
 
       // Verify that all expected YAML files in testing layer are accessible
       // This helps catch filesystem sync issues during concurrent test execution
-      const expectedTestingFiles = ['input-space-partitions.yaml', 'test-case-sketchs.yaml', 'test-coverage-models.yaml'];
+      const expectedTestingFiles = ['input-space-partitions.yaml', 'test-case-sketches.yaml', 'test-coverage-models.yaml'];
       for (const file of expectedTestingFiles) {
         const filePath = join(testingLayerPath, file);
         await access(filePath);
