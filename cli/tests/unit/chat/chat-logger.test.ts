@@ -4,15 +4,18 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { ChatLogger, ChatLogEntry, initializeChatLogger, getChatLogger, listChatSessions, readChatSession } from '../../../src/utils/chat-logger';
+import { ChatLogger, ChatLogEntry, initializeChatLogger, getChatLogger, listChatSessions, readChatSession, resetGlobalChatLogger } from '../../../src/utils/chat-logger';
 import { mkdir, rm, readFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
+import { randomUUID } from 'node:crypto';
 
 // Helper to create a temporary test directory
 async function createTestDir(): Promise<string> {
-  const dir = join(tmpdir(), `chat-logger-test-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`);
+  // Use UUID for guaranteed uniqueness across concurrent tests
+  const uniqueId = randomUUID();
+  const dir = join(tmpdir(), `chat-logger-test-${uniqueId}`);
   await mkdir(dir, { recursive: true });
   return dir;
 }
@@ -33,6 +36,7 @@ describe('ChatLogger', () => {
 
   afterEach(async () => {
     await cleanupTestDir(testDir);
+    resetGlobalChatLogger();
   });
 
   describe('initialization and directory management', () => {

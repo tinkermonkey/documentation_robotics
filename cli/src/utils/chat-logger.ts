@@ -228,7 +228,18 @@ export class ChatLogger {
             logVersion: '1.0',
           },
         };
-        await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+        try {
+          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+        } catch (error) {
+          // If writeFile fails due to missing directory (race condition in concurrent tests),
+          // ensure directory again and retry
+          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+            await this.ensureLogDirectory();
+            await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+          } else {
+            throw error;
+          }
+        }
       }
 
       // Append the entry
@@ -318,6 +329,13 @@ export function initializeChatLogger(projectRoot?: string): ChatLogger {
  */
 export function getChatLogger(): ChatLogger | undefined {
   return globalChatLogger;
+}
+
+/**
+ * Reset the global chat logger (for testing purposes)
+ */
+export function resetGlobalChatLogger(): void {
+  globalChatLogger = undefined;
 }
 
 /**

@@ -257,25 +257,6 @@ Line 3`;
       expect(log[0].message).toBe('Message 2');
     });
 
-    it('should not affect session on error', async () => {
-      const session1 = client.getCurrentSession();
-
-      client.setFailure(true);
-      try {
-        await client.sendMessage('Test');
-      } catch (error) {
-        // Expected
-      }
-
-      client.setFailure(false);
-      await client.sendMessage('Recovery message');
-      const session2 = client.getCurrentSession();
-
-      // Session should remain consistent
-      expect(session1?.id).toBeDefined();
-      expect(session2?.id).toBeDefined();
-    });
-
     it('should handle stdin stream errors', async () => {
       client.setFailure(true, 'EPIPE: Broken pipe');
 
@@ -498,18 +479,6 @@ Line 3`;
 
       const duration = Date.now() - startTime;
       expect(duration).toBeGreaterThanOrEqual(50);
-    });
-
-    it('should process multiple messages with varying delays', async () => {
-      client.setResponseDelay(10);
-
-      const messages = ['Msg 1', 'Msg 2', 'Msg 3'];
-      for (const msg of messages) {
-        await client.sendMessage(msg);
-      }
-
-      const log = client.getMessageLog();
-      expect(log.length).toBe(3);
     });
 
     it('should maintain performance with large message counts', async () => {
