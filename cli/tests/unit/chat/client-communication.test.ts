@@ -204,25 +204,29 @@ Line 3`;
     it('should catch and propagate transmission errors', async () => {
       client.setFailure(true, 'Connection failed');
 
+      let caught = false;
       try {
         await client.sendMessage('Test message');
-        expect(true).toBe(false); // Should not reach here
       } catch (error) {
+        caught = true;
         expect(error).toBeDefined();
         expect((error as Error).message).toContain('Connection failed');
       }
+      expect(caught).toBe(true);
     });
 
     it('should handle subprocess exit code errors', async () => {
       client.setFailure(true, 'Process exited with code 127');
 
+      let caught = false;
       try {
         await client.sendMessage('Test');
-        expect(true).toBe(false);
       } catch (error) {
+        caught = true;
         expect(error).toBeDefined();
         expect((error as Error).message).toContain('Process exited');
       }
+      expect(caught).toBe(true);
     });
 
     it('should handle timeout errors gracefully', async () => {

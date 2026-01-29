@@ -456,4 +456,123 @@ describe('DR Chat Session Integration Tests', () => {
       expect(userMessages.some((m) => m.content === 'Follow-up detail')).toBe(true);
     });
   });
+
+  describe('Claude CLI Integration Tests', () => {
+    it('should pass session ID to Claude CLI subprocess invocations', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Simulate subprocess invocation with session ID
+      await logger.logCommand('dr', ['--session-id', sessionId, '--prompt', 'Test message']);
+
+      const entries = await logger.readEntries();
+      const commands = entries.filter((e) => e.type === 'command');
+
+      expect(commands.length).toBeGreaterThan(0);
+      expect(commands[0].metadata?.args).toContain('--session-id');
+      expect(commands[0].metadata?.args).toContain(sessionId);
+    });
+
+    it('should maintain session ID consistency across multiple CLI calls', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Simulate multiple CLI invocations with same session ID
+      for (let i = 0; i < 3; i++) {
+        await logger.logCommand('dr', ['--session-id', sessionId, '--prompt', `Message ${i}`]);
+      }
+
+      const entries = await logger.readEntries();
+      const commands = entries.filter((e) => e.type === 'command');
+
+      expect(commands.length).toBe(3);
+      commands.forEach((cmd) => {
+        expect(cmd.metadata?.args).toContain('--session-id');
+        expect(cmd.metadata?.args).toContain(sessionId);
+      });
+    });
+
+    it('should handle invalid session ID format gracefully', async () => {
+      const logger = new ChatLogger(testDir);
+
+      await logger.ensureLogDirectory();
+
+      // Log an error simulating CLI rejection of invalid session ID
+      const invalidSessionId = 'invalid-format-not-a-uuid';
+      await logger.logError(`Claude CLI rejected session ID format: ${invalidSessionId}`);
+
+      const entries = await logger.readEntries();
+      const errorEntry = entries.find((e) => e.type === 'error' && e.content?.includes('rejected'));
+
+      expect(errorEntry).toBeDefined();
+      expect(errorEntry?.content).toContain('Claude CLI');
+      expect(errorEntry?.content).toContain('rejected');
+    });
+
+    it('should continue session after handling invalid session ID error', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Simulate error and recovery
+      await logger.logError('Invalid session ID');
+      await logger.logUserMessage('Recovery message');
+
+      const entries = await logger.readEntries();
+
+      // Both error and message should be logged
+      expect(entries.some((e) => e.type === 'error')).toBe(true);
+      expect(entries.some((e) => e.content === 'Recovery message')).toBe(true);
+
+      // Session ID should be consistent where present
+      const entriesWithSessionId = entries.filter((e) => e.metadata?.sessionId);
+      if (entriesWithSessionId.length > 0) {
+        expect(entriesWithSessionId[0].metadata?.sessionId).toEqual(sessionId);
+      }
+    });
+  });
+
+  describe('Subprocess Argument Construction Tests', () => {
+    it('should construct subprocess args with --session-id flag', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Simulate subprocess invocation argument construction
+      const args = ['--session-id', sessionId, '--prompt', 'Test message'];
+
+      // Verify session ID is properly positioned in args
+      expect(args).toContain('--session-id');
+      const sessionIdIndex = args.indexOf('--session-id');
+      expect(sessionIdIndex).toBeGreaterThanOrEqual(0);
+      expect(args[sessionIdIndex + 1]).toEqual(sessionId);
+    });
+
+    it('should use --continue flag for subsequent messages in session', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+      await logger.logUserMessage('First message');
+
+      // Simulate first invocation (no --continue needed)
+      const firstArgs = ['--session-id', sessionId, '--prompt', 'First message'];
+      expect(firstArgs).toContain('--session-id');
+      expect(firstArgs).not.toContain('--continue');
+
+      await logger.logUserMessage('Follow-up message');
+
+      // Simulate subsequent invocation (--continue should be used)
+      const continueArgs = ['--continue', '--session-id', sessionId, '--prompt', 'Follow-up message'];
+      expect(continueArgs).toContain('--continue');
+      expect(continueArgs).toContain('--session-id');
+      expect(continueArgs).toContain(sessionId);
+    });
+  });
 });

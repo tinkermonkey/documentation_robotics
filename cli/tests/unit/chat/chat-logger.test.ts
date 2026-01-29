@@ -590,12 +590,14 @@ describe('ChatLogger', () => {
     });
 
     it('should throw error for non-existent session file', async () => {
+      let caught = false;
       try {
         await readChatSession('nonexistent-file.log', testDir);
-        expect(true).toBe(false); // Should not reach here
       } catch (error) {
+        caught = true;
         expect(error).toBeDefined();
       }
+      expect(caught).toBe(true);
     });
 
     it('should parse JSON entries correctly', async () => {

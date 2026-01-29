@@ -99,12 +99,14 @@ describe('Error Scenarios and Recovery', () => {
     it('should handle timeout error', async () => {
       client.injectError('sendMessage', new Error('Request timeout after 30s'));
 
+      let caught = false;
       try {
         await client.sendMessage('Test');
-        expect(true).toBe(false);
       } catch (error) {
+        caught = true;
         expect((error as Error).message).toContain('timeout');
       }
+      expect(caught).toBe(true);
     });
 
     it('should handle broken pipe error', async () => {
