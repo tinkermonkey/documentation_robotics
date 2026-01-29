@@ -51,7 +51,10 @@ jobs:
 
       - name: Run fast-track tests (Critical + High priority)
         working-directory: ./cli
-        run: time bun test --concurrent tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
+        run: |
+          # Exclude base-manager.test.ts which requires serial execution (has describe.serial)
+          # It runs in full test suite where sharding provides better isolation
+          time bun test --concurrent tests/unit/**/*.test.ts '!tests/unit/integrations/base-manager.test.ts' tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
 
   test-full:
     name: Full Test Suite (Parallel)
