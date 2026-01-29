@@ -52,10 +52,11 @@ jobs:
       - name: Run fast-track tests (Critical + High priority)
         working-directory: ./cli
         run: |
-          # Exclude base-manager.test.ts which requires serial execution (has describe.serial)
-          # The --concurrent flag overrides describe.serial, causing race conditions on shared test variables
-          # It runs in full test suite where sharding provides better isolation
-          time bun test --concurrent $(find tests/unit -name "*.test.ts" ! -name "base-manager.test.ts") tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
+          # Exclude tests that use singleton patterns and shared state which don't work with --concurrent:
+          # - base-manager.test.ts: uses describe.serial + shared test variables
+          # - golden-copy-cache.test.ts: uses singleton GoldenCopyCacheManager + shared state
+          # Both run in full test suite where sharding provides better isolation
+          time bun test --concurrent $(find tests/unit -name "*.test.ts" ! -name "base-manager.test.ts" ! -name "golden-copy-cache.test.ts") tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
 
   test-full:
     name: Full Test Suite (Parallel)
