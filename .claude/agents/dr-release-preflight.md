@@ -282,7 +282,7 @@ cat spec/CHANGELOG.md
 cat cli/CHANGELOG.md
 ```
 
-**Same validation as spec CHANGELOG**
+### Same validation as spec CHANGELOG
 
 **Fail if:**
 
@@ -644,11 +644,11 @@ _None - all critical checks passed!_
 ### Should Fix (Warnings)
 
 1. **Update README.md version reference**
+
    ```bash
    # Update version in README.md
    sed -i 's/CLI v0.7.3/CLI v0.8.0/' README.md
    ```
-````
 
 2. **Address TODOs (optional)**
    - Can be deferred to v0.8.1 patch release
@@ -693,18 +693,15 @@ _None - all critical checks passed!_
 
 ---
 
-**Pre-flight Status: ✅ CLEARED FOR RELEASE (with warnings)**
+### Pre-flight Status: ✅ CLEARED FOR RELEASE (with warnings)
 
 You may proceed with the release. Address warnings at your discretion.
-
-```
 
 ## Error Handling
 
 ### Scenario: Tests Failing
 
-```
-
+```text
 ❌ Pre-flight FAILED: Tests not passing
 
 Unit Tests: 120/124 passed (4 failures)
@@ -730,8 +727,7 @@ Recovery:
 
 ### Scenario: CHANGELOG Missing
 
-```
-
+```text
 ❌ Pre-flight FAILED: No CHANGELOG entry
 
 File: spec/CHANGELOG.md
@@ -770,8 +766,7 @@ Example entry:
 
 ### Scenario: Schema Mismatch
 
-```
-
+```text
 ❌ Pre-flight FAILED: Schema synchronization issues
 
 3 schemas out of sync:
@@ -803,8 +798,7 @@ Continue with pre-flight? [Y/n]
 
 ### Scenario: CI/CD Failing
 
-```
-
+```text
 ❌ Pre-flight FAILED: CI/CD checks not passing
 
 GitHub Actions Status:
@@ -828,7 +822,7 @@ You can skip CI checks for local testing:
 But DO NOT release to production with failing CI!
 
 ❌ RELEASE BLOCKED
-
+```
 ````
 
 ## Best Practices
@@ -856,7 +850,7 @@ The `/dr-release-prep` slash command uses this agent:
 /dr-release-prep cli 0.8.0 minor
 /dr-release-prep spec 0.6.0 minor
 /dr-release-prep both 1.0.0 major --dry-run
-````
+```
 
 **Workflow:**
 
@@ -883,7 +877,7 @@ The `/dr-release-prep` slash command uses this agent:
 
 **Successful Pre-flight:**
 
-```
+```text
 🚀 Release Pre-flight Check
 
 Target: CLI v0.8.0 (minor), Spec v0.6.0 (minor)
@@ -928,7 +922,7 @@ Ready to release? [Y/n]
 
 **Failed Pre-flight:**
 
-```
+```text
 🚀 Release Pre-flight Check
 
 Target: CLI v0.8.0 (minor), Spec v0.6.0 (minor)

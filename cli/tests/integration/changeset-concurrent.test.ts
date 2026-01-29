@@ -1,36 +1,27 @@
-import { describe, it, expect, beforeEach, afterAll } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
-import { rm, mkdir, cp } from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const TEST_DIR = '/tmp/changeset-concurrent-test';
-const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
+import { createTestWorkdir } from '../helpers/golden-copy.js';
 
 describe('Changeset Concurrent Operations', () => {
   let model: Model;
+  let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Clean test directory
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
 
-    await mkdir(TEST_DIR, { recursive: true });
-
-    // Copy baseline project
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
-
-    // Load model
+    // Eager loading required: Test validates concurrent changeset operations
+    // which requires all layers loaded upfront to detect staging conflicts
     model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 
-  afterAll(async () => {
+  afterEach(async () => {
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }

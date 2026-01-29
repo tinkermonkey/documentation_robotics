@@ -346,12 +346,14 @@ class UnifiedValidator:
 
                     if data.get('errors'):
                         lines.append("### Errors")
+                        lines.append("")
                         for error in data['errors']:
                             lines.append(f"- {error}")
                         lines.append("")
 
                     if data.get('warnings'):
                         lines.append("### Warnings")
+                        lines.append("")
                         for warning in data['warnings']:
                             lines.append(f"- {warning}")
                         lines.append("")
@@ -394,6 +396,7 @@ def main():
         help='Report format'
     )
     parser.add_argument('--strict', action='store_true', help='Treat warnings as errors')
+    parser.add_argument('--no-output', action='store_true', help='Skip writing report files')
 
     args = parser.parse_args()
 
@@ -437,14 +440,15 @@ def main():
 
     # Generate and save report
     ext = 'json' if args.format == 'json' else 'md'
-    output_file = args.output / f'validation-report.{ext}'
+    output_file = args.output / f'validation-report.{ext}' if not args.no_output else None
     report = validator.generate_report(results, args.format, output_file)
 
-    print()
-    print("=" * 80)
-    print(f"Report saved to: {output_file}")
-    print("=" * 80)
-    print()
+    if not args.no_output:
+        print()
+        print("=" * 80)
+        print(f"Report saved to: {output_file}")
+        print("=" * 80)
+        print()
 
     # Print final summary
     print("FINAL SUMMARY:")

@@ -44,7 +44,7 @@ The spec-shaper will give you several separate responses that you MUST show to t
 
 After all steps complete, inform the user:
 
-```
+```text
 Spec shaping is complete!
 
 ✅ Spec folder created: `[spec-path]`

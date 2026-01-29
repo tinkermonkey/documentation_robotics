@@ -4,18 +4,15 @@ import { mkdir, rm } from 'fs/promises';
 import { existsSync } from 'fs';
 import path from 'path';
 
-const TEST_DIR = '/tmp/file-lock-test';
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+
+let TEST_DIR: string;
 
 describe('FileLock', () => {
   beforeEach(async () => {
-    // Clean test directory
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
-
-    await mkdir(TEST_DIR, { recursive: true });
+    // Create unique temporary directory for this test
+    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'file-lock-test-'));
   });
 
   afterEach(async () => {

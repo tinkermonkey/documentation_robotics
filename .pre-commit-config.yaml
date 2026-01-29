@@ -71,7 +71,7 @@ repos:
     hooks:
       - id: validate-markdown-specs
         name: Validate markdown layer specifications
-        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --markdown --all'
+        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --markdown --all --no-output'
         language: system
         files: ^spec/layers/.*\.md$
         pass_filenames: false
@@ -86,7 +86,7 @@ repos:
 
       - id: validate-link-registry
         name: Validate link registry is synchronized
-        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --relationships --all'
+        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --relationships --all --no-output'
         language: system
         files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
         pass_filenames: false

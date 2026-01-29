@@ -1,6 +1,11 @@
 /**
  * Test Fixtures and Model Helpers
  * Provides reusable fixtures for creating test models and elements
+ *
+ * Golden Copy Integration:
+ * - createTestModel() can now use shared golden copy for better performance
+ * - Set USE_GOLDEN_COPY=true to enable (defaults to true if available)
+ * - Falls back to original behavior if golden copy is unavailable
  */
 
 import { Model } from '../../src/core/model.js';
@@ -9,6 +14,11 @@ import { Element } from '../../src/core/element.js';
 import { mkdir, rm } from 'fs/promises';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { GoldenCopyCacheManager } from '../../src/core/golden-copy-cache.js';
+
+declare global {
+  var __GOLDEN_COPY_INITIALIZED__: boolean;
+}
 
 /**
  * Interface for test model creation options
@@ -26,6 +36,11 @@ export interface TestModelOptions {
  * Create a test model with standard configuration
  * Automatically cleans up temporary directory on creation
  *
+ * Golden Copy Enhancement: Optionally uses shared golden copy for better performance
+ * - Set USE_GOLDEN_COPY=true to enable (will attempt to use if available)
+ * - Respects DISABLE_GOLDEN_COPY=true to force fresh creation
+ * - Falls back gracefully if golden copy initialization fails
+ *
  * @param options Optional configuration for the test model
  * @returns Promise resolving to the initialized Model
  */
@@ -34,6 +49,40 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
   rootPath: string;
   cleanup: () => Promise<void>;
 }> {
+  // Check if golden copy should be used
+  const useGoldenCopy = process.env.DISABLE_GOLDEN_COPY !== 'true' &&
+                        (process.env.USE_GOLDEN_COPY === 'true' ||
+                         globalThis.__GOLDEN_COPY_INITIALIZED__ === true);
+
+  if (useGoldenCopy) {
+    try {
+      const manager = GoldenCopyCacheManager.getInstance();
+
+      // Only try to use golden copy if it's been initialized
+      if (manager.isInitialized()) {
+        const cloned = await manager.clone();
+
+        if (process.env.DEBUG_GOLDEN_COPY) {
+          console.log(`[Fixtures] Using golden copy clone (${cloned.stats.cloneTime}ms)`);
+        }
+
+        return {
+          model: cloned.model,
+          rootPath: cloned.rootPath,
+          cleanup: cloned.cleanup,
+        };
+      }
+    } catch (error) {
+      // Always log when falling back - users need to know they're losing the performance optimization
+      console.warn(
+        `[Fixtures] WARNING: Golden copy unavailable, falling back to slower fresh model creation. ` +
+        `This reduces test performance by 1.3-4x. ` +
+        `Error: ${error instanceof Error ? error.message : String(error)}`
+      );
+    }
+  }
+
+  // Fallback: Create fresh model (original behavior)
   const rootPath = join(tmpdir(), `dr-test-${Date.now()}-${Math.random().toString(36).substring(2, 11)}`);
 
   await mkdir(rootPath, { recursive: true });
@@ -58,7 +107,11 @@ export async function createTestModel(options?: TestModelOptions): Promise<{
       try {
         await rm(rootPath, { recursive: true, force: true });
       } catch (e) {
-        // Silently ignore cleanup errors
+        console.error(
+          `[GoldenCopy] ERROR: Failed to clean up test fixture directory at ${rootPath}. ` +
+          `This may cause disk space issues. ` +
+          `Error: ${e instanceof Error ? e.message : String(e)}`
+        );
       }
     },
   };
@@ -85,7 +138,7 @@ export async function addTestElement(
     properties?: Record<string, unknown>;
   }
 ): Promise<Element> {
-  let layer = model.getLayer(layerName);
+  let layer = await model.getLayer(layerName);
 
   if (!layer) {
     layer = new Layer(layerName);
@@ -142,39 +195,40 @@ export async function addTestElements(
 /**
  * Populate a test model with sample data across multiple layers
  *
+ * Element IDs follow the format: {layer}.{elementType}.{kebab-case-name}
  * @param model The model to populate
  * @returns Promise that resolves when population is complete
  */
 export async function populateTestModel(model: Model): Promise<void> {
   // Motivation layer
   await addTestElements(model, 'motivation', [
-    { type: 'goal', id: 'motivation-goal-test-1', name: 'Test Goal 1' },
-    { type: 'requirement', id: 'motivation-requirement-test-1', name: 'Test Requirement 1' },
+    { type: 'goal', id: 'motivation.goal.test-1', name: 'Test Goal 1' },
+    { type: 'requirement', id: 'motivation.requirement.test-1', name: 'Test Requirement 1' },
   ]);
 
   // Business layer
   await addTestElements(model, 'business', [
-    { type: 'process', id: 'business-process-test-1', name: 'Test Process 1' },
-    { type: 'service', id: 'business-service-test-1', name: 'Test Service 1' },
+    { type: 'process', id: 'business.process.test-1', name: 'Test Process 1' },
+    { type: 'service', id: 'business.service.test-1', name: 'Test Service 1' },
   ]);
 
   // Application layer
   await addTestElements(model, 'application', [
-    { type: 'component', id: 'application-component-test-1', name: 'Test Component 1' },
-    { type: 'service', id: 'application-service-test-1', name: 'Test Service 1' },
+    { type: 'component', id: 'application.component.test-1', name: 'Test Component 1' },
+    { type: 'service', id: 'application.service.test-1', name: 'Test Service 1' },
   ]);
 
   // Technology layer
   await addTestElements(model, 'technology', [
-    { type: 'infrastructure', id: 'technology-infrastructure-test-1', name: 'Test Infrastructure 1' },
-    { type: 'platform', id: 'technology-platform-test-1', name: 'Test Platform 1' },
+    { type: 'infrastructure', id: 'technology.infrastructure.test-1', name: 'Test Infrastructure 1' },
+    { type: 'platform', id: 'technology.platform.test-1', name: 'Test Platform 1' },
   ]);
 
   // API layer
   await addTestElements(model, 'api', [
     {
       type: 'endpoint',
-      id: 'api-endpoint-test-1',
+      id: 'api.endpoint.test-1',
       name: 'Test Endpoint 1',
       properties: { method: 'GET', path: '/test' },
     },
@@ -182,7 +236,7 @@ export async function populateTestModel(model: Model): Promise<void> {
 
   // Data Model layer
   await addTestElements(model, 'data-model', [
-    { type: 'entity', id: 'data-model-entity-test-1', name: 'Test Entity 1' },
+    { type: 'entity', id: 'data-model.entity.test-1', name: 'Test Entity 1' },
   ]);
 
   // Save after all additions

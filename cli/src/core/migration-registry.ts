@@ -76,6 +76,24 @@ export class MigrationRegistry {
         };
       },
     });
+
+    // Migration from v0.7.0 to v0.7.1: Source Code Reference Infrastructure
+    this.migrations.push({
+      fromVersion: '0.7.0',
+      toVersion: '0.7.1',
+      description: 'Source Code Reference Infrastructure (Spec v0.7.1)',
+      apply: async () => {
+        // This migration adds source code reference infrastructure
+        // - Common schema definitions in spec/schemas/common/
+        // - Source references integrated across 10 layers
+        // - Backward compatible - existing models continue to work
+        return {
+          migrationsApplied: 1,
+          filesModified: 0,
+          description: 'Spec version updated to 0.7.1 (Source Code Reference Infrastructure)',
+        };
+      },
+    });
   }
 
   /**

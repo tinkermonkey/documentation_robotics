@@ -1,6 +1,10 @@
 /**
  * Visualization Server API Endpoint Tests
  * Tests the actual HTTP API endpoints of the Bun CLI visualization server
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
+ * - Tests start/stop the visualization server requiring exclusive port access
+ * - Concurrent execution would cause port conflicts and server startup failures
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach } from 'bun:test';
@@ -105,7 +109,7 @@ async function addTestElements(dir: string): Promise<void> {
   // They can be added in specific tests if needed
 }
 
-describe('Visualization Server API Endpoints', () => {
+describe.serial('Visualization Server API Endpoints', () => {
   beforeEach(async () => {
     testDir = join(TEMP_DIR, `test-${Date.now()}`);
     testPort = await portAllocator.allocatePort();

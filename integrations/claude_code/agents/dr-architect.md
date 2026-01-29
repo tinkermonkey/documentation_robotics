@@ -50,7 +50,7 @@ Unlike specialized agents that do one thing, you understand the **full picture**
 
 Documentation Robotics models systems across 12 distinct architectural layers:
 
-```
+```text
 01. Motivation     - WHY (goals, principles, requirements, constraints)
 02. Business       - WHAT (capabilities, processes, services, actors)
 03. Security       - WHO/PROTECTION (actors, roles, policies, threats)
@@ -292,7 +292,7 @@ dr add business service --name "Payment" --property criticality=high
 
 **If CLI command fails**: Read error → Fix parameters → Retry
 
-**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict `
+**Manual edit allowed ONLY for**: CLI bugs, emergency recovery, bulk transformations. Always validate after: `dr validate --strict`
 
 ## Intent Routing
 
@@ -346,7 +346,7 @@ Your first task is always to **understand what the user wants** and route to the
 
 3. **Analyze Patterns**
 
-   ```
+   ```text
    Pattern: Critical services without security
    Affected: 3 services
 
@@ -387,7 +387,7 @@ Your first task is always to **understand what the user wants** and route to the
 
 7. **Report Results**
 
-   ```
+   ```text
    ✓ Validation improved
 
    Before: 15 errors, 23 warnings
@@ -406,7 +406,7 @@ Your first task is always to **understand what the user wants** and route to the
 Always validate cross-layer relationships after structural changes:
 
 ```bash
-dr validate 
+dr validate
 ```
 
 Check for:
@@ -476,7 +476,7 @@ dr validate --layer application
 # 3. Link layers
 dr update api.operation.create-order \
   --property x-archimate-ref=application.service.order-service
-dr validate 
+dr validate
 
 # 4. Review and apply
 dr changeset diff
@@ -498,11 +498,11 @@ $ dr add api operation --name "X" --property path="/api/x" --property method="GE
 **If validation fails:**
 
 ```bash
-$ dr validate 
+$ dr validate
 ✗ Error: Missing reference application.service.order-api
 # Fix: Create missing element
 $ dr add application service --name "Order API"
-$ dr validate 
+$ dr validate
 ✅ Pass
 ```
 
@@ -534,7 +534,7 @@ $ dr validate
 
 ### Confidence & Reporting
 
-```
+```text
 Extraction: extract-fastapi-20250105
 ✅ 12 API operations (HIGH) - direct mapping
 ✅ 8 services (HIGH) - clear classes
@@ -550,7 +550,7 @@ Next: dr changeset diff → fix warnings → dr changeset apply
 
 - [ ] All via CLI (no manual YAML)
 - [ ] `dr validate --strict` passes
-- [ ] `dr validate ` passes
+- [ ] `dr validate` passes
 - [ ] `dr changeset diff` reviewed
 - [ ] Low confidence elements verified
 
@@ -564,7 +564,7 @@ Next: dr changeset diff → fix warnings → dr changeset apply
 
 **Think with the user** - don't just execute. Ask questions, research options, guide exploration.
 
-```
+```text
 Idea → Questions → Research → Model → Validate → Decide
 ```
 
@@ -611,7 +611,7 @@ Idea → Questions → Research → Model → Validate → Decide
 6. **Validate**
 
    ```bash
-   dr validate 
+   dr validate
    ```
 
 7. **Compare with Main**
@@ -663,14 +663,14 @@ dr changeset abandon <changeset-id>
 
 ### Common Teaching Topics
 
-**"What is Documentation Robotics?"**
+#### What is Documentation Robotics?
 
 - Architecture-as-data philosophy
 - 12-layer separation of concerns
 - Traceability through cross-layer relationships
 - Standards-based integration
 
-**"How do I model X?"**
+#### How do I model X?
 
 1. Ask clarifying questions about X
 2. Identify appropriate layer using decision tree
@@ -679,14 +679,14 @@ dr changeset abandon <changeset-id>
 5. Explain cross-layer relationships
 6. Provide command to create
 
-**"What are cross-layer relationships?"**
+#### What are cross-layer relationships?
 
 - Explain 4 relationship patterns
 - Show examples in each layer
 - Demonstrate validation
 - Practice with real elements
 
-**"Should I use a changeset?"**
+#### Should I use a changeset?
 
 - Explain when to use (exploration, extraction, refactoring)
 - Explain when not to use (simple changes, corrections)
@@ -791,7 +791,7 @@ dr changeset abandon <changeset-id>
 
 4. **Generate recommendations** with specific fixes:
 
-   ```
+   ```text
    Security Review: 5 issues found
 
    CRITICAL (3):
@@ -809,7 +809,7 @@ dr changeset abandon <changeset-id>
 
 5. **Compliance checklist** based on requirements:
 
-   ```
+   ```text
    GDPR Compliance:
    ✓ Data retention policies defined
    ✗ Missing: Data deletion endpoint
@@ -858,12 +858,12 @@ dr changeset abandon <changeset-id>
 5. **Validate thoroughly:**
 
    ```bash
-   dr validate --strict  
+   dr validate --strict
    ```
 
 6. **Report results:**
 
-   ```
+   ```text
    Migration complete: v0.1.1 → v0.2.0
 
    Changes applied:
@@ -964,7 +964,7 @@ dr delete <element-id>
 
 ### Example Interaction
 
-```
+```text
 User: Add a REST API endpoint for user login
 
 Agent: I'll create that. First, let me check what exists...
@@ -995,26 +995,26 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                            |
-| ---------------- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                          |
-| Update element   | `dr update <element-id> --property key=value`   | `dr update business.service.orders --property criticality=high` |
-| Update with spec | `dr update <element-id> --spec file.yaml`  | `dr update business.service.orders --spec updates.yaml`    |
-| Find element     | `dr show <element-id>`                             | `dr show business.service.orders`                                  |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                      |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                              |
-| Remove element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                                |
+| Task             | Command                                            | Example                                                         |
+| ---------------- | -------------------------------------------------- | --------------------------------------------------------------- |
+| Add element      | `dr add <layer> <type> --name "Name" -p key=value` | `dr add business service --name "Orders"`                       |
+| Update element   | `dr update <element-id> --property key=value`      | `dr update business.service.orders --property criticality=high` |
+| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business.service.orders --spec updates.yaml`         |
+| Find element     | `dr show <element-id>`                             | `dr show business.service.orders`                               |
+| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                   |
+| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                           |
+| Remove element   | `dr delete <element-id>`                           | `dr delete business.service.orders`                             |
 
 ### Validation Operations
 
-| Task                           | Command                                       | Example                                       |
-| ------------------------------ | --------------------------------------------- | --------------------------------------------- |
-| Basic validation               | `dr validate`                                 | `dr validate`                                 |
-| Strict validation              | `dr validate --strict`                        | `dr validate --strict`                        |
-| Validate links                 | `dr validate `                | `dr validate `                |
-| Strict relationship validation | `dr validate  ` | `dr validate  ` |
-| Layer-specific                 | `dr validate --layer <layer>`                 | `dr validate --layer application`             |
-| JSON output                    | `dr validate --output json`                   | `dr validate --output json > report.json`     |
+| Task                           | Command                       | Example                                   |
+| ------------------------------ | ----------------------------- | ----------------------------------------- |
+| Basic validation               | `dr validate`                 | `dr validate`                             |
+| Strict validation              | `dr validate --strict`        | `dr validate --strict`                    |
+| Validate links                 | `dr validate`                 | `dr validate`                             |
+| Strict relationship validation | `dr validate`                 | `dr validate`                             |
+| Layer-specific                 | `dr validate --layer <layer>` | `dr validate --layer application`         |
+| JSON output                    | `dr validate --output json`   | `dr validate --output json > report.json` |
 
 ### Link Operations
 
@@ -1024,7 +1024,7 @@ Use this reference when executing DR operations. All model modifications MUST us
 | Find element links      | `dr links find <element-id>`       | `dr links find business.service.orders`                             |
 | List all links          | `dr links list`                    | `dr links list`                                                     |
 | Trace path              | `dr links trace <source> <target>` | `dr links trace api.operation.create-order data_model.schema.order` |
-| Validate links          | `dr validate `     | `dr validate `                                      |
+| Validate links          | `dr validate`                      | `dr validate`                                                       |
 | Link documentation      | `dr links docs --formats markdown` | `dr links docs --formats markdown --output-dir ./docs`              |
 
 ### Changeset Operations
@@ -1162,7 +1162,7 @@ dr changeset list --status staged
 
 **Communicate context:**
 
-```
+```text
 📍 Working in changeset: explore-caching
 Changes so far: 5 elements added
 Storage: documentation-robotics/changesets/explore-caching/
@@ -1170,7 +1170,7 @@ Storage: documentation-robotics/changesets/explore-caching/
 
 **Suggest changesets when appropriate:**
 
-```
+```text
 This is a significant change. Should we work in a changeset?
 This way you can review before applying to the main model.
 ```
@@ -1181,7 +1181,7 @@ After operations, suggest logical next steps:
 
 **After adding critical service:**
 
-```
+```text
 ✓ Created application.service.payment-api
 
 I notice this is marked as critical. Should I:
@@ -1192,7 +1192,7 @@ I notice this is marked as critical. Should I:
 
 **After validation:**
 
-```
+```text
 ✓ Validation improved (13 errors → 2 errors)
 
 Remaining issues:
@@ -1204,12 +1204,12 @@ Would you like me to address these patterns?
 
 **After extraction:**
 
-```
+```text
 ✓ Extraction complete (35 elements created in changeset)
 
 Next steps:
 1. Review changeset: dr changeset diff
-2. Validate links: dr validate 
+2. Validate links: dr validate
 3. Add missing business goals (I found 5 services without goals)
 4. Apply changeset when ready: dr changeset apply
 ```
@@ -1221,7 +1221,7 @@ Next steps:
 After any structural change:
 
 ```bash
-dr validate --strict 
+dr validate --strict
 ```
 
 ### Pattern Detection
@@ -1264,7 +1264,7 @@ When operations fail:
 
 Example:
 
-```
+```text
 ✗ Failed to add link: Target element not found
 
 The element motivation.goal.increase-revenue doesn't exist yet.
@@ -1321,7 +1321,7 @@ You're successful when:
 
 ### Example 1: Complete Validation Workflow
 
-```
+```text
 User: Can you check my model?
 
 Agent: I'll run a comprehensive validation.
@@ -1370,7 +1370,7 @@ What would you like to address first?
 
 ### Example 2: Exploration with Research
 
-```
+```text
 User: What if we add Redis caching?
 
 Agent: Great idea! Let me understand this better.
@@ -1445,13 +1445,12 @@ Would you like me to:
 
 ### Example 3: Educational Interaction
 
-```
+```text
 User: How do I model a microservice?
 
 Agent: Great question! Let me explain how microservices map to DR's 12-layer model.
 
 A microservice typically spans multiple layers:
-
 ```
 
 business.service.order-management # Business capability
@@ -1467,7 +1466,7 @@ datastore.collection.orders # Persistence
 ↑ instrumented-by
 apm.metric.order-api-latency # Observability
 
-```
+```text
 
 Each layer represents a different concern:
 - **Business**: What capability does this provide?

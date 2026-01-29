@@ -1,10 +1,25 @@
 import type { Model } from "../core/model.js";
+import type { Element } from "../core/element.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
 
 /**
+ * PlantUML element entry for diagram generation
+ * Contains element metadata and reference for rendering
+ */
+interface PlantUMLElementEntry {
+  id: string;
+  name: string;
+  type: string;
+  element: Element;
+}
+
+/**
  * PlantUML Exporter - generates PlantUML syntax for diagram visualization
  * Supports all 12 layers
+ *
+ * Exports the model as PlantUML component diagram syntax with layers,
+ * elements, relationships, and optional source references.
  */
 export class PlantUMLExporter implements Exporter {
   name = "PlantUML";
@@ -23,14 +38,14 @@ export class PlantUMLExporter implements Exporter {
     }
 
     const layersToExport = options.layers || this.supportedLayers;
-    const elementsByLayer = new Map<string, Array<{ id: string; name: string; type: string; element: any }>>();
+    const elementsByLayer = new Map<string, PlantUMLElementEntry[]>();
 
     // Collect elements by layer
     for (const layerName of layersToExport) {
       const layer = await model.getLayer(layerName);
       if (!layer) continue;
 
-      const layerElements: Array<{ id: string; name: string; type: string; element: any }> = [];
+      const layerElements: PlantUMLElementEntry[] = [];
       for (const element of layer.listElements()) {
         layerElements.push({
           id: element.id,

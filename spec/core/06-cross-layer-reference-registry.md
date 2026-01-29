@@ -375,7 +375,7 @@ The v1.0 specification will enforce standardized naming conventions:
 4. **Validate Migrated Model**
 
    ```bash
-   dr validate  
+   dr validate
    ```
 
 ### Example Migrations

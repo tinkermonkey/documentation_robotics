@@ -7,6 +7,7 @@ Welcome to Documentation Robotics! These tutorials guide you through common work
 ### For First-Time Users (15 minutes)
 
 Start with **[Simple REST API Model](01-simple-api.md)** to learn:
+
 - How to initialize a DR project
 - Adding elements across layers
 - Creating relationships
@@ -17,6 +18,7 @@ Start with **[Simple REST API Model](01-simple-api.md)** to learn:
 ### For Architecture Teams (30 minutes)
 
 Progress to **[Microservices Architecture](02-microservices.md)** to learn:
+
 - Modeling multi-service systems
 - Complex relationship patterns
 - Cross-layer traceability
@@ -24,10 +26,10 @@ Progress to **[Microservices Architecture](02-microservices.md)** to learn:
 
 **Best for:** Real-world architecture modeling
 
-
 ## Tutorial Format
 
 Each tutorial includes:
+
 - **Objective:** What you'll accomplish
 - **Prerequisites:** What to know before starting
 - **Step-by-step instructions** with CLI commands

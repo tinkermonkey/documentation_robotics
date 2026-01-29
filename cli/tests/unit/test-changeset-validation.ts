@@ -25,7 +25,8 @@ describe('ChangesetValidator - Validation on Projected Models', () => {
     testDir = path.join('/tmp', `dr-test-${Date.now()}-${Math.random()}`);
     await fs.mkdir(testDir, { recursive: true });
 
-    // Initialize test model
+    // Eager loading required: Test validates changeset operations on projected models
+    // which requires all layers loaded upfront to properly validate staged changes
     model = await Model.load(testDir, { lazyLoad: false });
     validator = new ChangesetValidator(testDir);
     stagingManager = new StagingAreaManager(testDir, model);

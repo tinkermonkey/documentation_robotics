@@ -21,6 +21,7 @@ dr init user-api
 ```
 
 **Expected output:**
+
 ```
 ✓ Initialized documentation-robotics project at /path/to/user-api-model
 ✓ Created .dr/manifest.json
@@ -46,6 +47,7 @@ dr add motivation goal secure-user-data \
 ```
 
 **Expected output for each:**
+
 ```
 ✓ Added element: motivation.goal.enable-user-registration
 ✓ Description: Allow new users to create accounts...
@@ -70,6 +72,7 @@ dr add business capability data-protection \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: business.capability.user-account-management
 ✓ Added element: business.capability.data-protection
@@ -96,6 +99,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: business.capability.user-account-management → motivation.goal.enable-user-registration (satisfied-by)
 ```
@@ -119,6 +123,7 @@ dr add application service security-service \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: application.service.user-service
 ✓ Added element: application.service.security-service
@@ -145,6 +150,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: application.service.user-service → business.capability.user-account-management (realizes)
 ```
@@ -169,6 +175,7 @@ dr add security authorization-policy role-based-access \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: security.authentication-policy.oauth2-auth
 ✓ Added element: security.authorization-policy.role-based-access
@@ -195,6 +202,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: application.service.user-service → security.authentication-policy.oauth2-auth (protected-by)
 ```
@@ -246,6 +254,7 @@ dr add api operation delete-user \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: api.operation.create-user
 ✓ Added element: api.operation.get-user
@@ -294,6 +303,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: application.service.user-service → api.operation.create-user (exposes)
 ```
@@ -334,6 +344,7 @@ dr add data-model field full-name \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: data-model.object-schema.user-profile
 ✓ Added element: data-model.field.id
@@ -361,6 +372,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: api.operation.create-user → data-model.object-schema.user-profile (uses)
 ```
@@ -378,6 +390,7 @@ dr add data-store database postgresql \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added element: data-store.database.postgresql
 ```
@@ -396,6 +409,7 @@ dr add relationship \
 ```
 
 **Expected output:**
+
 ```
 ✓ Added relationship: data-store.database.postgresql → data-model.object-schema.user-profile (stores)
 ```
@@ -411,6 +425,7 @@ dr validate
 ```
 
 **Expected output:**
+
 ```
 ✓ Validation complete
 ✓ 23 elements validated
@@ -430,6 +445,7 @@ dr info
 ```
 
 **Expected output:**
+
 ```
 Model Summary:
 - Motivation layer: 2 elements (2 goals)

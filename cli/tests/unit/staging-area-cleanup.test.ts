@@ -7,22 +7,19 @@ import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { Model } from '../../src/core/model.js';
 import path from 'path';
-import { rm } from 'fs/promises';
+import { rm, mkdtemp } from 'fs/promises';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
+import { tmpdir } from 'os';
 
 describe('StagingAreaManager - Cleanup Error Handling', () => {
   let testDir: string;
   let manager: StagingAreaManager;
   let model: Model;
-  let originalCwd: string = process.cwd(); // Save at suite level, not in beforeEach
   let consoleErrorCalls: Array<{ message: string }> = [];
 
   beforeEach(async () => {
-    // originalCwd is now saved at the suite level to avoid issues with deleted directories
-
-    // Create temporary test directory
-    testDir = path.join('/tmp', `test-cleanup-${Date.now()}-${Math.random()}`);
-    await ensureDir(testDir);
+    // Create unique temporary test directory
+    testDir = await mkdtemp(path.join(tmpdir(), 'test-cleanup-'));
 
     // Initialize basic model structure
     const modelDir = path.join(testDir, 'documentation-robotics', 'model');
@@ -38,9 +35,8 @@ modified: ${new Date().toISOString()}
 layers: {}`;
     await writeFile(manifestPath, manifest);
 
-    // Load model
-    process.chdir(testDir);
-    model = await Model.load();
+    // Load model with explicit path
+    model = await Model.load(testDir);
     manager = new StagingAreaManager(testDir, model);
 
     // Mock console.error to capture error messages
@@ -53,17 +49,13 @@ layers: {}`;
   });
 
   afterEach(async () => {
-    // Restore original working directory and console.error
-    try {
-      process.chdir(originalCwd);
-    } catch (error) {
-      // If originalCwd no longer exists, chdir to a safe default
-      process.chdir('/tmp');
-    }
-
     // Clean up test directory
     if (await fileExists(testDir)) {
-      await rm(testDir, { recursive: true, force: true });
+      try {
+        await rm(testDir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
     }
   });
 
