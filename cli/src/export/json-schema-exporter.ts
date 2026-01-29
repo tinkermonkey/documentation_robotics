@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * JSON Schema Draft 7 Exporter for layer 7 (Data Model)
@@ -9,10 +10,13 @@ export class JsonSchemaExporter implements Exporter {
   supportedLayers = ["data-model"];
 
   async export(model: Model, _options: ExportOptions = {}): Promise<string> {
-    const layer = await model.getLayer("data-model");
-    if (!layer) {
-      throw new Error("No Data Model layer found in model");
-    }
+    const span = isTelemetryEnabled ? startSpan('export.format.json-schema') : null;
+
+    try {
+      const layer = await model.getLayer("data-model");
+      if (!layer) {
+        throw new Error("No Data Model layer found in model");
+      }
 
     // Create a root schema that references all entities
     const rootSchema: Record<string, unknown> = {
@@ -113,6 +117,24 @@ export class JsonSchemaExporter implements Exporter {
     };
     rootSchema.metadata = metadata;
 
-    return JSON.stringify(rootSchema, null, 2);
+      const result = JSON.stringify(rootSchema, null, 2);
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('export.entityCount', Object.keys(rootSchema.definitions || {}).length);
+        (span as any).setAttribute('export.relationshipCount', Object.keys(relationships).length);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 }

@@ -7,6 +7,7 @@ import { Model } from '../core/model.js';
 import { ReferenceRegistry } from '../core/reference-registry.js';
 import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
 import { findElementLayer } from '../utils/element-utils.js';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 export async function traceCommand(
   elementId: string,
@@ -17,6 +18,14 @@ export async function traceCommand(
     model?: string;
   } = {}
 ): Promise<void> {
+  const direction = options.direction || 'both';
+  const span = isTelemetryEnabled ? startSpan('trace.execute', {
+    'trace.elementId': elementId,
+    'trace.direction': direction,
+    'trace.hasDepthLimit': options.depth !== undefined,
+    'trace.depth': options.depth,
+  }) : null;
+
   try {
     // Load model
     const model = await Model.load(options.model);
@@ -24,8 +33,16 @@ export async function traceCommand(
     // Find element
     const layerName = await findElementLayer(model, elementId);
     if (!layerName) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('trace.found', false);
+      }
       console.error(ansis.red(`Error: Element ${elementId} not found`));
       process.exit(1);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('trace.found', true);
+      (span as any).setAttribute('trace.layer', layerName);
     }
 
     // Build reference registry
@@ -38,9 +55,6 @@ export async function traceCommand(
 
     // Create dependency tracker with registry
     const tracker = new DependencyTracker(registry);
-
-    // Set default direction
-    const direction = options.direction || 'both';
 
     // Display header
     console.log('');
@@ -55,6 +69,11 @@ export async function traceCommand(
     if (direction === 'up' || direction === 'both') {
       const transitiveDependents = tracker.traceDependencies(elementId, TraceDirection.DOWN, null);
       const directDependents = tracker.traceDependencies(elementId, TraceDirection.DOWN, 1);
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('trace.directDependents', directDependents.length);
+        (span as any).setAttribute('trace.transitiveDependents', transitiveDependents.length);
+      }
 
       console.log('');
       console.log(
@@ -107,6 +126,11 @@ export async function traceCommand(
       );
       const directDependencies = tracker.traceDependencies(elementId, TraceDirection.UP, 1);
 
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('trace.directDependencies', directDependencies.length);
+        (span as any).setAttribute('trace.transitiveDependencies', transitiveDependencies.length);
+      }
+
       console.log('');
       console.log(
         ansis.cyan(
@@ -150,9 +174,19 @@ export async function traceCommand(
     }
 
     console.log('');
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }

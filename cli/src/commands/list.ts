@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { CLIError, ErrorCategory, ModelNotFoundError, handleError } from '../utils/errors.js';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 export interface ListOptions {
   type?: string;
@@ -15,6 +16,12 @@ export interface ListOptions {
 }
 
 export async function listCommand(layer: string, options: ListOptions): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('list.execute', {
+    'list.layer': layer,
+    'list.type': options.type,
+    'list.json': options.json === true,
+  }) : null;
+
   try {
     // Load model (with error handling for missing models)
     let model: Model;
@@ -51,6 +58,11 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     // Filter by type if specified
     if (options.type) {
       elements = elements.filter((e) => e.type === options.type);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('list.elementCount', elements.length);
+      (span as any).setStatus({ code: 0 });
     }
 
     // Output as JSON if requested
@@ -96,6 +108,12 @@ export async function listCommand(layer: string, options: ListOptions): Promise<
     console.log(ansis.dim(`Total: ${elements.length} element(s)`));
     console.log('');
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     handleError(error);
+  } finally {
+    endSpan(span);
   }
 }

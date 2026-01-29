@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Element } from "../core/element.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * PlantUML element entry for diagram generation
@@ -26,11 +27,17 @@ export class PlantUMLExporter implements Exporter {
   supportedLayers = ALL_LAYERS;
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const lines: string[] = [];
+    const span = isTelemetryEnabled ? startSpan('export.format.plantuml', {
+      'export.layerCount': options.layers?.length || this.supportedLayers.length,
+      'export.includeSources': options.includeSources === true,
+    }) : null;
 
-    lines.push("@startuml");
-    lines.push(`title "${this.escapeQuotes(model.manifest.name)}"`);
-    lines.push("");
+    try {
+      const lines: string[] = [];
+
+      lines.push("@startuml");
+      lines.push(`title "${this.escapeQuotes(model.manifest.name)}"`);
+      lines.push("");
 
     if (model.manifest.description) {
       lines.push(`note top : "${this.escapeQuotes(model.manifest.description)}"`);
@@ -114,7 +121,39 @@ export class PlantUMLExporter implements Exporter {
     lines.push("");
     lines.push("@enduml");
 
-    return lines.join("\n") + "\n";
+      const result = lines.join("\n") + "\n";
+
+      if (isTelemetryEnabled && span) {
+        // Count total elements, references, and relationships
+        let totalElements = 0;
+        let totalReferences = 0;
+        let totalRelationships = 0;
+
+        for (const elements of elementsByLayer.values()) {
+          totalElements += elements.length;
+          for (const { element } of elements) {
+            totalReferences += element.references.length;
+            totalRelationships += element.relationships.length;
+          }
+        }
+
+        (span as any).setAttribute('export.elementCount', totalElements);
+        (span as any).setAttribute('export.referenceCount', totalReferences);
+        (span as any).setAttribute('export.relationshipCount', totalRelationships);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**

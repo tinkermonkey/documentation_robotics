@@ -10,6 +10,7 @@ import { StagedChangesetStorage } from '../core/staged-changeset-storage.js';
 import { Command } from 'commander';
 import * as prompts from '@clack/prompts';
 import path from 'path';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 /**
  * Generate a unique ID for imported changesets
@@ -24,6 +25,11 @@ function generateImportedChangesetId(): string {
 export async function changesetCreateCommand(name: string, options: {
   description?: string;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.create', {
+    'changeset.name': name,
+    'changeset.hasDescription': !!options.description,
+  }) : null;
+
   try {
     // Load with lazyLoad: false to ensure consistent snapshot hashing
     // (base snapshot must include all layers for accurate drift detection)
@@ -34,6 +40,10 @@ export async function changesetCreateCommand(name: string, options: {
     const existing = await manager.load(name);
     if (existing) {
       console.error(ansis.red(`Error: Changeset '${name}' already exists`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset already exists' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -41,6 +51,9 @@ export async function changesetCreateCommand(name: string, options: {
     let description = options.description;
     if (!description) {
       const isInteractive = process.stdin.isTTY;
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('cli.interactive', isInteractive);
+      }
       if (isInteractive) {
         const result = await prompts.text({
           message: 'Changeset description (optional)',
@@ -54,6 +67,11 @@ export async function changesetCreateCommand(name: string, options: {
 
     const changeset = await manager.create(name, description || undefined);
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.id', changeset.id);
+      (span as any).setStatus({ code: 0 });
+    }
+
     console.log(
       ansis.green(`✓ Created changeset: ${ansis.bold(name)}`)
     );
@@ -65,12 +83,19 @@ export async function changesetCreateCommand(name: string, options: {
     );
     console.log();
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -78,14 +103,24 @@ export async function changesetCreateCommand(name: string, options: {
  * List all changesets
  */
 export async function changesetListCommand(): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.list') : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
     const changesets = await manager.list();
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.count', changesets.length);
+    }
+
     if (changesets.length === 0) {
       console.log(ansis.yellow('No changesets found'));
       console.log();
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
     }
 
@@ -134,13 +169,24 @@ export async function changesetListCommand(): Promise<void> {
 
       console.log();
     }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -148,6 +194,11 @@ export async function changesetListCommand(): Promise<void> {
  * Apply a changeset to the model
  */
 export async function changesetApplyCommand(name: string, options?: { validate?: boolean }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.apply', {
+    'changeset.name': name,
+    'apply.validate': options?.validate !== false,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -155,7 +206,16 @@ export async function changesetApplyCommand(name: string, options?: { validate?:
     const changeset = await manager.load(name);
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${name}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.id', changeset.id);
+      (span as any).setAttribute('changeset.changeCount', changeset.changes.length);
     }
 
     console.log(
@@ -175,6 +235,10 @@ export async function changesetApplyCommand(name: string, options?: { validate?:
         ansis.dim(`  2. Delete and recreate the changeset if possible\n`) +
         ansis.dim(`  3. Contact support if this persists`)
       );
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset ID missing' });
+      }
+      endSpan(span);
       process.exit(1);
     }
     const result = await manager.apply(model, changesetId, { validate: options?.validate });
@@ -185,6 +249,12 @@ export async function changesetApplyCommand(name: string, options?: { validate?:
     console.log(
       ansis.green(`✓ Applied ${result.committed} change(s) from changeset`)
     );
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('apply.committed', result.committed);
+      (span as any).setAttribute('apply.failed', result.failed);
+      (span as any).setAttribute('apply.validationPassed', result.validation.passed);
+    }
 
     if (result.failed > 0) {
       console.log(ansis.red(`✗ Failed to apply ${result.failed} change(s):`));
@@ -214,14 +284,25 @@ export async function changesetApplyCommand(name: string, options?: { validate?:
       console.log(ansis.dim(`Changeset marked as applied`));
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
+
     console.log();
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -229,6 +310,10 @@ export async function changesetApplyCommand(name: string, options?: { validate?:
  * Revert a changeset from the model
  */
 export async function changesetRevertCommand(name: string): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.revert', {
+    'changeset.name': name,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -236,7 +321,16 @@ export async function changesetRevertCommand(name: string): Promise<void> {
     const changeset = await manager.load(name);
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${name}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.id', changeset.id);
+      (span as any).setAttribute('changeset.changeCount', changeset.changes.length);
     }
 
     console.log(
@@ -249,6 +343,10 @@ export async function changesetRevertCommand(name: string): Promise<void> {
     const changesetId = changeset.id || name;
     if (!changesetId) {
       console.error(ansis.red('Error: Changeset ID could not be determined'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset ID missing' });
+      }
+      endSpan(span);
       process.exit(1);
     }
     await manager.revert(changesetId);
@@ -261,14 +359,25 @@ export async function changesetRevertCommand(name: string): Promise<void> {
     );
     console.log(ansis.dim(`Changeset marked as discarded`));
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
+
     console.log();
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -276,6 +385,10 @@ export async function changesetRevertCommand(name: string): Promise<void> {
  * Activate a changeset for automatic tracking
  */
 export async function changesetActivateCommand(name: string): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.activate', {
+    'changeset.name': name,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -283,13 +396,24 @@ export async function changesetActivateCommand(name: string): Promise<void> {
 
     console.log(ansis.green(`✓ Activated changeset: ${ansis.bold(name)}`));
     console.log(ansis.dim('  All model changes will now be tracked in this changeset'));
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -297,6 +421,8 @@ export async function changesetActivateCommand(name: string): Promise<void> {
  * Deactivate the current changeset
  */
 export async function changesetDeactivateCommand(): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.deactivate') : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -304,18 +430,39 @@ export async function changesetDeactivateCommand(): Promise<void> {
 
     if (!active) {
       console.log(ansis.yellow('No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('changeset.wasActive', false);
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.name', active);
+      (span as any).setAttribute('changeset.wasActive', true);
     }
 
     await manager.clearActive();
     console.log(ansis.green(`✓ Deactivated changeset: ${ansis.bold(active)}`));
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -325,6 +472,11 @@ export async function changesetDeactivateCommand(): Promise<void> {
 export async function changesetDeleteCommand(name: string, options: {
   force?: boolean;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.delete', {
+    'changeset.name': name,
+    'delete.force': options.force === true,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -332,6 +484,10 @@ export async function changesetDeleteCommand(name: string, options: {
     const changeset = await manager.load(name);
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${name}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -342,12 +498,19 @@ export async function changesetDeleteCommand(name: string, options: {
         ansis.red(`Error: Cannot delete active changeset '${name}'`)
       );
       console.log(ansis.dim('  Run `dr changeset deactivate` first'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Cannot delete active changeset' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
     // Confirm deletion unless --force is used or in non-interactive environment
     if (!options.force) {
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('cli.interactive', isInteractive);
+      }
       if (isInteractive) {
         const confirm = await prompts.confirm({
           message: `Delete changeset '${name}'? This cannot be undone.`,
@@ -355,12 +518,21 @@ export async function changesetDeleteCommand(name: string, options: {
 
         if (!confirm || typeof confirm !== 'boolean') {
           console.log(ansis.yellow('Deletion cancelled'));
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute('delete.cancelled', true);
+            (span as any).setStatus({ code: 0 });
+          }
+          endSpan(span);
           return;
         }
       } else {
         // In non-interactive environment, require --force flag
         console.error(ansis.red('Error: Cannot confirm deletion in non-interactive environment'));
         console.log(ansis.dim('  Use --force flag to confirm deletion'));
+        if (isTelemetryEnabled && span) {
+          (span as any).setStatus({ code: 2, message: 'Interactive confirmation required' });
+        }
+        endSpan(span);
         process.exit(1);
       }
     }
@@ -368,13 +540,24 @@ export async function changesetDeleteCommand(name: string, options: {
     await manager.delete(name);
 
     console.log(ansis.green(`✓ Deleted changeset: ${ansis.bold(name)}`));
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -382,6 +565,8 @@ export async function changesetDeleteCommand(name: string, options: {
  * Show the currently active changeset
  */
 export async function changesetStatusCommand(): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.status') : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -389,7 +574,17 @@ export async function changesetStatusCommand(): Promise<void> {
 
     if (!active) {
       console.log(ansis.dim('No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('changeset.hasActive', false);
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.name', active);
+      (span as any).setAttribute('changeset.hasActive', true);
     }
 
     console.log(ansis.bold(`Active changeset: ${ansis.cyan(active)}`));
@@ -404,6 +599,14 @@ export async function changesetStatusCommand(): Promise<void> {
         update: changeset.changes.filter((c) => c.type === 'update').length,
         delete: changeset.changes.filter((c) => c.type === 'delete').length,
       };
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('changeset.changeCount', changeset.changes.length);
+        (span as any).setAttribute('changeset.adds', changesByType.add);
+        (span as any).setAttribute('changeset.updates', changesByType.update);
+        (span as any).setAttribute('changeset.deletes', changesByType.delete);
+      }
+
       const parts = [];
       if (changesByType.add > 0) parts.push(`+${changesByType.add}`);
       if (changesByType.update > 0) parts.push(`~${changesByType.update}`);
@@ -412,13 +615,24 @@ export async function changesetStatusCommand(): Promise<void> {
         console.log(ansis.dim(`  ${parts.join(' ')}`));
       }
     }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -428,6 +642,10 @@ export async function changesetStatusCommand(): Promise<void> {
 export async function changesetStagedCommand(options: {
   layer?: string;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.staged', {
+    'staged.layer': options.layer,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -435,6 +653,10 @@ export async function changesetStagedCommand(options: {
 
     if (!activeChangeset) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -442,6 +664,10 @@ export async function changesetStagedCommand(options: {
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangeset}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -451,8 +677,17 @@ export async function changesetStagedCommand(options: {
       changes = changes.filter((c: any) => c.layerName === options.layer);
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('staged.changeCount', changes.length);
+      (span as any).setAttribute('staged.totalChanges', changeset.changes.length);
+    }
+
     if (changes.length === 0) {
       console.log(ansis.yellow('No staged changes'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
     }
 
@@ -466,13 +701,24 @@ export async function changesetStagedCommand(options: {
     }));
 
     console.table(tableData);
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -480,6 +726,10 @@ export async function changesetStagedCommand(options: {
  * Remove specific element from staging area
  */
 export async function changesetUnstageCommand(elementId: string): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.unstage', {
+    'unstage.elementId': elementId,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -487,6 +737,10 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
 
     if (!activeChangesetId) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -508,7 +762,17 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
 
     if (updated && updated.changes.length === initialCount) {
       console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('unstage.found', false);
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('unstage.found', true);
+      (span as any).setAttribute('unstage.remainingChanges', updated?.getChangeCount() || 0);
     }
 
     console.log(ansis.green(`✓ Unstaged element: ${ansis.bold(elementId)}`));
@@ -517,13 +781,24 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
         `  Remaining staged changes: ${updated?.getChangeCount() || 0}`
       )
     );
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -531,6 +806,11 @@ export async function changesetUnstageCommand(elementId: string): Promise<void> 
  * Discard all or single staged changes
  */
 export async function changesetDiscardCommand(elementId?: string): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.discard', {
+    'discard.elementId': elementId,
+    'discard.all': !elementId,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -538,6 +818,10 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
     if (!activeChangesetId) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -545,7 +829,15 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('discard.changeCount', changeset.changes.length);
     }
 
     if (elementId) {
@@ -560,13 +852,26 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
       if (updated && updated.changes.length === initialCount) {
         console.error(ansis.yellow(`Warning: Element '${elementId}' not found in staged changes`));
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('discard.found', false);
+          (span as any).setStatus({ code: 0 });
+        }
+        endSpan(span);
         return;
+      }
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('discard.found', true);
       }
 
       console.log(ansis.green(`✓ Discarded changes for element: ${ansis.bold(elementId)}`));
     } else {
       // Discard all changes with confirmation
       const isInteractive = process.stdin.isTTY && process.stdout.isTTY;
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('cli.interactive', isInteractive);
+      }
 
       if (isInteractive) {
         const confirmed = await prompts.confirm({
@@ -575,12 +880,21 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 
         if (!confirmed || typeof confirmed !== 'boolean') {
           console.log(ansis.dim('Cancelled'));
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute('discard.cancelled', true);
+            (span as any).setStatus({ code: 0 });
+          }
+          endSpan(span);
           return;
         }
       } else {
         // In non-interactive environment, require explicit flag or piped input
         console.error(ansis.red('Error: Cannot confirm discard of all changes in non-interactive environment'));
         console.log(ansis.dim('  Specify an element ID to discard only that element'));
+        if (isTelemetryEnabled && span) {
+          (span as any).setStatus({ code: 2, message: 'Interactive confirmation required' });
+        }
+        endSpan(span);
         process.exit(1);
       }
 
@@ -591,14 +905,25 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
       console.log(ansis.dim(`  Changeset status: discarded`));
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
+
     console.log();
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -608,6 +933,10 @@ export async function changesetDiscardCommand(elementId?: string): Promise<void>
 export async function changesetPreviewCommand(options: {
   layer?: string;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.preview', {
+    'preview.layer': options.layer,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -615,6 +944,10 @@ export async function changesetPreviewCommand(options: {
 
     if (!activeChangesetId) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -622,6 +955,10 @@ export async function changesetPreviewCommand(options: {
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -635,6 +972,13 @@ export async function changesetPreviewCommand(options: {
     const additions = changeset.getChangesByType('add').length;
     const modifications = changeset.getChangesByType('update').length;
     const deletions = changeset.getChangesByType('delete').length;
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('preview.additions', additions);
+      (span as any).setAttribute('preview.modifications', modifications);
+      (span as any).setAttribute('preview.deletions', deletions);
+      (span as any).setAttribute('preview.totalChanges', changeset.changes.length);
+    }
 
     if (additions > 0) {
       console.log(ansis.green(`+ ${additions} additions`));
@@ -676,6 +1020,10 @@ export async function changesetPreviewCommand(options: {
         layerMap.get(c.layerName)!.push(c);
       });
 
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('preview.layerCount', layerMap.size);
+      }
+
       for (const [layerName, changes] of layerMap) {
         console.log(ansis.bold(`Layer: ${layerName}`));
         const tableData = changes.map((c: any) => ({
@@ -687,13 +1035,24 @@ export async function changesetPreviewCommand(options: {
         console.log();
       }
     }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -703,6 +1062,10 @@ export async function changesetPreviewCommand(options: {
 export async function changesetDiffCommand(options: {
   layer?: string;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.diff', {
+    'diff.layer': options.layer,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const manager = new StagingAreaManager(model.rootPath, model);
@@ -710,6 +1073,10 @@ export async function changesetDiffCommand(options: {
 
     if (!activeChangesetId) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -717,6 +1084,10 @@ export async function changesetDiffCommand(options: {
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -733,6 +1104,11 @@ export async function changesetDiffCommand(options: {
       }
     });
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('diff.layerCount', layerMap.size);
+      (span as any).setAttribute('diff.totalChanges', changeset.changes.length);
+    }
+
     if (layerMap.size === 0) {
       console.log(
         ansis.dim(
@@ -741,6 +1117,10 @@ export async function changesetDiffCommand(options: {
             : 'No staged changes'
         )
       );
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
     }
 
@@ -764,13 +1144,24 @@ export async function changesetDiffCommand(options: {
 
       console.log();
     }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -794,6 +1185,11 @@ export async function changesetCommitCommand(options?: {
   validate?: boolean;
   force?: boolean;
 }): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.commit', {
+    'commit.validate': options?.validate !== false,
+    'commit.force': options?.force === true,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: false });
     const stagingManager = new StagingAreaManager(model.rootPath, model);
@@ -801,6 +1197,10 @@ export async function changesetCommitCommand(options?: {
 
     if (!activeChangesetId) {
       console.error(ansis.red('Error: No active changeset'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'No active changeset' });
+      }
+      endSpan(span);
       return;
     }
 
@@ -808,13 +1208,27 @@ export async function changesetCommitCommand(options?: {
 
     if (!changeset) {
       console.error(ansis.red(`Error: Changeset '${activeChangesetId}' not found`));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset not found' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
     const changeCount = changeset.changes.length;
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.id', activeChangesetId);
+      (span as any).setAttribute('changeset.name', changeset.name);
+      (span as any).setAttribute('changeset.changeCount', changeCount);
+    }
+
     if (changeCount === 0) {
       console.log(ansis.yellow('No staged changes to commit'));
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 0 });
+      }
+      endSpan(span);
       return;
     }
 
@@ -832,12 +1246,25 @@ export async function changesetCommitCommand(options?: {
       // Show results
       console.log(ansis.green(`✓ Committed ${result.committed} change(s)`));
 
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('commit.committed', result.committed);
+        (span as any).setAttribute('commit.failed', result.failed);
+        (span as any).setAttribute('commit.validationPassed', result.validation.passed);
+      }
+
       if (result.driftWarning) {
         console.log(
           ansis.yellow(
             `⚠ Warning: Model had drifted since changeset creation (--force was used)`
           )
         );
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('commit.driftDetected', true);
+        }
+      }
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 0 });
       }
 
       console.log();
@@ -847,15 +1274,25 @@ export async function changesetCommitCommand(options?: {
       console.log(
         ansis.red(`✗ Commit failed and rolled back: ${error instanceof Error ? error.message : String(error)}`)
       );
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('commit.rolledBack', true);
+      }
       throw error;
     }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -869,12 +1306,17 @@ export async function changesetExportCommand(
     format?: 'yaml' | 'json' | 'patch';
   }
 ): Promise<void> {
+  const format = options.format || 'yaml';
+  const span = isTelemetryEnabled ? startSpan('changeset.export', {
+    'changeset.id': changesetId,
+    'export.format': format,
+  }) : null;
+
   try {
     const model = await Model.load(process.cwd(), { lazyLoad: true });
     const exporter = new ChangesetExporter(model.rootPath);
 
     // Default output filename based on changeset id and format
-    const format = options.format || 'yaml';
     const ext = format === 'patch' ? 'patch' : format;
     const outputPath =
       options.output || `${changesetId}.${ext}`;
@@ -884,17 +1326,32 @@ export async function changesetExportCommand(
       ? outputPath
       : path.join(process.cwd(), outputPath);
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('export.outputPath', outputPath);
+    }
+
     await exporter.exportToFile(changesetId, absolutePath, format);
 
     console.log(ansis.green(`✓ Exported changeset to ${ansis.cyan(outputPath)}`));
     console.log(ansis.dim(`  Format: ${format}`));
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -902,6 +1359,11 @@ export async function changesetExportCommand(
  * Import changeset from portable file
  */
 export async function changesetImportCommand(file: string, options: { force?: boolean } = {}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('changeset.import', {
+    'import.file': file,
+    'import.force': options.force === true,
+  }) : null;
+
   try {
     // Load full model for compatibility validation
     const model = await Model.load(process.cwd(), { lazyLoad: false });
@@ -915,11 +1377,21 @@ export async function changesetImportCommand(file: string, options: { force?: bo
     // Import changeset
     const imported = await exporter.importFromFile(absolutePath);
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.name', imported.name);
+      (span as any).setAttribute('changeset.changeCount', imported.changes.length);
+    }
+
     // Validate compatibility with current model
     const compatibility = await exporter.validateCompatibility(
       imported,
       model
     );
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('import.compatible', compatibility.compatible);
+      (span as any).setAttribute('import.baseSnapshotMatch', compatibility.baseSnapshotMatch);
+    }
 
     // Check for issues
     if (!compatibility.compatible) {
@@ -928,6 +1400,10 @@ export async function changesetImportCommand(file: string, options: { force?: bo
       for (const warning of compatibility.warnings) {
         console.error(ansis.dim(`    - ${warning}`));
       }
+      if (isTelemetryEnabled && span) {
+        (span as any).setStatus({ code: 2, message: 'Changeset incompatible' });
+      }
+      endSpan(span);
       process.exit(1);
     }
 
@@ -940,6 +1416,10 @@ export async function changesetImportCommand(file: string, options: { force?: bo
           ansis.dim('This may cause conflicts or unexpected behavior when committing.') + '\n\n' +
           ansis.dim('To import anyway, use: --force')
         );
+        if (isTelemetryEnabled && span) {
+          (span as any).setStatus({ code: 2, message: 'Drift detected, force required' });
+        }
+        endSpan(span);
         process.exit(1);
       }
 
@@ -948,6 +1428,10 @@ export async function changesetImportCommand(file: string, options: { force?: bo
         ansis.dim('Review changes carefully before committing.')
       );
       console.log();
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('import.driftOverridden', true);
+      }
     }
 
     // Assign new ID to avoid conflicts
@@ -974,14 +1458,26 @@ export async function changesetImportCommand(file: string, options: { force?: bo
       );
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('changeset.id', newId);
+      (span as any).setStatus({ code: 0 });
+    }
+
     console.log();
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     console.error(
       ansis.red(
         `Error: ${error instanceof Error ? error.message : String(error)}`
       )
     );
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }
 

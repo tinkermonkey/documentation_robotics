@@ -5,6 +5,7 @@
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import type { Element } from '../core/element.js';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 export interface SearchOptions {
   layer?: string;
@@ -45,6 +46,14 @@ function matchesSourceFile(element: Element, sourceFilePath: string): boolean {
 }
 
 export async function searchCommand(query: string, options: SearchOptions): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('search.execute', {
+    'search.query': query,
+    'search.layer': options.layer,
+    'search.type': options.type,
+    'search.sourceFile': options.sourceFile,
+    'search.json': options.json === true,
+  }) : null;
+
   try {
     // Load model
     const model = await Model.load();
@@ -114,9 +123,15 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       }
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('search.resultCount', results.length);
+      (span as any).setStatus({ code: 0 });
+    }
+
     // Output as JSON if requested
     if (options.json) {
       console.log(JSON.stringify(results, null, 2));
+      endSpan(span);
       return;
     }
 
@@ -127,6 +142,7 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
       } else {
         console.log(ansis.yellow(`No elements matching "${query}"`));
       }
+      endSpan(span);
       return;
     }
 
@@ -173,8 +189,15 @@ export async function searchCommand(query: string, options: SearchOptions): Prom
     console.log(ansis.dim('─'.repeat(80)));
     console.log('');
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
+    endSpan(span);
     process.exit(1);
+  } finally {
+    endSpan(span);
   }
 }

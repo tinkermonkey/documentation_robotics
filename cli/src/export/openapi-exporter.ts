@@ -1,6 +1,7 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import type { Element } from "../core/element.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * OpenAPI server definition
@@ -84,10 +85,13 @@ export class OpenAPIExporter implements Exporter {
   supportedLayers = ["api"];
 
   async export(model: Model, _options: ExportOptions = {}): Promise<string> {
-    const layer = await model.getLayer("api");
-    if (!layer) {
-      throw new Error("No API layer found in model");
-    }
+    const span = isTelemetryEnabled ? startSpan('export.format.openapi') : null;
+
+    try {
+      const layer = await model.getLayer("api");
+      if (!layer) {
+        throw new Error("No API layer found in model");
+      }
 
     // Note: _options is not used for OpenAPI exporter as it only supports the api layer
     // The parameter is kept for interface consistency with other exporters
@@ -271,6 +275,26 @@ export class OpenAPIExporter implements Exporter {
       delete (spec as Partial<OpenAPISpec>).components;
     }
 
-    return JSON.stringify(spec, null, 2);
+    const result = JSON.stringify(spec, null, 2);
+
+      if (isTelemetryEnabled && span) {
+        const endpointCount = Array.from(pathGroups.values()).reduce((sum, endpoints) => sum + endpoints.length, 0);
+        (span as any).setAttribute('export.endpointCount', endpointCount);
+        (span as any).setAttribute('export.pathCount', pathGroups.size);
+        (span as any).setAttribute('export.schemaCount', Object.keys(spec.components.schemas || {}).length);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 }

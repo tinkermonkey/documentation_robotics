@@ -1,6 +1,7 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS } from "./types.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * Markdown Exporter - generates comprehensive markdown documentation
@@ -35,9 +36,14 @@ export class MarkdownExporter implements Exporter {
   };
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const lines: string[] = [];
+    const span = isTelemetryEnabled ? startSpan('export.format.markdown', {
+      'export.layerCount': options.layers?.length || this.supportedLayers.length,
+    }) : null;
 
-    // Document header
+    try {
+      const lines: string[] = [];
+
+      // Document header
     lines.push(`# ${this.escapeMarkdown(model.manifest.name)}`);
     lines.push("");
 
@@ -284,7 +290,26 @@ export class MarkdownExporter implements Exporter {
     );
     lines.push("");
 
-    return lines.join("\n");
+      const result = lines.join("\n");
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('export.elementCount', totalElements);
+        (span as any).setAttribute('export.referenceCount', totalReferences);
+        (span as any).setAttribute('export.relationshipCount', totalRelationships);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**

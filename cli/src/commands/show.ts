@@ -6,8 +6,13 @@ import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { CLIError, ErrorCategory, handleError } from '../utils/errors.js';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 export async function showCommand(id: string, options: { model?: string } = {}): Promise<void> {
+  const span = isTelemetryEnabled ? startSpan('show.execute', {
+    'show.elementId': id,
+  }) : null;
+
   try {
     // Load model (optionally from specified path)
     const model = await Model.load(options.model);
@@ -15,6 +20,9 @@ export async function showCommand(id: string, options: { model?: string } = {}):
     // Find element
     const layerName = await findElementLayer(model, id);
     if (!layerName) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('show.found', false);
+      }
       throw new CLIError(
         `Element ${id} not found`,
         ErrorCategory.USER,
@@ -27,6 +35,14 @@ export async function showCommand(id: string, options: { model?: string } = {}):
 
     const layer = (await model.getLayer(layerName))!;
     const element = layer.getElement(id)!;
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('show.found', true);
+      (span as any).setAttribute('show.layer', layerName);
+      (span as any).setAttribute('show.type', element.type);
+      (span as any).setAttribute('show.hasReferences', element.references && element.references.length > 0);
+      (span as any).setAttribute('show.hasRelationships', element.relationships && element.relationships.length > 0);
+    }
 
     // Display element information
     console.log('');
@@ -105,7 +121,17 @@ export async function showCommand(id: string, options: { model?: string } = {}):
     }
 
     console.log('');
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setStatus({ code: 0 });
+    }
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     handleError(error);
+  } finally {
+    endSpan(span);
   }
 }

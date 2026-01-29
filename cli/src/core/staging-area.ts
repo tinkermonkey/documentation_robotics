@@ -19,6 +19,7 @@ import type { Model } from './model.js';
 import type { VirtualProjectionEngine } from './virtual-projection.js';
 import { createSha256Hash } from '../types/index.js';
 import type { BackupManifest } from '../types/index.js';
+import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
 
 /**
  * Options for commit operation
@@ -405,24 +406,60 @@ export class StagingAreaManager {
    * On commit failure, model state is restored from backup; rollback failure triggers CRITICAL error.
    */
   async commit(model: Model, changesetId: string, options: CommitOptions = {}): Promise<CommitResult> {
-    this.validateChangesetId(changesetId);
+    const span = isTelemetryEnabled ? startSpan('staging.commit', {
+      'changeset.id': changesetId,
+      'commit.validate': options.validate !== false,
+      'commit.force': options.force === true,
+      'commit.dryRun': options.dryRun === true,
+    }) : null;
 
-    const changeset = await this.load(changesetId);
-    if (!changeset) {
-      throw new Error(`Changeset '${changesetId}' not found`);
-    }
+    try {
+      this.validateChangesetId(changesetId);
 
-    const isDryRun = options.dryRun === true;
-    const shouldValidate = options.validate !== false;
+      const changeset = await this.load(changesetId);
+      if (!changeset) {
+        throw new Error(`Changeset '${changesetId}' not found`);
+      }
 
-    // Step 1: Detect drift and throw if drifted without --force
-    const drift = await this.detectDrift(changesetId);
-    if (drift.isDrifted && !options.force) {
-      throw new Error(
-        `Base model has drifted since changeset creation. ` +
-        `Use --force to commit anyway.`
-      );
-    }
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('changeset.name', changeset.name);
+        (span as any).setAttribute('changeset.changeCount', changeset.changes.length);
+      }
+
+      const isDryRun = options.dryRun === true;
+      const shouldValidate = options.validate !== false;
+
+      // Step 1: Detect drift and throw if drifted without --force
+      const driftSpan = isTelemetryEnabled ? startSpan('staging.detectDrift') : null;
+      const drift = await this.detectDrift(changesetId);
+      if (isTelemetryEnabled && driftSpan) {
+        (driftSpan as any).setAttribute('drift.detected', drift.isDrifted);
+        (driftSpan as any).setAttribute('drift.baseSnapshotId', drift.baseSnapshotId);
+        (driftSpan as any).setAttribute('drift.currentSnapshotId', drift.currentSnapshotId);
+        (driftSpan as any).setStatus({ code: 0 });
+      }
+      endSpan(driftSpan);
+
+      if (drift.isDrifted) {
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('commit.driftDetected', true);
+        }
+        if (options.force) {
+          emitLog(SeverityNumber.WARN, 'Drift detected but overridden with --force', {
+            'drift.baseSnapshot': drift.baseSnapshotId,
+            'drift.currentSnapshot': drift.currentSnapshotId,
+          });
+        } else {
+          emitLog(SeverityNumber.ERROR, 'Drift detected, commit blocked', {
+            'drift.baseSnapshot': drift.baseSnapshotId,
+            'drift.currentSnapshot': drift.currentSnapshotId,
+          });
+          throw new Error(
+            `Base model has drifted since changeset creation. ` +
+            `Use --force to commit anyway.`
+          );
+        }
+      }
 
     const result: CommitResult = {
       changeset: changeset.name,
@@ -436,10 +473,25 @@ export class StagingAreaManager {
 
     // Step 2: Validate against projected model (force cannot override validation)
     if (shouldValidate) {
+      const validationSpan = isTelemetryEnabled ? startSpan('staging.validate') : null;
       const validation = await this.validator.validateChangeset(model, changesetId);
+
+      if (isTelemetryEnabled && validationSpan) {
+        (validationSpan as any).setAttribute('validation.passed', validation.isValid());
+        (validationSpan as any).setAttribute('validation.errorCount', validation.errors.length);
+        (validationSpan as any).setStatus({ code: 0 });
+      }
+      endSpan(validationSpan);
+
       if (!validation.isValid()) {
         result.validation.passed = false;
         result.validation.errors = validation.errors.map(e => e.message);
+
+        emitLog(SeverityNumber.ERROR, 'Validation failed', {
+          'validation.errorCount': result.validation.errors.length,
+          'validation.errors': result.validation.errors.slice(0, 10), // First 10 errors
+        });
+
         throw new Error(
           `Validation failed with ${result.validation.errors.length} error(s):\n` +
           result.validation.errors.map(e => `  - ${e}`).join('\n') +
@@ -469,13 +521,19 @@ export class StagingAreaManager {
       );
     }
 
-    try {
-      // Step 5: Apply all changes sequentially by sequence number
-      const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
-        (a, b) => a.sequenceNumber - b.sequenceNumber
-      );
+    // Step 5: Apply all changes sequentially by sequence number
+    const sortedChanges = [...(changeset.changes as StagedChange[])].sort(
+      (a, b) => a.sequenceNumber - b.sequenceNumber
+    );
 
-      for (const change of sortedChanges) {
+    try {
+      const applySpan = isTelemetryEnabled ? startSpan('staging.apply', {
+        'apply.changeCount': changeset.changes.length,
+      }) : null;
+
+      try {
+
+        for (const change of sortedChanges) {
         try {
           const layer = await model.getLayer(change.layerName);
           if (!layer) {
@@ -519,11 +577,28 @@ export class StagingAreaManager {
           result.validation.errors.push(
             `Failed to apply change to ${change.elementId}: ${error instanceof Error ? error.message : String(error)}`
           );
+
+          emitLog(SeverityNumber.ERROR, 'Failed to apply change', {
+            'change.elementId': change.elementId,
+            'change.type': change.type,
+            'change.layer': change.layerName,
+            'error.message': error instanceof Error ? error.message : String(error),
+          });
+
           throw new Error(
             `Atomic commit failed at change ${sortedChanges.indexOf(change) + 1}/${sortedChanges.length}: ` +
             `${error instanceof Error ? error.message : String(error)}`
           );
         }
+        }
+
+        if (isTelemetryEnabled && applySpan) {
+          (applySpan as any).setAttribute('apply.committed', result.committed);
+          (applySpan as any).setAttribute('apply.failed', result.failed);
+          (applySpan as any).setStatus({ code: 0 });
+        }
+      } finally {
+        endSpan(applySpan);
       }
 
       // Step 6: Save all modified layers atomically
@@ -582,6 +657,15 @@ export class StagingAreaManager {
       // Note: cleanupBackup handles its own errors and logs them with ERROR severity
       await this.cleanupBackup(backup);
 
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('commit.success', true);
+        (span as any).setAttribute('commit.committed', result.committed);
+        if (drift.isDrifted) {
+          (span as any).setAttribute('commit.driftOverridden', true);
+        }
+        (span as any).setStatus({ code: 0 });
+      }
+
       return result;
 
     } catch (commitError) {
@@ -589,11 +673,39 @@ export class StagingAreaManager {
       let rollbackSucceeded = false;
       let rollbackError: Error | null = null;
 
+      const rollbackSpan = isTelemetryEnabled ? startSpan('staging.rollback') : null;
+
       try {
+        emitLog(SeverityNumber.WARN, 'Commit failed, attempting rollback', {
+          'commit.error': commitError instanceof Error ? commitError.message : String(commitError),
+        });
+
         await this.restoreModel(model, backup);
         rollbackSucceeded = true;
+
+        if (isTelemetryEnabled && rollbackSpan) {
+          (rollbackSpan as any).setAttribute('rollback.success', true);
+          (rollbackSpan as any).setStatus({ code: 0 });
+        }
+
+        emitLog(SeverityNumber.INFO, 'Rollback succeeded, model restored', {
+          'backup.path': backup,
+        });
       } catch (err) {
         rollbackError = err instanceof Error ? err : new Error(String(err));
+
+        if (isTelemetryEnabled && rollbackSpan) {
+          (rollbackSpan as any).setAttribute('rollback.success', false);
+          (rollbackSpan as any).recordException(rollbackError);
+          (rollbackSpan as any).setStatus({ code: 2, message: rollbackError.message });
+        }
+
+        emitLog(SeverityNumber.ERROR, 'Rollback failed, model may be corrupted', {
+          'rollback.error': rollbackError.message,
+          'backup.path': backup,
+        });
+      } finally {
+        endSpan(rollbackSpan);
       }
 
       // CRITICAL: Validate backup integrity BEFORE suggesting manual restoration
@@ -631,6 +743,13 @@ export class StagingAreaManager {
         // Clean up backup after successful rollback
         // Note: cleanupBackup handles its own errors and logs them with ERROR severity
         await this.cleanupBackup(backup);
+
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('commit.success', false);
+          (span as any).setAttribute('commit.rollbackSuccess', true);
+          (span as any).recordException(commitError as Error);
+          (span as any).setStatus({ code: 2, message: commitError instanceof Error ? commitError.message : String(commitError) });
+        }
 
         throw new Error(compositeMessage);
       } else {
@@ -685,9 +804,19 @@ export class StagingAreaManager {
 
         compositeMessage += `Manual recovery may be required.`;
 
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('commit.success', false);
+          (span as any).setAttribute('commit.rollbackSuccess', false);
+          (span as any).recordException(commitError as Error);
+          (span as any).setStatus({ code: 2, message: 'Commit and rollback both failed' });
+        }
+
         const { CLIError } = await import('../utils/errors.js');
         throw new CLIError(compositeMessage, 1, suggestions);
       }
+    }
+    } finally {
+      endSpan(span);
     }
   }
 

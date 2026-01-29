@@ -1,6 +1,7 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS, escapeXml } from "./types.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * GraphML Exporter - generates GraphML format for graph visualization tools
@@ -11,10 +12,15 @@ export class GraphMLExporter implements Exporter {
   supportedLayers = ALL_LAYERS;
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const lines: string[] = [];
+    const span = isTelemetryEnabled ? startSpan('export.format.graphml', {
+      'export.layerCount': options.layers?.length || this.supportedLayers.length,
+    }) : null;
 
-    // XML declaration
-    lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+    try {
+      const lines: string[] = [];
+
+      // XML declaration
+      lines.push('<?xml version="1.0" encoding="UTF-8"?>');
 
     // GraphML root element
     lines.push(
@@ -132,6 +138,24 @@ export class GraphMLExporter implements Exporter {
     lines.push(`  </graph>`);
     lines.push(`</graphml>`);
 
-    return lines.join("\n");
+      const result = lines.join("\n");
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('export.nodeCount', elementMap.size);
+        (span as any).setAttribute('export.edgeCount', edgeCounter);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 }

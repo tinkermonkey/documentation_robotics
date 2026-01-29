@@ -10,6 +10,7 @@ import { Model } from '../core/model.js';
 import { readFile } from 'fs/promises';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 /**
  * Provides context about the model for AI interactions
@@ -40,64 +41,93 @@ export class ModelContextProvider {
    * @returns Markdown string with model overview and element summaries
    */
   async generateContext(): Promise<string> {
-    const context: string[] = [];
+    const span = isTelemetryEnabled ? startSpan('context.generate-model-context') : null;
 
-    context.push('# Current Architecture Model\n');
-    context.push(`**Name**: ${this.model.manifest.name}`);
-    context.push(`**Version**: ${this.model.manifest.version}`);
-    if (this.model.manifest.description) {
-      context.push(`**Description**: ${this.model.manifest.description}`);
-    }
-    context.push('');
+    try {
+      const context: string[] = [];
 
-    context.push('## Layers Overview\n');
-
-    // Get all available layers
-    const layerNames = this.model.getLayerNames();
-    const layerDetails: string[] = [];
-
-    for (const layerName of layerNames) {
-      const layer = await this.model.getLayer(layerName);
-      if (layer) {
-        const elementCount = layer.listElements().length;
-        layerDetails.push(`- **${layerName}**: ${elementCount} elements`);
+      context.push('# Current Architecture Model\n');
+      context.push(`**Name**: ${this.model.manifest.name}`);
+      context.push(`**Version**: ${this.model.manifest.version}`);
+      if (this.model.manifest.description) {
+        context.push(`**Description**: ${this.model.manifest.description}`);
       }
-    }
+      context.push('');
 
-    if (layerDetails.length > 0) {
-      context.push(layerDetails.join('\n'));
-    } else {
-      context.push('_No layers loaded_');
-    }
+      context.push('## Layers Overview\n');
 
-    context.push('');
-    context.push('## Element Summary\n');
+      // Get all available layers
+      const layerNames = this.model.getLayerNames();
+      const layerDetails: string[] = [];
+      let totalElements = 0;
 
-    // Show elements per layer
-    for (const layerName of layerNames) {
-      const layer = await this.model.getLayer(layerName);
-      if (!layer) continue;
-
-      const elements = layer.listElements();
-      if (elements.length === 0) continue;
-
-      context.push(`### ${layerName}\n`);
-
-      // Show up to 10 elements per layer
-      const displayElements = elements.slice(0, 10);
-      for (const element of displayElements) {
-        const desc = element.description ? ` - ${element.description}` : '';
-        context.push(`- \`${element.id}\` (${element.type}): ${element.name}${desc}`);
+      for (const layerName of layerNames) {
+        const layer = await this.model.getLayer(layerName);
+        if (layer) {
+          const elementCount = layer.listElements().length;
+          totalElements += elementCount;
+          layerDetails.push(`- **${layerName}**: ${elementCount} elements`);
+        }
       }
 
-      if (elements.length > 10) {
-        context.push(`- ... and ${elements.length - 10} more elements`);
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('context.layerCount', layerNames.length);
+        (span as any).setAttribute('context.totalElements', totalElements);
+        (span as any).setAttribute('model.name', this.model.manifest.name);
+        (span as any).setAttribute('model.version', this.model.manifest.version);
+      }
+
+      if (layerDetails.length > 0) {
+        context.push(layerDetails.join('\n'));
+      } else {
+        context.push('_No layers loaded_');
       }
 
       context.push('');
-    }
+      context.push('## Element Summary\n');
 
-    return context.join('\n');
+      // Show elements per layer
+      for (const layerName of layerNames) {
+        const layer = await this.model.getLayer(layerName);
+        if (!layer) continue;
+
+        const elements = layer.listElements();
+        if (elements.length === 0) continue;
+
+        context.push(`### ${layerName}\n`);
+
+        // Show up to 10 elements per layer
+        const displayElements = elements.slice(0, 10);
+        for (const element of displayElements) {
+          const desc = element.description ? ` - ${element.description}` : '';
+          context.push(`- \`${element.id}\` (${element.type}): ${element.name}${desc}`);
+        }
+
+        if (elements.length > 10) {
+          context.push(`- ... and ${elements.length - 10} more elements`);
+        }
+
+        context.push('');
+      }
+
+      const result = context.join('\n');
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('context.size', result.length);
+        (span as any).setAttribute('context.lineCount', context.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**
@@ -114,12 +144,31 @@ export class ModelContextProvider {
    * @returns Markdown string with layer specification
    */
   async generateLayerSpec(layerName: string): Promise<string> {
+    const span = isTelemetryEnabled ? startSpan('context.generate-layer-spec', {
+      'context.layerName': layerName,
+    }) : null;
+
     try {
       const specPath = this.getLayerSpecPath(layerName);
       const content = await readFile(specPath, 'utf-8');
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('context.specPath', specPath);
+        (span as any).setAttribute('context.specSize', content.length);
+        (span as any).setAttribute('context.found', true);
+        (span as any).setStatus({ code: 0 });
+      }
+
       return content;
     } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('context.found', false);
+        (span as any).setAttribute('context.error', error instanceof Error ? error.message : String(error));
+        (span as any).setStatus({ code: 0 }); // Not an error, just spec not found
+      }
       return `# ${layerName} Layer\n\n_Layer specification not found._`;
+    } finally {
+      endSpan(span);
     }
   }
 
@@ -179,13 +228,34 @@ export class ModelContextProvider {
    * @returns Total number of elements
    */
   async getTotalElementCount(): Promise<number> {
-    let total = 0;
-    for (const layerName of this.model.getLayerNames()) {
-      const layer = await this.model.getLayer(layerName);
-      if (layer) {
-        total += layer.listElements().length;
+    const span = isTelemetryEnabled ? startSpan('context.count-total-elements') : null;
+
+    try {
+      let total = 0;
+      const layerNames = this.model.getLayerNames();
+
+      for (const layerName of layerNames) {
+        const layer = await this.model.getLayer(layerName);
+        if (layer) {
+          total += layer.listElements().length;
+        }
       }
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('context.totalElements', total);
+        (span as any).setAttribute('context.layerCount', layerNames.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return total;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
     }
-    return total;
   }
 }

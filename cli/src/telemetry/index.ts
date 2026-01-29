@@ -14,10 +14,13 @@ import type { NodeSDK } from '@opentelemetry/sdk-node';
 import type { Tracer } from '@opentelemetry/api';
 import type { Logger as OTelLogger } from '@opentelemetry/api-logs';
 
+// Re-export SeverityNumber for convenience
+export { SeverityNumber } from '@opentelemetry/api-logs';
+
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 // This ensures tests and non-bundled code don't crash
 declare const TELEMETRY_ENABLED: boolean | undefined;
-const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+export const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
 // Module-level state: SDK and tracer instances
 // Only initialized when TELEMETRY_ENABLED is true

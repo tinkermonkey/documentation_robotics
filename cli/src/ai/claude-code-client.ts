@@ -16,6 +16,7 @@ import { BaseChatClient, ChatOptions } from './base-chat-client.js';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import ansis from 'ansis';
 import { getChatLogger } from '../utils/chat-logger.js';
+import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
 
 /**
  * Claude Code CLI event types
@@ -39,14 +40,32 @@ export class ClaudeCodeClient extends BaseChatClient {
    * Check if Claude Code CLI is available
    */
   async isAvailable(): Promise<boolean> {
+    const span = isTelemetryEnabled ? startSpan('claude-code.availability-check') : null;
+
     try {
       const result = spawnSync('which', ['claude'], {
         stdio: 'pipe',
         encoding: 'utf-8',
       });
-      return result.status === 0;
-    } catch {
+      const available = result.status === 0;
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('client.available', available);
+        (span as any).setAttribute('client.name', 'Claude Code');
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return available;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setAttribute('client.available', false);
+        (span as any).setAttribute('client.name', 'Claude Code');
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
       return false;
+    } finally {
+      endSpan(span);
     }
   }
 
@@ -56,6 +75,15 @@ export class ClaudeCodeClient extends BaseChatClient {
    * @param options Chat options
    */
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
+    const span = isTelemetryEnabled ? startSpan('claude-code.send-message', {
+      'message.length': message.length,
+      'client.name': 'Claude Code',
+      'client.agent': options?.agent,
+      'client.withDanger': options?.withDanger === true,
+      'client.workingDirectory': options?.workingDirectory,
+      'client.sessionId': options?.sessionId,
+    }) : null;
+
     // Log the user message
     const logger = getChatLogger();
     if (logger) {
@@ -71,11 +99,18 @@ export class ClaudeCodeClient extends BaseChatClient {
     this.createSession();
     this.updateSessionTimestamp();
 
-    return new Promise((resolve, reject) => {
-      const proc = this.spawnClaudeProcess(message, options);
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('client.sessionCreated', true);
+      (span as any).setAttribute('client.internalSessionId', this.getCurrentSession()?.id ?? 'none');
+    }
 
-      let buffer = '';
-      let assistantOutput = '';
+    return new Promise((resolve, reject) => {
+        const proc = this.spawnClaudeProcess(message, options);
+
+        let buffer = '';
+        let assistantOutput = '';
+        let eventCount = 0;
+        let toolUseCount = 0;
 
       // Handle stdout - JSON event stream
       proc.stdout?.on('data', (data: Buffer) => {
@@ -91,9 +126,13 @@ export class ClaudeCodeClient extends BaseChatClient {
 
           try {
             const event: ClaudeEvent = JSON.parse(line);
-            const output = this.handleClaudeEvent(event);
-            if (output) {
-              assistantOutput += output;
+            eventCount++;
+            const result = this.handleClaudeEvent(event);
+            if (result.output) {
+              assistantOutput += result.output;
+            }
+            if (result.usedTool) {
+              toolUseCount++;
             }
           } catch {
             // Non-JSON line, print as-is
@@ -108,16 +147,31 @@ export class ClaudeCodeClient extends BaseChatClient {
         const errorText = data.toString();
         // Claude Code stderr is usually verbose logging
         // We log it but don't display unless it's an actual error
-        if (logger && errorText.includes('error')) {
-          void logger.logError(errorText, {
-            source: 'stderr',
-            client: 'Claude Code',
-          });
+        if (errorText.includes('error')) {
+          if (isTelemetryEnabled && span) {
+            emitLog(SeverityNumber.ERROR, 'Claude Code stderr error', {
+              'error.source': 'stderr',
+              'error.text': errorText.substring(0, 500),
+            });
+          }
+          if (logger) {
+            void logger.logError(errorText, {
+              source: 'stderr',
+              client: 'Claude Code',
+            });
+          }
         }
       });
 
       // Handle errors
       proc.on('error', (error) => {
+        if (isTelemetryEnabled && span) {
+          emitLog(SeverityNumber.ERROR, 'Claude Code process error', {
+            'error.message': error.message,
+            'error.stack': error.stack,
+          });
+          (span as any).recordException(error);
+        }
         if (logger) {
           void logger.logError(error.message, {
             source: 'process',
@@ -125,6 +179,7 @@ export class ClaudeCodeClient extends BaseChatClient {
             stack: error.stack,
           });
         }
+        endSpan(span);
         reject(error);
       });
 
@@ -134,14 +189,25 @@ export class ClaudeCodeClient extends BaseChatClient {
         if (buffer.trim()) {
           try {
             const event: ClaudeEvent = JSON.parse(buffer);
-            const output = this.handleClaudeEvent(event);
-            if (output) {
-              assistantOutput += output;
+            eventCount++;
+            const result = this.handleClaudeEvent(event);
+            if (result.output) {
+              assistantOutput += result.output;
+            }
+            if (result.usedTool) {
+              toolUseCount++;
             }
           } catch {
             process.stdout.write(buffer);
             assistantOutput += buffer;
           }
+        }
+
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('client.eventCount', eventCount);
+          (span as any).setAttribute('client.toolUseCount', toolUseCount);
+          (span as any).setAttribute('client.outputLength', assistantOutput.length);
+          (span as any).setAttribute('client.exitCode', exitCode || 0);
         }
 
         if (exitCode === 0) {
@@ -151,15 +217,26 @@ export class ClaudeCodeClient extends BaseChatClient {
               client: 'Claude Code',
             });
           }
+          if (isTelemetryEnabled && span) {
+            (span as any).setStatus({ code: 0 });
+          }
+          endSpan(span);
           resolve();
         } else {
           const errorMsg = `Claude process exited with code ${exitCode}`;
+          if (isTelemetryEnabled && span) {
+            emitLog(SeverityNumber.ERROR, 'Claude Code process exited with error', {
+              'process.exitCode': exitCode,
+            });
+            (span as any).setStatus({ code: 2, message: errorMsg });
+          }
           if (logger) {
             void logger.logError(errorMsg, {
               exitCode,
               client: 'Claude Code',
             });
           }
+          endSpan(span);
           reject(new Error(errorMsg));
         }
       });
@@ -169,10 +246,11 @@ export class ClaudeCodeClient extends BaseChatClient {
   /**
    * Handle a Claude Code event from the JSON stream
    * @param event The Claude event to handle
-   * @returns The output text generated by the event, if any
+   * @returns Object with output text and tool use flag
    */
-  private handleClaudeEvent(event: ClaudeEvent): string {
+  private handleClaudeEvent(event: ClaudeEvent): { output: string; usedTool: boolean } {
     let output = '';
+    let usedTool = false;
 
     if (event.type === 'assistant') {
       const content = event.message?.content || [];
@@ -182,6 +260,7 @@ export class ClaudeCodeClient extends BaseChatClient {
           process.stdout.write(text);
           output += text;
         } else if (block.type === 'tool_use') {
+          usedTool = true;
           const toolMsg = ansis.dim(`\n[Using tool: ${block.name}]\n`);
           process.stdout.write(toolMsg);
           output += toolMsg;
@@ -189,7 +268,7 @@ export class ClaudeCodeClient extends BaseChatClient {
       }
     }
 
-    return output;
+    return { output, usedTool };
   }
 
   /**
@@ -202,46 +281,75 @@ export class ClaudeCodeClient extends BaseChatClient {
     message: string,
     options?: ChatOptions
   ): ChildProcess {
-    const args = ['--print'];
+    const span = isTelemetryEnabled ? startSpan('claude-code.spawn-process') : null;
 
-    // Add dangerously-skip-permissions flag if withDanger is enabled
-    if (options?.withDanger) {
-      args.push('--dangerously-skip-permissions');
-    }
+    try {
+      const args = ['--print'];
 
-    args.push('--verbose', '--output-format', 'stream-json');
+      // Add dangerously-skip-permissions flag if withDanger is enabled
+      if (options?.withDanger) {
+        args.push('--dangerously-skip-permissions');
+      }
 
-    // Add agent if specified
-    if (options?.agent) {
-      args.unshift('--agent', options.agent);
-    }
+      args.push('--verbose', '--output-format', 'stream-json');
 
-    const cwd = options?.workingDirectory || process.cwd();
+      // Add agent if specified
+      if (options?.agent) {
+        args.unshift('--agent', options.agent);
+      }
 
-    // Log the command that's being executed
-    const logger = getChatLogger();
-    if (logger) {
-      void logger.logCommand('claude', args, {
-        client: 'Claude Code',
-        workingDirectory: cwd,
-        agent: options?.agent,
-        withDanger: options?.withDanger || false,
-        messageLength: message.length,
-        hasVerboseFlag: args.includes('--verbose'),
-        hasOutputFormat: args.includes('--output-format'),
+      const cwd = options?.workingDirectory || process.cwd();
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('process.command', 'claude');
+        (span as any).setAttribute('process.args', args.join(' '));
+        (span as any).setAttribute('process.argCount', args.length);
+        (span as any).setAttribute('process.hasAgent', !!options?.agent);
+        (span as any).setAttribute('process.agent', options?.agent);
+        (span as any).setAttribute('process.withDanger', options?.withDanger === true);
+        (span as any).setAttribute('process.workingDirectory', cwd);
+        (span as any).setAttribute('process.messageLength', message.length);
+      }
+
+      // Log the command that's being executed
+      const logger = getChatLogger();
+      if (logger) {
+        void logger.logCommand('claude', args, {
+          client: 'Claude Code',
+          workingDirectory: cwd,
+          agent: options?.agent,
+          withDanger: options?.withDanger || false,
+          messageLength: message.length,
+          hasVerboseFlag: args.includes('--verbose'),
+          hasOutputFormat: args.includes('--output-format'),
+        });
+      }
+
+      const proc = spawn('claude', args, {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
+
+      // Send message via stdin
+      proc.stdin?.write(message);
+      proc.stdin?.end();
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('process.spawned', true);
+        (span as any).setAttribute('process.pid', proc.pid);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return proc;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
     }
-
-    const proc = spawn('claude', args, {
-      cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
-
-    // Send message via stdin
-    proc.stdin?.write(message);
-    proc.stdin?.end();
-
-    return proc;
   }
 
   /**

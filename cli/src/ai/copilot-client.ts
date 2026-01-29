@@ -16,6 +16,7 @@ import { BaseChatClient, ChatOptions } from './base-chat-client.js';
 import { spawnSync, spawn, ChildProcess } from 'child_process';
 import ansis from 'ansis';
 import { getChatLogger } from '../utils/chat-logger.js';
+import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
 
 /**
  * Output parser for GitHub Copilot plain text responses
@@ -80,26 +81,60 @@ export class CopilotClient extends BaseChatClient {
    * Only supports standalone `copilot` npm package (@github/copilot)
    */
   async isAvailable(): Promise<boolean> {
-    // Return cached result if already detected
-    if (this.copilotCommand !== null) {
-      return true;
-    }
+    const span = isTelemetryEnabled ? startSpan('copilot.availability-check') : null;
 
-    // Check for standalone copilot command (npm package)
     try {
-      const copilotResult = spawnSync('copilot', ['--version'], {
-        stdio: 'pipe',
-        encoding: 'utf-8',
-      });
-      if (copilotResult.status === 0) {
-        this.copilotCommand = 'copilot';
+      // Return cached result if already detected
+      if (this.copilotCommand !== null) {
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('client.available', true);
+          (span as any).setAttribute('client.name', 'GitHub Copilot');
+          (span as any).setAttribute('client.cached', true);
+          (span as any).setAttribute('client.variant', this.copilotCommand);
+          (span as any).setStatus({ code: 0 });
+        }
         return true;
       }
-    } catch {
-      // standalone copilot not available
-    }
 
-    return false;
+      // Check for standalone copilot command (npm package)
+      try {
+        const copilotResult = spawnSync('copilot', ['--version'], {
+          stdio: 'pipe',
+          encoding: 'utf-8',
+        });
+        if (copilotResult.status === 0) {
+          this.copilotCommand = 'copilot';
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute('client.available', true);
+            (span as any).setAttribute('client.name', 'GitHub Copilot');
+            (span as any).setAttribute('client.cached', false);
+            (span as any).setAttribute('client.variant', 'copilot');
+            (span as any).setStatus({ code: 0 });
+          }
+          return true;
+        }
+      } catch {
+        // standalone copilot not available
+      }
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('client.available', false);
+        (span as any).setAttribute('client.name', 'GitHub Copilot');
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return false;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setAttribute('client.available', false);
+        (span as any).setAttribute('client.name', 'GitHub Copilot');
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      return false;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**
@@ -108,6 +143,16 @@ export class CopilotClient extends BaseChatClient {
    * @param options Chat options
    */
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
+    const span = isTelemetryEnabled ? startSpan('copilot.send-message', {
+      'message.length': message.length,
+      'client.name': 'GitHub Copilot',
+      'client.agent': options?.agent,
+      'client.withDanger': options?.withDanger === true,
+      'client.workingDirectory': options?.workingDirectory,
+      'client.sessionId': options?.sessionId,
+      'client.isFirstMessage': this.isFirstMessage,
+    }) : null;
+
     // Ensure we have determined which command to use
     if (!this.copilotCommand) {
       const available = await this.isAvailable();
@@ -126,18 +171,26 @@ export class CopilotClient extends BaseChatClient {
     }
 
     // Create or continue session
+    const hadExistingSession = !!this.currentSession;
     if (!this.currentSession) {
       this.createSession();
     } else {
       this.updateSessionTimestamp();
     }
 
-    return new Promise((resolve, reject) => {
-      const proc = this.spawnCopilotProcess(message, options);
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('client.hadExistingSession', hadExistingSession);
+      (span as any).setAttribute('client.internalSessionId', this.getCurrentSession()?.id ?? 'none');
+      (span as any).setAttribute('client.variant', this.copilotCommand);
+    }
 
-      let buffer = '';
-      let assistantOutput = '';
-      this.parser.reset();
+    return new Promise((resolve, reject) => {
+        const proc = this.spawnCopilotProcess(message, options);
+
+        let buffer = '';
+        let assistantOutput = '';
+        let lineCount = 0;
+        this.parser.reset();
 
       // Handle stdout
       proc.stdout?.on('data', (data: Buffer) => {
@@ -150,6 +203,7 @@ export class CopilotClient extends BaseChatClient {
         buffer = lines.pop() || '';
 
         for (const line of lines) {
+          lineCount++;
           if (!line.trim()) {
             process.stdout.write('\n');
             continue;
@@ -173,6 +227,14 @@ export class CopilotClient extends BaseChatClient {
         ) {
           process.stderr.write(ansis.red(errorText));
 
+          if (isTelemetryEnabled && span) {
+            emitLog(SeverityNumber.ERROR, 'Copilot stderr error', {
+              'error.source': 'stderr',
+              'error.text': errorText.substring(0, 500),
+              'error.isAuthError': errorText.includes('not authenticated'),
+            });
+          }
+
           // Log error
           if (logger) {
             void logger.logError(errorText, {
@@ -185,6 +247,13 @@ export class CopilotClient extends BaseChatClient {
 
       // Handle errors
       proc.on('error', (error) => {
+        if (isTelemetryEnabled && span) {
+          emitLog(SeverityNumber.ERROR, 'Copilot process error', {
+            'error.message': error.message,
+            'error.stack': error.stack,
+          });
+          (span as any).recordException(error);
+        }
         if (logger) {
           void logger.logError(error.message, {
             source: 'process',
@@ -192,6 +261,7 @@ export class CopilotClient extends BaseChatClient {
             stack: error.stack,
           });
         }
+        endSpan(span);
         reject(error);
       });
 
@@ -205,6 +275,12 @@ export class CopilotClient extends BaseChatClient {
           }
         }
 
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('client.lineCount', lineCount);
+          (span as any).setAttribute('client.outputLength', assistantOutput.length);
+          (span as any).setAttribute('client.exitCode', exitCode || 0);
+        }
+
         if (exitCode === 0) {
           // Log assistant message if we got output
           if (logger && assistantOutput.trim()) {
@@ -212,15 +288,26 @@ export class CopilotClient extends BaseChatClient {
               client: 'GitHub Copilot',
             });
           }
+          if (isTelemetryEnabled && span) {
+            (span as any).setStatus({ code: 0 });
+          }
+          endSpan(span);
           resolve();
         } else {
           const errorMsg = `Copilot process exited with code ${exitCode}`;
+          if (isTelemetryEnabled && span) {
+            emitLog(SeverityNumber.ERROR, 'Copilot process exited with error', {
+              'process.exitCode': exitCode,
+            });
+            (span as any).setStatus({ code: 2, message: errorMsg });
+          }
           if (logger) {
             void logger.logError(errorMsg, {
               exitCode,
               client: 'GitHub Copilot',
             });
           }
+          endSpan(span);
           reject(new Error(errorMsg));
         }
       });
@@ -237,50 +324,84 @@ export class CopilotClient extends BaseChatClient {
     message: string,
     options?: ChatOptions
   ): ChildProcess {
-    const args: string[] = [];
-    const cwd = options?.workingDirectory || process.cwd();
+    const span = isTelemetryEnabled ? startSpan('copilot.spawn-process') : null;
 
-    const isFirst = this.isFirstMessage;
+    try {
+      const args: string[] = [];
+      const cwd = options?.workingDirectory || process.cwd();
 
-    // For first message: copilot --prompt "message" --agent "dr-architect" --allow-all-tools
-    // For subsequent messages: copilot --continue --prompt "message" --allow-all-tools
-    if (isFirst) {
-      args.push('--prompt', message);
-      this.isFirstMessage = false;
-    } else {
-      args.push('--continue', '--prompt', message);
-    }
+      const isFirst = this.isFirstMessage;
 
-    // Add agent if specified (only on first message, agent persists in session)
-    if (isFirst && options?.agent) {
-      args.push('--agent', options.agent);
-    }
+      // For first message: copilot --prompt "message" --agent "dr-architect" --allow-all-tools
+      // For subsequent messages: copilot --continue --prompt "message" --allow-all-tools
+      if (isFirst) {
+        args.push('--prompt', message);
+        this.isFirstMessage = false;
+      } else {
+        args.push('--continue', '--prompt', message);
+      }
 
-    // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
-    if (options?.withDanger) {
-      args.push('--allow-all-tools');
-    }
+      // Add agent if specified (only on first message, agent persists in session)
+      if (isFirst && options?.agent) {
+        args.push('--agent', options.agent);
+      }
 
-    const command = 'copilot';
+      // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
+      if (options?.withDanger) {
+        args.push('--allow-all-tools');
+      }
 
-    // Log the command that's being executed
-    const logger = getChatLogger();
-    if (logger) {
-      void logger.logCommand(command, args, {
-        client: 'GitHub Copilot',
-        workingDirectory: cwd,
-        withDanger: options?.withDanger || false,
-        copilotVariant: this.copilotCommand,
-        messageLength: message.length,
-        hasAgent: !!options?.agent,
-        isFirstMessage: isFirst,
+      const command = 'copilot';
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('process.command', command);
+        (span as any).setAttribute('process.args', args.join(' '));
+        (span as any).setAttribute('process.argCount', args.length);
+        (span as any).setAttribute('process.isFirstMessage', isFirst);
+        (span as any).setAttribute('process.hasContinue', args.includes('--continue'));
+        (span as any).setAttribute('process.hasAgent', !!options?.agent);
+        (span as any).setAttribute('process.agent', options?.agent);
+        (span as any).setAttribute('process.withDanger', options?.withDanger === true);
+        (span as any).setAttribute('process.workingDirectory', cwd);
+        (span as any).setAttribute('process.messageLength', message.length);
+        (span as any).setAttribute('process.variant', this.copilotCommand);
+      }
+
+      // Log the command that's being executed
+      const logger = getChatLogger();
+      if (logger) {
+        void logger.logCommand(command, args, {
+          client: 'GitHub Copilot',
+          workingDirectory: cwd,
+          withDanger: options?.withDanger || false,
+          copilotVariant: this.copilotCommand,
+          messageLength: message.length,
+          hasAgent: !!options?.agent,
+          isFirstMessage: isFirst,
+        });
+      }
+
+      const proc = spawn(command, args, {
+        cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
       });
-    }
 
-    return spawn(command, args, {
-      cwd,
-      stdio: ['pipe', 'pipe', 'pipe'],
-    });
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('process.spawned', true);
+        (span as any).setAttribute('process.pid', proc.pid);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return proc;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
+    }
   }
 
   /**

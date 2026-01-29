@@ -13,6 +13,7 @@ import { Model } from '../core/model.js';
 import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
 import { ReferenceRegistry } from '../core/reference-registry.js';
 import type { ToolDefinition, ToolExecutionResult } from '../types/index.js';
+import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
 
 /**
  * Get tool definitions for Claude to use with the model
@@ -119,21 +120,52 @@ export async function executeModelTool(
   args: Record<string, unknown>,
   model: Model
 ): Promise<ToolExecutionResult> {
-  switch (toolName) {
-    case 'dr_list':
-      return await executeDrList(args, model);
+  const span = isTelemetryEnabled ? startSpan('ai-tool.execute', {
+    'tool.name': toolName,
+    'tool.args': JSON.stringify(args),
+  }) : null;
 
-    case 'dr_find':
-      return await executeDrFind(args, model);
+  try {
+    let result: ToolExecutionResult;
 
-    case 'dr_search':
-      return await executeDrSearch(args, model);
+    switch (toolName) {
+      case 'dr_list':
+        result = await executeDrList(args, model);
+        break;
 
-    case 'dr_trace':
-      return await executeDrTrace(args, model);
+      case 'dr_find':
+        result = await executeDrFind(args, model);
+        break;
 
-    default:
-      return { error: `Unknown tool: ${toolName}` };
+      case 'dr_search':
+        result = await executeDrSearch(args, model);
+        break;
+
+      case 'dr_trace':
+        result = await executeDrTrace(args, model);
+        break;
+
+      default:
+        result = { error: `Unknown tool: ${toolName}` };
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('tool.hasError', !!result.error);
+      if (result.error) {
+        (span as any).setAttribute('tool.error', result.error as string);
+      }
+      (span as any).setStatus({ code: result.error ? 2 : 0 });
+    }
+
+    return result;
+  } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
+    throw error;
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -147,17 +179,30 @@ export async function executeModelTool(
  * @returns Result with element list or error message
  */
 async function executeDrList(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const layerName = args.layer as string;
-  const filterType = args.type as string | undefined;
-
-  if (!layerName) {
-    return { error: 'layer parameter is required' };
-  }
+  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-list', {
+    'tool.layer': args.layer as string,
+    'tool.type': args.type as string | undefined,
+  }) : null;
 
   try {
+    const layerName = args.layer as string;
+    const filterType = args.type as string | undefined;
+
+    if (!layerName) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.error', 'layer parameter is required');
+        (span as any).setStatus({ code: 2 });
+      }
+      return { error: 'layer parameter is required' };
+    }
+
     const layer = await model.getLayer(layerName);
 
     if (!layer) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.layerFound', false);
+        (span as any).setStatus({ code: 2 });
+      }
       return {
         error: `Layer '${layerName}' not found or not loaded`,
         availableLayers: model.getLayerNames(),
@@ -168,6 +213,13 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
 
     if (filterType) {
       elements = elements.filter((e) => e.type === filterType);
+    }
+
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('tool.layerFound', true);
+      (span as any).setAttribute('tool.elementCount', elements.length);
+      (span as any).setAttribute('tool.filtered', !!filterType);
+      (span as any).setStatus({ code: 0 });
     }
 
     return {
@@ -181,9 +233,15 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
       })),
     };
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     return {
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -197,20 +255,35 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
  * @returns Result with found element or error message
  */
 async function executeDrFind(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const id = args.id as string;
-
-  if (!id) {
-    return { error: 'id parameter is required' };
-  }
+  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-find', {
+    'tool.id': args.id as string,
+  }) : null;
 
   try {
+    const id = args.id as string;
+
+    if (!id) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.error', 'id parameter is required');
+        (span as any).setStatus({ code: 2 });
+      }
+      return { error: 'id parameter is required' };
+    }
+
     // Search through all layers for the element
-    for (const layerName of model.getLayerNames()) {
+    const layerNames = model.getLayerNames();
+    for (const layerName of layerNames) {
       const layer = await model.getLayer(layerName);
       if (!layer) continue;
 
       const element = layer.getElement(id);
       if (element) {
+        if (isTelemetryEnabled && span) {
+          (span as any).setAttribute('tool.found', true);
+          (span as any).setAttribute('tool.foundInLayer', layerName);
+          (span as any).setAttribute('tool.elementType', element.type);
+          (span as any).setStatus({ code: 0 });
+        }
         return {
           found: true,
           element: {
@@ -225,14 +298,26 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
       }
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('tool.found', false);
+      (span as any).setAttribute('tool.layersSearched', layerNames.length);
+      (span as any).setStatus({ code: 2 });
+    }
+
     return {
       found: false,
       error: `Element with id '${id}' not found`,
     };
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     return {
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -247,21 +332,33 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
  * @returns Result with search results or error message
  */
 async function executeDrSearch(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const query = (args.query as string)?.toLowerCase();
-  const layerFilter = (args.layers as string[]) || undefined;
-
-  if (!query) {
-    return { error: 'query parameter is required' };
-  }
+  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-search', {
+    'tool.query': args.query as string,
+    'tool.hasLayerFilter': !!args.layers,
+  }) : null;
 
   try {
+    const query = (args.query as string)?.toLowerCase();
+    const layerFilter = (args.layers as string[]) || undefined;
+
+    if (!query) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.error', 'query parameter is required');
+        (span as any).setStatus({ code: 2 });
+      }
+      return { error: 'query parameter is required' };
+    }
+
     const results: ToolExecutionResult[] = [];
+    let layersSearched = 0;
 
     for (const layerName of model.getLayerNames()) {
       // Skip if layer is in exclude list
       if (layerFilter && !layerFilter.includes(layerName)) {
         continue;
       }
+
+      layersSearched++;
 
       const layer = await model.getLayer(layerName);
       if (!layer) continue;
@@ -294,15 +391,28 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
       }
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('tool.resultCount', results.length);
+      (span as any).setAttribute('tool.layersSearched', layersSearched);
+      (span as any).setAttribute('tool.queryLength', query.length);
+      (span as any).setStatus({ code: 0 });
+    }
+
     return {
       query,
       resultCount: results.length,
       results,
     };
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     return {
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    endSpan(span);
   }
 }
 
@@ -317,20 +427,34 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
  * @returns Result with dependency trace or error message
  */
 async function executeDrTrace(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
-  const id = args.id as string;
-  const direction = (args.direction as string) || 'both';
-
-  if (!id) {
-    return { error: 'id parameter is required' };
-  }
-
-  if (!['up', 'down', 'both'].includes(direction)) {
-    return { error: 'direction must be one of: up, down, both' };
-  }
+  const span = isTelemetryEnabled ? startSpan('ai-tool.dr-trace', {
+    'tool.id': args.id as string,
+    'tool.direction': (args.direction as string) || 'both',
+  }) : null;
 
   try {
+    const id = args.id as string;
+    const direction = (args.direction as string) || 'both';
+
+    if (!id) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.error', 'id parameter is required');
+        (span as any).setStatus({ code: 2 });
+      }
+      return { error: 'id parameter is required' };
+    }
+
+    if (!['up', 'down', 'both'].includes(direction)) {
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('tool.error', 'invalid direction');
+        (span as any).setStatus({ code: 2 });
+      }
+      return { error: 'direction must be one of: up, down, both' };
+    }
+
     // Build registry by collecting all references from all loaded layers
     const registry = new ReferenceRegistry();
+    let elementCount = 0;
 
     for (const layerName of model.getLayerNames()) {
       const layer = await model.getLayer(layerName);
@@ -338,6 +462,7 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
 
       for (const element of layer.listElements()) {
         registry.registerElement(element);
+        elementCount++;
       }
     }
 
@@ -373,10 +498,23 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
       }
     }
 
+    if (isTelemetryEnabled && span) {
+      (span as any).setAttribute('tool.elementCount', elementCount);
+      (span as any).setAttribute('tool.dependencyCount', result.dependencyCount || 0);
+      (span as any).setAttribute('tool.dependentCount', result.dependentCount || 0);
+      (span as any).setStatus({ code: 0 });
+    }
+
     return result;
   } catch (error) {
+    if (isTelemetryEnabled && span) {
+      (span as any).recordException(error as Error);
+      (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+    }
     return {
       error: error instanceof Error ? error.message : String(error),
     };
+  } finally {
+    endSpan(span);
   }
 }

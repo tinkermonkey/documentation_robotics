@@ -2,6 +2,7 @@ import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import type { SourceLocation } from "../types/index.js";
 import { escapeXml } from "./types.js";
+import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * ArchiMate XML Exporter for layers 1, 2, 4, 5
@@ -12,135 +13,164 @@ export class ArchiMateExporter implements Exporter {
   supportedLayers = ["motivation", "business", "application", "technology"];
 
   async export(model: Model, options: ExportOptions = {}): Promise<string> {
-    const lines: string[] = [];
+    const span = isTelemetryEnabled ? startSpan('export.format.archimate', {
+      'export.layerCount': options.layers?.length || this.supportedLayers.length,
+    }) : null;
 
-    // XML declaration
-    lines.push('<?xml version="1.0" encoding="UTF-8"?>');
+    try {
+      const lines: string[] = [];
 
-    // Root element with namespaces
-    lines.push(
-      '<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"'
-    );
-    lines.push(
-      '       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
-    );
-    lines.push(
-      '       xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd">'
-    );
+      // XML declaration
+      lines.push('<?xml version="1.0" encoding="UTF-8"?>');
 
-    // Model metadata
-    lines.push(`  <name>${escapeXml(model.manifest.name)}</name>`);
-    if (model.manifest.description) {
+      // Root element with namespaces
       lines.push(
-        `  <documentation>${escapeXml(model.manifest.description)}</documentation>`
+        '<model xmlns="http://www.opengroup.org/xsd/archimate/3.0/"'
       );
-    }
+      lines.push(
+        '       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"'
+      );
+      lines.push(
+        '       xsi:schemaLocation="http://www.opengroup.org/xsd/archimate/3.0/ http://www.opengroup.org/xsd/archimate/3.1/archimate3_Diagram.xsd">'
+      );
 
-    // Export elements
-    lines.push("  <elements>");
-
-    const layersToExport = options.layers || this.supportedLayers;
-    const elements: Array<{ layer: string; element: any }> = [];
-
-    for (const layerName of layersToExport) {
-      if (!this.supportedLayers.includes(layerName)) continue;
-
-      const layer = await model.getLayer(layerName);
-      if (!layer) continue;
-
-      for (const element of layer.listElements()) {
-        elements.push({ layer: layerName, element });
-      }
-    }
-
-    for (const { layer, element } of elements) {
-      const archiType = this.mapToArchiMateType(element.type, layer);
-      lines.push(`    <element identifier="${element.id}" xsi:type="${archiType}">`);
-      lines.push(`      <name>${escapeXml(element.name)}</name>`);
-
-      if (element.description) {
+      // Model metadata
+      lines.push(`  <name>${escapeXml(model.manifest.name)}</name>`);
+      if (model.manifest.description) {
         lines.push(
-          `      <documentation>${escapeXml(element.description)}</documentation>`
+          `  <documentation>${escapeXml(model.manifest.description)}</documentation>`
         );
       }
 
-      // Add properties section
-      lines.push("      <properties>");
+      // Export elements
+      lines.push("  <elements>");
 
-      // Add source reference as properties if present
-      const sourceRef = element.getSourceReference();
-      if (sourceRef) {
-        lines.push(`        <property key="source.provenance" value="${escapeXml(sourceRef.provenance)}" />`);
+      const layersToExport = options.layers || this.supportedLayers;
+      const elements: Array<{ layer: string; element: any }> = [];
 
-        sourceRef.locations.forEach((loc: SourceLocation, idx: number) => {
-          lines.push(`        <property key="source.file.${idx}" value="${escapeXml(loc.file)}" />`);
-          if (loc.symbol) {
-            lines.push(`        <property key="source.symbol.${idx}" value="${escapeXml(loc.symbol)}" />`);
-          }
-        });
+      for (const layerName of layersToExport) {
+        if (!this.supportedLayers.includes(layerName)) continue;
 
-        if (sourceRef.repository) {
-          if (sourceRef.repository.url) {
-            lines.push(`        <property key="source.repository.url" value="${escapeXml(sourceRef.repository.url)}" />`);
-          }
-          if (sourceRef.repository.commit) {
-            lines.push(`        <property key="source.repository.commit" value="${escapeXml(sourceRef.repository.commit)}" />`);
-          }
+        const layer = await model.getLayer(layerName);
+        if (!layer) continue;
+
+        for (const element of layer.listElements()) {
+          elements.push({ layer: layerName, element });
         }
       }
 
-      // Add other properties
-      const propKeys = Object.keys(element.properties);
-      if (propKeys.length > 0) {
-        for (const key of propKeys) {
-          const val = element.properties[key];
-          const strValue = this.valueToString(val);
-          lines.push(`        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`);
-        }
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('export.elementCount', elements.length);
       }
 
-      lines.push("      </properties>");
-      lines.push("    </element>");
-    }
+      for (const { layer, element } of elements) {
+        const archiType = this.mapToArchiMateType(element.type, layer);
+        lines.push(`    <element identifier="${element.id}" xsi:type="${archiType}">`);
+        lines.push(`      <name>${escapeXml(element.name)}</name>`);
 
-    lines.push("  </elements>");
-
-    // Export relationships and references
-    lines.push("  <relationships>");
-
-    for (const { element } of elements) {
-      // Handle cross-layer references
-      for (const ref of element.references) {
-        lines.push(
-          `    <relationship identifier="${this.escapeId(element.id)}-ref-${this.escapeId(ref.target)}" `
-        );
-        lines.push(`                  source="${element.id}" target="${ref.target}" `);
-        lines.push(`                  xsi:type="Association">`);
-        if (ref.description) {
+        if (element.description) {
           lines.push(
-            `      <documentation>${escapeXml(ref.description)}</documentation>`
+            `      <documentation>${escapeXml(element.description)}</documentation>`
           );
         }
-        lines.push(`      <name>${ref.type}</name>`);
-        lines.push(`    </relationship>`);
+
+        // Add properties section
+        lines.push("      <properties>");
+
+        // Add source reference as properties if present
+        const sourceRef = element.getSourceReference();
+        if (sourceRef) {
+          lines.push(`        <property key="source.provenance" value="${escapeXml(sourceRef.provenance)}" />`);
+
+          sourceRef.locations.forEach((loc: SourceLocation, idx: number) => {
+            lines.push(`        <property key="source.file.${idx}" value="${escapeXml(loc.file)}" />`);
+            if (loc.symbol) {
+              lines.push(`        <property key="source.symbol.${idx}" value="${escapeXml(loc.symbol)}" />`);
+            }
+          });
+
+          if (sourceRef.repository) {
+            if (sourceRef.repository.url) {
+              lines.push(`        <property key="source.repository.url" value="${escapeXml(sourceRef.repository.url)}" />`);
+            }
+            if (sourceRef.repository.commit) {
+              lines.push(`        <property key="source.repository.commit" value="${escapeXml(sourceRef.repository.commit)}" />`);
+            }
+          }
+        }
+
+        // Add other properties
+        const propKeys = Object.keys(element.properties);
+        if (propKeys.length > 0) {
+          for (const key of propKeys) {
+            const val = element.properties[key];
+            const strValue = this.valueToString(val);
+            lines.push(`        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`);
+          }
+        }
+
+        lines.push("      </properties>");
+        lines.push("    </element>");
       }
 
-      // Handle intra-layer relationships
-      for (const rel of element.relationships) {
-        lines.push(
-          `    <relationship identifier="${this.escapeId(element.id)}-${this.escapeId(rel.predicate)}-${this.escapeId(rel.target)}" `
-        );
-        lines.push(`                  source="${element.id}" target="${rel.target}" `);
-        lines.push(`                  xsi:type="Association">`);
-        lines.push(`      <name>${rel.predicate}</name>`);
-        lines.push(`    </relationship>`);
+      lines.push("  </elements>");
+
+      // Export relationships and references
+      lines.push("  <relationships>");
+
+      let relationshipCount = 0;
+      for (const { element } of elements) {
+        // Handle cross-layer references
+        for (const ref of element.references) {
+          lines.push(
+            `    <relationship identifier="${this.escapeId(element.id)}-ref-${this.escapeId(ref.target)}" `
+          );
+          lines.push(`                  source="${element.id}" target="${ref.target}" `);
+          lines.push(`                  xsi:type="Association">`);
+          if (ref.description) {
+            lines.push(
+              `      <documentation>${escapeXml(ref.description)}</documentation>`
+            );
+          }
+          lines.push(`      <name>${ref.type}</name>`);
+          lines.push(`    </relationship>`);
+          relationshipCount++;
+        }
+
+        // Handle intra-layer relationships
+        for (const rel of element.relationships) {
+          lines.push(
+            `    <relationship identifier="${this.escapeId(element.id)}-${this.escapeId(rel.predicate)}-${this.escapeId(rel.target)}" `
+          );
+          lines.push(`                  source="${element.id}" target="${rel.target}" `);
+          lines.push(`                  xsi:type="Association">`);
+          lines.push(`      <name>${rel.predicate}</name>`);
+          lines.push(`    </relationship>`);
+          relationshipCount++;
+        }
       }
+
+      lines.push("  </relationships>");
+      lines.push("</model>");
+
+      const result = lines.join("\n");
+
+      if (isTelemetryEnabled && span) {
+        (span as any).setAttribute('export.relationshipCount', relationshipCount);
+        (span as any).setAttribute('export.size', result.length);
+        (span as any).setStatus({ code: 0 });
+      }
+
+      return result;
+    } catch (error) {
+      if (isTelemetryEnabled && span) {
+        (span as any).recordException(error as Error);
+        (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
+      }
+      throw error;
+    } finally {
+      endSpan(span);
     }
-
-    lines.push("  </relationships>");
-    lines.push("</model>");
-
-    return lines.join("\n");
   }
 
   /**
