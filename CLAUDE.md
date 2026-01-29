@@ -297,12 +297,66 @@ dr changeset commit my-feature
 
 ### Testing
 
+**Standard Test Commands:**
+
 ```bash
-npm run test              # All tests
+npm run test              # All tests (authoritative for daily development)
 npm run test:unit         # Unit tests only
 npm run test:integration  # Integration tests only
 npm run test:performance  # Performance benchmarks
 ```
+
+**Parallel Test Execution (Matching CI Pipeline):**
+
+The CLI includes parallel test execution scripts that match the GitHub Actions CI pipeline strategy, enabling local reproduction of CI behavior and debugging of shard-specific failures.
+
+```bash
+# Run tests across 4 parallel shards (same as CI)
+npm run test:parallel
+
+# Parallel execution with coverage reporting
+npm run test:parallel:coverage
+
+# Fast-track suite (matching PR validation - runs sequentially)
+npm run test:fast-track
+
+# Run individual shards for debugging CI failures
+npm run test:shard1
+npm run test:shard2
+npm run test:shard3
+npm run test:shard4
+```
+
+**Parallel Execution Architecture:**
+
+- **4 shards**: Tests distributed across 4 parallel background processes
+- **Distribution**: Modulo arithmetic (`NR % 4 == shard-1`) - same as CI
+- **Concurrency**: Each shard runs with `--concurrent` flag
+- **Output**: Color-coded status + logs in `test-results-parallel/`
+- **Total files**: 96 test files (~24 per shard)
+
+**When to Use Each Command:**
+
+| Command | Use Case |
+|---------|----------|
+| `npm test` | Daily development, authoritative test results |
+| `npm run test:parallel` | Debug CI shard failures, performance testing |
+| `npm run test:fast-track` | Quick PR validation during development |
+| `npm run test:shard2` | Debug specific shard failure from CI |
+
+**Debugging Shard Failures from CI:**
+
+1. Identify failing shard from GitHub Actions output
+2. Run that shard locally: `npm run test:shard2`
+3. View detailed logs: `cat test-results-parallel/shard-2.log`
+4. Run specific failing test: `bun test tests/path/to/failing.test.ts`
+
+**Important Notes:**
+
+- Regular `npm test` is authoritative for daily development
+- Parallel scripts primarily for CI debugging and reproducing CI execution patterns
+- Some tests may exhibit race conditions in parallel script due to bash background process handling
+- See `cli/scripts/README.md` for comprehensive parallel testing documentation
 
 ### Golden Copy Test Initialization
 
