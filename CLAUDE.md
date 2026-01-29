@@ -337,12 +337,12 @@ npm run test:shard4
 
 **When to Use Each Command:**
 
-| Command | Use Case |
-|---------|----------|
-| `npm test` | Daily development, authoritative test results |
-| `npm run test:parallel` | Debug CI shard failures, performance testing |
-| `npm run test:fast-track` | Quick PR validation during development |
-| `npm run test:shard2` | Debug specific shard failure from CI |
+| Command                   | Use Case                                      |
+| ------------------------- | --------------------------------------------- |
+| `npm test`                | Daily development, authoritative test results |
+| `npm run test:parallel`   | Debug CI shard failures, performance testing  |
+| `npm run test:fast-track` | Quick PR validation during development        |
+| `npm run test:shard2`     | Debug specific shard failure from CI          |
 
 **Debugging Shard Failures from CI:**
 
