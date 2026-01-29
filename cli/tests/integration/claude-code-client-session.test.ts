@@ -618,7 +618,7 @@ describe('ClaudeCodeClient Session Management Integration Tests', () => {
       }
     });
 
-    it('should handle empty string sessionId', () => {
+    it('should handle empty string sessionId', async () => {
       const logger = initializeChatLogger(testDir);
       await logger.ensureLogDirectory();
 
