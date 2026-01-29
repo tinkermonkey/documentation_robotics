@@ -1,4 +1,4 @@
-name: Bun CLI Tests
+name: CLI Tests
 
 on:
   workflow_dispatch: # Allow manual trigger
@@ -16,7 +16,7 @@ on:
 
 jobs:
   test-fast-track:
-    name: Fast-Track Tests (PR Validation)
+    name: Fast-Track Suite
     runs-on: ubuntu-latest
     # Only run fast-track on PRs; full test runs separately
     if: github.event_name == 'pull_request'
@@ -58,7 +58,7 @@ jobs:
           time bun test tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts
 
   test-full:
-    name: Full Test Suite (Parallel)
+    name: Full Suite
     runs-on: ubuntu-latest
     # Run full tests on main, develop, and push events
     if: github.event_name != 'pull_request' || github.base_ref == 'main'
@@ -205,57 +205,6 @@ jobs:
               repo: context.repo.repo,
               body: comment
             });
-
-  test:
-    name: Test Bun CLI (Legacy - Single Job)
-    runs-on: ubuntu-latest
-    if: github.event.workflow_dispatch
-    # Kept for manual trigger; usually use test-fast-track or test-full
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "18"
-          cache: "npm"
-          cache-dependency-path: cli/package-lock.json
-
-      - name: Install Bun
-        uses: oven-sh/setup-bun@v1
-        with:
-          bun-version: latest
-
-      - name: Install dependencies
-        working-directory: ./cli
-        run: npm install
-
-      - name: Build CLI
-        working-directory: ./cli
-        run: npm run build
-
-      - name: Run linting
-        working-directory: ./cli
-        continue-on-error: true
-        run: npm run lint || echo "Linting not configured"
-
-      - name: Run all tests with coverage
-        working-directory: ./cli
-        run: time npm run test:coverage
-
-      - name: Generate HTML coverage report
-        working-directory: ./cli
-        run: npm run test:coverage:html
-        continue-on-error: true
-
-      - name: Upload coverage report to artifacts
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: coverage-report
-          path: cli/coverage/
-          retention-days: 30
 
   spec-validation:
     name: Validate Specification and Schemas

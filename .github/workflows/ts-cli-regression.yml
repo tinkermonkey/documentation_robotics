@@ -1,4 +1,4 @@
-name: TypeScript CLI Regression Tests
+name: CLI Regression Suite
 
 on:
   pull_request:
