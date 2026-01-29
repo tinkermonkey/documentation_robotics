@@ -14,7 +14,7 @@ function isSourceReference(obj: unknown): obj is SourceReference {
 
   const entry = obj as Record<string, unknown>;
   return (
-    typeof entry.type === 'string' &&
+    typeof entry.provenance === 'string' &&
     Array.isArray(entry.locations)
   );
 }
