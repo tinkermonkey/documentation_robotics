@@ -28,7 +28,14 @@
     "test:coverage": "bun test --concurrent --coverage tests/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage tests/unit/integrations/base-manager.test.ts",
     "test:coverage:html": "bun test --concurrent --coverage --coverage-reporter=html tests/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=html tests/unit/integrations/base-manager.test.ts",
     "test:coverage:ci": "bun test --concurrent --coverage --coverage-reporter=lcov tests/**/*.test.ts --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test --coverage --coverage-reporter=lcov tests/unit/integrations/base-manager.test.ts && node scripts/validate-coverage-threshold.js",
-    "test:perf": "bun test tests/performance/**/*.test.ts"
+    "test:perf": "bun test tests/performance/**/*.test.ts",
+    "test:parallel": "bash scripts/run-parallel-tests.sh false",
+    "test:parallel:coverage": "bash scripts/run-parallel-tests.sh true",
+    "test:fast-track": "bun test tests/unit/**/*.test.ts tests/integration/add-*.test.ts tests/integration/delete-*.test.ts tests/integration/validate-*.test.ts",
+    "test:shard1": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 0')",
+    "test:shard2": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 1')",
+    "test:shard3": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 2')",
+    "test:shard4": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 4 == 3')"
   },
   "keywords": [
     "architecture",
