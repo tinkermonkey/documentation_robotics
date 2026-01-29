@@ -470,8 +470,225 @@ dr add motivation invalid-type my-element
 
 ---
 
+## Property Schema Examples
+
+Elements can include custom properties defined as JSON. Here are common property schemas by element type:
+
+### API Endpoint Properties
+
+```json
+{
+  "method": "POST",
+  "path": "/api/customers",
+  "consumes": "application/json",
+  "produces": "application/json",
+  "requires_auth": true,
+  "rate_limit": "1000 requests per hour",
+  "timeout_ms": 5000
+}
+```
+
+**Fields:**
+- `method` - HTTP method (GET, POST, PUT, DELETE, PATCH)
+- `path` - URL path
+- `consumes` - Request content type
+- `produces` - Response content type
+- `requires_auth` - Whether authentication is required
+- `rate_limit` - Rate limiting policy
+- `timeout_ms` - Request timeout in milliseconds
+
+### Application Component Properties
+
+```json
+{
+  "technology_stack": ["TypeScript", "Node.js", "Express"],
+  "deployment_unit": "order-service-container",
+  "team_owned_by": "platform-team",
+  "status": "production",
+  "availability_requirement": "99.9%",
+  "supports_scaling": true
+}
+```
+
+**Fields:**
+- `technology_stack` - Technologies used
+- `deployment_unit` - Deployment identifier
+- `team_owned_by` - Responsible team
+- `status` - Current status (production, beta, development)
+- `availability_requirement` - Uptime SLA
+- `supports_scaling` - Whether horizontally scalable
+
+### Database Table Properties
+
+```json
+{
+  "columns": 12,
+  "estimated_rows": "10M+",
+  "primary_key": "customer_id",
+  "partitioned": true,
+  "partition_strategy": "by_date",
+  "indexes": ["email", "created_at"],
+  "backup_strategy": "daily",
+  "retention_days": 2555
+}
+```
+
+**Fields:**
+- `columns` - Number of columns
+- `estimated_rows` - Expected row count
+- `primary_key` - Primary key column
+- `partitioned` - Whether table is partitioned
+- `partition_strategy` - Partitioning method
+- `indexes` - List of indexed columns
+- `backup_strategy` - Backup frequency
+- `retention_days` - Data retention period
+
+### Business Service Properties
+
+```json
+{
+  "owner": "finance-team",
+  "slicing": "vertical",
+  "domain": "payment-processing",
+  "maturity": "mature",
+  "cost_center": "IT-0042",
+  "business_hours": "24/7",
+  "recovery_time_objective": "1 hour"
+}
+```
+
+**Fields:**
+- `owner` - Service owner team
+- `slicing` - Service slicing model
+- `domain` - Business domain
+- `maturity` - Service maturity level
+- `cost_center` - Cost allocation
+- `business_hours` - Operational hours
+- `recovery_time_objective` - RTO for disaster recovery
+
+### Entity Properties (Data Model)
+
+```json
+{
+  "aggregate_root": true,
+  "lifecycle": "temporal",
+  "uniqueness_constraint": "email",
+  "soft_delete": true,
+  "audit_enabled": true,
+  "cache_strategy": "redis",
+  "cache_ttl_seconds": 3600
+}
+```
+
+**Fields:**
+- `aggregate_root` - Whether this is an aggregate root
+- `lifecycle` - Entity lifecycle type
+- `uniqueness_constraint` - Unique field(s)
+- `soft_delete` - Whether soft deletes are used
+- `audit_enabled` - Whether to audit changes
+- `cache_strategy` - Caching strategy
+- `cache_ttl_seconds` - Cache time-to-live
+
+### Test Case Properties
+
+```json
+{
+  "test_type": "unit",
+  "priority": "high",
+  "estimated_duration_seconds": 5,
+  "flaky": false,
+  "requires_database": false,
+  "requires_external_api": true,
+  "tags": ["regression", "critical-path"]
+}
+```
+
+**Fields:**
+- `test_type` - Type of test (unit, integration, e2e, performance)
+- `priority` - Test priority (low, medium, high, critical)
+- `estimated_duration_seconds` - Expected execution time
+- `flaky` - Whether test is known to be flaky
+- `requires_database` - Whether test needs database
+- `requires_external_api` - Whether test needs external APIs
+- `tags` - Categorization tags
+
+### Security Policy Properties
+
+```json
+{
+  "policy_type": "authentication",
+  "enforcement": "mandatory",
+  "framework": "OAuth2",
+  "provider": "Okta",
+  "mfa_required": true,
+  "password_rules": "minimum 12 chars, mixed case, special char",
+  "token_expiry_hours": 24,
+  "audit_logging": true
+}
+```
+
+**Fields:**
+- `policy_type` - Type of policy
+- `enforcement` - Enforcement level
+- `framework` - Security framework used
+- `provider` - Identity provider
+- `mfa_required` - Multi-factor authentication requirement
+- `password_rules` - Password complexity rules
+- `token_expiry_hours` - Token time-to-live
+- `audit_logging` - Whether to audit policy usage
+
+### Navigation Route Properties
+
+```json
+{
+  "url_pattern": "/dashboard/:userId/orders",
+  "component": "dashboard-orders-page",
+  "requires_auth": true,
+  "roles_allowed": ["admin", "manager"],
+  "lazy_load": true,
+  "preload": false,
+  "page_title": "My Orders",
+  "icon": "shopping-bag"
+}
+```
+
+**Fields:**
+- `url_pattern` - URL pattern with parameters
+- `component` - Component to render
+- `requires_auth` - Authentication requirement
+- `roles_allowed` - Allowed user roles
+- `lazy_load` - Whether to lazy load component
+- `preload` - Whether to preload component
+- `page_title` - Browser page title
+- `icon` - Icon identifier
+
+### Adding Custom Properties
+
+When creating elements via CLI, pass properties as JSON:
+
+```bash
+dr add api endpoint create-customer \
+  --name "Create Customer" \
+  --properties '{
+    "method": "POST",
+    "path": "/api/customers",
+    "requires_auth": true,
+    "timeout_ms": 10000
+  }'
+```
+
+**Guidelines:**
+- Properties are optional
+- Use clear, descriptive key names
+- Keep property values as simple types (string, number, boolean, array)
+- Document custom properties in your architecture guide
+- Use consistent property naming across similar elements
+
+---
+
 ## See Also
 
 - [CLAUDE.md](../CLAUDE.md) - AI Assistant guide with element naming overview
 - [CLI README](../cli/README.md) - Command-line usage and examples
 - [Specification Layers](../spec/layers/) - Detailed layer specifications
+- [ARCHITECTURE.md](./ARCHITECTURE.md) - Internal architecture and design patterns

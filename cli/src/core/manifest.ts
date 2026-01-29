@@ -1,7 +1,18 @@
-import type { ManifestData } from "../types/index.js";
+import type { ManifestData, ModelStatistics, CrossReferenceStatistics, ChangesetHistoryEntry } from "../types/index.js";
 
 /**
- * Manifest class representing model metadata
+ * Manifest representing model metadata and configuration
+ *
+ * The Manifest class manages all metadata about a Documentation Robotics model,
+ * including project information, statistics, changeset history, and Python CLI
+ * compatibility fields for migration scenarios.
+ *
+ * This class handles:
+ * - Project metadata (name, version, description, author)
+ * - Model statistics and cross-reference tracking
+ * - Changeset application history
+ * - Chat client preferences
+ * - Backward compatibility with Python CLI format
  */
 export class Manifest {
   name: string;
@@ -11,28 +22,36 @@ export class Manifest {
   created: string;
   modified: string;
   specVersion?: string;
-  layers?: Record<string, any>;  // Python CLI layer configuration
-  statistics?: {
-    total_elements: number;
-    total_relationships: number;
-    completeness?: number;
-    last_validation?: string;
-    validation_status?: string;
-  };
-  cross_references?: {
-    total: number;
-    by_type: Record<string, number>;
-  };
-  conventions?: any;  // Python CLI conventions
-  upgrade_history?: any[];  // Python CLI upgrade tracking
-  changeset_history?: Array<{
-    name: string;
-    applied_at: string;
-    action: 'applied' | 'reverted';
-  }>;  // Changeset application tracking
-  preferred_chat_client?: string;  // Chat client preference (Claude Code, GitHub Copilot)
+  statistics?: ModelStatistics;
+  cross_references?: CrossReferenceStatistics;
+  changeset_history?: ChangesetHistoryEntry[];
+  preferred_chat_client?: string;
 
-  constructor(data: ManifestData) {
+  /**
+   * Python CLI compatibility field - layer configuration mapping
+   *
+   * Used when loading models that were created by Python CLI.
+   * Contains path information for layer directories in old format.
+   *
+   * @deprecated Only used during migration from Python CLI format
+   */
+  layers?: Record<string, unknown>;
+
+  /**
+   * Python CLI compatibility field - conventions metadata
+   *
+   * @deprecated Only used during migration from Python CLI format
+   */
+  conventions?: unknown;
+
+  /**
+   * Python CLI compatibility field - upgrade history tracking
+   *
+   * @deprecated Only used during migration from Python CLI format
+   */
+  upgrade_history?: unknown[];
+
+  constructor(data: ManifestData & { layers?: Record<string, unknown>; conventions?: unknown; upgrade_history?: unknown[] }) {
     this.name = data.name;
     this.version = data.version;
     this.description = data.description;
@@ -40,14 +59,15 @@ export class Manifest {
     this.created = data.created ?? new Date().toISOString();
     this.modified = data.modified ?? new Date().toISOString();
     this.specVersion = data.specVersion;
+    this.statistics = data.statistics;
+    this.cross_references = data.cross_references;
+    this.changeset_history = data.changeset_history || [];
+    this.preferred_chat_client = data.preferred_chat_client;
+
     // Python CLI compatibility fields
-    this.layers = (data as any).layers;
-    this.statistics = (data as any).statistics;
-    this.cross_references = (data as any).cross_references;
-    this.conventions = (data as any).conventions;
-    this.upgrade_history = (data as any).upgrade_history;
-    this.changeset_history = (data as any).changeset_history || [];
-    this.preferred_chat_client = (data as any).preferred_chat_client;
+    this.layers = data.layers;
+    this.conventions = data.conventions;
+    this.upgrade_history = data.upgrade_history;
   }
 
   /**
@@ -75,9 +95,14 @@ export class Manifest {
 
   /**
    * Serialize to JSON representation
+   *
+   * Converts the Manifest to a JSON-serializable object that includes all
+   * populated fields and Python CLI compatibility data for migration scenarios.
+   *
+   * @returns ManifestData object suitable for JSON serialization
    */
-  toJSON(): ManifestData {
-    const result: any = {
+  toJSON(): Record<string, unknown> {
+    const result: Record<string, unknown> = {
       name: this.name,
       version: this.version,
       created: this.created,
@@ -96,11 +121,6 @@ export class Manifest {
       result.specVersion = this.specVersion;
     }
 
-    // Include Python CLI compatibility fields
-    if (this.layers) {
-      result.layers = this.layers;
-    }
-
     if (this.statistics) {
       result.statistics = this.statistics;
     }
@@ -109,20 +129,25 @@ export class Manifest {
       result.cross_references = this.cross_references;
     }
 
-    if (this.conventions) {
-      result.conventions = this.conventions;
-    }
-
-    if (this.upgrade_history) {
-      result.upgrade_history = this.upgrade_history;
-    }
-
     if (this.changeset_history && this.changeset_history.length > 0) {
       result.changeset_history = this.changeset_history;
     }
 
     if (this.preferred_chat_client) {
       result.preferred_chat_client = this.preferred_chat_client;
+    }
+
+    // Include Python CLI compatibility fields for migration scenarios
+    if (this.layers) {
+      result.layers = this.layers;
+    }
+
+    if (this.conventions) {
+      result.conventions = this.conventions;
+    }
+
+    if (this.upgrade_history) {
+      result.upgrade_history = this.upgrade_history;
     }
 
     return result;

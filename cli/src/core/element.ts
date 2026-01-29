@@ -1,7 +1,40 @@
 import type { Element as IElement, Reference, Relationship, SourceReference } from "../types/index.js";
 
 /**
+ * Type guard to check if a value is a SourceReference
+ * Safely validates the structure of source reference data without unsafe assertions
+ *
+ * @param obj Unknown value to validate
+ * @returns true if obj matches SourceReference structure
+ */
+function isSourceReference(obj: unknown): obj is SourceReference {
+  if (!obj || typeof obj !== 'object') {
+    return false;
+  }
+
+  const entry = obj as Record<string, unknown>;
+  return (
+    typeof entry.type === 'string' &&
+    Array.isArray(entry.locations)
+  );
+}
+
+/**
+ * Type guard to check if a value is a generic Record object
+ * Used for safe property access without array false-positives
+ *
+ * @param obj Unknown value to validate
+ * @returns true if obj is an object (not null, not array)
+ */
+function isRecord(obj: unknown): obj is Record<string, unknown> {
+  return obj !== null && typeof obj === 'object' && !Array.isArray(obj);
+}
+
+/**
  * Element class representing an individual architecture item
+ *
+ * Provides type-safe access to element properties with layer-aware handling
+ * for source references (different storage patterns for different layer types)
  */
 export class Element implements IElement {
   id: string;
@@ -75,21 +108,28 @@ export class Element implements IElement {
 
   /**
    * Get source reference from element
-   * Handles layer-specific property paths (x-source-reference for layers 6-8, properties.source.reference for others)
+   *
+   * Handles layer-specific property paths:
+   * - Layers 6-8 (API, Data Model, Data Store): stored at x-source-reference (OpenAPI pattern)
+   * - Layers 4-5, 9-12 (ArchiMate): stored at properties.source.reference (ArchiMate pattern)
+   *
+   * Uses type guards for safe property access without unsafe assertions.
+   *
+   * @returns The source reference if found, undefined otherwise
    */
   getSourceReference(): SourceReference | undefined {
     // For layers 6-8 (API, Data Model, Data Store), source reference is at x-source-reference
-    const xSourceRef = this.getProperty<SourceReference>('x-source-reference');
-    if (xSourceRef) {
+    const xSourceRef = this.getProperty<unknown>('x-source-reference');
+    if (isSourceReference(xSourceRef)) {
       return xSourceRef;
     }
 
     // For layers 4-5, 9-12, source reference is at properties.source.reference
-    const sourceObj = this.getProperty<Record<string, unknown>>('source');
-    if (sourceObj && typeof sourceObj === 'object' && 'reference' in sourceObj) {
-      const ref = (sourceObj as any).reference;
-      if (ref && typeof ref === 'object') {
-        return ref as SourceReference;
+    const sourceObj = this.getProperty<unknown>('source');
+    if (isRecord(sourceObj) && 'reference' in sourceObj) {
+      const ref = sourceObj.reference;
+      if (isSourceReference(ref)) {
+        return ref;
       }
     }
 
@@ -98,18 +138,24 @@ export class Element implements IElement {
 
   /**
    * Set source reference on element
+   *
    * Handles layer-specific property paths:
-   * - Layers 06-08 (API, Data Model, Data Store): x-source-reference
-   * - ArchiMate layers (01, 02, 04, 05, 09-12): properties.source.reference
+   * - Layers 06-08 (API, Data Model, Data Store): x-source-reference (OpenAPI pattern)
+   * - Layers 01, 02, 04, 05, 09-12 (ArchiMate): properties.source.reference (ArchiMate pattern)
+   *
+   * Uses type guards and safe property narrowing to avoid unsafe assertions.
+   *
+   * @param sourceRef The source reference to set, or undefined to remove existing reference
+   * @throws Error if element has no layer assigned (required for layer-aware storage)
    */
   setSourceReference(sourceRef: SourceReference | undefined): void {
     if (!sourceRef) {
-      // Remove source reference
+      // Remove source reference from both possible locations
       delete this.properties['x-source-reference'];
 
       const sourceObj = this.properties['source'];
-      if (typeof sourceObj === 'object' && sourceObj !== null) {
-        delete (sourceObj as any).reference;
+      if (isRecord(sourceObj)) {
+        delete sourceObj.reference;
         if (Object.keys(sourceObj).length === 0) {
           delete this.properties['source'];
         }
@@ -134,7 +180,11 @@ export class Element implements IElement {
     if (!this.properties.source) {
       this.properties.source = {};
     }
-    (this.properties.source as any).reference = sourceRef;
+
+    const sourceObj = this.properties.source;
+    if (isRecord(sourceObj)) {
+      sourceObj.reference = sourceRef;
+    }
   }
 
   /**
