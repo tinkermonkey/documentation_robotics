@@ -138,9 +138,10 @@ describe('ClaudeCodeClient', () => {
       expect(client.getClientName()).toBe('Claude Code');
     });
 
-    it('should create new session per invocation (design verification)', () => {
+    it('should maintain session continuity via --session-id flag (design verification)', () => {
       // This test documents the session behavior
-      // Claude Code doesn't support cross-invocation sessions
+      // Session continuity is maintained via --session-id flag passed to Claude Code CLI
+      // within a single dr chat session, enabling conversation continuity across messages
       expect(client.getCurrentSession()).toBeUndefined();
     });
   });

@@ -32,6 +32,7 @@ npm run test:shard4
 This script mimics the GitHub Actions matrix execution strategy:
 
 **Features:**
+
 - Distributes test files across 4 shards using modulo arithmetic
 - Runs each shard in parallel as a background process
 - Provides color-coded output for shard status
@@ -51,6 +52,7 @@ bash scripts/run-parallel-tests.sh true
 **Output:**
 
 Test results are saved to `test-results-parallel/`:
+
 - `shard-1.log` - Shard 1 execution log
 - `shard-2.log` - Shard 2 execution log
 - `shard-3.log` - Shard 3 execution log
@@ -66,6 +68,7 @@ find tests -name "*.test.ts" | sort | awk 'NR % 4 == (N-1)'
 ```
 
 This ensures:
+
 - Consistent distribution between local and CI
 - Deterministic shard assignment
 - Even distribution of test files
@@ -79,6 +82,7 @@ npm run test:fast-track
 ```
 
 **Includes:**
+
 - All unit tests
 - Critical integration tests: `add-*.test.ts`, `delete-*.test.ts`, `validate-*.test.ts`
 
@@ -86,13 +90,13 @@ npm run test:fast-track
 
 ## Comparison: Local vs CI
 
-| Feature | Local (`npm run test:parallel`) | CI (GitHub Actions) |
-|---------|--------------------------------|---------------------|
-| Parallelism | 4 background processes | 4 parallel jobs (separate runners) |
-| Test Distribution | Modulo-based sharding | Modulo-based sharding |
-| Execution Environment | Single machine | 4 separate VMs |
-| Output | Shard logs in `test-results-parallel/` | Artifacts uploaded to GitHub |
-| Typical Runtime | ~30-60s (depends on CPU) | ~30-45s (dedicated runners) |
+| Feature               | Local (`npm run test:parallel`)        | CI (GitHub Actions)                |
+| --------------------- | -------------------------------------- | ---------------------------------- |
+| Parallelism           | 4 background processes                 | 4 parallel jobs (separate runners) |
+| Test Distribution     | Modulo-based sharding                  | Modulo-based sharding              |
+| Execution Environment | Single machine                         | 4 separate VMs                     |
+| Output                | Shard logs in `test-results-parallel/` | Artifacts uploaded to GitHub       |
+| Typical Runtime       | ~30-60s (depends on CPU)               | ~30-45s (dedicated runners)        |
 
 ## Debugging Shard Failures
 
@@ -100,14 +104,19 @@ If a shard fails in CI:
 
 1. **Identify the failing shard** from GitHub Actions output
 2. **Run that shard locally**:
+
    ```bash
    npm run test:shard2  # if shard 2 failed
    ```
+
 3. **View detailed logs**:
+
    ```bash
    cat test-results-parallel/shard-2.log
    ```
+
 4. **Run specific test file**:
+
    ```bash
    # Extract failing file from shard log, then:
    bun test tests/path/to/failing.test.ts
@@ -116,6 +125,7 @@ If a shard fails in CI:
 ## Known Limitations
 
 **Concurrent Execution Differences:**
+
 - Some tests may exhibit race conditions when run via the parallel script that don't occur with the regular `npm test` command
 - This is due to how background processes in bash handle concurrent execution vs. Bun's native `--concurrent` flag
 - The regular `npm test` command is the authoritative test execution method
@@ -125,6 +135,7 @@ If a shard fails in CI:
   - Reproducing CI execution patterns locally
 
 **When to Use Each Command:**
+
 - `npm test` - Daily development, authoritative test results
 - `npm run test:parallel` - Debugging CI shard failures, performance testing
 - `npm run test:fast-track` - Quick validation during PR development
@@ -144,11 +155,13 @@ These scripts match the CI pipeline configuration in `.github/workflows/cli-test
 To change the number of shards:
 
 1. Edit `scripts/run-parallel-tests.sh`:
+
    ```bash
    TOTAL_SHARDS=8  # Change from 4 to 8
    ```
 
 2. Add corresponding shard scripts to `package.json`:
+
    ```json
    "test:shard5": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 8 == 4')",
    "test:shard6": "bun test --concurrent $(find tests -name '*.test.ts' | sort | awk 'NR % 8 == 5')",
@@ -156,6 +169,7 @@ To change the number of shards:
    ```
 
 3. Update `.github/workflows/cli-tests.yml` matrix:
+
    ```yaml
    strategy:
      matrix:
