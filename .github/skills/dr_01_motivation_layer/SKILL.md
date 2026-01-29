@@ -317,7 +317,7 @@ dr validate --validate-relationships
 
 ### Pattern 1: Goal Decomposition Hierarchy
 
-```
+```text
 Strategic Goal: "Improve Customer Satisfaction"
 ├── aggregates → Business Goal: "Reduce Response Time"
 │   ├── aggregates → Operational Goal: "Achieve <100ms API Latency"
@@ -329,7 +329,7 @@ Strategic Goal: "Improve Customer Satisfaction"
 
 ### Pattern 2: Requirement Hierarchy
 
-```
+```text
 Business Requirement: "Secure User Data"
 ├── aggregates → Functional Requirement: "Encrypt Data at Rest"
 │   └── influences → Technical Requirement: "Use AES-256 Encryption"
@@ -341,7 +341,7 @@ Business Requirement: "Secure User Data"
 
 ### Pattern 3: Principle Application
 
-```
+```text
 Principle: "Cloud-Native Architecture"
 ├── influences → Requirement: "Containerized Deployments"
 ├── influences → Requirement: "Stateless Services"
@@ -351,7 +351,7 @@ Principle: "Cloud-Native Architecture"
 
 ### Pattern 4: Stakeholder → Goal → Implementation Chain
 
-```
+```text
 Stakeholder: "CEO"
 └── influences → Goal: "Reduce Operating Costs by 20%"
     ├── influences → Requirement: "Automated CI/CD Pipeline"

@@ -99,16 +99,19 @@ export class Model {
       // PRIORITY 1: Read layer path from manifest (Python CLI compatibility)
       if (this.manifest.layers && this.manifest.layers[name]) {
         const layerConfig = this.manifest.layers[name]
-        if (layerConfig.path) {
-          // Path in manifest is relative to root
-          const fullPath = `${this.rootPath}/${layerConfig.path.replace(/\/$/, '')}`
-          try {
-            await fs.access(fullPath)
-            layerPath = fullPath
-          } catch (err) {
-            // Path in manifest doesn't exist - this is an error
-            if (process.env.DEBUG) {
-              console.debug(`Manifest specifies path ${layerConfig.path} but it doesn't exist`)
+        if (layerConfig && typeof layerConfig === 'object' && 'path' in layerConfig) {
+          const configPath = (layerConfig as Record<string, unknown>).path
+          if (typeof configPath === 'string') {
+            // Path in manifest is relative to root
+            const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, '')}`
+            try {
+              await fs.access(fullPath)
+              layerPath = fullPath
+            } catch (err) {
+              // Path in manifest doesn't exist - this is an error
+              if (process.env.DEBUG) {
+                console.debug(`Manifest specifies path ${configPath} but it doesn't exist`)
+              }
             }
           }
         }
@@ -242,15 +245,18 @@ export class Model {
     // Try to get layer path from manifest first (Python CLI compatibility)
     if (this.manifest.layers && this.manifest.layers[name]) {
       const layerConfig = this.manifest.layers[name]
-      if (layerConfig.path) {
-        const fullPath = `${this.rootPath}/${layerConfig.path.replace(/\/$/, '')}`
-        try {
-          await fs.access(fullPath)
-          layerPath = fullPath
-        } catch {
-          // Path doesn't exist, create it
-          await ensureDir(fullPath)
-          layerPath = fullPath
+      if (layerConfig && typeof layerConfig === 'object' && 'path' in layerConfig) {
+        const configPath = (layerConfig as Record<string, unknown>).path
+        if (typeof configPath === 'string') {
+          const fullPath = `${this.rootPath}/${configPath.replace(/\/$/, '')}`
+          try {
+            await fs.access(fullPath)
+            layerPath = fullPath
+          } catch {
+            // Path doesn't exist, create it
+            await ensureDir(fullPath)
+            layerPath = fullPath
+          }
         }
       }
     }

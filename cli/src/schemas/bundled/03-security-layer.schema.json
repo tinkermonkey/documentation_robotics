@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
   "$id": "https://example.com/schemas/03-security-layer.schema.json",
   "title": "Security Layer Layer Schema",
   "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",

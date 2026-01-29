@@ -1,0 +1,10 @@
+motivation-goal-g1:
+  id: motivation-goal-g1
+  name: Test Goal 1
+  type: goal
+  documentation: A test goal for visualization
+motivation-goal-g2:
+  id: motivation-goal-g2
+  name: Test Goal 2
+  type: goal
+  documentation: Another test goal

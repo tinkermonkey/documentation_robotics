@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
   "$id": "https://example.com/schemas/09-ux-layer.schema.json",
   "title": "UX Layer Layer Schema",
   "description": "Defines user experience specifications including state management, component composition, and multi-channel interaction patterns for visual, voice, and chat interfaces.",

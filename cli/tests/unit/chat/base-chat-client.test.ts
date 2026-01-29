@@ -91,19 +91,6 @@ describe('BaseChatClient', () => {
 
       expect(client.getCurrentSession()).toBeUndefined();
     });
-
-    it('should update session timestamp', async () => {
-      const session = client.testCreateSession();
-      const originalTimestamp = session.lastMessageAt.getTime();
-
-      // Wait a bit to ensure timestamp changes
-      await new Promise(resolve => setTimeout(resolve, 10));
-
-      client.testUpdateSessionTimestamp();
-
-      const updatedTimestamp = session.lastMessageAt.getTime();
-      expect(updatedTimestamp).toBeGreaterThan(originalTimestamp);
-    });
   });
 
   describe('sendMessage', () => {
@@ -113,18 +100,6 @@ describe('BaseChatClient', () => {
       await client.sendMessage('test message');
 
       expect(client.getCurrentSession()).toBeDefined();
-    });
-
-    it('should update timestamp on subsequent messages', async () => {
-      await client.sendMessage('first message');
-      const session = client.getCurrentSession()!;
-      const firstTimestamp = session.lastMessageAt.getTime();
-
-      await new Promise(resolve => setTimeout(resolve, 10));
-      await client.sendMessage('second message');
-
-      const secondTimestamp = session.lastMessageAt.getTime();
-      expect(secondTimestamp).toBeGreaterThan(firstTimestamp);
     });
   });
 

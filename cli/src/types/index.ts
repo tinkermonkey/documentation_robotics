@@ -25,7 +25,6 @@ export interface Relationship {
   properties?: Record<string, unknown>;
 }
 
-
 /**
  * Element representation
  */
@@ -51,6 +50,47 @@ export interface LayerData {
 }
 
 /**
+ * Model statistics metadata
+ * Tracks aggregate statistics about the model across all layers
+ */
+export interface ModelStatistics {
+  /** Total number of elements across all layers */
+  total_elements: number;
+  /** Total number of intra-layer relationships */
+  total_relationships: number;
+  /** Model completeness percentage (0-100) */
+  completeness?: number;
+  /** ISO 8601 timestamp of last validation */
+  last_validation?: string;
+  /** Status of last validation ('passed', 'failed', 'warning') */
+  validation_status?: string;
+}
+
+/**
+ * Cross-layer reference statistics
+ * Tracks references between different layers
+ */
+export interface CrossReferenceStatistics {
+  /** Total number of cross-layer references */
+  total: number;
+  /** Breakdown of references by type */
+  by_type: Record<string, number>;
+}
+
+/**
+ * Changeset application history entry
+ * Records when changesets were applied or reverted to the model
+ */
+export interface ChangesetHistoryEntry {
+  /** Name of the changeset that was applied or reverted */
+  name: string;
+  /** ISO 8601 timestamp when the action occurred */
+  applied_at: string;
+  /** Type of action performed */
+  action: 'applied' | 'reverted';
+}
+
+/**
  * Manifest metadata
  */
 export interface ManifestData {
@@ -61,6 +101,16 @@ export interface ManifestData {
   created?: string;
   modified?: string;
   specVersion?: string;
+  /** Statistics about the model */
+  statistics?: ModelStatistics;
+  /** Cross-layer reference tracking */
+  cross_references?: CrossReferenceStatistics;
+  /** Changeset history for the model */
+  changeset_history?: ChangesetHistoryEntry[];
+  /** Chat client preference (e.g., "Claude Code", "GitHub Copilot") */
+  preferred_chat_client?: string;
+  /** Python CLI compatibility fields */
+  pythonCliCompat?: PythonCliCompat;
 }
 
 /**
@@ -70,6 +120,106 @@ export interface ModelOptions {
   enableCache?: boolean;
   lazyLoad?: boolean;
   referenceRegistry?: unknown; // Will be properly typed when implemented
+}
+
+/**
+ * JSON Schema property definition
+ * Represents a single property in a JSON Schema object
+ */
+export interface JsonSchemaProperty {
+  type?: string | string[];
+  description?: string;
+  enum?: unknown[];
+  default?: unknown;
+  items?: JsonSchemaProperty;
+  properties?: Record<string, JsonSchemaProperty>;
+  required?: string[];
+  [key: string]: unknown;
+}
+
+/**
+ * Tool parameter definition for Claude AI tools
+ * Describes a single input parameter for a tool
+ */
+export interface ToolParameter {
+  type: string;
+  description: string;
+  enum?: string[];
+  items?: { type: string };
+  [key: string]: unknown;
+}
+
+/**
+ * Tool input schema definition
+ * Defines the structure of inputs for a Claude AI tool
+ */
+export interface ToolInputSchema {
+  type: 'object';
+  properties: Record<string, ToolParameter>;
+  required: string[];
+}
+
+/**
+ * Tool definition for Claude AI integration
+ * Represents a single tool that Claude can call
+ */
+export interface ToolDefinition {
+  name: string;
+  description: string;
+  input_schema: ToolInputSchema;
+}
+
+/**
+ * Result of executing a tool
+ * All tool results are returned as JSON-serializable objects
+ */
+export interface ToolExecutionResult {
+  [key: string]: unknown;
+  error?: string;
+}
+
+/**
+ * Python CLI Compatibility Fields
+ *
+ * This interface documents fields that exist for backward compatibility with the Python CLI.
+ * These fields are not part of the core data model but are preserved for interoperability.
+ *
+ * NOTE: These fields should not be used in new code. They are maintained for:
+ * - Changelog migrations from Python CLI v0.8.0 format
+ * - Manifest compatibility when reading old models
+ * - Migration scripts that bridge Python and TypeScript CLI versions
+ *
+ * See also: changeset-migration.ts for Python CLI format handling
+ */
+export interface PythonCliCompat {
+  /**
+   * Layer catalog mapping from Python CLI format
+   *
+   * Python CLI v0.8.0 used a different layer storage structure.
+   * This field preserves that structure for migration purposes.
+   * Maps layer names to their element configurations.
+   *
+   * @deprecated Only used during migration from Python CLI format
+   */
+  layers?: Record<string, unknown>;
+
+  /**
+   * Legacy changeset tracking from Python CLI format
+   *
+   * Python CLI tracked changesets differently than the TypeScript CLI.
+   * This field preserves that structure for historical record.
+   *
+   * @deprecated Only used during migration from Python CLI format
+   */
+  changesets?: Record<string, unknown>;
+
+  /**
+   * Additional metadata from Python CLI that may not map to TypeScript model
+   *
+   * Catch-all for fields that existed in Python CLI format but don't have
+   * a direct equivalent in the TypeScript implementation.
+   */
+  [key: string]: unknown;
 }
 
 /**

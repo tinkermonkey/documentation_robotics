@@ -1,5 +1,6 @@
 import { mkdir, rename, readFile as fsReadFile, writeFile as fsWriteFile, stat } from "node:fs/promises";
 import { existsSync as fsExistsSync } from "node:fs";
+import { dirname } from "node:path";
 import { startSpan, endSpan } from "../telemetry/index.js";
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
@@ -26,6 +27,10 @@ export async function atomicWrite(path: string, content: string): Promise<void> 
   });
 
   try {
+    // Ensure parent directory exists
+    const dir = dirname(path);
+    await mkdir(dir, { recursive: true });
+
     const tempPath = `${path}.tmp`;
     await fsWriteFile(tempPath, content, 'utf-8');
     // Rename temp file to target path (atomic operation)
@@ -82,6 +87,10 @@ export async function writeFile(path: string, content: string): Promise<void> {
   });
 
   try {
+    // Ensure parent directory exists
+    const dir = dirname(path);
+    await mkdir(dir, { recursive: true });
+
     await fsWriteFile(path, content, 'utf-8');
   } finally {
     endSpan(span);

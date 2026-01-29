@@ -23,6 +23,7 @@ dr changeset create my-feature \
 ```
 
 Output:
+
 ```
 ✓ Created changeset: my-feature
 ```
@@ -57,6 +58,7 @@ dr changeset preview my-feature
 ```
 
 Output:
+
 ```
 Layer: api
 ├── api-endpoint-list-users (existing)
@@ -76,6 +78,7 @@ dr changeset commit my-feature
 ```
 
 The CLI will:
+
 1. Check for drift between base model and changeset base snapshot
 2. Validate all changes against schemas and business rules
 3. Apply changes atomically to all affected layers
@@ -201,6 +204,7 @@ dr changeset create <id> \
 Creates a new changeset for staging changes.
 
 **Options:**
+
 - `--name`: Human-readable name (defaults to ID)
 - `--description`: Detailed description of changes
 
@@ -217,11 +221,13 @@ dr changeset stage <id> <operation> \
 Stages a change to the changeset.
 
 **Operations:**
+
 - `add`: Add a new element
 - `update`: Modify an existing element
 - `delete`: Remove an element
 
 **Options:**
+
 - `--element-id` (required): Element identifier
 - `--layer` (required): Target layer
 - `--properties`: JSON properties object
@@ -237,6 +243,7 @@ dr changeset unstage <id> \
 Removes a specific change from the changeset.
 
 **Options:**
+
 - `--sequence-number`: The change to remove (0-based index)
 
 ### Preview Changes
@@ -249,6 +256,7 @@ dr changeset preview <id> \
 Shows a virtual merged view of the changeset.
 
 **Options:**
+
 - `--layer`: Show only specific layer
 
 ### Show Changeset
@@ -261,6 +269,7 @@ dr changeset show <id> \
 Displays changeset details and change summary.
 
 **Options:**
+
 - `--json`: Output as JSON
 
 ### Commit Changeset
@@ -274,6 +283,7 @@ dr changeset commit <id> \
 Applies staged changes to the base model.
 
 **Options:**
+
 - `--force`: Skip drift detection
 - `--validate`: Run validation before commit (default: true)
 
@@ -296,6 +306,7 @@ dr changeset list \
 Lists all changesets.
 
 **Options:**
+
 - `--status`: Filter by status (staged, committed, discarded)
 - `--json`: Output as JSON
 
@@ -310,10 +321,12 @@ dr changeset export <id> \
 Exports changeset for sharing or backup.
 
 **Formats:**
+
 - `yaml`: YAML format (recommended)
 - `json`: JSON format
 
 **Options:**
+
 - `--output`: Write to file (default: stdout)
 
 ### Import Changeset
@@ -327,6 +340,7 @@ dr changeset import \
 Imports a previously exported changeset.
 
 **Options:**
+
 - `--format`: File format (yaml or json)
 - `--input`: Path to changeset file
 
@@ -335,16 +349,19 @@ Imports a previously exported changeset.
 Changesets progress through the following statuses:
 
 ### 📝 staged
+
 - Default status for new changesets
 - Changes are staged but not applied to base model
 - Can be modified, previewed, or committed
 
 ### ✅ committed
+
 - Changes have been applied to the base model
 - All layers updated
 - Changeset is archived for audit trail
 
 ### ❌ discarded
+
 - Changes were abandoned
 - No changes applied
 - Changeset is archived
@@ -356,6 +373,7 @@ Drift occurs when the base model changes while you have staged changes. The CLI 
 ### Handling Drift
 
 **Without --force:**
+
 ```bash
 $ dr changeset commit my-feature
 ✗ Drift detected in layers: api, data-model
@@ -372,6 +390,7 @@ $ dr changeset commit my-feature
 ```
 
 **With --force:**
+
 ```bash
 dr changeset commit my-feature --force
 ✓ Applied 5 changes (with drift override)
@@ -585,6 +604,7 @@ dr changeset list
 ```
 
 Old changesets are automatically migrated and converted on first use:
+
 - `draft` status → `staged`
 - `applied` status → `committed`
 - Stored in `documentation-robotics/changesets/` with automatic `.dr/changesets/` migration support

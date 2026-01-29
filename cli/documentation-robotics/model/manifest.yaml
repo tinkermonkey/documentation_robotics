@@ -3,9 +3,10 @@ schema: documentation-robotics-v1
 cli_version: 0.1.0
 spec_version: 0.7.1
 created: 2026-01-27T02:30:33.603Z
-updated: 2026-01-27T02:30:33.605Z
+updated: 2026-01-28T12:04:27.418Z
 project:
   name: Test Model
+  description: ""
   version: 0.1.0
 documentation: .dr/README.md
 layers:
@@ -33,6 +34,8 @@ layers:
     path: documentation-robotics/model/04_application/
     schema: .dr/schemas/04-application-layer.schema.json
     enabled: true
+    elements:
+      service: 6
   technology:
     order: 5
     name: Technology
@@ -81,3 +84,13 @@ layers:
     path: documentation-robotics/model/12_testing/
     schema: .dr/schemas/12-testing-layer.schema.json
     enabled: true
+statistics:
+  total_elements: 6
+  total_relationships: 0
+  completeness: 0
+  last_validation: null
+  validation_status: not_validated
+cross_references:
+  total: 0
+  by_type: {}
+upgrade_history: []

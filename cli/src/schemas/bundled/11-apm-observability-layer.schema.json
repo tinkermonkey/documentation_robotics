@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
   "$id": "https://example.com/schemas/11-apm-observability-layer.schema.json",
   "title": "APM/Observability Layer Layer Schema",
   "description": "Defines distributed tracing, logging, and metrics instrumentation using OpenTelemetry standards for application performance monitoring and observability.",

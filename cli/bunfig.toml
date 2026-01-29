@@ -1,3 +1,21 @@
 [test]
 root = "."
 timeoutMs = 30000
+
+# Parallel Test Execution Configuration
+# Enables parallel test execution using worker threads
+# Workers are set to number of CPU cores for optimal performance
+# Batching is enabled to group related tests for better cache locality
+preload = ["tests/setup.ts"]
+
+# Maximum number of worker threads for parallel execution
+# Set to 0 to use number of CPU cores (default: 4)
+workers = 4
+
+# Maximum number of tests to batch together per worker
+# Reduces context switching overhead
+batchSize = 50
+
+# Timeout for individual test files (not individual tests)
+# Increased to accommodate parallel execution overhead
+fileTimeoutMs = 45000

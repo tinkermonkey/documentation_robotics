@@ -507,7 +507,7 @@ documentation-robotics/model/
 │   (empty)
 └── 12_testing/
     ├── test-coverage-models.yaml
-    ├── test-case-sketchs.yaml
+    ├── test-case-sketches.yaml
     └── input-space-partitions.yaml
 ```
 

@@ -16,6 +16,8 @@ describe('Integration: Trace and Project Commands', () => {
     await mkdir(testDir, { recursive: true });
 
     // Create a simple test model
+    // Eager loading required: Test traces dependencies across all layers
+    // which requires all layers loaded upfront for complete tracing capability
     await Model.init(
       testDir,
       {
@@ -87,7 +89,8 @@ describe('Integration: Trace and Project Commands', () => {
       await model.saveDirtyLayers();
       await model.saveManifest();
 
-      // Load fresh model
+      // Eager loading required: Test traces transitive dependencies across all layers
+      // which requires all layers loaded to verify complete trace paths
       const loadedModel = await Model.load(testDir, { lazyLoad: false });
 
       // Build registry
@@ -157,6 +160,8 @@ describe('Integration: Trace and Project Commands', () => {
       await model.saveDirtyLayers();
       await model.saveManifest();
 
+      // Eager loading required: Test detects cycles across all layers
+      // which requires all layers loaded to detect complete cyclic paths
       const loadedModel = await Model.load(testDir, { lazyLoad: false });
 
       const registry = new ReferenceRegistry();

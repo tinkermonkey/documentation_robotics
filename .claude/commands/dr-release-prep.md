@@ -61,7 +61,7 @@ When the user runs this command, perform a comprehensive, methodical release pre
 3. Parse optional --spec-version if provided
 4. Display what's being prepared:
 
-```
+```text
 Preparing Documentation Robotics Release
 =========================================
 CLI Version:  0.4.2
@@ -103,7 +103,7 @@ echo "Target:  <spec-version>"
 
 Ask the user:
 
-```
+```text
 Current spec version: 0.2.0
 
 Is a spec release being prepared alongside this CLI release?
@@ -128,25 +128,25 @@ Your choice?
 
 **Actions:**
 
-1. Find the last release tag:
+1. Find the last release tag by running:
 
-```bash
-# Get last CLI release tag
-git tag --list 'cli-v*' --sort=-version:refname | head -1
+   ```bash
+   # Get last CLI release tag
+   git tag --list 'cli-v*' --sort=-version:refname | head -1
 
-# Get last spec release tag (if spec is being released)
-git tag --list 'spec-v*' --sort=-version:refname | head -1
-```
+   # Get last spec release tag (if spec is being released)
+   git tag --list 'spec-v*' --sort=-version:refname | head -1
+   ```
 
 2. Review commit log since last release:
 
-```bash
-# CLI changes
-git log --oneline <last-cli-tag>..HEAD -- cli/
+   ```bash
+   # CLI changes
+   git log --oneline <last-cli-tag>..HEAD -- cli/
 
-# Spec changes (if relevant)
-git log --oneline <last-spec-tag>..HEAD -- spec/
-```
+   # Spec changes (if relevant)
+   git log --oneline <last-spec-tag>..HEAD -- spec/
+   ```
 
 3. Categorize changes:
    - **Added**: New features, capabilities, commands
@@ -156,40 +156,40 @@ git log --oneline <last-spec-tag>..HEAD -- spec/
    - **Removed**: Deleted features
    - **Security**: Security-related changes
 
-4. Present summary:
+4. Present summary to user:
 
-```
-Changes Since Last Release (cli-v0.4.1)
-========================================
+   ```text
+   Changes Since Last Release (cli-v0.4.1)
+   ========================================
 
-Commits: 23
-Files Changed: 45
+   Commits: 23
+   Files Changed: 45
 
-Categories:
-✨ Added (5):
-   - New /dr-release-prep command
-   - Link validation in strict mode
-   - Migration dry-run preview
-   [...]
+   Categories:
+   ✨ Added (5):
+      - New /dr-release-prep command
+      - Link validation in strict mode
+      - Migration dry-run preview
+      [...]
 
-🔧 Changed (8):
-   - Updated validation error messages
-   - Improved changeset comparison
-   [...]
+   🔧 Changed (8):
+      - Updated validation error messages
+      - Improved changeset comparison
+      [...]
 
-🐛 Fixed (10):
-   - Fixed broken reference detection
-   - Corrected spec version parsing
-   [...]
+   🐛 Fixed (10):
+      - Fixed broken reference detection
+      - Corrected spec version parsing
+      [...]
 
-Key files modified:
-   - cli/src/documentation_robotics/__init__.py
-   - cli/pyproject.toml
-   - cli/CHANGELOG.md
-   [...]
+   Key files modified:
+      - cli/src/documentation_robotics/__init__.py
+      - cli/pyproject.toml
+      - cli/CHANGELOG.md
+      [...]
 
-Ready to draft changelog entries from these changes?
-```
+   Ready to draft changelog entries from these changes?
+   ```
 
 ### Step 4: Update Version References (15%)
 
@@ -201,61 +201,61 @@ Update version in all required locations:
 
 1. **CLI Package Version** (`cli/pyproject.toml`):
 
-```python
-# Update version field
-version = "<new-version>"
-```
+   ```python
+   # Update version field
+   version = "<new-version>"
+   ```
 
 2. **CLI Module Version** (`cli/src/documentation_robotics/__init__.py`):
 
-```python
-__version__ = "<new-version>"
-__spec_version__ = "<spec-version>"  # Update if spec changed
-```
+   ```python
+   __version__ = "<new-version>"
+   __spec_version__ = "<spec-version>"  # Update if spec changed
+   ```
 
 3. **CLI README.md** (`cli/README.md`):
 
-```markdown
-# Search for version badges and update:
+   ```markdown
+   # Search for version badges and update:
 
-[![CLI Version](https://img.shields.io/badge/CLI-v<new-version>-green)]
-[![Specification](https://img.shields.io/badge/Specification-v<spec-version>-blue)]
+   [![CLI Version](https://img.shields.io/badge/CLI-v<new-version>-green)]
+   [![Specification](https://img.shields.io/badge/Specification-v<spec-version>-blue)]
 
-# Update status section:
+   # Update status section:
 
-**Current Version:** v<new-version>
-**Specification Version:** v<spec-version>
+   **Current Version:** v<new-version>
+   **Specification Version:** v<spec-version>
 
-# Update version history section at bottom
-```
+   # Update version history section at bottom
+   ```
 
 4. **CLI Docs README** (`cli/docs/README.md`):
 
-```markdown
-# Update version in "What's New" section if present
-```
+   ```markdown
+   # Update version in "What's New" section if present
+   ```
 
 5. **Spec VERSION** (`spec/VERSION`) - **ONLY if doing spec release:**
 
-```bash
-echo "<spec-version>" > spec/VERSION
-```
+   ```bash
+   echo "<spec-version>" > spec/VERSION
+   ```
 
 6. **Claude Integration Documentation** - Check all files mentioning version:
 
-```bash
-# Find files referencing old version
-grep -r "v0.4.1" cli/src/documentation_robotics/claude_integration/
+   ```bash
+   # Find files referencing old version
+   grep -r "v0.4.1" cli/src/documentation_robotics/claude_integration/
 
-# Update references in:
-# - cli/src/documentation_robotics/claude_integration/README.md
-# - cli/src/documentation_robotics/claude_integration/USER_GUIDE.md
-# - cli/docs/user-guide/claude-code-integration.md
-```
+   # Update references in:
+   # - cli/src/documentation_robotics/claude_integration/README.md
+   # - cli/src/documentation_robotics/claude_integration/USER_GUIDE.md
+   # - cli/docs/user-guide/claude-code-integration.md
+   ```
 
 Report progress:
 
-```
+```text
 ✓ Updated cli/pyproject.toml (version: 0.4.2)
 ✓ Updated cli/src/documentation_robotics/__init__.py (version: 0.4.2, spec: 0.2.0)
 ✓ Updated cli/README.md (version badges, status section)
@@ -271,57 +271,60 @@ Report progress:
 **Actions:**
 
 1. Read current `cli/CHANGELOG.md`
+
 2. Analyze changes from Step 3
+
 3. Draft new changelog entry following Keep a Changelog format:
 
-```markdown
-## [<new-version>] - <YYYY-MM-DD>
+   ```markdown
+   ## [<new-version>] - <YYYY-MM-DD>
 
-### Added
+   ### Added
 
-- New /dr-release-prep command for automated release preparation
-- Enhanced link validation with strict mode support
-- [... other additions based on git log analysis]
+   - New /dr-release-prep command for automated release preparation
+   - Enhanced link validation with strict mode support
+   - [... other additions based on git log analysis]
 
-### Changed
+   ### Changed
 
-- Improved validation error messages for better clarity
-- Updated changeset comparison to show detailed diffs
-- [... other changes]
+   - Improved validation error messages for better clarity
+   - Updated changeset comparison to show detailed diffs
+   - [... other changes]
 
-### Fixed
+   ### Fixed
 
-- Fixed broken reference detection in cross-layer validation
-- Corrected spec version parsing edge cases
-- [... other fixes]
+   - Fixed broken reference detection in cross-layer validation
+   - Corrected spec version parsing edge cases
+   - [... other fixes]
 
-### Security
+   ### Security
 
-- [If any security fixes]
+   - [If any security fixes]
 
-### Migration
+   ### Migration
 
-[If any migration steps are needed for users]
-```
+   [If any migration steps are needed for users]
+   ```
 
 4. Insert new entry at the top of the changelog (after the header)
+
 5. Show the draft to the user for review:
 
-```
-Drafted Changelog Entry:
-========================
+   ```text
+   Drafted Changelog Entry:
+   ========================
 
-## [0.4.2] - 2025-01-27
+   ## [0.4.2] - 2025-01-27
 
-### Added
-- New /dr-release-prep command for automated release preparation
-  [... rest of entry]
+   ### Added
+   - New /dr-release-prep command for automated release preparation
+     [... rest of entry]
 
-Review this changelog entry. Should I:
-1. Use this as-is
-2. Let you edit it
-3. Regenerate with different focus
-```
+   Review this changelog entry. Should I:
+   1. Use this as-is
+   2. Let you edit it
+   3. Regenerate with different focus
+   ```
 
 6. After approval, update the file
 
@@ -333,43 +336,43 @@ Review this changelog entry. Should I:
 
 1. **Validate Command Files:**
 
-```bash
-# Check all command files have proper frontmatter
-for file in cli/src/documentation_robotics/claude_integration/commands/*.md; do
-    echo "Checking $file..."
-    # Verify YAML frontmatter exists
-    # Verify required fields: description, argument-hint
-done
-```
+   ```bash
+   # Check all command files have proper frontmatter
+   for file in cli/src/documentation_robotics/claude_integration/commands/*.md; do
+       echo "Checking $file..."
+       # Verify YAML frontmatter exists
+       # Verify required fields: description, argument-hint
+   done
+   ```
 
 2. **Validate Agent Files:**
 
-```bash
-# Check all agent files have proper frontmatter
-for file in cli/src/documentation_robotics/claude_integration/agents/*.md; do
-    echo "Checking $file..."
-    # Verify YAML frontmatter exists
-    # Verify required fields: name, description, tools
-done
-```
+   ```bash
+   # Check all agent files have proper frontmatter
+   for file in cli/src/documentation_robotics/claude_integration/agents/*.md; do
+       echo "Checking $file..."
+       # Verify YAML frontmatter exists
+       # Verify required fields: name, description, tools
+   done
+   ```
 
 3. **Validate Package Data Configuration:**
 
-```bash
-# Ensure pyproject.toml includes all Claude files
-grep -A 10 "tool.setuptools.package-data" cli/pyproject.toml
-```
+   ```bash
+   # Ensure pyproject.toml includes all Claude files
+   grep -A 10 "tool.setuptools.package-data" cli/pyproject.toml
+   ```
 
 4. **Check Install Script Logic:**
 
-```python
-# Verify claude.py COMPONENTS includes all new files
-# Check version tracking in ClaudeIntegrationManager
-```
+   ```python
+   # Verify claude.py COMPONENTS includes all new files
+   # Check version tracking in ClaudeIntegrationManager
+   ```
 
 Report:
 
-```
+```text
 Claude Integration Validation
 ==============================
 ✓ Commands: 8 files, all with valid frontmatter
@@ -390,31 +393,31 @@ Ready for installation/upgrade testing.
 
 1. Enable the virtual environment so the pre-commit hooks can run:
 
-```bash
-source .venv/bin/activate
-```
+   ```bash
+   source .venv/bin/activate
+   ```
 
-1. Check if pre-commit is configured:
+2. Check if pre-commit is configured:
 
-```bash
-# Check for .pre-commit-config.yaml
-ls -la .pre-commit-config.yaml
-```
+   ```bash
+   # Check for .pre-commit-config.yaml
+   ls -la .pre-commit-config.yaml
+   ```
 
-2. Run pre-commit on all files:
+3. Run pre-commit on all files:
 
-```bash
-cd cli
-pre-commit run --all-files
-```
+   ```bash
+   cd cli
+   pre-commit run --all-files
+   ```
 
-3. Handle failures:
+4. Handle failures:
    - If auto-fixable: Show what was fixed
    - If manual fix needed: Show errors and stop
 
 Report:
 
-```
+```text
 Pre-Commit Validation
 =====================
 ✓ black (code formatting): Passed
@@ -435,10 +438,10 @@ All checks passed! (3 files auto-formatted)
 
 1. **Run pytest with coverage:**
 
-```bash
-cd cli
-python -m pytest --cov=documentation_robotics --cov-report=term-missing -v
-```
+   ```bash
+   cd cli
+   python -m pytest --cov=documentation_robotics --cov-report=term-missing -v
+   ```
 
 2. **Monitor for failures:**
    - Stop immediately if any test fails
@@ -451,23 +454,23 @@ python -m pytest --cov=documentation_robotics --cov-report=term-missing -v
 
 4. **Run integration tests specifically:**
 
-```bash
-python -m pytest tests/integration/ -v
-```
+   ```bash
+   python -m pytest tests/integration/ -v
+   ```
 
 5. **Test CLI commands manually:**
 
-```bash
-# Verify dr command is accessible
-dr --version
+   ```bash
+   # Verify dr command is accessible
+   dr --version
 
-# Should show new version
-# Expected: "Documentation Robotics CLI v<new-version> (spec v<spec-version>)"
-```
+   # Should show new version
+   # Expected: "Documentation Robotics CLI v<new-version> (spec v<spec-version>)"
+   ```
 
 Report:
 
-```
+```text
 Test Suite Results
 ==================
 Unit Tests:     245 passed, 0 failed
@@ -496,7 +499,7 @@ All tests passed! Release is validated.
 
 **Actions:**
 
-1. **Verify all version references are consistent:**
+**Verify all version references are consistent:**
 
 ```bash
 # Search for old version references
@@ -504,9 +507,9 @@ echo "Checking for old version references..."
 grep -r "0.4.1" cli/ --exclude-dir=.venv --exclude-dir=__pycache__ --exclude="*.pyc"
 ```
 
-2. **Generate release checklist:**
+**Generate release checklist:**
 
-```
+```text
 Release Preparation Complete! ✓
 ================================
 
@@ -616,7 +619,7 @@ Ready to proceed with git commit and tagging!
 
 ### Error: Invalid Version Format
 
-```
+```text
 Error: Invalid version format: "0.4"
 
 Version must follow semantic versioning: MAJOR.MINOR.PATCH
@@ -631,7 +634,7 @@ Examples:
 
 ### Error: Spec Version Mismatch
 
-```
+```text
 Error: CLI spec dependency mismatch
 
 CLI __spec_version__: 0.3.0
@@ -647,7 +650,7 @@ Which option? (1/2/3)
 
 ### Error: Tests Failed
 
-```
+```text
 Error: Test suite failed
 
 Failed tests: 3
@@ -667,7 +670,7 @@ Aborting release preparation.
 
 ### Error: Uncommitted Changes
 
-```
+```text
 Warning: Uncommitted changes detected
 
 Git status shows uncommitted changes in:
@@ -683,7 +686,7 @@ Continue anyway? (not recommended) (yes/no)
 
 ### Error: Pre-commit Failed
 
-```
+```text
 Error: Pre-commit validation failed
 
 Failed checks:
@@ -761,7 +764,7 @@ For release candidates (future enhancement):
 
 **Suggested Workflow:**
 
-```
+```text
 Development Cycle:
 1. /dr-changeset create release-prep
 2. [Make changes]

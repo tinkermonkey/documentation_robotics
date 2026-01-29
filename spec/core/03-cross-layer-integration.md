@@ -331,10 +331,10 @@ Layer 04 (Application)
 dr validate --cross-layer
 
 # Validate using link registry (v0.2.0+)
-dr validate 
+dr validate
 
 # Strict mode - treat link warnings as errors
-dr validate  
+dr validate
 
 # Discover all links in the model
 dr links list

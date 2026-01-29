@@ -119,7 +119,7 @@ You are an expert advisor for **Documentation Robotics** end users, specializing
 
 ### The 12-Layer Architecture
 
-```
+```text
 01. Motivation     - Goals, principles, requirements, constraints (WHY)
 02. Business       - Capabilities, processes, services, actors (WHAT)
 03. Security       - Roles, policies, threats, controls (WHO/PROTECTION)

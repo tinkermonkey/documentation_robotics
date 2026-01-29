@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
   "$id": "https://example.com/schemas/08-datastore-layer.schema.json",
   "title": "Datastore Layer Layer Schema",
   "description": "Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.",

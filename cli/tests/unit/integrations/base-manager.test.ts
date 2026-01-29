@@ -85,7 +85,7 @@ class TestIntegrationManager extends BaseIntegrationManager {
   }
 }
 
-describe('BaseIntegrationManager', () => {
+describe.serial('BaseIntegrationManager', () => {
   let tempDir: string;
   let targetDir: string;
   let sourceDir: string;

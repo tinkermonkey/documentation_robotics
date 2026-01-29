@@ -383,6 +383,7 @@ dr add api operation refund-payment \
 ## Step 13: Link Services to API Operations
 
 User Service:
+
 ```bash
 dr add relationship --from application.service.user-service --to api.operation.signup --type exposes
 dr add relationship --from application.service.user-service --to api.operation.login --type exposes
@@ -391,6 +392,7 @@ dr add relationship --from application.service.user-service --to api.operation.u
 ```
 
 Catalog Service:
+
 ```bash
 dr add relationship --from application.service.catalog-service --to api.operation.list-products --type exposes
 dr add relationship --from application.service.catalog-service --to api.operation.get-product --type exposes
@@ -398,6 +400,7 @@ dr add relationship --from application.service.catalog-service --to api.operatio
 ```
 
 Order Service:
+
 ```bash
 dr add relationship --from application.service.order-service --to api.operation.create-order --type exposes
 dr add relationship --from application.service.order-service --to api.operation.get-order --type exposes
@@ -406,6 +409,7 @@ dr add relationship --from application.service.order-service --to api.operation.
 ```
 
 Payment Service:
+
 ```bash
 dr add relationship --from application.service.payment-service --to api.operation.process-payment --type exposes
 dr add relationship --from application.service.payment-service --to api.operation.get-payment-status --type exposes
@@ -490,6 +494,7 @@ dr validate
 ```
 
 **Expected output:**
+
 ```
 ✓ Validation complete
 ✓ 55 elements validated
@@ -505,6 +510,7 @@ dr info
 ```
 
 **Expected output:**
+
 ```
 Model Summary:
 - Motivation layer: 4 elements
@@ -598,6 +604,7 @@ You've successfully completed this tutorial if:
 ## Troubleshooting
 
 Having issues? Check the [Troubleshooting Guide](../troubleshooting/common-errors.md) for:
+
 - Validation errors
 - Relationship issues
 - Data consistency problems

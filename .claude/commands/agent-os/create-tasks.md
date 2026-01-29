@@ -11,7 +11,7 @@ You will need ONE OR BOTH of these files to inform your tasks breakdown:
 
 IF you don't have ONE OR BOTH of those files in your current conversation context, then ask user to provide direction on where to you can find them by outputting the following request then wait for user's response:
 
-```
+```text
 I'll need a spec.md or requirements.md (or both) in order to build a tasks list.
 
 Please direct me to where I can find those.  If you haven't created them yet, you can run /shape-spec or /write-spec.
@@ -33,7 +33,7 @@ The tasks-list-creator will create `tasks.md` inside the spec folder.
 
 Once the tasks-list-creator has created `tasks.md` output the following to inform the user:
 
-```
+```text
 Your tasks list ready!
 
 ✅ Tasks list created: `agent-os/specs/[this-spec]/tasks.md`

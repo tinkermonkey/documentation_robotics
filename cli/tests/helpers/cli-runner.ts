@@ -64,13 +64,20 @@ export async function runDr(args: string[], options?: RunDrOptions): Promise<CLI
   try {
     const cliPath = new URL('../../dist/cli.js', import.meta.url).pathname;
 
+    // Ensure PATH includes /usr/local/bin for node executable
+    const env = options?.env
+      ? { ...process.env, ...options.env }
+      : { ...process.env };
+
+    if (!env.PATH?.includes('/usr/local/bin')) {
+      env.PATH = `/usr/local/bin:${env.PATH}`;
+    }
+
     const result = spawnSync({
       cmd: ['node', cliPath, ...args],
       cwd: options?.cwd ?? process.cwd(),
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: options?.env
-        ? { ...process.env, ...options.env }
-        : process.env,
+      env,
     });
 
     const stdout = result.stdout?.toString() ?? '';

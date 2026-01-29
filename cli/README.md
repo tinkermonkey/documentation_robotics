@@ -145,6 +145,7 @@ dr search <query>                # Search elements
 **Element ID Format**: `{layer}.{ElementType}.{kebab-case-name}`
 
 Examples:
+
 - `motivation.goal.customer-satisfaction`
 - `business.service.order-management`
 - `api.endpoint.create-order`
@@ -389,12 +390,14 @@ dr changeset discard
 ```
 
 **Key Features:**
+
 - **Activate for tracking**: Activate a changeset to automatically track all changes
 - **Virtual preview**: See merged view before committing
 - **Drift detection**: Alerts if base model changed since changeset creation
 - **Export/Import**: Share changesets across team or save for backup
 
 **Changeset Status:**
+
 - `staged`: Changes are prepared but not applied (default)
 - `committed`: Changes have been applied to base model
 - `discarded`: Changes were abandoned

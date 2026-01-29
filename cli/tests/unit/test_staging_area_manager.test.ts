@@ -6,22 +6,18 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { Model } from '../../src/core/model.js';
 import path from 'path';
-import { rm } from 'fs/promises';
+import { rm, mkdtemp } from 'fs/promises';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
+import { tmpdir } from 'os';
 
 describe('StagingAreaManager', () => {
   let testDir: string;
   let manager: StagingAreaManager;
   let model: Model;
-  let originalCwd: string;
 
   beforeEach(async () => {
-    // Save original working directory
-    originalCwd = process.cwd();
-
-    // Create temporary test directory
-    testDir = path.join('/tmp', `test-staging-${Date.now()}-${Math.random()}`);
-    await ensureDir(testDir);
+    // Create unique temporary test directory
+    testDir = await mkdtemp(path.join(tmpdir(), 'test-staging-'));
 
     // Initialize basic model structure with required files
     const modelDir = path.join(testDir, 'documentation-robotics', 'model');
@@ -37,32 +33,19 @@ modified: ${new Date().toISOString()}
 layers: {}`;
     await writeFile(manifestPath, manifest);
 
-    // Load model for snapshot capture
-    process.chdir(testDir);
-    model = await Model.load();
+    // Load model with explicit path
+    model = await Model.load(testDir);
     manager = new StagingAreaManager(testDir, model);
   });
 
   afterEach(async () => {
-    // Clean up test directory first
+    // Clean up test directory
     if (await fileExists(testDir)) {
       try {
         await rm(testDir, { recursive: true, force: true });
       } catch {
         // Ignore cleanup errors
       }
-    }
-
-    // Restore original working directory (only if it still exists)
-    try {
-      if (await fileExists(originalCwd)) {
-        process.chdir(originalCwd);
-      } else {
-        process.chdir('/');
-      }
-    } catch {
-      // Ignore chdir errors
-      process.chdir('/');
     }
   });
 

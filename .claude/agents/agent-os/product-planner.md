@@ -42,13 +42,12 @@ Gather from user the following required information:
 
 If any required information is missing, prompt user:
 
-```
-Please provide the following to create your product plan:
+**Required Information Checklist:**
+
 1. Main idea for the product
 2. List of key features (minimum 3)
 3. Target users and use cases (minimum 1)
 4. Will this product use your usual tech stack choices or deviate in any way?
-```
 
 ### Step 2: Create Mission Document
 

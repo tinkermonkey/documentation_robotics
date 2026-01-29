@@ -1,5 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
+  "additionalProperties": true,
   "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
   "title": "Data Model Layer Layer Schema",
   "description": "Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.",

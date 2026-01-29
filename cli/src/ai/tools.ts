@@ -4,17 +4,27 @@
  *
  * NOTE: These tool definitions are used for legacy SDK-based chat only.
  * The `dr chat` command uses Claude Code CLI subprocess with Bash and Read tools instead.
+ *
+ * @deprecated This module provides legacy tool definitions for SDK-based chat.
+ * For new integrations, prefer using Claude Code CLI subprocess with standard tools.
  */
 
 import { Model } from '../core/model.js';
 import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
 import { ReferenceRegistry } from '../core/reference-registry.js';
+import type { ToolDefinition, ToolExecutionResult } from '../types/index.js';
 
 /**
  * Get tool definitions for Claude to use with the model
- * @returns Array of tool definitions in Claude format
+ *
+ * Returns an array of tool definitions that Claude can invoke to interact with
+ * the architecture model. Tools include list, find, search, and dependency tracing.
+ *
+ * NOTE: This is for legacy SDK-based chat integration only.
+ *
+ * @returns Array of tool definitions compatible with Claude AI
  */
-export function getModelTools(): any[] {
+export function getModelTools(): ToolDefinition[] {
   return [
     {
       name: 'dr_list',
@@ -94,16 +104,21 @@ export function getModelTools(): any[] {
 
 /**
  * Execute a tool and return the result
- * @param toolName Name of the tool to execute
- * @param args Tool arguments
- * @param model The architecture model
- * @returns Tool execution result as JSON
+ *
+ * Invokes a specific tool with the provided arguments and returns the execution result.
+ * All tool results are structured as JSON-serializable objects that may include error
+ * information in the `error` field if the execution fails.
+ *
+ * @param toolName Name of the tool to execute (dr_list, dr_find, dr_search, or dr_trace)
+ * @param args Tool arguments matching the tool's input_schema
+ * @param model The architecture model to query
+ * @returns Tool execution result as a ToolExecutionResult object
  */
 export async function executeModelTool(
   toolName: string,
   args: Record<string, unknown>,
   model: Model
-): Promise<any> {
+): Promise<ToolExecutionResult> {
   switch (toolName) {
     case 'dr_list':
       return await executeDrList(args, model);
@@ -124,8 +139,14 @@ export async function executeModelTool(
 
 /**
  * Execute dr_list tool
+ *
+ * Lists all elements in a specified layer, optionally filtered by element type.
+ *
+ * @param args Tool arguments containing layer name and optional type filter
+ * @param model The architecture model
+ * @returns Result with element list or error message
  */
-async function executeDrList(args: Record<string, unknown>, model: Model): Promise<any> {
+async function executeDrList(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
   const layerName = args.layer as string;
   const filterType = args.type as string | undefined;
 
@@ -168,8 +189,14 @@ async function executeDrList(args: Record<string, unknown>, model: Model): Promi
 
 /**
  * Execute dr_find tool
+ *
+ * Finds a specific element by its ID across all layers in the model.
+ *
+ * @param args Tool arguments containing element ID to find
+ * @param model The architecture model
+ * @returns Result with found element or error message
  */
-async function executeDrFind(args: Record<string, unknown>, model: Model): Promise<any> {
+async function executeDrFind(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
   const id = args.id as string;
 
   if (!id) {
@@ -211,8 +238,15 @@ async function executeDrFind(args: Record<string, unknown>, model: Model): Promi
 
 /**
  * Execute dr_search tool
+ *
+ * Searches for elements by name, description, or ID across the model,
+ * optionally limited to specific layers.
+ *
+ * @param args Tool arguments containing search query and optional layer filter
+ * @param model The architecture model
+ * @returns Result with search results or error message
  */
-async function executeDrSearch(args: Record<string, unknown>, model: Model): Promise<any> {
+async function executeDrSearch(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
   const query = (args.query as string)?.toLowerCase();
   const layerFilter = (args.layers as string[]) || undefined;
 
@@ -221,7 +255,7 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
   }
 
   try {
-    const results: any[] = [];
+    const results: ToolExecutionResult[] = [];
 
     for (const layerName of model.getLayerNames()) {
       // Skip if layer is in exclude list
@@ -274,8 +308,15 @@ async function executeDrSearch(args: Record<string, unknown>, model: Model): Pro
 
 /**
  * Execute dr_trace tool
+ *
+ * Traces dependencies for an element, showing what it depends on, what depends on it,
+ * or both directions.
+ *
+ * @param args Tool arguments containing element ID and optional direction filter
+ * @param model The architecture model
+ * @returns Result with dependency trace or error message
  */
-async function executeDrTrace(args: Record<string, unknown>, model: Model): Promise<any> {
+async function executeDrTrace(args: Record<string, unknown>, model: Model): Promise<ToolExecutionResult> {
   const id = args.id as string;
   const direction = (args.direction as string) || 'both';
 
@@ -303,7 +344,7 @@ async function executeDrTrace(args: Record<string, unknown>, model: Model): Prom
     // Create dependency tracker with registry
     const tracker = new DependencyTracker(registry);
 
-    const result: any = {
+    const result: ToolExecutionResult = {
       id,
       direction,
     };

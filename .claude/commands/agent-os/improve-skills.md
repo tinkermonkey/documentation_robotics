@@ -12,7 +12,7 @@ LOOP through each `SKILL.md` file and FOR EACH use the following process to revi
 
 First, ask the user to confirm whether they want ALL of their Claude Code skills to be improved, only select Skills. Assume the answer will be "all" but ask the user to confirm by displaying the following message, then WAIT for the user's response before proceeding to Step 2:
 
-```
+```markdown
 Before I proceed with improving your Claude Code Skills, can you confirm that you want me to revise and improve ALL Skills in your .claude/skills/ folder?
 
 If not, then please specify which Skills I should include or exclude.
@@ -59,7 +59,7 @@ Example:
 
 After revising ALL Skill.md files located in the project's `.claude/skills/` folder, display the following message to the user to advise them on how to improve their Claude Code Skills further:
 
-```
+```markdown
 All Claude Code Skills have been analyzed and revised!
 
 RECOMMENDATION 👉 Review and revise them further using these tips:

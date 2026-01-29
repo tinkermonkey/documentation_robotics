@@ -9,6 +9,11 @@
  * 4. Adding and removing annotations
  * 5. WebSocket protocol
  * 6. File monitoring
+ *
+ * REQUIRES SERIAL EXECUTION: Multiple describe.serial blocks are used because:
+ * - Tests start/stop the visualization server which requires exclusive port access
+ * - Tests watch the file system for changes which must happen sequentially
+ * - Concurrent execution would cause port conflicts and file monitoring race conditions
  */
 
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'bun:test';
@@ -20,13 +25,14 @@ import { Manifest } from '../../src/core/manifest';
 import { portAllocator } from '../helpers/port-allocator.js';
 import * as fs from 'fs/promises';
 
-const TEST_DIR = '/tmp/dr-viz-server-test';
-const TEST_MODEL_ROOT = `${TEST_DIR}/documentation-robotics`;
-let testPort: number;
+import { mkdtemp } from 'fs/promises';
+import { tmpdir } from 'os';
+import { join } from 'path';
 
-async function createTestModel(): Promise<Model> {
+async function createTestModel(testDir: string): Promise<Model> {
+  const testModelRoot = `${testDir}/documentation-robotics`;
   // Create directory structure matching Python CLI
-  await fs.mkdir(`${TEST_MODEL_ROOT}/model`, { recursive: true });
+  await fs.mkdir(`${testModelRoot}/model`, { recursive: true });
 
   // Create basic manifest
   const manifestData = {
@@ -37,7 +43,9 @@ async function createTestModel(): Promise<Model> {
     created: new Date().toISOString(),
   };
 
-  const model = await Model.init(TEST_DIR, manifestData, { lazyLoad: false });
+  // Eager loading required: Visualization server renders complete model in UI
+  // which requires all layers loaded upfront for comprehensive visualization
+  const model = await Model.init(testDir, manifestData, { lazyLoad: false });
 
   // Manually create and add layers since init doesn't load them
   const motivationLayer = new Layer('motivation');
@@ -88,14 +96,17 @@ async function createTestModel(): Promise<Model> {
   return model;
 }
 
-describe('Visualization Server - Model Loading', () => {
+describe.serial('Visualization Server - Model Loading', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
+  let testDir: string;
+  let testPort: number;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     testPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(testPort);
     baseUrl = `http://localhost:${testPort}`;
@@ -104,7 +115,7 @@ describe('Visualization Server - Model Loading', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(testPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should load complete model via GET /api/model', async () => {
@@ -161,16 +172,18 @@ describe('Visualization Server - Model Loading', () => {
   });
 });
 
-describe('Visualization Server - Annotations', () => {
+describe.serial('Visualization Server - Annotations', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
   let createdAnnotationId: string;
   let annotationsPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     annotationsPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(annotationsPort);
     baseUrl = `http://localhost:${annotationsPort}`;
@@ -179,7 +192,7 @@ describe('Visualization Server - Annotations', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(annotationsPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should create annotation via POST /api/annotations', async () => {
@@ -270,15 +283,17 @@ describe('Visualization Server - Annotations', () => {
 });
 
 // WebSocket tests now enabled - fixed by adding websocket handler to Bun.serve()
-describe('Visualization Server - WebSocket', () => {
+describe.serial('Visualization Server - WebSocket', () => {
   let server: VisualizationServer;
   let model: Model;
   let ws: WebSocket;
   let wsPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     wsPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(wsPort);
   });
@@ -289,7 +304,7 @@ describe('Visualization Server - WebSocket', () => {
     }
     server.stop();
     portAllocator.releasePort(wsPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should connect to WebSocket at /ws', async () => {
@@ -379,15 +394,17 @@ describe('Visualization Server - WebSocket', () => {
   }, 10000);
 });
 
-describe('Visualization Server - File Watching', () => {
+describe.serial('Visualization Server - File Watching', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
   let watchingPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     watchingPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(watchingPort);
     baseUrl = `http://localhost:${watchingPort}`;
@@ -396,7 +413,7 @@ describe('Visualization Server - File Watching', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(watchingPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should detect changes to model files', async () => {
@@ -425,21 +442,23 @@ describe('Visualization Server - File Watching', () => {
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     // Reload model
-    const reloadedModel = await Model.load(TEST_DIR);
+    const reloadedModel = await Model.load(testDir);
     const reloadedLayer = await reloadedModel.getLayer('motivation');
     expect(reloadedLayer?.elements.size).toBe(initialCount + 1);
   });
 });
 
-describe('Visualization Server - Changesets', () => {
+describe.serial('Visualization Server - Changesets', () => {
   let server: VisualizationServer;
   let model: Model;
   let baseUrl: string;
   let changesetsPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     changesetsPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(changesetsPort);
     baseUrl = `http://localhost:${changesetsPort}`;
@@ -448,7 +467,7 @@ describe('Visualization Server - Changesets', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(changesetsPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should list changesets via GET /api/changesets', async () => {
@@ -468,10 +487,12 @@ describe('Visualization Server - Authentication', () => {
   let baseUrl: string;
   let authToken: string;
   let authPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     authPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     authToken = 'test-auth-token-123';
     server = new VisualizationServer(model, {
       authEnabled: true,
@@ -484,7 +505,7 @@ describe('Visualization Server - Authentication', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(authPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should reject requests without auth token', async () => {
@@ -526,10 +547,12 @@ describe('Visualization Server - Health and Status', () => {
   let model: Model;
   let baseUrl: string;
   let healthPort: number;
+  let testDir: string;
 
   beforeAll(async () => {
+    testDir = await mkdtemp(join(tmpdir(), 'dr-vis-test-'));
     healthPort = await portAllocator.allocatePort();
-    model = await createTestModel();
+    model = await createTestModel(testDir);
     server = new VisualizationServer(model, { authEnabled: false });
     await server.start(healthPort);
     baseUrl = `http://localhost:${healthPort}`;
@@ -538,7 +561,7 @@ describe('Visualization Server - Health and Status', () => {
   afterAll(async () => {
     server.stop();
     portAllocator.releasePort(healthPort);
-    await fs.rm(TEST_DIR, { recursive: true, force: true });
+    await fs.rm(testDir, { recursive: true, force: true });
   });
 
   it('should return healthy status from GET /health', async () => {

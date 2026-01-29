@@ -14,6 +14,8 @@ import { Element } from '../../src/core/element.js';
  */
 export async function createTestModel(rootPath: string): Promise<Model> {
   // Initialize model
+  // Eager loading required: WebSocket test helper creates model with multiple cross-layer elements
+  // and requires all layers loaded for proper element indexing and reference resolution
   const model = await Model.init(rootPath, {
     name: 'WebSocket Advanced Test Model',
     version: '0.1.0',

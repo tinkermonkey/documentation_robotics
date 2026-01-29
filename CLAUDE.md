@@ -89,22 +89,23 @@ See `cli/README.md` for complete setup and usage documentation.
 
 **Internal Layer Names** - The CLI uses canonical **hyphenated, lowercase layer names** for all internal references:
 
-| Layer | Canonical Name | Spec File | Notes |
-|-------|---|---|---|
-| 1 | `motivation` | `01-motivation-layer.md` | Single word, no hyphen |
-| 2 | `business` | `02-business-layer.md` | Single word, no hyphen |
-| 3 | `security` | `03-security-layer.md` | Single word, no hyphen |
-| 4 | `application` | `04-application-layer.md` | Single word, no hyphen |
-| 5 | `technology` | `05-technology-layer.md` | Single word, no hyphen |
-| 6 | `api` | `06-api-layer.md` | Single word, no hyphen |
-| 7 | `data-model` | `07-data-model-layer.md` | **Hyphenated** - use `data-model`, not `data_model` |
-| 8 | `data-store` | `08-datastore-layer.md` | **Hyphenated internally** - spec file has no hyphen |
-| 9 | `ux` | `09-ux-layer.md` | Single word, no hyphen |
-| 10 | `navigation` | `10-navigation-layer.md` | Single word, no hyphen |
-| 11 | `apm` | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |
-| 12 | `testing` | `12-testing-layer.md` | Single word, no hyphen |
+| Layer | Canonical Name | Spec File                       | Notes                                                |
+| ----- | -------------- | ------------------------------- | ---------------------------------------------------- |
+| 1     | `motivation`   | `01-motivation-layer.md`        | Single word, no hyphen                               |
+| 2     | `business`     | `02-business-layer.md`          | Single word, no hyphen                               |
+| 3     | `security`     | `03-security-layer.md`          | Single word, no hyphen                               |
+| 4     | `application`  | `04-application-layer.md`       | Single word, no hyphen                               |
+| 5     | `technology`   | `05-technology-layer.md`        | Single word, no hyphen                               |
+| 6     | `api`          | `06-api-layer.md`               | Single word, no hyphen                               |
+| 7     | `data-model`   | `07-data-model-layer.md`        | **Hyphenated** - use `data-model`, not `data_model`  |
+| 8     | `data-store`   | `08-datastore-layer.md`         | **Hyphenated internally** - spec file has no hyphen  |
+| 9     | `ux`           | `09-ux-layer.md`                | Single word, no hyphen                               |
+| 10    | `navigation`   | `10-navigation-layer.md`        | Single word, no hyphen                               |
+| 11    | `apm`          | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |
+| 12    | `testing`      | `12-testing-layer.md`           | Single word, no hyphen                               |
 
 **Key Rules**:
+
 - Always use the canonical name in CLI commands and code (e.g., `--layer data-store` not `--layer datastore`)
 - The CLI automatically maps canonical names to actual spec file paths
 - Accept only canonical names in validators (no underscore variants)
@@ -256,12 +257,14 @@ Relationship catalog (`relationship-catalog.json`) must stay in sync.
 The staging feature provides a safe way to prepare changes before committing:
 
 **When to use staging:**
+
 - **Feature development**: Build features across multiple layers without affecting base model
 - **Collaborative design**: Share work-in-progress changesets with team members
 - **Safe refactoring**: Prepare model changes with drift detection before applying
 - **Model review**: Preview changes before committing to ensure correctness
 
 **Typical workflow:**
+
 ```bash
 # 1. Create changeset
 dr changeset create my-feature
@@ -277,6 +280,7 @@ dr changeset commit my-feature
 ```
 
 **Key concepts:**
+
 - **Staged Status**: Changes prepared but not applied (default for new changesets)
 - **Committed Status**: Changes applied to base model (set after successful commit)
 - **Discarded Status**: Changes abandoned without applying
@@ -284,6 +288,7 @@ dr changeset commit my-feature
 - **Virtual Projection**: Merges staged changes with base model for preview
 
 **Implementation files:**
+
 - `cli/src/core/changeset-migration.ts` - Auto-migration from old format (.dr/ to documentation-robotics/)
 - `cli/src/commands/changeset.ts` - All changeset commands
 - `cli/tests/integration/staging-workflow.test.ts` - Staging workflow tests
@@ -298,6 +303,77 @@ npm run test:unit         # Unit tests only
 npm run test:integration  # Integration tests only
 npm run test:performance  # Performance benchmarks
 ```
+
+### Golden Copy Test Initialization
+
+The test suite uses a **shared golden copy** pattern to optimize test initialization:
+
+**Architecture:**
+
+- **Single baseline copy**: Created once at test suite startup from `cli-validation/test-project/baseline/`
+- **Per-test clones**: Each test receives a unique working directory cloned from the golden copy
+- **Reduced overhead**: Tests copy from cached golden copy (faster than copying from source baseline)
+- **Concurrent-safe**: Multiple test workers can safely clone from the same golden copy
+
+**Usage in Tests:**
+
+```typescript
+import { createTestWorkdir } from "../helpers/golden-copy.js";
+
+describe("My Test Suite", () => {
+  let testDir: string;
+  let cleanup: () => Promise<void>;
+
+  beforeEach(async () => {
+    const workdir = await createTestWorkdir();
+    testDir = workdir.path;
+    cleanup = workdir.cleanup;
+  });
+
+  afterEach(async () => {
+    await cleanup();
+  });
+
+  test("validates model", async () => {
+    // testDir contains a complete copy of the baseline project
+    const model = await Model.load(testDir);
+    expect(model.getLayerNames().length).toBeGreaterThan(0);
+  });
+});
+```
+
+**Key Functions** (`cli/tests/helpers/golden-copy.ts`):
+
+- `initGoldenCopy()` - Initialize shared golden copy (called automatically on first use)
+- `createTestWorkdir()` - Create isolated test directory from golden copy
+- `cleanupGoldenCopy()` - Clean up golden copy at suite shutdown
+
+**Global Initialization:**
+
+- Configured in `cli/tests/setup.ts` (preloaded by Bun)
+- Initialized once per test worker on startup
+- Cleaned up automatically on process exit
+
+**Updating the Golden Copy Baseline:**
+
+When you need to add test data to the baseline:
+
+1. **Edit baseline project**: Modify files in `cli-validation/test-project/baseline/`
+   - Add elements, layers, configurations as needed
+   - This is the authoritative source for all tests
+
+2. **Tests automatically use new baseline**: No additional changes needed
+   - Next test run creates fresh golden copy from updated baseline
+   - All test working directories will include new test data
+
+3. **Document baseline changes**: Update `cli-validation/test-project/baseline/README.md` explaining what test data is available
+
+**Performance Characteristics:**
+
+- **One-time cost**: Single copy from baseline at suite startup (~100-200ms)
+- **Per-test savings**: Clone from golden copy is much faster than copy from source baseline
+- **Expected improvement**: 20-30% reduction in test suite initialization time, especially with parallel execution
+- **Memory overhead**: Negligible - copy-on-write semantics at filesystem level
 
 ## Standards
 

@@ -375,7 +375,7 @@ dr validate --validate-relationships
 
 ### Scenario 1: E-commerce Order Management
 
-```
+```text
 Product: "E-commerce Platform"
 ├── composes → BusinessService: "Order Service"
 │   ├── realizes ← BusinessProcess: "Order Fulfillment"
@@ -390,7 +390,7 @@ Product: "E-commerce Platform"
 
 ### Scenario 2: Customer Support System
 
-```
+```text
 BusinessFunction: "Customer Support"
 ├── composes → BusinessProcess: "Ticket Resolution"
 │   ├── triggers ← BusinessEvent: "Support Request Received"
@@ -405,7 +405,7 @@ BusinessFunction: "Customer Support"
 
 ### Scenario 3: Sales Pipeline
 
-```
+```text
 BusinessCollaboration: "Sales Team"
 ├── composes → BusinessRole: "Sales Representative"
 ├── composes → BusinessRole: "Sales Manager"

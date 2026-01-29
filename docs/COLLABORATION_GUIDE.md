@@ -197,13 +197,13 @@ Best for: Human readability, Git diffs, version control
 id: api-user-endpoints
 name: Add user management endpoints
 description: New REST endpoints for user management
-created: '2024-01-15T10:00:00Z'
-modified: '2024-01-15T14:30:00Z'
+created: "2024-01-15T10:00:00Z"
+modified: "2024-01-15T14:30:00Z"
 status: staged
-baseSnapshot: 'sha256:abc123...'
+baseSnapshot: "sha256:abc123..."
 export:
-  version: '0.1.0'
-  exportedAt: '2024-01-15T15:00:00Z'
+  version: "0.1.0"
+  exportedAt: "2024-01-15T15:00:00Z"
   format: yaml
 stats:
   additions: 3
@@ -214,7 +214,7 @@ changes:
     elementId: api-endpoint-create-user
     layerName: api
     sequenceNumber: 0
-    timestamp: '2024-01-15T10:15:00Z'
+    timestamp: "2024-01-15T10:15:00Z"
     after:
       id: api-endpoint-create-user
       name: Create User
@@ -226,7 +226,7 @@ changes:
     elementId: api-endpoint-get-user
     layerName: api
     sequenceNumber: 1
-    timestamp: '2024-01-15T10:20:00Z'
+    timestamp: "2024-01-15T10:20:00Z"
     after:
       id: api-endpoint-get-user
       name: Get User
@@ -237,6 +237,7 @@ changes:
 ```
 
 **Advantages:**
+
 - Human-readable
 - Easy to review in Git diffs
 - Supports comments
@@ -289,6 +290,7 @@ Best for: Programmatic processing, API integrations
 ```
 
 **Advantages:**
+
 - Machine-readable
 - Easy to parse programmatically
 - Good for automation
@@ -339,6 +341,7 @@ index abc123..def456 100644
 ```
 
 **Advantages:**
+
 - Familiar to developers (Git-style)
 - Good for email/messaging
 - Easy to review changes

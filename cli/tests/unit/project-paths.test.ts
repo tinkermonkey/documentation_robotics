@@ -6,6 +6,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdir, rm, writeFile } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
 import {
   findProjectRoot,
   getDocumentationRobotsPath,
@@ -18,8 +19,8 @@ describe('Project Paths Utilities', () => {
   let testDir: string;
 
   beforeEach(async () => {
-    // Create a temporary directory for testing
-    testDir = join(tmpdir(), `dr-paths-test-${Date.now()}`);
+    // Create a temporary directory for testing with UUID for concurrent safety
+    testDir = join(tmpdir(), `dr-paths-test-${randomUUID()}`);
     await mkdir(testDir, { recursive: true });
   });
 

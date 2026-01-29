@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { StagedChangesetStorage } from '../../src/core/staged-changeset-storage.js';
 import { BaseSnapshotManager } from '../../src/core/base-snapshot-manager.js';
 import { ChangesetExporter } from '../../src/core/changeset-exporter.js';

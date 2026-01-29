@@ -1,26 +1,79 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
+import type { Element } from "../core/element.js";
 
+/**
+ * OpenAPI server definition
+ * Specifies base URL and optional description for API access
+ */
+interface OpenAPIServer {
+  url: string;
+  description?: string;
+}
+
+/**
+ * OpenAPI tag definition
+ * Logical grouping for operations
+ */
+interface OpenAPITag {
+  name: string;
+  description?: string;
+}
+
+/**
+ * OpenAPI external documentation link
+ * Reference to external documentation
+ */
+interface OpenAPIExternalDocs {
+  url: string;
+  description?: string;
+}
+
+/**
+ * OpenAPI info object
+ * Metadata about the API
+ */
+interface OpenAPIInfo {
+  title: string;
+  version: string;
+  description?: string;
+}
+
+/**
+ * OpenAPI components section
+ * Reusable schema definitions and other components
+ */
+interface OpenAPIComponents {
+  schemas?: Record<string, unknown>;
+  responses?: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
+  requestBodies?: Record<string, unknown>;
+  headers?: Record<string, unknown>;
+  securitySchemes?: Record<string, unknown>;
+}
+
+/**
+ * OpenAPI specification root
+ * Complete OpenAPI 3.0 document structure
+ */
 interface OpenAPISpec {
   openapi: string;
-  info: {
-    title: string;
-    version: string;
-    description?: string;
-  };
+  info: OpenAPIInfo;
   paths: Record<string, unknown>;
-  components: {
-    schemas?: Record<string, unknown>;
-    responses?: Record<string, unknown>;
-    parameters?: Record<string, unknown>;
-    requestBodies?: Record<string, unknown>;
-    headers?: Record<string, unknown>;
-    securitySchemes?: Record<string, unknown>;
-  };
-  servers?: Array<{ url: string; description?: string }>;
-  tags?: Array<{ name: string; description?: string }>;
-  externalDocs?: { url: string; description?: string };
+  components: OpenAPIComponents;
+  servers?: OpenAPIServer[];
+  tags?: OpenAPITag[];
+  externalDocs?: OpenAPIExternalDocs;
   security?: unknown[];
+}
+
+/**
+ * Endpoint mapping entry
+ * Groups endpoints by path and method for processing
+ */
+interface EndpointMapping {
+  method: string;
+  element: Element;
 }
 
 /**
@@ -61,7 +114,7 @@ export class OpenAPIExporter implements Exporter {
     }
 
     // Group endpoints by path
-    const pathGroups = new Map<string, Array<{ method: string; element: any }>>();
+    const pathGroups = new Map<string, EndpointMapping[]>();
 
     for (const element of layer.listElements()) {
       if (element.type === "endpoint") {

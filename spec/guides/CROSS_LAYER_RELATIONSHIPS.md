@@ -41,8 +41,8 @@ Every cross-layer reference in the spec uses one of four distinct patterns. Unde
 # In OpenAPI specification file
 openapi: 3.0.0
 info:
-  x-archimate-ref: "app-product-api"              # Single reference
-  x-supports-goals:                                 # Multiple references
+  x-archimate-ref: "app-product-api" # Single reference
+  x-supports-goals: # Multiple references
     - "goal-revenue"
     - "goal-customer-satisfaction"
   x-fulfills-requirements:
@@ -164,15 +164,15 @@ UserInterface:
 ```yaml
 # OpenAPI native fields
 Operation:
-  operationId: "createCheckout"          # Native OpenAPI field
+  operationId: "createCheckout" # Native OpenAPI field
 
 # JSON Schema native fields
 DataSchema:
-  $ref: "checkout-schema.json#/Product"  # Native JSON Schema reference
+  $ref: "checkout-schema.json#/Product" # Native JSON Schema reference
 
 # Application Layer native fields
 ApplicationService:
-  specification: "path/to/spec.yaml"     # ArchiMate native field
+  specification: "path/to/spec.yaml" # ArchiMate native field
 ```
 
 **Used by**: All layers when native spec fields are appropriate
@@ -205,6 +205,7 @@ Does this reference belong in a standard spec file?
 Use `kebab-case` (lowercase with hyphens) for relationship type names:
 
 **Standard Motivation Layer relationships**:
+
 - `supports-goals` - Element helps achieve specified goals
 - `delivers-value` - Element creates value for stakeholders
 - `governed-by-principles` - Element follows architectural principles
@@ -212,6 +213,7 @@ Use `kebab-case` (lowercase with hyphens) for relationship type names:
 - `constrained-by` - Element respects constraints
 
 **Cross-layer relationships**:
+
 - `supports-processes` - Supports business processes
 - `realizes-services` - Realizes business services
 - `application-ref` - References application element
@@ -224,10 +226,10 @@ Use `kebab-case` (lowercase with hyphens) for relationship type names:
 When using nested objects, use `camelCase` for keys:
 
 ```yaml
-motivationAlignment:           # camelCase
-  supportsGoals: [...]         # camelCase (NOT supports-goals)
-  deliversValue: [...]         # camelCase (NOT delivers-value)
-  governedByPrinciples: [...]  # camelCase (NOT governed-by-principles)
+motivationAlignment: # camelCase
+  supportsGoals: [...] # camelCase (NOT supports-goals)
+  deliversValue: [...] # camelCase (NOT delivers-value)
+  governedByPrinciples: [...] # camelCase (NOT governed-by-principles)
 ```
 
 ### Layer Prefix Conventions (Pattern B)
@@ -251,14 +253,15 @@ Use consistent, lowercase layer prefixes:
 
 ## Cardinality Rules
 
-| Pattern | Single/Multiple | Format | Example |
-|---------|-----------------|--------|---------|
-| **A (x-extension)** | Both | JSON array `["id1", "id2"]` | `x-supports-goals: ["goal-1", "goal-2"]` |
-| **B (dot-notation)** | Both | Comma-separated string `"id1,id2"` | `motivation.supports-goals: "goal-1,goal-2"` |
-| **C (nested)** | Both | JSON array `["id1", "id2"]` | `supportsGoals: ["goal-1", "goal-2"]` |
-| **D (native)** | Varies | Per spec | Depends on standard |
+| Pattern              | Single/Multiple | Format                             | Example                                      |
+| -------------------- | --------------- | ---------------------------------- | -------------------------------------------- |
+| **A (x-extension)**  | Both            | JSON array `["id1", "id2"]`        | `x-supports-goals: ["goal-1", "goal-2"]`     |
+| **B (dot-notation)** | Both            | Comma-separated string `"id1,id2"` | `motivation.supports-goals: "goal-1,goal-2"` |
+| **C (nested)**       | Both            | JSON array `["id1", "id2"]`        | `supportsGoals: ["goal-1", "goal-2"]`        |
+| **D (native)**       | Varies          | Per spec                           | Depends on standard                          |
 
 **Important**:
+
 - Pattern A uses JSON arrays
 - Pattern B uses comma-separated strings (no spaces!)
 - Pattern C uses JSON arrays
@@ -277,6 +280,7 @@ Use consistent, lowercase layer prefixes:
 **Nested Object (Pattern C)**: `motivationAlignment.supportsGoals`, `motivationAlignment.deliversValue`, `motivationAlignment.governedByPrinciples`, `motivationAlignment.fulfillsRequirements`
 
 **When to use each**:
+
 - **Pattern B**: Most common for layers 2-11 referencing motivation
 - **Pattern A**: When in OpenAPI or JSON Schema files
 - **Pattern C**: When grouping multiple motivation references with additional metadata
@@ -310,43 +314,43 @@ UserInterface:
 
 ### To Business Layer (Layer 02)
 
-| Pattern | Example | Use Case |
-|---------|---------|----------|
-| Pattern B | `business.supports-processes: "proc-order"` | Standard reference |
+| Pattern   | Example                                      | Use Case            |
+| --------- | -------------------------------------------- | ------------------- |
+| Pattern B | `business.supports-processes: "proc-order"`  | Standard reference  |
 | Pattern B | `business.realizes-services: "svc-checkout"` | Service realization |
-| Pattern B | `business.target-actors: "actor-customer"` | Target audience |
-| Pattern C | `businessAlignment.supportsProcesses: [...]` | Grouped references |
+| Pattern B | `business.target-actors: "actor-customer"`   | Target audience     |
+| Pattern C | `businessAlignment.supportsProcesses: [...]` | Grouped references  |
 
 ---
 
 ### To Security Layer (Layer 03)
 
-| Pattern | Example | Use Case |
-|---------|---------|----------|
-| Pattern B | `security.security-actors: "actor-admin"` | Actor mapping |
-| Pattern B | `security.required-roles: "admin,auditor"` | Role requirements |
+| Pattern   | Example                                                 | Use Case                |
+| --------- | ------------------------------------------------------- | ----------------------- |
+| Pattern B | `security.security-actors: "actor-admin"`               | Actor mapping           |
+| Pattern B | `security.required-roles: "admin,auditor"`              | Role requirements       |
 | Pattern B | `security.required-permissions: "read:user,write:user"` | Permission requirements |
-| Pattern C | `securityContext.resourceRef: "resource-api"` | Grouped security refs |
+| Pattern C | `securityContext.resourceRef: "resource-api"`           | Grouped security refs   |
 
 ---
 
 ### To API Layer (Layer 06)
 
-| Pattern | Example | Use Case |
-|---------|---------|----------|
-| Pattern A | `x-archimate-ref: "app-api-service"` | In OpenAPI spec |
-| Pattern B | `api.operation-id: "createOrder"` | Single operation |
+| Pattern   | Example                                              | Use Case            |
+| --------- | ---------------------------------------------------- | ------------------- |
+| Pattern A | `x-archimate-ref: "app-api-service"`                 | In OpenAPI spec     |
+| Pattern B | `api.operation-id: "createOrder"`                    | Single operation    |
 | Pattern B | `api.operations: "createOrder,getOrder,deleteOrder"` | Multiple operations |
 
 ---
 
 ### To Data Model Layer (Layer 07)
 
-| Pattern | Example | Use Case |
-|---------|---------|----------|
+| Pattern   | Example                               | Use Case            |
+| --------- | ------------------------------------- | ------------------- |
 | Pattern A | `x-json-schema: "schemas/order.json"` | In JSON Schema file |
-| Pattern B | `data.schema-ref: "order-schema"` | Schema reference |
-| Pattern B | `data.schema-id: "urn:schema:order"` | Formal schema ID |
+| Pattern B | `data.schema-ref: "order-schema"`     | Schema reference    |
+| Pattern B | `data.schema-id: "urn:schema:order"`  | Formal schema ID    |
 
 ---
 
@@ -380,7 +384,7 @@ Order Processing Service:
 openapi: 3.0.0
 info:
   title: Order Processing API
-  x-archimate-ref: "service-order-processing"  # References Layer 02 service
+  x-archimate-ref: "service-order-processing" # References Layer 02 service
   x-supports-goals:
     - "goal-customer-satisfaction"
   x-fulfills-requirements:
@@ -467,6 +471,7 @@ CheckoutFlow:
 ### Mistake 1: Mixing Cardinality Formats
 
 ❌ **WRONG** - Using array in Pattern B (dot-notation):
+
 ```yaml
 motivation.supports-goals:
   - "goal-1"
@@ -474,6 +479,7 @@ motivation.supports-goals:
 ```
 
 ✅ **CORRECT** - Use comma-separated string:
+
 ```yaml
 motivation.supports-goals: "goal-1,goal-2"
 ```
@@ -483,15 +489,17 @@ motivation.supports-goals: "goal-1,goal-2"
 ### Mistake 2: Inconsistent Naming Convention
 
 ❌ **WRONG** - Using kebab-case in nested objects:
+
 ```yaml
 motivationAlignment:
-  supports-goals: ["goal-1"]        # Wrong! Should be camelCase
+  supports-goals: ["goal-1"] # Wrong! Should be camelCase
 ```
 
 ✅ **CORRECT** - Use camelCase in nested objects:
+
 ```yaml
 motivationAlignment:
-  supportsGoals: ["goal-1"]         # Correct
+  supportsGoals: ["goal-1"] # Correct
 ```
 
 ---
@@ -499,12 +507,14 @@ motivationAlignment:
 ### Mistake 3: Using Pattern B Outside Upward References
 
 ❌ **WRONG** - Using dot-notation for non-upward references:
+
 ```yaml
 # Pattern B is for Motivation or cross-layer references
-api.business-service: "service-order"  # Don't use Pattern B for arbitrary references
+api.business-service: "service-order" # Don't use Pattern B for arbitrary references
 ```
 
 ✅ **CORRECT** - Use Pattern D or native fields:
+
 ```yaml
 # Use native field or Pattern A
 x-business-service-ref: "service-order"
@@ -515,11 +525,13 @@ x-business-service-ref: "service-order"
 ### Mistake 4: Spaces in Comma-Separated Lists
 
 ❌ **WRONG** - Spaces after commas:
+
 ```yaml
-motivation.supports-goals: "goal-1, goal-2, goal-3"  # Wrong! Has spaces
+motivation.supports-goals: "goal-1, goal-2, goal-3" # Wrong! Has spaces
 ```
 
 ✅ **CORRECT** - No spaces:
+
 ```yaml
 motivation.supports-goals: "goal-1,goal-2,goal-3"
 ```
@@ -529,11 +541,13 @@ motivation.supports-goals: "goal-1,goal-2,goal-3"
 ### Mistake 5: Using Array Notation When String Expected
 
 ❌ **WRONG** - Array syntax in Pattern B:
+
 ```yaml
-motivation.supports-goals: ["goal-1", "goal-2"]  # Wrong! Pattern B uses comma-separated string
+motivation.supports-goals: ["goal-1", "goal-2"] # Wrong! Pattern B uses comma-separated string
 ```
 
 ✅ **CORRECT** - Comma-separated string:
+
 ```yaml
 motivation.supports-goals: "goal-1,goal-2"
 ```

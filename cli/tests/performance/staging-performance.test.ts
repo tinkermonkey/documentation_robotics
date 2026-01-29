@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { VirtualProjectionEngine } from '../../src/core/virtual-projection.js';
 import { Model } from '../../src/core/model.js';
 import { Manifest } from '../../src/core/manifest.js';

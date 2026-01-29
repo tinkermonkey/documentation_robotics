@@ -313,4 +313,3 @@ export class Changeset {
     return new Changeset(data);
   }
 }
-

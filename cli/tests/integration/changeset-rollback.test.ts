@@ -1,47 +1,33 @@
-import { describe, it, expect, beforeEach, afterAll, afterEach } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { StagingAreaManager } from '../../src/core/staging-area.js';
 import { Element } from '../../src/core/element.js';
-import { rm, mkdir, readFile, writeFile, cp, readdir } from 'fs/promises';
+import { readFile, writeFile, readdir, mkdir, rm } from 'fs/promises';
 import path from 'path';
 import { createHash } from 'crypto';
 import { fileExists, ensureDir } from '../../src/utils/file-io.js';
-import { fileURLToPath } from 'url';
-
-const TEST_DIR = '/tmp/changeset-rollback-test';
-const BASELINE_DIR = fileURLToPath(new URL('../../../cli-validation/test-project/baseline', import.meta.url));
+import { createTestWorkdir } from '../helpers/golden-copy.js';
 
 describe('Changeset Rollback Verification', () => {
   let model: Model;
-  let originalCwd: string;
+  let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    // Save original working directory
-    originalCwd = process.cwd();
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
 
-    // Clean test directory
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
-
-    await mkdir(TEST_DIR, { recursive: true });
-
-    // Copy baseline project
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
-
-    // Change to test directory and load model
-    process.chdir(TEST_DIR);
-    model = await Model.load(undefined, { lazyLoad: false });
+    // Eager loading required: Test validates changeset rollback functionality
+    // which requires all layers loaded to verify state restoration
+    model = await Model.load(TEST_DIR, { lazyLoad: false });
   });
 
-  afterAll(async () => {
-    // Restore original working directory
-    process.chdir(originalCwd);
-
+  afterEach(async () => {
+    // Clean up test directory
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }
@@ -1183,27 +1169,19 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
   // 4. Rollback cleanup doesn't block successful commits
   // 5. Multi-layer saves are coordinated to prevent partial saves
 
-  let originalCwd: string;
-  const TEST_DIR = '/tmp/backup-failure-critical-test';
+  let TEST_DIR: string;
+  let cleanup: () => Promise<void>;
 
   beforeEach(async () => {
-    originalCwd = process.cwd();
-
-    try {
-      await rm(TEST_DIR, { recursive: true, force: true });
-    } catch {
-      // Ignore
-    }
-
-    await mkdir(TEST_DIR, { recursive: true });
-    await cp(BASELINE_DIR, TEST_DIR, { recursive: true });
-    process.chdir(TEST_DIR);
+    // Use golden copy for efficient test initialization
+    const workdir = await createTestWorkdir();
+    TEST_DIR = workdir.path;
+    cleanup = workdir.cleanup;
   });
 
-  afterAll(async () => {
-    process.chdir(originalCwd);
+  afterEach(async () => {
     try {
-      await rm(TEST_DIR, { recursive: true, force: true });
+      await cleanup();
     } catch {
       // Ignore
     }
@@ -1216,7 +1194,9 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 2. Uses forceRemoveBackupDir for aggressive cleanup on failure
     // 3. Logs cleanup failures but doesn't throw
 
-    const model = await Model.load(undefined, { lazyLoad: false });
+    // Eager loading required: Test validates backup directory cleanup after failed commits
+    // which requires all layers loaded to verify backup files are properly removed
+    const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const backupBaseDir = path.join(TEST_DIR, 'documentation-robotics', '.backups');
 
     // Verify backups directory starts clean
@@ -1237,7 +1217,9 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 3. ONLY THEN marks changeset as 'committed'
     // 4. Updates manifest history
 
-    const model = await Model.load(undefined, { lazyLoad: false });
+    // Eager loading required: Test validates atomic commit sequencing
+    // which requires all layers loaded to verify proper change application order
+    const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const stagingManager = new StagingAreaManager(TEST_DIR);
 
     // Verify changeset operations work correctly
@@ -1255,7 +1237,9 @@ describe('Backup Creation Failure Handling - CRITICAL Issue Fix', () => {
     // 2. Logs cleanup failures but doesn't throw
     // 3. Successful commits always succeed even if cleanup fails
 
-    const model = await Model.load(undefined, { lazyLoad: false });
+    // Eager loading required: Test validates graceful handling of cleanup failures
+    // which requires all layers loaded to verify model state after cleanup errors
+    const model = await Model.load(TEST_DIR, { lazyLoad: false });
     const backupBaseDir = path.join(TEST_DIR, 'documentation-robotics', '.backups');
 
     // Backup cleanup is non-throwing - verify directory structure exists for cleanup

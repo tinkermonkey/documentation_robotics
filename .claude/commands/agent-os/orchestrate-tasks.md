@@ -12,7 +12,7 @@ IF you already know which spec we're working on and IF that spec folder has a `t
 
 IF you don't already know which spec we're working on and IF that spec folder doesn't yet have a `tasks.md` THEN output the following request to the user:
 
-```
+```text
 Please point me to a spec's `tasks.md` that you want to orchestrate implementation for.
 
 If you don't have one yet, then run any of these commands first:
@@ -39,7 +39,7 @@ task_groups:
 
 Next we must determine which subagents should be assigned to which task groups. Ask the user to provide this info using the following request to user and WAIT for user's response:
 
-```
+```text
 Please specify the name of each subagent to be assigned to each task group:
 
 1. [task-group-name]

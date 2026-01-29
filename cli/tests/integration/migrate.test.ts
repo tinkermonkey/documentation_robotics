@@ -1,18 +1,16 @@
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import { Model } from '../../src/core/model.js';
 import { MigrationRegistry } from '../../src/core/migration-registry.js';
-import { rm } from 'fs/promises';
+import { rm, mkdtemp } from 'fs/promises';
+import path from 'path';
+import { tmpdir } from 'os';
 
-const TEST_DIR = '/tmp/migrate-test';
+let TEST_DIR: string;
 
 describe('migrate command integration', () => {
   beforeAll(async () => {
     // Create test directory and model
-    try {
-      await rm(TEST_DIR, { recursive: true });
-    } catch {
-      // Directory may not exist
-    }
+    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'migrate-test-'));
 
     // Initialize a test model at v0.5.0
     const model = await Model.init(TEST_DIR, {
@@ -55,6 +53,8 @@ describe('migrate command integration', () => {
 
   describe('migration execution', () => {
     it('should apply migration and update model version', async () => {
+      // Eager loading required: Test validates schema migration across spec versions
+      // which requires all layers loaded to verify migration correctness
       const model = await Model.load(TEST_DIR, { lazyLoad: false });
       expect(model.manifest.specVersion).toBe('0.5.0');
 
@@ -121,7 +121,7 @@ describe('migrate command integration', () => {
       const registry = new MigrationRegistry();
       const summary = registry.getMigrationSummary('0.5.0');
 
-      expect(summary.targetVersion).toBe('0.7.0');
+      expect(summary.targetVersion).toBe('0.7.1');
     });
   });
 

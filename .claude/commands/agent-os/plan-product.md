@@ -26,7 +26,7 @@ The product-planner will:
 
 After all steps are complete, output the following to inform the user:
 
-```
+```text
 Your product planning is all set!
 
 ✅ Product mission: `agent-os/product/mission.md`

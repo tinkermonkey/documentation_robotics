@@ -1,5 +1,9 @@
 /**
  * Integration tests for VisualizationServer
+ *
+ * REQUIRES SERIAL EXECUTION: Uses describe.serial because:
+ * - Tests start/stop the visualization server requiring exclusive port access
+ * - Concurrent execution would cause port conflicts and server state issues
  */
 
 import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
@@ -13,6 +17,8 @@ import { sleep } from '../helpers.ts';
 // Test fixture setup - specific to this test suite's requirements
 async function createTestModel(rootPath: string): Promise<Model> {
   // Use init to create the model with the correct structure
+  // Eager loading required: Visualization server tests render all layers in the UI
+  // which requires all layers loaded upfront for complete graph visualization
   const model = await Model.init(
     rootPath,
     {
@@ -71,7 +77,7 @@ async function createTestModel(rootPath: string): Promise<Model> {
   return model;
 }
 
-describe('VisualizationServer Integration Tests', () => {
+describe.serial('VisualizationServer Integration Tests', () => {
   let testDir: string;
   let model: Model;
   let server: VisualizationServer;

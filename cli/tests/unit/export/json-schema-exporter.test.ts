@@ -53,6 +53,7 @@ describe("JsonSchemaExporter", () => {
       id: "data-model-entity-customer",
       type: "entity",
       name: "Customer",
+      layer: "07-data-model-layer",
       properties: {
         properties: {
           id: { type: "string" },
@@ -102,6 +103,7 @@ describe("JsonSchemaExporter", () => {
       id: "data-model-entity-product",
       type: "entity",
       name: "Product",
+      layer: "07-data-model-layer",
       properties: {
         properties: {
           id: { type: "string" },
@@ -137,6 +139,7 @@ describe("JsonSchemaExporter", () => {
       id: "data-model-entity-order",
       type: "entity",
       name: "Order",
+      layer: "07-data-model-layer",
       properties: {
         properties: {
           id: { type: "string" },
@@ -152,6 +155,7 @@ describe("JsonSchemaExporter", () => {
       id: "data-model-entity-invoice",
       type: "entity",
       name: "Invoice",
+      layer: "07-data-model-layer",
       properties: {
         properties: {
           id: { type: "string" },
@@ -179,6 +183,7 @@ describe("JsonSchemaExporter", () => {
       id: "data-model-entity-complex",
       type: "entity",
       name: "Complex",
+      layer: "07-data-model-layer",
       properties: {
         properties: {
           id: { type: "string" },

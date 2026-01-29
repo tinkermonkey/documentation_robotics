@@ -346,10 +346,10 @@ cd e-commerce
 dr validate
 
 # With link validation (recommended)
-dr validate 
+dr validate
 
 # Full strict validation
-dr validate --strict  
+dr validate --strict
 ```
 
 ### Export
