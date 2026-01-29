@@ -489,6 +489,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `method` - HTTP method (GET, POST, PUT, DELETE, PATCH)
 - `path` - URL path
 - `consumes` - Request content type
@@ -511,6 +512,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `technology_stack` - Technologies used
 - `deployment_unit` - Deployment identifier
 - `team_owned_by` - Responsible team
@@ -534,6 +536,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `columns` - Number of columns
 - `estimated_rows` - Expected row count
 - `primary_key` - Primary key column
@@ -558,6 +561,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `owner` - Service owner team
 - `slicing` - Service slicing model
 - `domain` - Business domain
@@ -581,6 +585,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `aggregate_root` - Whether this is an aggregate root
 - `lifecycle` - Entity lifecycle type
 - `uniqueness_constraint` - Unique field(s)
@@ -604,6 +609,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `test_type` - Type of test (unit, integration, e2e, performance)
 - `priority` - Test priority (low, medium, high, critical)
 - `estimated_duration_seconds` - Expected execution time
@@ -628,6 +634,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `policy_type` - Type of policy
 - `enforcement` - Enforcement level
 - `framework` - Security framework used
@@ -653,6 +660,7 @@ Elements can include custom properties defined as JSON. Here are common property
 ```
 
 **Fields:**
+
 - `url_pattern` - URL pattern with parameters
 - `component` - Component to render
 - `requires_auth` - Authentication requirement
@@ -678,6 +686,7 @@ dr add api endpoint create-customer \
 ```
 
 **Guidelines:**
+
 - Properties are optional
 - Use clear, descriptive key names
 - Keep property values as simple types (string, number, boolean, array)

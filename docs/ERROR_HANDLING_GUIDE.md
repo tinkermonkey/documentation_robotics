@@ -11,25 +11,27 @@ This guide documents the error handling approach used throughout the Documentati
 All user-facing errors should use the `CLIError` class from `cli/src/utils/cli-error.ts`:
 
 ```typescript
-import { CLIError } from '../utils/cli-error.js';
+import { CLIError } from "../utils/cli-error.js";
 
 // Basic error
-throw new CLIError('Element ID must not be empty', 'validation');
+throw new CLIError("Element ID must not be empty", "validation");
 
 // With context
 throw new CLIError(
   `Failed to find element: ${elementId}`,
-  'reference',
+  "reference",
   `Try running 'dr list' to see available elements`
 );
 ```
 
 **Constructor:**
+
 ```typescript
 constructor(message: string, category: string, hint?: string)
 ```
 
 **Parameters:**
+
 - `message` - Clear description of what went wrong
 - `category` - Error category (validation, reference, file-io, schema, etc.)
 - `hint` - Optional suggestion for resolution
@@ -45,12 +47,14 @@ Error messages should be concise but informative:
 ```
 
 **Good Examples:**
+
 - "Element 'customer' not found in layer 'business'"
 - "Invalid layer name: 'data_store' (did you mean 'data-store'?)"
 - "Layer manifest is missing required field: 'version'"
 - "Failed to save changeset: permission denied for directory"
 
 **Bad Examples:**
+
 - "Error occurred" ❌ (too vague)
 - "Cannot process" ❌ (missing context)
 - "System error 500" ❌ (technical jargon)
@@ -58,20 +62,24 @@ Error messages should be concise but informative:
 #### Components
 
 **1. Subject** - What entity caused the problem
+
 - Element ID, layer name, file path, property name
 - Include relevant identifiers
 
 **2. Action** - What operation failed
+
 - Create, find, validate, save, load, export
 - Use past tense for completed actions: "failed to...", "could not..."
 
 **3. Reason** - Why it failed
+
 - Missing field, invalid format, reference not found, permission denied
 - Provide specific detail that helps the user understand the cause
 
 #### Context Examples
 
 **Validation Error:**
+
 ```
 throw new CLIError(
   `Element ID format invalid: '${providedId}' (expected format: '{layer}.{type}.{name}')`,
@@ -80,6 +88,7 @@ throw new CLIError(
 ```
 
 **Reference Error:**
+
 ```
 throw new CLIError(
   `Cross-layer reference failed: '${sourceId}' references missing element '${targetId}'`,
@@ -89,6 +98,7 @@ throw new CLIError(
 ```
 
 **File I/O Error:**
+
 ```
 throw new CLIError(
   `Failed to read model manifest: file not found at '${manifestPath}'`,
@@ -119,23 +129,17 @@ throw new CLIError(
 All command implementations should follow this pattern:
 
 ```typescript
-export async function executeCommand(
-  args: CommandArgs,
-  model: Model
-): Promise<void> {
+export async function executeCommand(args: CommandArgs, model: Model): Promise<void> {
   try {
     // 1. Validate input
     if (!args.elementId) {
-      throw new CLIError('Element ID is required', 'validation');
+      throw new CLIError("Element ID is required", "validation");
     }
 
     // 2. Check preconditions
     const element = layer.getElement(args.elementId);
     if (!element) {
-      throw new CLIError(
-        `Element not found: '${args.elementId}'`,
-        'not-found'
-      );
+      throw new CLIError(`Element not found: '${args.elementId}'`, "not-found");
     }
 
     // 3. Perform operation
@@ -144,7 +148,6 @@ export async function executeCommand(
     // 4. Report success
     console.log(`Successfully completed operation on '${args.elementId}'`);
     console.log(JSON.stringify(result, null, 2));
-
   } catch (error) {
     // 5. Handle errors consistently
     if (error instanceof CLIError) {
@@ -155,7 +158,7 @@ export async function executeCommand(
         console.error(error.stack);
       }
     } else {
-      console.error('Unknown error occurred');
+      console.error("Unknown error occurred");
     }
     process.exit(1);
   }
@@ -170,25 +173,25 @@ The validation system uses specific error types for each validator:
 // Schema validation
 throw new CLIError(
   `Schema validation failed: ${element.id} has invalid property '${propertyName}'`,
-  'schema'
+  "schema"
 );
 
 // Naming validation
 throw new CLIError(
   `Naming convention violated: '${elementId}' (expected format: '{layer}.{type}.{kebab-case}')`,
-  'naming'
+  "naming"
 );
 
 // Reference validation
 throw new CLIError(
   `Invalid reference from '${source}' to '${target}': target element not found`,
-  'reference'
+  "reference"
 );
 
 // Predicate validation
 throw new CLIError(
   `Invalid relationship predicate '${predicate}' for element types '${sourceType}' and '${targetType}'`,
-  'semantic'
+  "semantic"
 );
 ```
 
@@ -210,16 +213,10 @@ Always use exact property names in error messages:
 
 ```typescript
 // Good
-throw new CLIError(
-  `Missing required property 'method' on endpoint element`,
-  'validation'
-);
+throw new CLIError(`Missing required property 'method' on endpoint element`, "validation");
 
 // Bad
-throw new CLIError(
-  `Missing HTTP method property`,
-  'validation'
-);
+throw new CLIError(`Missing HTTP method property`, "validation");
 ```
 
 ### File Paths
@@ -229,9 +226,8 @@ Always show relative paths from project root:
 ```typescript
 // Good
 `Failed to save: documentation-robotics/model/06_api/my-endpoint.yaml`
-
 // Bad
-`Failed to save: /home/user/project/documentation-robotics/model/06_api/my-endpoint.yaml`
+`Failed to save: /home/user/project/documentation-robotics/model/06_api/my-endpoint.yaml`;
 ```
 
 ### Element IDs and References
@@ -242,14 +238,11 @@ Always show full element ID format:
 // Good
 throw new CLIError(
   `Invalid cross-layer reference: '${sourceId}' references '${targetId}'`,
-  'reference'
+  "reference"
 );
 
 // Bad
-throw new CLIError(
-  `Cannot link 'order-service' to unknown element`,
-  'reference'
-);
+throw new CLIError(`Cannot link 'order-service' to unknown element`, "reference");
 ```
 
 ## Debugging and Diagnostics
@@ -263,6 +256,7 @@ DEBUG=1 dr add motivation goal test-goal
 ```
 
 Debug output should include:
+
 - Full error stack traces
 - Internal state information
 - Operation sequence trace
@@ -291,12 +285,14 @@ console.error(`✗ Failed to add element: ${reason}`);
 ### Avoiding Unsafe Type Assertions
 
 **Problem Pattern:**
+
 ```typescript
 // ❌ Loses type safety
 const ref = (sourceObj as any).reference;
 ```
 
 **Solution - Use Type Guards:**
+
 ```typescript
 // ✅ Safe type narrowing
 interface SourceObject {
@@ -304,14 +300,14 @@ interface SourceObject {
 }
 
 function getSourceReference(sourceObj: unknown): SourceReference | undefined {
-  if (!sourceObj || typeof sourceObj !== 'object') {
+  if (!sourceObj || typeof sourceObj !== "object") {
     return undefined;
   }
 
   const obj = sourceObj as Record<string, unknown>;
   const ref = obj.reference;
 
-  if (ref && typeof ref === 'object' && hasSourceReferenceFields(ref)) {
+  if (ref && typeof ref === "object" && hasSourceReferenceFields(ref)) {
     return ref as SourceReference;
   }
 
@@ -319,14 +315,11 @@ function getSourceReference(sourceObj: unknown): SourceReference | undefined {
 }
 
 function hasSourceReferenceFields(obj: unknown): obj is SourceReference {
-  if (typeof obj !== 'object' || obj === null) {
+  if (typeof obj !== "object" || obj === null) {
     return false;
   }
   const entry = obj as Record<string, unknown>;
-  return (
-    typeof entry.type === 'string' &&
-    typeof entry.file === 'string'
-  );
+  return typeof entry.type === "string" && typeof entry.file === "string";
 }
 ```
 
@@ -334,7 +327,11 @@ function hasSourceReferenceFields(obj: unknown): obj is SourceReference {
 
 ```typescript
 // ✅ Safe property access with type narrowing
-function getProperty<T>(properties: Record<string, unknown>, key: string, validate: (v: unknown) => v is T): T | undefined {
+function getProperty<T>(
+  properties: Record<string, unknown>,
+  key: string,
+  validate: (v: unknown) => v is T
+): T | undefined {
   const value = properties[key];
   if (validate(value)) {
     return value;
@@ -345,14 +342,14 @@ function getProperty<T>(properties: Record<string, unknown>, key: string, valida
 // Usage
 const method = getProperty<string>(
   element.properties,
-  'method',
-  (v): v is string => typeof v === 'string'
+  "method",
+  (v): v is string => typeof v === "string"
 );
 
 if (!method) {
   throw new CLIError(
     `Endpoint '${element.id}' is missing required property 'method'`,
-    'validation'
+    "validation"
   );
 }
 ```
@@ -362,10 +359,10 @@ if (!method) {
 ### Missing Required Field
 
 ```typescript
-if (!element.properties['method']) {
+if (!element.properties["method"]) {
   throw new CLIError(
     `API endpoint '${element.id}' is missing required property 'method'`,
-    'validation',
+    "validation",
     `Use: dr update ${element.id} --property method=GET`
   );
 }
@@ -377,7 +374,7 @@ if (!element.properties['method']) {
 if (!model.hasElement(targetId)) {
   throw new CLIError(
     `Cannot create reference: target element '${targetId}' does not exist`,
-    'reference',
+    "reference",
     `Ensure element exists before creating references to it`
   );
 }
@@ -390,7 +387,7 @@ const validIdFormat = /^[a-z0-9]+([-_][a-z0-9]+)*$/;
 if (!validIdFormat.test(name)) {
   throw new CLIError(
     `Element name '${name}' violates naming convention (expected kebab-case)`,
-    'naming',
+    "naming",
     `Use only lowercase letters, numbers, and hyphens: 'my-element-name'`
   );
 }
@@ -402,10 +399,10 @@ if (!validIdFormat.test(name)) {
 try {
   await writeFile(filePath, content);
 } catch (error) {
-  if (error instanceof Error && error.message.includes('EACCES')) {
+  if (error instanceof Error && error.message.includes("EACCES")) {
     throw new CLIError(
       `Permission denied: cannot write to '${filePath}'`,
-      'permission',
+      "permission",
       `Ensure you have write permissions for the model directory`
     );
   }
@@ -418,12 +415,12 @@ try {
 When testing error conditions, verify both the message and category:
 
 ```typescript
-test('should report validation error for missing method', async () => {
+test("should report validation error for missing method", async () => {
   const element = new Element({
-    id: 'api.endpoint.create',
-    type: 'endpoint',
-    name: 'Create',
-    properties: {} // Missing 'method'
+    id: "api.endpoint.create",
+    type: "endpoint",
+    name: "Create",
+    properties: {}, // Missing 'method'
   });
 
   expect(() => validateEndpoint(element)).toThrow(CLIError);
@@ -432,8 +429,8 @@ test('should report validation error for missing method', async () => {
     validateEndpoint(element);
   } catch (error) {
     if (error instanceof CLIError) {
-      expect(error.category).toBe('validation');
-      expect(error.message).toContain('method');
+      expect(error.category).toBe("validation");
+      expect(error.message).toContain("method");
     }
   }
 });
@@ -442,6 +439,7 @@ test('should report validation error for missing method', async () => {
 ## Guidelines Summary
 
 ✅ **Do:**
+
 - Use CLIError for all user-facing errors
 - Provide specific context (element IDs, property names, paths)
 - Include recovery hints when possible
@@ -450,6 +448,7 @@ test('should report validation error for missing method', async () => {
 - Test error messages in unit tests
 
 ❌ **Don't:**
+
 - Throw plain Error objects
 - Use vague error messages
 - Use technical jargon without context

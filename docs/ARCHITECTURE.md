@@ -9,12 +9,14 @@ This document describes the internal architecture of the Documentation Robotics 
 ### 1. Command Layer (`cli/src/commands/`)
 
 The command layer implements the CLI interface. Each command:
+
 - Parses user input and options
 - Validates input parameters
 - Delegates work to core services
 - Handles output formatting and error presentation
 
 **Key files:**
+
 - `commands/add.ts` - Add elements to layers
 - `commands/validate.ts` - Validate model conformance
 - `commands/export.ts` - Export to various formats
@@ -25,17 +27,20 @@ The command layer implements the CLI interface. Each command:
 The core layer implements the domain model and business logic:
 
 #### Model Management
+
 - **`model.ts`** - Central Model class managing all layers and data persistence
 - **`layer.ts`** - Layer container for elements within a specific layer
 - **`element.ts`** - Individual architecture element with properties and references
 - **`manifest.ts`** - Project metadata and configuration
 
 #### Reference & Relationship Management
+
 - **`reference-registry.ts`** - Tracks cross-layer element references
 - **`relationship-registry.ts`** - Tracks intra-layer element relationships
 - **`dependency-tracker.ts`** - Analyzes element dependencies and traces paths
 
 #### Staging & Changeset System
+
 - **`changeset.ts`** - Changeset definition and operations
 - **`staged-changeset-storage.ts`** - Persistence layer for staged changes
 - **`staging-area.ts`** - Changeset lifecycle management (create, stage, commit)
@@ -43,10 +48,12 @@ The core layer implements the domain model and business logic:
 - **`base-snapshot-manager.ts`** - Tracks base model state for drift detection
 
 #### Change Detection & Validation
+
 - **`drift-detector.ts`** - Detects changes to base model since changeset creation
 - **`changeset-validator.ts`** - Validates staged changes before commit
 
 #### Test Infrastructure
+
 - **`golden-copy-cache.ts`** - Optimizes test initialization with shared cache
 - **`projection-engine.ts`** - Auto-generates elements across layers based on rules
 
@@ -65,6 +72,7 @@ Each validator is independent and can be used standalone or as part of the valid
 ### 4. Export Layer (`cli/src/export/`)
 
 Converts internal model to external formats:
+
 - **ArchiMate** - Layers 1, 2, 4, 5 (XML format)
 - **OpenAPI** - Layer 6 (JSON/YAML)
 - **JSON Schema** - Layer 7 (JSON)
@@ -75,6 +83,7 @@ Converts internal model to external formats:
 ### 5. AI Integration Layer (`cli/src/ai/`)
 
 Legacy and current AI integration:
+
 - **`tools.ts`** - Tool definitions for Claude API (legacy SDK-based chat)
 - **`claude-client.ts`** - Direct Claude API integration
 - **`chat.ts`** - Chat command implementation (uses Claude Code CLI subprocess)
@@ -82,6 +91,7 @@ Legacy and current AI integration:
 ### 6. Telemetry & Observability (`cli/src/telemetry/`)
 
 Instrumentation for performance monitoring:
+
 - **`console-interceptor.ts`** - Captures console output for logging
 - **OpenTelemetry integration** - Structured tracing and metrics
 
@@ -144,6 +154,7 @@ Manifest updated with changeset history
 ### 1. Registry Pattern
 
 The **Reference Registry** and **Relationship Registry** maintain mappings of:
+
 - Which elements reference which other elements
 - Validation rules for each reference type
 - Error context for invalid references
@@ -153,6 +164,7 @@ Used in validation and dependency tracing.
 ### 2. Projection Pattern
 
 **Virtual Projection Engine** creates temporary merged views:
+
 - Reads base model (unchanged)
 - Applies staged changes in sequence
 - Returns projected model without persisting
@@ -163,6 +175,7 @@ Caching with TTL-based expiration improves performance for repeated previews.
 ### 3. Staging Pattern
 
 **Staging Area** separates edit workflows from persistence:
+
 - Changes are prepared in changesets
 - Multiple changesets can coexist
 - Base model unchanged until explicit commit
@@ -173,6 +186,7 @@ Enables collaborative design and safe refactoring.
 ### 4. Validation Pipeline
 
 **Validators** are independent and composable:
+
 - Each validator focuses on one concern
 - Validators can be used standalone or chained
 - Clear error messages for each validation failure
@@ -181,6 +195,7 @@ Enables collaborative design and safe refactoring.
 ### 5. Branded Types
 
 **Type-safe string wrappers** for semantic meaning:
+
 - `Sha256Hash` - SHA256 checksums (not arbitrary strings)
 - `ElementId` (planned) - Element identifiers (not strings)
 - `LayerName` (planned) - Layer identifiers (not strings)
@@ -218,6 +233,7 @@ documentation-robotics/
 ### Migration (Python CLI to TypeScript CLI)
 
 The **Changeset Migration** system auto-migrates changesets from Python CLI format:
+
 - Automatically detects `.dr/changesets/` location
 - Migrates to `documentation-robotics/changesets/` on first use
 - Creates backup at `.dr.backup/changesets/` for rollback
@@ -230,6 +246,7 @@ The **Changeset Migration** system auto-migrates changesets from Python CLI form
 **Problem:** Tests require loading complete baseline model repeatedly, slow.
 
 **Solution:** **Golden Copy Cache**
+
 1. Create single shared golden copy at test suite startup
 2. Clone from golden copy for each test (faster than copying from source)
 3. Each test gets isolated working directory
@@ -238,6 +255,7 @@ The **Changeset Migration** system auto-migrates changesets from Python CLI form
 **Performance:** ~20-30% reduction in test initialization time.
 
 **Implementation:**
+
 - `golden-copy.ts` - Test helpers for creating working directories
 - `golden-copy-cache.ts` - Manager for shared golden copy
 - `setup.ts` - Initializes golden copy at suite startup
@@ -246,6 +264,7 @@ The **Changeset Migration** system auto-migrates changesets from Python CLI form
 ### Updating Golden Copy Baseline
 
 To add test data:
+
 1. Edit files in `cli-validation/test-project/baseline/`
 2. Next test run automatically creates fresh golden copy
 3. All test working directories include new data
@@ -256,6 +275,7 @@ To add test data:
 ### Public API Types
 
 All public APIs now have proper type definitions:
+
 - `ToolDefinition` - Claude AI tool schema
 - `ToolParameter` - Tool input parameter
 - `ToolInputSchema` - Tool input structure
@@ -266,6 +286,7 @@ Replaced loose `any[]` types with specific interfaces.
 ### Manifest Types
 
 Explicit types for manifest metadata:
+
 - `ModelStatistics` - Statistics about the model
 - `CrossReferenceStatistics` - Reference tracking
 - `ChangesetHistoryEntry` - Changeset application records
@@ -274,6 +295,7 @@ Explicit types for manifest metadata:
 ### Python CLI Compatibility
 
 The `PythonCliCompat` interface documents:
+
 - Fields required for Python CLI v0.8.0 interoperability
 - Migration path from Python CLI format
 - Changeset history handling
@@ -284,6 +306,7 @@ The `PythonCliCompat` interface documents:
 ### CLIError Class
 
 Structured error reporting with:
+
 - Message describing what failed
 - Category (e.g., 'validation', 'reference', 'file-io')
 - Contextual information
@@ -294,6 +317,7 @@ Used consistently across command layer and validators.
 ### Validation Errors
 
 Specific error types for different validation failures:
+
 - `SchemError` - JSON schema violation
 - `NamingError` - Naming convention violation
 - `ReferenceError` - Invalid cross-layer reference
@@ -312,9 +336,10 @@ Specific error types for different validation failures:
 ### Lazy Loading
 
 Model can defer layer loading until accessed:
+
 ```typescript
 const model = await Model.load(basePath, { lazyLoad: true });
-const layer = await model.getLayer('api');  // Loaded on first access
+const layer = await model.getLayer("api"); // Loaded on first access
 ```
 
 ### Performance Benchmarks
