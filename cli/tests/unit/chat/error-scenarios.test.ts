@@ -78,6 +78,7 @@ describe('Error Scenarios and Recovery', () => {
   beforeEach(async () => {
     testDir = await createTestDir();
     client = new ErrorInjectingChatClient();
+    client.clearMessageLog();
   });
 
   afterEach(async () => {
