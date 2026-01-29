@@ -94,8 +94,8 @@ export class ClaudeCodeClient extends BaseChatClient {
     }
 
     // Create session for this message
-    // Note: Claude Code doesn't support cross-invocation sessions,
-    // each invocation is a fresh conversation
+    // Session continuity is maintained via --session-id flag
+    // when sessionId is provided in options
     this.createSession();
     this.updateSessionTimestamp();
 
@@ -293,6 +293,11 @@ export class ClaudeCodeClient extends BaseChatClient {
 
       args.push('--verbose', '--output-format', 'stream-json');
 
+      // Add session ID if provided for conversation continuity
+      if (options?.sessionId) {
+        args.push('--session-id', options.sessionId);
+      }
+
       // Add agent if specified
       if (options?.agent) {
         args.unshift('--agent', options.agent);
@@ -322,6 +327,7 @@ export class ClaudeCodeClient extends BaseChatClient {
           messageLength: message.length,
           hasVerboseFlag: args.includes('--verbose'),
           hasOutputFormat: args.includes('--output-format'),
+          sessionId: options?.sessionId,
         });
       }
 
