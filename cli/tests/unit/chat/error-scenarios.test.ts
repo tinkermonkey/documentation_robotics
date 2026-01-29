@@ -90,7 +90,7 @@ describe('Error Scenarios and Recovery', () => {
 
       try {
         await client.sendMessage('Test');
-        expect(true).toBe(false); // Should throw
+        throw new Error('Should have thrown connection error');
       } catch (error) {
         expect((error as Error).message).toContain('Connection failed');
       }
@@ -285,8 +285,8 @@ describe('Error Scenarios and Recovery', () => {
       await logger.ensureLogDirectory();
       await logger.logUserMessage('Test');
 
-      // Should complete without throwing
-      expect(true).toBe(true);
+      const entries = await logger.readEntries();
+      expect(entries.length).toBeGreaterThan(0);
     });
 
     it('should continue operating after failed write', async () => {

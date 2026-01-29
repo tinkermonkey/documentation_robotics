@@ -277,7 +277,7 @@ Line 3`;
 
       try {
         await client.sendMessage('Test');
-        expect(true).toBe(false);
+        throw new Error('Should have thrown error for broken pipe');
       } catch (error) {
         expect(error).toBeDefined();
         expect((error as Error).message).toContain('pipe');

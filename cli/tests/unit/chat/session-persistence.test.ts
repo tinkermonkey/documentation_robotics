@@ -105,11 +105,12 @@ describe('Session Persistence and Continuity', () => {
       expect(logPath).toContain(sessionId);
     });
 
-    it('should generate valid UUID format session IDs', () => {
+    it('should generate valid UUID v4 format session IDs', () => {
       const logger = new ChatLogger(testDir);
       const sessionId = logger.getSessionId();
-      // UUID v4 format: 8-4-4-4-12 hexadecimal digits
-      expect(sessionId).toMatch(/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i);
+      // UUID v4 format: 8-4-4-4-12 hexadecimal digits with version 4 and variant bits
+      // Pattern: xxxxxxxx-xxxx-4xxx-[89ab]xxx-xxxxxxxxxxxx
+      expect(sessionId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
     });
 
     it('should handle manual session ID specification in options', async () => {
