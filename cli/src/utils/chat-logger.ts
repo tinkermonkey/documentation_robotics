@@ -2,10 +2,12 @@
  * Chat Logger Utility
  *
  * Provides universal logging for all chat messages and commands.
- * Stores logs in .dr/chat/sessions/ with one file per session using session ID in filename.
+ * Stores logs in .dr/chat/sessions/ with one file per session.
+ * Filenames include both timestamp and session ID for chronological ordering.
  *
  * Log format:
  * - Session file: .dr/chat/sessions/{timestamp}_{sessionId}.log
+ * - Timestamp comes first for natural sorting (most recent first)
  * - Timestamp format: ISO 8601 with colons replaced by underscores for filesystem compatibility
  * - Each entry contains: timestamp, type (message/command/error), role, content
  */
@@ -231,12 +233,24 @@ export class ChatLogger {
         try {
           await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
         } catch (error) {
-          // If writeFile fails due to missing directory (race condition in concurrent tests),
-          // ensure directory again and retry
-          if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-            await this.ensureLogDirectory();
-            await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+          // If writeFile fails due to missing directory (race condition in concurrent scenarios),
+          // ensure directory again and retry ONCE
+          const errno = (error as NodeJS.ErrnoException).code;
+          if (errno === 'ENOENT') {
+            console.warn(`[ChatLogger] Directory missing during write, retrying after mkdir: ${this.sessionLogPath}`);
+            try {
+              await this.ensureLogDirectory();
+              await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+            } catch (retryError) {
+              // Retry failed - this is a real problem, not just a race condition
+              console.error(`[ChatLogger] CRITICAL: Failed to create session log after retry:`, retryError);
+              console.error(`[ChatLogger]   Session ID: ${this.sessionId}`);
+              console.error(`[ChatLogger]   Log path: ${this.sessionLogPath}`);
+              throw retryError; // Propagate - don't let outer catch hide this
+            }
           } else {
+            // Not a missing directory - could be permissions, disk full, etc.
+            console.error(`[ChatLogger] CRITICAL: Failed to write session header:`, error);
             throw error;
           }
         }
@@ -245,7 +259,23 @@ export class ChatLogger {
       // Append the entry
       await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
     } catch (error) {
-      console.warn('[ChatLogger] Warning: Could not write to log file:', error);
+      const errno = (error as NodeJS.ErrnoException).code;
+
+      // Distinguish between expected issues (permissions, disk full) and unexpected bugs
+      if (errno === 'EACCES') {
+        // Permissions issue - warn but continue (can't fix at runtime)
+        console.error('[ChatLogger] ERROR: Permission denied writing to log file:', this.sessionLogPath);
+        console.error('[ChatLogger]   Session logging disabled for this session.');
+      } else if (errno === 'ENOSPC') {
+        // Disk full - warn but continue
+        console.error('[ChatLogger] ERROR: Disk full, cannot write to log file:', this.sessionLogPath);
+      } else {
+        // Unexpected error - this is a bug that should be reported
+        console.error('[ChatLogger] CRITICAL: Unexpected error writing to log file:', error);
+        console.error('[ChatLogger]   Session ID:', this.sessionId);
+        console.error('[ChatLogger]   Log path:', this.sessionLogPath);
+        console.error('[ChatLogger]   This is a bug - please report with error details above.');
+      }
     }
   }
 

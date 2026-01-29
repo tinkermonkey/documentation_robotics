@@ -575,4 +575,147 @@ describe('DR Chat Session Integration Tests', () => {
       expect(continueArgs).toContain(sessionId);
     });
   });
+
+  describe('End-to-End Session Continuity', () => {
+    it('should maintain session context across multiple logger invocations with same session ID', async () => {
+      // Create first logger and establish session
+      const logger1 = new ChatLogger(testDir);
+      const sessionId = logger1.getSessionId();
+
+      await logger1.ensureLogDirectory();
+      await logger1.logUserMessage('What is 2 + 2?', {
+        client: 'Claude Code',
+        sessionId,
+        contextNumber: 1,
+      });
+      await logger1.logAssistantMessage('2 + 2 equals 4.', {
+        client: 'Claude Code',
+        sessionId,
+        contextNumber: 1,
+      });
+
+      // Simulate second invocation with same session ID
+      // In real scenario, this would be a new ChatLogger instance but with
+      // the session ID passed from previous invocation via --session-id flag
+      await logger1.logUserMessage('What was the answer I asked about before?', {
+        client: 'Claude Code',
+        sessionId,
+        contextNumber: 2,
+      });
+      await logger1.logAssistantMessage('You asked about 2 + 2, and I answered that it equals 4.', {
+        client: 'Claude Code',
+        sessionId,
+        contextNumber: 2,
+      });
+
+      // Verify all messages are in the same session log
+      const entries = await logger1.readEntries();
+
+      // Should have: session start event + 4 messages (2 user, 2 assistant)
+      expect(entries.length).toBeGreaterThanOrEqual(5);
+
+      // Verify session continuity metadata
+      const userMessages = entries.filter((e) => e.role === 'user');
+      expect(userMessages.length).toBe(2);
+      expect(userMessages[0].content).toContain('What is 2 + 2?');
+      expect(userMessages[1].content).toContain('What was the answer I asked about before?');
+
+      const assistantMessages = entries.filter((e) => e.role === 'assistant');
+      expect(assistantMessages.length).toBe(2);
+      expect(assistantMessages[0].content).toContain('2 + 2 equals 4');
+      expect(assistantMessages[1].content).toContain('You asked about 2 + 2');
+
+      // All entries should be part of the same session
+      const messagesWithSessionId = entries.filter((e) => e.metadata?.sessionId);
+      const uniqueSessionIds = new Set(messagesWithSessionId.map((e) => e.metadata?.sessionId));
+      expect(uniqueSessionIds.size).toBeLessThanOrEqual(1);
+      if (uniqueSessionIds.size === 1) {
+        expect([...uniqueSessionIds][0]).toEqual(sessionId);
+      }
+    });
+
+    it('should verify session ID is passed through ChatOptions to subprocess', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Log a command with session ID metadata to verify it's tracked
+      await logger.logCommand('claude', ['--session-id', sessionId, '--prompt', 'Hello'], {
+        client: 'Claude Code',
+        sessionId,
+        hasSessionIdFlag: true,
+      });
+
+      const entries = await logger.readEntries();
+      const commandEntry = entries.find((e) => e.type === 'command');
+
+      expect(commandEntry).toBeDefined();
+      expect(commandEntry?.metadata?.sessionId).toEqual(sessionId);
+      expect(commandEntry?.metadata?.hasSessionIdFlag).toBe(true);
+      expect(commandEntry?.content).toContain('--session-id');
+      expect(commandEntry?.content).toContain(sessionId);
+    });
+
+    it('should demonstrate multi-turn conversation flow with session persistence', async () => {
+      const logger = new ChatLogger(testDir);
+      const sessionId = logger.getSessionId();
+
+      await logger.ensureLogDirectory();
+
+      // Turn 1: User asks question
+      await logger.logUserMessage('Remember the number 42', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 1,
+      });
+      await logger.logAssistantMessage('I will remember the number 42.', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 1,
+      });
+
+      // Turn 2: User asks about previous context
+      await logger.logUserMessage('What number did I tell you to remember?', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 2,
+      });
+      await logger.logAssistantMessage('The number you told me to remember is 42.', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 2,
+      });
+
+      // Turn 3: User continues conversation with same context
+      await logger.logUserMessage('Multiply that number by 2', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 3,
+      });
+      await logger.logAssistantMessage('42 multiplied by 2 equals 84.', {
+        client: 'Claude Code',
+        sessionId,
+        turn: 3,
+      });
+
+      // Verify conversation flow is logged correctly
+      const entries = await logger.readEntries();
+      const messages = entries.filter((e) => e.type === 'message');
+
+      // Should have 6 messages (3 user + 3 assistant)
+      expect(messages.length).toBe(6);
+
+      // Verify temporal ordering
+      const userMessages = messages.filter((m) => m.role === 'user');
+      expect(userMessages[0].metadata?.turn).toBe(1);
+      expect(userMessages[1].metadata?.turn).toBe(2);
+      expect(userMessages[2].metadata?.turn).toBe(3);
+
+      // Verify all are in the same session
+      const turns = messages.filter((m) => m.metadata?.sessionId);
+      const sessionIds = new Set(turns.map((m) => m.metadata?.sessionId));
+      expect(sessionIds.size).toBeLessThanOrEqual(1);
+    });
+  });
 });

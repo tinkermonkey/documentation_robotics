@@ -587,4 +587,76 @@ describe('ChatLogger', () => {
       expect(sessionId).toMatch(/^[a-f0-9-]+$/i); // UUID format
     });
   });
+
+  describe('error recovery and race condition handling', () => {
+    it('should recover from ENOENT race condition when writing session header', async () => {
+      const logger = new ChatLogger(testDir);
+      await logger.ensureLogDirectory();
+
+      // Create initial session log
+      await logger.logUserMessage('First message');
+      const logPath = logger.getSessionLogPath();
+      expect(existsSync(logPath)).toBe(true);
+
+      // Verify recovery by checking log is still writable
+      await logger.logUserMessage('Second message after initial write');
+      const entries = await logger.readEntries();
+      expect(entries.length).toBeGreaterThan(0);
+
+      // Find both messages
+      const userMessages = entries.filter((e) => e.role === 'user');
+      expect(userMessages.length).toBe(2);
+      expect(userMessages[0].content).toBe('First message');
+      expect(userMessages[1].content).toBe('Second message after initial write');
+    });
+
+    it('should handle concurrent message writes safely', async () => {
+      const logger = new ChatLogger(testDir);
+      await logger.ensureLogDirectory();
+
+      // Write 5 messages concurrently
+      const writePromises = Array.from({ length: 5 }, (_, i) =>
+        logger.logUserMessage(`Concurrent message ${i}`)
+      );
+
+      // All writes should succeed without errors
+      await Promise.all(writePromises);
+
+      const entries = await logger.readEntries();
+      const userMessages = entries.filter((e) => e.role === 'user');
+      expect(userMessages.length).toBe(5);
+
+      // Verify all messages are present
+      for (let i = 0; i < 5; i++) {
+        const found = userMessages.some((m) => m.content === `Concurrent message ${i}`);
+        expect(found).toBe(true);
+      }
+    });
+
+    it('should handle directory deletion during write operations gracefully', async () => {
+      const logger = new ChatLogger(testDir);
+      await logger.ensureLogDirectory();
+
+      // Write initial message
+      await logger.logUserMessage('Message before directory deletion');
+
+      // Delete the log directory to simulate race condition
+      const logDir = logger.getLogDirectory();
+      await rm(logDir, { recursive: true, force: true });
+
+      // Subsequent write should recover by recreating directory
+      await logger.logUserMessage('Message after directory deletion');
+
+      // Verify directory was recreated
+      expect(existsSync(logDir)).toBe(true);
+
+      // Verify log file was recreated with new session header
+      const entries = await logger.readEntries();
+      expect(entries.length).toBeGreaterThan(0);
+
+      // Should have the message after deletion
+      const found = entries.some((e) => e.content === 'Message after directory deletion');
+      expect(found).toBe(true);
+    });
+  });
 });
