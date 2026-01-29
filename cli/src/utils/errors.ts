@@ -209,19 +209,22 @@ export class InvalidJSONError extends CLIError {
 export function handleError(error: unknown): never {
   if (error instanceof CLIError) {
     console.error(error.format());
-    process.exit(error.exitCode);
+    // Don't call process.exit() - rethrow so CLI wrapper can handle telemetry shutdown
+    throw error;
   } else if (error instanceof Error) {
     console.error(ansis.red(`Error: ${error.message}`));
     if (process.env.DEBUG) {
       console.error(ansis.dim(error.stack));
     }
-    process.exit(ErrorCategory.USER);
+    // Rethrow to allow CLI wrapper to handle shutdown
+    throw error;
   } else {
     console.error(ansis.red('An unexpected error occurred'));
     if (process.env.DEBUG) {
       console.error(ansis.dim(String(error)));
     }
-    process.exit(ErrorCategory.SYSTEM);
+    // Create proper error to throw
+    throw new Error(String(error));
   }
 }
 

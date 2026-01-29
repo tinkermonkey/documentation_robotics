@@ -69,25 +69,49 @@ const cliVersion = await getCliVersion();
 
 const program = new Command();
 
-// Handle --version and -V flags early, before commander processes them
+// Handle --version and -V flags by redirecting to version command
+// This ensures they go through the telemetry wrapper
 if (process.argv.includes('--version') || process.argv.includes('-V')) {
-  const { versionCommand } = await import('./commands/version.js');
-  await versionCommand();
-  process.exit(0);
+  process.argv = ['node', 'dr', 'version'];
 }
+
+// Store active command span for automatic instrumentation
+let commandSpan: any = null;
 
 program
   .name('dr')
   .description('Documentation Robotics CLI - Architecture Model Management')
   .option('-v, --verbose', 'Enable verbose output')
   .option('--debug', 'Enable debug mode')
-  .hook('preAction', async (thisCommand) => {
+  .exitOverride()  // Prevent Commander from calling process.exit() - we handle exit ourselves
+  .hook('preAction', async (thisCommand, actionCommand) => {
     // Set up global state (verbose/debug flags)
     const options = thisCommand.opts();
     setGlobalOptions({
       verbose: options.verbose as boolean | undefined,
       debug: options.debug as boolean | undefined,
     });
+
+    // Automatic telemetry: Create span for every command
+    if (isTelemetryEnabled) {
+      const { startSpan } = await import('./telemetry/index.js');
+      // Use actionCommand to get the actual command being executed
+      const commandName = actionCommand.name();
+      const commandArgs = actionCommand.args;
+
+      commandSpan = startSpan(`${commandName}.execute`, {
+        'command.name': commandName,
+        'command.args': JSON.stringify(commandArgs),
+      });
+    }
+  })
+  .hook('postAction', async () => {
+    // Automatic telemetry: End command span
+    if (isTelemetryEnabled && commandSpan) {
+      const { endSpan } = await import('./telemetry/index.js');
+      endSpan(commandSpan);
+      commandSpan = null;
+    }
   });
 
 // Model commands
@@ -576,6 +600,7 @@ copilotCommands(program);
 // Execute CLI with proper telemetry span wrapping
 // This creates a root span that all child spans will be linked to
 (async () => {
+  let exitCode = 0;
   try {
     if (isTelemetryEnabled) {
       // Initialize telemetry before execution
@@ -609,7 +634,10 @@ copilotCommands(program);
               code: 2, // SpanStatusCode.ERROR
               message: error instanceof Error ? error.message : String(error),
             });
-            throw error;
+            // Extract exit code from CLIError if available
+            const CLIError = (await import('./utils/errors.js')).CLIError;
+            exitCode = error instanceof CLIError ? error.exitCode : 1;
+            // Don't throw - let telemetry shutdown complete
           }
         },
         {
@@ -622,12 +650,23 @@ copilotCommands(program);
 
       // Shutdown telemetry after execution completes
       await shutdownTelemetry();
+
+      // Exit with appropriate code after telemetry shutdown
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
     } else {
       // No telemetry - just parse normally
       await program.parseAsync(process.argv);
     }
   } catch (error) {
-    // Re-throw to preserve CLI exit behavior
-    throw error;
+    // Error during telemetry init or shutdown
+    if (!isTelemetryEnabled) {
+      // No telemetry - exit immediately with error
+      process.exit(1);
+    }
+    // Telemetry enabled - try to shutdown before exit
+    await shutdownTelemetry();
+    process.exit(1);
   }
 })();

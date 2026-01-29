@@ -156,9 +156,9 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
       console.log(`\nValidation report exported to ${options.output}`);
 
       if (!result.isValid()) {
-        process.exit(1);
+        throw new Error('Validation failed');
       }
-      process.exit(0);
+      return;
     }
 
     // Display formatted output
@@ -173,12 +173,11 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     if (result.isValid()) {
       if (options.strict && result.warnings.length > 0) {
         console.log(ansis.red('Strict mode enabled: treating warnings as errors'));
-        process.exit(1);
-      } else {
-        process.exit(0);
+        throw new Error('Validation failed (strict mode)');
       }
+      return;
     } else {
-      process.exit(1);
+      throw new Error('Validation failed');
     }
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -186,6 +185,6 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
     if (process.env.DEBUG) {
       console.error((error as Error).stack);
     }
-    process.exit(1);
+    throw error;
   }
 }

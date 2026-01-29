@@ -28,6 +28,7 @@ let sdk: NodeSDK | null = null;
 let tracer: Tracer | null = null;
 let loggerProvider: any = null;  // LoggerProvider type
 let logger: OTelLogger | null = null;
+let spanProcessor: any = null;  // SimpleSpanProcessor type - stored for explicit forceFlush
 
 // Cache OpenTelemetry API imports for synchronous access
 let cachedContext: any = null;
@@ -147,10 +148,13 @@ export async function initTelemetry(): Promise<void> {
       timeoutMillis: 500,
     });
 
+    // Create span processor and store reference for forceFlush during shutdown
+    spanProcessor = new SimpleSpanProcessor(traceExporter);
+
     // Initialize NodeSDK with SimpleSpanProcessor for immediate export
     const nodeSdk = new NodeSDK({
       resource,
-      spanProcessor: new SimpleSpanProcessor(traceExporter),
+      spanProcessor,
     });
 
     // Start the SDK
@@ -371,6 +375,14 @@ export function emitLog(
 export async function shutdownTelemetry(): Promise<void> {
   if (isTelemetryEnabled) {
     try {
+      // CRITICAL: Force flush span processor before SDK shutdown
+      // This ensures all pending async span exports complete
+      // See: https://github.com/open-telemetry/opentelemetry-js/issues/4249
+      if (spanProcessor) {
+        await spanProcessor.forceFlush();
+      }
+
+      // Shutdown SDK (will also flush, but forceFlush above ensures pending exports finish)
       await sdk?.shutdown();
     } catch {
       // Silently ignore shutdown failures - don't block process exit
