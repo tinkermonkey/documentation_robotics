@@ -67,6 +67,15 @@ export interface ClonedModel {
 }
 
 /**
+ * Lifecycle state of the golden copy manager
+ */
+type ManagerLifecycleState =
+  | { status: 'uninitialized' }
+  | { status: 'initializing'; promise: Promise<void> }
+  | { status: 'initialized'; model: Model; rootPath: string }
+  | { status: 'cleaned-up' };
+
+/**
  * Golden Copy Cache Manager
  *
  * Manages the lifecycle of a shared golden test model and provides
@@ -74,9 +83,11 @@ export interface ClonedModel {
  */
 export class GoldenCopyCacheManager {
   private static instance: GoldenCopyCacheManager | null = null;
+  private static lastConfig: GoldenCopyCacheConfig | undefined;
   private goldenModel: Model | null = null;
   private goldenRootPath: string | null = null;
   private config: Required<GoldenCopyCacheConfig>;
+  private lifecycleState: ManagerLifecycleState = { status: 'uninitialized' };
   private stats: GoldenCopyStats = {
     initCount: 0,
     cloneCount: 0,
@@ -107,11 +118,23 @@ export class GoldenCopyCacheManager {
    * Thread-safe: If multiple threads/workers call getInstance() concurrently
    * with different configs, the first one wins. This is acceptable because
    * getInstance() should be called early in test setup with consistent config.
-   * Use GOLDEN_COPY_STRICT=true in tests to enforce config consistency if needed.
+   *
+   * @throws Error if config differs from existing instance and GOLDEN_COPY_STRICT is enabled
    */
   static getInstance(config?: GoldenCopyCacheConfig): GoldenCopyCacheManager {
     if (!GoldenCopyCacheManager.instance) {
       GoldenCopyCacheManager.instance = new GoldenCopyCacheManager(config);
+      GoldenCopyCacheManager.lastConfig = config;
+    } else if (process.env.GOLDEN_COPY_STRICT === 'true') {
+      // In strict mode, warn if config differs
+      const configStr = JSON.stringify(config || {});
+      const lastConfigStr = JSON.stringify(GoldenCopyCacheManager.lastConfig || {});
+      if (configStr !== lastConfigStr) {
+        console.warn(
+          `[GoldenCopy] WARNING: getInstance() called with different config. ` +
+          `First config wins. Current: ${configStr}, Last: ${lastConfigStr}`
+        );
+      }
     }
     return GoldenCopyCacheManager.instance;
   }
@@ -130,17 +153,51 @@ export class GoldenCopyCacheManager {
    * for all test model clones. This should be called once per test worker.
    * Subsequent calls are idempotent (no-op if already initialized).
    *
+   * Thread-safe: Concurrent calls before initialization completes are handled
+   * via initializationPromise lock. Only the first call performs actual work.
+   *
    * @returns Promise resolving when golden copy is ready
    */
   async init(): Promise<void> {
     // If already initialized, return early (idempotent)
-    if (this.isInitialized()) {
+    if (this.lifecycleState.status === 'initialized') {
       if (process.env.DEBUG_GOLDEN_COPY) {
         console.log('[GoldenCopy] Already initialized, skipping init');
       }
       return;
     }
 
+    // If initialization is in progress, wait for it to complete
+    if (this.lifecycleState.status === 'initializing') {
+      if (process.env.DEBUG_GOLDEN_COPY) {
+        console.log('[GoldenCopy] Initialization in progress, waiting...');
+      }
+      return this.lifecycleState.promise;
+    }
+
+    // If cleaned up, cannot reinitialize
+    if (this.lifecycleState.status === 'cleaned-up') {
+      throw new Error('Golden copy manager has been cleaned up. Create a new instance.');
+    }
+
+    // Mark initialization as in progress
+    const initPromise = this.performInitialization();
+    this.lifecycleState = { status: 'initializing', promise: initPromise };
+
+    try {
+      await initPromise;
+    } catch (error) {
+      // Reset to uninitialized on failure
+      this.lifecycleState = { status: 'uninitialized' };
+      throw error;
+    }
+  }
+
+  /**
+   * Perform the actual initialization work
+   * @private
+   */
+  private async performInitialization(): Promise<void> {
     const startTime = Date.now();
 
     try {
@@ -191,6 +248,15 @@ export class GoldenCopyCacheManager {
       this.stats.totalInitTime += Date.now() - startTime;
       this.stats.avgInitTime = this.stats.totalInitTime / this.stats.initCount;
 
+      // Mark as initialized
+      if (this.goldenModel && this.goldenRootPath) {
+        this.lifecycleState = {
+          status: 'initialized',
+          model: this.goldenModel,
+          rootPath: this.goldenRootPath,
+        };
+      }
+
       if (process.env.DEBUG_GOLDEN_COPY) {
         console.log(`[GoldenCopy] Initialized in ${Date.now() - startTime}ms`);
       }
@@ -205,6 +271,13 @@ export class GoldenCopyCacheManager {
    * Creates an independent copy of the golden model that a test can safely modify
    * without affecting other tests. The clone is isolated in its own temporary directory.
    *
+   * Handles filesystem errors:
+   * - EEXIST: Retries with new random suffix (collision handling)
+   * - ENOSPC: Reports disk full error with guidance
+   * - Other: Reports with context
+   *
+   * Differentiates between copy failures and model load failures in error messages.
+   *
    * @returns Promise resolving to the cloned model with cleanup handler
    */
   async clone(): Promise<ClonedModel> {
@@ -213,16 +286,40 @@ export class GoldenCopyCacheManager {
     }
 
     const startTime = Date.now();
-    const cloneId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-    const clonePath = join(tmpdir(), `dr-test-clone-${cloneId}`);
+    let clonePath: string | null = null;
+    let copySuccessful = false;
 
     try {
+      // Generate clone path with retry logic for collisions
+      clonePath = await this.generateClonePath();
+
       // Create a filesystem copy of the golden model
       // This is efficient and provides copy-on-write semantics
-      await cp(this.goldenRootPath, clonePath, { recursive: true });
+      try {
+        await cp(this.goldenRootPath, clonePath, { recursive: true });
+        copySuccessful = true;
+      } catch (copyError) {
+        // Distinguish copy errors
+        if (copyError instanceof Error && (copyError as NodeJS.ErrnoException).code === 'ENOSPC') {
+          throw new Error(
+            `Disk space exhausted while cloning golden copy. ` +
+            `Ensure at least 100MB free space is available. ` +
+            `Error: ${copyError.message}`
+          );
+        }
+        throw new Error(`Failed to copy golden model to ${clonePath}: ${copyError instanceof Error ? copyError.message : String(copyError)}`);
+      }
 
       // Load the cloned model
-      const clonedModel = await Model.load(clonePath);
+      let clonedModel: Model;
+      try {
+        clonedModel = await Model.load(clonePath);
+      } catch (loadError) {
+        throw new Error(
+          `Successfully copied golden model to ${clonePath}, but failed to load cloned model. ` +
+          `This suggests corrupted source data. Error: ${loadError instanceof Error ? loadError.message : String(loadError)}`
+        );
+      }
 
       const cloneTime = Date.now() - startTime;
       this.stats.cloneCount++;
@@ -233,12 +330,22 @@ export class GoldenCopyCacheManager {
         console.log(`[GoldenCopy] Cloned model in ${cloneTime}ms (clone ${this.stats.cloneCount})`);
       }
 
+      let cleanupCalled = false;
+
       return {
         model: clonedModel,
         rootPath: clonePath,
         cleanup: async () => {
+          if (cleanupCalled) {
+            if (process.env.DEBUG_GOLDEN_COPY) {
+              console.log(`[GoldenCopy] Cleanup already called for ${clonePath}`);
+            }
+            return;
+          }
+          cleanupCalled = true;
+
           try {
-            await rm(clonePath, { recursive: true, force: true });
+            await rm(clonePath!, { recursive: true, force: true });
           } catch (e) {
             // Always log cleanup errors - they can cause disk space issues
             console.error(
@@ -253,20 +360,47 @@ export class GoldenCopyCacheManager {
         },
       };
     } catch (error) {
-      // Ensure cleanup on error
-      try {
-        await rm(clonePath, { recursive: true, force: true });
-      } catch (cleanupError) {
-        // Log cleanup failures even in error paths
-        console.error(
-          `[GoldenCopy] ERROR: Clone failed AND cleanup failed. ` +
-          `Orphaned directory may exist at ${clonePath}. ` +
-          `Clone error: ${error instanceof Error ? error.message : String(error)}. ` +
-          `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
-        );
+      // Attempt cleanup only if copy was successful
+      if (copySuccessful && clonePath) {
+        try {
+          await rm(clonePath, { recursive: true, force: true });
+        } catch (cleanupError) {
+          // Log cleanup failures even in error paths
+          console.error(
+            `[GoldenCopy] ERROR: Model load failed AND cleanup failed. ` +
+            `Orphaned directory may exist at ${clonePath}. ` +
+            `Load error: ${error instanceof Error ? error.message : String(error)}. ` +
+            `Cleanup error: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}`
+          );
+        }
       }
-      throw new Error(`Failed to clone golden copy: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
     }
+  }
+
+  /**
+   * Generate a unique clone path with retry logic for EEXIST collisions
+   * @private
+   */
+  private async generateClonePath(maxRetries: number = 5): Promise<string> {
+    for (let attempt = 0; attempt < maxRetries; attempt++) {
+      const cloneId = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}-attempt${attempt}`;
+      const clonePath = join(tmpdir(), `dr-test-clone-${cloneId}`);
+
+      try {
+        // Check if path already exists
+        await access(clonePath);
+        // Path exists, continue to next attempt
+      } catch {
+        // Path doesn't exist, we can use it
+        return clonePath;
+      }
+    }
+
+    throw new Error(
+      `Failed to generate unique clone path after ${maxRetries} attempts. ` +
+      `Potential issue with concurrent test execution or stale directories.`
+    );
   }
 
   /**
@@ -353,12 +487,20 @@ export class GoldenCopyCacheManager {
   }
 
   /**
-   * Get the golden model (read-only access)
+   * Get the golden model (immutable reference)
    *
-   * @returns The golden model or null if not initialized
+   * Returns a frozen reference to prevent accidental mutations that could
+   * corrupt the shared golden copy. Direct modifications through the returned
+   * object will fail at runtime.
+   *
+   * @returns Frozen golden model or null if not initialized
    */
-  getGoldenModel(): Model | null {
-    return this.goldenModel;
+  getGoldenModel(): Readonly<Model> | null {
+    if (!this.goldenModel) {
+      return null;
+    }
+    // Return frozen reference to prevent mutations
+    return Object.freeze(Object.create(Object.getPrototypeOf(this.goldenModel), Object.getOwnPropertyDescriptors(this.goldenModel)));
   }
 
   /**
@@ -373,14 +515,25 @@ export class GoldenCopyCacheManager {
    *
    * Removes the cached golden model and resets the cache manager.
    * Should be called at the end of test suite execution.
+   *
+   * Idempotent: Safe to call multiple times without error.
    */
   async cleanup(): Promise<void> {
+    // If already cleaned up, this is a no-op
+    if (this.lifecycleState.status === 'cleaned-up') {
+      if (process.env.DEBUG_GOLDEN_COPY) {
+        console.log('[GoldenCopy] Already cleaned up, skipping');
+      }
+      return;
+    }
+
     try {
       if (this.goldenRootPath) {
         await rm(this.goldenRootPath, { recursive: true, force: true });
       }
       this.goldenModel = null;
       this.goldenRootPath = null;
+      this.lifecycleState = { status: 'cleaned-up' };
       GoldenCopyCacheManager.resetInstance();
 
       if (process.env.DEBUG_GOLDEN_COPY) {

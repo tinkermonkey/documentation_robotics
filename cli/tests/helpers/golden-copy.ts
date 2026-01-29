@@ -73,9 +73,8 @@ export async function initGoldenCopy(): Promise<string> {
       await mkdir(goldenCopyPath, { recursive: true });
       await cp(BASELINE, goldenCopyPath, { recursive: true });
 
-      // Delay to ensure filesystem operations are fully committed across all devices/conditions
-      // Using 200ms to account for slower systems and highly concurrent test execution
-      await new Promise(resolve => setTimeout(resolve, 200));
+      // Verify filesystem operations are committed by checking key files
+      await verifyFilesystemReady(goldenCopyPath);
 
       if (process.env.DEBUG_GOLDEN_COPY) {
         console.log(`Golden copy initialized at: ${goldenCopyPath}`);
@@ -243,4 +242,44 @@ export function getGoldenCopyPath(): string | null {
  */
 export function isGoldenCopyInitialized(): boolean {
   return goldenCopyPath !== null;
+}
+
+/**
+ * Verify that filesystem operations are committed by checking key files exist
+ *
+ * This replaces the hardcoded 200ms delay with proper filesystem verification.
+ * Checks that manifest and key directories exist and are accessible.
+ *
+ * @param path - Path to verify
+ * @param maxRetries - Maximum number of retries with backoff
+ * @private
+ */
+async function verifyFilesystemReady(path: string, maxRetries: number = 10): Promise<void> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      // Check that the main path exists
+      await access(path);
+
+      // Check that manifest exists (key indicator of successful copy)
+      const manifestPath = join(path, 'documentation-robotics', 'model', 'manifest.yaml');
+      await access(manifestPath);
+
+      // All checks passed, filesystem is ready
+      return;
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+
+      // Exponential backoff with jitter: 10ms, 20ms, 40ms, 80ms, etc.
+      const backoffMs = Math.min(10 * Math.pow(2, attempt), 500) + Math.random() * 100;
+      await new Promise(resolve => setTimeout(resolve, backoffMs));
+    }
+  }
+
+  throw new Error(
+    `Filesystem verification failed after ${maxRetries} attempts. ` +
+    `Golden copy may not be properly initialized. ` +
+    `Last error: ${lastError?.message}`
+  );
 }
