@@ -189,6 +189,16 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
     // Start conversation loop
     let messageCount = 0;
     while (true) {
+      // Periodic telemetry flush at message boundaries (safe idle time)
+      // This ensures long-running chat sessions don't lose spans if crashed
+      // Flush happens BEFORE user input prompt, so it's non-blocking
+      if (isTelemetryEnabled && messageCount > 0) {
+        // Import flushTelemetry dynamically to avoid issues when telemetry disabled
+        const { flushTelemetry } = await import('../telemetry/index.js');
+        // Non-blocking flush - failures are silently ignored
+        void flushTelemetry().catch(() => {/* ignore */});
+      }
+
       // Get user input
       let userInput: string;
       try {

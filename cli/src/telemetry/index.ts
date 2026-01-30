@@ -367,6 +367,31 @@ export function emitLog(
 }
 
 /**
+ * Flush pending telemetry spans without blocking.
+ * Safe to call during idle periods (e.g., between chat messages).
+ * Failures are silently ignored to avoid disrupting the application.
+ *
+ * Use cases:
+ * - Long-running chat sessions (call between messages)
+ * - Periodic checkpoints in interactive commands
+ * - After completing a batch of operations
+ *
+ * @returns Promise that resolves when flush completes (or immediately if telemetry disabled)
+ */
+export async function flushTelemetry(): Promise<void> {
+  if (isTelemetryEnabled && spanProcessor) {
+    try {
+      // Non-blocking flush of pending spans
+      // This exports any spans that haven't been sent yet
+      await spanProcessor.forceFlush();
+    } catch (error) {
+      // Silently ignore flush failures - telemetry should never break the app
+      // Spans will be retried on next flush or at shutdown
+    }
+  }
+}
+
+/**
  * Shutdown the OpenTelemetry SDK gracefully.
  * Should be called on process exit to ensure all pending spans and logs are exported.
  *

@@ -145,9 +145,12 @@ export class CopilotClient extends BaseChatClient {
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
     const span = isTelemetryEnabled ? startSpan('copilot.send-message', {
       'message.length': message.length,
+      'message.content': message.substring(0, 500), // First 500 chars for context
       'client.name': 'GitHub Copilot',
       'client.agent': options?.agent,
       'client.withDanger': options?.withDanger === true,
+      'options.workingDirectory': options?.workingDirectory,
+      'options.sessionId': options?.sessionId,
       'client.workingDirectory': options?.workingDirectory,
       'client.sessionId': options?.sessionId,
       'client.isFirstMessage': this.isFirstMessage,
@@ -251,14 +254,20 @@ export class CopilotClient extends BaseChatClient {
           emitLog(SeverityNumber.ERROR, 'Copilot process error', {
             'error.message': error.message,
             'error.stack': error.stack,
+            'error.code': (error as any).code, // ENOENT, EACCES, etc.
+            'process.command': this.copilotCommand === 'copilot' ? 'copilot' : 'gh copilot',
+            'message.length': message.length,
+            'message.preview': message.substring(0, 200),
           });
           (span as any).recordException(error);
+          (span as any).setStatus({ code: 2, message: error.message });
         }
         if (logger) {
           void logger.logError(error.message, {
             source: 'process',
             client: 'GitHub Copilot',
             stack: error.stack,
+            errorCode: (error as any).code,
           });
         }
         endSpan(span);
@@ -279,6 +288,8 @@ export class CopilotClient extends BaseChatClient {
           (span as any).setAttribute('client.lineCount', lineCount);
           (span as any).setAttribute('client.outputLength', assistantOutput.length);
           (span as any).setAttribute('client.exitCode', exitCode || 0);
+          (span as any).setAttribute('response.content', assistantOutput.substring(0, 1000)); // First 1000 chars
+          (span as any).setAttribute('response.preview', assistantOutput.substring(0, 200)); // Short preview
         }
 
         if (exitCode === 0) {
@@ -347,8 +358,35 @@ export class CopilotClient extends BaseChatClient {
       }
 
       // Add allow-all-tools flag if withDanger is enabled (required for non-interactive)
+      // Note: This flag may not be available in all copilot versions
       if (options?.withDanger) {
-        args.push('--allow-all-tools');
+        try {
+          // Check if flag is supported by testing with --help
+          const helpResult = spawnSync(this.copilotCommand === 'copilot' ? 'copilot' : 'gh',
+            this.copilotCommand === 'copilot' ? ['--help'] : ['copilot', '--help'],
+            { stdio: 'pipe', encoding: 'utf-8', timeout: 1000 });
+          if (helpResult.stdout?.includes('--allow-all-tools') || helpResult.stdout?.includes('allow-all-tools')) {
+            args.push('--allow-all-tools');
+            if (isTelemetryEnabled && span) {
+              (span as any).setAttribute('process.allowAllToolsSupported', true);
+            }
+          } else {
+            if (isTelemetryEnabled && span) {
+              (span as any).setAttribute('process.allowAllToolsSupported', false);
+              emitLog(SeverityNumber.WARN, 'GitHub Copilot --allow-all-tools flag not available', {
+                'copilot.variant': this.copilotCommand,
+                'withDanger': true,
+              });
+            }
+            console.warn(ansis.yellow('Warning: --allow-all-tools flag not supported by your copilot version'));
+          }
+        } catch (error) {
+          // If check fails, try adding the flag anyway
+          args.push('--allow-all-tools');
+          if (isTelemetryEnabled && span) {
+            (span as any).setAttribute('process.allowAllToolsCheckFailed', true);
+          }
+        }
       }
 
       const command = 'copilot';

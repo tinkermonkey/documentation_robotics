@@ -77,9 +77,12 @@ export class ClaudeCodeClient extends BaseChatClient {
   async sendMessage(message: string, options?: ChatOptions): Promise<void> {
     const span = isTelemetryEnabled ? startSpan('claude-code.send-message', {
       'message.length': message.length,
+      'message.content': message.substring(0, 500), // First 500 chars for context
       'client.name': 'Claude Code',
       'client.agent': options?.agent,
       'client.withDanger': options?.withDanger === true,
+      'options.workingDirectory': options?.workingDirectory,
+      'options.sessionId': options?.sessionId,
       'client.workingDirectory': options?.workingDirectory,
       'client.sessionId': options?.sessionId,
     }) : null;
@@ -287,6 +290,8 @@ export class ClaudeCodeClient extends BaseChatClient {
           (span as any).setAttribute('client.toolUseCount', toolUseCount);
           (span as any).setAttribute('client.outputLength', assistantOutput.length);
           (span as any).setAttribute('client.exitCode', exitCode || 0);
+          (span as any).setAttribute('response.content', assistantOutput.substring(0, 1000)); // First 1000 chars
+          (span as any).setAttribute('response.preview', assistantOutput.substring(0, 200)); // Short preview
         }
 
         if (exitCode === 0) {
