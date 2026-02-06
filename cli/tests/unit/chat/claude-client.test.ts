@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { ClaudeClient } from '../../../src/ai/claude-client';
+import { ClaudeClient } from '../../../src/coding-agents/claude-client';
 
 describe('ClaudeClient', () => {
   let client: ClaudeClient;

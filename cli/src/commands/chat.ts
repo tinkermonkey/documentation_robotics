@@ -6,8 +6,8 @@
 import ansis from 'ansis';
 import { text, intro, outro, select } from '@clack/prompts';
 import { Model } from '../core/model.js';
-import { BaseChatClient } from '../ai/base-chat-client.js';
-import { detectAvailableClients } from '../ai/chat-utils.js';
+import { BaseChatClient } from '../coding-agents/base-chat-client.js';
+import { detectAvailableClients } from '../coding-agents/chat-utils.js';
 import { initializeChatLogger, getChatLogger } from '../utils/chat-logger.js';
 import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
 

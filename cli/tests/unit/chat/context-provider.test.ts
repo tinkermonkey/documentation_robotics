@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { Model } from '../../../src/core/model';
 import { Manifest } from '../../../src/core/manifest';
-import { ModelContextProvider } from '../../../src/ai/context-provider';
+import { ModelContextProvider } from '../../../src/coding-agents/context-provider';
 import { Layer } from '../../../src/core/layer';
 import { Element } from '../../../src/core/element';
 

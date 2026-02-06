@@ -9,7 +9,7 @@
  *   node examples/agent-usage.js
  */
 
-import { ClaudeCodeAgent } from '../dist/ai/agents/index.js';
+import { ClaudeCodeAgent } from '../dist/coding-agents/agents/index.js';
 
 async function main() {
   console.log('=== Agent Abstraction Layer Example ===\n');

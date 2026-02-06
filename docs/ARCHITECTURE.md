@@ -80,7 +80,7 @@ Converts internal model to external formats:
 - **Markdown** - Documentation
 - **GraphML** - Graph visualization format
 
-### 5. AI Integration Layer (`cli/src/ai/`)
+### 5. AI Integration Layer (`cli/src/coding-agents/`)
 
 Legacy and current AI integration:
 

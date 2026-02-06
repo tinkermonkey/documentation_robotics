@@ -7,8 +7,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ClaudeCodeClient } from '../../../src/ai/claude-code-client';
-import { BaseChatClient } from '../../../src/ai/base-chat-client';
+import { ClaudeCodeClient } from '../../../src/coding-agents/claude-code-client';
+import { BaseChatClient } from '../../../src/coding-agents/base-chat-client';
 
 describe('ClaudeCodeClient', () => {
   let client: ClaudeCodeClient;

@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { ClaudeCodeAgent } from '../../../src/ai/agents/claude-code.js';
+import { ClaudeCodeAgent } from '../../../src/coding-agents/agents/claude-code.js';
 
 describe('ClaudeCodeAgent', () => {
   let agent: ClaudeCodeAgent;

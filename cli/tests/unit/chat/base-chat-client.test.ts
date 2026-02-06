@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { BaseChatClient, ChatSession } from '../../../src/ai/base-chat-client';
+import { BaseChatClient, ChatSession } from '../../../src/coding-agents/base-chat-client';
 
 // Create a concrete test implementation
 class TestChatClient extends BaseChatClient {

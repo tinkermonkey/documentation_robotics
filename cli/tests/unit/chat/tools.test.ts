@@ -7,7 +7,7 @@ import { Model } from '../../../src/core/model';
 import { Manifest } from '../../../src/core/manifest';
 import { Layer } from '../../../src/core/layer';
 import { Element } from '../../../src/core/element';
-import { getModelTools, executeModelTool } from '../../../src/ai/tools';
+import { getModelTools, executeModelTool } from '../../../src/coding-agents/tools';
 
 describe('Model Tools', () => {
   let model: Model;

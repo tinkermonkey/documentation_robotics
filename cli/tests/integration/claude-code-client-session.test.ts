@@ -10,8 +10,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
-import { ClaudeCodeClient } from '../../src/ai/claude-code-client.js';
-import { ChatOptions } from '../../src/ai/base-chat-client.js';
+import { ClaudeCodeClient } from '../../src/coding-agents/claude-code-client.js';
+import { ChatOptions } from '../../src/coding-agents/base-chat-client.js';
 import { initializeChatLogger, getChatLogger, ChatLogger } from '../../src/utils/chat-logger.js';
 import { mkdirSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';

@@ -9,8 +9,8 @@ import { join } from 'path';
 import { tmpdir } from 'os';
 import { Model } from '../../src/core/model';
 import { Manifest } from '../../src/core/manifest';
-import { ClaudeCodeClient } from '../../src/ai/claude-code-client';
-import { CopilotClient } from '../../src/ai/copilot-client';
+import { ClaudeCodeClient } from '../../src/coding-agents/claude-code-client';
+import { CopilotClient } from '../../src/coding-agents/copilot-client';
 
 describe('Chat Command Integration', () => {
   let testDir: string;

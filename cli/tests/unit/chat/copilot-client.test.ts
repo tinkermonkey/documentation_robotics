@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { CopilotClient } from '../../../src/ai/copilot-client';
+import { CopilotClient } from '../../../src/coding-agents/copilot-client';
 
 describe('CopilotClient', () => {
   let client: CopilotClient;

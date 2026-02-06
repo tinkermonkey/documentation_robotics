@@ -89,7 +89,7 @@ interface ChatEvent {
 ### 1. Check Availability
 
 ```typescript
-import { ClaudeCodeAgent } from "./ai/agents";
+import { ClaudeCodeAgent } from "./coding-agents/agents";
 
 const agent = new ClaudeCodeAgent();
 const available = await agent.isAvailable();
@@ -225,13 +225,13 @@ export class MyCustomAgent implements CodingAgent {
 ### 2. Export from Index
 
 ```typescript
-// src/ai/agents/index.ts
+// src/coding-agents/agents/index.ts
 export { MyCustomAgent } from "./my-custom-agent.js";
 ```
 
 ### 3. Add Tests
 
-Create comprehensive tests in `tests/unit/ai/my-custom-agent.test.ts`:
+Create comprehensive tests in `tests/unit/coding-agents/my-custom-agent.test.ts`:
 
 - Agent properties and interface compliance
 - Availability detection
@@ -305,8 +305,8 @@ if (!selectedAgent) {
 Test individual agent implementations:
 
 ```bash
-bun test tests/unit/ai/agent-interface.test.ts
-bun test tests/unit/ai/claude-code-agent.test.ts
+bun test tests/unit/coding-agents/agent-interface.test.ts
+bun test tests/unit/coding-agents/claude-code-agent.test.ts
 ```
 
 ### Integration Tests
@@ -343,10 +343,10 @@ Current coverage: **79 tests passing**
 
 ## Related Files
 
-- `src/ai/agents/types.ts` - Core types and interfaces
-- `src/ai/agents/claude-code.ts` - Claude Code implementation
-- `src/ai/agents/index.ts` - Public API exports
-- `tests/unit/ai/` - Unit tests
+- `src/coding-agents/agents/types.ts` - Core types and interfaces
+- `src/coding-agents/agents/claude-code.ts` - Claude Code implementation
+- `src/coding-agents/agents/index.ts` - Public API exports
+- `tests/unit/coding-agents/` - Unit tests
 - `tests/integration/agent-abstraction.test.ts` - Integration tests
 - `src/commands/chat.ts` - Chat command using agents
 

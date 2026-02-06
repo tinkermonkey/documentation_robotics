@@ -14,9 +14,9 @@ import { Model } from '../../src/core/model';
 import { Manifest } from '../../src/core/manifest';
 import { Layer } from '../../src/core/layer';
 import { Element } from '../../src/core/element';
-import { ClaudeClient } from '../../src/ai/claude-client';
-import { ModelContextProvider } from '../../src/ai/context-provider';
-import { getModelTools } from '../../src/ai/tools';
+import { ClaudeClient } from '../../src/coding-agents/claude-client';
+import { ModelContextProvider } from '../../src/coding-agents/context-provider';
+import { getModelTools } from '../../src/coding-agents/tools';
 
 describe('Chat Integration', () => {
   let testDir: string;

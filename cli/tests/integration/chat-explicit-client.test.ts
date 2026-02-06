@@ -10,8 +10,8 @@ import { tmpdir } from 'os';
 import { Model } from '../../src/core/model';
 import { Manifest } from '../../src/core/manifest';
 import { chatCommand } from '../../src/commands/chat';
-import { ClaudeCodeClient } from '../../src/ai/claude-code-client';
-import { CopilotClient } from '../../src/ai/copilot-client';
+import { ClaudeCodeClient } from '../../src/coding-agents/claude-code-client';
+import { CopilotClient } from '../../src/coding-agents/copilot-client';
 
 describe('Chat Command with Explicit Client Selection', () => {
   let testDir: string;

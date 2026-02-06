@@ -61,7 +61,7 @@ Event 2:
 To create an example using the abstraction layer:
 
 ```javascript
-import { ClaudeCodeAgent } from "../dist/ai/agents/index.js";
+import { ClaudeCodeAgent } from "../dist/coding-agents/agents/index.js";
 
 const agent = new ClaudeCodeAgent();
 
@@ -80,5 +80,5 @@ if (await agent.isAvailable()) {
 ## See Also
 
 - [Agent Abstraction Documentation](../docs/AGENT_ABSTRACTION.md)
-- [Unit Tests](../tests/unit/ai/)
+- [Unit Tests](../tests/unit/coding-agents/)
 - [Integration Tests](../tests/integration/agent-abstraction.test.ts)

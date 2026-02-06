@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from 'bun:test';
-import type { CodingAgent, AgentProcess, ChatEvent } from '../../../src/ai/agents/types.js';
+import type { CodingAgent, AgentProcess, ChatEvent } from '../../../src/coding-agents/agents/types.js';
 
 describe('CodingAgent Interface', () => {
   it('should define required properties', () => {

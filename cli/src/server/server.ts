@@ -10,10 +10,10 @@ import { serve } from 'bun';
 import { Model } from '../core/model.js';
 import { Element } from '../core/element.js';
 import { telemetryMiddleware } from './telemetry-middleware.js';
-import { BaseChatClient } from '../ai/base-chat-client.js';
-import { ClaudeCodeClient } from '../ai/claude-code-client.js';
-import { CopilotClient } from '../ai/copilot-client.js';
-import { detectAvailableClients, selectChatClient } from '../ai/chat-utils.js';
+import { BaseChatClient } from '../coding-agents/base-chat-client.js';
+import { ClaudeCodeClient } from '../coding-agents/claude-code-client.js';
+import { CopilotClient } from '../coding-agents/copilot-client.js';
+import { detectAvailableClients, selectChatClient } from '../coding-agents/chat-utils.js';
 
 interface WSMessage {
   type: 'subscribe' | 'annotate' | 'ping';
