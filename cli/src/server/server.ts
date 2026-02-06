@@ -1647,11 +1647,21 @@ export class VisualizationServer {
     const urlParams = new URLSearchParams(window.location.search);
     const token = urlParams.get('token');
 
+    // Log token status for debugging
+    if (!token) {
+      console.warn('[WebSocket] No authentication token found in URL. If authentication is enabled, connection will fail.');
+      console.warn('[WebSocket] Expected URL format: http://localhost:PORT?token=YOUR_TOKEN');
+    } else {
+      console.log('[WebSocket] Found authentication token in URL');
+    }
+
     // Build WebSocket URL with token if available
     let wsUrl = \`ws://\${window.location.host}/ws\`;
     if (token) {
       wsUrl += \`?token=\${encodeURIComponent(token)}\`;
     }
+
+    console.log('[WebSocket] Connecting to:', wsUrl.replace(/token=[^&]+/, 'token=***'));
 
     const ws = new WebSocket(wsUrl);
 
@@ -1679,15 +1689,44 @@ export class VisualizationServer {
       }
     });
 
-    ws.addEventListener('close', () => {
-      console.log('WebSocket disconnected');
+    ws.addEventListener('close', (event) => {
+      console.log('WebSocket disconnected', event.code, event.reason);
       updateStatus(false);
+
+      // If closed immediately with auth error codes, show helpful message
+      if (!token && (event.code === 1002 || event.code === 1008 || event.code === 1006)) {
+        showAuthError();
+      }
     });
 
     ws.addEventListener('error', (error) => {
       console.error('WebSocket error:', error);
       updateStatus(false);
+
+      // If we don't have a token, likely an auth issue
+      if (!token) {
+        showAuthError();
+      }
     });
+
+    function showAuthError() {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #f44336; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; text-align: center;';
+      errorDiv.innerHTML = \`
+        <strong>⚠️ Authentication Required</strong><br>
+        <span style="font-size: 14px; margin-top: 8px; display: inline-block;">
+          Please use the full URL with authentication token from the terminal.
+        </span>
+      \`;
+      document.body.appendChild(errorDiv);
+
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        errorDiv.style.transition = 'opacity 0.5s';
+        errorDiv.style.opacity = '0';
+        setTimeout(() => errorDiv.remove(), 500);
+      }, 10000);
+    }
 
     function updateStatus(connected) {
       if (connected) {

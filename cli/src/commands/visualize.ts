@@ -8,6 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 import { Model } from '../core/model.js';
 import { logVerbose, logDebug } from '../utils/globals.js';
+import { CLIError } from '../utils/errors.js';
 
 export interface VisualizeOptions {
   port?: number;
@@ -109,6 +110,21 @@ export async function visualizeCommand(
             // Update the URL display with actual token
             console.log(ansis.cyan(`   Access URL: http://localhost:${port}?token=${authTokenFromServer}`));
             console.log(ansis.dim(`   Auth token: ${authTokenFromServer}`));
+
+            // Now that we have the token, open browser if needed
+            if (!options.noBrowser) {
+              try {
+                const command = getOpenCommand();
+                const url = `http://localhost:${port}?token=${authTokenFromServer}`;
+                logDebug(`Opening browser with command: ${command} ${url}`);
+                spawn(command, [url], {
+                  detached: true,
+                  stdio: 'ignore',
+                });
+              } catch (error) {
+                logVerbose('Could not auto-open browser (not critical)');
+              }
+            }
           }
         }
 
@@ -140,15 +156,16 @@ export async function visualizeCommand(
 
           logVerbose(`   Model: ${model.manifest.name}`);
 
-          // Optionally open browser (use pending URL if token not ready yet)
+          // Optionally open browser
+          // If auth is enabled, delay opening until we have the token
           const shouldOpenBrowser = !options.noBrowser;
           logDebug(`Browser auto-open: ${shouldOpenBrowser ? 'enabled' : 'disabled'} (noBrowser=${options.noBrowser})`);
-          if (shouldOpenBrowser) {
+
+          if (shouldOpenBrowser && !authEnabled) {
+            // Auth disabled: open immediately
             try {
               const command = getOpenCommand();
-              const url = authEnabled && authTokenFromServer
-                ? `http://localhost:${port}?token=${authTokenFromServer}`
-                : `http://localhost:${port}`;
+              const url = `http://localhost:${port}`;
               logDebug(`Opening browser with command: ${command} ${url}`);
               spawn(command, [url], {
                 detached: true,
@@ -157,6 +174,9 @@ export async function visualizeCommand(
             } catch (error) {
               logVerbose('Could not auto-open browser (not critical)');
             }
+          } else if (shouldOpenBrowser && authEnabled && !authTokenFromServer) {
+            // Auth enabled but token not ready: will open when token arrives
+            logDebug('Browser auto-open deferred until token is received');
           } else {
             logDebug('Browser auto-open disabled');
           }
@@ -188,14 +208,16 @@ export async function visualizeCommand(
         if (serverOutput) {
           logDebug(`Server output:\n${serverOutput}`);
         }
-        process.exit(code || 1);
+        // Throw CLIError instead of process.exit to allow telemetry shutdown
+        throw new CLIError(`Server exited with code ${code}`, code || 1);
       }
     });
 
     // Handle process errors
     serverProcess.on('error', (error) => {
-      throw new Error(
-        `Failed to start visualization server: ${error.message}`
+      throw new CLIError(
+        `Failed to start visualization server: ${error.message}`,
+        1
       );
     });
 
@@ -207,7 +229,11 @@ export async function visualizeCommand(
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
     logDebug(`Stack: ${error instanceof Error ? error.stack : 'N/A'}`);
-    process.exit(1);
+    // Throw CLIError instead of process.exit to allow telemetry shutdown
+    if (error instanceof CLIError) {
+      throw error;
+    }
+    throw new CLIError(message, 1);
   }
 }
 
