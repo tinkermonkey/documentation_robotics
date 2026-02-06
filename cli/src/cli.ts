@@ -673,10 +673,19 @@ copilotCommands(program);
         let exitCodeFromError = 1;
         if (error instanceof CLIError) {
           exitCodeFromError = error.exitCode;
-        } else if (error && typeof error === 'object' && 'exitCode' in error) {
-          // Fallback for cases where instanceof check fails (error transformation)
-          const errorObj = error as any;
-          exitCodeFromError = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
+          // CLIError messages are already formatted, no need to print
+        } else {
+          // Non-CLIError exceptions need to be printed
+          if (error instanceof Error) {
+            console.error(error.message);
+          } else {
+            console.error(String(error));
+          }
+          // Check for custom exit code
+          if (error && typeof error === 'object' && 'exitCode' in error) {
+            const errorObj = error as any;
+            exitCodeFromError = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
+          }
         }
         process.exit(exitCodeFromError);
       }

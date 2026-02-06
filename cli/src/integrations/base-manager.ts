@@ -203,8 +203,9 @@ export abstract class BaseIntegrationManager {
               const targetHash = await computeFileHash(targetFilePath);
               modified = sourceHash !== targetHash;
             } catch (error) {
-              // If we can't compute hash, assume not modified to be safe
-              modified = false;
+              // If we can't compute hash, assume modified to prevent data loss
+              console.warn(`⚠ Warning: Could not compute hash for ${targetFilePath}: ${error instanceof Error ? error.message : String(error)}`);
+              modified = true;
             }
           }
 

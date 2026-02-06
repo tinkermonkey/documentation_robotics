@@ -285,6 +285,11 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     try {
       for (const componentName of Object.keys(this.components)) {
+        const config = this.components[componentName];
+        // Skip non-tracked components (user-customizable)
+        if (config.tracked === false) {
+          continue;
+        }
         await this.installComponent(componentName, true);
       }
 
