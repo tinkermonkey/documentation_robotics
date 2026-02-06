@@ -57,7 +57,7 @@ export class SchemaValidator {
       technology: '05-technology-layer.schema.json',
       api: '06-api-layer.schema.json',
       'data-model': '07-data-model-layer.schema.json',
-      'data-store': '08-datastore-layer.schema.json',
+      'data-store': '08-data-store-layer.schema.json',
       ux: '09-ux-layer.schema.json',
       navigation: '10-navigation-layer.schema.json',
       apm: '11-apm-observability-layer.schema.json',

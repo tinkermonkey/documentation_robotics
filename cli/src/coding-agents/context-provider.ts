@@ -192,10 +192,10 @@ export class ModelContextProvider {
 
     // Map canonical layer names to actual spec file names
     // Internal canonical names use hyphens (data-store, data-model)
-    // but spec files have their own naming (08-datastore-layer.md, 11-apm-observability-layer.md)
+    // but spec files have their own naming (08-data-store-layer.md, 11-apm-observability-layer.md)
     let fileName: string;
     if (normalizedName === 'data-store') {
-      fileName = `${layerNumber}-datastore-layer.md`;
+      fileName = `${layerNumber}-data-store-layer.md`;
     } else if (normalizedName === 'apm') {
       fileName = `${layerNumber}-apm-observability-layer.md`;
     } else {
