@@ -30,7 +30,10 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
 
   /**
    * Component configuration for Copilot integration
-   * Matches the Python CLI structure from documentation_robotics/commands/copilot.py
+   * Extends BaseIntegrationManager with Copilot-specific components.
+   *
+   * All components are DR-owned (tracked: true by default).
+   * See isTrackedComponent in base-manager.ts for tracking logic.
    */
   protected readonly components: Record<string, ComponentConfig> = {
     agents: {
@@ -39,6 +42,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       description: 'Specialized sub-agent definitions',
       prefix: '',
       type: 'files',
+      // tracked: true (default)
     },
     skills: {
       source: 'skills',
@@ -46,6 +50,7 @@ export class CopilotIntegrationManager extends BaseIntegrationManager {
       description: 'Auto-activating capabilities',
       prefix: '',
       type: 'dirs',
+      // tracked: true (default)
     },
   };
 

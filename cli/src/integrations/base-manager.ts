@@ -23,7 +23,7 @@ import {
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { computeDirectoryHashes, computeFileHash } from './hash-utils.js';
-import { ComponentConfig, VersionData, FileChange, ObsoleteFile } from './types.js';
+import { ComponentConfig, VersionData, FileChange, ObsoleteFile, validateVersionData } from './types.js';
 import { findProjectRoot } from '../utils/project-paths.js';
 import { getCliVersion as getCliVersionFromUtils } from '../utils/spec-version.js';
 
@@ -136,9 +136,10 @@ export abstract class BaseIntegrationManager {
    * Load version file from target directory
    *
    * Parses YAML format version file tracking installed version and file hashes.
+   * Validates deserialized data to ensure all required fields are present and correctly typed.
    *
    * @returns VersionData if version file exists, null otherwise
-   * @throws Error if version file cannot be parsed
+   * @throws Error if version file cannot be parsed or fails validation
    */
   public async loadVersionFile(): Promise<VersionData | null> {
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
@@ -150,7 +151,9 @@ export abstract class BaseIntegrationManager {
 
     try {
       const content = await fsReadFile(versionFilePath, 'utf-8');
-      return yaml.parse(content) as VersionData;
+      const parsed = yaml.parse(content);
+      // Validate deserialized data at boundary to catch corrupted files early
+      return validateVersionData(parsed);
     } catch (error) {
       throw new Error(`Failed to parse version file at ${versionFilePath}: ${error}`);
     }

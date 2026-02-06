@@ -33,12 +33,16 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
   /**
    * Component configuration for Claude integration
-   * Matches the Python CLI structure from documentation_robotics/commands/claude.py
+   * Extends BaseIntegrationManager with Claude-specific components.
    *
-   * Note: The `tracked` property controls whether a component is included in
-   * version file tracking. DR-owned components (tracked: true) are monitored
-   * for updates, while user-customizable components (tracked: false) are
-   * installed but not version-tracked to avoid conflicts with user modifications.
+   * The `tracked` property controls whether a component is included in
+   * version file tracking. Only `tracked: false` needs to be explicit
+   * (for user-customizable components like templates). DR-owned components
+   * default to tracked: true (see isTrackedComponent check in base-manager.ts).
+   *
+   * DR-owned components (tracked: true or default) are monitored for updates.
+   * User-customizable components (tracked: false) are installed but not
+   * version-tracked to avoid conflicts with user modifications.
    */
   protected readonly components: Record<string, ComponentConfig> = {
     reference_sheets: {
@@ -47,7 +51,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Reference documentation for agents',
       prefix: 'dr-',
       type: 'files',
-      tracked: true,
+      // tracked: true (default)
     },
     commands: {
       source: 'commands',
@@ -55,7 +59,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Slash commands for DR workflows',
       prefix: 'dr-',
       type: 'files',
-      tracked: true,
+      // tracked: true (default)
     },
     agents: {
       source: 'agents',
@@ -63,7 +67,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Specialized sub-agent definitions',
       prefix: 'dr-',
       type: 'files',
-      tracked: true,
+      // tracked: true (default)
     },
     skills: {
       source: 'skills',
@@ -71,7 +75,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Auto-activating capabilities',
       prefix: '',
       type: 'dirs',
-      tracked: true,
+      // tracked: true (default)
     },
     templates: {
       source: 'templates',

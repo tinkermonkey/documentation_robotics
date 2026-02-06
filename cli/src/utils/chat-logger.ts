@@ -19,6 +19,52 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 /**
+ * Helper to append content to file with automatic retry on ENOENT
+ *
+ * When appending to a file, a race condition can occur where the file
+ * or directory is deleted between the initial write and the append.
+ * This helper handles ENOENT by recreating the directory and file with header.
+ *
+ * @param filePath Path to file to append to
+ * @param content Content to append
+ * @param onRetry Callback to prepare file (e.g., write header) before retry
+ * @throws Error if append fails for non-ENOENT reasons
+ */
+async function appendWithRetry(
+  filePath: string,
+  content: string,
+  onRetry?: () => Promise<void>
+): Promise<void> {
+  try {
+    await appendFile(filePath, content, 'utf-8');
+  } catch (appendError) {
+    const errno = (appendError as NodeJS.ErrnoException).code;
+    if (errno === 'ENOENT') {
+      // File doesn't exist - race condition where directory/file was deleted
+      // Call retry callback (e.g., to recreate directory and file with header)
+      if (onRetry) {
+        await onRetry();
+      }
+      // Retry the append
+      try {
+        await appendFile(filePath, content, 'utf-8');
+      } catch (retryError) {
+        // Retry failed - this is a real problem
+        console.warn('[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)');
+        console.warn('[ChatLogger]   Log path:', filePath);
+        console.warn('[ChatLogger]   Error:', retryError);
+        console.warn('[ChatLogger]   The chat session will continue, but this entry was not logged.');
+        // Intentional: Continue without logging rather than crash the entire session.
+        // The chat log is best-effort; we don't want logging failures to break the user's work.
+      }
+    } else {
+      // Rethrow non-ENOENT errors to outer handler
+      throw appendError;
+    }
+  }
+}
+
+/**
  * Chat log entry types
  */
 export type ChatLogEntryType = 'message' | 'command' | 'error' | 'event';
@@ -278,36 +324,13 @@ export class ChatLogger {
       await this.ensureLogDirectory();
       await this.ensureHeaderWritten();
 
-      // Append the entry with retry for race condition where file may have been deleted
-      try {
-        await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
-      } catch (appendError) {
-        const errno = (appendError as NodeJS.ErrnoException).code;
-        if (errno === 'ENOENT') {
-          // File doesn't exist - race condition where directory was deleted or file was removed
-          // Retry: recreate directory and file with header, then append
-          try {
-            await this.ensureLogDirectory();
-            // Ensure header is written again
-            this.headerWritten = false;
-            await this.ensureHeaderWritten();
-            // Now append the entry
-            await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
-          } catch (retryError) {
-            // Retry failed - this is a real problem
-            console.warn('[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)');
-            console.warn('[ChatLogger]   Session ID:', this.sessionId);
-            console.warn('[ChatLogger]   Log path:', this.sessionLogPath);
-            console.warn('[ChatLogger]   Error:', retryError);
-            console.warn('[ChatLogger]   The chat session will continue, but this entry was not logged.');
-            // Intentional: Continue without logging rather than crash the entire session.
-            // The chat log is best-effort; we don't want logging failures to break the user's work.
-          }
-        } else {
-          // Other append errors - handle them
-          throw appendError;
-        }
-      }
+      // Append the entry with automatic retry on ENOENT race condition
+      await appendWithRetry(this.sessionLogPath, this.formatEntry(entry), async () => {
+        // On ENOENT, recreate directory and header before retrying append
+        await this.ensureLogDirectory();
+        this.headerWritten = false;
+        await this.ensureHeaderWritten();
+      });
     } catch (error) {
       const errno = (error as NodeJS.ErrnoException).code;
 

@@ -640,6 +640,28 @@ describe('ChatLogger', () => {
       }
     });
 
+    it('should write session header exactly once even with concurrent writes', async () => {
+      const logger = new ChatLogger(testDir);
+      await logger.ensureLogDirectory();
+
+      // Write 10 messages concurrently to stress test header synchronization
+      const writePromises = Array.from({ length: 10 }, (_, i) =>
+        logger.logUserMessage(`Message ${i}`)
+      );
+
+      await Promise.all(writePromises);
+
+      const entries = await logger.readEntries();
+      // Count "Session started" event entries
+      const headerEntries = entries.filter(
+        (e) => e.type === 'event' && e.content === 'Session started'
+      );
+
+      // Must have exactly one header entry
+      expect(headerEntries.length).toBe(1);
+      expect(headerEntries[0].metadata?.sessionId).toBe(logger.getSessionId());
+    });
+
     it('should handle directory deletion during write operations gracefully', async () => {
       const logger = new ChatLogger(testDir);
       await logger.ensureLogDirectory();
