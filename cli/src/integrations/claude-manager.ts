@@ -33,7 +33,16 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
   /**
    * Component configuration for Claude integration
-   * Matches the Python CLI structure from documentation_robotics/commands/claude.py
+   * Extends BaseIntegrationManager with Claude-specific components.
+   *
+   * The `tracked` property controls whether a component is included in
+   * version file tracking. Only `tracked: false` needs to be explicit
+   * (for user-customizable components like templates). DR-owned components
+   * default to tracked: true (see isTrackedComponent check in base-manager.ts).
+   *
+   * DR-owned components (tracked: true or default) are monitored for updates.
+   * User-customizable components (tracked: false) are installed but not
+   * version-tracked to avoid conflicts with user modifications.
    */
   protected readonly components: Record<string, ComponentConfig> = {
     reference_sheets: {
@@ -42,20 +51,23 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Reference documentation for agents',
       prefix: 'dr-',
       type: 'files',
+      // tracked: true (default)
     },
     commands: {
       source: 'commands',
       target: 'commands',
       description: 'Slash commands for DR workflows',
-      prefix: '',
+      prefix: 'dr-',
       type: 'files',
+      // tracked: true (default)
     },
     agents: {
       source: 'agents',
       target: 'agents',
       description: 'Specialized sub-agent definitions',
-      prefix: '',
+      prefix: 'dr-',
       type: 'files',
+      // tracked: true (default)
     },
     skills: {
       source: 'skills',
@@ -63,6 +75,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Auto-activating capabilities',
       prefix: '',
       type: 'dirs',
+      // tracked: true (default)
     },
     templates: {
       source: 'templates',
@@ -70,6 +83,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Customization templates and examples',
       prefix: '',
       type: 'files',
+      tracked: false,
     },
   };
 
@@ -187,6 +201,11 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     const changes: Array<{ file: string; status: string; action: string }> = [];
 
     for (const componentName of Object.keys(this.components)) {
+      // Skip non-tracked components (user-customizable)
+      if (!this.isTrackedComponent(componentName)) {
+        continue;
+      }
+
       const componentChanges = await this.checkUpdates(
         componentName,
         versionData
@@ -269,6 +288,10 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     try {
       for (const componentName of Object.keys(this.components)) {
+        // Skip non-tracked components (user-customizable)
+        if (!this.isTrackedComponent(componentName)) {
+          continue;
+        }
         await this.installComponent(componentName, true);
       }
 

@@ -22,8 +22,8 @@ import {
 } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { computeDirectoryHashes } from './hash-utils.js';
-import { ComponentConfig, VersionData, FileChange, ObsoleteFile } from './types.js';
+import { computeDirectoryHashes, computeFileHash } from './hash-utils.js';
+import { ComponentConfig, VersionData, FileChange, ObsoleteFile, validateVersionData } from './types.js';
 import { findProjectRoot } from '../utils/project-paths.js';
 import { getCliVersion as getCliVersionFromUtils } from '../utils/spec-version.js';
 
@@ -136,9 +136,10 @@ export abstract class BaseIntegrationManager {
    * Load version file from target directory
    *
    * Parses YAML format version file tracking installed version and file hashes.
+   * Validates deserialized data to ensure all required fields are present and correctly typed.
    *
    * @returns VersionData if version file exists, null otherwise
-   * @throws Error if version file cannot be parsed
+   * @throws Error if version file cannot be parsed or fails validation
    */
   public async loadVersionFile(): Promise<VersionData | null> {
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
@@ -150,46 +151,89 @@ export abstract class BaseIntegrationManager {
 
     try {
       const content = await fsReadFile(versionFilePath, 'utf-8');
-      return yaml.parse(content) as VersionData;
+      const parsed = yaml.parse(content);
+      // Validate deserialized data at boundary to catch corrupted files early
+      return validateVersionData(parsed);
     } catch (error) {
       throw new Error(`Failed to parse version file at ${versionFilePath}: ${error}`);
     }
   }
 
   /**
+   * Check if a component is tracked (DR-owned)
+   *
+   * A component is tracked if its tracked property is not explicitly false.
+   * This handles the implicit default of true for backwards compatibility.
+   *
+   * @param componentName - Component name
+   * @returns True if component should be tracked in version file
+   */
+  protected isTrackedComponent(componentName: string): boolean {
+    const config = this.components[componentName];
+    if (!config) {
+      return false;
+    }
+    return config.tracked !== false;
+  }
+
+  /**
    * Update version file with current CLI version and component hashes
    *
-   * Computes hashes for all currently installed files and writes a new
+   * Computes hashes for all currently installed DR-owned files and writes a new
    * version file tracking the CLI version, installation timestamp, and
    * file hashes for change detection.
+   *
+   * Only DR-owned components (tracked: true) are included in the version file.
+   * User-customizable components (tracked: false) are not tracked to avoid
+   * conflicts with user modifications.
    *
    * @param cliVersion - Current CLI version (usually from package.json)
    * @throws Error if version file cannot be written
    */
   protected async updateVersionFile(cliVersion: string): Promise<void> {
     const components: VersionData['components'] = {};
+    const sourceRoot = this.getSourceRoot();
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
 
     try {
-      // Compute hashes for all installed component files
-      for (const [componentName, config] of Object.entries(this.components)) {
-        const targetPath = join(absoluteTargetDir, config.target);
-
-        // Skip if component target doesn't exist yet
-        if (!existsSync(targetPath)) {
-          components[componentName] = {};
+      // Compute hashes for all DR-owned component files from SOURCE directory
+      for (const [componentName] of Object.entries(this.components)) {
+        // Skip non-tracked components (user-customizable)
+        if (!this.isTrackedComponent(componentName)) {
           continue;
         }
 
-        // Compute hashes for all files in this component
-        const hashes = await computeDirectoryHashes(targetPath, config.prefix);
+        const config = this.components[componentName];
 
-        // Build component entry with relative paths and hash data
+        const sourceDir = join(sourceRoot, config.source);
+        const targetPath = join(absoluteTargetDir, config.target);
+
+        // Compute hashes for files in SOURCE directory (DR-owned files only)
+        const sourceHashes = existsSync(sourceDir)
+          ? await computeDirectoryHashes(sourceDir, config.prefix)
+          : new Map<string, string>();
+
+        // Record hashes from source directory
         components[componentName] = {};
-        for (const [filePath, hash] of hashes) {
+        for (const [filePath, sourceHash] of sourceHashes) {
+          const targetFilePath = join(targetPath, filePath);
+          // Check if file has been modified in target
+          let modified = false;
+          if (existsSync(targetFilePath)) {
+            // File exists in target - check if it's been modified
+            try {
+              const targetHash = await computeFileHash(targetFilePath);
+              modified = sourceHash !== targetHash;
+            } catch (error) {
+              // If we can't compute hash, assume modified to prevent data loss
+              console.warn(`⚠ Warning: Could not compute hash for ${targetFilePath}: ${error instanceof Error ? error.message : String(error)}`);
+              modified = true;
+            }
+          }
+
           components[componentName][filePath] = {
-            hash,
-            modified: false, // New files are not user-modified
+            hash: sourceHash,
+            modified,
           };
         }
       }
@@ -230,12 +274,12 @@ export abstract class BaseIntegrationManager {
 
     // Check each component and its files
     for (const [componentName, files] of Object.entries(versionData.components)) {
-      const config = this.components[componentName];
-      if (!config) {
-        // Component definition was removed from config
+      // Only check tracked components
+      if (!this.isTrackedComponent(componentName)) {
         continue;
       }
 
+      const config = this.components[componentName];
       const sourceDir = join(sourceRoot, config.source);
 
       // Check each installed file against source

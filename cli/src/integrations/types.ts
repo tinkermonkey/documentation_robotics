@@ -24,6 +24,13 @@ export interface ComponentConfig {
 
   /** Whether component contains individual files or subdirectories */
   type: 'files' | 'dirs';
+
+  /**
+   * Whether this component is DR-owned (tracked in version file for updates)
+   * Set to false for user-customizable components like templates
+   * Defaults to true if not specified
+   */
+  tracked?: boolean;
 }
 
 /**
@@ -44,11 +51,44 @@ export interface VersionData {
         /** SHA256 hash truncated to 8 characters */
         hash: string;
 
-        /** True if user modified this file since installation */
+        /** True if file was modified (source hash differs from installed hash) */
         modified: boolean;
       };
     };
   };
+}
+
+/**
+ * Validate VersionData deserialization result
+ *
+ * Ensures that the YAML-deserialized object has the required structure
+ * and types. Catches corrupted version files early.
+ *
+ * @param data Deserialized object from YAML
+ * @returns VersionData if valid
+ * @throws Error if validation fails
+ */
+export function validateVersionData(data: unknown): VersionData {
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Version data must be an object');
+  }
+
+  const obj = data as Record<string, unknown>;
+
+  if (typeof obj.version !== 'string') {
+    throw new Error('Missing or invalid "version" field in version file');
+  }
+
+  if (typeof obj.installed_at !== 'string') {
+    throw new Error('Missing or invalid "installed_at" field in version file');
+  }
+
+  if (typeof obj.components !== 'object' || obj.components === null) {
+    throw new Error('Missing or invalid "components" field in version file');
+  }
+
+  // Basic structure validation - deeper structure verified on access
+  return obj as unknown as VersionData;
 }
 
 /**

@@ -19,6 +19,52 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 
 /**
+ * Helper to append content to file with automatic retry on ENOENT
+ *
+ * When appending to a file, a race condition can occur where the file
+ * or directory is deleted between the initial write and the append.
+ * This helper handles ENOENT by recreating the directory and file with header.
+ *
+ * @param filePath Path to file to append to
+ * @param content Content to append
+ * @param onRetry Callback to prepare file (e.g., write header) before retry
+ * @throws Error if append fails for non-ENOENT reasons
+ */
+async function appendWithRetry(
+  filePath: string,
+  content: string,
+  onRetry?: () => Promise<void>
+): Promise<void> {
+  try {
+    await appendFile(filePath, content, 'utf-8');
+  } catch (appendError) {
+    const errno = (appendError as NodeJS.ErrnoException).code;
+    if (errno === 'ENOENT') {
+      // File doesn't exist - race condition where directory/file was deleted
+      // Call retry callback (e.g., to recreate directory and file with header)
+      if (onRetry) {
+        await onRetry();
+      }
+      // Retry the append
+      try {
+        await appendFile(filePath, content, 'utf-8');
+      } catch (retryError) {
+        // Retry failed - this is a real problem
+        console.warn('[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)');
+        console.warn('[ChatLogger]   Log path:', filePath);
+        console.warn('[ChatLogger]   Error:', retryError);
+        console.warn('[ChatLogger]   The chat session will continue, but this entry was not logged.');
+        // Intentional: Continue without logging rather than crash the entire session.
+        // The chat log is best-effort; we don't want logging failures to break the user's work.
+      }
+    } else {
+      // Rethrow non-ENOENT errors to outer handler
+      throw appendError;
+    }
+  }
+}
+
+/**
  * Chat log entry types
  */
 export type ChatLogEntryType = 'message' | 'command' | 'error' | 'event';
@@ -45,6 +91,8 @@ export class ChatLogger {
   private sessionLogPath: string;
   private logDir: string;
   private projectRoot?: string;
+  private headerWritten = false;
+  private headerWritePromise: Promise<void> | null = null;
 
   /**
    * Creates a new ChatLogger instance
@@ -212,52 +260,77 @@ export class ChatLogger {
   }
 
   /**
+   * Ensure header is written exactly once, even with concurrent calls
+   */
+  private async ensureHeaderWritten(): Promise<void> {
+    // If header is already written, return immediately
+    if (this.headerWritten) {
+      return;
+    }
+
+    // If a write is in progress, wait for it
+    if (this.headerWritePromise) {
+      await this.headerWritePromise;
+      return;
+    }
+
+    // Start the write and store the promise
+    this.headerWritePromise = this.writeHeader();
+    await this.headerWritePromise;
+    this.headerWritePromise = null;
+  }
+
+  /**
+   * Write the session header to the log file
+   */
+  private async writeHeader(): Promise<void> {
+    const header: ChatLogEntry = {
+      timestamp: this.sessionStartTime,
+      type: 'event',
+      role: 'system',
+      content: 'Session started',
+      metadata: {
+        sessionId: this.sessionId,
+        logVersion: '1.0',
+      },
+    };
+
+    try {
+      await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+      this.headerWritten = true;
+    } catch (error) {
+      const errno = (error as NodeJS.ErrnoException).code;
+      if (errno === 'ENOENT') {
+        // Directory doesn't exist - create it and retry
+        await this.ensureLogDirectory();
+        try {
+          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+          this.headerWritten = true;
+        } catch (retryError) {
+          throw retryError;
+        }
+      } else {
+        // Permissions, disk full, or other error
+        throw error;
+      }
+    }
+  }
+
+  /**
    * Write an entry to the log file
    */
   private async writeEntry(entry: ChatLogEntry): Promise<void> {
     try {
       await this.ensureLogDirectory();
+      await this.ensureHeaderWritten();
 
-      // On first write, create the file with session header
-      if (!existsSync(this.sessionLogPath)) {
-        const header: ChatLogEntry = {
-          timestamp: this.sessionStartTime,
-          type: 'event',
-          role: 'system',
-          content: 'Session started',
-          metadata: {
-            sessionId: this.sessionId,
-            logVersion: '1.0',
-          },
-        };
-        try {
-          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
-        } catch (error) {
-          // If writeFile fails due to missing directory (race condition in concurrent scenarios),
-          // ensure directory again and retry ONCE
-          const errno = (error as NodeJS.ErrnoException).code;
-          if (errno === 'ENOENT') {
-            console.warn(`[ChatLogger] Directory missing during write, retrying after mkdir: ${this.sessionLogPath}`);
-            try {
-              await this.ensureLogDirectory();
-              await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
-            } catch (retryError) {
-              // Retry failed - this is a real problem, not just a race condition
-              console.error(`[ChatLogger] CRITICAL: Failed to create session log after retry:`, retryError);
-              console.error(`[ChatLogger]   Session ID: ${this.sessionId}`);
-              console.error(`[ChatLogger]   Log path: ${this.sessionLogPath}`);
-              throw retryError; // Propagate - don't let outer catch hide this
-            }
-          } else {
-            // Not a missing directory - could be permissions, disk full, etc.
-            console.error(`[ChatLogger] CRITICAL: Failed to write session header:`, error);
-            throw error;
-          }
-        }
-      }
-
-      // Append the entry
-      await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
+      // Append the entry with automatic retry on ENOENT race condition
+      await appendWithRetry(this.sessionLogPath, this.formatEntry(entry), async () => {
+        // On ENOENT, recreate directory and header before retrying append
+        await this.ensureLogDirectory();
+        this.headerWritten = false;
+        await this.ensureHeaderWritten();
+      });
     } catch (error) {
       const errno = (error as NodeJS.ErrnoException).code;
 
@@ -280,17 +353,37 @@ export class ChatLogger {
   }
 
   /**
-   * Read all entries from the session log
+   * Read all entries from the session log.
+   * Parses lines individually to preserve valid entries when one line is corrupt.
    */
   async readEntries(): Promise<ChatLogEntry[]> {
     try {
       const content = await readFile(this.sessionLogPath, 'utf-8');
-      return content
-        .split('\n')
-        .filter((line) => line.trim())
-        .map((line) => JSON.parse(line) as ChatLogEntry);
-    } catch (error) {
-      console.warn('[ChatLogger] Warning: Could not read log file:', error);
+      const entries: ChatLogEntry[] = [];
+
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          entries.push(JSON.parse(trimmed) as ChatLogEntry);
+        } catch (parseError) {
+          // Skip corrupt lines but continue parsing remaining entries
+          console.warn(
+            '[ChatLogger] Skipping corrupt JSON line in session log:',
+            parseError instanceof Error ? parseError.message : String(parseError)
+          );
+          // Continue to next line instead of failing entire read
+        }
+      }
+
+      return entries;
+    } catch (fileError) {
+      // ENOENT is expected when session log hasn't been created yet - don't warn
+      if ((fileError as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[ChatLogger] Warning: Could not read log file:', fileError);
+      }
+      // Return empty array on file read errors but preserve any entries that were successfully parsed
       return [];
     }
   }

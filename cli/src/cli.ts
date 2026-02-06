@@ -42,6 +42,31 @@ import { readJSON, fileExists } from './utils/file-io.js';
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
+/**
+ * Extract exit code from an error object.
+ * Handles CLIError instances and duck-typed objects with exitCode property.
+ */
+async function extractExitCode(error: unknown): Promise<number> {
+  const { CLIError } = await import('./utils/errors.js');
+
+  if (error instanceof CLIError) {
+    return error.exitCode;
+  }
+
+  // Fallback for duck-typing (handles bundling/module issues)
+  if (error && typeof error === 'object' && 'exitCode' in error) {
+    const errorObj = error as any;
+    if (typeof errorObj.exitCode === 'number') {
+      // Validate this looks like a CLIError before accepting
+      if (errorObj.name === 'CLIError' || errorObj.message) {
+        console.warn('[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue');
+        return errorObj.exitCode;
+      }
+    }
+  }
+
+  return 1;
+}
 
 // Get CLI version from package.json
 async function getCliVersion(): Promise<string> {
@@ -635,8 +660,7 @@ copilotCommands(program);
               message: error instanceof Error ? error.message : String(error),
             });
             // Extract exit code from CLIError if available
-            const CLIError = (await import('./utils/errors.js')).CLIError;
-            exitCode = error instanceof CLIError ? error.exitCode : 1;
+            exitCode = await extractExitCode(error);
             // Don't throw - let telemetry shutdown complete
           }
         },
@@ -656,8 +680,25 @@ copilotCommands(program);
         process.exit(exitCode);
       }
     } else {
-      // No telemetry - just parse normally
-      await program.parseAsync(process.argv);
+      // No telemetry - just parse normally with error handling
+      try {
+        await program.parseAsync(process.argv);
+      } catch (error) {
+        // Extract exit code from CLIError if available
+        const { CLIError } = await import('./utils/errors.js');
+        if (error instanceof CLIError) {
+          // CLIError messages are already formatted, no need to print
+        } else {
+          // Non-CLIError exceptions need to be printed
+          if (error instanceof Error) {
+            console.error(error.message);
+          } else {
+            console.error(String(error));
+          }
+        }
+        const exitCodeFromError = await extractExitCode(error);
+        process.exit(exitCodeFromError);
+      }
     }
   } catch (error) {
     // Error during telemetry init or shutdown

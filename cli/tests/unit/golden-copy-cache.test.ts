@@ -412,8 +412,8 @@ describe('GoldenCopyCacheManager', () => {
         manager.init(),
       ]);
 
-      // Should complete without creating duplicate golden models
-      await expect(initPromises).resolves.not.toThrow();
+      // Should complete without throwing
+      await initPromises;
 
       // Should be properly initialized after all calls complete
       expect(manager.isInitialized()).toBe(true);
@@ -742,7 +742,7 @@ describe('GoldenCopyCacheManager', () => {
 
       // Clean up all concurrently
       const cleanupPromises = clonedModels.map(c => c.cleanup());
-      await expect(Promise.all(cleanupPromises)).resolves.not.toThrow();
+      await Promise.all(cleanupPromises);
     });
 
     it('should maintain clone isolation between concurrent operations', async () => {

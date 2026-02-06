@@ -519,7 +519,14 @@ describe('ChatLogger', () => {
     it('should throw error for non-existent session file', async () => {
       let caught = false;
       try {
-        await readChatSession('nonexistent-file.log', testDir);
+        // Suppress console.error output for this expected error
+        const originalConsoleError = console.error;
+        console.error = () => {};
+        try {
+          await readChatSession('nonexistent-file.log', testDir);
+        } finally {
+          console.error = originalConsoleError;
+        }
       } catch (error) {
         caught = true;
         expect(error).toBeDefined();
@@ -631,6 +638,28 @@ describe('ChatLogger', () => {
         const found = userMessages.some((m) => m.content === `Concurrent message ${i}`);
         expect(found).toBe(true);
       }
+    });
+
+    it('should write session header exactly once even with concurrent writes', async () => {
+      const logger = new ChatLogger(testDir);
+      await logger.ensureLogDirectory();
+
+      // Write 10 messages concurrently to stress test header synchronization
+      const writePromises = Array.from({ length: 10 }, (_, i) =>
+        logger.logUserMessage(`Message ${i}`)
+      );
+
+      await Promise.all(writePromises);
+
+      const entries = await logger.readEntries();
+      // Count "Session started" event entries
+      const headerEntries = entries.filter(
+        (e) => e.type === 'event' && e.content === 'Session started'
+      );
+
+      // Must have exactly one header entry
+      expect(headerEntries.length).toBe(1);
+      expect(headerEntries[0].metadata?.sessionId).toBe(logger.getSessionId());
     });
 
     it('should handle directory deletion during write operations gracefully', async () => {
