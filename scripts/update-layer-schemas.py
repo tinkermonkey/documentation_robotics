@@ -24,7 +24,7 @@ LAYER_NAMES = {
     "05": "Technology Layer",
     "06": "API Layer",
     "07": "Data Model Layer",
-    "08": "Datastore Layer",
+    "08": "Data Store Layer",
     "09": "UX Layer",
     "10": "Navigation Layer",
     "11": "APM/Observability Layer",
