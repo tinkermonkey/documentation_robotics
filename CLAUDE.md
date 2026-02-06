@@ -98,7 +98,7 @@ See `cli/README.md` for complete setup and usage documentation.
 | 5     | `technology`   | `05-technology-layer.md`        | Single word, no hyphen                               |
 | 6     | `api`          | `06-api-layer.md`               | Single word, no hyphen                               |
 | 7     | `data-model`   | `07-data-model-layer.md`        | **Hyphenated** - use `data-model`, not `data_model`  |
-| 8     | `data-store`   | `08-datastore-layer.md`         | **Hyphenated internally** - spec file has no hyphen  |
+| 8     | `data-store`   | `08-data-store-layer.md`        | **Hyphenated** - use `data-store`, not `datastore`  |
 | 9     | `ux`           | `09-ux-layer.md`                | Single word, no hyphen                               |
 | 10    | `navigation`   | `10-navigation-layer.md`        | Single word, no hyphen                               |
 | 11    | `apm`          | `11-apm-observability-layer.md` | **Short form internally** - spec file uses full name |

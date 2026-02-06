@@ -175,7 +175,7 @@ The specification defines 12 interconnected layers:
 | 05  | [Technology](spec/layers/05-technology-layer.md)               | WITH WHAT    | ArchiMate 3.2 |                                                         |
 | 06  | [API](spec/layers/06-api-layer.md)                             | INTERFACE    | OpenAPI 3.0   |                                                         |
 | 07  | [Data Model](spec/layers/07-data-model-layer.md)               | STRUCTURE    | JSON Schema   |                                                         |
-| 08  | [Datastore](spec/layers/08-datastore-layer.md)                 | STORAGE      | SQL DDL       |                                                         |
+| 08  | [Data Store](spec/layers/08-data-store-layer.md)               | STORAGE      | SQL DDL       |                                                         |
 | 09  | [UX](spec/layers/09-ux-layer.md)                               | PRESENTATION | _Custom_      | Three-tier architecture: Libraries, Applications, Specs |
 | 10  | [Navigation](spec/layers/10-navigation-layer.md)               | FLOW         | _Custom_      |                                                         |
 | 11  | [APM/Observability](spec/layers/11-apm-observability-layer.md) | OBSERVE      | OpenTelemetry |                                                         |
