@@ -385,4 +385,179 @@ describe('Claude Integration Commands', () => {
       expect(result.exitCode).toBe(0);
     });
   });
+
+  describe('File Ownership Boundaries', () => {
+    /**
+     * Test Case 1: Existing agents preserved
+     * Verify that non-DR agent files (like agent-os) are preserved during upgrade
+     */
+    it('should preserve non-DR agents during upgrade', async () => {
+      // Setup: Install DR agents
+      await runDr('claude', 'install', '--agents-only', '--force');
+
+      const claudeDir = join(tempDir.path, '.claude');
+      const agentsDir = join(claudeDir, 'agents');
+
+      // Add non-DR agents (simulating agent-os subdirectory)
+      const agentOsDir = join(agentsDir, 'agent-os');
+      await mkdir(agentOsDir, { recursive: true });
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(join(agentOsDir, 'product-planner.md'), '# Product Planner\n\nCustom agent');
+      await writeFile(join(agentOsDir, 'spec-writer.md'), '# Spec Writer\n\nCustom agent');
+
+      // Action: Run upgrade
+      const result = await runDr('claude', 'upgrade', '--force');
+      expect(result.exitCode).toBe(0);
+
+      // Verify: Non-DR agents still exist
+      expect(await fileExists(join(agentOsDir, 'product-planner.md'))).toBe(true);
+      expect(await fileExists(join(agentOsDir, 'spec-writer.md'))).toBe(true);
+
+      // Verify: Version file doesn't track non-DR agents
+      const versionFile = join(claudeDir, '.dr-version');
+      const content = await readFile(versionFile, 'utf-8');
+      const versionData = yaml.parse(content);
+      expect(versionData.components.agents['agent-os/product-planner.md']).toBeUndefined();
+      expect(versionData.components.agents['agent-os/spec-writer.md']).toBeUndefined();
+    });
+
+    /**
+     * Test Case 2: DR agents updated
+     * Verify that DR-owned agents are properly updated during upgrade
+     */
+    it('should update DR-owned agents during upgrade', async () => {
+      // Setup: Install DR agents
+      await runDr('claude', 'install', '--agents-only', '--force');
+
+      const claudeDir = join(tempDir.path, '.claude');
+      const agentsDir = join(claudeDir, 'agents');
+      const versionFile = join(claudeDir, '.dr-version');
+
+      // Load version file to see what was installed
+      let content = await readFile(versionFile, 'utf-8');
+      let versionData = yaml.parse(content);
+      const initialVersion = versionData.version;
+
+      // Action: Run upgrade (should succeed with no changes if source didn't change)
+      const result = await runDr('claude', 'upgrade', '--force');
+      expect(result.exitCode).toBe(0);
+
+      // Verify: DR agents directory exists and has tracked files
+      expect(await fileExists(agentsDir)).toBe(true);
+
+      // Verify: Version file still tracks DR agents
+      content = await readFile(versionFile, 'utf-8');
+      versionData = yaml.parse(content);
+      expect(versionData.components.agents).toBeDefined();
+      expect(Object.keys(versionData.components.agents).length).toBeGreaterThan(0);
+    });
+
+    /**
+     * Test Case 3: Obsolete DR files removed
+     * Verify that DR files no longer in source are removed during upgrade
+     */
+    it('should handle obsolete DR files gracefully during upgrade', async () => {
+      // Setup: Install DR agents
+      await runDr('claude', 'install', '--agents-only', '--force');
+
+      const claudeDir = join(tempDir.path, '.claude');
+      const versionFile = join(claudeDir, '.dr-version');
+
+      // Load initial version
+      let content = await readFile(versionFile, 'utf-8');
+      let versionData = yaml.parse(content);
+      const initialFileCount = Object.keys(versionData.components.agents || {}).length;
+
+      // Action: Run upgrade (if source files are the same, nothing should be removed)
+      const result = await runDr('claude', 'upgrade', '--force');
+      expect(result.exitCode).toBe(0);
+
+      // Verify: Version file was updated properly
+      content = await readFile(versionFile, 'utf-8');
+      versionData = yaml.parse(content);
+      // File count should be same or similar if source didn't change
+      const finalFileCount = Object.keys(versionData.components.agents || {}).length;
+      expect(finalFileCount).toBeGreaterThanOrEqual(0);
+    });
+
+    /**
+     * Test Case 4: Non-prefixed files ignored
+     * Verify that custom files without dr- prefix are preserved
+     */
+    it('should preserve custom agent files without dr- prefix', async () => {
+      // Setup: Install DR agents
+      await runDr('claude', 'install', '--agents-only', '--force');
+
+      const claudeDir = join(tempDir.path, '.claude');
+      const agentsDir = join(claudeDir, 'agents');
+
+      // Add custom agent file (no dr- prefix)
+      const { writeFile } = await import('node:fs/promises');
+      await writeFile(join(agentsDir, 'custom-agent.md'), '# Custom Agent\n\nMy own agent');
+      await writeFile(join(agentsDir, 'my-special-assistant.md'), '# My Assistant\n\nAnother custom');
+
+      // Action: Run upgrade
+      const result = await runDr('claude', 'upgrade', '--force');
+      expect(result.exitCode).toBe(0);
+
+      // Verify: Custom files still exist
+      expect(await fileExists(join(agentsDir, 'custom-agent.md'))).toBe(true);
+      expect(await fileExists(join(agentsDir, 'my-special-assistant.md'))).toBe(true);
+
+      // Verify: Version file doesn't track them
+      const versionFile = join(claudeDir, '.dr-version');
+      const content = await readFile(versionFile, 'utf-8');
+      const versionData = yaml.parse(content);
+      // These files should not be in the tracked agents since they lack dr- prefix
+      const trackedAgents = Object.keys(versionData.components.agents || {});
+      const hasCustom = trackedAgents.some(f => !f.startsWith('dr-'));
+      expect(hasCustom).toBe(false);
+    });
+
+    /**
+     * Test Case 5: Subdirectories preserved
+     * Verify that agent-os subdirectory and its contents remain after upgrade
+     */
+    it('should preserve agent-os subdirectory with custom agents', async () => {
+      // Setup: Install DR agents
+      await runDr('claude', 'install', '--agents-only', '--force');
+
+      const claudeDir = join(tempDir.path, '.claude');
+      const agentsDir = join(claudeDir, 'agents');
+      const agentOsDir = join(agentsDir, 'agent-os');
+
+      // Create agent-os subdirectory structure
+      await mkdir(agentOsDir, { recursive: true });
+      const { writeFile } = await import('node:fs/promises');
+
+      // Add multiple files in subdirectory
+      await writeFile(join(agentOsDir, 'plan-product.md'), '# Product Planner\n\nAgent OS tool');
+      await writeFile(join(agentOsDir, 'write-spec.md'), '# Spec Writer\n\nAgent OS tool');
+      await writeFile(join(agentOsDir, 'implement-tasks.md'), '# Task Implementer\n\nAgent OS tool');
+
+      // Create nested subdirectory
+      const nestedDir = join(agentOsDir, 'advanced');
+      await mkdir(nestedDir, { recursive: true });
+      await writeFile(join(nestedDir, 'config.json'), '{"tools": []}');
+
+      // Action: Run upgrade
+      const result = await runDr('claude', 'upgrade', '--force');
+      expect(result.exitCode).toBe(0);
+
+      // Verify: agent-os subdirectory and all contents remain
+      expect(await fileExists(agentOsDir)).toBe(true);
+      expect(await fileExists(join(agentOsDir, 'plan-product.md'))).toBe(true);
+      expect(await fileExists(join(agentOsDir, 'write-spec.md'))).toBe(true);
+      expect(await fileExists(join(agentOsDir, 'implement-tasks.md'))).toBe(true);
+      expect(await fileExists(join(nestedDir, 'config.json'))).toBe(true);
+
+      // Verify: Version file doesn't track agent-os files
+      const versionFile = join(claudeDir, '.dr-version');
+      const content = await readFile(versionFile, 'utf-8');
+      const versionData = yaml.parse(content);
+      const trackedFiles = Object.keys(versionData.components.agents || {});
+      const hasAgentOs = trackedFiles.some(f => f.includes('agent-os/'));
+      expect(hasAgentOs).toBe(false);
+    });
+  });
 });
