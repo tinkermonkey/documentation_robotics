@@ -32,3 +32,7 @@ app-service-cs1-2:
   id: application.service.app-service-cs1-2
   name: CS1 Service 2
   type: service
+app-service-new-2:
+  id: application.service.app-service-new-2
+  name: New Service 2
+  type: service
