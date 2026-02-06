@@ -1643,7 +1643,17 @@ export class VisualizationServer {
       return div.innerHTML;
     }
 
-    const ws = new WebSocket(\`ws://\${window.location.host}/ws\`);
+    // Extract token from URL query parameters if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    // Build WebSocket URL with token if available
+    let wsUrl = \`ws://\${window.location.host}/ws\`;
+    if (token) {
+      wsUrl += \`?token=\${encodeURIComponent(token)}\`;
+    }
+
+    const ws = new WebSocket(wsUrl);
 
     ws.addEventListener('open', () => {
       console.log('WebSocket connected');
