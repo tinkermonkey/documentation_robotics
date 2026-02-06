@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { fileExists, readJSON } from '../../src/utils/file-io.js';
 import { createTempWorkdir, runDr as runDrHelper } from '../helpers/cli-runner.js';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import * as yaml from 'yaml';
 import { readFile } from 'node:fs/promises';
@@ -401,7 +401,6 @@ describe('Claude Integration Commands', () => {
       // Add non-DR agents (simulating agent-os subdirectory)
       const agentOsDir = join(agentsDir, 'agent-os');
       await mkdir(agentOsDir, { recursive: true });
-      const { writeFile } = await import('node:fs/promises');
       await writeFile(join(agentOsDir, 'product-planner.md'), '# Product Planner\n\nCustom agent');
       await writeFile(join(agentOsDir, 'spec-writer.md'), '# Spec Writer\n\nCustom agent');
 
@@ -436,7 +435,6 @@ describe('Claude Integration Commands', () => {
       // Load version file to see what was installed
       let content = await readFile(versionFile, 'utf-8');
       let versionData = yaml.parse(content);
-      const initialVersion = versionData.version;
 
       // Action: Run upgrade (should succeed with no changes if source didn't change)
       const result = await runDr('claude', 'upgrade', '--force');
@@ -469,15 +467,16 @@ describe('Claude Integration Commands', () => {
       const initialFileCount = Object.keys(versionData.components.agents || {}).length;
 
       // Action: Run upgrade (if source files are the same, nothing should be removed)
+      // (Note: initialFileCount is used in final assertion below)
       const result = await runDr('claude', 'upgrade', '--force');
       expect(result.exitCode).toBe(0);
 
       // Verify: Version file was updated properly
       content = await readFile(versionFile, 'utf-8');
       versionData = yaml.parse(content);
-      // File count should be same or similar if source didn't change
+      // File count should be same as initial if source didn't change
       const finalFileCount = Object.keys(versionData.components.agents || {}).length;
-      expect(finalFileCount).toBeGreaterThanOrEqual(0);
+      expect(finalFileCount).toBe(initialFileCount);
     });
 
     /**
@@ -492,7 +491,6 @@ describe('Claude Integration Commands', () => {
       const agentsDir = join(claudeDir, 'agents');
 
       // Add custom agent file (no dr- prefix)
-      const { writeFile } = await import('node:fs/promises');
       await writeFile(join(agentsDir, 'custom-agent.md'), '# Custom Agent\n\nMy own agent');
       await writeFile(join(agentsDir, 'my-special-assistant.md'), '# My Assistant\n\nAnother custom');
 
@@ -528,7 +526,6 @@ describe('Claude Integration Commands', () => {
 
       // Create agent-os subdirectory structure
       await mkdir(agentOsDir, { recursive: true });
-      const { writeFile } = await import('node:fs/promises');
 
       // Add multiple files in subdirectory
       await writeFile(join(agentOsDir, 'plan-product.md'), '# Product Planner\n\nAgent OS tool');

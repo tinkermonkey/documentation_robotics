@@ -53,10 +53,15 @@ async function extractExitCode(error: unknown): Promise<number> {
     return error.exitCode;
   }
 
+  // Fallback for duck-typing (handles bundling/module issues)
   if (error && typeof error === 'object' && 'exitCode' in error) {
     const errorObj = error as any;
     if (typeof errorObj.exitCode === 'number') {
-      return errorObj.exitCode;
+      // Validate this looks like a CLIError before accepting
+      if (errorObj.name === 'CLIError' || errorObj.message) {
+        console.warn('[DEBUG] Using duck-typed error object as fallback - this may indicate a module loading issue');
+        return errorObj.exitCode;
+      }
     }
   }
 

@@ -254,22 +254,13 @@ export class ChatLogger {
       this.headerWritten = true;
     } catch (error) {
       const errno = (error as NodeJS.ErrnoException).code;
-      if (errno === 'EEXIST') {
-        // File already exists from another concurrent call - that's fine
-        this.headerWritten = true;
-        return;
-      } else if (errno === 'ENOENT') {
+      if (errno === 'ENOENT') {
         // Directory doesn't exist - create it and retry
         await this.ensureLogDirectory();
         try {
           await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
           this.headerWritten = true;
         } catch (retryError) {
-          if ((retryError as NodeJS.ErrnoException).code === 'EEXIST') {
-            // Another concurrent call created it
-            this.headerWritten = true;
-            return;
-          }
           throw retryError;
         }
       } else {

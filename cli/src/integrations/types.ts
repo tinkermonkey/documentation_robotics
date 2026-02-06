@@ -28,6 +28,7 @@ export interface ComponentConfig {
   /**
    * Whether this component is DR-owned (tracked in version file for updates)
    * Set to false for user-customizable components like templates
+   * Defaults to true if not specified
    */
   tracked?: boolean;
 }

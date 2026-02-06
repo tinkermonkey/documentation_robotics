@@ -157,6 +157,23 @@ export abstract class BaseIntegrationManager {
   }
 
   /**
+   * Check if a component is tracked (DR-owned)
+   *
+   * A component is tracked if its tracked property is not explicitly false.
+   * This handles the implicit default of true for backwards compatibility.
+   *
+   * @param componentName - Component name
+   * @returns True if component should be tracked in version file
+   */
+  protected isTrackedComponent(componentName: string): boolean {
+    const config = this.components[componentName];
+    if (!config) {
+      return false;
+    }
+    return config.tracked !== false;
+  }
+
+  /**
    * Update version file with current CLI version and component hashes
    *
    * Computes hashes for all currently installed DR-owned files and writes a new
@@ -177,11 +194,13 @@ export abstract class BaseIntegrationManager {
 
     try {
       // Compute hashes for all DR-owned component files from SOURCE directory
-      for (const [componentName, config] of Object.entries(this.components)) {
+      for (const [componentName] of Object.entries(this.components)) {
         // Skip non-tracked components (user-customizable)
-        if (config.tracked === false) {
+        if (!this.isTrackedComponent(componentName)) {
           continue;
         }
+
+        const config = this.components[componentName];
 
         const sourceDir = join(sourceRoot, config.source);
         const targetPath = join(absoluteTargetDir, config.target);
@@ -252,12 +271,12 @@ export abstract class BaseIntegrationManager {
 
     // Check each component and its files
     for (const [componentName, files] of Object.entries(versionData.components)) {
-      const config = this.components[componentName];
-      if (!config) {
-        // Component definition was removed from config
+      // Only check tracked components
+      if (!this.isTrackedComponent(componentName)) {
         continue;
       }
 
+      const config = this.components[componentName];
       const sourceDir = join(sourceRoot, config.source);
 
       // Check each installed file against source

@@ -197,9 +197,8 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     const changes: Array<{ file: string; status: string; action: string }> = [];
 
     for (const componentName of Object.keys(this.components)) {
-      const config = this.components[componentName];
       // Skip non-tracked components (user-customizable)
-      if (config.tracked === false) {
+      if (!this.isTrackedComponent(componentName)) {
         continue;
       }
 
@@ -285,9 +284,8 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
 
     try {
       for (const componentName of Object.keys(this.components)) {
-        const config = this.components[componentName];
         // Skip non-tracked components (user-customizable)
-        if (config.tracked === false) {
+        if (!this.isTrackedComponent(componentName)) {
           continue;
         }
         await this.installComponent(componentName, true);
