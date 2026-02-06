@@ -159,9 +159,13 @@ export abstract class BaseIntegrationManager {
   /**
    * Update version file with current CLI version and component hashes
    *
-   * Computes hashes for all currently installed files and writes a new
+   * Computes hashes for all currently installed DR-owned files and writes a new
    * version file tracking the CLI version, installation timestamp, and
    * file hashes for change detection.
+   *
+   * Only DR-owned components (tracked: true) are included in the version file.
+   * User-customizable components (tracked: false) are not tracked to avoid
+   * conflicts with user modifications.
    *
    * @param cliVersion - Current CLI version (usually from package.json)
    * @throws Error if version file cannot be written
@@ -173,6 +177,11 @@ export abstract class BaseIntegrationManager {
     try {
       // Compute hashes for all installed component files
       for (const [componentName, config] of Object.entries(this.components)) {
+        // Skip non-tracked components (user-customizable)
+        if (config.tracked === false) {
+          continue;
+        }
+
         const targetPath = join(absoluteTargetDir, config.target);
 
         // Skip if component target doesn't exist yet

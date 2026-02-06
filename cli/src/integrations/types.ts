@@ -24,6 +24,12 @@ export interface ComponentConfig {
 
   /** Whether component contains individual files or subdirectories */
   type: 'files' | 'dirs';
+
+  /**
+   * Whether this component is DR-owned (tracked in version file for updates)
+   * Set to false for user-customizable components like templates
+   */
+  tracked?: boolean;
 }
 
 /**

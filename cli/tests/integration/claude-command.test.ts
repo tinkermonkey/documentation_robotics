@@ -144,7 +144,8 @@ describe('Claude Integration Commands', () => {
       const versionFile = join(claudeDir, '.dr-version');
       const content = await readFile(versionFile, 'utf-8');
       const versionData = yaml.parse(content);
-      expect(versionData.components).toHaveProperty('templates');
+      // Templates are user-customizable, so they should NOT be tracked in version file
+      expect(versionData.components).not.toHaveProperty('templates');
     });
 
     it('should combine multiple component flags', async () => {

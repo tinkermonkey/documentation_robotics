@@ -34,6 +34,11 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
   /**
    * Component configuration for Claude integration
    * Matches the Python CLI structure from documentation_robotics/commands/claude.py
+   *
+   * Note: The `tracked` property controls whether a component is included in
+   * version file tracking. DR-owned components (tracked: true) are monitored
+   * for updates, while user-customizable components (tracked: false) are
+   * installed but not version-tracked to avoid conflicts with user modifications.
    */
   protected readonly components: Record<string, ComponentConfig> = {
     reference_sheets: {
@@ -42,6 +47,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Reference documentation for agents',
       prefix: 'dr-',
       type: 'files',
+      tracked: true,
     },
     commands: {
       source: 'commands',
@@ -49,6 +55,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Slash commands for DR workflows',
       prefix: '',
       type: 'files',
+      tracked: true,
     },
     agents: {
       source: 'agents',
@@ -56,6 +63,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Specialized sub-agent definitions',
       prefix: 'dr-',
       type: 'files',
+      tracked: true,
     },
     skills: {
       source: 'skills',
@@ -63,6 +71,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Auto-activating capabilities',
       prefix: '',
       type: 'dirs',
+      tracked: true,
     },
     templates: {
       source: 'templates',
@@ -70,6 +79,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       description: 'Customization templates and examples',
       prefix: '',
       type: 'files',
+      tracked: false,
     },
   };
 
@@ -187,6 +197,12 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
     const changes: Array<{ file: string; status: string; action: string }> = [];
 
     for (const componentName of Object.keys(this.components)) {
+      const config = this.components[componentName];
+      // Skip non-tracked components (user-customizable)
+      if (config.tracked === false) {
+        continue;
+      }
+
       const componentChanges = await this.checkUpdates(
         componentName,
         versionData

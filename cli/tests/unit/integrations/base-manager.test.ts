@@ -20,6 +20,7 @@ class TestIntegrationManager extends BaseIntegrationManager {
       target: 'commands',
       description: 'Command templates',
       type: 'files',
+      tracked: true,
     },
     agents: {
       source: 'agents',
@@ -27,6 +28,14 @@ class TestIntegrationManager extends BaseIntegrationManager {
       description: 'Agent configurations',
       prefix: 'dr-',
       type: 'files',
+      tracked: true,
+    },
+    templates: {
+      source: 'templates',
+      target: 'templates',
+      description: 'User customization templates',
+      type: 'files',
+      tracked: false,
     },
   };
 
@@ -103,15 +112,18 @@ describe.serial('BaseIntegrationManager', () => {
     // Create source directory structure
     const commandsDir = join(sourceDir, 'commands');
     const agentsDir = join(sourceDir, 'agents');
+    const templatesDir = join(sourceDir, 'templates');
 
     await mkdir(commandsDir, { recursive: true });
     await mkdir(agentsDir, { recursive: true });
+    await mkdir(templatesDir, { recursive: true });
 
     // Create test files
     await writeFile(join(commandsDir, 'cmd1.md'), 'Command 1', 'utf-8');
     await writeFile(join(commandsDir, 'cmd2.md'), 'Command 2', 'utf-8');
     await writeFile(join(agentsDir, 'dr-agent1.md'), 'Agent 1', 'utf-8');
     await writeFile(join(agentsDir, 'ignore-agent.md'), 'Should ignore', 'utf-8');
+    await writeFile(join(templatesDir, 'template1.md'), 'Template 1', 'utf-8');
 
     manager = new TestIntegrationManager(targetDir);
     manager.setSourceRoot(sourceDir);
@@ -232,6 +244,25 @@ components:
 
       expect(installedTime.getTime()).toBeGreaterThanOrEqual(beforeTime.getTime());
       expect(installedTime.getTime()).toBeLessThanOrEqual(afterTime.getTime());
+    });
+
+    it('should exclude non-tracked components from version file', async () => {
+      // Install all components (including non-tracked ones)
+      await manager.testInstallComponent('commands');
+      await manager.testInstallComponent('agents');
+      await manager.testInstallComponent('templates');
+
+      // Update version file
+      await manager.testUpdateVersionFile('0.1.0');
+
+      const versionData = await manager.testLoadVersionFile();
+
+      // Verify tracked components are included
+      expect(versionData?.components['commands']).toBeDefined();
+      expect(versionData?.components['agents']).toBeDefined();
+
+      // Verify non-tracked components are NOT included
+      expect(versionData?.components['templates']).toBeUndefined();
     });
   });
 
