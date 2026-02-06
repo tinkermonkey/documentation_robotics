@@ -51,7 +51,7 @@ spec/
 │   ├── 05-technology-layer.md      # WITH WHAT - Technology stack
 │   ├── 06-api-layer.md             # INTERFACE - Service contracts
 │   ├── 07-data-model-layer.md      # STRUCTURE - Data definitions
-│   ├── 08-datastore-layer.md       # STORAGE - Database schemas
+│   ├── 08-data-store-layer.md      # STORAGE - Database schemas
 │   ├── 09-ux-layer.md              # PRESENTATION - User experience (3-tier architecture)
 │   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
 │   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring

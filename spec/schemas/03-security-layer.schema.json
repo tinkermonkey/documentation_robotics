@@ -419,7 +419,7 @@
         "id": "security-classification",
         "predicate": "referenced-by",
         "inversePredicate": "classification",
-        "sourceLayer": "08-datastore",
+        "sourceLayer": "08-data-store",
         "sourceTypes": ["Artifact"],
         "targetTypes": ["Classification"],
         "fieldPath": "security.classification",

@@ -7,6 +7,19 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-02-06
+
+### Breaking Changes
+
+- **Layer 8 Canonical Naming**: Layer 8 renamed from `datastore` to `data-store` throughout specification
+  - Specification files renamed: `08-datastore-layer.md` → `08-data-store-layer.md`
+  - Schema files renamed: `08-datastore-layer.schema.json` → `08-data-store-layer.schema.json`
+  - All element IDs must use `data-store.` prefix (e.g., `data-store.table.users`)
+  - Manifests must use `data-store:` as the layer key
+  - Layer directories must be named `08_data-store/`
+  - All cross-layer references updated to use `08-data-store` identifier
+  - Users with existing projects must manually migrate their models
+
 ### Added
 
 - **Changeset Storage Migration**:

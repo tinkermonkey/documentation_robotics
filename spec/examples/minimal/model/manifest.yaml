@@ -27,8 +27,8 @@ layers:
   data_model:
     path: "model/07_data_model"
     enabled: true
-  datastore:
-    path: "model/08_datastore"
+  data-store:
+    path: "model/08_data-store"
     enabled: true
   ux:
     path: "model/09_ux"

@@ -67,11 +67,11 @@ layers:
     enabled: true
     elements:
       schema: 9
-  datastore:
+  data-store:
     order: 8
     name: Data Store
-    path: model/08_datastore/
-    schema: .dr/schemas/08-datastore-layer.schema.json
+    path: model/08_data-store/
+    schema: .dr/schemas/08-data-store-layer.schema.json
     enabled: true
     elements:
       database: 1
