@@ -54,7 +54,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       source: 'agents',
       target: 'agents',
       description: 'Specialized sub-agent definitions',
-      prefix: '',
+      prefix: 'dr-',
       type: 'files',
     },
     skills: {
