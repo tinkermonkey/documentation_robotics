@@ -304,10 +304,13 @@ export class ChatLogger {
             await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
           } catch (retryError) {
             // Retry failed - this is a real problem
-            console.error('[ChatLogger] CRITICAL: Failed to recover and append entry:');
-            console.error('[ChatLogger]   Session ID:', this.sessionId);
-            console.error('[ChatLogger]   Log path:', this.sessionLogPath);
-            console.error('[ChatLogger]   Error:', retryError);
+            console.warn('[ChatLogger] WARNING: Could not append entry to chat log (non-fatal)');
+            console.warn('[ChatLogger]   Session ID:', this.sessionId);
+            console.warn('[ChatLogger]   Log path:', this.sessionLogPath);
+            console.warn('[ChatLogger]   Error:', retryError);
+            console.warn('[ChatLogger]   The chat session will continue, but this entry was not logged.');
+            // Intentional: Continue without logging rather than crash the entire session.
+            // The chat log is best-effort; we don't want logging failures to break the user's work.
           }
         } else {
           // Other append errors - handle them
@@ -336,20 +339,37 @@ export class ChatLogger {
   }
 
   /**
-   * Read all entries from the session log
+   * Read all entries from the session log.
+   * Parses lines individually to preserve valid entries when one line is corrupt.
    */
   async readEntries(): Promise<ChatLogEntry[]> {
     try {
       const content = await readFile(this.sessionLogPath, 'utf-8');
-      return content
-        .split('\n')
-        .filter((line) => line.trim())
-        .map((line) => JSON.parse(line) as ChatLogEntry);
-    } catch (error) {
-      // ENOENT is expected when session log hasn't been created yet - don't warn
-      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
-        console.warn('[ChatLogger] Warning: Could not read log file:', error);
+      const entries: ChatLogEntry[] = [];
+
+      for (const line of content.split('\n')) {
+        const trimmed = line.trim();
+        if (!trimmed) continue;
+
+        try {
+          entries.push(JSON.parse(trimmed) as ChatLogEntry);
+        } catch (parseError) {
+          // Skip corrupt lines but continue parsing remaining entries
+          console.warn(
+            '[ChatLogger] Skipping corrupt JSON line in session log:',
+            parseError instanceof Error ? parseError.message : String(parseError)
+          );
+          // Continue to next line instead of failing entire read
+        }
       }
+
+      return entries;
+    } catch (fileError) {
+      // ENOENT is expected when session log hasn't been created yet - don't warn
+      if ((fileError as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[ChatLogger] Warning: Could not read log file:', fileError);
+      }
+      // Return empty array on file read errors but preserve any entries that were successfully parsed
       return [];
     }
   }

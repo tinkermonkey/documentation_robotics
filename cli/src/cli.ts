@@ -42,6 +42,26 @@ import { readJSON, fileExists } from './utils/file-io.js';
 declare const TELEMETRY_ENABLED: boolean;
 const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
 
+/**
+ * Extract exit code from an error object.
+ * Handles CLIError instances and duck-typed objects with exitCode property.
+ */
+async function extractExitCode(error: unknown): Promise<number> {
+  const { CLIError } = await import('./utils/errors.js');
+
+  if (error instanceof CLIError) {
+    return error.exitCode;
+  }
+
+  if (error && typeof error === 'object' && 'exitCode' in error) {
+    const errorObj = error as any;
+    if (typeof errorObj.exitCode === 'number') {
+      return errorObj.exitCode;
+    }
+  }
+
+  return 1;
+}
 
 // Get CLI version from package.json
 async function getCliVersion(): Promise<string> {
@@ -635,16 +655,7 @@ copilotCommands(program);
               message: error instanceof Error ? error.message : String(error),
             });
             // Extract exit code from CLIError if available
-            const CLIError = (await import('./utils/errors.js')).CLIError;
-            if (error instanceof CLIError) {
-              exitCode = error.exitCode;
-            } else if (error && typeof error === 'object' && 'exitCode' in error) {
-              // Fallback for cases where instanceof check fails (error transformation)
-              const errorObj = error as any;
-              exitCode = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
-            } else {
-              exitCode = 1;
-            }
+            exitCode = await extractExitCode(error);
             // Don't throw - let telemetry shutdown complete
           }
         },
@@ -669,10 +680,8 @@ copilotCommands(program);
         await program.parseAsync(process.argv);
       } catch (error) {
         // Extract exit code from CLIError if available
-        const CLIError = (await import('./utils/errors.js')).CLIError;
-        let exitCodeFromError = 1;
+        const { CLIError } = await import('./utils/errors.js');
         if (error instanceof CLIError) {
-          exitCodeFromError = error.exitCode;
           // CLIError messages are already formatted, no need to print
         } else {
           // Non-CLIError exceptions need to be printed
@@ -681,12 +690,8 @@ copilotCommands(program);
           } else {
             console.error(String(error));
           }
-          // Check for custom exit code
-          if (error && typeof error === 'object' && 'exitCode' in error) {
-            const errorObj = error as any;
-            exitCodeFromError = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
-          }
         }
+        const exitCodeFromError = await extractExitCode(error);
         process.exit(exitCodeFromError);
       }
     }

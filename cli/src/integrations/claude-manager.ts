@@ -53,7 +53,7 @@ export class ClaudeIntegrationManager extends BaseIntegrationManager {
       source: 'commands',
       target: 'commands',
       description: 'Slash commands for DR workflows',
-      prefix: '',
+      prefix: 'dr-',
       type: 'files',
       tracked: true,
     },
