@@ -202,11 +202,11 @@ export async function visualizeCommand(
     // Handle process exit
     serverProcess.on('exit', (code) => {
       if (code !== 0) {
-        if (serverOutput) {
-          logDebug(`Server output:\n${serverOutput}`);
-        }
-        // Throw CLIError instead of process.exit to allow telemetry shutdown
-        throw new CLIError(`Server exited with code ${code}`, code || 1);
+        // Include server output in error message if available (avoid separate logDebug to prevent minification issues)
+        const message = serverOutput
+          ? `Server exited with code ${code}\nServer output:\n${serverOutput}`
+          : `Server exited with code ${code}`;
+        throw new CLIError(message, code || 1);
       }
     });
 
@@ -223,12 +223,12 @@ export async function visualizeCommand(
       // Never resolves - keeps process alive
     });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    logDebug(`Stack: ${error instanceof Error ? error.stack : 'N/A'}`);
     // Throw CLIError instead of process.exit to allow telemetry shutdown
+    // Note: Avoid side effects (like logDebug) before throw to prevent minification issues
     if (error instanceof CLIError) {
       throw error;
     }
+    const message = error instanceof Error ? error.message : String(error);
     throw new CLIError(message, 1);
   }
 }
