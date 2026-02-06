@@ -45,7 +45,7 @@ describe('Error Message Scenarios', () => {
       expect(result.exitCode).toBe(1); // JSON parsing is user error
     });
 
-    it('should return exit code 1 when model not found', async () => {
+    it('should return exit code 2 when model not found', async () => {
       // No init, model doesn't exist
       const result = await runDr('list', 'api');
       expect(result.exitCode).toBe(2); // Exit code 2 for NOT_FOUND
