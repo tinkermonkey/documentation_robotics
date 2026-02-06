@@ -636,7 +636,15 @@ copilotCommands(program);
             });
             // Extract exit code from CLIError if available
             const CLIError = (await import('./utils/errors.js')).CLIError;
-            exitCode = error instanceof CLIError ? error.exitCode : 1;
+            if (error instanceof CLIError) {
+              exitCode = error.exitCode;
+            } else if (error && typeof error === 'object' && 'exitCode' in error) {
+              // Fallback for cases where instanceof check fails (error transformation)
+              const errorObj = error as any;
+              exitCode = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
+            } else {
+              exitCode = 1;
+            }
             // Don't throw - let telemetry shutdown complete
           }
         },
@@ -656,8 +664,22 @@ copilotCommands(program);
         process.exit(exitCode);
       }
     } else {
-      // No telemetry - just parse normally
-      await program.parseAsync(process.argv);
+      // No telemetry - just parse normally with error handling
+      try {
+        await program.parseAsync(process.argv);
+      } catch (error) {
+        // Extract exit code from CLIError if available
+        const CLIError = (await import('./utils/errors.js')).CLIError;
+        let exitCodeFromError = 1;
+        if (error instanceof CLIError) {
+          exitCodeFromError = error.exitCode;
+        } else if (error && typeof error === 'object' && 'exitCode' in error) {
+          // Fallback for cases where instanceof check fails (error transformation)
+          const errorObj = error as any;
+          exitCodeFromError = typeof errorObj.exitCode === 'number' ? errorObj.exitCode : 1;
+        }
+        process.exit(exitCodeFromError);
+      }
     }
   } catch (error) {
     // Error during telemetry init or shutdown
