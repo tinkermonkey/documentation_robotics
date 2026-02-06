@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/12-testing-layer.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/12-testing-layer.schema.json",
   "title": "Testing Layer Schema",
   "description": "Models test coverage requirements, input space partitioning, and coverage criteria to ensure comprehensive testing with traceability to requirements.",
   "layerMetadata": {

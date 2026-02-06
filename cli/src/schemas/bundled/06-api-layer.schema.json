@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/06-api-layer.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/06-api-layer.schema.json",
   "title": "API Layer Layer Schema",
   "description": "Defines REST API contracts using OpenAPI 3.0, specifying endpoints, operations, request/response schemas, and security requirements.",
   "layerMetadata": {

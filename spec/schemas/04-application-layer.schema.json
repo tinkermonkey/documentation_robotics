@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/04-application-layer.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/04-application-layer.schema.json",
   "title": "Application Layer Layer Schema",
   "description": "Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.",
   "layerMetadata": {
