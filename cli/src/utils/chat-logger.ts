@@ -45,6 +45,8 @@ export class ChatLogger {
   private sessionLogPath: string;
   private logDir: string;
   private projectRoot?: string;
+  private headerWritten = false;
+  private headerWritePromise: Promise<void> | null = null;
 
   /**
    * Creates a new ChatLogger instance
@@ -212,52 +214,106 @@ export class ChatLogger {
   }
 
   /**
+   * Ensure header is written exactly once, even with concurrent calls
+   */
+  private async ensureHeaderWritten(): Promise<void> {
+    // If header is already written, return immediately
+    if (this.headerWritten) {
+      return;
+    }
+
+    // If a write is in progress, wait for it
+    if (this.headerWritePromise) {
+      await this.headerWritePromise;
+      return;
+    }
+
+    // Start the write and store the promise
+    this.headerWritePromise = this.writeHeader();
+    await this.headerWritePromise;
+    this.headerWritePromise = null;
+  }
+
+  /**
+   * Write the session header to the log file
+   */
+  private async writeHeader(): Promise<void> {
+    const header: ChatLogEntry = {
+      timestamp: this.sessionStartTime,
+      type: 'event',
+      role: 'system',
+      content: 'Session started',
+      metadata: {
+        sessionId: this.sessionId,
+        logVersion: '1.0',
+      },
+    };
+
+    try {
+      await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+      this.headerWritten = true;
+    } catch (error) {
+      const errno = (error as NodeJS.ErrnoException).code;
+      if (errno === 'EEXIST') {
+        // File already exists from another concurrent call - that's fine
+        this.headerWritten = true;
+        return;
+      } else if (errno === 'ENOENT') {
+        // Directory doesn't exist - create it and retry
+        await this.ensureLogDirectory();
+        try {
+          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
+          this.headerWritten = true;
+        } catch (retryError) {
+          if ((retryError as NodeJS.ErrnoException).code === 'EEXIST') {
+            // Another concurrent call created it
+            this.headerWritten = true;
+            return;
+          }
+          throw retryError;
+        }
+      } else {
+        // Permissions, disk full, or other error
+        throw error;
+      }
+    }
+  }
+
+  /**
    * Write an entry to the log file
    */
   private async writeEntry(entry: ChatLogEntry): Promise<void> {
     try {
       await this.ensureLogDirectory();
+      await this.ensureHeaderWritten();
 
-      // On first write, create the file with session header
-      if (!existsSync(this.sessionLogPath)) {
-        const header: ChatLogEntry = {
-          timestamp: this.sessionStartTime,
-          type: 'event',
-          role: 'system',
-          content: 'Session started',
-          metadata: {
-            sessionId: this.sessionId,
-            logVersion: '1.0',
-          },
-        };
-        try {
-          await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
-        } catch (error) {
-          // If writeFile fails due to missing directory (race condition in concurrent scenarios),
-          // ensure directory again and retry ONCE
-          const errno = (error as NodeJS.ErrnoException).code;
-          if (errno === 'ENOENT') {
-            console.warn(`[ChatLogger] Directory missing during write, retrying after mkdir: ${this.sessionLogPath}`);
-            try {
-              await this.ensureLogDirectory();
-              await writeFile(this.sessionLogPath, this.formatEntry(header), 'utf-8');
-            } catch (retryError) {
-              // Retry failed - this is a real problem, not just a race condition
-              console.error(`[ChatLogger] CRITICAL: Failed to create session log after retry:`, retryError);
-              console.error(`[ChatLogger]   Session ID: ${this.sessionId}`);
-              console.error(`[ChatLogger]   Log path: ${this.sessionLogPath}`);
-              throw retryError; // Propagate - don't let outer catch hide this
-            }
-          } else {
-            // Not a missing directory - could be permissions, disk full, etc.
-            console.error(`[ChatLogger] CRITICAL: Failed to write session header:`, error);
-            throw error;
+      // Append the entry with retry for race condition where file may have been deleted
+      try {
+        await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
+      } catch (appendError) {
+        const errno = (appendError as NodeJS.ErrnoException).code;
+        if (errno === 'ENOENT') {
+          // File doesn't exist - race condition where directory was deleted or file was removed
+          // Retry: recreate directory and file with header, then append
+          try {
+            await this.ensureLogDirectory();
+            // Ensure header is written again
+            this.headerWritten = false;
+            await this.ensureHeaderWritten();
+            // Now append the entry
+            await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
+          } catch (retryError) {
+            // Retry failed - this is a real problem
+            console.error('[ChatLogger] CRITICAL: Failed to recover and append entry:');
+            console.error('[ChatLogger]   Session ID:', this.sessionId);
+            console.error('[ChatLogger]   Log path:', this.sessionLogPath);
+            console.error('[ChatLogger]   Error:', retryError);
           }
+        } else {
+          // Other append errors - handle them
+          throw appendError;
         }
       }
-
-      // Append the entry
-      await appendFile(this.sessionLogPath, this.formatEntry(entry), 'utf-8');
     } catch (error) {
       const errno = (error as NodeJS.ErrnoException).code;
 
