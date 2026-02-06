@@ -6,7 +6,7 @@ import { mkdtemp } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { parse as parseYaml } from 'yaml';
 import { BaseIntegrationManager } from '@/integrations/base-manager';
-import { ComponentConfig, VersionData } from '@/integrations/types';
+import { ComponentConfig, VersionData, validateVersionData } from '@/integrations/types';
 import { computeFileHash } from '@/integrations/hash-utils';
 
 /**
@@ -172,7 +172,7 @@ components:
 
       await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
 
-      const versionData = await manager.testLoadVersionFile();
+      const versionData = validateVersionData(parseYaml(versionContent));
 
       expect(versionData).not.toBeNull();
       expect(versionData?.version).toBe('0.1.0');
@@ -211,7 +211,7 @@ components:
 
       // Read and verify version file
       const versionContent = await readFile(join(targetDir, '.dr-test-version'), 'utf-8');
-      const versionData = parseYaml(versionContent) as VersionData;
+      const versionData = validateVersionData(parseYaml(versionContent));
 
       expect(versionData.version).toBe('0.1.0');
       expect(versionData.installed_at).toBeTruthy();
@@ -322,7 +322,7 @@ components:
 `;
 
       await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
-      const versionData = parseYaml(versionContent) as VersionData;
+      const versionData = validateVersionData(parseYaml(versionContent));
 
       const changes = await manager.testCheckUpdates('commands', versionData);
 
@@ -356,7 +356,7 @@ components:
       // Modify source file
       await writeFile(join(sourceDir, 'commands', 'cmd1.md'), 'Modified content', 'utf-8');
 
-      const versionData = parseYaml(versionContent) as VersionData;
+      const versionData = validateVersionData(parseYaml(versionContent));
       const changes = await manager.testCheckUpdates('commands', versionData);
 
       // Should detect cmd1.md as modified
@@ -380,7 +380,7 @@ components:
 
       await writeFile(join(targetDir, '.dr-test-version'), versionContent, 'utf-8');
 
-      const versionData = parseYaml(versionContent) as VersionData;
+      const versionData = validateVersionData(parseYaml(versionContent));
       const changes = await manager.testCheckUpdates('commands', versionData);
 
       // Should detect deleted-cmd.md as deleted

@@ -88,7 +88,7 @@ export function validateVersionData(data: unknown): VersionData {
   }
 
   // Basic structure validation - deeper structure verified on access
-  return obj as VersionData;
+  return obj as unknown as VersionData;
 }
 
 /**
