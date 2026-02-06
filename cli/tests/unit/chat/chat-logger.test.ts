@@ -519,7 +519,14 @@ describe('ChatLogger', () => {
     it('should throw error for non-existent session file', async () => {
       let caught = false;
       try {
-        await readChatSession('nonexistent-file.log', testDir);
+        // Suppress console.error output for this expected error
+        const originalConsoleError = console.error;
+        console.error = () => {};
+        try {
+          await readChatSession('nonexistent-file.log', testDir);
+        } finally {
+          console.error = originalConsoleError;
+        }
       } catch (error) {
         caught = true;
         expect(error).toBeDefined();

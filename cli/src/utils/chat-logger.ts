@@ -346,7 +346,10 @@ export class ChatLogger {
         .filter((line) => line.trim())
         .map((line) => JSON.parse(line) as ChatLogEntry);
     } catch (error) {
-      console.warn('[ChatLogger] Warning: Could not read log file:', error);
+      // ENOENT is expected when session log hasn't been created yet - don't warn
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') {
+        console.warn('[ChatLogger] Warning: Could not read log file:', error);
+      }
       return [];
     }
   }
