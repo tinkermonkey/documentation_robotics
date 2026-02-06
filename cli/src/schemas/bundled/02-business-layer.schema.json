@@ -9,8 +9,8 @@
     "layerName": "Business Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
-    ,"catalogVersion": "0.7.2"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
