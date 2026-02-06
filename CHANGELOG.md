@@ -41,6 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Documentation
 
 For component-specific changelogs, see:
+
 - **Specification:** [spec/CHANGELOG.md](spec/CHANGELOG.md)
 - **Bun CLI:** See [cli/README.md](cli/README.md) for version information
 - **Python CLI:** Removed (see v0.8.0 final release on PyPI for historical changelog)
