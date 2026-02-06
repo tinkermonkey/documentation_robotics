@@ -202,9 +202,6 @@ export async function visualizeCommand(
     // Handle process exit
     serverProcess.on('exit', (code) => {
       if (code !== 0) {
-        console.error(
-          ansis.red(`Visualization server exited with code ${code}`)
-        );
         if (serverOutput) {
           logDebug(`Server output:\n${serverOutput}`);
         }
@@ -227,7 +224,6 @@ export async function visualizeCommand(
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
     logDebug(`Stack: ${error instanceof Error ? error.stack : 'N/A'}`);
     // Throw CLIError instead of process.exit to allow telemetry shutdown
     if (error instanceof CLIError) {
