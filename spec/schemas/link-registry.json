@@ -45,8 +45,8 @@
       "color": "#96CEB4"
     },
     "data-store": {
-      "name": "Datastore Layer References",
-      "description": "Links to datastore elements (databases, tables, columns)",
+      "name": "Data Store Layer References",
+      "description": "Links to data-store elements (databases, tables, columns)",
       "color": "#88D8B0"
     },
     "ux": {
