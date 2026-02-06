@@ -511,12 +511,12 @@ $ dr validate
 
 **IMPORTANT**: All examples below MUST include source tracking (`--source-file`, `--source-symbol`, `--source-provenance "extracted"`)
 
-| Framework   | Code Pattern                | CLI Command                                                                                                                                                                                                                       |
-| ----------- | --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| FastAPI     | `@app.post("/orders")`      | `dr add api operation create-order --name "Create Order" --source-file "src/api/orders.py" --source-symbol "create_order" --source-provenance "extracted" --properties '{"path":"/orders","method":"POST"}'`                     |
-| Express     | `router.post('/orders')`    | `dr add api operation create-order --name "Create Order" --source-file "src/routes/orders.js" --source-symbol "createOrder" --source-provenance "extracted" --properties '{"path":"/orders","method":"POST"}'`                   |
+| Framework   | Code Pattern                | CLI Command                                                                                                                                                                                                                     |
+| ----------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| FastAPI     | `@app.post("/orders")`      | `dr add api operation create-order --name "Create Order" --source-file "src/api/orders.py" --source-symbol "create_order" --source-provenance "extracted" --properties '{"path":"/orders","method":"POST"}'`                    |
+| Express     | `router.post('/orders')`    | `dr add api operation create-order --name "Create Order" --source-file "src/routes/orders.js" --source-symbol "createOrder" --source-provenance "extracted" --properties '{"path":"/orders","method":"POST"}'`                  |
 | Spring Boot | `@PostMapping("/orders")`   | `dr add api operation create-order --name "Create Order" --source-file "src/main/java/api/OrderController.java" --source-symbol "createOrder" --source-provenance "extracted" --properties '{"path":"/orders","method":"POST"}' |
-| Django      | `def create_order(request)` | `dr add api operation create-order --name "Create Order" --source-file "api/views.py" --source-symbol "create_order" --source-provenance "extracted"`                                                                             |
+| Django      | `def create_order(request)` | `dr add api operation create-order --name "Create Order" --source-file "api/views.py" --source-symbol "create_order" --source-provenance "extracted"`                                                                           |
 
 **Supported**: Python (FastAPI, Django, Flask), JavaScript (Express, NestJS), Java (Spring Boot), Go, C# (ASP.NET)
 
@@ -996,60 +996,60 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Element Operations
 
-| Task             | Command                                            | Example                                                         |
-| ---------------- | -------------------------------------------------- | --------------------------------------------------------------- |
-| Add element      | `dr add <layer> <type> <id> --name "Name" -p key=value` | `dr add business service orders --name "Orders"`                       |
-| Update element   | `dr update <element-id> --properties <json>`      | `dr update business-service-orders --properties '{"criticality":"high"}'` |
-| Update with spec | `dr update <element-id> --spec file.yaml`          | `dr update business-service-orders --spec updates.yaml`         |
-| Find element     | `dr show <element-id>`                             | `dr show business-service-orders`                               |
-| List elements    | `dr list <layer> [type]`                           | `dr list application service`                                   |
-| Search elements  | `dr search <pattern>`                              | `dr search "payment"`                                           |
-| Remove element   | `dr delete <element-id>`                           | `dr delete business-service-orders`                             |
+| Task             | Command                                                 | Example                                                                   |
+| ---------------- | ------------------------------------------------------- | ------------------------------------------------------------------------- |
+| Add element      | `dr add <layer> <type> <id> --name "Name" -p key=value` | `dr add business service orders --name "Orders"`                          |
+| Update element   | `dr update <element-id> --properties <json>`            | `dr update business-service-orders --properties '{"criticality":"high"}'` |
+| Update with spec | `dr update <element-id> --spec file.yaml`               | `dr update business-service-orders --spec updates.yaml`                   |
+| Find element     | `dr show <element-id>`                                  | `dr show business-service-orders`                                         |
+| List elements    | `dr list <layer> [type]`                                | `dr list application service`                                             |
+| Search elements  | `dr search <pattern>`                                   | `dr search "payment"`                                                     |
+| Remove element   | `dr delete <element-id>`                                | `dr delete business-service-orders`                                       |
 
 ### Validation Operations
 
-| Task                           | Command                       | Example                                   |
-| ------------------------------ | ----------------------------- | ----------------------------------------- |
-| Basic validation               | `dr validate`                 | `dr validate`                             |
-| Strict validation              | `dr validate --strict`        | `dr validate --strict`                    |
-| Validate relationships         | `dr validate --relationships` | `dr validate --relationships`             |
-| Layer-specific                 | `dr validate --layers <layers>` | `dr validate --layers application`      |
-| JSON output                    | `dr validate --output <path>` | `dr validate --output report.json`        |
+| Task                   | Command                         | Example                            |
+| ---------------------- | ------------------------------- | ---------------------------------- |
+| Basic validation       | `dr validate`                   | `dr validate`                      |
+| Strict validation      | `dr validate --strict`          | `dr validate --strict`             |
+| Validate relationships | `dr validate --relationships`   | `dr validate --relationships`      |
+| Layer-specific         | `dr validate --layers <layers>` | `dr validate --layers application` |
+| JSON output            | `dr validate --output <path>`   | `dr validate --output report.json` |
 
 ### Relationship Operations
 
-| Task                    | Command                            | Example                                                             |
-| ----------------------- | ---------------------------------- | ------------------------------------------------------------------- |
-| List relationship types | `dr catalog types`                   | `dr catalog types`                                                    |
-| Search relationship types | `dr catalog search <keyword>`       | `dr catalog search depends`                             |
-| Show catalog info       | `dr catalog info`                    | `dr catalog info`                                                     |
-| Trace dependencies      | `dr trace <element-id>` | `dr trace api-endpoint-create-order` |
-| Validate relationships  | `dr validate --relationships`                      | `dr validate --relationships`                                                       |
-| Generate relationship docs | `dr catalog docs --format markdown` | `dr catalog docs --format markdown --output ./docs`              |
+| Task                       | Command                             | Example                                             |
+| -------------------------- | ----------------------------------- | --------------------------------------------------- |
+| List relationship types    | `dr catalog types`                  | `dr catalog types`                                  |
+| Search relationship types  | `dr catalog search <keyword>`       | `dr catalog search depends`                         |
+| Show catalog info          | `dr catalog info`                   | `dr catalog info`                                   |
+| Trace dependencies         | `dr trace <element-id>`             | `dr trace api-endpoint-create-order`                |
+| Validate relationships     | `dr validate --relationships`       | `dr validate --relationships`                       |
+| Generate relationship docs | `dr catalog docs --format markdown` | `dr catalog docs --format markdown --output ./docs` |
 
 ### Changeset Operations
 
-| Task              | Command                                    | Example                                                    |
-| ----------------- | ------------------------------------------ | ---------------------------------------------------------- |
-| Create changeset  | `dr changeset create "name" --description <desc>` | `dr changeset create "add-payment-feature" --description "Add payment feature"` |
-| Activate changeset | `dr changeset activate <name>`            | `dr changeset activate "add-payment-feature"`             |
-| Deactivate changeset | `dr changeset deactivate`              | `dr changeset deactivate`                                  |
-| List changesets   | `dr changeset list`                        | `dr changeset list`                                        |
-| Show status       | `dr changeset status`                      | `dr changeset status`                                      |
-| Show staged changes | `dr changeset staged`                    | `dr changeset staged --verbose`                            |
-| Show diff         | `dr changeset diff`                        | `dr changeset diff`                                        |
-| Preview merge     | `dr changeset preview`                     | `dr changeset preview --verbose`                           |
-| Commit changes    | `dr changeset commit`                      | `dr changeset commit`                                      |
-| Apply changeset   | `dr changeset apply <name>`                | `dr changeset apply "add-payment-feature"`                |
-| Revert changeset  | `dr changeset revert <name>`               | `dr changeset revert "add-payment-feature"`               |
-| Delete changeset  | `dr changeset delete <name>`               | `dr changeset delete "old-changeset"`                     |
+| Task                 | Command                                           | Example                                                                         |
+| -------------------- | ------------------------------------------------- | ------------------------------------------------------------------------------- |
+| Create changeset     | `dr changeset create "name" --description <desc>` | `dr changeset create "add-payment-feature" --description "Add payment feature"` |
+| Activate changeset   | `dr changeset activate <name>`                    | `dr changeset activate "add-payment-feature"`                                   |
+| Deactivate changeset | `dr changeset deactivate`                         | `dr changeset deactivate`                                                       |
+| List changesets      | `dr changeset list`                               | `dr changeset list`                                                             |
+| Show status          | `dr changeset status`                             | `dr changeset status`                                                           |
+| Show staged changes  | `dr changeset staged`                             | `dr changeset staged --verbose`                                                 |
+| Show diff            | `dr changeset diff`                               | `dr changeset diff`                                                             |
+| Preview merge        | `dr changeset preview`                            | `dr changeset preview --verbose`                                                |
+| Commit changes       | `dr changeset commit`                             | `dr changeset commit`                                                           |
+| Apply changeset      | `dr changeset apply <name>`                       | `dr changeset apply "add-payment-feature"`                                      |
+| Revert changeset     | `dr changeset revert <name>`                      | `dr changeset revert "add-payment-feature"`                                     |
+| Delete changeset     | `dr changeset delete <name>`                      | `dr changeset delete "old-changeset"`                                           |
 
 ### Projection Operations
 
-| Task            | Command                                      | Example                                               |
-| --------------- | -------------------------------------------- | ----------------------------------------------------- |
+| Task            | Command                                      | Example                                            |
+| --------------- | -------------------------------------------- | -------------------------------------------------- |
 | Project element | `dr project <element-id> <target-layers>`    | `dr project business-service-orders "application"` |
-| Project all     | `dr project-all --from <layer> --to <layer>` | `dr project-all --from business --to application`     |
+| Project all     | `dr project-all --from <layer> --to <layer>` | `dr project-all --from business --to application`  |
 
 ### Export & Documentation
 
@@ -1061,12 +1061,12 @@ Use this reference when executing DR operations. All model modifications MUST us
 
 ### Migration Operations
 
-| Task              | Command                  | Example                  |
-| ----------------- | ------------------------ | ------------------------ |
-| Check version     | `dr version`             | `dr version`             |
-| Preview migration | `dr upgrade --dry-run`   | `dr upgrade --dry-run`   |
-| Apply migration   | `dr upgrade`             | `dr upgrade`             |
-| Force migration   | `dr upgrade --force`     | `dr upgrade --force`     |
+| Task              | Command                | Example                |
+| ----------------- | ---------------------- | ---------------------- |
+| Check version     | `dr version`           | `dr version`           |
+| Preview migration | `dr upgrade --dry-run` | `dr upgrade --dry-run` |
+| Apply migration   | `dr upgrade`           | `dr upgrade`           |
+| Force migration   | `dr upgrade --force`   | `dr upgrade --force`   |
 
 ## Common Anti-Patterns to Avoid
 
