@@ -83,7 +83,7 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
 
     if (!hasUpdates) {
       console.log(ansis.yellow('No fields specified for update'));
-      process.exit(0);
+      return;
     }
 
     // Single unified mutation handler for update

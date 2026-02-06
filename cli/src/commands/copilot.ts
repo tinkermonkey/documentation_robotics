@@ -8,6 +8,7 @@
 import { Command } from 'commander';
 import { CopilotIntegrationManager } from '../integrations/copilot-manager.js';
 import ansis from 'ansis';
+import { CLIError } from '../utils/errors.js';
 
 /**
  * Register all Copilot integration subcommands
@@ -92,8 +93,10 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        console.error(ansis.red('Error:'), error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          1
+        );
       }
     });
 
@@ -131,8 +134,10 @@ Examples:
           force: options.force,
         });
       } catch (error) {
-        console.error(ansis.red('Error:'), error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          1
+        );
       }
     });
 
@@ -156,8 +161,10 @@ Examples:
       try {
         await manager.status();
       } catch (error) {
-        console.error(ansis.red('Error:'), error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          1
+        );
       }
     });
 
@@ -181,8 +188,10 @@ Examples:
       try {
         await manager.list();
       } catch (error) {
-        console.error(ansis.red('Error:'), error instanceof Error ? error.message : String(error));
-        process.exit(1);
+        throw new CLIError(
+          error instanceof Error ? error.message : String(error),
+          1
+        );
       }
     });
 }

@@ -23,6 +23,28 @@
       }
     }
   },
+  "overrides": [
+    {
+      "include": ["src/commands/**/*.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
+          }
+        }
+      }
+    },
+    {
+      "include": ["src/cli.ts"],
+      "linter": {
+        "rules": {
+          "complexity": {
+            "noBannedTypes": "off"
+          }
+        }
+      }
+    }
+  ],
   "formatter": {
     "enabled": true,
     "indentStyle": "space",
