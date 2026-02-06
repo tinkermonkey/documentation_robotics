@@ -194,41 +194,55 @@ export async function visualizeCommand(
       serverProcess.stderr.on('data', (data) => {
         const output = data.toString().trim();
         if (output) {
+          serverOutput += output + '\n';
           logVerbose(`[server stderr] ${output}`);
         }
       });
     }
 
-    // Handle process exit
-    serverProcess.on('exit', (code) => {
+    // Handle process close (fires after all stdio streams have closed)
+    let rejectKeepAlive: ((reason: Error) => void) | null = null;
+
+    serverProcess.on('close', (code) => {
       if (code !== 0) {
         // Include server output in error message if available (avoid separate logDebug to prevent minification issues)
         const message = serverOutput
           ? `Server exited with code ${code}\nServer output:\n${serverOutput}`
           : `Server exited with code ${code}`;
-        throw new CLIError(message, code || 1);
+        // Print error before rejecting (CLI wrapper expects CLIError messages to be pre-printed)
+        console.error(message);
+        const error = new CLIError(message, code || 1);
+        if (rejectKeepAlive) {
+          rejectKeepAlive(error);
+        }
       }
     });
 
     // Handle process errors
     serverProcess.on('error', (error) => {
-      throw new CLIError(
-        `Failed to start visualization server: ${error.message}`,
-        1
-      );
+      const message = `Failed to start visualization server: ${error.message}`;
+      // Print error before throwing (CLI wrapper expects CLIError messages to be pre-printed)
+      console.error(message);
+      const cliError = new CLIError(message, 1);
+      if (rejectKeepAlive) {
+        rejectKeepAlive(cliError);
+      }
     });
 
-    // Keep parent process alive
-    await new Promise(() => {
-      // Never resolves - keeps process alive
+    // Keep parent process alive - reject promise if server fails
+    await new Promise((_, reject) => {
+      rejectKeepAlive = reject;
     });
   } catch (error) {
     // Throw CLIError instead of process.exit to allow telemetry shutdown
     // Note: Avoid side effects (like logDebug) before throw to prevent minification issues
     if (error instanceof CLIError) {
+      // CLIError should have already printed its message
       throw error;
     }
+    // Non-CLIError needs to be printed and wrapped
     const message = error instanceof Error ? error.message : String(error);
+    console.error(message);
     throw new CLIError(message, 1);
   }
 }

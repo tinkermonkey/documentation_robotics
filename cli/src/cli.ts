@@ -659,6 +659,17 @@ copilotCommands(program);
               code: 2, // SpanStatusCode.ERROR
               message: error instanceof Error ? error.message : String(error),
             });
+
+            // Print error message for CLIError instances
+            const { CLIError } = await import('./utils/errors.js');
+            if (error instanceof CLIError) {
+              console.error(error.message);
+            } else if (error instanceof Error) {
+              console.error(error.message);
+            } else {
+              console.error(String(error));
+            }
+
             // Extract exit code from CLIError if available
             exitCode = await extractExitCode(error);
             // Don't throw - let telemetry shutdown complete
