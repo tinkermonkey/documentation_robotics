@@ -22,7 +22,7 @@ import {
 } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { computeDirectoryHashes } from './hash-utils.js';
+import { computeDirectoryHashes, computeFileHash } from './hash-utils.js';
 import { ComponentConfig, VersionData, FileChange, ObsoleteFile } from './types.js';
 import { findProjectRoot } from '../utils/project-paths.js';
 import { getCliVersion as getCliVersionFromUtils } from '../utils/spec-version.js';
@@ -172,33 +172,45 @@ export abstract class BaseIntegrationManager {
    */
   protected async updateVersionFile(cliVersion: string): Promise<void> {
     const components: VersionData['components'] = {};
+    const sourceRoot = this.getSourceRoot();
     const absoluteTargetDir = await this.getAbsoluteTargetDir();
 
     try {
-      // Compute hashes for all installed component files
+      // Compute hashes for all DR-owned component files from SOURCE directory
       for (const [componentName, config] of Object.entries(this.components)) {
         // Skip non-tracked components (user-customizable)
         if (config.tracked === false) {
           continue;
         }
 
+        const sourceDir = join(sourceRoot, config.source);
         const targetPath = join(absoluteTargetDir, config.target);
 
-        // Skip if component target doesn't exist yet
-        if (!existsSync(targetPath)) {
-          components[componentName] = {};
-          continue;
-        }
+        // Compute hashes for files in SOURCE directory (DR-owned files only)
+        const sourceHashes = existsSync(sourceDir)
+          ? await computeDirectoryHashes(sourceDir, config.prefix)
+          : new Map<string, string>();
 
-        // Compute hashes for all files in this component
-        const hashes = await computeDirectoryHashes(targetPath, config.prefix);
-
-        // Build component entry with relative paths and hash data
+        // Record hashes from source directory
         components[componentName] = {};
-        for (const [filePath, hash] of hashes) {
+        for (const [filePath, sourceHash] of sourceHashes) {
+          const targetFilePath = join(targetPath, filePath);
+          // Check if file has been modified in target
+          let modified = false;
+          if (existsSync(targetFilePath)) {
+            // File exists in target - check if it's been modified
+            try {
+              const targetHash = await computeFileHash(targetFilePath);
+              modified = sourceHash !== targetHash;
+            } catch (error) {
+              // If we can't compute hash, assume not modified to be safe
+              modified = false;
+            }
+          }
+
           components[componentName][filePath] = {
-            hash,
-            modified: false, // New files are not user-modified
+            hash: sourceHash,
+            modified,
           };
         }
       }
