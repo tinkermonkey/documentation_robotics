@@ -40,80 +40,64 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   }
 
   // Dynamic import for tree-shaking
-  const { startSpan, endSpan, emitLog } = await import('../telemetry/index.js');
-  const { SeverityNumber } = await import('@opentelemetry/api-logs');
+  const { startActiveSpan } = await import('../telemetry/index.js');
 
   const route = c.req.routePath || path; // Use route pattern if available
-  const requestStartTime = Date.now();
 
   if (isDebug) {
-    console.log(`[Telemetry] Creating span for http.server.request`);
+    console.log(`[Telemetry] Creating active span for http.server.request`);
   }
 
-  // Create span for the HTTP request
-  const span = startSpan('http.server.request', {
-    'http.method': method,
-    'http.route': route,
-    'http.url': c.req.url,
-    'http.target': path,
-    'http.user_agent': c.req.header('user-agent') || '',
-    'http.scheme': new URL(c.req.url).protocol.replace(':', ''),
-  });
+  // Use startActiveSpan for proper context propagation and automatic span management
+  return await startActiveSpan(
+    'http.server.request',
+    async (span) => {
+      const requestStartTime = Date.now();
 
-  if (isDebug) {
-    console.log(`[Telemetry] Span created: ${span ? 'success' : 'null (tracer not initialized?)'}`);
-  }
+      // Set initial attributes
+      span.setAttributes({
+        'http.method': method,
+        'http.route': route,
+        'http.url': url,
+        'http.target': path,
+        'http.user_agent': c.req.header('user-agent') || '',
+        'http.scheme': new URL(url).protocol.replace(':', ''),
+      });
 
-  // Log request received (per SigNoz integration guide: request lifecycle logging)
-  await emitLog(SeverityNumber.INFO, 'Request received', {
-    'http.method': method,
-    'http.route': route,
-    'http.target': path,
-  });
-
-  try {
-    // Process the request
-    await next();
-
-    // Add response attributes after request is processed
-    if (span && 'setAttribute' in span) {
-      const statusCode = c.res.status;
-      const durationMs = Date.now() - requestStartTime;
-
-      (span as any).setAttribute('http.status_code', statusCode);
-      (span as any).setAttribute('http.duration_ms', durationMs);
-
-      // Set span status based on HTTP status code
-      if (statusCode >= 500) {
-        (span as any).setStatus({ code: 2, message: 'Server Error' }); // ERROR
-      } else if (statusCode >= 400) {
-        (span as any).setStatus({ code: 2, message: 'Client Error' }); // ERROR
-      } else {
-        (span as any).setStatus({ code: 1 }); // OK
+      if (isDebug) {
+        console.log(`[Telemetry] Active span created successfully`);
       }
 
-      // Log request completed (per SigNoz integration guide: request lifecycle logging)
-      await emitLog(
-        statusCode >= 400 ? SeverityNumber.ERROR : SeverityNumber.INFO,
-        'Request completed',
-        {
-          'http.method': method,
-          'http.route': route,
-          'http.target': path,
-          'http.status_code': statusCode,
-          'duration_ms': durationMs,
+      try {
+        // Process the request
+        await next();
+
+        // Add response attributes after request is processed
+        const statusCode = c.res.status;
+        const durationMs = Date.now() - requestStartTime;
+
+        span.setAttribute('http.status_code', statusCode);
+        span.setAttribute('http.duration_ms', durationMs);
+
+        // Set span status based on HTTP status code
+        if (statusCode >= 500) {
+          span.setStatus({ code: 2, message: 'Server Error' }); // ERROR
+        } else if (statusCode >= 400) {
+          span.setStatus({ code: 2, message: 'Client Error' }); // ERROR
+        } else {
+          span.setStatus({ code: 1 }); // OK
         }
-      );
+      } catch (error) {
+        // Record exception in span
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: (error as Error).message }); // ERROR
+        throw error;
+      }
+      // Span is automatically ended when this async function completes
+    },
+    {
+      'http.method': method,
+      'http.route': route,
     }
-  } catch (error) {
-    // Record exception in span
-    if (span && 'recordException' in span) {
-      (span as any).recordException(error as Error);
-      (span as any).setStatus({ code: 2, message: (error as Error).message }); // ERROR
-    }
-    throw error;
-  } finally {
-    // End the span
-    endSpan(span);
-  }
+  );
 }
