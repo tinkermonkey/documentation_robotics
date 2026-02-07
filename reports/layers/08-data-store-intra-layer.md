@@ -108,14 +108,14 @@ graph TB
 
 ### Outgoing Relationships (Column → Other Entities)
 
-| Relationship Type | Target Entity | Predicate      | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | derives-from      | Column        | `derives-from` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Column)
 
-| Relationship Type | Source Entity | Predicate      | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | derives-from      | Column        | `derives-from` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | aggregation       | Constraint    | `aggregates`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | reference         | Constraint    | `references`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -144,8 +144,8 @@ graph TB
 
 ### Outgoing Relationships (Constraint → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | aggregation       | Column        | `aggregates`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | reference         | Column        | `references`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | specialization    | Constraint    | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -154,8 +154,8 @@ graph TB
 
 ### Incoming Relationships (Other Entities → Constraint)
 
-| Relationship Type | Source Entity | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | specialization    | Constraint    | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Table         | `composes`    | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
@@ -176,8 +176,8 @@ graph TB
 
 ### Outgoing Relationships (Database → Other Entities)
 
-| Relationship Type | Target Entity  | Predicate    | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity  | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | aggregation       | DatabaseSchema | `aggregates` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | DatabaseSchema | `composes`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
@@ -202,8 +202,8 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (DatabaseSchema → Other Entities)
 
-| Relationship Type | Target Entity | Predicate  | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | composition       | Function      | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Sequence      | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Table         | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -211,8 +211,8 @@ _No incoming intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → DatabaseSchema)
 
-| Relationship Type | Source Entity | Predicate    | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | aggregation       | Database      | `aggregates` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Database      | `composes`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
@@ -233,8 +233,8 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Function → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | access            | Column        | `accesses`    | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | depends-on        | Function      | `depends-on`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | specialization    | Function      | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -245,8 +245,8 @@ _No incoming intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → Function)
 
-| Relationship Type | Source Entity  | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | -------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity  | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | composition       | DatabaseSchema | `composes`    | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | depends-on        | Function       | `depends-on`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | specialization    | Function       | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -269,8 +269,8 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Index → Other Entities)
 
-| Relationship Type | Target Entity | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | access            | Column        | `accesses`    | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | aggregation       | Column        | `aggregates`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | specialization    | Index         | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -278,8 +278,8 @@ _No incoming intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → Index)
 
-| Relationship Type | Source Entity | Predicate     | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity | Predicate     | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | specialization    | Index         | `specializes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Table         | `composes`    | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
@@ -300,14 +300,14 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Sequence → Other Entities)
 
-| Relationship Type | Target Entity | Predicate | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | --------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | --------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | serving           | Column        | `serves`  | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Sequence)
 
-| Relationship Type | Source Entity  | Predicate    | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity  | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | depends-on        | Constraint     | `depends-on` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | DatabaseSchema | `composes`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | reference         | Function       | `references` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -329,8 +329,8 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Table → Other Entities)
 
-| Relationship Type | Target Entity | Predicate  | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | composition       | Column        | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Constraint    | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Index         | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -338,8 +338,8 @@ _No incoming intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → Table)
 
-| Relationship Type | Source Entity  | Predicate      | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | -------------- | -------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity  | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | reference         | Constraint     | `references`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | DatabaseSchema | `composes`     | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | reference         | Function       | `references`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -367,15 +367,15 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (Trigger → Other Entities)
 
-| Relationship Type | Target Entity | Predicate    | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | triggering        | Function      | `triggers`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | depends-on        | Table         | `depends-on` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
 ### Incoming Relationships (Other Entities → Trigger)
 
-| Relationship Type | Source Entity | Predicate  | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity | Predicate  | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | ---------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | serving           | Function      | `serves`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | composition       | Table         | `composes` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 
@@ -396,8 +396,8 @@ _No incoming intra-layer relationships documented._
 
 ### Outgoing Relationships (View → Other Entities)
 
-| Relationship Type | Target Entity | Predicate      | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Target Entity | Predicate      | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | ------------- | -------------- | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | access            | Column        | `accesses`     | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | aggregation       | Column        | `aggregates`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | depends-on        | Table         | `depends-on`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
@@ -409,8 +409,8 @@ _No incoming intra-layer relationships documented._
 
 ### Incoming Relationships (Other Entities → View)
 
-| Relationship Type | Source Entity  | Predicate    | Status           | Source                                                       | In Catalog | Documented                                                 |
-| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------ | ---------- | ---------------------------------------------------------- |
+| Relationship Type | Source Entity  | Predicate    | Status           | Source                                                        | In Catalog | Documented                                                  |
+| ----------------- | -------------- | ------------ | ---------------- | ------------------------------------------------------------- | ---------- | ----------------------------------------------------------- |
 | composition       | DatabaseSchema | `composes`   | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | reference         | Function       | `references` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |
 | depends-on        | View           | `depends-on` | Documented + XML | [Doc](../../spec/layers/08-data-store-layer.md#relationships) | ✓          | [✓](../../spec/layers/08-data-store-layer.md#relationships) |

@@ -80,7 +80,10 @@
             "type": "string"
           },
           "description": "Required when type is 'enum'. Lists the valid string values for this attribute.",
-          "examples": [["high", "medium", "low"], ["active", "inactive", "archived"]]
+          "examples": [
+            ["high", "medium", "low"],
+            ["active", "inactive", "archived"]
+          ]
         },
         "format": {
           "type": "string",

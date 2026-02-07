@@ -11,7 +11,11 @@
       "type": "string",
       "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z-]+$",
       "description": "Unique relationship ID in format: {source-layer}.{predicate}.{dest-layer}. All components use lowercase with hyphens.",
-      "examples": ["motivation.supports.motivation", "motivation.realizes.business", "api.exposes.data-model"]
+      "examples": [
+        "motivation.supports.motivation",
+        "motivation.realizes.business",
+        "api.exposes.data-model"
+      ]
     },
     "source_spec_node_id": {
       "type": "string",

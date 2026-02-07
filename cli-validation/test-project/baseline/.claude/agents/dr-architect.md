@@ -399,7 +399,7 @@ $ dr validate
 | Service Class | application | `dr add application service --name "X"`      |
 | Pydantic/DTO  | data_model  | `dr add data_model object-schema --name "X"` |
 | ORM Model     | data_model  | `dr add data_model entity --name "X"`        |
-| DB Table      | data-store   | `dr add data-store table --name "X"`          |
+| DB Table      | data-store  | `dr add data-store table --name "X"`         |
 | UI Component  | ux          | `dr add ux component --name "X"`             |
 
 ### Confidence & Reporting
