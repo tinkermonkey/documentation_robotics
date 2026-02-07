@@ -1,0 +1,29 @@
+{
+  "id": "ux.actionpattern",
+  "layer_id": "ux",
+  "name": "ActionPattern",
+  "description": "Reusable action configuration for common user interactions",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "category": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

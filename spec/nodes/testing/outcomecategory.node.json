@@ -1,0 +1,35 @@
+{
+  "id": "testing.outcomecategory",
+  "layer_id": "testing",
+  "name": "OutcomeCategory",
+  "description": "Category of expected outcomes (not specific assertions)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "outcomeType": {
+      "type": "string",
+      "description": ""
+    },
+    "httpStatusRange": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "outcomeType",
+    "httpStatusRange"
+  ]
+}

@@ -1,0 +1,51 @@
+{
+  "id": "data-model.x-apm-data-quality-metrics",
+  "layer_id": "data-model",
+  "name": "x-apm-data-quality-metrics",
+  "description": "Links schema to data quality metrics in APM/Observability Layer",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "completenessMetrics": {
+      "type": "string",
+      "description": ""
+    },
+    "accuracyMetrics": {
+      "type": "string",
+      "description": ""
+    },
+    "consistencyMetrics": {
+      "type": "string",
+      "description": ""
+    },
+    "freshnessMetrics": {
+      "type": "string",
+      "description": ""
+    },
+    "uniquenessMetrics": {
+      "type": "string",
+      "description": ""
+    },
+    "integrityMetrics": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "completenessMetrics",
+    "accuracyMetrics",
+    "consistencyMetrics",
+    "freshnessMetrics",
+    "uniquenessMetrics",
+    "integrityMetrics"
+  ]
+}

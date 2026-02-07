@@ -1,0 +1,38 @@
+{
+  "id": "apm.traceconfiguration",
+  "layer_id": "apm",
+  "name": "TraceConfiguration",
+  "description": "Distributed tracing configuration",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "serviceName": {
+      "type": "string",
+      "description": ""
+    },
+    "serviceVersion": {
+      "type": "string",
+      "description": ""
+    },
+    "deploymentEnvironment": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference for trace configuration"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "serviceName"
+  ]
+}

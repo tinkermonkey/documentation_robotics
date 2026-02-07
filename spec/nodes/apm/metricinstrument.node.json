@@ -1,0 +1,43 @@
+{
+  "id": "apm.metricinstrument",
+  "layer_id": "apm",
+  "name": "MetricInstrument",
+  "description": "Defines a specific metric measurement instrument (Counter, Gauge, Histogram, etc.) with its name, unit, description, and attributes. The fundamental unit of metric collection.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "unit": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference for code-defined metrics"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "unit"
+  ]
+}

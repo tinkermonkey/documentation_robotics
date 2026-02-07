@@ -1,0 +1,8 @@
+{
+  "id": "data-model.stringformat",
+  "layer_id": "data-model",
+  "name": "StringFormat",
+  "description": "StringFormat element in Data Model Layer",
+  "attributes": {},
+  "required_attributes": []
+}

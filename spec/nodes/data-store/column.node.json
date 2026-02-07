@@ -1,0 +1,42 @@
+{
+  "id": "data-store.column",
+  "layer_id": "data-store",
+  "name": "Column",
+  "description": "Table column definition",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "dataType": {
+      "type": "string",
+      "description": ""
+    },
+    "nullable": {
+      "type": "boolean",
+      "description": ""
+    },
+    "defaultValue": {
+      "type": "string",
+      "description": ""
+    },
+    "generated": {
+      "type": "string",
+      "description": ""
+    },
+    "x-source-reference": {
+      "type": "string",
+      "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "dataType"
+  ]
+}

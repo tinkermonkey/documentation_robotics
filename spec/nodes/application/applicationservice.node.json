@@ -1,0 +1,34 @@
+{
+  "id": "application.applicationservice",
+  "layer_id": "application",
+  "name": "ApplicationService",
+  "description": "Service that exposes application functionality",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "serviceType": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "object",
+      "description": "Cross-layer properties"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "serviceType"
+  ]
+}

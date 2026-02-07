@@ -1,0 +1,41 @@
+{
+  "id": "testing.coverageexclusion",
+  "layer_id": "testing",
+  "name": "CoverageExclusion",
+  "description": "Explicit exclusion from coverage with justification",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "reason": {
+      "type": "string",
+      "description": ""
+    },
+    "riskAccepted": {
+      "type": "boolean",
+      "description": ""
+    },
+    "approvedBy": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "description",
+    "reason",
+    "riskAccepted",
+    "approvedBy"
+  ]
+}

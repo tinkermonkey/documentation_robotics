@@ -1,0 +1,38 @@
+{
+  "id": "technology.technologyinterface",
+  "layer_id": "technology",
+  "name": "TechnologyInterface",
+  "description": "Point of access where technology services are available",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "protocol": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "object",
+      "description": "Cross-layer properties"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "protocol"
+  ]
+}

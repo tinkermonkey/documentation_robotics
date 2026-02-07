@@ -1,0 +1,38 @@
+{
+  "id": "security.condition",
+  "layer_id": "security",
+  "name": "Condition",
+  "description": "A logical expression or predicate that determines when a SecurityPolicy rule applies. Supports attribute-based access control by evaluating context such as time, location, user attributes, or resource state.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "expression": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "evaluationType": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "expression"
+  ]
+}

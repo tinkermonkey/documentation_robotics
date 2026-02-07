@@ -1,0 +1,35 @@
+{
+  "id": "data-model.arrayschema",
+  "layer_id": "data-model",
+  "name": "ArraySchema",
+  "description": "ArraySchema validation rules",
+  "attributes": {
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "items": {
+      "type": "string",
+      "description": ""
+    },
+    "minItems": {
+      "type": "integer",
+      "description": ""
+    },
+    "maxItems": {
+      "type": "integer",
+      "description": ""
+    },
+    "uniqueItems": {
+      "type": "boolean",
+      "description": ""
+    },
+    "contains": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "type"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "api.externaldocumentation",
+  "layer_id": "api",
+  "name": "ExternalDocumentation",
+  "description": "A reference to external documentation resources (URLs, wikis, guides) that provide additional context beyond the inline API specification. Links API elements to comprehensive documentation.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "url": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "url"
+  ]
+}

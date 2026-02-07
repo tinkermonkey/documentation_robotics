@@ -1,0 +1,57 @@
+{
+  "id": "data-store.sequence",
+  "layer_id": "data-store",
+  "name": "Sequence",
+  "description": "A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "schema": {
+      "type": "string",
+      "description": ""
+    },
+    "dataType": {
+      "type": "string",
+      "description": ""
+    },
+    "startValue": {
+      "type": "integer",
+      "description": ""
+    },
+    "increment": {
+      "type": "integer",
+      "description": ""
+    },
+    "minValue": {
+      "type": "integer",
+      "description": ""
+    },
+    "maxValue": {
+      "type": "integer",
+      "description": ""
+    },
+    "cycle": {
+      "type": "boolean",
+      "description": ""
+    },
+    "cache": {
+      "type": "integer",
+      "description": ""
+    },
+    "ownedBy": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "id": "ux.errorconfig",
+  "layer_id": "ux",
+  "name": "ErrorConfig",
+  "description": "Configuration for error handling and display within UI components, specifying error message formats, retry behavior, fallback content, and user guidance. Ensures consistent error UX.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "showNotification": {
+      "type": "boolean",
+      "description": ""
+    },
+    "notificationType": {
+      "type": "string",
+      "description": ""
+    },
+    "errorMessage": {
+      "type": "string",
+      "description": ""
+    },
+    "defaultErrorMessage": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

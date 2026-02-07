@@ -1,0 +1,21 @@
+{
+  "id": "ux.performancetargets",
+  "layer_id": "ux",
+  "name": "PerformanceTargets",
+  "description": "Defines performance SLAs for UI components including load time, interaction responsiveness, and rendering thresholds. Enables performance monitoring and optimization.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

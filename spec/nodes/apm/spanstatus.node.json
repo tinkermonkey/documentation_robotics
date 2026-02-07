@@ -1,0 +1,30 @@
+{
+  "id": "apm.spanstatus",
+  "layer_id": "apm",
+  "name": "SpanStatus",
+  "description": "Outcome of span execution",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "code": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "code"
+  ]
+}

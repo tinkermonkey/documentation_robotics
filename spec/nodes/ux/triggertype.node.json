@@ -1,0 +1,8 @@
+{
+  "id": "ux.triggertype",
+  "layer_id": "ux",
+  "name": "TriggerType",
+  "description": "TriggerType element in UX Layer",
+  "attributes": {},
+  "required_attributes": []
+}

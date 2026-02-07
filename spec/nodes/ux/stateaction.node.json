@@ -1,0 +1,30 @@
+{
+  "id": "ux.stateaction",
+  "layer_id": "ux",
+  "name": "StateAction",
+  "description": "Action executed during state lifecycle",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "action": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "action"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "security.auditlevel",
+  "layer_id": "security",
+  "name": "AuditLevel",
+  "description": "AuditLevel element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

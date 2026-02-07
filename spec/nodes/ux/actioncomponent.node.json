@@ -1,0 +1,50 @@
+{
+  "id": "ux.actioncomponent",
+  "layer_id": "ux",
+  "name": "ActionComponent",
+  "description": "Interactive element that triggers actions (button, menu, link, voice command)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "label": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "icon": {
+      "type": "string",
+      "description": ""
+    },
+    "disabled": {
+      "type": "boolean",
+      "description": ""
+    },
+    "tooltip": {
+      "type": "string",
+      "description": ""
+    },
+    "channel": {
+      "type": "string",
+      "description": ""
+    },
+    "children": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

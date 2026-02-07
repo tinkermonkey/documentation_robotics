@@ -1,0 +1,43 @@
+{
+  "id": "security.countermeasure",
+  "layer_id": "security",
+  "name": "Countermeasure",
+  "description": "Security countermeasure for a threat",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "effectiveness": {
+      "type": "string",
+      "description": ""
+    },
+    "implemented": {
+      "type": "boolean",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "description"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "apm.spanevent",
+  "layer_id": "apm",
+  "name": "SpanEvent",
+  "description": "Timestamped event during span execution",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "timeUnixNano": {
+      "type": "string",
+      "description": ""
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedAttributesCount": {
+      "type": "string",
+      "description": ""
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "timeUnixNano",
+    "name",
+    "droppedAttributesCount"
+  ]
+}

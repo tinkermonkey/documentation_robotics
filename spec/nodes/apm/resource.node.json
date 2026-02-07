@@ -1,0 +1,34 @@
+{
+  "id": "apm.resource",
+  "layer_id": "apm",
+  "name": "Resource",
+  "description": "Immutable representation of entity producing telemetry",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "schemaUrl": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedAttributesCount": {
+      "type": "string",
+      "description": ""
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "droppedAttributesCount"
+  ]
+}

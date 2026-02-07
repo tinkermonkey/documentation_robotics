@@ -1,0 +1,46 @@
+{
+  "id": "security.accesscondition",
+  "layer_id": "security",
+  "name": "AccessCondition",
+  "description": "Conditional access rule",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "field": {
+      "type": "string",
+      "description": ""
+    },
+    "operator": {
+      "type": "string",
+      "description": ""
+    },
+    "value": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "field",
+    "operator",
+    "value",
+    "message",
+    "source"
+  ]
+}

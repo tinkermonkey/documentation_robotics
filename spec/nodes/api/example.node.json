@@ -1,0 +1,41 @@
+{
+  "id": "api.example",
+  "layer_id": "api",
+  "name": "Example",
+  "description": "Provides sample values for request bodies, responses, or parameters. Improves documentation clarity and enables automated testing or mocking.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "summary": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "value": {
+      "type": "string",
+      "description": ""
+    },
+    "externalValue": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "summary",
+    "description",
+    "value",
+    "externalValue"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": "testing.inputspacepartition",
+  "layer_id": "testing",
+  "name": "InputSpacePartition",
+  "description": "Partitioning of an input dimension into testable categories",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "fieldRef": {
+      "type": "string",
+      "description": ""
+    },
+    "presenceRule": {
+      "type": "string",
+      "description": ""
+    },
+    "partitions": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "fieldRef",
+    "presenceRule"
+  ]
+}

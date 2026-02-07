@@ -1,0 +1,40 @@
+{
+  "id": "navigation.processtracking",
+  "layer_id": "navigation",
+  "name": "ProcessTracking",
+  "description": "Tracks business process instance across flow (Gap #3: Process correlation)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "processInstanceId": {
+      "type": "string",
+      "description": ""
+    },
+    "resumable": {
+      "type": "boolean",
+      "description": ""
+    },
+    "timeoutMinutes": {
+      "type": "integer",
+      "description": ""
+    },
+    "stateCheckpoint": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "processInstanceId",
+    "timeoutMinutes",
+    "stateCheckpoint"
+  ]
+}

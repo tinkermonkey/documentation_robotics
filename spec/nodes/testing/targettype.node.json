@@ -1,0 +1,8 @@
+{
+  "id": "testing.targettype",
+  "layer_id": "testing",
+  "name": "TargetType",
+  "description": "TargetType element in Testing Layer",
+  "attributes": {},
+  "required_attributes": []
+}

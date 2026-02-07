@@ -1,0 +1,40 @@
+{
+  "id": "security.permission",
+  "layer_id": "security",
+  "name": "Permission",
+  "description": "Permission definition",
+  "attributes": {
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "scope": {
+      "type": "string",
+      "description": ""
+    },
+    "resource": {
+      "type": "string",
+      "description": ""
+    },
+    "action": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "name",
+    "id",
+    "scope",
+    "resource",
+    "action"
+  ]
+}

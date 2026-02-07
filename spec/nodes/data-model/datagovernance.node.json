@@ -1,0 +1,21 @@
+{
+  "id": "data-model.datagovernance",
+  "layer_id": "data-model",
+  "name": "DataGovernance",
+  "description": "Metadata about data ownership, classification, sensitivity level, and handling requirements. Ensures data is managed according to organizational policies and regulations.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

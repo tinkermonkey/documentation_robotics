@@ -1,0 +1,36 @@
+{
+  "id": "data-model.x-database",
+  "layer_id": "data-model",
+  "name": "x-database",
+  "description": "Database mapping information",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "table": {
+      "type": "string",
+      "description": ""
+    },
+    "schema": {
+      "type": "string",
+      "description": ""
+    },
+    "engine": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "table",
+    "schema",
+    "engine"
+  ]
+}

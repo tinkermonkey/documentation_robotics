@@ -1,0 +1,8 @@
+{
+  "id": "security.accesscontrollevel",
+  "layer_id": "security",
+  "name": "AccessControlLevel",
+  "description": "AccessControlLevel element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

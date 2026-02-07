@@ -1,0 +1,34 @@
+{
+  "id": "security.informationentity",
+  "layer_id": "security",
+  "name": "InformationEntity",
+  "description": "Information asset with fine-grained rights",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "classification": {
+      "type": "string",
+      "description": ""
+    },
+    "authorizationRequirements": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "classification"
+  ]
+}

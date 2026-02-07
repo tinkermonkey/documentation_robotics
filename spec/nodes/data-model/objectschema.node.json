@@ -1,0 +1,35 @@
+{
+  "id": "data-model.objectschema",
+  "layer_id": "data-model",
+  "name": "ObjectSchema",
+  "description": "ObjectSchema validation rules",
+  "attributes": {
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "required": {
+      "type": "string",
+      "description": ""
+    },
+    "additionalProperties": {
+      "type": "string",
+      "description": ""
+    },
+    "minProperties": {
+      "type": "integer",
+      "description": ""
+    },
+    "maxProperties": {
+      "type": "integer",
+      "description": ""
+    },
+    "properties": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "type"
+  ]
+}

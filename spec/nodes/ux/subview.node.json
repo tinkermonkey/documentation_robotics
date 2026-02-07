@@ -1,0 +1,33 @@
+{
+  "id": "ux.subview",
+  "layer_id": "ux",
+  "name": "SubView",
+  "description": "Instance of a LibrarySubView or custom sub-view definition",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "order": {
+      "type": "integer",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

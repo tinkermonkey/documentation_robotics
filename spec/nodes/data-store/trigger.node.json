@@ -1,0 +1,55 @@
+{
+  "id": "data-store.trigger",
+  "layer_id": "data-store",
+  "name": "Trigger",
+  "description": "A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "table": {
+      "type": "string",
+      "description": ""
+    },
+    "timing": {
+      "type": "string",
+      "description": ""
+    },
+    "events": {
+      "type": "string",
+      "description": ""
+    },
+    "forEach": {
+      "type": "string",
+      "description": ""
+    },
+    "functionName": {
+      "type": "string",
+      "description": ""
+    },
+    "condition": {
+      "type": "string",
+      "description": ""
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "table",
+    "timing",
+    "events",
+    "forEach",
+    "functionName",
+    "condition"
+  ]
+}

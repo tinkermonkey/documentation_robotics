@@ -1,0 +1,25 @@
+{
+  "id": "testing.coveragegap",
+  "layer_id": "testing",
+  "name": "CoverageGap",
+  "description": "Identified gap in test coverage requiring attention",
+  "attributes": {
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "severity": {
+      "type": "string",
+      "description": ""
+    },
+    "affectedRequirements": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "description",
+    "severity",
+    "affectedRequirements"
+  ]
+}

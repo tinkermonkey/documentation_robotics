@@ -1,0 +1,8 @@
+{
+  "id": "motivation.principlecategory",
+  "layer_id": "motivation",
+  "name": "PrincipleCategory",
+  "description": "PrincipleCategory element in Motivation Layer",
+  "attributes": {},
+  "required_attributes": []
+}

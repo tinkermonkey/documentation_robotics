@@ -1,0 +1,29 @@
+{
+  "id": "data-store.view",
+  "layer_id": "data-store",
+  "name": "View",
+  "description": "Database view",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "definition": {
+      "type": "string",
+      "description": ""
+    },
+    "materialized": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

@@ -1,0 +1,26 @@
+{
+  "id": "data-store.constraint",
+  "layer_id": "data-store",
+  "name": "Constraint",
+  "description": "Table constraint",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

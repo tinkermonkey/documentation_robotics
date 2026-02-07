@@ -1,0 +1,39 @@
+{
+  "id": "navigation.navigationguard",
+  "layer_id": "navigation",
+  "name": "NavigationGuard",
+  "description": "Guard condition for route access",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "order": {
+      "type": "integer",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "order"
+  ]
+}

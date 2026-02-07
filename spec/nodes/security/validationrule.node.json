@@ -1,0 +1,44 @@
+{
+  "id": "security.validationrule",
+  "layer_id": "security",
+  "name": "ValidationRule",
+  "description": "Specifies data validation constraints for FieldAccessControl, defining allowed patterns, value ranges, or transformations applied when accessing protected fields. Prevents data corruption and enforces field-level integrity.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "value": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    },
+    "severity": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "value",
+    "message"
+  ]
+}

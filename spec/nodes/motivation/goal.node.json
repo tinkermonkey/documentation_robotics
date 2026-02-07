@@ -1,0 +1,34 @@
+{
+  "id": "motivation.goal",
+  "layer_id": "motivation",
+  "name": "Goal",
+  "description": "High-level statement of intent, direction, or desired end state",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "priority": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "object",
+      "description": "Cross-layer properties"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "priority"
+  ]
+}

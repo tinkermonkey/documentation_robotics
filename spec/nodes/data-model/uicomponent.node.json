@@ -1,0 +1,8 @@
+{
+  "id": "data-model.uicomponent",
+  "layer_id": "data-model",
+  "name": "UIComponent",
+  "description": "UIComponent element in Data Model Layer",
+  "attributes": {},
+  "required_attributes": []
+}

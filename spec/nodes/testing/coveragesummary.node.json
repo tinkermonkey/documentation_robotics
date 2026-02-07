@@ -1,0 +1,37 @@
+{
+  "id": "testing.coveragesummary",
+  "layer_id": "testing",
+  "name": "CoverageSummary",
+  "description": "Summary of coverage status (can be computed or declared)",
+  "attributes": {
+    "generatedAt": {
+      "type": "string",
+      "description": ""
+    },
+    "totalTargets": {
+      "type": "integer",
+      "description": ""
+    },
+    "totalRequirements": {
+      "type": "integer",
+      "description": ""
+    },
+    "totalSketches": {
+      "type": "integer",
+      "description": ""
+    },
+    "targetSummaries": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "gaps": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "totalTargets",
+    "totalRequirements",
+    "totalSketches"
+  ]
+}

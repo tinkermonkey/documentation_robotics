@@ -1,0 +1,8 @@
+{
+  "id": "motivation.drivercategory",
+  "layer_id": "motivation",
+  "name": "DriverCategory",
+  "description": "DriverCategory element in Motivation Layer",
+  "attributes": {},
+  "required_attributes": []
+}

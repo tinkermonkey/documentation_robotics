@@ -1,0 +1,35 @@
+{
+  "id": "security.evidence",
+  "layer_id": "security",
+  "name": "Evidence",
+  "description": "Evidence required for accountability",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "strength": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "source"
+  ]
+}

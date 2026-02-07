@@ -1,0 +1,37 @@
+{
+  "id": "apm.meterconfig",
+  "layer_id": "apm",
+  "name": "MeterConfig",
+  "description": "Configuration for metric collection meters, specifying aggregation temporality, cardinality limits, and collection intervals. Controls how metrics are gathered and aggregated.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "version": {
+      "type": "string",
+      "description": ""
+    },
+    "schemaUrl": {
+      "type": "string",
+      "description": ""
+    },
+    "instruments": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

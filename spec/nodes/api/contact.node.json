@@ -1,0 +1,31 @@
+{
+  "id": "api.contact",
+  "layer_id": "api",
+  "name": "Contact",
+  "description": "Contact information for the API owner or maintainer, including name, email, and URL. Enables consumers to reach out for support or collaboration.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "url": {
+      "type": "string",
+      "description": ""
+    },
+    "email": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "url",
+    "email",
+    "name"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "id": "testing.environmentfactor",
+  "layer_id": "testing",
+  "name": "EnvironmentFactor",
+  "description": "Environmental condition that may affect behavior",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "factor": {
+      "type": "string",
+      "description": ""
+    },
+    "value": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "factor",
+    "value"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "data-store.indexmethod",
+  "layer_id": "data-store",
+  "name": "IndexMethod",
+  "description": "IndexMethod element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

@@ -1,0 +1,8 @@
+{
+  "id": "apm.aggregationtemporality",
+  "layer_id": "apm",
+  "name": "AggregationTemporality",
+  "description": "AggregationTemporality element in APM Observability Layer",
+  "attributes": {},
+  "required_attributes": []
+}

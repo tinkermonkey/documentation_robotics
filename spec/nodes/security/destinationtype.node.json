@@ -1,0 +1,8 @@
+{
+  "id": "security.destinationtype",
+  "layer_id": "security",
+  "name": "DestinationType",
+  "description": "DestinationType element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

@@ -1,0 +1,8 @@
+{
+  "id": "security.actortype",
+  "layer_id": "security",
+  "name": "ActorType",
+  "description": "ActorType element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

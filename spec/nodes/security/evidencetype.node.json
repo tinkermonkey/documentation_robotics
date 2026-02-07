@@ -1,0 +1,8 @@
+{
+  "id": "security.evidencetype",
+  "layer_id": "security",
+  "name": "EvidenceType",
+  "description": "EvidenceType element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

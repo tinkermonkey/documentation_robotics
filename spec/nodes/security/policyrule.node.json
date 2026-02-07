@@ -1,0 +1,43 @@
+{
+  "id": "security.policyrule",
+  "layer_id": "security",
+  "name": "PolicyRule",
+  "description": "Individual policy rule",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "condition": {
+      "type": "string",
+      "description": ""
+    },
+    "effect": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    },
+    "actions": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "condition",
+    "effect"
+  ]
+}

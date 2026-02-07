@@ -1,0 +1,30 @@
+{
+  "id": "motivation.assessment",
+  "layer_id": "motivation",
+  "name": "Assessment",
+  "description": "Outcome of analysis of the state of affairs",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "assessmentType": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "assessmentType"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "ux.animationtype",
+  "layer_id": "ux",
+  "name": "AnimationType",
+  "description": "AnimationType element in UX Layer",
+  "attributes": {},
+  "required_attributes": []
+}

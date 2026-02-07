@@ -1,0 +1,38 @@
+{
+  "id": "ux.statetransition",
+  "layer_id": "ux",
+  "name": "StateTransition",
+  "description": "Transition from current state to another state",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "to": {
+      "type": "string",
+      "description": ""
+    },
+    "trigger": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "actions": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "trigger"
+  ]
+}

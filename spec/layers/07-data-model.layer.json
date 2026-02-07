@@ -1,0 +1,43 @@
+{
+  "id": "data-model",
+  "number": 7,
+  "name": "Data Model Layer",
+  "description": "Layer 7: Data Model Layer",
+  "inspired_by": {
+    "standard": "JSON Schema Draft 7",
+    "version": "Draft 7",
+    "url": "https://json-schema.org/draft-07/"
+  },
+  "node_types": [
+    "data-model.arrayschema",
+    "data-model.constrainttype",
+    "data-model.databasemapping",
+    "data-model.dataclassificationlevel",
+    "data-model.datagovernance",
+    "data-model.dataqualitymetrics",
+    "data-model.indextype",
+    "data-model.jsonschema",
+    "data-model.jsontype",
+    "data-model.maskingstrategy",
+    "data-model.numericschema",
+    "data-model.objectschema",
+    "data-model.partitionstrategy",
+    "data-model.reference",
+    "data-model.referentialaction",
+    "data-model.schemacomposition",
+    "data-model.schemadefinition",
+    "data-model.schemaproperty",
+    "data-model.securityclassification",
+    "data-model.sqltype",
+    "data-model.string",
+    "data-model.stringformat",
+    "data-model.stringschema",
+    "data-model.uicomponent",
+    "data-model.x-apm-data-quality-metrics",
+    "data-model.x-business-object-ref",
+    "data-model.x-data-governance",
+    "data-model.x-database",
+    "data-model.x-security",
+    "data-model.x-ui"
+  ]
+}

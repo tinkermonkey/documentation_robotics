@@ -1,0 +1,57 @@
+{
+  "id": "api.components",
+  "layer_id": "api",
+  "name": "Components",
+  "description": "Reusable component definitions",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "schemas": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "responses": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "parameters": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "examples": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "requestBodies": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "headers": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "securitySchemes": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "links": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "callbacks": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

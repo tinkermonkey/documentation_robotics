@@ -1,0 +1,43 @@
+{
+  "id": "security.authenticationconfig",
+  "layer_id": "security",
+  "name": "AuthenticationConfig",
+  "description": "Authentication configuration",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "provider": {
+      "type": "string",
+      "description": ""
+    },
+    "sessionTimeout": {
+      "type": "integer",
+      "description": ""
+    },
+    "mfaRequired": {
+      "type": "boolean",
+      "description": ""
+    },
+    "passwordPolicy": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "provider",
+    "sessionTimeout"
+  ]
+}

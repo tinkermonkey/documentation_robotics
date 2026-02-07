@@ -1,0 +1,43 @@
+{
+  "id": "security.secureresource",
+  "layer_id": "security",
+  "name": "SecureResource",
+  "description": "Protected resource definition",
+  "attributes": {
+    "resource": {
+      "type": "string",
+      "description": ""
+    },
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "operations": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "fieldAccess": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "resource",
+    "id",
+    "name",
+    "type"
+  ]
+}

@@ -1,0 +1,41 @@
+{
+  "id": "ux.uxspec",
+  "layer_id": "ux",
+  "name": "UXSpec",
+  "description": "Complete UX specification for a single experience (visual, voice, chat, SMS)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "version": {
+      "type": "string",
+      "description": ""
+    },
+    "experience": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

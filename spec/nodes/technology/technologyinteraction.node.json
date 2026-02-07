@@ -1,0 +1,25 @@
+{
+  "id": "technology.technologyinteraction",
+  "layer_id": "technology",
+  "name": "TechnologyInteraction",
+  "description": "Unit of collective technology behavior",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "id": "security.dataclassification",
+  "layer_id": "security",
+  "name": "DataClassification",
+  "description": "Data classification and protection policies",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "version": {
+      "type": "string",
+      "description": ""
+    },
+    "classifications": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

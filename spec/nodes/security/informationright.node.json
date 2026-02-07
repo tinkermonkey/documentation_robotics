@@ -1,0 +1,31 @@
+{
+  "id": "security.informationright",
+  "layer_id": "security",
+  "name": "InformationRight",
+  "description": "Fine-grained information access rights",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "actor": {
+      "type": "string",
+      "description": ""
+    },
+    "constraint": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "actor",
+    "constraint"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "navigation.navigationtransition",
+  "layer_id": "navigation",
+  "name": "NavigationTransition",
+  "description": "Transition from one route to another",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "from": {
+      "type": "string",
+      "description": ""
+    },
+    "to": {
+      "type": "string",
+      "description": ""
+    },
+    "trigger": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "guards": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "from",
+    "to",
+    "trigger"
+  ]
+}

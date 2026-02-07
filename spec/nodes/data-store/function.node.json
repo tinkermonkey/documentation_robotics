@@ -1,0 +1,63 @@
+{
+  "id": "data-store.function",
+  "layer_id": "data-store",
+  "name": "Function",
+  "description": "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "schema": {
+      "type": "string",
+      "description": ""
+    },
+    "language": {
+      "type": "string",
+      "description": ""
+    },
+    "returnType": {
+      "type": "string",
+      "description": ""
+    },
+    "volatility": {
+      "type": "string",
+      "description": ""
+    },
+    "parallel": {
+      "type": "string",
+      "description": ""
+    },
+    "strict": {
+      "type": "boolean",
+      "description": ""
+    },
+    "security": {
+      "type": "string",
+      "description": ""
+    },
+    "cost": {
+      "type": "integer",
+      "description": ""
+    },
+    "rows": {
+      "type": "integer",
+      "description": ""
+    },
+    "x-source-reference": {
+      "type": "string",
+      "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "language",
+    "returnType"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "id": "apm.logprocessor",
+  "layer_id": "apm",
+  "name": "LogProcessor",
+  "description": "A processing pipeline component for log records, enabling filtering, transformation, enrichment, or routing of logs before export. Customizes log processing behavior.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "order": {
+      "type": "integer",
+      "description": ""
+    },
+    "enabled": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

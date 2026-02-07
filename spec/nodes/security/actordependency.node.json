@@ -1,0 +1,41 @@
+{
+  "id": "security.actordependency",
+  "layer_id": "security",
+  "name": "ActorDependency",
+  "description": "Dependency between actors",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "dependee": {
+      "type": "string",
+      "description": ""
+    },
+    "resource": {
+      "type": "string",
+      "description": ""
+    },
+    "objective": {
+      "type": "string",
+      "description": ""
+    },
+    "criticality": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "dependee",
+    "resource",
+    "objective",
+    "criticality"
+  ]
+}

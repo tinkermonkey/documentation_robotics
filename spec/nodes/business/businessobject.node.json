@@ -1,0 +1,29 @@
+{
+  "id": "business.businessobject",
+  "layer_id": "business",
+  "name": "BusinessObject",
+  "description": "Concept used within business domain",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "object",
+      "description": "Cross-layer properties"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

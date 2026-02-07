@@ -1,0 +1,8 @@
+{
+  "id": "security.encryptionrequirement",
+  "layer_id": "security",
+  "name": "EncryptionRequirement",
+  "description": "EncryptionRequirement element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

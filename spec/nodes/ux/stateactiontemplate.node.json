@@ -1,0 +1,30 @@
+{
+  "id": "ux.stateactiontemplate",
+  "layer_id": "ux",
+  "name": "StateActionTemplate",
+  "description": "A reusable template defining actions to execute during component state transitions. Enables standardized behavior patterns for common state changes.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "action": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "action"
+  ]
+}

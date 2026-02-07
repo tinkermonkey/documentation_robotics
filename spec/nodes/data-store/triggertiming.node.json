@@ -1,0 +1,8 @@
+{
+  "id": "data-store.triggertiming",
+  "layer_id": "data-store",
+  "name": "TriggerTiming",
+  "description": "TriggerTiming element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

@@ -1,0 +1,30 @@
+{
+  "id": "motivation.stakeholder",
+  "layer_id": "motivation",
+  "name": "Stakeholder",
+  "description": "Individual, team, or organization with interest in the outcome",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

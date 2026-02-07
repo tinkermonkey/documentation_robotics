@@ -1,0 +1,29 @@
+{
+  "id": "api.oauthflow",
+  "layer_id": "api",
+  "name": "OAuthFlow",
+  "description": "Individual OAuth 2.0 flow configuration",
+  "attributes": {
+    "authorizationUrl": {
+      "type": "string",
+      "description": ""
+    },
+    "tokenUrl": {
+      "type": "string",
+      "description": ""
+    },
+    "refreshUrl": {
+      "type": "string",
+      "description": ""
+    },
+    "scopes": {
+      "type": "object",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "authorizationUrl",
+    "tokenUrl",
+    "scopes"
+  ]
+}

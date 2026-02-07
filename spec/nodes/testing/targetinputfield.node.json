@@ -1,0 +1,39 @@
+{
+  "id": "testing.targetinputfield",
+  "layer_id": "testing",
+  "name": "TargetInputField",
+  "description": "Input field associated with a coverage target",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "fieldRef": {
+      "type": "string",
+      "description": ""
+    },
+    "partitionRef": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "relevance": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "fieldRef",
+    "partitionRef"
+  ]
+}

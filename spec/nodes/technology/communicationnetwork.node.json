@@ -1,0 +1,38 @@
+{
+  "id": "technology.communicationnetwork",
+  "layer_id": "technology",
+  "name": "CommunicationNetwork",
+  "description": "Set of structures that connects nodes",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    },
+    "networkType": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "object",
+      "description": "Cross-layer properties"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "networkType"
+  ]
+}

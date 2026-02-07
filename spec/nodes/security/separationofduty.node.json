@@ -1,0 +1,36 @@
+{
+  "id": "security.separationofduty",
+  "layer_id": "security",
+  "name": "SeparationOfDuty",
+  "description": "Different actors must perform related tasks",
+  "attributes": {
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    },
+    "tasks": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "roles": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "mutuallyExclusive": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "name",
+    "message"
+  ]
+}

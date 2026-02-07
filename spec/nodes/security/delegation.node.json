@@ -1,0 +1,40 @@
+{
+  "id": "security.delegation",
+  "layer_id": "security",
+  "name": "Delegation",
+  "description": "Explicit delegation of permissions or goals",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "delegator": {
+      "type": "string",
+      "description": ""
+    },
+    "delegatee": {
+      "type": "string",
+      "description": ""
+    },
+    "delegationType": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "delegator",
+    "delegatee",
+    "delegationType"
+  ]
+}

@@ -1,0 +1,49 @@
+{
+  "id": "security.threat",
+  "layer_id": "security",
+  "name": "Threat",
+  "description": "Security threat and countermeasures",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "threatens": {
+      "type": "string",
+      "description": ""
+    },
+    "likelihood": {
+      "type": "string",
+      "description": ""
+    },
+    "impact": {
+      "type": "string",
+      "description": ""
+    },
+    "countermeasures": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "description",
+    "threatens",
+    "likelihood",
+    "impact"
+  ]
+}

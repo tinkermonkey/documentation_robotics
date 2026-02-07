@@ -1,0 +1,30 @@
+{
+  "id": "security.fieldaccesscontrol",
+  "layer_id": "security",
+  "name": "FieldAccessControl",
+  "description": "Field-level access control",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "field": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "field"
+  ]
+}

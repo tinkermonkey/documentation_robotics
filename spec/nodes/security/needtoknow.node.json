@@ -1,0 +1,35 @@
+{
+  "id": "security.needtoknow",
+  "layer_id": "security",
+  "name": "NeedToKnow",
+  "description": "Information access based on objective/purpose requirements",
+  "attributes": {
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "resource": {
+      "type": "string",
+      "description": ""
+    },
+    "objective": {
+      "type": "string",
+      "description": ""
+    },
+    "message": {
+      "type": "string",
+      "description": ""
+    },
+    "justificationRequired": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "name",
+    "resource",
+    "objective",
+    "message",
+    "justificationRequired"
+  ]
+}

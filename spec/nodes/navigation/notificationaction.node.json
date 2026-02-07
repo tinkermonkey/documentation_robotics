@@ -1,0 +1,36 @@
+{
+  "id": "navigation.notificationaction",
+  "layer_id": "navigation",
+  "name": "NotificationAction",
+  "description": "Notification to send during flow step",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "template": {
+      "type": "string",
+      "description": ""
+    },
+    "recipients": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "template",
+    "recipients"
+  ]
+}

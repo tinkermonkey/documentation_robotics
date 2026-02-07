@@ -1,0 +1,42 @@
+{
+  "id": "security.actor",
+  "layer_id": "security",
+  "name": "Actor",
+  "description": "Actor in the system (beyond roles)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "trustLevel": {
+      "type": "string",
+      "description": ""
+    },
+    "objectives": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

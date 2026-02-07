@@ -1,0 +1,38 @@
+{
+  "id": "apm.dataqualitymetric",
+  "layer_id": "apm",
+  "name": "DataQualityMetric",
+  "description": "Individual data quality metric",
+  "attributes": {
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "measurement": {
+      "type": "string",
+      "description": ""
+    },
+    "threshold": {
+      "type": "string",
+      "description": ""
+    },
+    "alertOnViolation": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "type",
+    "name",
+    "measurement",
+    "threshold"
+  ]
+}

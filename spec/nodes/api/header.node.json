@@ -1,0 +1,37 @@
+{
+  "id": "api.header",
+  "layer_id": "api",
+  "name": "Header",
+  "description": "Defines HTTP header parameters for requests or responses, specifying name, schema, required status, and description. Documents header-based communication requirements.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "required": {
+      "type": "boolean",
+      "description": ""
+    },
+    "deprecated": {
+      "type": "boolean",
+      "description": ""
+    },
+    "allowEmptyValue": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

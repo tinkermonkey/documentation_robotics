@@ -1,0 +1,40 @@
+{
+  "id": "navigation.contextvariable",
+  "layer_id": "navigation",
+  "name": "ContextVariable",
+  "description": "Shared variable across flow steps (Gap #1: Cross-experience state)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "schemaRef": {
+      "type": "string",
+      "description": ""
+    },
+    "scope": {
+      "type": "string",
+      "description": ""
+    },
+    "persistedIn": {
+      "type": "string",
+      "description": ""
+    },
+    "defaultValue": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "schemaRef",
+    "scope",
+    "persistedIn"
+  ]
+}

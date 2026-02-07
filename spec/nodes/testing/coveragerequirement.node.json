@@ -1,0 +1,50 @@
+{
+  "id": "testing.coveragerequirement",
+  "layer_id": "testing",
+  "name": "CoverageRequirement",
+  "description": "Requirement for test coverage of a target",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "coverageCriteria": {
+      "type": "string",
+      "description": ""
+    },
+    "priority": {
+      "type": "string",
+      "description": ""
+    },
+    "inputPartitionSelections": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "contextSelections": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "outcomeSelections": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "exclusions": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "coverageCriteria"
+  ]
+}

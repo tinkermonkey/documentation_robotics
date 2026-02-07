@@ -1,0 +1,54 @@
+{
+  "id": "navigation.routemeta",
+  "layer_id": "navigation",
+  "name": "RouteMeta",
+  "description": "Route metadata",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "requiresAuth": {
+      "type": "boolean",
+      "description": ""
+    },
+    "roles": {
+      "type": "string",
+      "description": ""
+    },
+    "permissions": {
+      "type": "string",
+      "description": ""
+    },
+    "layout": {
+      "type": "string",
+      "description": ""
+    },
+    "breadcrumb": {
+      "type": "string",
+      "description": ""
+    },
+    "keepAlive": {
+      "type": "boolean",
+      "description": ""
+    },
+    "transition": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "roles",
+    "permissions",
+    "layout",
+    "keepAlive",
+    "transition"
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "security.ratelimit",
+  "layer_id": "security",
+  "name": "RateLimit",
+  "description": "Defines throttling constraints for API or service access, specifying maximum request counts, time windows, and actions to take when limits are exceeded. Protects resources from abuse and ensures fair usage across consumers.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "requests": {
+      "type": "integer",
+      "description": ""
+    },
+    "window": {
+      "type": "string",
+      "description": ""
+    },
+    "scope": {
+      "type": "string",
+      "description": ""
+    },
+    "keyBy": {
+      "type": "string",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "requests",
+    "window",
+    "keyBy"
+  ]
+}

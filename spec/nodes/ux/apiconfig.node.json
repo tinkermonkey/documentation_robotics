@@ -1,0 +1,41 @@
+{
+  "id": "ux.apiconfig",
+  "layer_id": "ux",
+  "name": "ApiConfig",
+  "description": "Configuration for API integration within UI components, specifying endpoints, request/response mapping, authentication, and caching strategies. Connects UI to backend services.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "operationId": {
+      "type": "string",
+      "description": ""
+    },
+    "method": {
+      "type": "string",
+      "description": ""
+    },
+    "endpoint": {
+      "type": "string",
+      "description": ""
+    },
+    "baseUrl": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "operationId",
+    "method",
+    "endpoint",
+    "baseUrl"
+  ]
+}

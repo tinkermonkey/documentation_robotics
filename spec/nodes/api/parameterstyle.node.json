@@ -1,0 +1,8 @@
+{
+  "id": "api.parameterstyle",
+  "layer_id": "api",
+  "name": "ParameterStyle",
+  "description": "ParameterStyle element in API Layer",
+  "attributes": {},
+  "required_attributes": []
+}

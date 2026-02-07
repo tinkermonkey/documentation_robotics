@@ -1,0 +1,8 @@
+{
+  "id": "data-model.partitionstrategy",
+  "layer_id": "data-model",
+  "name": "PartitionStrategy",
+  "description": "PartitionStrategy element in Data Model Layer",
+  "attributes": {},
+  "required_attributes": []
+}

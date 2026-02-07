@@ -1,0 +1,43 @@
+{
+  "id": "ux.tablecolumn",
+  "layer_id": "ux",
+  "name": "TableColumn",
+  "description": "Configuration for a single column within a data table component, specifying header, data binding, sorting, filtering, and rendering options. Defines table structure and behavior.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "header": {
+      "type": "string",
+      "description": ""
+    },
+    "field": {
+      "type": "string",
+      "description": ""
+    },
+    "width": {
+      "type": "string",
+      "description": ""
+    },
+    "minWidth": {
+      "type": "string",
+      "description": ""
+    },
+    "maxWidth": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "header",
+    "field"
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "id": "apm.exportertype",
+  "layer_id": "apm",
+  "name": "ExporterType",
+  "description": "ExporterType element in APM Observability Layer",
+  "attributes": {},
+  "required_attributes": []
+}

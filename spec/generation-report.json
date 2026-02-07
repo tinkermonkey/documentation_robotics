@@ -1,0 +1,26 @@
+{
+  "timestamp": "2026-02-07T22:33:05.987Z",
+  "specLayers": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 12
+  },
+  "specNodes": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 364
+  },
+  "specNodeRelationships": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 0
+  },
+  "predicateCatalog": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 22
+  },
+  "totalInstancesGenerated": 398,
+  "totalInstancesValid": 398,
+  "success": true
+}

@@ -1,0 +1,30 @@
+{
+  "id": "security.actorobjective",
+  "layer_id": "security",
+  "name": "ActorObjective",
+  "description": "Security-related objective or goal of an actor",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "criticality": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "description"
+  ]
+}

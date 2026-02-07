@@ -1,0 +1,56 @@
+{
+  "id": "data-model.jsonschema",
+  "layer_id": "data-model",
+  "name": "JSONSchema",
+  "description": "Root schema document",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "$schema": {
+      "type": "string",
+      "description": ""
+    },
+    "$id": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "definitions": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "properties": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "x-source-reference": {
+      "type": "string",
+      "description": "Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology)."
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "$schema",
+    "$id",
+    "type"
+  ]
+}

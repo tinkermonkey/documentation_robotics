@@ -1,0 +1,34 @@
+{
+  "id": "testing.contextvariation",
+  "layer_id": "testing",
+  "name": "ContextVariation",
+  "description": "Different context in which functionality can be invoked",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "contextType": {
+      "type": "string",
+      "description": ""
+    },
+    "environmentFactors": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "contextType"
+  ]
+}

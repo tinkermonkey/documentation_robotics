@@ -1,0 +1,38 @@
+{
+  "id": "testing.testcasesketch",
+  "layer_id": "testing",
+  "name": "TestCaseSketch",
+  "description": "Abstract test case selecting specific partition values",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "status": {
+      "type": "string",
+      "description": ""
+    },
+    "inputSelections": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference to the test case implementation"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "status"
+  ]
+}

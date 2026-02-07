@@ -1,0 +1,8 @@
+{
+  "id": "navigation.notificationtype",
+  "layer_id": "navigation",
+  "name": "NotificationType",
+  "description": "NotificationType element in Navigation Layer",
+  "attributes": {},
+  "required_attributes": []
+}

@@ -1,0 +1,25 @@
+{
+  "id": "security.classification",
+  "layer_id": "security",
+  "name": "Classification",
+  "description": "A single classification level defining data sensitivity and protection requirements",
+  "attributes": {
+    "level": {
+      "type": "string",
+      "description": ""
+    },
+    "label": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "level",
+    "label",
+    "description"
+  ]
+}

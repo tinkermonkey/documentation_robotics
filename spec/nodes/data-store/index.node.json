@@ -1,0 +1,41 @@
+{
+  "id": "data-store.index",
+  "layer_id": "data-store",
+  "name": "Index",
+  "description": "Database index for query optimization",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "columns": {
+      "type": "string",
+      "description": ""
+    },
+    "unique": {
+      "type": "boolean",
+      "description": ""
+    },
+    "method": {
+      "type": "string",
+      "description": ""
+    },
+    "where": {
+      "type": "string",
+      "description": ""
+    },
+    "include": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

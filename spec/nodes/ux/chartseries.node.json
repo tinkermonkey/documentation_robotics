@@ -1,0 +1,39 @@
+{
+  "id": "ux.chartseries",
+  "layer_id": "ux",
+  "name": "ChartSeries",
+  "description": "Configuration for a data series within a chart component, specifying data source, visualization type, colors, and legend properties. Defines how data is visualized in charts.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "label": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "dataField": {
+      "type": "string",
+      "description": ""
+    },
+    "categoryField": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "label",
+    "dataField"
+  ]
+}

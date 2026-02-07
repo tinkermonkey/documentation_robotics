@@ -1,0 +1,35 @@
+{
+  "id": "security.policyaction",
+  "layer_id": "security",
+  "name": "PolicyAction",
+  "description": "Action to take when policy rule matches",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "parameters": {
+      "type": "object",
+      "description": ""
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "parameters"
+  ]
+}

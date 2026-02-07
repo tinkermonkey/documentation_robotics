@@ -1,0 +1,8 @@
+{
+  "id": "data-store.databasetype",
+  "layer_id": "data-store",
+  "name": "DatabaseType",
+  "description": "DatabaseType element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

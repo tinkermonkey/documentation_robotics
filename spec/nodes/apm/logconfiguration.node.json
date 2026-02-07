@@ -1,0 +1,31 @@
+{
+  "id": "apm.logconfiguration",
+  "layer_id": "apm",
+  "name": "LogConfiguration",
+  "description": "Logging configuration",
+  "attributes": {
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "serviceName": {
+      "type": "string",
+      "description": ""
+    },
+    "logLevel": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "name",
+    "id",
+    "serviceName",
+    "logLevel"
+  ]
+}

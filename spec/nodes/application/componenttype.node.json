@@ -1,0 +1,8 @@
+{
+  "id": "application.componenttype",
+  "layer_id": "application",
+  "name": "ComponentType",
+  "description": "ComponentType element in Application Layer",
+  "attributes": {},
+  "required_attributes": []
+}

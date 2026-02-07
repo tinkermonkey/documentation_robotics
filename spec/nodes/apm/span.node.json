@@ -1,0 +1,83 @@
+{
+  "id": "apm.span",
+  "layer_id": "apm",
+  "name": "Span",
+  "description": "Unit of work in distributed tracing",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "traceId": {
+      "type": "string",
+      "description": ""
+    },
+    "spanId": {
+      "type": "string",
+      "description": ""
+    },
+    "traceState": {
+      "type": "string",
+      "description": ""
+    },
+    "parentSpanId": {
+      "type": "string",
+      "description": ""
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "spanKind": {
+      "type": "string",
+      "description": ""
+    },
+    "startTimeUnixNano": {
+      "type": "string",
+      "description": ""
+    },
+    "endTimeUnixNano": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedAttributesCount": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedEventsCount": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedLinksCount": {
+      "type": "string",
+      "description": ""
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "events": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "links": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "traceId",
+    "spanId",
+    "traceState",
+    "parentSpanId",
+    "name",
+    "spanKind",
+    "startTimeUnixNano",
+    "endTimeUnixNano",
+    "droppedAttributesCount",
+    "droppedEventsCount",
+    "droppedLinksCount"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "id": "business.businessrole",
+  "layer_id": "business",
+  "name": "BusinessRole",
+  "description": "The responsibility for performing specific behavior",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "documentation": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "id": "navigation.navigationgraph",
+  "layer_id": "navigation",
+  "name": "NavigationGraph",
+  "description": "Complete navigation structure for application",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "version": {
+      "type": "string",
+      "description": ""
+    },
+    "application": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "routes": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "transitions": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "guards": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "version",
+    "application"
+  ]
+}

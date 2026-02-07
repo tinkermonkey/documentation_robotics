@@ -1,0 +1,8 @@
+{
+  "id": "security.datasource",
+  "layer_id": "security",
+  "name": "DataSource",
+  "description": "DataSource element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

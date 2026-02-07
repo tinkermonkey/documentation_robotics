@@ -1,0 +1,51 @@
+{
+  "id": "api.schema",
+  "layer_id": "api",
+  "name": "Schema",
+  "description": "Data type definition (JSON Schema subset)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "format": {
+      "type": "string",
+      "description": ""
+    },
+    "default": {
+      "type": "string",
+      "description": ""
+    },
+    "enum": {
+      "type": "string",
+      "description": ""
+    },
+    "nullable": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type",
+    "format"
+  ]
+}

@@ -1,0 +1,58 @@
+{
+  "id": "ux.view",
+  "layer_id": "ux",
+  "name": "View",
+  "description": "Routable grouping of components (a complete user experience)",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "routable": {
+      "type": "boolean",
+      "description": ""
+    },
+    "layout": {
+      "type": "string",
+      "description": ""
+    },
+    "subViews": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "components": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "actions": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "source": {
+      "type": "object",
+      "description": "Source code reference"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "type"
+  ]
+}

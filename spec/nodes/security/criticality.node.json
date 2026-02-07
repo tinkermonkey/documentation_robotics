@@ -1,0 +1,8 @@
+{
+  "id": "security.criticality",
+  "layer_id": "security",
+  "name": "Criticality",
+  "description": "Criticality element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

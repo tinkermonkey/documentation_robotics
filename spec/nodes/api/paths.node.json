@@ -1,0 +1,21 @@
+{
+  "id": "api.paths",
+  "layer_id": "api",
+  "name": "Paths",
+  "description": "Available API endpoints and operations",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name"
+  ]
+}

@@ -1,0 +1,43 @@
+{
+  "id": "data-model.schemadefinition",
+  "layer_id": "data-model",
+  "name": "SchemaDefinition",
+  "description": "A reusable JSON Schema definition that can be referenced throughout the data model. Enables DRY schema design and consistent type definitions across entities.",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "title": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "type": {
+      "type": "string",
+      "description": ""
+    },
+    "properties": {
+      "type": "array",
+      "description": "Contains relationship"
+    },
+    "items": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "title",
+    "type"
+  ]
+}
