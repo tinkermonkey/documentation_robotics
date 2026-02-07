@@ -45,7 +45,7 @@ This layer uses **SQL DDL** concepts with support for PostgreSQL, MySQL, SQLite,
 
 ## Entity Types
 
-### Core Datastore Entities (10 entities)
+### Core Data Store Entities (10 entities)
 
 | Entity Type        | Description                                        |
 | ------------------ | -------------------------------------------------- |
@@ -76,17 +76,17 @@ Activate when the user:
 
 ## Cross-Layer Relationships
 
-**Outgoing (Datastore → Other Layers):**
+**Outgoing (Data Store → Other Layers):**
 
 - `x-json-schema` → Data Model Layer (what logical schema does this implement?)
 - `x-governed-by-*` → Security Layer (data access policies)
 - `x-apm-performance-metrics` → APM Layer (query performance monitoring)
 
-**Incoming (Other Layers → Datastore):**
+**Incoming (Other Layers → Data Store):**
 
-- Data Model Layer → Datastore (x-database mapping)
-- Application Layer → Datastore (database connections)
-- Technology Layer → Datastore (hosting infrastructure)
+- Data Model Layer → Data Store (x-database mapping)
+- Application Layer → Data Store (database connections)
+- Technology Layer → Data Store (hosting infrastructure)
 
 ---
 

@@ -210,7 +210,7 @@ class RelationshipDataExtractor:
             "technology": "05",
             "api": "06",
             "data-model": "07",
-            "datastore": "08",
+            "data-store": "08",
             "ux": "09",
             "navigation": "10",
             "apm-observability": "11",

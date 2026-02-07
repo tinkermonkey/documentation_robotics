@@ -82,11 +82,11 @@ Activate when the user:
 - `x-governed-by-*` → Security Layer (data access policies)
 - `x-apm-performance-metrics` → APM Layer (query performance monitoring)
 
-**Incoming (Other Layers → Datastore):**
+**Incoming (Other Layers → Data Store):**
 
-- Data Model Layer → Datastore (x-database mapping)
-- Application Layer → Datastore (database connections)
-- Technology Layer → Datastore (hosting infrastructure)
+- Data Model Layer → Data Store (x-database mapping)
+- Application Layer → Data Store (database connections)
+- Technology Layer → Data Store (hosting infrastructure)
 
 ---
 

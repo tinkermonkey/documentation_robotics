@@ -1,4 +1,4 @@
-# Datastore Layer - Cross-Layer Relationships
+# Data Store Layer - Cross-Layer Relationships
 
 ## Cross-Layer Relationships
 
@@ -8,8 +8,8 @@
 
 ```mermaid
 graph TB
-  subgraph thisLayer["08: Datastore Layer"]
-    ThisLayerNode["Entities in Datastore Layer"]
+  subgraph thisLayer["08: Data Store Layer"]
+    ThisLayerNode["Entities in Data Store Layer"]
   end
 
   %% Target layers
