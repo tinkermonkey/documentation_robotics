@@ -165,8 +165,9 @@ export async function initTelemetry(): Promise<void> {
     tracer = trace.getTracer('dr-cli', cliVersion);
 
     // Debug: Log SDK initialization
-    if (process.env.DR_TELEMETRY_DEBUG) {
+    if (process.env.DR_TELEMETRY_DEBUG || process.env.DEBUG || process.env.VERBOSE) {
       process.stderr.write('[TELEMETRY] SDK initialized successfully\n');
+      process.stderr.write(`[TELEMETRY] Tracer initialized: ${tracer !== null}\n`);
     }
 
     // Create log exporter with circuit-breaker pattern
@@ -220,6 +221,18 @@ export function startSpan(
     // Start span with current context to respect parent-child relationships
     return tracer.startSpan(name, { attributes }, cachedContext.active());
   }
+
+  // Debug: Log why span creation was skipped
+  if (process.env.DR_TELEMETRY_DEBUG || process.env.DEBUG || process.env.VERBOSE) {
+    if (!isTelemetryEnabled) {
+      process.stderr.write(`[TELEMETRY] startSpan('${name}'): skipped - isTelemetryEnabled=false\n`);
+    } else if (!tracer) {
+      process.stderr.write(`[TELEMETRY] startSpan('${name}'): skipped - tracer is null (initTelemetry not called?)\n`);
+    } else if (!cachedContext) {
+      process.stderr.write(`[TELEMETRY] startSpan('${name}'): skipped - cachedContext is null\n`);
+    }
+  }
+
   return null;
 }
 

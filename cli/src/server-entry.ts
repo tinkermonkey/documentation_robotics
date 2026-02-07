@@ -30,12 +30,23 @@ async function main() {
     // CRITICAL: Initialize telemetry SDK in subprocess
     // Without this, no spans will be created or exported even though TELEMETRY_ENABLED=true
     if (isTelemetryEnabled) {
-      const { initTelemetry } = await import('./telemetry/index.js');
-      await initTelemetry();
+      try {
+        const { initTelemetry } = await import('./telemetry/index.js');
+        await initTelemetry();
 
-      if (process.env.DEBUG || process.env.VERBOSE) {
-        console.log(`[Telemetry] SDK initialized in server subprocess`);
-        console.log(`[Telemetry] OTLP endpoint: ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318 (default)'}`);
+        // Verify tracer was initialized
+        const { isTelemetryEnabled: checkEnabled } = await import('./telemetry/index.js');
+
+        if (process.env.DEBUG || process.env.VERBOSE) {
+          console.log(`[Telemetry] SDK initialized in server subprocess`);
+          console.log(`[Telemetry] OTLP traces endpoint: ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces (default)'}`);
+          console.log(`[Telemetry] OTLP logs endpoint: ${process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT || 'http://localhost:4318/v1/logs (default)'}`);
+          console.log(`[Telemetry] Enabled: ${checkEnabled}`);
+        }
+      } catch (error) {
+        // Log telemetry initialization errors but don't fail the server
+        console.error('[Telemetry] Failed to initialize telemetry:', error);
+        console.error('[Telemetry] Server will continue without telemetry');
       }
     } else if (process.env.DEBUG || process.env.VERBOSE) {
       console.log(`[Telemetry] TELEMETRY_ENABLED is false - telemetry disabled`);

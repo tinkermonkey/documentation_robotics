@@ -25,11 +25,17 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   const method = c.req.method;
   const path = c.req.path;
   const url = c.req.url;
+  const isDebug = process.env.DEBUG || process.env.VERBOSE;
 
   // Log ALL incoming requests for debugging
-  console.log(`[HTTP] ${method} ${path} (full URL: ${url})`);
+  if (isDebug) {
+    console.log(`[HTTP] ${method} ${path} (full URL: ${url})`);
+  }
 
   if (!isTelemetryEnabled) {
+    if (isDebug) {
+      console.log(`[Telemetry] Skipping span creation - TELEMETRY_ENABLED is false`);
+    }
     return next();
   }
 
@@ -40,6 +46,10 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   const route = c.req.routePath || path; // Use route pattern if available
   const requestStartTime = Date.now();
 
+  if (isDebug) {
+    console.log(`[Telemetry] Creating span for http.server.request`);
+  }
+
   // Create span for the HTTP request
   const span = startSpan('http.server.request', {
     'http.method': method,
@@ -49,6 +59,10 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
     'http.user_agent': c.req.header('user-agent') || '',
     'http.scheme': new URL(c.req.url).protocol.replace(':', ''),
   });
+
+  if (isDebug) {
+    console.log(`[Telemetry] Span created: ${span ? 'success' : 'null (tracer not initialized?)'}`);
+  }
 
   // Log request received (per SigNoz integration guide: request lifecycle logging)
   await emitLog(SeverityNumber.INFO, 'Request received', {

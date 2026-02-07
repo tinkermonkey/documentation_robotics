@@ -297,9 +297,37 @@ export async function visualizeCommand(
       }
     });
 
+    // Setup periodic telemetry flushing for long-running command
+    // Since the visualize command never completes (keep-alive pattern),
+    // the cli.execute span would never end and export. We flush periodically
+    // to ensure active spans are exported to the telemetry backend.
+    let flushInterval: NodeJS.Timeout | null = null;
+    if (isTelemetryEnabled) {
+      logDebug('[Telemetry] Setting up periodic flush (every 30 seconds)');
+      const { flushTelemetry } = await import('../telemetry/index.js');
+
+      flushInterval = setInterval(async () => {
+        logDebug('[Telemetry] Periodic flush: flushing pending spans...');
+        try {
+          await flushTelemetry();
+          logDebug('[Telemetry] Periodic flush complete');
+        } catch (error) {
+          // Silently ignore flush errors - telemetry should never break the app
+          logDebug(`[Telemetry] Periodic flush failed: ${error}`);
+        }
+      }, 30000); // Flush every 30 seconds
+    }
+
     // Handle graceful shutdown on SIGINT (Ctrl-C) and SIGTERM
     const handleShutdown = async (signal: string) => {
       logDebug(`\n[${signal}] Shutting down visualization server gracefully...`);
+
+      // Clear periodic flush interval
+      if (flushInterval) {
+        logDebug('[Telemetry] Stopping periodic flush');
+        clearInterval(flushInterval);
+        flushInterval = null;
+      }
 
       // Forward signal to server process for graceful shutdown
       if (serverProcess && !serverProcess.killed) {
