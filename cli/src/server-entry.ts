@@ -34,14 +34,15 @@ async function main() {
         const { initTelemetry } = await import('./telemetry/index.js');
         await initTelemetry();
 
-        // Verify tracer was initialized
-        const { isTelemetryEnabled: checkEnabled } = await import('./telemetry/index.js');
+        // Load and display actual OTLP configuration
+        const { loadOTLPConfig } = await import('./telemetry/config.js');
+        const otlpConfig = await loadOTLPConfig();
 
         if (process.env.DEBUG || process.env.VERBOSE) {
           console.log(`[Telemetry] SDK initialized in server subprocess`);
-          console.log(`[Telemetry] OTLP traces endpoint: ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318/v1/traces (default)'}`);
-          console.log(`[Telemetry] OTLP logs endpoint: ${process.env.OTEL_EXPORTER_OTLP_LOGS_ENDPOINT || 'http://localhost:4318/v1/logs (default)'}`);
-          console.log(`[Telemetry] Enabled: ${checkEnabled}`);
+          console.log(`[Telemetry] OTLP traces endpoint: ${otlpConfig.endpoint}`);
+          console.log(`[Telemetry] OTLP logs endpoint: ${otlpConfig.logsEndpoint}`);
+          console.log(`[Telemetry] Service name: ${otlpConfig.serviceName}`);
         }
       } catch (error) {
         // Log telemetry initialization errors but don't fail the server
