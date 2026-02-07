@@ -45,11 +45,13 @@ export interface IGraphModel {
   edges: Map<string, GraphEdge>;
 
   // Query methods
+  getNode(id: string): GraphNode | undefined;
   getNodesByLayer(layer: string): GraphNode[];
   getNodesByType(type: string): GraphNode[];
   getEdgesFrom(nodeId: string, predicate?: string): GraphEdge[];
   getEdgesTo(nodeId: string, predicate?: string): GraphEdge[];
   getEdgesBetween(sourceId: string, destinationId: string, predicate?: string): GraphEdge[];
+  getAllEdges(): GraphEdge[];
 
   // Mutation methods
   addNode(node: GraphNode): void;
@@ -295,6 +297,13 @@ export class GraphModel implements IGraphModel {
   }
 
   /**
+   * Get a node by its ID
+   */
+  getNode(id: string): GraphNode | undefined {
+    return this.nodes.get(id);
+  }
+
+  /**
    * Get all nodes in a specific layer
    */
   getNodesByLayer(layer: string): GraphNode[] {
@@ -342,6 +351,13 @@ export class GraphModel implements IGraphModel {
   getEdgesBetween(sourceId: string, destinationId: string, predicate?: string): GraphEdge[] {
     const outgoing = this.getEdgesFrom(sourceId, predicate);
     return outgoing.filter((e) => e.destination === destinationId);
+  }
+
+  /**
+   * Get all edges in the graph
+   */
+  getAllEdges(): GraphEdge[] {
+    return Array.from(this.edges.values());
   }
 
   /**

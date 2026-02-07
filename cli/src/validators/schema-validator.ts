@@ -17,6 +17,14 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
 
 /**
  * Validator for JSON Schema compliance
+ *
+ * NOTE: Phase 3 Deferred - SpecNode Schema Integration
+ * This validator currently uses layer schemas for compatibility.
+ * Future work will integrate SpecNode schema validation once SpecNode
+ * definitions are fully available (Phase 2 completion). The graph model
+ * provides the foundation for this transition.
+ *
+ * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */
 export class SchemaValidator {
   private ajv: Ajv;

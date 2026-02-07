@@ -766,4 +766,65 @@ export class Model {
 
     return model;
   }
+
+  /**
+   * Graph-based API methods for querying the model
+   * These methods delegate to the underlying GraphModel for efficient queries
+   */
+
+  /**
+   * Get a node by its UUID
+   */
+  getNode(id: string) {
+    return this.graph.getNode(id);
+  }
+
+  /**
+   * Get all nodes in a specific layer
+   */
+  getNodesByLayer(layerId: string) {
+    return this.graph.getNodesByLayer(layerId);
+  }
+
+  /**
+   * Get all nodes of a specific type
+   */
+  getNodesByType(type: string) {
+    return this.graph.getNodesByType(type);
+  }
+
+  /**
+   * Get all edges (relationships) in the model
+   */
+  getAllEdges() {
+    return this.graph.getAllEdges();
+  }
+
+  /**
+   * Get edges originating from a specific node
+   */
+  getEdgesFrom(nodeId: string, predicate?: string) {
+    return this.graph.getEdgesFrom(nodeId, predicate);
+  }
+
+  /**
+   * Get edges terminating at a specific node
+   */
+  getEdgesTo(nodeId: string, predicate?: string) {
+    return this.graph.getEdgesTo(nodeId, predicate);
+  }
+
+  /**
+   * Get edges between two specific nodes
+   */
+  getEdgesBetween(sourceId: string, destinationId: string, predicate?: string) {
+    return this.graph.getEdgesBetween(sourceId, destinationId, predicate);
+  }
+
+  /**
+   * Traverse the graph starting from a node, following a specific predicate
+   */
+  async traverse(startNodeId: string, predicate: string, maxDepth: number = 10) {
+    return this.graph.traverse(startNodeId, predicate, maxDepth);
+  }
 }
