@@ -27,6 +27,14 @@ let isShuttingDown = false;
 
 async function main() {
   try {
+    // Diagnostic: Show telemetry status
+    if (process.env.DEBUG || process.env.VERBOSE) {
+      console.log(`[Telemetry] TELEMETRY_ENABLED at build time: ${isTelemetryEnabled}`);
+      if (isTelemetryEnabled) {
+        console.log(`[Telemetry] OTLP endpoint: ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318 (default)'}`);
+      }
+    }
+
     // Load model with full content
     const model = await Model.load(projectPath, { lazyLoad: false });
 
@@ -70,8 +78,14 @@ async function gracefulShutdown(exitCode: number = 0): Promise<void> {
 
     // Flush telemetry spans before exit
     if (isTelemetryEnabled) {
+      console.log('[Telemetry] Shutting down telemetry and flushing spans...');
       const { shutdownTelemetry } = await import('./telemetry/index.js');
       await shutdownTelemetry();
+      console.log('[Telemetry] Telemetry shutdown complete');
+    } else {
+      if (process.env.DEBUG) {
+        console.log('[Telemetry] Telemetry is disabled (TELEMETRY_ENABLED=false at build time)');
+      }
     }
   } catch (error) {
     // Don't block shutdown on errors

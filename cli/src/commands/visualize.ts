@@ -9,6 +9,8 @@ import { dirname } from 'node:path';
 import { Model } from '../core/model.js';
 import { logVerbose, logDebug } from '../utils/globals.js';
 import { CLIError } from '../utils/errors.js';
+import { getSpecReferencePath, getModelPath } from '../utils/project-paths.js';
+
 
 // Conditional telemetry import based on compile-time flag
 declare const TELEMETRY_ENABLED: boolean | undefined;
@@ -74,12 +76,16 @@ export async function visualizeCommand(
     // Create telemetry span for server startup
     let serverStartupSpan: any = null;
     if (isTelemetryEnabled) {
+      logDebug('[Telemetry] Creating visualize.server.startup span');
       const { startSpan } = await import('../telemetry/index.js');
       serverStartupSpan = startSpan('visualize.server.startup', {
         'server.port': port,
         'server.auth_enabled': authEnabled,
         'server.with_danger': withDanger,
       });
+      logDebug(`[Telemetry] Span created: ${serverStartupSpan ? 'success' : 'failed'}`);
+    } else {
+      logDebug('[Telemetry] TELEMETRY_ENABLED is false - no spans will be created');
     }
 
     // Spawn server in Bun subprocess with environment variables
@@ -156,9 +162,11 @@ export async function visualizeCommand(
 
           // End telemetry span for server startup
           if (isTelemetryEnabled && serverStartupSpan) {
+            logDebug('[Telemetry] Ending visualize.server.startup span (server started successfully)');
             const { endSpan } = await import('../telemetry/index.js');
             endSpan(serverStartupSpan);
             serverStartupSpan = null;
+            logDebug('[Telemetry] Span ended');
           }
 
           console.log(ansis.green(`✓ Visualization server started`));
@@ -184,7 +192,9 @@ export async function visualizeCommand(
             console.log(ansis.yellow(`   ⚠ Danger mode enabled - chat permissions will be skipped`));
           }
 
-          logVerbose(`   Model: ${model.manifest.name}`);
+          console.log(ansis.blueBright(`Model name: ${model.manifest.name}`));
+          console.log(`Spec path:    ${ansis.cyan(await getSpecReferencePath() || 'Not found')}/spec`);
+          console.log(`Model path:   ${ansis.cyan(await getModelPath() || 'Not found')}`);
 
           // Optionally open browser
           // If auth is enabled, delay opening until we have the token

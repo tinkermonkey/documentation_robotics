@@ -219,12 +219,13 @@ export class VisualizationServer {
     });
 
     // Serve static files from custom viewer path if provided
+    // Note: This catch-all route must skip API/WS routes by passing to next handler
     if (this.viewerPath) {
-      this.app.get('/*', async (c) => {
+      this.app.get('/*', async (c, next) => {
         const requestPath = c.req.path;
-        // Skip API routes and WebSocket
+        // Skip API routes and WebSocket - let them be handled by their specific routes
         if (requestPath.startsWith('/api/') || requestPath === '/ws' || requestPath === '/health') {
-          return c.notFound();
+          return next(); // Pass to next handler instead of returning 404
         }
         return this.serveCustomViewer(requestPath.substring(1));
       });
