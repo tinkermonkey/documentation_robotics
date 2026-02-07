@@ -1,0 +1,80 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node-relationship.schema.json",
+  "title": "SpecNodeRelationship",
+  "description": "Base type for relationship type definitions in the specification. Defines valid relationships between node types, including cardinality, strength, and semantic properties.",
+  "type": "object",
+  "required": ["id", "source_spec_node_id", "destination_spec_node_id", "predicate"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z-]+$",
+      "description": "Unique relationship ID in format: {source-layer}.{predicate}.{dest-layer}. All components use lowercase with hyphens.",
+      "examples": ["motivation.supports.motivation", "motivation.realizes.business", "api.exposes.data-model"]
+    },
+    "source_spec_node_id": {
+      "type": "string",
+      "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+      "description": "SpecNode ID that can serve as the source of this relationship type"
+    },
+    "source_layer": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Denormalized layer ID extracted from source_spec_node_id for efficient queries"
+    },
+    "destination_spec_node_id": {
+      "type": "string",
+      "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+      "description": "SpecNode ID that can serve as the destination of this relationship type"
+    },
+    "destination_layer": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Denormalized layer ID extracted from destination_spec_node_id for efficient queries"
+    },
+    "predicate": {
+      "type": "string",
+      "description": "Semantic predicate from PredicateCatalog describing the relationship type. Must be a valid predicate name.",
+      "examples": ["supports", "realizes", "fulfills", "implements", "uses", "consumes"]
+    },
+    "cardinality": {
+      "type": "string",
+      "enum": ["one-to-one", "one-to-many", "many-to-one", "many-to-many"],
+      "description": "Multiplicity constraint on this relationship type. Defines how many source nodes can relate to how many destination nodes.",
+      "default": "many-to-many"
+    },
+    "strength": {
+      "type": "string",
+      "enum": ["critical", "high", "medium", "low"],
+      "description": "Typical importance or strength of this relationship type",
+      "default": "medium"
+    },
+    "required": {
+      "type": "boolean",
+      "description": "Whether instances of the source node type must have at least one relationship of this type",
+      "default": false
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Optional schema defining attributes that can appear on relationship instances of this type",
+      "additionalProperties": {
+        "$ref": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node.schema.json#/definitions/AttributeSpec"
+      },
+      "minProperties": 0,
+      "examples": [
+        {
+          "reason": {
+            "type": "string",
+            "description": "Explanation for why this relationship exists"
+          },
+          "strength_override": {
+            "type": "enum",
+            "enum_values": ["critical", "high", "medium", "low"],
+            "description": "Instance-specific strength override"
+          }
+        }
+      ]
+    }
+  }
+}
