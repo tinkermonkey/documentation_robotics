@@ -631,11 +631,38 @@ paths:
         ## Authentication
 
 
-        Token can be provided via:
+        Token can be provided via (in order of preference):
 
-        - **Query parameter**: `?token=<token>` (if auth enabled)
 
-        - **Authorization header**: `Authorization: Bearer <token>` (preferred for security)
+        1. **Sec-WebSocket-Protocol header** (recommended for browsers):
+
+        ```javascript
+
+        const ws = new WebSocket(''ws://localhost:8080/ws'', [''token'', ''YOUR_TOKEN'']);
+
+        ```
+
+        The browser will send: `Sec-WebSocket-Protocol: token, YOUR_TOKEN`
+
+
+        2. **Query parameter** (simple, works everywhere):
+
+        ```
+
+        ws://localhost:8080/ws?token=YOUR_TOKEN
+
+        ```
+
+
+        3. **Authorization header** (non-browser clients only):
+
+        ```
+
+        Authorization: Bearer YOUR_TOKEN
+
+        ```
+
+        Note: Not supported by browser WebSocket API - use method #1 instead
 
 
         ## Legacy Protocol - Model Updates
@@ -790,8 +817,9 @@ paths:
       tags:
         - WebSocket
       security:
-        - BearerAuth: []
+        - WebSocketProtocolAuth: []
         - QueryAuth: []
+        - BearerAuth: []
       responses:
         "101":
           description: WebSocket connection established
@@ -806,12 +834,17 @@ components:
       scheme: bearer
       bearerFormat: token
       description: "Token provided in Authorization header: `Authorization: Bearer
-        <token>`. Supported for all HTTP API endpoints and WebSocket connections (preferred method)."
+        <token>`. Supported for all HTTP API endpoints. Note: Not supported by browser WebSocket API - use WebSocketProtocolAuth for browsers."
     QueryAuth:
       type: apiKey
       in: query
       name: token
-      description: "Token provided as query parameter: `?token=<token>`. Supported for all HTTP API endpoints and WebSocket connections. Useful for browser URLs and clients that don't support custom headers."
+      description: "Token provided as query parameter: `?token=<token>`. Supported for all HTTP API endpoints and WebSocket connections. Simple method that works everywhere."
+    WebSocketProtocolAuth:
+      type: apiKey
+      in: header
+      name: Sec-WebSocket-Protocol
+      description: "Token provided via WebSocket subprotocol header (recommended for browsers): `new WebSocket(url, ['token', 'YOUR_TOKEN'])`. The browser sends `Sec-WebSocket-Protocol: token, YOUR_TOKEN` and server responds with `Sec-WebSocket-Protocol: token`. This is the standard workaround for WebSocket authentication in browsers since the WebSocket API doesn't support custom headers."
   responses:
     Unauthorized:
       description: Authentication required

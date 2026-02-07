@@ -615,23 +615,48 @@ export class VisualizationServer {
       async (c, next) => {
         // Check WebSocket auth if enabled
         if (this.authEnabled) {
-          // Accept token from query parameter OR Authorization header
-          const queryToken = c.req.query('token');
-          const authHeader = c.req.header('Authorization');
-          const headerToken = authHeader?.startsWith('Bearer ')
-            ? authHeader.substring(7)
-            : authHeader;
+          // Accept token from multiple sources:
+          // 1. Query parameter: ?token=<token> (works in all browsers)
+          // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
+          // 3. Authorization header: Bearer <token> (non-browser clients only)
 
-          const token = queryToken || headerToken;
+          const queryToken = c.req.query('token');
+
+          // Check Sec-WebSocket-Protocol header (browser-compatible method)
+          // Format: "token, <actual-token>" or "token,<actual-token>"
+          const wsProtocol = c.req.header('Sec-WebSocket-Protocol');
+          let protocolToken: string | null = null;
+          if (wsProtocol) {
+            const protocols = wsProtocol.split(',').map(p => p.trim());
+            // Look for protocol pair: ['token', '<actual-token>']
+            const tokenIndex = protocols.indexOf('token');
+            if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
+              protocolToken = protocols[tokenIndex + 1];
+            }
+          }
+
+          // Check Authorization header (non-browser clients)
+          const authHeader = c.req.header('Authorization');
+          const bearerToken = authHeader?.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : null;
+
+          const token = queryToken || protocolToken || bearerToken;
 
           if (!token) {
             return c.json({
-              error: 'Authentication required. Provide token as query parameter (?token=YOUR_TOKEN) or Authorization header (Bearer YOUR_TOKEN)'
+              error: 'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)'
             }, 401);
           }
 
           if (token !== this.authToken) {
             return c.json({ error: 'Invalid authentication token' }, 403);
+          }
+
+          // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
+          // This is required by the WebSocket spec for subprotocol negotiation
+          if (protocolToken) {
+            c.header('Sec-WebSocket-Protocol', 'token');
           }
         }
 
