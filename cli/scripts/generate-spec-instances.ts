@@ -255,60 +255,6 @@ function extractAttributes(
   return attributes;
 }
 
-async function extractRelationships(
-  schemasDir: string
-): Promise<Array<{
-  source_layer: string;
-  source_node: string;
-  destination_layer: string;
-  destination_node: string;
-  predicate: string;
-}>> {
-  const relationships: Array<{
-    source_layer: string;
-    source_node: string;
-    destination_layer: string;
-    destination_node: string;
-    predicate: string;
-  }> = [];
-
-  try {
-    const catalog = await readJson(path.join(schemasDir, "relationship-catalog.json"));
-
-    if (catalog.relationshipTypes && Array.isArray(catalog.relationshipTypes)) {
-      for (const relType of catalog.relationshipTypes) {
-        if (relType.examples && Array.isArray(relType.examples)) {
-          for (const example of relType.examples) {
-            relationships.push({
-              source_layer: extractLayerFromType(example.source),
-              source_node: example.source,
-              destination_layer: extractLayerFromType(example.target),
-              destination_node: example.target,
-              predicate: relType.predicate || "",
-            });
-          }
-        }
-      }
-    }
-  } catch (error) {
-    console.error("Failed to read relationship catalog:", error);
-  }
-
-  return relationships;
-}
-
-function extractLayerFromType(typeName: string): string {
-  // Try to determine layer from type name based on common patterns
-  const typePattern = typeName.toLowerCase();
-
-  // ArchiMate motivation elements
-  if (["goal", "requirement", "constraint", "driver", "stakeholder", "assessment", "principle", "outcome", "value", "meaning"].includes(typePattern)) {
-    return "motivation";
-  }
-
-  // Could add more patterns here for other layers
-  return "unknown";
-}
 
 async function consolidatePredicates(
   schemasDir: string,
@@ -531,7 +477,7 @@ async function main() {
       specNodeRelationships: {
         valid: true,
         errors: [],
-        instanceCount: 0,
+        instanceCount: 0, // Deferred to Phase 3: Relationship Validation & Cardinality Enforcement
       },
       predicateCatalog: {
         valid: predicatesResult.valid,
