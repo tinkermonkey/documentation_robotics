@@ -97,6 +97,18 @@ export async function visualizeCommand(
       DR_WITH_DANGER: String(withDanger),
     };
 
+    // Pass debug/verbose flags to subprocess
+    // The CLI --debug flag sets globalOptions.debug, but subprocess checks process.env.DEBUG
+    const { isDebug: getDebugState, isVerbose } = await import('../utils/globals.js');
+    if (getDebugState()) {
+      env.DEBUG = '1';
+      logDebug('Passing DEBUG=1 to subprocess');
+    }
+    if (isVerbose()) {
+      env.VERBOSE = '1';
+      logDebug('Passing VERBOSE=1 to subprocess');
+    }
+
     // Only set auth token if provided
     if (authToken) {
       env.DR_AUTH_TOKEN = authToken;
