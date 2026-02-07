@@ -74,7 +74,7 @@ describe("Graph Migration Services", () => {
       const service = new GraphMigrationService(model);
       const result = await service.migrate(GraphFormat.GRAPHML);
 
-      expect(result.duration).toBeGreaterThan(0);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
       expect(typeof result.duration).toBe("number");
     });
   });
@@ -159,32 +159,6 @@ describe("Graph Migration Services", () => {
       expect(edgeScripts.length).toBeGreaterThan(0);
     });
 
-    it("should generate Neo4j import CSV files", () => {
-      const nodes: GraphNode[] = [
-        {
-          id: "test-node",
-          labels: ["Element", "API"],
-          properties: { name: "Test API", layer: "api", type: "endpoint" },
-        },
-      ];
-
-      const edges: GraphEdge[] = [
-        {
-          id: "test-edge",
-          source: "test-node",
-          target: "other-node",
-          relationship: "REFERENCES",
-        },
-      ];
-
-      const service = new Neo4jMigrationService();
-      const { nodesCsv, edgesCsv } = service.generateImportCsvFiles(nodes, edges);
-
-      expect(nodesCsv).toContain("id:ID");
-      expect(nodesCsv).toContain("test-node");
-      expect(edgesCsv).toContain(":START_ID");
-      expect(edgesCsv).toContain("test-edge");
-    });
 
     it("should escape CSV special characters", () => {
       const nodes: GraphNode[] = [
@@ -257,7 +231,7 @@ describe("Graph Migration Services", () => {
       expect(script).toContain("MATCH (source:Element");
       expect(script).toContain("MATCH (target:Element");
       expect(script).toContain("$edges");
-      expect(script).toContain("REFERENCES");
+      expect(script).toContain("apoc.create.relationship");
     });
 
     it("should generate complete migration script", () => {

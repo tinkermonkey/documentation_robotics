@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/model-node-relationship.schema.json",
+  "title": "ModelNodeRelationship",
+  "description": "Concrete relationship instance connecting two ModelNodes. Represents a specific relationship edge in the model graph that conforms to a SpecNodeRelationship type.",
+  "type": "object",
+  "required": ["id", "spec_relationship_id", "source_node_id", "destination_node_id", "predicate"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "Unique relationship instance identifier (UUIDv4). Globally unique across the entire model.",
+      "examples": ["660e9500-f39c-52e5-b827-557766551111"]
+    },
+    "spec_relationship_id": {
+      "type": "string",
+      "pattern": "^[a-z-]+\\.[a-z-]+\\.[a-z-]+$",
+      "description": "Reference to the SpecNodeRelationship type that this relationship conforms to (e.g., 'motivation.supports.motivation')"
+    },
+    "source_node_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the source ModelNode. Must be a valid node in the model."
+    },
+    "source_layer_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Denormalized layer ID of the source node for efficient layer-scoped queries"
+    },
+    "destination_node_id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "UUID of the destination ModelNode. Must be a valid node in the model."
+    },
+    "destination_layer_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "Denormalized layer ID of the destination node for efficient layer-scoped queries"
+    },
+    "predicate": {
+      "type": "string",
+      "description": "The semantic predicate describing this relationship (e.g., 'supports', 'realizes'). Must be a valid predicate from PredicateCatalog.",
+      "examples": ["supports", "realizes", "fulfills", "implements", "uses"]
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Optional relationship-specific attribute values. Keys must correspond to attributes defined in the SpecNodeRelationship, and values must conform to the AttributeSpec type constraints.",
+      "additionalProperties": true,
+      "examples": [
+        {
+          "strength_override": "critical",
+          "reason": "Business critical dependency"
+        }
+      ]
+    },
+    "source_reference": {
+      "$ref": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/source-references.schema.json#/definitions/SourceReference",
+      "description": "Optional provenance tracking linking this relationship to source code locations or comments"
+    },
+    "metadata": {
+      "type": "object",
+      "description": "Optional metadata about the lifecycle and version of this relationship instance",
+      "additionalProperties": false,
+      "properties": {
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp when this relationship was created"
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "ISO 8601 timestamp of the last modification"
+        },
+        "created_by": {
+          "type": "string",
+          "description": "User or system that created this relationship"
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Version number of this relationship (incremented on updates)"
+        }
+      }
+    }
+  }
+}

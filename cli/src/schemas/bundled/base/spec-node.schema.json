@@ -1,0 +1,109 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/base/spec-node.schema.json",
+  "title": "SpecNode",
+  "description": "Base type for node type definitions in the specification. Defines what attributes a node type can have and which are required.\n\nNote: This schema does not validate that the layer_id prefix in the 'id' field matches the 'layer_id' property (e.g., id='motivation.goal' with layer_id='motivation'). Runtime validators should enforce this consistency to prevent configuration errors.",
+  "type": "object",
+  "required": ["id", "layer_id", "name", "description", "attributes"],
+  "additionalProperties": false,
+  "properties": {
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z-]+\\.[a-z][a-z0-9-]*$",
+      "description": "Unique node type ID in format: {layer-id}.{type-name}. The layer-id must match the layer_id property.",
+      "examples": ["motivation.goal", "motivation.requirement", "api.endpoint", "data-store.table"]
+    },
+    "layer_id": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$",
+      "description": "The ID of the layer this node type belongs to"
+    },
+    "name": {
+      "type": "string",
+      "description": "Human-readable type name (typically PascalCase for display)",
+      "examples": ["Goal", "Requirement", "API Endpoint", "Database Table"]
+    },
+    "description": {
+      "type": "string",
+      "description": "Purpose, semantics, and usage guidelines for this node type"
+    },
+    "attributes": {
+      "type": "object",
+      "description": "Schema defining what attributes instances of this node type can have",
+      "additionalProperties": {
+        "$ref": "#/definitions/AttributeSpec"
+      },
+      "minProperties": 0,
+      "examples": [
+        {
+          "priority": {
+            "type": "enum",
+            "enum_values": ["critical", "high", "medium", "low"],
+            "description": "Priority level of the goal"
+          },
+          "owner": {
+            "type": "string",
+            "description": "Team or person responsible"
+          }
+        }
+      ]
+    },
+    "required_attributes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of attribute names that must be present on all instances of this node type. Each name must exist as a key in the attributes object.",
+      "examples": [["name", "description"]]
+    }
+  },
+  "definitions": {
+    "AttributeSpec": {
+      "type": "object",
+      "title": "AttributeSpec",
+      "description": "Specification for a single attribute that can appear on node instances",
+      "required": ["type", "description"],
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["string", "integer", "number", "boolean", "array", "object", "enum"],
+          "description": "The JSON type of this attribute"
+        },
+        "description": {
+          "type": "string",
+          "description": "Human-readable description of this attribute's purpose"
+        },
+        "enum_values": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "Required when type is 'enum'. Lists the valid string values for this attribute.",
+          "examples": [
+            ["high", "medium", "low"],
+            ["active", "inactive", "archived"]
+          ]
+        },
+        "format": {
+          "type": "string",
+          "description": "Optional format constraint for string types (e.g., 'email', 'uri', 'date-time')",
+          "examples": ["email", "uri", "date-time", "uuid"]
+        },
+        "default": {
+          "description": "Default value for this attribute when not provided on a node instance. Can be any JSON value."
+        }
+      },
+      "if": {
+        "properties": {
+          "type": {
+            "const": "enum"
+          }
+        }
+      },
+      "then": {
+        "required": ["type", "description", "enum_values"]
+      }
+    }
+  }
+}

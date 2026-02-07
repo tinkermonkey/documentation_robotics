@@ -78,6 +78,28 @@ export class Layer {
   }
 
   /**
+   * Update an element in the graph
+   */
+  updateElement(element: Element): boolean {
+    const node = this.graph.nodes.get(element.id);
+    if (!node || node.layer !== this.name) {
+      return false;
+    }
+
+    // Convert element to graph node and update in place
+    const updated = this.graph.updateNode(element.id, {
+      name: element.name,
+      description: element.description,
+      properties: element.properties,
+    });
+
+    if (updated) {
+      this.dirty = true;
+    }
+    return updated;
+  }
+
+  /**
    * Delete an element by ID from the graph
    */
   deleteElement(id: string): boolean {

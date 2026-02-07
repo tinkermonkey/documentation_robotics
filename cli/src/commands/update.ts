@@ -132,6 +132,9 @@ export async function updateCommand(id: string, options: UpdateOptions): Promise
           after.sourceReference = newRef;
         }
       }
+
+      // Update element in layer graph to persist mutations
+      layer.updateElement(elem);
     });
 
     console.log(ansis.green(`✓ Updated element ${ansis.bold(id)}`));
