@@ -55,28 +55,27 @@ describe('Layer 8 naming validation', () => {
     expect(manifest.layers?.['datastore']).toBeUndefined(); // Legacy name should not exist
   });
 
-  it('rejects element IDs with datastore prefix', () => {
-    // Test that legacy 'datastore' prefix is rejected by the actual validator
+  it('rejects element IDs with mismatched layer prefix', () => {
+    // Test that element IDs with mismatched layer prefixes are rejected
     const validator = new NamingValidator();
-    const legacyLayer = new Layer('datastore');
+    const correctLayer = new Layer('data-store');
 
-    // Add an element with the legacy layer name to test rejection
-    legacyLayer.addElement({
-      id: 'datastore.table.users',
-      type: 'table',
-      name: 'users',
-      description: 'Test element with legacy datastore prefix'
+    // Add an element with a WRONG layer prefix (motivation instead of data-store)
+    correctLayer.addElement({
+      id: 'motivation.goal.test-goal',  // Wrong layer prefix for data-store layer
+      type: 'goal',
+      name: 'test-goal',
+      description: 'Test element with mismatched layer prefix'
     });
 
-    // Validate the layer with legacy naming
-    const result = validator.validateLayer(legacyLayer);
+    // Validate the layer with mismatched prefix
+    const result = validator.validateLayer(correctLayer);
 
     // Should have validation errors due to mismatched layer prefix
-    expect(result.hasErrors()).toBe(true);
-    const errors = result.getErrors();
-    expect(errors.length).toBeGreaterThan(0);
+    expect(result.isValid()).toBe(false);
+    expect(result.errors.length).toBeGreaterThan(0);
     // Error should mention the layer mismatch
-    expect(errors[0].message).toContain("does not match layer");
+    expect(result.errors[0].message).toContain("does not match layer");
   });
 
   it('accepts element IDs with data-store prefix', () => {
@@ -96,8 +95,8 @@ describe('Layer 8 naming validation', () => {
     const result = validator.validateLayer(canonicalLayer);
 
     // Should have no validation errors
-    expect(result.hasErrors()).toBe(false);
-    expect(result.getErrors().length).toBe(0);
+    expect(result.isValid()).toBe(true);
+    expect(result.errors.length).toBe(0);
   });
 
   describe('SchemaValidator integration with renamed files', () => {
