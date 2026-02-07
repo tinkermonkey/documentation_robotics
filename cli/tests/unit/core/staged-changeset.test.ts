@@ -255,7 +255,6 @@ describe('StagedChangesetStorage', () => {
       // Add changes
       changeset.addChange('add', 'elem-1', 'api', undefined, { name: 'New' });
       changeset.addChange('update', 'elem-2', 'application', {}, {});
-      changeset.updateStats();
 
       // Save
       await storage.save(changeset);
