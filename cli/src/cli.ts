@@ -26,6 +26,7 @@ import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
 import { graphMigrateCommand } from './commands/graph-migrate.js';
+import { modelMigrateCommand, migrateRollbackCommand } from './commands/model-migrate.js';
 import { chatCommand } from './commands/chat.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
@@ -644,6 +645,51 @@ Examples:
       dryRun: options.dryRun,
       force: options.force,
     });
+  });
+
+program
+  .command('migrate-model [action]')
+  .description('Migrate model to graph format or manage model migrations')
+  .option('--source <path>', 'Source model directory')
+  .option('--target <path>', 'Target directory for migrated model')
+  .option('--backup <path>', 'Backup directory for rollback')
+  .option('--no-backup', 'Skip backup creation')
+  .option('--skip-validation', 'Skip validation after migration')
+  .option('--verbose', 'Verbose output')
+  .option('--dry-run', 'Preview migration without making changes')
+  .addHelpText(
+    'after',
+    `
+Actions:
+  (default)  Migrate model to graph format
+  rollback   Restore model from backup
+
+Examples:
+  $ dr migrate-model --source ./model --target ./model-v2
+  $ dr migrate-model --dry-run --verbose
+  $ dr migrate-model rollback --backup ./model.backup-1234567890`
+  )
+  .action(async (action, options) => {
+    if (action === 'rollback') {
+      if (!options.backup) {
+        console.error('Error: --backup is required for rollback');
+        process.exit(1);
+      }
+      await migrateRollbackCommand({
+        backup: options.backup,
+        target: options.target,
+        verbose: options.verbose,
+      });
+    } else {
+      await modelMigrateCommand({
+        source: options.source,
+        target: options.target,
+        noBackup: options.noBackup,
+        skipValidation: options.skipValidation,
+        verbose: options.verbose,
+        dryRun: options.dryRun,
+      });
+    }
   });
 
 program
