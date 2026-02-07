@@ -36,6 +36,13 @@ interface WSMessage {
   };
 }
 
+interface AnnotationReply {
+  id: string;
+  author: string;
+  content: string;
+  createdAt: string;
+}
+
 interface ClientAnnotation {
   id: string;
   elementId: string;
@@ -44,6 +51,8 @@ interface ClientAnnotation {
   createdAt: string;
   updatedAt?: string;
   tags?: string[];
+  resolved?: boolean;  // Track resolution status
+  replies?: AnnotationReply[];  // Include replies when serializing
 }
 
 interface Changeset {
@@ -84,6 +93,7 @@ export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
   withDanger?: boolean;
+  viewerPath?: string;
 }
 
 /**
@@ -97,10 +107,12 @@ export class VisualizationServer {
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
   private annotationsByElement: Map<string, Set<string>> = new Map(); // elementId -> Set<annotationId>
+  private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
   private authEnabled: boolean = true; // Enabled by default for security
   private withDanger: boolean = false; // Danger mode disabled by default
+  private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
@@ -113,6 +125,7 @@ export class VisualizationServer {
     this.authEnabled = options?.authEnabled ?? (process.env.DR_AUTH_ENABLED !== 'false');
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
+    this.viewerPath = options?.viewerPath;
 
     // Add CORS middleware
     this.app.use('/*', cors());
@@ -198,8 +211,30 @@ export class VisualizationServer {
   private setupRoutes(): void {
     // Static viewer HTML at root
     this.app.get('/', (c) => {
+      if (this.viewerPath) {
+        // Serve custom viewer index.html
+        return this.serveCustomViewer('index.html');
+      }
       return c.html(this.getViewerHTML());
     });
+
+    // Serve static files from custom viewer path if provided
+    // Note: This catch-all route must skip API/WS routes by passing to next handler
+    if (this.viewerPath) {
+      this.app.get('/*', async (c, next) => {
+        const requestPath = c.req.path;
+        console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+
+        // Skip API routes and WebSocket - let them be handled by their specific routes
+        if (requestPath.startsWith('/api/') || requestPath === '/ws' || requestPath === '/health') {
+          console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
+          return next(); // Pass to next handler instead of returning 404
+        }
+
+        console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
+        return this.serveCustomViewer(requestPath.substring(1));
+      });
+    }
 
     // Health check endpoint
     this.app.get('/health', (c) => {
@@ -213,11 +248,15 @@ export class VisualizationServer {
 
     // Get full model
     this.app.get('/api/model', async (c) => {
+      console.log(`[ROUTE] /api/model handler called`);
       try {
+        console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
+        console.log(`[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`);
         return c.json(modelData);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        console.error(`[ROUTE] /api/model error: ${message}`);
         return c.json({ error: message }, 500);
       }
     });
@@ -322,10 +361,10 @@ export class VisualizationServer {
       try {
         const body = await c.req.json();
 
-        // Validate required fields
-        if (!body.elementId || !body.content || !body.author) {
+        // Validate required fields (author is optional)
+        if (!body.elementId || !body.content) {
           return c.json({
-            error: 'Missing required fields: elementId, content, author'
+            error: 'Missing required fields: elementId, content'
           }, 400);
         }
 
@@ -339,10 +378,11 @@ export class VisualizationServer {
         const annotation: ClientAnnotation = {
           id: this.generateAnnotationId(),
           elementId: String(body.elementId),
-          author: String(body.author),
+          author: body.author ? String(body.author) : 'Anonymous',  // Default to Anonymous if not provided
           content: String(body.content),
           createdAt: new Date().toISOString(),
           tags: body.tags || [],
+          resolved: false,  // Default to unresolved
         };
 
         // Store annotation
@@ -386,6 +426,47 @@ export class VisualizationServer {
         if (body.tags !== undefined) {
           annotation.tags = body.tags;
         }
+        if (body.resolved !== undefined) {
+          annotation.resolved = Boolean(body.resolved);
+        }
+        annotation.updatedAt = new Date().toISOString();
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: 'annotation.updated',
+          annotationId: annotation.id,
+          timestamp: annotation.updatedAt,
+        });
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // PATCH annotation (partial update - recommended)
+    this.app.patch('/api/annotations/:annotationId', async (c) => {
+      try {
+        const annotationId = c.req.param('annotationId');
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: 'Annotation not found' }, 404);
+        }
+
+        const body = await c.req.json();
+
+        // Update only provided fields (partial update)
+        if (body.content !== undefined) {
+          annotation.content = String(body.content);
+        }
+        if (body.tags !== undefined) {
+          annotation.tags = body.tags;
+        }
+        if (body.resolved !== undefined) {
+          annotation.resolved = Boolean(body.resolved);
+        }
         annotation.updatedAt = new Date().toISOString();
 
         // Broadcast to all clients
@@ -414,6 +495,7 @@ export class VisualizationServer {
 
         // Remove from storage
         this.annotations.delete(annotationId);
+        this.replies.delete(annotationId);  // Clean up replies
         const elementAnnotations = this.annotationsByElement.get(annotation.elementId);
         if (elementAnnotations) {
           elementAnnotations.delete(annotationId);
@@ -427,6 +509,66 @@ export class VisualizationServer {
         });
 
         return c.body(null, 204);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // GET annotation replies
+    this.app.get('/api/annotations/:annotationId/replies', (c) => {
+      const annotationId = c.req.param('annotationId');
+      const annotation = this.annotations.get(annotationId);
+
+      if (!annotation) {
+        return c.json({ error: 'Annotation not found' }, 404);
+      }
+
+      const replies = this.replies.get(annotationId) || [];
+      return c.json({ replies });
+    });
+
+    // POST annotation reply
+    this.app.post('/api/annotations/:annotationId/replies', async (c) => {
+      try {
+        const annotationId = c.req.param('annotationId');
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: 'Annotation not found' }, 404);
+        }
+
+        const body = await c.req.json();
+
+        // Validate required fields
+        if (!body.author || !body.content) {
+          return c.json({
+            error: 'Missing required fields: author, content'
+          }, 400);
+        }
+
+        const reply: AnnotationReply = {
+          id: this.generateReplyId(),
+          author: String(body.author),
+          content: String(body.content),
+          createdAt: new Date().toISOString(),
+        };
+
+        // Store reply
+        if (!this.replies.has(annotationId)) {
+          this.replies.set(annotationId, []);
+        }
+        this.replies.get(annotationId)!.push(reply);
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: 'annotation.reply.added',
+          annotationId,
+          replyId: reply.id,
+          timestamp: reply.createdAt,
+        });
+
+        return c.json(reply, 201);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return c.json({ error: message }, 500);
@@ -467,90 +609,66 @@ export class VisualizationServer {
       return c.json(changeset);
     });
 
-    // Deprecated: Get annotations for an element (use /api/annotations?elementId=xyz instead)
-    this.app.get('/api/elements/:id/annotations', (c) => {
-      const elementId = c.req.param('id');
-      const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-      const annotations = Array.from(annotationIds)
-        .map(id => this.annotations.get(id))
-        .filter((a): a is ClientAnnotation => a !== undefined);
-
-      return c.json({ elementId, annotations });
-    });
-
-    // Deprecated: Post annotation to element (use POST /api/annotations instead)
-    this.app.post('/api/elements/:id/annotations', async (c) => {
-      try {
-        const elementId = c.req.param('id');
-
-        // Verify element exists
-        const element = await this.findElement(elementId);
-        if (!element) {
-          return c.json({ error: 'Element not found' }, 404);
-        }
-
-        const body = await c.req.json();
-
-        // Support both 'text' and 'content' for backward compatibility
-        const content = (body.content || body.text) && String(body.content || body.text).trim();
-        if (!content) {
-          return c.json({ error: 'Annotation content cannot be empty' }, 400);
-        }
-
-        const author = body.author ? String(body.author).trim() : 'Anonymous';
-
-        const annotation: ClientAnnotation = {
-          id: this.generateAnnotationId(),
-          elementId,
-          author,
-          content,
-          createdAt: new Date().toISOString(),
-          tags: body.tags || [],
-        };
-
-        // Store annotation
-        this.annotations.set(annotation.id, annotation);
-        if (!this.annotationsByElement.has(elementId)) {
-          this.annotationsByElement.set(elementId, new Set());
-        }
-        this.annotationsByElement.get(elementId)!.add(annotation.id);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: 'annotation.added',
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        });
-
-        return c.json({ success: true, annotation });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return c.json({ error: message }, 500);
-      }
-    });
-
     // WebSocket endpoint
     this.app.get(
       '/ws',
       async (c, next) => {
         // Check WebSocket auth if enabled
         if (this.authEnabled) {
+          // Accept token from multiple sources:
+          // 1. Query parameter: ?token=<token> (works in all browsers)
+          // 2. Sec-WebSocket-Protocol header: token, <actual-token> (browser-compatible workaround)
+          // 3. Authorization header: Bearer <token> (non-browser clients only)
+
           const queryToken = c.req.query('token');
 
-          if (!queryToken) {
-            return c.json({ error: 'Authentication required. Provide token as query parameter: ?token=YOUR_TOKEN' }, 401);
+          // Check Sec-WebSocket-Protocol header (browser-compatible method)
+          // Format: "token, <actual-token>" or "token,<actual-token>"
+          const wsProtocol = c.req.header('Sec-WebSocket-Protocol');
+          let protocolToken: string | null = null;
+          if (wsProtocol) {
+            const protocols = wsProtocol.split(',').map(p => p.trim());
+            // Look for protocol pair: ['token', '<actual-token>']
+            const tokenIndex = protocols.indexOf('token');
+            if (tokenIndex !== -1 && protocols.length > tokenIndex + 1) {
+              protocolToken = protocols[tokenIndex + 1];
+            }
           }
 
-          if (queryToken !== this.authToken) {
+          // Check Authorization header (non-browser clients)
+          const authHeader = c.req.header('Authorization');
+          const bearerToken = authHeader?.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : null;
+
+          const token = queryToken || protocolToken || bearerToken;
+
+          if (!token) {
+            return c.json({
+              error: 'Authentication required. Provide token via: 1) Query param (?token=YOUR_TOKEN), 2) Sec-WebSocket-Protocol header (browser: new WebSocket(url, ["token", "YOUR_TOKEN"])), or 3) Authorization header (Bearer YOUR_TOKEN)'
+            }, 401);
+          }
+
+          if (token !== this.authToken) {
             return c.json({ error: 'Invalid authentication token' }, 403);
+          }
+
+          // If token came from Sec-WebSocket-Protocol, we need to respond with the protocol
+          // This is required by the WebSocket spec for subprotocol negotiation
+          if (protocolToken) {
+            c.header('Sec-WebSocket-Protocol', 'token');
           }
         }
 
         return next();
       },
       upgradeWebSocket(() => ({
-        onOpen: (_evt, ws) => {
+        onOpen: async (_evt, ws) => {
+          // Telemetry: Track WebSocket connection
+          await this.recordWebSocketEvent('ws.connection.open', {
+            'ws.client_count': this.clients.size + 1,
+          });
+
           this.clients.add(ws);
 
           // Send connected message per spec
@@ -565,7 +683,12 @@ export class VisualizationServer {
           }
         },
 
-        onClose: (_evt, ws) => {
+        onClose: async (_evt, ws) => {
+          // Telemetry: Track WebSocket disconnection
+          await this.recordWebSocketEvent('ws.connection.close', {
+            'ws.client_count': this.clients.size - 1,
+          });
+
           this.clients.delete(ws);
           if (process.env.VERBOSE) {
             console.log(
@@ -575,6 +698,9 @@ export class VisualizationServer {
         },
 
         onMessage: async (message, ws) => {
+          const messageStartTime = Date.now();
+          let messageType = 'unknown';
+
           try {
             // Extract the actual message data
             // In Hono/Bun, message is a MessageEvent with a data property
@@ -590,6 +716,13 @@ export class VisualizationServer {
               msgStr = String(rawData);
             }
             const data = JSON.parse(msgStr) as WSMessage;
+            messageType = data.jsonrpc === '2.0' ? data.method || 'jsonrpc' : data.type || 'unknown';
+
+            // Telemetry: Track message processing
+            await this.recordWebSocketEvent('ws.message.received', {
+              'ws.message.type': messageType,
+              'ws.message.size_bytes': msgStr.length,
+            });
 
             // Check if it's a JSON-RPC message
             if (data.jsonrpc === '2.0') {
@@ -597,8 +730,26 @@ export class VisualizationServer {
             } else {
               await this.handleWSMessage(ws, data);
             }
+
+            // Telemetry: Track successful message processing
+            const durationMs = Date.now() - messageStartTime;
+            await this.recordWebSocketEvent('ws.message.processed', {
+              'ws.message.type': messageType,
+              'ws.message.duration_ms': durationMs,
+              'ws.message.status': 'success',
+            });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
+            const durationMs = Date.now() - messageStartTime;
+
+            // Telemetry: Track message processing error
+            await this.recordWebSocketEvent('ws.message.error', {
+              'ws.message.type': messageType,
+              'ws.message.duration_ms': durationMs,
+              'ws.message.status': 'error',
+              'error.message': errorMsg,
+            });
+
             if (process.env.DEBUG) {
               console.error(`[WebSocket] Error handling message: ${errorMsg}`);
             }
@@ -611,8 +762,15 @@ export class VisualizationServer {
           }
         },
 
-        onError: (error) => {
+        onError: async (error) => {
           const message = error instanceof Error ? error.message : String(error);
+
+          // Telemetry: Track WebSocket error
+          await this.recordWebSocketEvent('ws.error', {
+            'error.type': error instanceof Error ? error.constructor.name : 'unknown',
+            'error.message': message,
+          });
+
           console.error(`[WebSocket] Error: ${message}`);
         },
       }))
@@ -631,8 +789,15 @@ export class VisualizationServer {
         .map((e) => {
           const annotationIds = this.annotationsByElement.get(e.id) || new Set();
           const annotations = Array.from(annotationIds)
-            .map(id => this.annotations.get(id))
-            .filter((a): a is ClientAnnotation => a !== undefined);
+            .map(id => {
+              const annotation = this.annotations.get(id);
+              if (!annotation) return undefined;
+
+              // Include replies in annotation response
+              const replies = this.replies.get(id) || [];
+              return { ...annotation, replies };
+            })
+            .filter(a => a !== undefined);
 
           return {
             ...e.toJSON(),
@@ -665,10 +830,25 @@ export class VisualizationServer {
   }
 
   /**
+   * Generate unique reply ID
+   */
+  private generateReplyId(): string {
+    return `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
    * Broadcast message to all connected WebSocket clients
    */
   private async broadcastMessage(message: any): Promise<void> {
     const messageStr = JSON.stringify(message);
+    const messageType = message.type || 'unknown';
+
+    // Telemetry: Track broadcast start
+    await this.recordWebSocketEvent('ws.broadcast.start', {
+      'ws.broadcast.type': messageType,
+      'ws.broadcast.client_count': this.clients.size,
+      'ws.broadcast.message_size_bytes': messageStr.length,
+    });
 
     let failureCount = 0;
     for (const client of this.clients) {
@@ -683,8 +863,45 @@ export class VisualizationServer {
       }
     }
 
+    // Telemetry: Track broadcast completion
+    await this.recordWebSocketEvent('ws.broadcast.complete', {
+      'ws.broadcast.type': messageType,
+      'ws.broadcast.success_count': this.clients.size - failureCount,
+      'ws.broadcast.failure_count': failureCount,
+    });
+
     if (failureCount > 0 && process.env.VERBOSE) {
       console.warn(`[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`);
+    }
+  }
+
+  /**
+   * Record WebSocket telemetry event
+   * Creates spans for WebSocket operations when telemetry is enabled
+   */
+  private async recordWebSocketEvent(eventName: string, attributes: Record<string, any>): Promise<void> {
+    // Check if telemetry is enabled (compile-time constant set by esbuild)
+    // @ts-ignore - TELEMETRY_ENABLED is a global constant defined at build time
+    const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
+    if (!isTelemetryEnabled) {
+      return;
+    }
+
+    try {
+      // Dynamic import for tree-shaking
+      const { startSpan, endSpan } = await import('../telemetry/index.js');
+
+      // Create span for WebSocket event
+      const span = startSpan(eventName, attributes);
+
+      // End span immediately (WebSocket events are typically instantaneous)
+      endSpan(span);
+    } catch (error) {
+      // Silently fail if telemetry is not available
+      if (process.env.DEBUG) {
+        console.debug(`[Telemetry] Failed to record WebSocket event: ${error}`);
+      }
     }
   }
 
@@ -1643,7 +1860,27 @@ export class VisualizationServer {
       return div.innerHTML;
     }
 
-    const ws = new WebSocket(\`ws://\${window.location.host}/ws\`);
+    // Extract token from URL query parameters if present
+    const urlParams = new URLSearchParams(window.location.search);
+    const token = urlParams.get('token');
+
+    // Log token status for debugging
+    if (!token) {
+      console.warn('[WebSocket] No authentication token found in URL. If authentication is enabled, connection will fail.');
+      console.warn('[WebSocket] Expected URL format: http://localhost:PORT?token=YOUR_TOKEN');
+    } else {
+      console.log('[WebSocket] Found authentication token in URL');
+    }
+
+    // Build WebSocket URL with token if available
+    let wsUrl = \`ws://\${window.location.host}/ws\`;
+    if (token) {
+      wsUrl += \`?token=\${encodeURIComponent(token)}\`;
+    }
+
+    console.log('[WebSocket] Connecting to:', wsUrl.replace(/token=[^&]+/, 'token=***'));
+
+    const ws = new WebSocket(wsUrl);
 
     ws.addEventListener('open', () => {
       console.log('WebSocket connected');
@@ -1669,15 +1906,44 @@ export class VisualizationServer {
       }
     });
 
-    ws.addEventListener('close', () => {
-      console.log('WebSocket disconnected');
+    ws.addEventListener('close', (event) => {
+      console.log('WebSocket disconnected', event.code, event.reason);
       updateStatus(false);
+
+      // If closed immediately with auth error codes, show helpful message
+      if (!token && (event.code === 1002 || event.code === 1008 || event.code === 1006)) {
+        showAuthError();
+      }
     });
 
     ws.addEventListener('error', (error) => {
       console.error('WebSocket error:', error);
       updateStatus(false);
+
+      // If we don't have a token, likely an auth issue
+      if (!token) {
+        showAuthError();
+      }
     });
+
+    function showAuthError() {
+      const errorDiv = document.createElement('div');
+      errorDiv.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #f44336; color: white; padding: 16px 24px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.3); z-index: 10000; max-width: 500px; text-align: center;';
+      errorDiv.innerHTML = \`
+        <strong>⚠️ Authentication Required</strong><br>
+        <span style="font-size: 14px; margin-top: 8px; display: inline-block;">
+          Please use the full URL with authentication token from the terminal.
+        </span>
+      \`;
+      document.body.appendChild(errorDiv);
+
+      // Auto-dismiss after 10 seconds
+      setTimeout(() => {
+        errorDiv.style.transition = 'opacity 0.5s';
+        errorDiv.style.opacity = '0';
+        setTimeout(() => errorDiv.remove(), 500);
+      }, 10000);
+    }
 
     function updateStatus(connected) {
       if (connected) {
@@ -1823,15 +2089,15 @@ export class VisualizationServer {
 
       if (!author || !text) return;
 
-      // Send to server
-      fetch(\`/api/elements/\${elementId}/annotations\`, {
+      // Send to server using new annotation API
+      fetch('/api/annotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author, text })
+        body: JSON.stringify({ elementId, author, content: text })
       })
         .then(r => r.json())
         .then(data => {
-          if (data.success) {
+          if (data && data.id) {
             document.getElementById('ann-author').value = '';
             document.getElementById('ann-text').value = '';
           }
@@ -1841,6 +2107,73 @@ export class VisualizationServer {
   </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Serve a file from the custom viewer path
+   */
+  private async serveCustomViewer(filePath: string): Promise<Response> {
+    console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+
+    if (!this.viewerPath) {
+      console.error(`[VIEWER] Custom viewer path not configured`);
+      return new Response('Custom viewer path not configured', { status: 500 });
+    }
+
+    try {
+      const path = await import('path');
+      const fs = await import('fs/promises');
+
+      // Resolve absolute path and prevent directory traversal
+      const fullPath = path.resolve(this.viewerPath, filePath);
+      console.log(`[VIEWER] Resolved path: ${fullPath}`);
+
+      // Security check: ensure the resolved path is within viewerPath
+      if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
+        console.error(`[VIEWER] Security check failed - path outside viewer directory`);
+        return new Response('Forbidden', { status: 403 });
+      }
+
+      // Read file
+      console.log(`[VIEWER] Reading file: ${fullPath}`);
+      const content = await fs.readFile(fullPath);
+
+      // Determine content type
+      const ext = path.extname(fullPath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.css': 'text/css',
+        '.js': 'application/javascript',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.eot': 'application/vnd.ms-fontobject',
+      };
+
+      const contentType = contentTypes[ext] || 'application/octet-stream';
+
+      console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
+      return new Response(content, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+        },
+      });
+    } catch (error) {
+      if ((error as any).code === 'ENOENT') {
+        console.error(`[VIEWER] File not found: ${filePath}`);
+        return new Response('File not found', { status: 404 });
+      }
+      console.error(`[VIEWER] Error serving custom viewer file ${filePath}:`, error);
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 
   /**

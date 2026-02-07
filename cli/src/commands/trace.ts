@@ -8,6 +8,7 @@ import { ReferenceRegistry } from '../core/reference-registry.js';
 import { DependencyTracker, TraceDirection } from '../core/dependency-tracker.js';
 import { findElementLayer } from '../utils/element-utils.js';
 import { isTelemetryEnabled, startSpan, endSpan } from '../telemetry/index.js';
+import { CLIError } from '../utils/errors.js';
 
 export async function traceCommand(
   elementId: string,
@@ -36,8 +37,7 @@ export async function traceCommand(
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute('trace.found', false);
       }
-      console.error(ansis.red(`Error: Element ${elementId} not found`));
-      process.exit(1);
+      throw new CLIError(`Element ${elementId} not found`, 1);
     }
 
     if (isTelemetryEnabled && span) {
@@ -183,9 +183,11 @@ export async function traceCommand(
       (span as any).recordException(error as Error);
       (span as any).setStatus({ code: 2, message: error instanceof Error ? error.message : String(error) });
     }
+    if (error instanceof CLIError) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : String(error);
-    console.error(ansis.red(`Error: ${message}`));
-    process.exit(1);
+    throw new CLIError(message, 1);
   } finally {
     endSpan(span);
   }

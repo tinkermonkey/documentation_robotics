@@ -166,7 +166,7 @@ export async function deleteCommand(id: string, options: DeleteOptions): Promise
 
       if (!confirmed) {
         console.log(ansis.dim('Cancelled'));
-        process.exit(0);
+        return;
       }
     }
 

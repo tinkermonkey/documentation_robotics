@@ -16,28 +16,140 @@ const authToken = process.env.DR_AUTH_TOKEN && process.env.DR_AUTH_TOKEN.length 
   ? process.env.DR_AUTH_TOKEN
   : undefined;
 const withDanger = process.env.DR_WITH_DANGER === 'true';
+const viewerPath = process.env.DR_VIEWER_PATH;
+
+// Conditional telemetry import based on compile-time flag
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
+let serverInstance: VisualizationServer | null = null;
+let isShuttingDown = false;
 
 async function main() {
   try {
+    // CRITICAL: Initialize telemetry SDK in subprocess
+    // Without this, no spans will be created or exported even though TELEMETRY_ENABLED=true
+    if (isTelemetryEnabled) {
+      try {
+        const { initTelemetry } = await import('./telemetry/index.js');
+        await initTelemetry();
+
+        // Load and display actual OTLP configuration
+        const { loadOTLPConfig } = await import('./telemetry/config.js');
+        const otlpConfig = await loadOTLPConfig();
+
+        if (process.env.DEBUG || process.env.VERBOSE) {
+          console.log(`[Telemetry] SDK initialized in server subprocess`);
+          console.log(`[Telemetry] OTLP traces endpoint: ${otlpConfig.endpoint}`);
+          console.log(`[Telemetry] OTLP logs endpoint: ${otlpConfig.logsEndpoint}`);
+          console.log(`[Telemetry] Service name: ${otlpConfig.serviceName}`);
+
+          // Runtime detection and compatibility info
+          const isBun = typeof (globalThis as any).Bun !== 'undefined';
+          if (isBun) {
+            console.log(`[Telemetry] Runtime: Bun (using fetch-based OTLP exporter)`);
+          } else {
+            console.log(`[Telemetry] Runtime: Node.js (using http-based OTLP exporter)`);
+          }
+        }
+      } catch (error) {
+        // Log telemetry initialization errors but don't fail the server
+        console.error('[Telemetry] Failed to initialize telemetry:', error);
+        console.error('[Telemetry] Server will continue without telemetry');
+      }
+    } else if (process.env.DEBUG || process.env.VERBOSE) {
+      console.log(`[Telemetry] TELEMETRY_ENABLED is false - telemetry disabled`);
+    }
+
     // Load model with full content
     const model = await Model.load(projectPath, { lazyLoad: false });
 
     // Create and start server
-    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger });
+    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger, viewerPath });
+    serverInstance = server; // Store for signal handlers
     await server.start(port);
 
     // Output token for parent process to read
     if (authEnabled) {
       console.log(`TOKEN:${server.getAuthToken()}`);
     }
+
+    // Setup graceful shutdown handlers
+    setupShutdownHandlers();
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(`Error: ${message}`);
     if (error instanceof Error) {
       console.error(`Stack: ${error.stack}`);
     }
-    process.exit(1);
+    await gracefulShutdown(1);
   }
+}
+
+/**
+ * Gracefully shutdown the server and flush telemetry
+ */
+async function gracefulShutdown(exitCode: number = 0): Promise<void> {
+  if (isShuttingDown) {
+    return; // Prevent multiple shutdown attempts
+  }
+  isShuttingDown = true;
+
+  try {
+    // Stop the visualization server
+    if (serverInstance) {
+      serverInstance.stop();
+      serverInstance = null;
+    }
+
+    // Flush telemetry spans before exit
+    if (isTelemetryEnabled) {
+      console.log('[Telemetry] Shutting down telemetry and flushing spans...');
+      const { shutdownTelemetry } = await import('./telemetry/index.js');
+      await shutdownTelemetry();
+      console.log('[Telemetry] Telemetry shutdown complete');
+    } else {
+      if (process.env.DEBUG) {
+        console.log('[Telemetry] Telemetry is disabled (TELEMETRY_ENABLED=false at build time)');
+      }
+    }
+  } catch (error) {
+    // Don't block shutdown on errors
+    if (process.env.DEBUG) {
+      console.error('Error during shutdown:', error);
+    }
+  } finally {
+    process.exit(exitCode);
+  }
+}
+
+/**
+ * Setup handlers for graceful shutdown on signals
+ */
+function setupShutdownHandlers(): void {
+  // Handle Ctrl-C (SIGINT)
+  process.on('SIGINT', async () => {
+    console.log('\n[SIGINT] Shutting down visualization server...');
+    await gracefulShutdown(0);
+  });
+
+  // Handle termination signal (SIGTERM)
+  process.on('SIGTERM', async () => {
+    console.log('\n[SIGTERM] Shutting down visualization server...');
+    await gracefulShutdown(0);
+  });
+
+  // Handle uncaught exceptions
+  process.on('uncaughtException', async (error) => {
+    console.error('Uncaught exception:', error);
+    await gracefulShutdown(1);
+  });
+
+  // Handle unhandled promise rejections
+  process.on('unhandledRejection', async (reason) => {
+    console.error('Unhandled rejection:', reason);
+    await gracefulShutdown(1);
+  });
 }
 
 main();

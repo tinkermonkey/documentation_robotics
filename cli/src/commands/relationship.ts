@@ -2,23 +2,11 @@
  * Relationship subcommands for managing intra-layer relationships
  */
 
-import { writeSync } from 'node:fs';
 import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
-
-/**
- * Write an error message to stderr synchronously and exit. Using
- * writeSync to fd 2 (stderr) ensures the message is fully written
- * to the pipe buffer before process.exit() terminates the process.
- * This avoids a race condition where async console.error() output
- * can be lost in piped/CI environments.
- */
-function exitWithError(message: string, code: number = 1): never {
-  writeSync(2, message + '\n');
-  process.exit(code);
-}
+import { CLIError, ErrorCategory, handleError } from '../utils/errors.js';
 
 export function relationshipCommands(program: Command): void {
   program
@@ -42,21 +30,20 @@ Examples:
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          return exitWithError(ansis.red(`Error: Source element ${source} not found`));
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find target element
         const targetLayerName = await findElementLayer(model, target);
         if (!targetLayerName) {
-          return exitWithError(ansis.red(`Error: Target element ${target} not found`));
+          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }
 
         // Relationships are intra-layer only
         if (sourceLayerName !== targetLayerName) {
-          return exitWithError(
-            ansis.red(
-              'Error: cannot add cross-layer relationship. Relationships must be within the same layer.'
-            )
+          throw new CLIError(
+            'cannot add cross-layer relationship. Relationships must be within the same layer.',
+            ErrorCategory.USER
           );
         }
 
@@ -66,7 +53,7 @@ Examples:
           try {
             properties = JSON.parse(options.properties);
           } catch (e) {
-            return exitWithError(ansis.red('Error: Invalid JSON in --properties'));
+            throw new CLIError('Invalid JSON in --properties', ErrorCategory.USER);
           }
         }
 
@@ -90,8 +77,7 @@ Examples:
           )
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        exitWithError(ansis.red(`Error: ${message}`));
+        handleError(error);
       }
     });
 
@@ -115,14 +101,14 @@ Examples:
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          return exitWithError(ansis.red(`Error: Source element ${source} not found`));
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find relationships to delete
         const toDelete = model.relationships.find(source, target, options.predicate);
 
         if (toDelete.length === 0) {
-          return exitWithError(ansis.red('Error: No matching relationships found'));
+          throw new CLIError('No matching relationships found', ErrorCategory.USER);
         }
 
         // Confirm deletion unless --force or non-interactive environment
@@ -137,7 +123,7 @@ Examples:
 
           if (!confirmed) {
             console.log(ansis.dim('Cancelled'));
-            process.exit(0);
+            return;
           }
         }
 
@@ -154,8 +140,7 @@ Examples:
           )
         );
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        exitWithError(ansis.red(`Error: ${message}`));
+        handleError(error);
       }
     });
 
@@ -179,7 +164,7 @@ Examples:
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
-          return exitWithError(ansis.red(`Error: Element ${id} not found`));
+          throw new CLIError(`Element ${id} not found`, ErrorCategory.USER);
         }
 
         // Get relationships from centralized store
@@ -233,8 +218,7 @@ Examples:
         console.log(ansis.dim(`Total: ${relationships.length} relationship(s)`));
         console.log('');
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        exitWithError(ansis.red(`Error: ${message}`));
+        handleError(error);
       }
     });
 
@@ -255,15 +239,16 @@ Examples:
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {
-          return exitWithError(ansis.red(`Error: Source element ${source} not found`));
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find relationships from centralized store
         const relationships = model.relationships.find(source, target);
 
         if (relationships.length === 0) {
-          return exitWithError(
-            ansis.red(`Error: No relationships from ${source} to ${target}`)
+          throw new CLIError(
+            `No relationships from ${source} to ${target}`,
+            ErrorCategory.USER
           );
         }
 
@@ -298,8 +283,7 @@ Examples:
 
         console.log('');
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        exitWithError(ansis.red(`Error: ${message}`));
+        handleError(error);
       }
     });
 }

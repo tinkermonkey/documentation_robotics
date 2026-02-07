@@ -219,12 +219,11 @@ describe.serial('Visualization Server - Annotations', () => {
     createdAnnotationId = data.id;
   });
 
-  it('should get annotations for element via GET /api/elements/:id/annotations', async () => {
-    const response = await fetch(`${baseUrl}/api/elements/motivation-goal-g1/annotations`);
+  it('should get annotations for element via GET /api/annotations?elementId=', async () => {
+    const response = await fetch(`${baseUrl}/api/annotations?elementId=motivation-goal-g1`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(data).toHaveProperty('elementId');
     expect(data).toHaveProperty('annotations');
     expect(data.annotations).toBeArray();
     expect(data.annotations.length).toBe(1);
@@ -257,28 +256,202 @@ describe.serial('Visualization Server - Annotations', () => {
     expect(response.status).toBe(204);
 
     // Verify it's deleted
-    const getResponse = await fetch(`${baseUrl}/api/elements/motivation-goal-g1/annotations`);
+    const getResponse = await fetch(`${baseUrl}/api/annotations?elementId=motivation-goal-g1`);
     const result = await getResponse.json();
     expect(result.annotations.length).toBe(0);
   });
 
-  it('should create annotation via POST /api/elements/:id/annotations', async () => {
+  it('should create annotation via POST /api/annotations', async () => {
     const annotationData = {
+      elementId: 'motivation-goal-g2',
       author: 'Another User',
       content: 'Element-specific annotation'
     };
 
-    const response = await fetch(`${baseUrl}/api/elements/motivation-goal-g2/annotations`, {
+    const response = await fetch(`${baseUrl}/api/annotations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(annotationData)
     });
 
+    expect(response.status).toBe(201);
+    const data = await response.json();
+    expect(data.elementId).toBe('motivation-goal-g2');
+    expect(data.content).toBe('Element-specific annotation');
+  });
+
+  it('should default resolved to false when creating annotation', async () => {
+    const annotationData = {
+      elementId: 'motivation-goal-g1',
+      author: 'Test User',
+      content: 'Test resolved field'
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(annotationData)
+    });
+
+    expect(response.status).toBe(201);
+    const data = await response.json();
+    expect(data.resolved).toBe(false);
+    createdAnnotationId = data.id;
+  });
+
+  it('should update resolved field via PUT', async () => {
+    const updateData = {
+      resolved: true
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updateData)
+    });
+
     expect(response.status).toBe(200);
     const data = await response.json();
-    expect(data.success).toBe(true);
-    expect(data.annotation.elementId).toBe('motivation-goal-g2');
-    expect(data.annotation.content).toBe('Element-specific annotation');
+    expect(data.resolved).toBe(true);
+  });
+
+  it('should update annotation via PATCH (partial update)', async () => {
+    const patchData = {
+      content: 'Patched content only'
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patchData)
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.content).toBe('Patched content only');
+    expect(data.resolved).toBe(true);  // Should preserve previous value
+  });
+
+  it('should update resolved via PATCH', async () => {
+    const patchData = {
+      resolved: false
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patchData)
+    });
+
+    expect(response.status).toBe(200);
+    const data = await response.json();
+    expect(data.resolved).toBe(false);
+    expect(data.content).toBe('Patched content only');  // Should preserve previous value
+  });
+
+  it('should create annotation without author (defaults to Anonymous)', async () => {
+    const annotationData = {
+      elementId: 'motivation-goal-g1',
+      content: 'Anonymous annotation'
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(annotationData)
+    });
+
+    expect(response.status).toBe(201);
+    const data = await response.json();
+    expect(data.author).toBe('Anonymous');
+    expect(data.content).toBe('Anonymous annotation');
+  });
+
+  it('should get replies for annotation', async () => {
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(data).toHaveProperty('replies');
+    expect(data.replies).toBeArray();
+    expect(data.replies.length).toBe(0);
+  });
+
+  it('should create reply on annotation', async () => {
+    const replyData = {
+      author: 'Reply Author',
+      content: 'This is a reply to the annotation'
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(replyData)
+    });
+
+    expect(response.status).toBe(201);
+    const data = await response.json();
+    expect(data).toHaveProperty('id');
+    expect(data.author).toBe('Reply Author');
+    expect(data.content).toBe('This is a reply to the annotation');
+    expect(data).toHaveProperty('createdAt');
+  });
+
+  it('should get replies after creating one', async () => {
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`);
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(data.replies.length).toBe(1);
+    expect(data.replies[0].author).toBe('Reply Author');
+    expect(data.replies[0].content).toBe('This is a reply to the annotation');
+  });
+
+  it('should return 404 when replying to non-existent annotation', async () => {
+    const replyData = {
+      author: 'Test',
+      content: 'Reply to nowhere'
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/non-existent-id/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(replyData)
+    });
+
+    expect(response.status).toBe(404);
+  });
+
+  it('should require author and content for reply', async () => {
+    const replyData = {
+      author: 'Test'
+      // Missing content
+    };
+
+    const response = await fetch(`${baseUrl}/api/annotations/${createdAnnotationId}/replies`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(replyData)
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('should clean up replies when annotation is deleted', async () => {
+    // Get annotation ID with replies
+    const annotationResponse = await fetch(`${baseUrl}/api/annotations?elementId=motivation-goal-g1`);
+    const annotations = await annotationResponse.json();
+    const annWithReplies = annotations.annotations.find((a: any) => a.content === 'Patched content only');
+
+    // Delete the annotation
+    const deleteResponse = await fetch(`${baseUrl}/api/annotations/${annWithReplies.id}`, {
+      method: 'DELETE'
+    });
+    expect(deleteResponse.status).toBe(204);
+
+    // Verify replies are also deleted (404 on GET replies)
+    const repliesResponse = await fetch(`${baseUrl}/api/annotations/${annWithReplies.id}/replies`);
+    expect(repliesResponse.status).toBe(404);
   });
 });
 

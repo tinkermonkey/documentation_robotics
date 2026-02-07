@@ -10,6 +10,7 @@ import { BaseChatClient } from '../coding-agents/base-chat-client.js';
 import { detectAvailableClients } from '../coding-agents/chat-utils.js';
 import { initializeChatLogger, getChatLogger } from '../utils/chat-logger.js';
 import { isTelemetryEnabled, startSpan, endSpan, emitLog, SeverityNumber } from '../telemetry/index.js';
+import { CLIError } from '../utils/errors.js';
 
 /**
  * Get the preferred chat client from manifest metadata
@@ -64,8 +65,7 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
     // Load the model to verify it exists
     const model = await Model.load(process.cwd());
     if (!model) {
-      console.error(ansis.red('Error: Could not load architecture model'));
-      process.exit(1);
+      throw new CLIError('Could not load architecture model', 1);
     }
 
     // Initialize chat logger
@@ -150,7 +150,7 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
             console.log('');
             await logger.logEvent('chat_session_cancelled');
             outro(ansis.yellow('Chat cancelled'));
-            process.exit(0);
+            return;
           }
 
           selectedClient = availableClients.find(c => c.getClientName() === choice)!;
@@ -189,16 +189,6 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
     // Start conversation loop
     let messageCount = 0;
     while (true) {
-      // Periodic telemetry flush at message boundaries (safe idle time)
-      // This ensures long-running chat sessions don't lose spans if crashed
-      // Flush happens BEFORE user input prompt, so it's non-blocking
-      if (isTelemetryEnabled && messageCount > 0) {
-        // Import flushTelemetry dynamically to avoid issues when telemetry disabled
-        const { flushTelemetry } = await import('../telemetry/index.js');
-        // Non-blocking flush - failures are silently ignored
-        void flushTelemetry().catch(() => {/* ignore */});
-      }
-
       // Get user input
       let userInput: string;
       try {
@@ -255,6 +245,20 @@ export async function chatCommand(explicitClient?: string, withDanger?: boolean)
           sessionId: logger.getSessionId(),
         });
         console.log('\n');
+
+        // Flush telemetry after message completes to ensure spans are exported
+        // during long chat sessions (not just at shutdown)
+        if (isTelemetryEnabled) {
+          try {
+            const { flushTelemetry } = await import('../telemetry/index.js');
+            await flushTelemetry(); // Blocking flush
+          } catch (flushError) {
+            // Log flush failures for debugging, but don't break chat
+            if (process.env.DR_TELEMETRY_DEBUG) {
+              process.stderr.write(`[TELEMETRY] Flush failed: ${flushError instanceof Error ? flushError.message : String(flushError)}\n`);
+            }
+          }
+        }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         if (isTelemetryEnabled && span) {

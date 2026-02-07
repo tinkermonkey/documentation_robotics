@@ -11,6 +11,7 @@ import type {
 import type { ExportResult } from '@opentelemetry/core';
 import { ExportResultCode } from '@opentelemetry/core';
 import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
+import { FetchOTLPExporter } from './fetch-otlp-exporter.js';
 
 /**
  * OTLP exporter with circuit-breaker pattern for graceful failure.
@@ -23,7 +24,7 @@ import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-http';
  * - Timeout: 5000ms timeout to accommodate network latency
  */
 export class ResilientOTLPExporter implements SpanExporter {
-  private delegate: OTLPTraceExporter;
+  private delegate: SpanExporter;
   private retryAfter = 0;  // Circuit-breaker timestamp
   private readonly url: string;
   private readonly debug: boolean;
@@ -35,16 +36,33 @@ export class ResilientOTLPExporter implements SpanExporter {
     }
   ) {
     this.url = config?.url || 'http://localhost:4318/v1/traces';
-    this.debug = process.env.DR_TELEMETRY_DEBUG === '1';
+    // Enable debug logging if any debug flag is set (consistent with telemetry/index.ts)
+    this.debug = process.env.DR_TELEMETRY_DEBUG === '1' ||
+                 process.env.DEBUG === '1' ||
+                 process.env.VERBOSE === '1';
 
-    this.delegate = new OTLPTraceExporter({
-      ...config,
-      url: this.url,
-      timeoutMillis: config?.timeoutMillis ?? 5000,  // 5s timeout to allow for network latency
-    });
+    // Detect if running in Bun and use fetch-based exporter for compatibility
+    const isBun = typeof (globalThis as any).Bun !== 'undefined';
 
-    if (this.debug) {
-      process.stderr.write(`[TELEMETRY] Trace exporter initialized: ${this.url}\n`);
+    if (isBun) {
+      // Use fetch-based exporter for Bun (avoids http module compatibility issues)
+      this.delegate = new FetchOTLPExporter({
+        url: this.url,
+        timeoutMillis: config?.timeoutMillis ?? 10000,
+      });
+      if (this.debug) {
+        process.stderr.write(`[TELEMETRY] Using fetch-based exporter for Bun compatibility\n`);
+      }
+    } else {
+      // Use standard http-based exporter for Node.js
+      this.delegate = new OTLPTraceExporter({
+        ...config,
+        url: this.url,
+        timeoutMillis: config?.timeoutMillis ?? 5000,
+      });
+      if (this.debug) {
+        process.stderr.write(`[TELEMETRY] Trace exporter initialized: ${this.url}\n`);
+      }
     }
   }
 

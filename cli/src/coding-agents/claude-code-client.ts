@@ -36,6 +36,8 @@ interface ClaudeEvent {
  * Claude Code CLI Client
  */
 export class ClaudeCodeClient extends BaseChatClient {
+  private isFirstMessage: boolean = true;  // Track first message for session management
+
   /**
    * Check if Claude Code CLI is available
    */
@@ -81,6 +83,7 @@ export class ClaudeCodeClient extends BaseChatClient {
       'client.name': 'Claude Code',
       'client.agent': options?.agent,
       'client.withDanger': options?.withDanger === true,
+      'client.isFirstMessage': this.isFirstMessage,
       'options.workingDirectory': options?.workingDirectory,
       'options.sessionId': options?.sessionId,
       'client.workingDirectory': options?.workingDirectory,
@@ -102,13 +105,19 @@ export class ClaudeCodeClient extends BaseChatClient {
     this.createSession();
     this.updateSessionTimestamp();
 
+    // Capture isFirstMessage state before spawning, then mark subsequent messages as not-first
+    const currentIsFirst = this.isFirstMessage;
+    if (this.isFirstMessage) {
+      this.isFirstMessage = false;
+    }
+
     if (isTelemetryEnabled && span) {
       (span as any).setAttribute('client.sessionCreated', true);
       (span as any).setAttribute('client.internalSessionId', this.getCurrentSession()?.id ?? 'none');
     }
 
     return new Promise((resolve, reject) => {
-        const proc = this.spawnClaudeProcess(message, options);
+        const proc = this.spawnClaudeProcess(message, options, currentIsFirst);
 
         let buffer = '';
         let assistantOutput = '';
@@ -358,9 +367,10 @@ export class ClaudeCodeClient extends BaseChatClient {
   /**
    * Get the process arguments that would be used for spawning
    * @param options Chat options
+   * @param isFirstMessage Whether this is the first message in the chat session
    * @returns Array of command line arguments
    */
-  private getProcessArgs(options?: ChatOptions): string[] {
+  private getProcessArgs(options?: ChatOptions, isFirstMessage: boolean = true): string[] {
     const args = ['--print'];
 
     // Add dangerously-skip-permissions flag if withDanger is enabled
@@ -370,9 +380,13 @@ export class ClaudeCodeClient extends BaseChatClient {
 
     args.push('--verbose', '--output-format', 'stream-json');
 
-    // Add session ID if provided for conversation continuity
-    if (options?.sessionId) {
+    // Session management:
+    // - First message: Start with our session ID for traceability
+    // - Subsequent messages: Resume that specific session
+    if (isFirstMessage && options?.sessionId) {
       args.push('--session-id', options.sessionId);
+    } else if (!isFirstMessage && options?.sessionId) {
+      args.push('--resume', options.sessionId);
     }
 
     // Add agent if specified
@@ -387,22 +401,27 @@ export class ClaudeCodeClient extends BaseChatClient {
    * Spawn the Claude Code CLI process
    * @param message The message to send
    * @param options Chat options
+   * @param isFirstMessage Whether this is the first message in the chat session
    * @returns The spawned child process
    */
   private spawnClaudeProcess(
     message: string,
-    options?: ChatOptions
+    options?: ChatOptions,
+    isFirstMessage: boolean = true
   ): ChildProcess {
     const span = isTelemetryEnabled ? startSpan('claude-code.spawn-process') : null;
 
     try {
-      const args = this.getProcessArgs(options);
+      const args = this.getProcessArgs(options, isFirstMessage);
       const cwd = options?.workingDirectory || process.cwd();
 
       if (isTelemetryEnabled && span) {
         (span as any).setAttribute('process.command', 'claude');
         (span as any).setAttribute('process.args', args.join(' '));
         (span as any).setAttribute('process.argCount', args.length);
+        (span as any).setAttribute('process.isFirstMessage', isFirstMessage);
+        (span as any).setAttribute('process.hasResume', args.includes('--resume'));
+        (span as any).setAttribute('process.hasSessionId', args.includes('--session-id'));
         (span as any).setAttribute('process.hasAgent', !!options?.agent);
         (span as any).setAttribute('process.agent', options?.agent);
         (span as any).setAttribute('process.withDanger', options?.withDanger === true);

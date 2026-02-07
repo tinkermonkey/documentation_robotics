@@ -35,7 +35,10 @@ export class ResilientLogExporter implements LogRecordExporter {
     }
   ) {
     this.url = config?.url || 'http://localhost:4318/v1/logs';
-    this.debug = process.env.DR_TELEMETRY_DEBUG === '1';
+    // Enable debug logging if any debug flag is set (consistent with telemetry/index.ts)
+    this.debug = process.env.DR_TELEMETRY_DEBUG === '1' ||
+                 process.env.DEBUG === '1' ||
+                 process.env.VERBOSE === '1';
 
     this.delegate = new OTLPLogExporter({
       ...config,
