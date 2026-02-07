@@ -30,7 +30,6 @@ export async function initCommand(options: InitOptions): Promise<void> {
 
   try {
     const rootPath = process.cwd();
-    // Use Python CLI structure: documentation-robotics/model/
     const modelPath = `${rootPath}/documentation-robotics/model`;
     const manifestPath = `${modelPath}/manifest.yaml`;
 

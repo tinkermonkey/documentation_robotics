@@ -223,10 +223,15 @@ export class VisualizationServer {
     if (this.viewerPath) {
       this.app.get('/*', async (c, next) => {
         const requestPath = c.req.path;
+        console.log(`[ROUTE] Catch-all matched: ${requestPath}`);
+
         // Skip API routes and WebSocket - let them be handled by their specific routes
         if (requestPath.startsWith('/api/') || requestPath === '/ws' || requestPath === '/health') {
+          console.log(`[ROUTE] Catch-all delegating to next handler for: ${requestPath}`);
           return next(); // Pass to next handler instead of returning 404
         }
+
+        console.log(`[ROUTE] Catch-all serving custom viewer file: ${requestPath}`);
         return this.serveCustomViewer(requestPath.substring(1));
       });
     }
@@ -243,11 +248,15 @@ export class VisualizationServer {
 
     // Get full model
     this.app.get('/api/model', async (c) => {
+      console.log(`[ROUTE] /api/model handler called`);
       try {
+        console.log(`[ROUTE] /api/model serializing model...`);
         const modelData = await this.serializeModel();
+        console.log(`[ROUTE] /api/model returning ${Object.keys(modelData.layers || {}).length} layers`);
         return c.json(modelData);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        console.error(`[ROUTE] /api/model error: ${message}`);
         return c.json({ error: message }, 500);
       }
     });
@@ -2070,7 +2079,10 @@ export class VisualizationServer {
    * Serve a file from the custom viewer path
    */
   private async serveCustomViewer(filePath: string): Promise<Response> {
+    console.log(`[VIEWER] serveCustomViewer called for: ${filePath}`);
+
     if (!this.viewerPath) {
+      console.error(`[VIEWER] Custom viewer path not configured`);
       return new Response('Custom viewer path not configured', { status: 500 });
     }
 
@@ -2080,13 +2092,16 @@ export class VisualizationServer {
 
       // Resolve absolute path and prevent directory traversal
       const fullPath = path.resolve(this.viewerPath, filePath);
+      console.log(`[VIEWER] Resolved path: ${fullPath}`);
 
       // Security check: ensure the resolved path is within viewerPath
       if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
+        console.error(`[VIEWER] Security check failed - path outside viewer directory`);
         return new Response('Forbidden', { status: 403 });
       }
 
       // Read file
+      console.log(`[VIEWER] Reading file: ${fullPath}`);
       const content = await fs.readFile(fullPath);
 
       // Determine content type
@@ -2110,6 +2125,7 @@ export class VisualizationServer {
 
       const contentType = contentTypes[ext] || 'application/octet-stream';
 
+      console.log(`[VIEWER] Successfully read file, returning with Content-Type: ${contentType}`);
       return new Response(content, {
         status: 200,
         headers: {
@@ -2118,9 +2134,10 @@ export class VisualizationServer {
       });
     } catch (error) {
       if ((error as any).code === 'ENOENT') {
+        console.error(`[VIEWER] File not found: ${filePath}`);
         return new Response('File not found', { status: 404 });
       }
-      console.error('Error serving custom viewer file:', error);
+      console.error(`[VIEWER] Error serving custom viewer file ${filePath}:`, error);
       return new Response('Internal server error', { status: 500 });
     }
   }

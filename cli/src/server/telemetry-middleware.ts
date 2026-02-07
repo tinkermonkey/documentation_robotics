@@ -22,6 +22,13 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
  * for request lifecycle tracking.
  */
 export async function telemetryMiddleware(c: Context, next: Next): Promise<void> {
+  const method = c.req.method;
+  const path = c.req.path;
+  const url = c.req.url;
+
+  // Log ALL incoming requests for debugging
+  console.log(`[HTTP] ${method} ${path} (full URL: ${url})`);
+
   if (!isTelemetryEnabled) {
     return next();
   }
@@ -30,8 +37,6 @@ export async function telemetryMiddleware(c: Context, next: Next): Promise<void>
   const { startSpan, endSpan, emitLog } = await import('../telemetry/index.js');
   const { SeverityNumber } = await import('@opentelemetry/api-logs');
 
-  const method = c.req.method;
-  const path = c.req.path;
   const route = c.req.routePath || path; // Use route pattern if available
   const requestStartTime = Date.now();
 

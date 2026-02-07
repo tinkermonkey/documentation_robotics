@@ -27,12 +27,18 @@ let isShuttingDown = false;
 
 async function main() {
   try {
-    // Diagnostic: Show telemetry status
-    if (process.env.DEBUG || process.env.VERBOSE) {
-      console.log(`[Telemetry] TELEMETRY_ENABLED at build time: ${isTelemetryEnabled}`);
-      if (isTelemetryEnabled) {
+    // CRITICAL: Initialize telemetry SDK in subprocess
+    // Without this, no spans will be created or exported even though TELEMETRY_ENABLED=true
+    if (isTelemetryEnabled) {
+      const { initTelemetry } = await import('./telemetry/index.js');
+      await initTelemetry();
+
+      if (process.env.DEBUG || process.env.VERBOSE) {
+        console.log(`[Telemetry] SDK initialized in server subprocess`);
         console.log(`[Telemetry] OTLP endpoint: ${process.env.OTEL_EXPORTER_OTLP_ENDPOINT || 'http://localhost:4318 (default)'}`);
       }
+    } else if (process.env.DEBUG || process.env.VERBOSE) {
+      console.log(`[Telemetry] TELEMETRY_ENABLED is false - telemetry disabled`);
     }
 
     // Load model with full content
