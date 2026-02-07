@@ -40,17 +40,17 @@ export const modelNodeRelationshipExamples = {
   persistsRelationship: {
     id: "aa0c3944-374d-96c9-fb61-991100995556",
     spec_relationship_id: "data-model.persists-to.data-store",
-    source_node_id: "bb1d4055-485e-07d0-gc72-002211006666",
+    source_node_id: "bb1d4055-485e-07d0-ac72-002211006666",
     source_layer_id: "data-model",
-    destination_node_id: "cc2e5166-596f-18e1-hd83-113322117777",
+    destination_node_id: "cc2e5166-596f-18e1-ad83-113322117777",
     destination_layer_id: "data-store",
     predicate: "persists-to"
   },
 
   testsRelationship: {
-    id: "bb1d4055-485e-07d0-gc72-002211006667",
+    id: "bb1d4055-485e-07d0-ac72-002211006667",
     spec_relationship_id: "testing.tests.api",
-    source_node_id: "cc2e5166-596f-18e1-hd83-113322117777",
+    source_node_id: "cc2e5166-596f-18e1-ad83-113322117777",
     source_layer_id: "testing",
     destination_node_id: "dd3f6277-607a-29f2-ae94-224433228888",
     destination_layer_id: "api",
@@ -62,7 +62,7 @@ export const modelNodeRelationshipExamples = {
   },
 
   consumesRelationship: {
-    id: "cc2e5166-596f-18e1-hd83-113322117778",
+    id: "cc2e5166-596f-18e1-ad83-113322117778",
     spec_relationship_id: "application.consumes.api",
     source_node_id: "dd3f6277-607a-29f2-ae94-224433228889",
     source_layer_id: "application",

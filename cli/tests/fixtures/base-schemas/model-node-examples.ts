@@ -96,7 +96,7 @@ export const modelNodeExamples = {
   },
 
   nodeWithoutMetadata: {
-    id: "bb1d4055-485e-07d0-gc72-002211006666",
+    id: "bb1d4055-485e-07d0-ac72-002211006666",
     spec_node_id: "motivation.goal",
     type: "goal",
     layer_id: "motivation",
@@ -104,7 +104,7 @@ export const modelNodeExamples = {
   },
 
   entityNode: {
-    id: "cc2e5166-596f-18e1-hd83-113322117777",
+    id: "cc2e5166-596f-18e1-ad83-113322117777",
     spec_node_id: "data-model.entity",
     type: "entity",
     layer_id: "data-model",
