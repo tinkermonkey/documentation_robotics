@@ -530,9 +530,9 @@
                 "predicate": "persists-to",
                 "inversePredicate": "stores",
                 "targetType": "Database",
-                "targetLayer": "08-datastore",
+                "targetLayer": "08-data-store",
                 "strength": "high",
-                "category": "datastore",
+                "category": "data-store",
                 "bidirectional": true
               }
             }
@@ -547,9 +547,9 @@
                 "predicate": "maps-to",
                 "inversePredicate": "mapped-from",
                 "targetType": "Table",
-                "targetLayer": "08-datastore",
+                "targetLayer": "08-data-store",
                 "strength": "high",
-                "category": "datastore",
+                "category": "data-store",
                 "bidirectional": true
               }
             }
