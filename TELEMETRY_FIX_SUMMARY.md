@@ -6,13 +6,13 @@
 
 **Problem:** The `cli.execute` span never ends because the visualize command uses a keep-alive pattern that never resolves. Without periodic flushing, the span remains active but is never exported to the telemetry backend.
 
-**Solution:** Added periodic telemetry flushing every 30 seconds using `setInterval()`.
+**Solution:** Added periodic telemetry flushing every 15 seconds using `setInterval()`.
 
 **Location:** `cli/src/commands/visualize.ts:333-351`
 
 **Key changes:**
 
-- Set up `flushInterval` with 30-second periodic flush
+- Set up `flushInterval` with 15-second periodic flush
 - Clear interval on graceful shutdown
 - Added comprehensive debug logging for flush events
 
@@ -90,7 +90,7 @@ dr --debug visualize --viewer-path ./dist/embedded/dr-viewer-bundle --no-browser
 [DEBUG] Starting visualization server on port 8080
 [DEBUG] [Telemetry] Creating visualize.server.startup span
 [DEBUG] [Telemetry] Span created: success
-[DEBUG] [Telemetry] Setting up periodic flush (every 30 seconds)
+[DEBUG] [Telemetry] Setting up periodic flush (every 15 seconds)
 [DEBUG] [server] [Telemetry] SDK initialized in server subprocess
 [DEBUG] [server] [Telemetry] OTLP traces endpoint: http://192.168.0.245:4318/v1/traces
 [DEBUG] [server] [Telemetry] OTLP logs endpoint: http://192.168.0.245:4318/v1/logs (default)
@@ -111,7 +111,7 @@ Open `http://localhost:8080?token=...` in browser and navigate the UI.
 [DEBUG] [server] [Telemetry] Span created: success
 ```
 
-### 4. Wait for Periodic Flush (30+ seconds)
+### 4. Wait for Periodic Flush (15+ seconds)
 
 **Expected output:**
 

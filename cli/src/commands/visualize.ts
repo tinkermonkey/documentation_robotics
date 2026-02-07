@@ -303,7 +303,7 @@ export async function visualizeCommand(
     // to ensure active spans are exported to the telemetry backend.
     let flushInterval: NodeJS.Timeout | null = null;
     if (isTelemetryEnabled) {
-      logDebug('[Telemetry] Setting up periodic flush (every 30 seconds)');
+      logDebug('[Telemetry] Setting up periodic flush (every 15 seconds)');
       const { flushTelemetry } = await import('../telemetry/index.js');
 
       flushInterval = setInterval(async () => {
@@ -315,7 +315,7 @@ export async function visualizeCommand(
           // Silently ignore flush errors - telemetry should never break the app
           logDebug(`[Telemetry] Periodic flush failed: ${error}`);
         }
-      }, 30000); // Flush every 30 seconds
+      }, 15000); // Flush every 15 seconds
     }
 
     // Handle graceful shutdown on SIGINT (Ctrl-C) and SIGTERM
