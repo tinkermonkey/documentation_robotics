@@ -27,10 +27,10 @@ constructor(model: Model, options?: GraphMigrationOptions)
 **Example:**
 
 ```typescript
-import { Model } from '@documentation-robotics/cli';
-import { GraphMigrationService } from '@documentation-robotics/cli';
+import { Model } from "@documentation-robotics/cli";
+import { GraphMigrationService } from "@documentation-robotics/cli";
 
-const model = await Model.load('./my-model');
+const model = await Model.load("./my-model");
 const service = new GraphMigrationService(model, {
   includeProperties: true,
   includeMetadata: true,
@@ -57,13 +57,13 @@ const result = await service.migrate(GraphFormat.NEO4J);
 
 if (result.success) {
   console.log(`Migrated ${result.nodeCount} nodes and ${result.edgeCount} edges`);
-  console.log(`Layers: ${result.layersProcessed.join(', ')}`);
+  console.log(`Layers: ${result.layersProcessed.join(", ")}`);
 
   if (result.warnings.length > 0) {
-    console.warn('Warnings:', result.warnings);
+    console.warn("Warnings:", result.warnings);
   }
 } else {
-  console.error('Migration failed:', result.errors);
+  console.error("Migration failed:", result.errors);
 }
 ```
 
@@ -85,29 +85,29 @@ constructor(options?: Neo4jMigrationOptions)
 
 ```typescript
 interface Neo4jMigrationOptions {
-  uri?: string;                    // Default: 'bolt://localhost:7687'
-  username?: string;               // Default: 'neo4j'
-  password?: string;               // Default: 'password'
-  database?: string;               // Default: 'neo4j'
-  boltPort?: number;               // Default: 7687
-  generateCypher?: boolean;         // Default: true
-  createConstraints?: boolean;      // Default: true
-  createIndexes?: boolean;          // Default: true
-  dropExisting?: boolean;           // Default: false
-  batchSize?: number;               // Default: 1000
+  uri?: string; // Default: 'bolt://localhost:7687'
+  username?: string; // Default: 'neo4j'
+  password?: string; // Default: 'password'
+  database?: string; // Default: 'neo4j'
+  boltPort?: number; // Default: 7687
+  generateCypher?: boolean; // Default: true
+  createConstraints?: boolean; // Default: true
+  createIndexes?: boolean; // Default: true
+  dropExisting?: boolean; // Default: false
+  batchSize?: number; // Default: 1000
 }
 ```
 
 **Example:**
 
 ```typescript
-import { Neo4jMigrationService } from '@documentation-robotics/cli';
+import { Neo4jMigrationService } from "@documentation-robotics/cli";
 
 const service = new Neo4jMigrationService({
-  uri: 'bolt://production.example.com:7687',
-  username: 'admin',
+  uri: "bolt://production.example.com:7687",
+  username: "admin",
   password: process.env.NEO4J_PASSWORD,
-  database: 'architecture-model',
+  database: "architecture-model",
   batchSize: 2000,
 });
 ```
@@ -134,7 +134,7 @@ if (result.success) {
   console.log(result.scriptContent);
   // Output: Cypher script ready for execution
 } else {
-  console.error('Generation failed:', result.errors);
+  console.error("Generation failed:", result.errors);
 }
 ```
 
@@ -180,8 +180,8 @@ Generate CSV files for Neo4j import tool.
 const { nodesCsv, edgesCsv } = service.generateImportCsvFiles(nodes, edges);
 
 // Save to files
-await fs.writeFile('nodes.csv', nodesCsv);
-await fs.writeFile('edges.csv', edgesCsv);
+await fs.writeFile("nodes.csv", nodesCsv);
+await fs.writeFile("edges.csv", edgesCsv);
 
 // Import using neo4j-admin
 // neo4j-admin import --from nodes.csv edges.csv
@@ -205,22 +205,22 @@ constructor(options?: LadybugMigrationOptions)
 
 ```typescript
 interface LadybugMigrationOptions {
-  outputPath?: string;               // Output directory
-  includeMetadata?: boolean;          // Default: true
-  formatVersion?: string;             // Default: '1.0.0'
-  compress?: boolean;                 // Default: false
-  validateGraph?: boolean;            // Default: true
+  outputPath?: string; // Output directory
+  includeMetadata?: boolean; // Default: true
+  formatVersion?: string; // Default: '1.0.0'
+  compress?: boolean; // Default: false
+  validateGraph?: boolean; // Default: true
 }
 ```
 
 **Example:**
 
 ```typescript
-import { LadybugMigrationService } from '@documentation-robotics/cli';
+import { LadybugMigrationService } from "@documentation-robotics/cli";
 
 const service = new LadybugMigrationService({
   includeMetadata: true,
-  formatVersion: '1.0.0',
+  formatVersion: "1.0.0",
   compress: true,
 });
 ```
@@ -246,8 +246,8 @@ Generate a complete LadybugDB document with schema inference.
 const doc = await service.generateLadybugDocument(
   nodes,
   edges,
-  'E-Commerce Platform',
-  'Complete architecture model for e-commerce system'
+  "E-Commerce Platform",
+  "Complete architecture model for e-commerce system"
 );
 
 console.log(`Schema contains ${doc.schema.nodeTypes.size} node types`);
@@ -268,7 +268,7 @@ Serialize document to formatted JSON (human-readable).
 
 ```typescript
 const json = service.serializeToJson(doc);
-await fs.writeFile('model.lbug.json', json);
+await fs.writeFile("model.lbug.json", json);
 ```
 
 #### serializeToCompactJson(document: LadybugDocument): string
@@ -327,13 +327,13 @@ Validate graph integrity before migration.
 const validation = service.validateGraph(nodes, edges);
 
 if (!validation.isValid) {
-  console.error('Graph validation failed:');
-  validation.errors.forEach(err => console.error(`  - ${err}`));
+  console.error("Graph validation failed:");
+  validation.errors.forEach((err) => console.error(`  - ${err}`));
 } else {
-  console.log('Graph is valid');
+  console.log("Graph is valid");
   if (validation.warnings.length > 0) {
-    console.warn('Warnings:');
-    validation.warnings.forEach(w => console.warn(`  - ${w}`));
+    console.warn("Warnings:");
+    validation.warnings.forEach((w) => console.warn(`  - ${w}`));
   }
 }
 ```
@@ -356,9 +356,9 @@ enum GraphFormat {
 
 ```typescript
 interface GraphNode {
-  id: string;                           // Unique identifier
-  labels: string[];                     // Node labels/types
-  properties: Record<string, unknown>;  // Node properties
+  id: string; // Unique identifier
+  labels: string[]; // Node labels/types
+  properties: Record<string, unknown>; // Node properties
 }
 ```
 
@@ -366,15 +366,15 @@ interface GraphNode {
 
 ```typescript
 const apiNode: GraphNode = {
-  id: 'api.endpoint.create-order',
-  labels: ['Element', 'Endpoint'],
+  id: "api.endpoint.create-order",
+  labels: ["Element", "Endpoint"],
   properties: {
-    name: 'Create Order',
-    layer: 'api',
-    type: 'endpoint',
-    method: 'POST',
-    path: '/api/orders',
-    description: 'Creates a new order',
+    name: "Create Order",
+    layer: "api",
+    type: "endpoint",
+    method: "POST",
+    path: "/api/orders",
+    description: "Creates a new order",
   },
 };
 ```
@@ -383,11 +383,11 @@ const apiNode: GraphNode = {
 
 ```typescript
 interface GraphEdge {
-  id: string;                               // Unique identifier
-  source: string;                           // Source node ID
-  target: string;                           // Target node ID
-  relationship: string;                     // Relationship type
-  properties?: Record<string, unknown>;     // Optional edge properties
+  id: string; // Unique identifier
+  source: string; // Source node ID
+  target: string; // Target node ID
+  relationship: string; // Relationship type
+  properties?: Record<string, unknown>; // Optional edge properties
 }
 ```
 
@@ -395,13 +395,13 @@ interface GraphEdge {
 
 ```typescript
 const edge: GraphEdge = {
-  id: 'edge_1',
-  source: 'api.endpoint.create-order',
-  target: 'business.service.order-management',
-  relationship: 'IMPLEMENTS',
+  id: "edge_1",
+  source: "api.endpoint.create-order",
+  target: "business.service.order-management",
+  relationship: "IMPLEMENTS",
   properties: {
-    strength: 'strong',
-    latency: 'synchronous',
+    strength: "strong",
+    latency: "synchronous",
   },
 };
 ```
@@ -416,9 +416,9 @@ interface GraphMigrationResult {
   layersProcessed: string[];
   warnings: string[];
   errors: string[];
-  duration: number;          // Milliseconds
+  duration: number; // Milliseconds
   format: string;
-  outputSize?: number;       // Bytes
+  outputSize?: number; // Bytes
 }
 ```
 
@@ -430,8 +430,8 @@ interface LadybugDocument {
   metadata: {
     name: string;
     description?: string;
-    created: string;         // ISO 8601
-    updated: string;         // ISO 8601
+    created: string; // ISO 8601
+    updated: string; // ISO 8601
     nodeCount: number;
     edgeCount: number;
   };
@@ -487,7 +487,7 @@ interface Neo4jMigrationResult {
   edgesCreated?: number;
   constraintsCreated?: number;
   indexesCreated?: number;
-  scriptContent?: string;     // Cypher script
+  scriptContent?: string; // Cypher script
   warnings: string[];
   errors: string[];
 }
@@ -515,7 +515,7 @@ const script = Neo4jCypherGenerator.generateEdgeCreationScript(edges);
 const script = Neo4jCypherGenerator.generateCompleteMigrationScript(
   nodes,
   edges,
-  true  // Include drop commands
+  true // Include drop commands
 );
 ```
 
@@ -523,9 +523,9 @@ const script = Neo4jCypherGenerator.generateCompleteMigrationScript(
 
 ```typescript
 const config = Neo4jCypherGenerator.generateConnectionConfig({
-  uri: 'bolt://localhost:7687',
-  username: 'neo4j',
-  password: 'password',
+  uri: "bolt://localhost:7687",
+  username: "neo4j",
+  password: "password",
 });
 ```
 
@@ -540,10 +540,10 @@ try {
   const result = await service.migrate(GraphFormat.NEO4J);
 
   if (!result.success) {
-    result.errors.forEach(err => console.error(`Error: ${err}`));
+    result.errors.forEach((err) => console.error(`Error: ${err}`));
   }
 } catch (error) {
-  console.error('Migration failed:', error.message);
+  console.error("Migration failed:", error.message);
 }
 ```
 
@@ -574,11 +574,11 @@ import {
   GraphMigrationService,
   Neo4jMigrationService,
   GraphFormat,
-} from '@documentation-robotics/cli';
+} from "@documentation-robotics/cli";
 
 async function migrateModel() {
   // Load model
-  const model = await Model.load('./my-model');
+  const model = await Model.load("./my-model");
 
   // Migrate to Neo4j
   const graphService = new GraphMigrationService(model, {
@@ -588,12 +588,12 @@ async function migrateModel() {
   const result = await graphService.migrate(GraphFormat.NEO4J);
 
   if (!result.success) {
-    console.error('Migration failed:', result.errors);
+    console.error("Migration failed:", result.errors);
     return;
   }
 
   console.log(`✓ Migrated ${result.nodeCount} nodes, ${result.edgeCount} edges`);
-  console.log(`  Layers: ${result.layersProcessed.join(', ')}`);
+  console.log(`  Layers: ${result.layersProcessed.join(", ")}`);
   console.log(`  Duration: ${result.duration}ms`);
 
   // Generate Cypher script
@@ -603,12 +603,12 @@ async function migrateModel() {
 
   // Note: In real usage, extract actual nodes/edges from model graph
   const nodes = []; // Extract from model
-  const edges = [];  // Extract from model
+  const edges = []; // Extract from model
 
   const scriptResult = await neo4jService.generateMigrationScript(nodes, edges);
 
   if (scriptResult.success) {
-    console.log('✓ Cypher script generated');
+    console.log("✓ Cypher script generated");
     console.log(scriptResult.scriptContent);
   }
 }
@@ -619,7 +619,7 @@ migrateModel().catch(console.error);
 ### Validation Before Migration
 
 ```typescript
-import { LadybugMigrationService } from '@documentation-robotics/cli';
+import { LadybugMigrationService } from "@documentation-robotics/cli";
 
 async function validateAndMigrate(nodes, edges) {
   const service = new LadybugMigrationService();
@@ -628,22 +628,18 @@ async function validateAndMigrate(nodes, edges) {
   const validation = service.validateGraph(nodes, edges);
 
   if (!validation.isValid) {
-    console.error('Validation failed:');
-    validation.errors.forEach(err => console.error(`  ✗ ${err}`));
+    console.error("Validation failed:");
+    validation.errors.forEach((err) => console.error(`  ✗ ${err}`));
     return false;
   }
 
   if (validation.warnings.length > 0) {
-    console.warn('Validation warnings:');
-    validation.warnings.forEach(w => console.warn(`  ⚠ ${w}`));
+    console.warn("Validation warnings:");
+    validation.warnings.forEach((w) => console.warn(`  ⚠ ${w}`));
   }
 
   // Generate document
-  const doc = await service.generateLadybugDocument(
-    nodes,
-    edges,
-    'Valid Model'
-  );
+  const doc = await service.generateLadybugDocument(nodes, edges, "Valid Model");
 
   // Serialize and save
   const json = service.serializeToJson(doc);

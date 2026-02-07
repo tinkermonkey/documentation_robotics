@@ -69,13 +69,13 @@ dr graph-migrate <format> [options]
 
 ### Formats
 
-| Format  | Description | Use Case |
-|---------|-------------|----------|
-| neo4j   | Neo4j Cypher script | Production graph database |
-| cypher  | Alias for neo4j | Same as neo4j |
-| ladybug | LadybugDB JSON | Lightweight analysis |
+| Format  | Description           | Use Case                     |
+| ------- | --------------------- | ---------------------------- |
+| neo4j   | Neo4j Cypher script   | Production graph database    |
+| cypher  | Alias for neo4j       | Same as neo4j                |
+| ladybug | LadybugDB JSON        | Lightweight analysis         |
 | gremlin | Apache Gremlin Groovy | Distributed graph processing |
-| graphml | GraphML XML | Graph visualization tools |
+| graphml | GraphML XML           | Graph visualization tools    |
 
 ### Options
 
@@ -102,6 +102,7 @@ dr graph-migrate neo4j --dry-run
 ```
 
 Output preview:
+
 ```
 📊 Graph Database Migration
 
@@ -126,6 +127,7 @@ dr graph-migrate neo4j --validate --output model.cypher
 ```
 
 Validation checks:
+
 - Node ID uniqueness
 - Reference integrity (no dangling edges)
 - Layer completeness
@@ -172,6 +174,7 @@ dr graph-migrate neo4j --output architecture.cypher
 ```
 
 The script includes:
+
 - Constraint definitions (unique node IDs)
 - Index definitions (layer, type)
 - Data load commands
@@ -180,11 +183,13 @@ The script includes:
 #### Execute Migration
 
 Option 1 - Using neo4j-admin:
+
 ```bash
 neo4j-admin import --from-neo4j-uri=file:///absolute/path/to/architecture.cypher
 ```
 
 Option 2 - Using Neo4j Browser:
+
 1. Open Neo4j Browser (http://localhost:7474)
 2. Copy the script content
 3. Paste into the query editor
@@ -225,6 +230,7 @@ dr graph-migrate ladybug --output architecture.lbug.json
 ```
 
 The JSON document includes:
+
 - Schema definitions (node types, relationships)
 - Metadata (model name, creation timestamp)
 - All nodes and edges with properties
@@ -241,13 +247,15 @@ ladybug import architecture.lbugdb architecture.lbug.json
 
 ```javascript
 // Using LadybugDB query language
-db.nodes().filter(n => n.layer === 'api').select('name', 'type');
+db.nodes()
+  .filter((n) => n.layer === "api")
+  .select("name", "type");
 
 // Find connected components
 db.paths({
-  source: { type: 'endpoint' },
+  source: { type: "endpoint" },
   maxHops: 3,
-  relationship: 'REFERENCES'
+  relationship: "REFERENCES",
 });
 ```
 
@@ -297,6 +305,7 @@ dr graph-migrate graphml --output architecture.graphml
 ```
 
 Or use the export command:
+
 ```bash
 dr export graphml --output architecture.graphml
 ```
@@ -304,6 +313,7 @@ dr export graphml --output architecture.graphml
 #### Visualization Tools
 
 Open the GraphML file in:
+
 - **yEd** - Free graph editor with auto-layout algorithms
 - **Cytoscape** - Open-source software for complex network analysis
 - **Gephi** - Network visualization and analysis platform
@@ -431,6 +441,7 @@ dr update <element-id> --properties '{...}'
 
 **Cause**: Neo4j version incompatibility or syntax error
 **Solution**:
+
 1. Check Neo4j version: `neo4j --version`
 2. Review generated script for errors
 3. Try executing without constraints first:
@@ -462,16 +473,19 @@ ladybug import --skip-schema model.lbug.json
 ### Optimize for Large Models
 
 1. **Exclude unnecessary properties**:
+
    ```bash
    dr graph-migrate neo4j --include-properties false --output model.cypher
    ```
 
 2. **Use batch processing**:
+
    ```bash
    dr graph-migrate neo4j --batch-size 5000 --output model.cypher
    ```
 
 3. **Migrate by layers** instead of all at once:
+
    ```bash
    for layer in api business data-model; do
      dr export graphml --layers "$layer" --output "$layer.graphml"
@@ -481,6 +495,7 @@ ladybug import --skip-schema model.lbug.json
 ### Database Optimization
 
 **For Neo4j**:
+
 ```cypher
 -- Add these after import
 CREATE INDEX element_name FOR (n:Element) ON (n.name);
@@ -491,6 +506,7 @@ EXPLAIN MATCH (n)-[r]->(m) WHERE n.layer = 'api' RETURN n, r, m;
 ```
 
 **For LadybugDB**:
+
 - Use materialized views for frequently accessed data
 - Create composite indexes on common query patterns
 - Archive older versions to separate databases
@@ -500,7 +516,7 @@ EXPLAIN MATCH (n)-[r]->(m) WHERE n.layer = 'api' RETURN n, r, m;
 ### GraphMigrationService
 
 ```typescript
-import { GraphMigrationService, GraphFormat } from '@documentation-robotics/cli';
+import { GraphMigrationService, GraphFormat } from "@documentation-robotics/cli";
 
 const service = new GraphMigrationService(model, {
   includeProperties: true,
@@ -515,12 +531,12 @@ const result = await service.migrate(GraphFormat.NEO4J);
 ### Neo4jMigrationService
 
 ```typescript
-import { Neo4jMigrationService } from '@documentation-robotics/cli';
+import { Neo4jMigrationService } from "@documentation-robotics/cli";
 
 const service = new Neo4jMigrationService({
-  uri: 'bolt://localhost:7687',
-  username: 'neo4j',
-  password: 'password',
+  uri: "bolt://localhost:7687",
+  username: "neo4j",
+  password: "password",
 });
 
 const result = await service.generateMigrationScript(nodes, edges);
@@ -532,18 +548,18 @@ const { nodesCsv, edgesCsv } = service.generateImportCsvFiles(nodes, edges);
 ### LadybugMigrationService
 
 ```typescript
-import { LadybugMigrationService } from '@documentation-robotics/cli';
+import { LadybugMigrationService } from "@documentation-robotics/cli";
 
 const service = new LadybugMigrationService({
   includeMetadata: true,
-  formatVersion: '1.0.0',
+  formatVersion: "1.0.0",
 });
 
 const document = await service.generateLadybugDocument(
   nodes,
   edges,
-  'My Model',
-  'Model description'
+  "My Model",
+  "Model description"
 );
 
 const json = service.serializeToJson(document);

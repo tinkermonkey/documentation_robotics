@@ -53,6 +53,6 @@ const tracker = new DependencyTracker(graph);
 const dependents = tracker.getTransitiveDependents('03-security-policy-access-control');
 console.log("Transitive dependents of 03-security-policy-access-control:", dependents);
 
-// Test the second failure  
+// Test the second failure
 const cycles = tracker.detectCycles();
 console.log("Cycles:", cycles);

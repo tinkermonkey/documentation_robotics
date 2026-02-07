@@ -9,6 +9,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ### 1. Core Migration Services
 
 #### GraphMigrationService (`src/export/graph-migration.ts`)
+
 - **Purpose**: Main service orchestrating migrations to all supported graph formats
 - **Features**:
   - Multi-format support (Neo4j, LadybugDB, GraphML, Cypher, Gremlin)
@@ -19,6 +20,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
   - Performance metrics (duration, node count, edge count tracking)
 
 #### Neo4jMigrationService (`src/export/neo4j-migration.ts`)
+
 - **Purpose**: Neo4j-specific migration and script generation
 - **Features**:
   - Cypher script generation with constraints and indexes
@@ -31,6 +33,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
   - `Neo4jMigrationService` - Service for migrations and imports
 
 #### LadybugMigrationService (`src/export/ladybug-migration.ts`)
+
 - **Purpose**: LadybugDB format export and schema inference
 - **Features**:
   - Automatic schema inference from graph data
@@ -44,6 +47,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ### 2. CLI Command Integration
 
 #### graph-migrate Command (`src/commands/graph-migrate.ts`)
+
 - **Syntax**: `dr graph-migrate <format> [options]`
 - **Supported Formats**:
   - `neo4j` / `cypher` - Neo4j Cypher scripts
@@ -69,6 +73,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ### 3. Comprehensive Test Suite
 
 #### Integration Tests (`tests/integration/graph-migration.test.ts`)
+
 - **Coverage**: 60+ test cases
 - **Test Categories**:
   - GraphMigrationService initialization and configuration
@@ -93,6 +98,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ### 4. Complete Documentation
 
 #### User Guide (`docs/guides/graph-migration.md`)
+
 - **Content**:
   - Quick start examples for each format
   - Detailed command reference with all options
@@ -114,6 +120,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
   - Database-specific tuning recommendations
 
 #### API Reference (`docs/api/graph-migration-api.md`)
+
 - **Complete API Documentation**:
   - GraphMigrationService methods and options
   - Neo4jCypherGenerator static methods
@@ -134,11 +141,13 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ### 5. TypeScript Integration
 
 #### Export Module Updates (`src/export/index.ts`)
+
 - Exports all graph migration services
 - Maintains backward compatibility
 - Convenient re-exports for common types
 
 #### Type Definitions
+
 - `MigrationGraphNode` - Compatible node format for all targets
 - `MigrationGraphEdge` - Compatible edge format for all targets
 - Proper type aliases for convenience
@@ -147,6 +156,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ## Architecture
 
 ### Design Pattern: Strategy Pattern
+
 - GraphMigrationService as context
 - Format-specific services as strategies
 - Pluggable format handlers
@@ -163,6 +173,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ## Quality Metrics
 
 ### Code Quality
+
 - ✅ Zero TypeScript compilation errors
 - ✅ Comprehensive test coverage (60+ test cases)
 - ✅ Clean code patterns and conventions
@@ -170,6 +181,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 - ✅ Documented APIs with JSDoc comments
 
 ### Functionality
+
 - ✅ All 5 graph formats supported
 - ✅ All command options working
 - ✅ Proper validation and error reporting
@@ -177,6 +189,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 - ✅ Metadata preservation options
 
 ### Documentation
+
 - ✅ User guide with examples
 - ✅ Complete API reference
 - ✅ Troubleshooting guide
@@ -186,6 +199,7 @@ Successfully implemented comprehensive graph migration tooling to transform arch
 ## Usage Examples
 
 ### Quick Start: Neo4j
+
 ```bash
 # Generate Cypher script
 dr graph-migrate neo4j --output model.cypher
@@ -198,6 +212,7 @@ neo4j-admin import --from-neo4j-uri=file:///absolute/path/to/model.cypher
 ```
 
 ### Quick Start: LadybugDB
+
 ```bash
 # Generate document
 dr graph-migrate ladybug --output model.lbug.json
@@ -210,10 +225,11 @@ ladybug import model.lbug.json
 ```
 
 ### Programmatic Usage
-```typescript
-import { Model, GraphMigrationService, GraphFormat } from '@documentation-robotics/cli';
 
-const model = await Model.load('./my-model');
+```typescript
+import { Model, GraphMigrationService, GraphFormat } from "@documentation-robotics/cli";
+
+const model = await Model.load("./my-model");
 const service = new GraphMigrationService(model, {
   validateReferences: true,
   includeMetadata: true,
@@ -226,6 +242,7 @@ console.log(`Migrated ${result.nodeCount} nodes, ${result.edgeCount} edges`);
 ## Files Modified/Created
 
 ### New Files
+
 - `src/export/graph-migration.ts` - Core migration service
 - `src/export/neo4j-migration.ts` - Neo4j implementation
 - `src/export/ladybug-migration.ts` - LadybugDB implementation
@@ -236,12 +253,14 @@ console.log(`Migrated ${result.nodeCount} nodes, ${result.edgeCount} edges`);
 - `PHASE4_IMPLEMENTATION_SUMMARY.md` - This file
 
 ### Modified Files
+
 - `src/export/index.ts` - Added exports for graph migration services
 - `src/cli.ts` - Registered graph-migrate command
 
 ## Testing
 
 ### Run Tests
+
 ```bash
 # All tests
 npm test
@@ -254,6 +273,7 @@ npm run test:parallel:coverage
 ```
 
 ### Build
+
 ```bash
 npm run build
 ```
@@ -286,6 +306,7 @@ npm run build
 ## Conclusion
 
 Phase 4 delivers production-ready graph migration tooling that enables users to:
+
 1. Export architecture models to multiple graph database formats
 2. Seamlessly integrate with graph visualization and analysis tools
 3. Leverage graph databases for complex architecture queries and analysis
