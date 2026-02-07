@@ -102,7 +102,8 @@ export async function visualizeCommand(
     const { isDebug: getDebugState, isVerbose } = await import('../utils/globals.js');
     if (getDebugState()) {
       env.DEBUG = '1';
-      logDebug('Passing DEBUG=1 to subprocess');
+      env.DR_TELEMETRY_DEBUG = '1'; // Enable telemetry exporter debug logging
+      logDebug('Passing DEBUG=1 and DR_TELEMETRY_DEBUG=1 to subprocess');
     }
     if (isVerbose()) {
       env.VERBOSE = '1';
