@@ -216,14 +216,6 @@ export class Changeset {
     return this.changes.filter((c) => c.type === type);
   }
 
-  /**
-   * Update changeset statistics (deprecated).
-   * @deprecated Stats are now computed automatically from the changes array via the stats getter.
-   * This method is kept for backward compatibility but performs no operation.
-   */
-  updateStats(): void {
-    // No-op: stats are now computed on-demand via the stats getter
-  }
 
   /**
    * Mark changeset as applied (legacy workflow).

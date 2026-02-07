@@ -293,7 +293,6 @@ export class StagedChangesetStorage {
 
         changeset.changes.push(stagedChange);
         changeset.updateModified();
-        changeset.updateStats();
 
         await this.save(changeset);
 
@@ -355,7 +354,6 @@ export class StagedChangesetStorage {
         }));
 
         changeset.updateModified();
-        changeset.updateStats();
 
         await this.save(changeset);
       });

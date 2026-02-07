@@ -467,6 +467,18 @@ dr relationship --help       # Relationship commands
 - 💬 [Discussions](https://github.com/tinkermonkey/documentation_robotics/discussions)
 - 🌟 [GitHub Repository](https://github.com/tinkermonkey/documentation_robotics)
 
+## Utilities
+
+### Export Python Annotations
+
+For migrating Python CLI annotation metadata, a utility script is available:
+
+```bash
+bun run src/utils/export-python-annotations.ts
+```
+
+This utility exports Python CLI annotations to a processable format, used during migrations between CLI versions.
+
 ## Troubleshooting
 
 ### "dr: command not found"

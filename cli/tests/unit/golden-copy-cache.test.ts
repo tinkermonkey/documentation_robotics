@@ -632,8 +632,7 @@ describe('GoldenCopyCacheManager', () => {
       await cloned.cleanup();
       await cloned.cleanup();
 
-      // Should complete without errors
-      expect(true).toBe(true);
+      // Multiple cleanup calls should be safe (no error thrown above)
     });
 
     it('should track that cleanup was called for cloned models', async () => {
@@ -656,8 +655,7 @@ describe('GoldenCopyCacheManager', () => {
         await access(clonePath);
         expect.unreachable('Clone directory should have been cleaned up');
       } catch {
-        // Expected - directory should be gone
-        expect(true).toBe(true);
+        // Expected - directory should be gone, no assertion needed
       }
     });
   });
@@ -674,9 +672,6 @@ describe('GoldenCopyCacheManager', () => {
       const goldenModel = manager.getGoldenModel();
       expect(goldenModel).toBeDefined();
       expect(goldenModel?.manifest).toBeDefined();
-
-      // This verifies that filesystem operations are properly synchronized
-      expect(true).toBe(true);
     });
   });
 
