@@ -1330,7 +1330,7 @@ api.operation.get-order
 ↑ uses-schemas
 data_model.object-schema.order # Data structures
 ↑ stored-in
-datastore.collection.orders # Persistence
+data-store.collection.orders # Persistence
 ↑ instrumented-by
 apm.metric.order-api-latency # Observability
 
@@ -1339,7 +1339,7 @@ Each layer represents a different concern:
 - **Application**: The service implementation
 - **API**: The contracts it exposes
 - **Data Model**: The data structures
-- **Datastore**: Where data persists
+- **Data Store**: Where data persists
 - **APM**: How we monitor it
 
 Would you like me to:
