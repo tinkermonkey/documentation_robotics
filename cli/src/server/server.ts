@@ -486,69 +486,6 @@ export class VisualizationServer {
       return c.json(changeset);
     });
 
-    // Deprecated: Get annotations for an element (use /api/annotations?elementId=xyz instead)
-    this.app.get('/api/elements/:id/annotations', (c) => {
-      const elementId = c.req.param('id');
-      const annotationIds = this.annotationsByElement.get(elementId) || new Set();
-      const annotations = Array.from(annotationIds)
-        .map(id => this.annotations.get(id))
-        .filter((a): a is ClientAnnotation => a !== undefined);
-
-      return c.json({ elementId, annotations });
-    });
-
-    // Deprecated: Post annotation to element (use POST /api/annotations instead)
-    this.app.post('/api/elements/:id/annotations', async (c) => {
-      try {
-        const elementId = c.req.param('id');
-
-        // Verify element exists
-        const element = await this.findElement(elementId);
-        if (!element) {
-          return c.json({ error: 'Element not found' }, 404);
-        }
-
-        const body = await c.req.json();
-
-        // Support both 'text' and 'content' for backward compatibility
-        const content = (body.content || body.text) && String(body.content || body.text).trim();
-        if (!content) {
-          return c.json({ error: 'Annotation content cannot be empty' }, 400);
-        }
-
-        const author = body.author ? String(body.author).trim() : 'Anonymous';
-
-        const annotation: ClientAnnotation = {
-          id: this.generateAnnotationId(),
-          elementId,
-          author,
-          content,
-          createdAt: new Date().toISOString(),
-          tags: body.tags || [],
-        };
-
-        // Store annotation
-        this.annotations.set(annotation.id, annotation);
-        if (!this.annotationsByElement.has(elementId)) {
-          this.annotationsByElement.set(elementId, new Set());
-        }
-        this.annotationsByElement.get(elementId)!.add(annotation.id);
-
-        // Broadcast to all clients
-        await this.broadcastMessage({
-          type: 'annotation.added',
-          annotationId: annotation.id,
-          elementId: annotation.elementId,
-          timestamp: annotation.createdAt,
-        });
-
-        return c.json({ success: true, annotation });
-      } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
-        return c.json({ error: message }, 500);
-      }
-    });
-
     // WebSocket endpoint
     this.app.get(
       '/ws',
@@ -1891,15 +1828,15 @@ export class VisualizationServer {
 
       if (!author || !text) return;
 
-      // Send to server
-      fetch(\`/api/elements/\${elementId}/annotations\`, {
+      // Send to server using new annotation API
+      fetch('/api/annotations', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ author, text })
+        body: JSON.stringify({ elementId, author, content: text })
       })
         .then(r => r.json())
         .then(data => {
-          if (data.success) {
+          if (data && data.id) {
             document.getElementById('ann-author').value = '';
             document.getElementById('ann-text').value = '';
           }

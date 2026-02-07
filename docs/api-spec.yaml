@@ -45,21 +45,37 @@ info:
     - **Annotations**: In-memory storage with unique IDs
 
 
+    ## Custom Viewer
+
+
+    The server can serve a custom viewer application:
+
+    - Use `--viewer-path <path>` flag to specify custom viewer directory
+
+    - Custom viewer must include `index.html` at the root
+
+    - All static assets (HTML, CSS, JS, images) served from the custom viewer directory
+
+    - API routes and WebSocket connections still available at standard paths
+
+
     ## Chat Integration
 
 
-    The server integrates with Claude Code CLI for AI-powered chat:
+    The server integrates with Claude Code CLI or GitHub Copilot for AI-powered chat:
 
-    - Requires `claude` command in PATH
+    - Requires `claude` command (Claude Code CLI) or `gh copilot`/`copilot` command (GitHub Copilot) in PATH
 
-    - Launches `/dr-chat` skill for DR-specific knowledge
+    - Launches Claude Code CLI with `--agent dr-architect` for comprehensive DR expertise
 
-    - Streams all events (stdout, stderr) to browser via JSON-RPC 2.0
+    - Streams events (stdout, stderr) to browser via JSON-RPC 2.0
 
-    - Supports tool invocations, thinking blocks, usage stats, and errors
+    - Supports text responses and tool invocations
+
+    - Use `--with-danger` flag to enable dangerous operations (skips permissions in Claude Code CLI, allows all tools in GitHub Copilot)
 
 
-    Generated: 2025-12-27"
+    Generated: 2026-02-07"
   version: 0.1.0
   contact:
     name: Documentation Robotics
@@ -214,7 +230,25 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/Layer"
+                type: object
+                required:
+                  - name
+                  - elements
+                  - elementCount
+                properties:
+                  name:
+                    type: string
+                    description: Layer name
+                    example: business
+                  elements:
+                    type: array
+                    description: Array of elements in the layer
+                    items:
+                      $ref: "#/components/schemas/Element"
+                  elementCount:
+                    type: integer
+                    description: Number of elements in the layer
+                    example: 5
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -470,10 +504,13 @@ paths:
 
         **Client → Server Messages**:
 
-        - `{"type": "subscribe", "topics": ["model", "changesets", "annotations"]}`
-        - Subscribe to real-time updates
+        - `{"type": "subscribe", "topics": ["model", "annotations"]}`
+        - Subscribe to real-time updates (topics are optional, defaults to model and annotations)
 
         - `{"type": "ping"}` - Heartbeat ping
+
+        - `{"type": "annotate", "annotation": {"elementId": "...", "author": "...", "text": "...", "timestamp": "..."}}`
+        - Broadcast annotation to all clients (legacy - prefer REST API)
 
 
         **Server → Client Messages**:
@@ -486,9 +523,9 @@ paths:
 
         - `{"type": "pong", "timestamp": "..."}` - Heartbeat response
 
-        - `{"type": "model.updated", "data": {...}, "timestamp": "..."}` - Model changed
+        - `{"type": "model", "data": {...}, "timestamp": "..."}` - Initial model state (sent after subscribe)
 
-        - `{"type": "changeset.created", "changesetId": "..."}` - New changeset
+        - `{"type": "model.updated", "data": {...}, "timestamp": "..."}` - Model changed (file watcher)
 
         - `{"type": "annotation.added", "annotationId": "...", "elementId": "..."}` -
         Annotation added
@@ -497,30 +534,34 @@ paths:
 
         - `{"type": "annotation.deleted", "annotationId": "..."}` - Annotation deleted
 
+        - `{"type": "annotation", "data": {...}}` - Annotation broadcast (legacy, from annotate message)
+
+        - `{"type": "error", "message": "..."}` - Error message
+
 
         ## JSON-RPC 2.0 Protocol - Chat
 
 
-        **Requires**: Claude Code CLI installed (`claude` command in PATH)
+        **Requires**: Claude Code CLI or GitHub Copilot installed
 
 
         ### chat.status
 
 
-        Check if Claude Code CLI is available.
+        Check if a chat client (Claude Code CLI or GitHub Copilot) is available.
 
 
         **Request**: `{"jsonrpc": "2.0", "method": "chat.status", "id": "status-1"}`
 
 
         **Response**: `{"jsonrpc": "2.0", "result": {"sdk_available": true, "sdk_version":
-        "claude-code-cli", "error_message": null}, "id": "status-1"}`
+        "claude-code-cli" | "github-copilot", "error_message": null}, "id": "status-1"}`
 
 
         ### chat.send
 
 
-        Send a message to the DR chat agent via Claude Code CLI.
+        Send a message to the chat client (Claude Code CLI with dr-architect agent, or GitHub Copilot).
 
 
         **Request**: `{"jsonrpc": "2.0", "method": "chat.send", "params": {"message":
@@ -530,33 +571,23 @@ paths:
         **Streaming Events** (notifications):
 
         - `{"jsonrpc": "2.0", "method": "chat.response.chunk", "params": {"conversation_id":
-        "conv-1-...", "content": "text...", "stream_type": "stdout", "is_final": false,
+        "conv-1-...", "content": "text...", "is_final": false,
         "timestamp": "..."}}`
 
         - `{"jsonrpc": "2.0", "method": "chat.tool.invoke", "params": {"conversation_id":
-        "conv-1-...", "tool_name": "Read", "tool_input": {...}, "status": "executing",
+        "conv-1-...", "tool_name": "Read", "tool_input": {...},
         "timestamp": "..."}}`
 
-        - `{"jsonrpc": "2.0", "method": "chat.thinking", "params": {"conversation_id":
-        "conv-1-...", "content": "I need to...", "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.usage", "params": {"conversation_id":
-        "conv-1-...", "input_tokens": 150, "output_tokens": 342, "total_tokens": 492,
-        "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.error", "params": {"conversation_id":
-        "conv-1-...", "error": "...", "code": "...", "timestamp": "..."}}`
-
-        - `{"jsonrpc": "2.0", "method": "chat.event.<type>", "params": {"conversation_id":
-        "conv-1-...", ...}}` - Generic events
+        - `{"jsonrpc": "2.0", "method": "chat.tool.result", "params": {"conversation_id":
+        "conv-1-...", "result": {...}, "timestamp": "..."}}`
 
 
         **Completion**: `{"jsonrpc": "2.0", "result": {"conversation_id": "conv-1-...",
         "status": "complete", "exit_code": 0, "timestamp": "..."}, "id": "msg-1"}`
 
 
-        **Error**: `{"jsonrpc": "2.0", "error": {"code": -32001, "message": "Claude
-        Code CLI not available..."}, "id": "msg-1"}`
+        **Error**: `{"jsonrpc": "2.0", "error": {"code": -32001, "message": "No chat
+        client available. Install Claude Code or GitHub Copilot."}, "id": "msg-1"}`
 
 
         ### chat.cancel
@@ -576,30 +607,27 @@ paths:
         ## Event Streaming Details
 
 
-        The server streams ALL events from Claude Code CLI to the browser:
+        The server streams events from chat clients to the browser:
 
 
-        - **stdout** - Text responses, structured events
+        - **stdout** - Text responses, structured events (Claude Code CLI)
 
-        - **stderr** - Errors, diagnostics
+        - **stderr** - Errors, diagnostics (Claude Code CLI)
 
 
         Events are parsed line-by-line and classified as:
 
-        1. **Text chunks** - Any unstructured output
+        1. **Text chunks** (`chat.response.chunk`) - Any text output from the chat client
 
-        2. **Tool invocations** - When Claude uses tools (Read, Edit, Bash, etc.)
+        2. **Tool invocations** (`chat.tool.invoke`) - When Claude uses tools (Read, Edit, Bash, etc.) [Claude Code CLI only]
 
-        3. **Thinking blocks** - Claude''s internal reasoning
-
-        4. **Usage statistics** - Token usage information
-
-        5. **Error events** - Error information
-
-        6. **Generic events** - Any other structured JSON events
+        3. **Tool results** (`chat.tool.result`) - Results from tool executions [Claude Code CLI only]
 
 
-        All events include timestamps and conversation IDs for tracking.'
+        All events include timestamps and conversation IDs for tracking.
+
+
+        **Note**: GitHub Copilot chat outputs plain text/markdown only (no structured tool events).'
       tags:
         - WebSocket
       security:

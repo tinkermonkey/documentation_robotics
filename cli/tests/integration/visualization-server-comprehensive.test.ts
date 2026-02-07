@@ -219,12 +219,11 @@ describe.serial('Visualization Server - Annotations', () => {
     createdAnnotationId = data.id;
   });
 
-  it('should get annotations for element via GET /api/elements/:id/annotations', async () => {
-    const response = await fetch(`${baseUrl}/api/elements/motivation-goal-g1/annotations`);
+  it('should get annotations for element via GET /api/annotations?elementId=', async () => {
+    const response = await fetch(`${baseUrl}/api/annotations?elementId=motivation-goal-g1`);
     expect(response.status).toBe(200);
 
     const data = await response.json();
-    expect(data).toHaveProperty('elementId');
     expect(data).toHaveProperty('annotations');
     expect(data.annotations).toBeArray();
     expect(data.annotations.length).toBe(1);
@@ -257,28 +256,28 @@ describe.serial('Visualization Server - Annotations', () => {
     expect(response.status).toBe(204);
 
     // Verify it's deleted
-    const getResponse = await fetch(`${baseUrl}/api/elements/motivation-goal-g1/annotations`);
+    const getResponse = await fetch(`${baseUrl}/api/annotations?elementId=motivation-goal-g1`);
     const result = await getResponse.json();
     expect(result.annotations.length).toBe(0);
   });
 
-  it('should create annotation via POST /api/elements/:id/annotations', async () => {
+  it('should create annotation via POST /api/annotations', async () => {
     const annotationData = {
+      elementId: 'motivation-goal-g2',
       author: 'Another User',
       content: 'Element-specific annotation'
     };
 
-    const response = await fetch(`${baseUrl}/api/elements/motivation-goal-g2/annotations`, {
+    const response = await fetch(`${baseUrl}/api/annotations`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(annotationData)
     });
 
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(201);
     const data = await response.json();
-    expect(data.success).toBe(true);
-    expect(data.annotation.elementId).toBe('motivation-goal-g2');
-    expect(data.annotation.content).toBe('Element-specific annotation');
+    expect(data.elementId).toBe('motivation-goal-g2');
+    expect(data.content).toBe('Element-specific annotation');
   });
 });
 
