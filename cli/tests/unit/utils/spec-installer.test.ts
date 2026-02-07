@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { installSpecReference, needsSpecReferenceInstall } from '../../../src/utils/spec-installer.js';
-import { mkdir, rm } from 'fs/promises';
+import { mkdir, rm, stat } from 'fs/promises';
 import path from 'path';
 import os from 'os';
 import { readFile } from '../../../src/utils/file-io.js';
@@ -28,8 +28,12 @@ describe('spec-installer', () => {
       await installSpecReference(testDir);
 
       const drPath = path.join(testDir, '.dr');
-      const stat = await Bun.file(drPath).exists();
-      expect(stat).toBe(true);
+      try {
+        await stat(drPath);
+        expect(true).toBe(true);
+      } catch {
+        expect(false).toBe(true);
+      }
     });
 
     it('should create manifest.json with spec version', async () => {
@@ -48,24 +52,36 @@ describe('spec-installer', () => {
       await installSpecReference(testDir);
 
       const schemasPath = path.join(testDir, '.dr', 'schemas');
-      const stat = await Bun.file(schemasPath).exists();
-      expect(stat).toBe(true);
+      try {
+        await stat(schemasPath);
+        expect(true).toBe(true);
+      } catch {
+        expect(false).toBe(true);
+      }
     });
 
     it('should create common schemas subdirectory', async () => {
       await installSpecReference(testDir);
 
       const commonPath = path.join(testDir, '.dr', 'schemas', 'common');
-      const stat = await Bun.file(commonPath).exists();
-      expect(stat).toBe(true);
+      try {
+        await stat(commonPath);
+        expect(true).toBe(true);
+      } catch {
+        expect(false).toBe(true);
+      }
     });
 
     it('should create changesets directory', async () => {
       await installSpecReference(testDir);
 
       const changesetsPath = path.join(testDir, '.dr', 'changesets');
-      const stat = await Bun.file(changesetsPath).exists();
-      expect(stat).toBe(true);
+      try {
+        await stat(changesetsPath);
+        expect(true).toBe(true);
+      } catch {
+        expect(false).toBe(true);
+      }
     });
 
     it('should install all layer schema files with correct names', async () => {
