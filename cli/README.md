@@ -317,11 +317,41 @@ The chat functionality supports two AI CLI tools. You need at least one installe
 ### Visualization Server
 
 ```bash
+# Launch with default embedded viewer
+dr visualize
+
 # Custom port
 dr visualize --port 3000
 
 # Don't auto-open browser
 dr visualize --no-browser
+
+# Load custom viewer build (useful for development or custom distributions)
+dr visualize --viewer-path ./dist/embedded/dr-viewer-bundle
+
+# Combined example: custom viewer on custom port without browser
+dr visualize --viewer-path ./my-viewer --port 3000 --no-browser
+```
+
+**Custom Viewer Path**:
+
+The `--viewer-path` option allows you to serve a custom web UI instead of the default embedded viewer:
+
+- Point to a directory containing `index.html` and supporting files (CSS, JS, assets)
+- Useful for developing custom viewers or using bundled distributions
+- The server will serve static files from the specified path with proper MIME types
+- Path traversal protection is enforced for security
+
+**Example custom viewer structure**:
+
+```
+my-viewer/
+├── index.html          # Entry point
+├── assets/
+│   ├── style.css      # Stylesheets
+│   ├── script.js      # JavaScript
+│   └── logo.png       # Images
+└── ...                 # Other static files
 ```
 
 ## Example Workflows

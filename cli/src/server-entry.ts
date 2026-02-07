@@ -16,6 +16,7 @@ const authToken = process.env.DR_AUTH_TOKEN && process.env.DR_AUTH_TOKEN.length 
   ? process.env.DR_AUTH_TOKEN
   : undefined;
 const withDanger = process.env.DR_WITH_DANGER === 'true';
+const viewerPath = process.env.DR_VIEWER_PATH;
 
 async function main() {
   try {
@@ -23,7 +24,7 @@ async function main() {
     const model = await Model.load(projectPath, { lazyLoad: false });
 
     // Create and start server
-    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger });
+    const server = new VisualizationServer(model, { authEnabled, authToken, withDanger, viewerPath });
     await server.start(port);
 
     // Output token for parent process to read

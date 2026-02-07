@@ -18,6 +18,7 @@ export interface VisualizeOptions {
   verbose?: boolean;
   debug?: boolean;
   withDanger?: boolean;
+  viewerPath?: string;
 }
 
 export async function visualizeCommand(
@@ -78,6 +79,12 @@ export async function visualizeCommand(
     // Only set auth token if provided
     if (authToken) {
       env.DR_AUTH_TOKEN = authToken;
+    }
+
+    // Set custom viewer path if provided
+    if (options.viewerPath) {
+      env.DR_VIEWER_PATH = options.viewerPath;
+      logDebug(`Using custom viewer from: ${options.viewerPath}`);
     }
 
     const serverProcess = spawn(

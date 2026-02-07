@@ -84,6 +84,7 @@ export interface VisualizationServerOptions {
   authEnabled?: boolean;
   authToken?: string;
   withDanger?: boolean;
+  viewerPath?: string;
 }
 
 /**
@@ -101,6 +102,7 @@ export class VisualizationServer {
   private authToken: string;
   private authEnabled: boolean = true; // Enabled by default for security
   private withDanger: boolean = false; // Danger mode disabled by default
+  private viewerPath?: string; // Optional custom viewer path
   private activeChatProcesses: Map<string, any> = new Map(); // conversationId -> Bun.spawn process
   private chatConversationCounter: number = 0;
   private selectedChatClient?: BaseChatClient; // Selected chat client for server
@@ -113,6 +115,7 @@ export class VisualizationServer {
     this.authEnabled = options?.authEnabled ?? (process.env.DR_AUTH_ENABLED !== 'false');
     this.authToken = options?.authToken || process.env.DR_AUTH_TOKEN || this.generateAuthToken();
     this.withDanger = options?.withDanger || false;
+    this.viewerPath = options?.viewerPath;
 
     // Add CORS middleware
     this.app.use('/*', cors());
@@ -198,8 +201,24 @@ export class VisualizationServer {
   private setupRoutes(): void {
     // Static viewer HTML at root
     this.app.get('/', (c) => {
+      if (this.viewerPath) {
+        // Serve custom viewer index.html
+        return this.serveCustomViewer('index.html');
+      }
       return c.html(this.getViewerHTML());
     });
+
+    // Serve static files from custom viewer path if provided
+    if (this.viewerPath) {
+      this.app.get('/*', async (c) => {
+        const requestPath = c.req.path;
+        // Skip API routes and WebSocket
+        if (requestPath.startsWith('/api/') || requestPath === '/ws' || requestPath === '/health') {
+          return c.notFound();
+        }
+        return this.serveCustomViewer(requestPath.substring(1));
+      });
+    }
 
     // Health check endpoint
     this.app.get('/health', (c) => {
@@ -1890,6 +1909,65 @@ export class VisualizationServer {
   </script>
 </body>
 </html>`;
+  }
+
+  /**
+   * Serve a file from the custom viewer path
+   */
+  private async serveCustomViewer(filePath: string): Promise<Response> {
+    if (!this.viewerPath) {
+      return new Response('Custom viewer path not configured', { status: 500 });
+    }
+
+    try {
+      const path = await import('path');
+      const fs = await import('fs/promises');
+
+      // Resolve absolute path and prevent directory traversal
+      const fullPath = path.resolve(this.viewerPath, filePath);
+
+      // Security check: ensure the resolved path is within viewerPath
+      if (!fullPath.startsWith(path.resolve(this.viewerPath))) {
+        return new Response('Forbidden', { status: 403 });
+      }
+
+      // Read file
+      const content = await fs.readFile(fullPath);
+
+      // Determine content type
+      const ext = path.extname(fullPath).toLowerCase();
+      const contentTypes: Record<string, string> = {
+        '.html': 'text/html',
+        '.css': 'text/css',
+        '.js': 'application/javascript',
+        '.json': 'application/json',
+        '.png': 'image/png',
+        '.jpg': 'image/jpeg',
+        '.jpeg': 'image/jpeg',
+        '.gif': 'image/gif',
+        '.svg': 'image/svg+xml',
+        '.ico': 'image/x-icon',
+        '.woff': 'font/woff',
+        '.woff2': 'font/woff2',
+        '.ttf': 'font/ttf',
+        '.eot': 'application/vnd.ms-fontobject',
+      };
+
+      const contentType = contentTypes[ext] || 'application/octet-stream';
+
+      return new Response(content, {
+        status: 200,
+        headers: {
+          'Content-Type': contentType,
+        },
+      });
+    } catch (error) {
+      if ((error as any).code === 'ENOENT') {
+        return new Response('File not found', { status: 404 });
+      }
+      console.error('Error serving custom viewer file:', error);
+      return new Response('Internal server error', { status: 500 });
+    }
   }
 
   /**
