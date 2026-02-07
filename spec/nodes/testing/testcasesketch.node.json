@@ -30,9 +30,5 @@
       "description": "Source code reference to the test case implementation"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "status"
-  ]
+  "required_attributes": ["id", "name", "status"]
 }

@@ -25,10 +25,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "targetRef",
-    "sketchCount",
-    "implementedCount",
-    "automatedCount"
-  ]
+  "required_attributes": ["targetRef", "sketchCount", "implementedCount", "automatedCount"]
 }

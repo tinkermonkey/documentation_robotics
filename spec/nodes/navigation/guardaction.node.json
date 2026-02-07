@@ -30,12 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "action",
-    "target",
-    "message",
-    "preserveRoute"
-  ]
+  "required_attributes": ["id", "name", "action", "target", "message", "preserveRoute"]
 }

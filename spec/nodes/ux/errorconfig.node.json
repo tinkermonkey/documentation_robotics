@@ -30,8 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name"
-  ]
+  "required_attributes": ["id", "name"]
 }

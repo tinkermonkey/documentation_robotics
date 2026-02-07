@@ -42,10 +42,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "type",
-    "format"
-  ]
+  "required_attributes": ["id", "name", "type", "format"]
 }

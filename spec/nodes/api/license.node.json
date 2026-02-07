@@ -18,9 +18,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "url"
-  ]
+  "required_attributes": ["id", "name", "url"]
 }

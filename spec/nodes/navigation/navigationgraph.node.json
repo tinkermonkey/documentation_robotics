@@ -38,10 +38,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "version",
-    "application"
-  ]
+  "required_attributes": ["id", "name", "version", "application"]
 }

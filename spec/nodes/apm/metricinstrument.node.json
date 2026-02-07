@@ -34,10 +34,5 @@
       "description": "Source code reference for code-defined metrics"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "type",
-    "unit"
-  ]
+  "required_attributes": ["id", "name", "type", "unit"]
 }

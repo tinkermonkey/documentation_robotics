@@ -25,7 +25,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "type"
-  ]
+  "required_attributes": ["type"]
 }

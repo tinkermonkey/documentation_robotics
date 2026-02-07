@@ -34,9 +34,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "label"
-  ]
+  "required_attributes": ["id", "name", "label"]
 }

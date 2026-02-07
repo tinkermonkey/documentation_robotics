@@ -30,10 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "sequence",
-    "route",
-    "name"
-  ]
+  "required_attributes": ["id", "sequence", "route", "name"]
 }

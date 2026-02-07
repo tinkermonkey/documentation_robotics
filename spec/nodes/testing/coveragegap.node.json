@@ -17,9 +17,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "description",
-    "severity",
-    "affectedRequirements"
-  ]
+  "required_attributes": ["description", "severity", "affectedRequirements"]
 }

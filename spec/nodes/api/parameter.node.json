@@ -34,10 +34,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "in",
-    "required"
-  ]
+  "required_attributes": ["id", "name", "in", "required"]
 }

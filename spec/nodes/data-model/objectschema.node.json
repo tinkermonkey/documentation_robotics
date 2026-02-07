@@ -29,7 +29,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "type"
-  ]
+  "required_attributes": ["type"]
 }

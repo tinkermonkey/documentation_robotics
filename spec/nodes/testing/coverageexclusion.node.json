@@ -30,12 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "description",
-    "reason",
-    "riskAccepted",
-    "approvedBy"
-  ]
+  "required_attributes": ["id", "name", "description", "reason", "riskAccepted", "approvedBy"]
 }

@@ -30,9 +30,5 @@
       "description": "Source code reference for trace configuration"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "serviceName"
-  ]
+  "required_attributes": ["id", "name", "serviceName"]
 }

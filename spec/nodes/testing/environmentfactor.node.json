@@ -26,10 +26,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "factor",
-    "value"
-  ]
+  "required_attributes": ["id", "name", "factor", "value"]
 }

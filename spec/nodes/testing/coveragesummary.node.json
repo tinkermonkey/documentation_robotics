@@ -29,9 +29,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "totalTargets",
-    "totalRequirements",
-    "totalSketches"
-  ]
+  "required_attributes": ["totalTargets", "totalRequirements", "totalSketches"]
 }

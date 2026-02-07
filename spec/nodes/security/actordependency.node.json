@@ -30,12 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "dependee",
-    "resource",
-    "objective",
-    "criticality"
-  ]
+  "required_attributes": ["id", "name", "dependee", "resource", "objective", "criticality"]
 }

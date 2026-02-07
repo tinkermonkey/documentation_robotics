@@ -26,10 +26,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "timeUnixNano",
-    "name",
-    "droppedAttributesCount"
-  ]
+  "required_attributes": ["id", "timeUnixNano", "name", "droppedAttributesCount"]
 }

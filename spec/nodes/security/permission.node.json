@@ -30,11 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "name",
-    "id",
-    "scope",
-    "resource",
-    "action"
-  ]
+  "required_attributes": ["name", "id", "scope", "resource", "action"]
 }

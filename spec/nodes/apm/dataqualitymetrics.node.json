@@ -17,7 +17,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "schemaRef"
-  ]
+  "required_attributes": ["schemaRef"]
 }

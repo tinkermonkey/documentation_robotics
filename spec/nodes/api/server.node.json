@@ -26,10 +26,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "url",
-    "variables"
-  ]
+  "required_attributes": ["id", "name", "url", "variables"]
 }

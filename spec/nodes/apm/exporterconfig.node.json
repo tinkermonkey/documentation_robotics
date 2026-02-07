@@ -30,10 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "type",
-    "endpoint"
-  ]
+  "required_attributes": ["id", "name", "type", "endpoint"]
 }

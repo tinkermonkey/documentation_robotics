@@ -38,11 +38,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "title",
-    "version",
-    "termsOfService"
-  ]
+  "required_attributes": ["id", "name", "title", "version", "termsOfService"]
 }

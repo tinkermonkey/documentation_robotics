@@ -30,10 +30,5 @@
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "requirementType",
-    "priority"
-  ]
+  "required_attributes": ["id", "name", "requirementType", "priority"]
 }

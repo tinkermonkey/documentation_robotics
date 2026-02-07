@@ -22,9 +22,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "assessmentType"
-  ]
+  "required_attributes": ["id", "name", "assessmentType"]
 }

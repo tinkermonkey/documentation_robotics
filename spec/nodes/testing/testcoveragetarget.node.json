@@ -42,9 +42,5 @@
       "description": "Source code reference for the artifact requiring test coverage"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "targetType"
-  ]
+  "required_attributes": ["id", "name", "targetType"]
 }

@@ -26,9 +26,5 @@
       "description": "Cross-layer properties"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "serviceType"
-  ]
+  "required_attributes": ["id", "name", "serviceType"]
 }

@@ -30,11 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "source",
-    "target",
-    "transform"
-  ]
+  "required_attributes": ["id", "name", "source", "target", "transform"]
 }

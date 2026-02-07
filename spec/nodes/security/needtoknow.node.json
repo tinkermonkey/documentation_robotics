@@ -25,11 +25,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "name",
-    "resource",
-    "objective",
-    "message",
-    "justificationRequired"
-  ]
+  "required_attributes": ["name", "resource", "objective", "message", "justificationRequired"]
 }

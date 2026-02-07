@@ -18,8 +18,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "url"
-  ]
+  "required_attributes": ["id", "url"]
 }

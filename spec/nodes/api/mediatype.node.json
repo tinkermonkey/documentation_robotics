@@ -34,9 +34,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "contentType"
-  ]
+  "required_attributes": ["id", "name", "contentType"]
 }

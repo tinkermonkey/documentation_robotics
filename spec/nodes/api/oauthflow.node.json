@@ -21,9 +21,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "authorizationUrl",
-    "tokenUrl",
-    "scopes"
-  ]
+  "required_attributes": ["authorizationUrl", "tokenUrl", "scopes"]
 }

@@ -30,9 +30,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "droppedAttributesCount"
-  ]
+  "required_attributes": ["id", "name", "droppedAttributesCount"]
 }

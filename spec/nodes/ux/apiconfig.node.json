@@ -30,12 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "operationId",
-    "method",
-    "endpoint",
-    "baseUrl"
-  ]
+  "required_attributes": ["id", "name", "operationId", "method", "endpoint", "baseUrl"]
 }

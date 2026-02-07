@@ -46,14 +46,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "openapi",
-    "info",
-    "servers",
-    "paths",
-    "security",
-    "tags"
-  ]
+  "required_attributes": ["id", "name", "openapi", "info", "servers", "paths", "security", "tags"]
 }

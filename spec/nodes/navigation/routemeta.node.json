@@ -42,13 +42,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "roles",
-    "permissions",
-    "layout",
-    "keepAlive",
-    "transition"
-  ]
+  "required_attributes": ["id", "name", "roles", "permissions", "layout", "keepAlive", "transition"]
 }

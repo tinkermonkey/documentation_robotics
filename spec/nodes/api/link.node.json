@@ -26,10 +26,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "operationId",
-    "operationRef"
-  ]
+  "required_attributes": ["id", "name", "operationId", "operationRef"]
 }

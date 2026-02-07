@@ -50,9 +50,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "type"
-  ]
+  "required_attributes": ["id", "name", "type"]
 }

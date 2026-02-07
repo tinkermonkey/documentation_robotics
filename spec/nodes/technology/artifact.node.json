@@ -30,9 +30,5 @@
       "description": "Source code reference"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "artifactType"
-  ]
+  "required_attributes": ["id", "name", "artifactType"]
 }

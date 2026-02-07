@@ -26,11 +26,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "type",
-    "template",
-    "recipients"
-  ]
+  "required_attributes": ["id", "name", "type", "template", "recipients"]
 }

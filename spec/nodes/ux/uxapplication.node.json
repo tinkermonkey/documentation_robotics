@@ -30,9 +30,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "channel"
-  ]
+  "required_attributes": ["id", "name", "channel"]
 }

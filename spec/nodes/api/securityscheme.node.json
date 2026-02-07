@@ -34,12 +34,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "type",
-    "name",
-    "in",
-    "scheme",
-    "bearerFormat"
-  ]
+  "required_attributes": ["id", "type", "name", "in", "scheme", "bearerFormat"]
 }

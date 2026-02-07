@@ -22,10 +22,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "key",
-    "value"
-  ]
+  "required_attributes": ["id", "name", "key", "value"]
 }

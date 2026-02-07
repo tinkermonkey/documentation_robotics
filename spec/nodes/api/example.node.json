@@ -30,12 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "summary",
-    "description",
-    "value",
-    "externalValue"
-  ]
+  "required_attributes": ["id", "name", "summary", "description", "value", "externalValue"]
 }

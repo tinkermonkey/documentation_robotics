@@ -34,11 +34,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "from",
-    "to",
-    "trigger"
-  ]
+  "required_attributes": ["id", "name", "from", "to", "trigger"]
 }

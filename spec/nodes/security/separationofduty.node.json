@@ -29,8 +29,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "name",
-    "message"
-  ]
+  "required_attributes": ["name", "message"]
 }

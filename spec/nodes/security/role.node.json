@@ -34,11 +34,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "displayName",
-    "level",
-    "inheritsFrom"
-  ]
+  "required_attributes": ["id", "name", "displayName", "level", "inheritsFrom"]
 }

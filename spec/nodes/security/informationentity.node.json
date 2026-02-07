@@ -26,9 +26,5 @@
       "description": "Contains relationship"
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "classification"
-  ]
+  "required_attributes": ["id", "name", "classification"]
 }

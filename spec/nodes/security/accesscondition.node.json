@@ -34,13 +34,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "field",
-    "operator",
-    "value",
-    "message",
-    "source"
-  ]
+  "required_attributes": ["id", "name", "field", "operator", "value", "message", "source"]
 }

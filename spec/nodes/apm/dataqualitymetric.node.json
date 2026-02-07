@@ -29,10 +29,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "type",
-    "name",
-    "measurement",
-    "threshold"
-  ]
+  "required_attributes": ["type", "name", "measurement", "threshold"]
 }

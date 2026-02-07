@@ -30,10 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "label",
-    "dataField"
-  ]
+  "required_attributes": ["id", "name", "label", "dataField"]
 }

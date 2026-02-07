@@ -30,10 +30,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "fieldRef",
-    "partitionRef"
-  ]
+  "required_attributes": ["id", "name", "fieldRef", "partitionRef"]
 }

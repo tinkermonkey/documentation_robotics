@@ -22,10 +22,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "url",
-    "email",
-    "name"
-  ]
+  "required_attributes": ["id", "url", "email", "name"]
 }

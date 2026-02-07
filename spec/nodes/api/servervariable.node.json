@@ -26,10 +26,5 @@
       "description": ""
     }
   },
-  "required_attributes": [
-    "id",
-    "name",
-    "default",
-    "enum"
-  ]
+  "required_attributes": ["id", "name", "default", "enum"]
 }
