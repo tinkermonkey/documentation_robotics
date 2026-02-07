@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.7.2-blue)](.)
+[![Specification](https://img.shields.io/badge/Specification-v0.8.0-blue)](.)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.7.2
+**Version:** 0.8.0
 **Status:** Draft
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-02-07
 
 ## Overview
 
@@ -378,10 +378,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.7.2
-**Release Date:** 2026-01-07
+**Current Version:** 0.8.0
+**Release Date:** 2026-02-07
 **Status:** Draft
-**Next Review:** 2026-07-07
+**Next Review:** 2026-08-07
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -431,7 +431,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.7.1},
+  version = {0.8.0},
   year = {2026},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

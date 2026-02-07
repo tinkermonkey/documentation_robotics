@@ -8,7 +8,6 @@ import { Manifest } from '../../src/core/manifest.js';
 import { NamingValidator } from '../../src/validators/naming-validator.js';
 import { SchemaValidator } from '../../src/validators/schema-validator.js';
 import { Layer } from '../../src/core/layer.js';
-import { Element } from '../../src/core/element.js';
 
 describe('Layer 8 naming validation', () => {
   it('rejects manifest with legacy datastore key', async () => {
@@ -57,31 +56,48 @@ describe('Layer 8 naming validation', () => {
   });
 
   it('rejects element IDs with datastore prefix', () => {
-    // Test that legacy 'datastore' prefix is not in known layers
-    const legacyElementId = 'datastore.table.users';
-    const layerName = legacyElementId.split('.')[0];
-    const knownLayers = [
-      'motivation', 'business', 'security', 'application', 'technology',
-      'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'
-    ];
+    // Test that legacy 'datastore' prefix is rejected by the actual validator
+    const validator = new NamingValidator();
+    const legacyLayer = new Layer('datastore');
 
-    // Verify the legacy name is NOT recognized by the naming validator
-    expect(knownLayers).not.toContain(layerName);
-    expect(layerName).toBe('datastore');
+    // Add an element with the legacy layer name to test rejection
+    legacyLayer.addElement({
+      id: 'datastore.table.users',
+      type: 'table',
+      name: 'users',
+      description: 'Test element with legacy datastore prefix'
+    });
+
+    // Validate the layer with legacy naming
+    const result = validator.validateLayer(legacyLayer);
+
+    // Should have validation errors due to mismatched layer prefix
+    expect(result.hasErrors()).toBe(true);
+    const errors = result.getErrors();
+    expect(errors.length).toBeGreaterThan(0);
+    // Error should mention the layer mismatch
+    expect(errors[0].message).toContain("does not match layer");
   });
 
   it('accepts element IDs with data-store prefix', () => {
-    // Test that canonical 'data-store' prefix is in known layers
-    const canonicalElementId = 'data-store.table.users';
-    const layerName = canonicalElementId.split('.')[0];
-    const knownLayers = [
-      'motivation', 'business', 'security', 'application', 'technology',
-      'api', 'data-model', 'data-store', 'ux', 'navigation', 'apm', 'testing'
-    ];
+    // Test that canonical 'data-store' prefix is accepted by the validator
+    const validator = new NamingValidator();
+    const canonicalLayer = new Layer('data-store');
 
-    // Verify the canonical name IS recognized by the naming validator
-    expect(knownLayers).toContain(layerName);
-    expect(layerName).toBe('data-store');
+    // Add an element with the canonical layer name
+    canonicalLayer.addElement({
+      id: 'data-store.table.users',
+      type: 'table',
+      name: 'users',
+      description: 'Test element with canonical data-store prefix'
+    });
+
+    // Validate the layer with canonical naming
+    const result = validator.validateLayer(canonicalLayer);
+
+    // Should have no validation errors
+    expect(result.hasErrors()).toBe(false);
+    expect(result.getErrors().length).toBe(0);
   });
 
   describe('SchemaValidator integration with renamed files', () => {

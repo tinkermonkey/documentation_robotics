@@ -64,8 +64,9 @@ describe('ResilientLogExporter', () => {
     it('returns promise that resolves', async () => {
       const flushPromise = exporter.forceFlush();
       expect(flushPromise instanceof Promise).toBe(true);
-      await flushPromise;
-      expect(true).toBe(true);
+      const result = await flushPromise;
+      // Verify promise resolves successfully (result should be undefined)
+      expect(result).toBeUndefined();
     });
   });
 
@@ -93,8 +94,9 @@ describe('ResilientLogExporter', () => {
     it('returns promise that resolves', async () => {
       const shutdownPromise = exporter.shutdown();
       expect(shutdownPromise instanceof Promise).toBe(true);
-      await shutdownPromise;
-      expect(true).toBe(true);
+      const result = await shutdownPromise;
+      // Verify promise resolves successfully (result should be undefined)
+      expect(result).toBeUndefined();
     });
   });
 

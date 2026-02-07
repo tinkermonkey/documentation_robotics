@@ -197,10 +197,12 @@ goal-002:
     expect(pythonChanges.length).toBe(tsChanges.length);
     expect(pythonChanges[0].path).toBe(tsChanges[0].path);
 
-    // If the content is identical, hashes should match
+    // Check if both CLIs produced the same hash
+    // If hashes match, this indicates perfect compatibility
     if (pythonChanges[0].afterHash === tsChanges[0].afterHash) {
-      // CLIs produced identical output - perfect compatibility
-      expect(true).toBe(true);
+      // CLIs produced identical output - verify the hash is set
+      expect(pythonChanges[0].afterHash).toBeDefined();
+      expect(tsChanges[0].afterHash).toBeDefined();
     }
   });
 
