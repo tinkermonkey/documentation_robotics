@@ -7,11 +7,13 @@
 The DR CLI evolved from a flat changeset storage format (`.dr/changesets/{name}.json`) to a structured directory-based format (`documentation-robotics/changesets/{id}/metadata.yaml + changes.yaml`). This migration happens automatically.
 
 **Format Migration:**
+
 - **Old format**: `.dr/changesets/{name}.json` (flat JSON files)
 - **New format**: `documentation-robotics/changesets/{id}/metadata.yaml + changes.yaml` (structured directories)
 
 **Status Mapping:**
 When migrated, changeset statuses map as follows:
+
 - `draft` → `staged` (in-progress work moved to staging area)
 - `applied` → `committed` (already-applied changes marked as committed)
 - `reverted` → `discarded` (reverted changes marked as discarded)
@@ -54,6 +56,7 @@ documentation-robotics/
 ### Backup Location
 
 If migration occurs, the original changeset format is preserved at:
+
 ```
 .dr.backup/changesets/
 ```

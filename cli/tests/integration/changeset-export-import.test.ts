@@ -768,7 +768,6 @@ describe('Export/Import Workflow', () => {
         },
       ];
 
-      changeset.updateStats();
       await storage.save(changeset);
 
       const exporter = new ChangesetExporter(tempDir);
