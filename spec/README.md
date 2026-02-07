@@ -173,7 +173,7 @@ The specification defines 12 layers that cover the complete software system life
 05. Technology       WITH WHAT  Technology stack and platforms
 06. API              INTERFACE  Service contracts (OpenAPI)
 07. Data Model       STRUCTURE  Data definitions (JSON Schema)
-08. Datastore        STORAGE    Database schemas (SQL DDL)
+08. Data Store       STORAGE    Database schemas (SQL DDL)
 09. UX               PRESENT    User experience (three-tier: libraries, applications, specs)
 10. Navigation       FLOW       Navigation and routing
 11. APM              OBSERVE    Monitoring and tracing (OTel)
