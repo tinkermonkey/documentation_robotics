@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
   "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/11-apm-observability-layer.schema.json",
-  "title": "APM/Observability Layer Layer Schema",
+  "title": "APM/Observability Layer Schema",
   "description": "Defines distributed tracing, logging, and metrics instrumentation using OpenTelemetry standards for application performance monitoring and observability.",
   "layerMetadata": {
     "layerId": "11-apm-observability-layer",

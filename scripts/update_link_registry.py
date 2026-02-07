@@ -16,7 +16,7 @@ def main():
 
     # All layer prefixes (excluding 01-motivation which is the target, not source)
     all_layers = ["02-business", "03-security", "04-application", "05-technology",
-                  "06-api", "07-data-model", "08-datastore", "09-ux",
+                  "06-api", "07-data-model", "08-data-store", "09-ux",
                   "10-navigation", "11-apm-observability", "12-testing"]
 
     # Links to update and their new source layers

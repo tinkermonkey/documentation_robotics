@@ -24,7 +24,7 @@ LAYERS = [
     "05-technology",
     "06-api",
     "07-data-model",
-    "08-datastore",
+    "08-data-store",
     "09-ux",
     "10-navigation",
     "11-apm-observability",

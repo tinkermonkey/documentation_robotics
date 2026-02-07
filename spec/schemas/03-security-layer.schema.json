@@ -2,7 +2,7 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
   "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/03-security-layer.schema.json",
-  "title": "Security Layer Layer Schema",
+  "title": "Security Layer Schema",
   "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",
   "layerMetadata": {
     "layerId": "03-security-layer",

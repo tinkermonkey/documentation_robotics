@@ -707,7 +707,7 @@ class RelationshipParser:
         elif entity_lower.startswith("data") or entity_lower.startswith("schema"):
             return "07-data-model"
         elif entity_lower.startswith("table") or entity_lower.startswith("database"):
-            return "08-datastore"
+            return "08-data-store"
         elif entity_lower.startswith("ux") or entity_lower.startswith("experience") or entity_lower.startswith("screen"):
             return "09-ux"
         elif entity_lower.startswith("navigation") or entity_lower.startswith("route") or entity_lower.startswith("flow"):

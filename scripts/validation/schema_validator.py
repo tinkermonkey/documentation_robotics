@@ -141,7 +141,7 @@ class SchemaValidator:
                 "technology",
                 "api",
                 "data",
-                "datastore",
+                "data-store",
                 "ux",
                 "navigation",
                 "apm",

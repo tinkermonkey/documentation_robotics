@@ -57,7 +57,7 @@ Documentation Robotics models systems across 12 distinct architectural layers:
 05. Technology     - WITH (platforms, frameworks, infrastructure)
 06. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
 07. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
-08. Datastore      - PERSISTENCE (SQL DDL - 10 entity types)
+08. Data Store     - PERSISTENCE (SQL DDL - 10 entity types)
 09. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
 10. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
 11. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
@@ -399,7 +399,7 @@ $ dr validate --strict
 | Service Class | application | `dr add application service --name "X"`      |
 | Pydantic/DTO  | data_model  | `dr add data_model object-schema --name "X"` |
 | ORM Model     | data_model  | `dr add data_model entity --name "X"`        |
-| DB Table      | datastore   | `dr add datastore table --name "X"`          |
+| DB Table      | data-store  | `dr add data-store table --name "X"`         |
 | UI Component  | ux          | `dr add ux component --name "X"`             |
 
 ### Confidence & Reporting
@@ -574,7 +574,7 @@ dr changeset abandon <changeset-id>
 - Application component, service → Application
 - API endpoint, operation → API
 - Data structure, schema → Data Model
-- Database, table → Datastore
+- Database, table → Data Store
 
 **Cross-Cutting:**
 
