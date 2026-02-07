@@ -619,7 +619,12 @@ export class VisualizationServer {
         return next();
       },
       upgradeWebSocket(() => ({
-        onOpen: (_evt, ws) => {
+        onOpen: async (_evt, ws) => {
+          // Telemetry: Track WebSocket connection
+          await this.recordWebSocketEvent('ws.connection.open', {
+            'ws.client_count': this.clients.size + 1,
+          });
+
           this.clients.add(ws);
 
           // Send connected message per spec
@@ -634,7 +639,12 @@ export class VisualizationServer {
           }
         },
 
-        onClose: (_evt, ws) => {
+        onClose: async (_evt, ws) => {
+          // Telemetry: Track WebSocket disconnection
+          await this.recordWebSocketEvent('ws.connection.close', {
+            'ws.client_count': this.clients.size - 1,
+          });
+
           this.clients.delete(ws);
           if (process.env.VERBOSE) {
             console.log(
@@ -644,6 +654,9 @@ export class VisualizationServer {
         },
 
         onMessage: async (message, ws) => {
+          const messageStartTime = Date.now();
+          let messageType = 'unknown';
+
           try {
             // Extract the actual message data
             // In Hono/Bun, message is a MessageEvent with a data property
@@ -659,6 +672,13 @@ export class VisualizationServer {
               msgStr = String(rawData);
             }
             const data = JSON.parse(msgStr) as WSMessage;
+            messageType = data.jsonrpc === '2.0' ? data.method || 'jsonrpc' : data.type || 'unknown';
+
+            // Telemetry: Track message processing
+            await this.recordWebSocketEvent('ws.message.received', {
+              'ws.message.type': messageType,
+              'ws.message.size_bytes': msgStr.length,
+            });
 
             // Check if it's a JSON-RPC message
             if (data.jsonrpc === '2.0') {
@@ -666,8 +686,26 @@ export class VisualizationServer {
             } else {
               await this.handleWSMessage(ws, data);
             }
+
+            // Telemetry: Track successful message processing
+            const durationMs = Date.now() - messageStartTime;
+            await this.recordWebSocketEvent('ws.message.processed', {
+              'ws.message.type': messageType,
+              'ws.message.duration_ms': durationMs,
+              'ws.message.status': 'success',
+            });
           } catch (error) {
             const errorMsg = error instanceof Error ? error.message : String(error);
+            const durationMs = Date.now() - messageStartTime;
+
+            // Telemetry: Track message processing error
+            await this.recordWebSocketEvent('ws.message.error', {
+              'ws.message.type': messageType,
+              'ws.message.duration_ms': durationMs,
+              'ws.message.status': 'error',
+              'error.message': errorMsg,
+            });
+
             if (process.env.DEBUG) {
               console.error(`[WebSocket] Error handling message: ${errorMsg}`);
             }
@@ -680,8 +718,15 @@ export class VisualizationServer {
           }
         },
 
-        onError: (error) => {
+        onError: async (error) => {
           const message = error instanceof Error ? error.message : String(error);
+
+          // Telemetry: Track WebSocket error
+          await this.recordWebSocketEvent('ws.error', {
+            'error.type': error instanceof Error ? error.constructor.name : 'unknown',
+            'error.message': message,
+          });
+
           console.error(`[WebSocket] Error: ${message}`);
         },
       }))
@@ -752,6 +797,14 @@ export class VisualizationServer {
    */
   private async broadcastMessage(message: any): Promise<void> {
     const messageStr = JSON.stringify(message);
+    const messageType = message.type || 'unknown';
+
+    // Telemetry: Track broadcast start
+    await this.recordWebSocketEvent('ws.broadcast.start', {
+      'ws.broadcast.type': messageType,
+      'ws.broadcast.client_count': this.clients.size,
+      'ws.broadcast.message_size_bytes': messageStr.length,
+    });
 
     let failureCount = 0;
     for (const client of this.clients) {
@@ -766,8 +819,45 @@ export class VisualizationServer {
       }
     }
 
+    // Telemetry: Track broadcast completion
+    await this.recordWebSocketEvent('ws.broadcast.complete', {
+      'ws.broadcast.type': messageType,
+      'ws.broadcast.success_count': this.clients.size - failureCount,
+      'ws.broadcast.failure_count': failureCount,
+    });
+
     if (failureCount > 0 && process.env.VERBOSE) {
       console.warn(`[WebSocket] Failed to send message to ${failureCount}/${this.clients.size} clients`);
+    }
+  }
+
+  /**
+   * Record WebSocket telemetry event
+   * Creates spans for WebSocket operations when telemetry is enabled
+   */
+  private async recordWebSocketEvent(eventName: string, attributes: Record<string, any>): Promise<void> {
+    // Check if telemetry is enabled (compile-time constant set by esbuild)
+    // @ts-ignore - TELEMETRY_ENABLED is a global constant defined at build time
+    const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
+    if (!isTelemetryEnabled) {
+      return;
+    }
+
+    try {
+      // Dynamic import for tree-shaking
+      const { startSpan, endSpan } = await import('../telemetry/index.js');
+
+      // Create span for WebSocket event
+      const span = startSpan(eventName, attributes);
+
+      // End span immediately (WebSocket events are typically instantaneous)
+      endSpan(span);
+    } catch (error) {
+      // Silently fail if telemetry is not available
+      if (process.env.DEBUG) {
+        console.debug(`[Telemetry] Failed to record WebSocket event: ${error}`);
+      }
     }
   }
 
