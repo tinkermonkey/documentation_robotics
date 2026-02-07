@@ -69,7 +69,7 @@ specVersion: "0.6.0"
 
 ## Level 2: Standard Conformance
 
-**Scope:** Layers 01-08 (through Datastore)
+**Scope:** Layers 01-08 (through Data Store)
 
 **Use Case:** Most software projects, API and data modeling, database design
 
@@ -82,7 +82,7 @@ All Basic layers, plus:
 | 05 - Technology | ArchiMate 3.2       | ✅ Yes   |
 | 06 - API        | OpenAPI 3.0         | ✅ Yes   |
 | 07 - Data Model | JSON Schema Draft 7 | ✅ Yes   |
-| 08 - Datastore  | SQL DDL             | ✅ Yes   |
+| 08 - Data Store | SQL DDL             | ✅ Yes   |
 
 ### Additional Capabilities
 
@@ -105,7 +105,7 @@ Beyond Basic level, implementations MUST:
    - Link schemas to data objects
    - Support custom extensions (`x-database`, `x-security`, etc.)
 
-4. **Datastore Layer**
+4. **Data Store Layer**
    - Model databases, tables, columns, constraints
    - Link to data model schemas
    - Validate DDL syntax
@@ -137,7 +137,7 @@ MUST pass:
 
 ```yaml
 conformanceLevel: "standard"
-layers: [motivation, business, security, application, technology, api, data-model, datastore]
+layers: [motivation, business, security, application, technology, api, data-model, data-store]
 specVersion: "0.6.0"
 ```
 
@@ -225,7 +225,7 @@ layers:
     technology,
     api,
     data-model,
-    datastore,
+    data-store,
     ux,
     navigation,
     apm,
