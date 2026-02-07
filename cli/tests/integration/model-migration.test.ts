@@ -8,19 +8,37 @@ describe("Model Migration Service", () => {
   let testDir: string;
   let model: Model;
   let cleanup: (() => Promise<void>) | undefined;
+  let createdDirs: string[] = [];
 
   beforeEach(async () => {
     const workdir = await createTestWorkdir();
     testDir = workdir.path;
     cleanup = workdir.cleanup;
+    createdDirs = [];
     model = await Model.load(testDir, { lazyLoad: false });
   });
 
   afterEach(async () => {
+    // Clean up all created directories (backups and targets)
+    for (const dir of createdDirs) {
+      try {
+        await rm(dir, { recursive: true, force: true });
+      } catch {
+        // Ignore cleanup errors
+      }
+    }
+
     if (cleanup) {
       await cleanup();
     }
   });
+
+  /**
+   * Helper to track directories for cleanup
+   */
+  function trackDirectory(dir: string): void {
+    createdDirs.push(dir);
+  }
 
   describe("ModelMigrationService", () => {
     it("should initialize with a model", () => {
@@ -30,6 +48,8 @@ describe("Model Migration Service", () => {
 
     it("should migrate model with backup creation", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -46,16 +66,16 @@ describe("Model Migration Service", () => {
       // Verify mapping size matches element count
       expect(result.elementMapping.size).toBe(result.elementCount);
 
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
+      // Track backup directory for cleanup
+      if (result.backupDir) {
+        trackDirectory(result.backupDir);
       }
     });
 
     it("should generate migration mapping table", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -65,17 +85,12 @@ describe("Model Migration Service", () => {
 
       expect(result.mappingFilePath).toBeDefined();
       expect(result.mappingFilePath).toContain("migration-map.json");
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
 
     it("should validate migrated model", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -84,17 +99,12 @@ describe("Model Migration Service", () => {
       });
 
       expect(Array.isArray(result.validationErrors)).toBe(true);
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
 
     it("should preserve element properties during migration", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -107,17 +117,12 @@ describe("Model Migration Service", () => {
       if (result.elementCount > 0) {
         expect(result.elementMapping.size).toBeGreaterThan(0);
       }
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
 
     it("should handle empty models gracefully", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -127,17 +132,12 @@ describe("Model Migration Service", () => {
 
       expect(result.success).toBe(true);
       expect(result.elementCount).toBeGreaterThanOrEqual(0);
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
 
     it("should track migration duration", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -147,17 +147,12 @@ describe("Model Migration Service", () => {
 
       expect(result.duration).toBeGreaterThan(0);
       expect(typeof result.duration).toBe("number");
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
 
     it("should report warnings for dangling references", async () => {
       const targetDir = `${testDir}-v2`;
+      trackDirectory(targetDir);
+
       const service = new ModelMigrationService(model);
 
       const result = await service.migrate(testDir, {
@@ -168,13 +163,6 @@ describe("Model Migration Service", () => {
       // Result should be valid even if there are warnings
       expect(result.success).toBe(true);
       expect(Array.isArray(result.warnings)).toBe(true);
-
-      // Cleanup target directory
-      try {
-        await rm(targetDir, { recursive: true, force: true });
-      } catch {
-        // Ignore cleanup errors
-      }
     });
   });
 });

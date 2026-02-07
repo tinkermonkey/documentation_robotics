@@ -49,11 +49,44 @@ export async function modelMigrateCommand(
     console.log(ansis.cyan(`Target: ${path.relative(process.cwd(), targetDir)}\n`));
 
     if (options.dryRun) {
-      console.log(ansis.yellow("DRY RUN MODE - No changes will be written\n"));
+      console.log(ansis.yellow("DRY RUN MODE - Previewing migration without writing changes\n"));
+      console.log(ansis.dim("This will:"));
+      console.log(ansis.dim("  1. Load the source model"));
+      console.log(ansis.dim("  2. Analyze elements and relationships"));
+      console.log(ansis.dim("  3. Report what would be migrated"));
+      console.log(ansis.dim("  4. NOT create any files or backups\n"));
     }
 
     // Load source model
     const model = await Model.load(sourceDir, { lazyLoad: false });
+
+    // Preview dry-run without actual migration
+    if (options.dryRun) {
+      const layerNames = Object.keys(model.manifest.layers || {});
+      let totalElements = 0;
+      let totalRelationships = 0;
+
+      for (const layerName of layerNames) {
+        const layer = await model.getLayer(layerName);
+        if (layer) {
+          const elements = layer.listElements();
+          totalElements += elements.length;
+
+          for (const element of elements) {
+            totalRelationships += (element.references?.length || 0);
+            totalRelationships += (element.relationships?.length || 0);
+          }
+        }
+      }
+
+      console.log(ansis.cyan("Migration Preview:"));
+      console.log(ansis.dim(`  Layers to process: ${layerNames.length}`));
+      console.log(ansis.dim(`  Elements to migrate: ${totalElements}`));
+      console.log(ansis.dim(`  Relationships to extract: ${totalRelationships}`));
+      console.log(ansis.yellow("\n✓ Dry-run complete - no changes written\n"));
+      return;
+    }
+
     const service = new ModelMigrationService(model);
 
     // Perform migration
@@ -77,7 +110,7 @@ export async function modelMigrateCommand(
       console.log(ansis.dim(`  Backup saved to: ${result.backupDir}`));
       console.log(
         ansis.dim(
-          `  Rollback: dr migrate rollback --backup ${path.basename(
+          `  Rollback: dr migrate-model rollback --backup ${path.basename(
             result.backupDir
           )}`
         )
