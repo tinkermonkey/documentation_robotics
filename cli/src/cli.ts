@@ -25,6 +25,7 @@ import { catalogCommands } from './commands/catalog.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
+import { graphMigrateCommand } from './commands/graph-migrate.js';
 import { chatCommand } from './commands/chat.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
@@ -337,6 +338,54 @@ Examples:
       model: options.model,
       includeSources: options.includeSources,
     });
+  });
+
+program
+  .command('graph-migrate <format>')
+  .description('Transform architecture model to graph database format')
+  .option('--output <path>', 'Output file path')
+  .option('--model <path>', 'Path to model root directory')
+  .option('--dry-run', 'Preview migration without writing files')
+  .option('--validate', 'Validate model before migration')
+  .option('--drop-existing', 'Drop existing data in Neo4j before import')
+  .option('--batch-size <size>', 'Batch size for database imports (default: 1000)')
+  .option('--include-properties', 'Include element properties in migration')
+  .option('--include-metadata', 'Include metadata in migration')
+  .option('--compress', 'Compress output (LadybugDB only)')
+  .addHelpText(
+    'after',
+    `
+Supported formats:
+  neo4j      Neo4j Cypher script for graph database import
+  cypher     Alias for neo4j format
+  ladybug    LadybugDB JSON document format
+  gremlin    Apache Gremlin Groovy script
+  graphml    GraphML XML format (same as 'dr export graphml')
+
+Examples:
+  $ dr graph-migrate neo4j --output model.cypher
+  $ dr graph-migrate ladybug --output model.lbug.json
+  $ dr graph-migrate gremlin --output model.groovy
+  $ dr graph-migrate cypher --dry-run
+
+Graph Database Setup:
+  Neo4j:     neo4j-admin import --from-neo4j-uri=<path-to-cypher-file>
+  LadybugDB: ladybug import model.lbug.json
+  Gremlin:   bin/gremlin.sh < model.groovy`
+  )
+  .action(async (format, options) => {
+    await graphMigrateCommand({
+      format: format.toLowerCase(),
+      output: options.output,
+      model: options.model,
+      dryRun: options.dryRun,
+      validate: options.validate,
+      dropExisting: options.dropExisting,
+      batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      includeProperties: options.includeProperties,
+      includeMetadata: options.includeMetadata,
+      compress: options.compress,
+    } as any);
   });
 
 program
