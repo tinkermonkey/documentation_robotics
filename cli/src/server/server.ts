@@ -36,6 +36,13 @@ interface WSMessage {
   };
 }
 
+interface AnnotationReply {
+  id: string;
+  author: string;
+  content: string;
+  createdAt: string;
+}
+
 interface ClientAnnotation {
   id: string;
   elementId: string;
@@ -44,6 +51,8 @@ interface ClientAnnotation {
   createdAt: string;
   updatedAt?: string;
   tags?: string[];
+  resolved?: boolean;  // Track resolution status
+  replies?: AnnotationReply[];  // Include replies when serializing
 }
 
 interface Changeset {
@@ -98,6 +107,7 @@ export class VisualizationServer {
   private watcher?: any;
   private annotations: Map<string, ClientAnnotation> = new Map(); // annotationId -> annotation
   private annotationsByElement: Map<string, Set<string>> = new Map(); // elementId -> Set<annotationId>
+  private replies: Map<string, AnnotationReply[]> = new Map(); // annotationId -> replies[]
   private changesets: Map<string, Changeset> = new Map(); // changesetId -> changeset
   private authToken: string;
   private authEnabled: boolean = true; // Enabled by default for security
@@ -341,10 +351,10 @@ export class VisualizationServer {
       try {
         const body = await c.req.json();
 
-        // Validate required fields
-        if (!body.elementId || !body.content || !body.author) {
+        // Validate required fields (author is optional)
+        if (!body.elementId || !body.content) {
           return c.json({
-            error: 'Missing required fields: elementId, content, author'
+            error: 'Missing required fields: elementId, content'
           }, 400);
         }
 
@@ -358,10 +368,11 @@ export class VisualizationServer {
         const annotation: ClientAnnotation = {
           id: this.generateAnnotationId(),
           elementId: String(body.elementId),
-          author: String(body.author),
+          author: body.author ? String(body.author) : 'Anonymous',  // Default to Anonymous if not provided
           content: String(body.content),
           createdAt: new Date().toISOString(),
           tags: body.tags || [],
+          resolved: false,  // Default to unresolved
         };
 
         // Store annotation
@@ -405,6 +416,47 @@ export class VisualizationServer {
         if (body.tags !== undefined) {
           annotation.tags = body.tags;
         }
+        if (body.resolved !== undefined) {
+          annotation.resolved = Boolean(body.resolved);
+        }
+        annotation.updatedAt = new Date().toISOString();
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: 'annotation.updated',
+          annotationId: annotation.id,
+          timestamp: annotation.updatedAt,
+        });
+
+        return c.json(annotation);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // PATCH annotation (partial update - recommended)
+    this.app.patch('/api/annotations/:annotationId', async (c) => {
+      try {
+        const annotationId = c.req.param('annotationId');
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: 'Annotation not found' }, 404);
+        }
+
+        const body = await c.req.json();
+
+        // Update only provided fields (partial update)
+        if (body.content !== undefined) {
+          annotation.content = String(body.content);
+        }
+        if (body.tags !== undefined) {
+          annotation.tags = body.tags;
+        }
+        if (body.resolved !== undefined) {
+          annotation.resolved = Boolean(body.resolved);
+        }
         annotation.updatedAt = new Date().toISOString();
 
         // Broadcast to all clients
@@ -433,6 +485,7 @@ export class VisualizationServer {
 
         // Remove from storage
         this.annotations.delete(annotationId);
+        this.replies.delete(annotationId);  // Clean up replies
         const elementAnnotations = this.annotationsByElement.get(annotation.elementId);
         if (elementAnnotations) {
           elementAnnotations.delete(annotationId);
@@ -446,6 +499,66 @@ export class VisualizationServer {
         });
 
         return c.body(null, 204);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return c.json({ error: message }, 500);
+      }
+    });
+
+    // GET annotation replies
+    this.app.get('/api/annotations/:annotationId/replies', (c) => {
+      const annotationId = c.req.param('annotationId');
+      const annotation = this.annotations.get(annotationId);
+
+      if (!annotation) {
+        return c.json({ error: 'Annotation not found' }, 404);
+      }
+
+      const replies = this.replies.get(annotationId) || [];
+      return c.json({ replies });
+    });
+
+    // POST annotation reply
+    this.app.post('/api/annotations/:annotationId/replies', async (c) => {
+      try {
+        const annotationId = c.req.param('annotationId');
+        const annotation = this.annotations.get(annotationId);
+
+        if (!annotation) {
+          return c.json({ error: 'Annotation not found' }, 404);
+        }
+
+        const body = await c.req.json();
+
+        // Validate required fields
+        if (!body.author || !body.content) {
+          return c.json({
+            error: 'Missing required fields: author, content'
+          }, 400);
+        }
+
+        const reply: AnnotationReply = {
+          id: this.generateReplyId(),
+          author: String(body.author),
+          content: String(body.content),
+          createdAt: new Date().toISOString(),
+        };
+
+        // Store reply
+        if (!this.replies.has(annotationId)) {
+          this.replies.set(annotationId, []);
+        }
+        this.replies.get(annotationId)!.push(reply);
+
+        // Broadcast to all clients
+        await this.broadcastMessage({
+          type: 'annotation.reply.added',
+          annotationId,
+          replyId: reply.id,
+          timestamp: reply.createdAt,
+        });
+
+        return c.json(reply, 201);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
         return c.json({ error: message }, 500);
@@ -587,8 +700,15 @@ export class VisualizationServer {
         .map((e) => {
           const annotationIds = this.annotationsByElement.get(e.id) || new Set();
           const annotations = Array.from(annotationIds)
-            .map(id => this.annotations.get(id))
-            .filter((a): a is ClientAnnotation => a !== undefined);
+            .map(id => {
+              const annotation = this.annotations.get(id);
+              if (!annotation) return undefined;
+
+              // Include replies in annotation response
+              const replies = this.replies.get(id) || [];
+              return { ...annotation, replies };
+            })
+            .filter(a => a !== undefined);
 
           return {
             ...e.toJSON(),
@@ -618,6 +738,13 @@ export class VisualizationServer {
    */
   private generateAnnotationId(): string {
     return `ann-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  /**
+   * Generate unique reply ID
+   */
+  private generateReplyId(): string {
+    return `reply-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
   }
 
   /**
