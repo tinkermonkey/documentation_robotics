@@ -615,13 +615,22 @@ export class VisualizationServer {
       async (c, next) => {
         // Check WebSocket auth if enabled
         if (this.authEnabled) {
+          // Accept token from query parameter OR Authorization header
           const queryToken = c.req.query('token');
+          const authHeader = c.req.header('Authorization');
+          const headerToken = authHeader?.startsWith('Bearer ')
+            ? authHeader.substring(7)
+            : authHeader;
 
-          if (!queryToken) {
-            return c.json({ error: 'Authentication required. Provide token as query parameter: ?token=YOUR_TOKEN' }, 401);
+          const token = queryToken || headerToken;
+
+          if (!token) {
+            return c.json({
+              error: 'Authentication required. Provide token as query parameter (?token=YOUR_TOKEN) or Authorization header (Bearer YOUR_TOKEN)'
+            }, 401);
           }
 
-          if (queryToken !== this.authToken) {
+          if (token !== this.authToken) {
             return c.json({ error: 'Invalid authentication token' }, 403);
           }
         }

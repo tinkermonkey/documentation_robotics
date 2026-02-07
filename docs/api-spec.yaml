@@ -631,7 +631,11 @@ paths:
         ## Authentication
 
 
-        Token must be provided as query parameter: `?token=<token>` (if auth enabled)
+        Token can be provided via:
+
+        - **Query parameter**: `?token=<token>` (if auth enabled)
+
+        - **Authorization header**: `Authorization: Bearer <token>` (preferred for security)
 
 
         ## Legacy Protocol - Model Updates
@@ -786,6 +790,7 @@ paths:
       tags:
         - WebSocket
       security:
+        - BearerAuth: []
         - QueryAuth: []
       responses:
         "101":
@@ -801,14 +806,12 @@ components:
       scheme: bearer
       bearerFormat: token
       description: "Token provided in Authorization header: `Authorization: Bearer
-        <token>`"
+        <token>`. Supported for all HTTP API endpoints and WebSocket connections (preferred method)."
     QueryAuth:
       type: apiKey
       in: query
       name: token
-      description: "Token provided as query parameter: `?token=<token>`
-
-        Used primarily for WebSocket connections where custom headers are not supported."
+      description: "Token provided as query parameter: `?token=<token>`. Supported for all HTTP API endpoints and WebSocket connections. Useful for browser URLs and clients that don't support custom headers."
   responses:
     Unauthorized:
       description: Authentication required

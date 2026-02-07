@@ -248,7 +248,8 @@ export async function visualizeCommand(
         const output = data.toString().trim();
         if (output) {
           serverOutput += output + '\n';
-          logVerbose(`[server stderr] ${output}`);
+          // Log stderr at debug level so --debug flag shows telemetry exporter logs
+          logDebug(`[server stderr] ${output}`);
         }
       });
     }

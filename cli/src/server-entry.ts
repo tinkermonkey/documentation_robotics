@@ -43,6 +43,14 @@ async function main() {
           console.log(`[Telemetry] OTLP traces endpoint: ${otlpConfig.endpoint}`);
           console.log(`[Telemetry] OTLP logs endpoint: ${otlpConfig.logsEndpoint}`);
           console.log(`[Telemetry] Service name: ${otlpConfig.serviceName}`);
+
+          // Runtime detection and compatibility info
+          const isBun = typeof (globalThis as any).Bun !== 'undefined';
+          if (isBun) {
+            console.log(`[Telemetry] Runtime: Bun (using fetch-based OTLP exporter)`);
+          } else {
+            console.log(`[Telemetry] Runtime: Node.js (using http-based OTLP exporter)`);
+          }
         }
       } catch (error) {
         // Log telemetry initialization errors but don't fail the server

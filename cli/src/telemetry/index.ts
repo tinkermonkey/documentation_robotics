@@ -145,7 +145,7 @@ export async function initTelemetry(): Promise<void> {
     // Create trace exporter with circuit-breaker pattern
     const traceExporter = new ResilientOTLPExporter({
       url: otlpConfig.endpoint,
-      timeoutMillis: 500,
+      timeoutMillis: 10000,  // 10s timeout for network requests (serialization + network latency)
     });
 
     // Create span processor and store reference for forceFlush during shutdown
@@ -173,7 +173,7 @@ export async function initTelemetry(): Promise<void> {
     // Create log exporter with circuit-breaker pattern
     const logExporter = new ResilientLogExporter({
       url: otlpConfig.logsEndpoint,
-      timeoutMillis: 500,
+      timeoutMillis: 10000,  // 10s timeout for network requests (serialization + network latency)
     });
 
     // Initialize LoggerProvider
