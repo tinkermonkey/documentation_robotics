@@ -7,7 +7,7 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
-## [0.7.2] - 2026-02-06
+## [0.8.0] - 2026-02-06
 
 ### Breaking Changes
 

@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'bun:test';
 import { Manifest } from '../../src/core/manifest.js';
 import { NamingValidator } from '../../src/validators/naming-validator.js';
+import { SchemaValidator } from '../../src/validators/schema-validator.js';
 import { Layer } from '../../src/core/layer.js';
 import { Element } from '../../src/core/element.js';
 
@@ -13,7 +14,7 @@ describe('Layer 8 naming validation', () => {
   it('rejects manifest with legacy datastore key', async () => {
     // Create manifest with legacy 'datastore' key (incorrect)
     const manifestData = {
-      version: '0.7.1',
+      version: '0.8.0',
       project: { name: 'Test Project' },
       layers: {
         datastore: {  // Legacy naming - should be rejected
@@ -37,7 +38,7 @@ describe('Layer 8 naming validation', () => {
   it('accepts manifest with canonical data-store key', async () => {
     // Create manifest with canonical 'data-store' key (correct)
     const manifestData = {
-      version: '0.7.2',
+      version: '0.8.0',
       project: { name: 'Test Project' },
       layers: {
         'data-store': {  // Canonical naming - should be accepted
@@ -81,5 +82,71 @@ describe('Layer 8 naming validation', () => {
     // Verify the canonical name IS recognized by the naming validator
     expect(knownLayers).toContain(layerName);
     expect(layerName).toBe('data-store');
+  });
+
+  describe('SchemaValidator integration with renamed files', () => {
+    it('validates data-store layer with renamed schema file', async () => {
+      const validator = new SchemaValidator();
+      const layer = new Layer('data-store');
+
+      // Should successfully validate without errors due to renamed schema file
+      const result = await validator.validateLayer(layer);
+      expect(result).toBeDefined();
+      expect(result.isValid()).toBe(true);
+    });
+
+    it('validates data-model layer with hyphenated naming', async () => {
+      const validator = new SchemaValidator();
+      const layer = new Layer('data-model');
+
+      // Should successfully validate with hyphenated layer name
+      const result = await validator.validateLayer(layer);
+      expect(result).toBeDefined();
+      expect(result.isValid()).toBe(true);
+    });
+
+    it('successfully loads renamed 08-data-store schema during validation', async () => {
+      const validator = new SchemaValidator();
+      const layer = new Layer('data-store');
+
+      // This validates that the renamed schema file (08-data-store-layer.schema.json)
+      // is correctly located and loaded by SchemaValidator
+      const result = await validator.validateLayer(layer);
+      expect(result).toBeDefined();
+      // Empty layer should pass - demonstrating schema is loaded and compiled
+      expect(result.isValid()).toBe(true);
+    });
+  });
+
+  describe('NamingValidator enforces canonical names', () => {
+    it('accepts canonical data-store layer name in elements', () => {
+      const validator = new NamingValidator();
+      const layer = new Layer('data-store', {});
+      const element = new Element(
+        'data-store.table.users',
+        'table',
+        { name: 'users' }
+      );
+
+      // Should accept canonical naming
+      const result = validator.validateElement(element, layer);
+      expect(result).toBeDefined();
+      expect(result.isValid()).toBe(true);
+    });
+
+    it('rejects legacy datastore prefix in element IDs', () => {
+      const validator = new NamingValidator();
+      const layer = new Layer('data-store', {});
+      const element = new Element(
+        'datastore.table.users',  // Legacy naming - should be rejected
+        'table',
+        { name: 'users' }
+      );
+
+      // Should reject legacy naming
+      const result = validator.validateElement(element, layer);
+      expect(result).toBeDefined();
+      expect(result.isValid()).toBe(false);
+    });
   });
 });
