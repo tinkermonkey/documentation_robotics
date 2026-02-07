@@ -383,7 +383,7 @@ describe.serial('VisualizationServer Integration Tests', () => {
 
       expect(html).toContain('addAnnotation');
       expect(html).toContain('POST');
-      expect(html).toContain('/api/elements/');
+      expect(html).toContain('/api/annotations');
       expect(html).toContain('annotations');
     });
   });
