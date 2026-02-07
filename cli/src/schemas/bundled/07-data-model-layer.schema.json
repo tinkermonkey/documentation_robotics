@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/07-data-model-layer.schema.json",
-  "title": "Data Model Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/07-data-model-layer.schema.json",
+  "title": "Data Model Layer Schema",
   "description": "Defines data structures, types, and validation rules using JSON Schema Draft 7 for consistent data modeling across the application.",
   "layerMetadata": {
     "layerId": "07-data-model-layer",
     "layerName": "Data Model Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",

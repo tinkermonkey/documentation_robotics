@@ -84,7 +84,7 @@ class RelationshipDataExtractor:
                                          layer_examples.get(f"{layer_id}-technology", []) + \
                                          layer_examples.get(f"{layer_id}-api", []) + \
                                          layer_examples.get(f"{layer_id}-data-model", []) + \
-                                         layer_examples.get(f"{layer_id}-datastore", []) + \
+                                         layer_examples.get(f"{layer_id}-data-store", []) + \
                                          layer_examples.get(f"{layer_id}-ux", []) + \
                                          layer_examples.get(f"{layer_id}-navigation", []) + \
                                          layer_examples.get(f"{layer_id}-apm-observability", [])
@@ -210,7 +210,7 @@ class RelationshipDataExtractor:
             "technology": "05",
             "api": "06",
             "data-model": "07",
-            "datastore": "08",
+            "data-store": "08",
             "ux": "09",
             "navigation": "10",
             "apm-observability": "11",

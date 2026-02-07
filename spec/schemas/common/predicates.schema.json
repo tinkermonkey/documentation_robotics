@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/common/predicates.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/predicates.schema.json",
   "title": "Semantic Predicates Library",
   "description": "Definitions of semantic predicates used in Documentation Robotics relationships, aligned with ArchiMate and ontology best practices",
   "version": "1.0.0",
@@ -100,7 +100,7 @@
         "technology",
         "api",
         "data",
-        "datastore",
+        "data-store",
         "ux",
         "navigation",
         "apm",

@@ -292,12 +292,18 @@ describe('Console Interceptor Module', () => {
     });
 
     it('should handle console.log with null and undefined', async () => {
+      const output: string[] = [];
+      console.log = (...args: any[]) => {
+        output.push(args.length);
+      };
+
       await installConsoleInterceptor();
 
       // Should not throw when called with null and undefined
       expect(() => {
         console.log(null, undefined);
       }).not.toThrow();
+      expect(output).toHaveLength(1);
     });
 
     it('should handle console.log with objects', async () => {
@@ -360,36 +366,60 @@ describe('Console Interceptor Module', () => {
 
   describe('Backwards Compatibility', () => {
     it('should maintain console.log signature', async () => {
+      const output: string[] = [];
+      console.log = (...args: any[]) => {
+        output.push(args.length);
+      };
+
       await installConsoleInterceptor();
 
       // Should accept any arguments like the original
       expect(() => {
         console.log('string', 123, true, { obj: 'ect' }, null, undefined);
       }).not.toThrow();
+      expect(output).toHaveLength(1);
     });
 
     it('should maintain console.error signature', async () => {
+      const output: string[] = [];
+      console.error = (...args: any[]) => {
+        output.push(args.length);
+      };
+
       await installConsoleInterceptor();
 
       expect(() => {
         console.error('error', new Error('test'));
       }).not.toThrow();
+      expect(output).toHaveLength(1);
     });
 
     it('should maintain console.warn signature', async () => {
+      const output: string[] = [];
+      console.warn = (...args: any[]) => {
+        output.push(args.length);
+      };
+
       await installConsoleInterceptor();
 
       expect(() => {
         console.warn('warning', 'message');
       }).not.toThrow();
+      expect(output).toHaveLength(1);
     });
 
     it('should maintain console.debug signature', async () => {
+      const output: string[] = [];
+      console.debug = (...args: any[]) => {
+        output.push(args.length);
+      };
+
       await installConsoleInterceptor();
 
       expect(() => {
         console.debug('debug', 'info');
       }).not.toThrow();
+      expect(output).toHaveLength(1);
     });
   });
 });

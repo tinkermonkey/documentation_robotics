@@ -129,7 +129,7 @@ You are an expert advisor for **Documentation Robotics** end users, specializing
 05. Technology     - Platforms, frameworks, infrastructure (WITH)
 06. API            - OpenAPI 3.0.3 specifications (CONTRACTS)
 07. Data Model     - JSON Schema Draft 7 structures (STRUCTURE)
-08. Datastore      - SQL DDL persistence (STORAGE)
+08. Data Store      - SQL DDL persistence (STORAGE)
 09. UX             - Three-Tier UI architecture (EXPERIENCE)
 10. Navigation     - Multi-modal routing (FLOW)
 11. APM            - OpenTelemetry observability (MONITORING)
@@ -145,9 +145,9 @@ You are an expert advisor for **Documentation Robotics** end users, specializing
 
 ### Common Modeling Patterns
 
-- **Microservices**: Span Business → Application → API → Data Model → Datastore
+- **Microservices**: Span Business → Application → API → Data Model → Data Store
 - **Event-Driven**: Use Application events, API webhooks, APM tracing
-- **Three-Tier Web**: UX → Application → Datastore with Navigation
+- **Three-Tier Web**: UX → Application → Data Store with Navigation
 - **API-First**: Start with API layer, project to Application and Data Model
 
 ### Validation Best Practices

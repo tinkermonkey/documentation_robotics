@@ -87,7 +87,7 @@ layers:
     order: 8
     name: Data Store
     path: documentation-robotics/model/08_data-store/
-    schema: .dr/schemas/08-datastore-layer.schema.json
+    schema: .dr/schemas/08-data-store-layer.schema.json
     enabled: true
     elements:
       INTEGER: 2

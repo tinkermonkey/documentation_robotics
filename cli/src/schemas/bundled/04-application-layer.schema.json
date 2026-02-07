@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/04-application-layer.schema.json",
-  "title": "Application Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/04-application-layer.schema.json",
+  "title": "Application Layer Schema",
   "description": "Describes application services, components, and interfaces that support business processes and bridge requirements with technical implementation.",
   "layerMetadata": {
     "layerId": "04-application-layer",
     "layerName": "Application Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",

@@ -2,13 +2,13 @@
 
 > **Part of [Documentation Robotics](../README.md)** - For project overview and tooling, see the [main README](../README.md).
 
-[![Specification](https://img.shields.io/badge/Specification-v0.7.1-blue)](.)
+[![Specification](https://img.shields.io/badge/Specification-v0.8.0-blue)](.)
 [![CLI Version](https://img.shields.io/badge/CLI-v0.1.0-green)](../cli/)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](../LICENSE)
 
-**Version:** 0.7.1
+**Version:** 0.8.0
 **Status:** Draft
-**Last Updated:** 2026-01-07
+**Last Updated:** 2026-02-07
 
 ## Overview
 
@@ -51,7 +51,7 @@ spec/
 │   ├── 05-technology-layer.md      # WITH WHAT - Technology stack
 │   ├── 06-api-layer.md             # INTERFACE - Service contracts
 │   ├── 07-data-model-layer.md      # STRUCTURE - Data definitions
-│   ├── 08-datastore-layer.md       # STORAGE - Database schemas
+│   ├── 08-data-store-layer.md      # STORAGE - Database schemas
 │   ├── 09-ux-layer.md              # PRESENTATION - User experience (3-tier architecture)
 │   ├── 10-navigation-layer.md      # FLOW - Navigation patterns
 │   ├── 11-apm-observability-layer.md   # OBSERVE - Monitoring
@@ -173,7 +173,7 @@ The specification defines 12 layers that cover the complete software system life
 05. Technology       WITH WHAT  Technology stack and platforms
 06. API              INTERFACE  Service contracts (OpenAPI)
 07. Data Model       STRUCTURE  Data definitions (JSON Schema)
-08. Datastore        STORAGE    Database schemas (SQL DDL)
+08. Data Store       STORAGE    Database schemas (SQL DDL)
 09. UX               PRESENT    User experience (three-tier: libraries, applications, specs)
 10. Navigation       FLOW       Navigation and routing
 11. APM              OBSERVE    Monitoring and tracing (OTel)
@@ -378,10 +378,10 @@ dr validate --all
 
 ## Version Information
 
-**Current Version:** 0.7.1
-**Release Date:** 2026-01-07
+**Current Version:** 0.8.0
+**Release Date:** 2026-02-07
 **Status:** Draft
-**Next Review:** 2026-07-07
+**Next Review:** 2026-08-07
 
 See [CHANGELOG.md](CHANGELOG.md) for version history.
 
@@ -431,7 +431,7 @@ If you use this specification in academic work, please cite:
 ```bibtex
 @techreport{documentation-robotics-spec,
   title = {Documentation Robotics Specification},
-  version = {0.7.1},
+  version = {0.8.0},
   year = {2026},
   url = {https://github.com/tinkermonkey/documentation_robotics/tree/main/spec}
 }

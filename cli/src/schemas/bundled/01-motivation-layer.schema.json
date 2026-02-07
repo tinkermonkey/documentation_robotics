@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/01-motivation-layer.schema.json",
-  "title": "Motivation Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/01-motivation-layer.schema.json",
+  "title": "Motivation Layer Schema",
   "description": "Captures stakeholder concerns, goals, requirements, and constraints that drive architectural decisions using ArchiMate motivation elements.",
   "layerMetadata": {
     "layerId": "01-motivation-layer",
     "layerName": "Motivation Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
@@ -279,7 +280,7 @@
         "id": "motivation-governed-by-principles",
         "predicate": "governs",
         "inversePredicate": "governed-by-principles",
-        "sourceLayer": "08-datastore",
+        "sourceLayer": "08-data-store",
         "sourceTypes": ["BusinessService"],
         "targetTypes": ["GovernedByPrinciple"],
         "fieldPath": "motivation.governed-by-principles",
@@ -400,7 +401,7 @@
         "id": "motivation-supports-goals",
         "predicate": "supported-by",
         "inversePredicate": "supports-goals",
-        "sourceLayer": "08-datastore",
+        "sourceLayer": "08-data-store",
         "sourceTypes": ["BusinessService"],
         "targetTypes": ["SupportsGoal"],
         "fieldPath": "motivation.supports-goals",

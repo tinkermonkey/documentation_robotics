@@ -29,8 +29,8 @@
     - api.operation.update-ticket
     - api.operation.delete-ticket
   data-access:
-    - datastore.table.tickets
-    - datastore.table.ticket-comments
+    - data-store.table.tickets
+    - data-store.table.ticket-comments
   documentation: |
     The Ticket Management Service provides:
     - Ticket CRUD operations

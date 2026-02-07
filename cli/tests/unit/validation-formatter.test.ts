@@ -18,7 +18,12 @@ describe('ValidationFormatter', () => {
   let result: ValidationResult;
 
   async function setupModel(): Promise<Model> {
-    const model = new Model();
+    const manifest = {
+      version: '0.1.0',
+      created: new Date().toISOString(),
+      layers: {},
+    };
+    const model = new Model('/test', manifest as any);
 
     // Add some test layers and elements
     const motivationLayer = new Layer('motivation');
@@ -38,7 +43,11 @@ describe('ValidationFormatter', () => {
       id: 'business-process-sales',
       name: 'Sales Process',
       type: 'process',
-      references: [{ target: 'motivation-goal-increase-sales' }],
+      references: [{
+        source: 'business-process-sales',
+        target: 'motivation-goal-increase-sales',
+        type: 'realizes'
+      }],
     }));
 
     const apiLayer = new Layer('api');
@@ -46,7 +55,11 @@ describe('ValidationFormatter', () => {
       id: 'api-endpoint-list-products',
       name: 'List Products',
       type: 'endpoint',
-      references: [{ target: 'business-process-sales' }],
+      references: [{
+        source: 'api-endpoint-list-products',
+        target: 'business-process-sales',
+        type: 'realizes'
+      }],
     }));
 
     model.addLayer(motivationLayer);
@@ -155,8 +168,9 @@ describe('ValidationFormatter', () => {
 
     expect(json.valid).toBe(false);
     expect(json.summary).toBeDefined();
-    expect(json.summary.totalElements).toBeGreaterThan(0);
-    expect(json.summary.errorCount).toBe(1);
+    const summary = json.summary as Record<string, number>;
+    expect(summary.totalElements).toBeGreaterThan(0);
+    expect(summary.errorCount).toBe(1);
     expect(Array.isArray(json.errors)).toBe(true);
   });
 
@@ -183,8 +197,9 @@ describe('ValidationFormatter', () => {
     result = new ValidationResult();
 
     const json = ValidationFormatter.toJSON(result, model);
+    const summary = json.summary as Record<string, number>;
 
-    expect(json.summary.totalElements).toBe(4); // 2 motivation + 1 business + 1 api
+    expect(summary.totalElements).toBe(4); // 2 motivation + 1 business + 1 api
   });
 
   it('should count relationships correctly', async () => {
@@ -192,8 +207,9 @@ describe('ValidationFormatter', () => {
     result = new ValidationResult();
 
     const json = ValidationFormatter.toJSON(result, model);
+    const summary = json.summary as Record<string, number>;
 
-    expect(json.summary.totalRelationships).toBeGreaterThanOrEqual(2); // At least business->motivation and api->business
+    expect(summary.totalRelationships).toBeGreaterThanOrEqual(2); // At least business->motivation and api->business
   });
 
   it('should show orphaned elements in JSON export', async () => {
@@ -213,11 +229,12 @@ describe('ValidationFormatter', () => {
     result = new ValidationResult();
 
     const json = ValidationFormatter.toJSON(result, model);
+    const layerStats = json.layerStats as Record<string, number>;
 
-    expect(json.layerStats).toBeDefined();
-    expect(json.layerStats.motivation).toBe(2);
-    expect(json.layerStats.business).toBe(1);
-    expect(json.layerStats.api).toBe(1);
+    expect(layerStats).toBeDefined();
+    expect(layerStats.motivation).toBe(2);
+    expect(layerStats.business).toBe(1);
+    expect(layerStats.api).toBe(1);
   });
 
   it('should format element IDs with file locations', async () => {

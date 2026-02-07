@@ -89,7 +89,7 @@ Activate when the user:
 - API Layer → APM (operations set SLA targets)
 - Business Layer → APM (processes reference business metrics)
 - Data Model Layer → APM (data quality metrics)
-- Datastore Layer → APM (query performance metrics)
+- Data Store Layer → APM (query performance metrics)
 
 ---
 

@@ -75,7 +75,7 @@ Activate when the user:
 **Outgoing (Data Model → Other Layers):**
 
 - `x-business-object-ref` → Business Layer (what business concept does this represent?)
-- `x-database` → Datastore Layer (how is this stored physically?)
+- `x-database` → Data Store Layer (how is this stored physically?)
 - `x-data-governance` → Security Layer (classification, PII, retention)
 - `x-apm-data-quality-metrics` → APM Layer (data quality monitoring)
 

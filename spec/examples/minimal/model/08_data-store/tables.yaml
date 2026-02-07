@@ -1,10 +1,10 @@
-# Minimal Example - Datastore Layer
+# Minimal Example - Data Store Layer
 # Single database table
 
 database: minimal_db
 tables:
   - name: data
-    id: datastore.table.data
+    id: data-store.table.data
     description: Data storage table
     x-json-schema: data_model.schema.data
     columns:

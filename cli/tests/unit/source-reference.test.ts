@@ -145,7 +145,7 @@ describe('Element Source Reference Methods', () => {
     });
 
     it('should return source reference from x-source-reference for layer 08', () => {
-      element.layer = '08-datastore';
+      element.layer = '08-data-store';
       const reference: SourceReference = {
         provenance: 'generated',
         locations: [{ file: 'migrations/001_create_users.sql' }],
@@ -223,7 +223,7 @@ describe('Element Source Reference Methods', () => {
     });
 
     it('should set source reference to x-source-reference for layer 08', () => {
-      element.layer = '08-datastore';
+      element.layer = '08-data-store';
       const reference: SourceReference = {
         provenance: 'generated',
         locations: [{ file: 'migrations/001_create_users.sql' }],

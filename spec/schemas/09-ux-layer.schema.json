@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/09-ux-layer.schema.json",
-  "title": "UX Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/09-ux-layer.schema.json",
+  "title": "UX Layer Schema",
   "description": "Defines user experience specifications including state management, component composition, and multi-channel interaction patterns for visual, voice, and chat interfaces.",
   "layerMetadata": {
     "layerId": "09-ux-layer",
     "layerName": "UX Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",

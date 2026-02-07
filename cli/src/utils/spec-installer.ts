@@ -55,7 +55,7 @@ export async function installSpecReference(
     '05-technology-layer.schema.json',
     '06-api-layer.schema.json',
     '07-data-model-layer.schema.json',
-    '08-datastore-layer.schema.json',
+    '08-data-store-layer.schema.json',
     '09-ux-layer.schema.json',
     '10-navigation-layer.schema.json',
     '11-apm-observability-layer.schema.json',

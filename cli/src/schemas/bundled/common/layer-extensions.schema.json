@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://documentation-robotics.org/schemas/common/layer-extensions.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/layer-extensions.schema.json",
   "title": "Layer Schema Extensions",
   "description": "Definitions for intraLayerRelationships and crossLayerRelationships sections in layer schemas",
   "version": "1.0.0",

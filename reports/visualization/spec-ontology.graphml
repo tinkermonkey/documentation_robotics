@@ -57,7 +57,7 @@
     </node>
     <node id="layer_08">
       <data key="d1">Layer</data>
-      <data key="d0">Datastore Layer</data>
+      <data key="d0">Data Store Layer</data>
       <data key="d2">Database schemas</data>
       <data key="d4">08</data>
     </node>

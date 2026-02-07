@@ -6,7 +6,7 @@ import { Command } from 'commander';
 import ansis from 'ansis';
 import { Model } from '../core/model.js';
 import { findElementLayer } from '../utils/element-utils.js';
-import { CLIError } from '../utils/errors.js';
+import { CLIError, ErrorCategory, handleError } from '../utils/errors.js';
 
 export function relationshipCommands(program: Command): void {
   program
@@ -30,21 +30,20 @@ Examples:
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          console.error(ansis.red(`Error: Source element ${source} not found`));
-          process.exit(1);
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find target element
         const targetLayerName = await findElementLayer(model, target);
         if (!targetLayerName) {
-          throw new CLIError(`Target element ${target} not found`, 1);
+          throw new CLIError(`Target element ${target} not found`, ErrorCategory.USER);
         }
 
         // Relationships are intra-layer only
         if (sourceLayerName !== targetLayerName) {
           throw new CLIError(
-            'Cannot add cross-layer relationship. Relationships must be within the same layer.',
-            1
+            'cannot add cross-layer relationship. Relationships must be within the same layer.',
+            ErrorCategory.USER
           );
         }
 
@@ -54,7 +53,7 @@ Examples:
           try {
             properties = JSON.parse(options.properties);
           } catch (e) {
-            throw new CLIError('Invalid JSON in --properties', 1);
+            throw new CLIError('Invalid JSON in --properties', ErrorCategory.USER);
           }
         }
 
@@ -78,11 +77,7 @@ Examples:
           )
         );
       } catch (error) {
-        if (error instanceof CLIError) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new CLIError(message, 1);
+        handleError(error);
       }
     });
 
@@ -106,15 +101,14 @@ Examples:
         // Find source element
         const sourceLayerName = await findElementLayer(model, source);
         if (!sourceLayerName) {
-          console.error(ansis.red(`Error: Source element ${source} not found`));
-          process.exit(1);
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find relationships to delete
         const toDelete = model.relationships.find(source, target, options.predicate);
 
         if (toDelete.length === 0) {
-          throw new CLIError('No matching relationships found', 1);
+          throw new CLIError('No matching relationships found', ErrorCategory.USER);
         }
 
         // Confirm deletion unless --force or non-interactive environment
@@ -146,11 +140,7 @@ Examples:
           )
         );
       } catch (error) {
-        if (error instanceof CLIError) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new CLIError(message, 1);
+        handleError(error);
       }
     });
 
@@ -174,7 +164,7 @@ Examples:
         const layerName = await findElementLayer(model, id);
 
         if (!layerName) {
-          throw new CLIError(`Element ${id} not found`, 1);
+          throw new CLIError(`Element ${id} not found`, ErrorCategory.USER);
         }
 
         // Get relationships from centralized store
@@ -228,11 +218,7 @@ Examples:
         console.log(ansis.dim(`Total: ${relationships.length} relationship(s)`));
         console.log('');
       } catch (error) {
-        if (error instanceof CLIError) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new CLIError(message, 1);
+        handleError(error);
       }
     });
 
@@ -253,14 +239,17 @@ Examples:
         const sourceLayerName = await findElementLayer(model, source);
 
         if (!sourceLayerName) {
-          throw new CLIError(`Source element ${source} not found`, 1);
+          throw new CLIError(`Source element ${source} not found`, ErrorCategory.USER);
         }
 
         // Find relationships from centralized store
         const relationships = model.relationships.find(source, target);
 
         if (relationships.length === 0) {
-          throw new CLIError(`No relationships from ${source} to ${target}`, 1);
+          throw new CLIError(
+            `No relationships from ${source} to ${target}`,
+            ErrorCategory.USER
+          );
         }
 
         console.log('');
@@ -294,11 +283,7 @@ Examples:
 
         console.log('');
       } catch (error) {
-        if (error instanceof CLIError) {
-          throw error;
-        }
-        const message = error instanceof Error ? error.message : String(error);
-        throw new CLIError(message, 1);
+        handleError(error);
       }
     });
 }

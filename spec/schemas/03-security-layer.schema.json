@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/03-security-layer.schema.json",
-  "title": "Security Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/03-security-layer.schema.json",
+  "title": "Security Layer Schema",
   "description": "Defines authentication, authorization, access control, data classification, and security policies including STS-ml concepts for goal-oriented security modeling.",
   "layerMetadata": {
     "layerId": "03-security-layer",
     "layerName": "Security Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
@@ -419,7 +420,7 @@
         "id": "security-classification",
         "predicate": "referenced-by",
         "inversePredicate": "classification",
-        "sourceLayer": "08-datastore",
+        "sourceLayer": "08-data-store",
         "sourceTypes": ["Artifact"],
         "targetTypes": ["Classification"],
         "fieldPath": "security.classification",

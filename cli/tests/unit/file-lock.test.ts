@@ -12,7 +12,12 @@ let TEST_DIR: string;
 describe('FileLock', () => {
   beforeEach(async () => {
     // Create unique temporary directory for this test
-    TEST_DIR = await mkdtemp(path.join(tmpdir(), 'file-lock-test-'));
+    // Ensure parent temp directory exists first
+    const parentDir = tmpdir();
+    if (!existsSync(parentDir)) {
+      await mkdir(parentDir, { recursive: true });
+    }
+    TEST_DIR = await mkdtemp(path.join(parentDir, 'file-lock-test-'));
   });
 
   afterEach(async () => {

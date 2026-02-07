@@ -1,6 +1,6 @@
 ---
-name: LAYER_08_DATASTORE
-description: Expert knowledge for Datastore Layer modeling in Documentation Robotics
+name: LAYER_08_DATA_STORE
+description: Expert knowledge for Data Store Layer modeling in Documentation Robotics
 triggers:
   [
     "database",
@@ -8,7 +8,7 @@ triggers:
     "column",
     "SQL",
     "DDL",
-    "datastore",
+    "data-store",
     "PostgreSQL",
     "MySQL",
     "index",
@@ -17,7 +17,7 @@ triggers:
 version: 0.7.0
 ---
 
-# Datastore Layer Skill
+# Data Store Layer Skill
 
 **Layer Number:** 08
 **Specification:** Metadata Model Spec v0.7.0
@@ -27,7 +27,7 @@ version: 0.7.0
 
 ## Layer Overview
 
-The Datastore Layer captures **physical database design**:
+The Data Store Layer captures **physical database design**:
 
 - **DATABASES** - Database instances and schemas
 - **TABLES** - Database tables with columns
@@ -45,7 +45,7 @@ This layer uses **SQL DDL** concepts with support for PostgreSQL, MySQL, SQLite,
 
 ## Entity Types
 
-### Core Datastore Entities (10 entities)
+### Core Data Store Entities (10 entities)
 
 | Entity Type        | Description                                        |
 | ------------------ | -------------------------------------------------- |
@@ -66,7 +66,7 @@ This layer uses **SQL DDL** concepts with support for PostgreSQL, MySQL, SQLite,
 
 Activate when the user:
 
-- Mentions "database", "table", "SQL", "DDL", "datastore"
+- Mentions "database", "table", "SQL", "DDL", "data-store"
 - Wants to define tables, columns, indexes, or constraints
 - Asks about database design, normalization, or performance
 - Needs to model physical storage for data models
@@ -76,17 +76,17 @@ Activate when the user:
 
 ## Cross-Layer Relationships
 
-**Outgoing (Datastore → Other Layers):**
+**Outgoing (Data Store → Other Layers):**
 
 - `x-json-schema` → Data Model Layer (what logical schema does this implement?)
 - `x-governed-by-*` → Security Layer (data access policies)
 - `x-apm-performance-metrics` → APM Layer (query performance monitoring)
 
-**Incoming (Other Layers → Datastore):**
+**Incoming (Other Layers → Data Store):**
 
-- Data Model Layer → Datastore (x-database mapping)
-- Application Layer → Datastore (database connections)
-- Technology Layer → Datastore (hosting infrastructure)
+- Data Model Layer → Data Store (x-database mapping)
+- Application Layer → Data Store (database connections)
+- Technology Layer → Data Store (hosting infrastructure)
 
 ---
 
@@ -107,19 +107,19 @@ Activate when the user:
 
 ```bash
 # Add database table
-dr add datastore table --name "users" --property schema=public
+dr add data-store table --name "users" --property schema=public
 
 # Add column to table
-dr add datastore column --name "email" --property dataType=VARCHAR
+dr add data-store column --name "email" --property dataType=VARCHAR
 
 # List tables
-dr list datastore table
+dr list data-store table
 
-# Validate datastore layer
-dr validate --layer datastore
+# Validate data-store layer
+dr validate --layer data-store
 
 # Export as SQL DDL
-dr export --layer datastore --format sql
+dr export --layer data-store --format sql
 ```
 
 ---
@@ -127,7 +127,7 @@ dr export --layer datastore --format sql
 ## Example: Users Table
 
 ```yaml
-id: datastore.table.users
+id: data-store.table.users
 name: "Users Table"
 type: table
 properties:

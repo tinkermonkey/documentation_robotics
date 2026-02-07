@@ -236,7 +236,7 @@ Created Elements:
 Cross-Layer References:
 ✓ 8 realizes references (app → business)
 ✓ 35 exposes references (app → api)
-✓ 12 stores references (datastore → data model)
+✓ 12 stores references (data-store → data model)
 
 Validation: ⚠️ 2 warnings, 0 errors
 

@@ -200,12 +200,13 @@ throw new CLIError(
 ### Consistent Wording
 
 **Instead of:**
-| ❌ Inconsistent | ✅ Consistent |
-|---|---|
-| "Could not find..." | "Element not found: ..." |
-| "The layer doesn't exist" | "Layer not found: ..." |
-| "Bad input format" | "Invalid format: ..." |
-| "Unexpected error occurred" | "Internal error: ..." |
+
+| ❌ Inconsistent             | ✅ Consistent            |
+| --------------------------- | ------------------------ |
+| "Could not find..."         | "Element not found: ..." |
+| "The layer doesn't exist"   | "Layer not found: ..."   |
+| "Bad input format"          | "Invalid format: ..."    |
+| "Unexpected error occurred" | "Internal error: ..."    |
 
 ### Property and Field Names
 

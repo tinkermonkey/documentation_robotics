@@ -7,6 +7,19 @@ and this specification adheres to [Semantic Versioning](https://semver.org/spec/
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-02-06
+
+### Breaking Changes
+
+- **Layer 8 Canonical Naming**: Layer 8 renamed from `datastore` to `data-store` throughout specification
+  - Specification files renamed: `08-datastore-layer.md` → `08-data-store-layer.md`
+  - Schema files renamed: `08-datastore-layer.schema.json` → `08-data-store-layer.schema.json`
+  - All element IDs must use `data-store.` prefix (e.g., `data-store.table.users`)
+  - Manifests must use `data-store:` as the layer key
+  - Layer directories must be named `08_data-store/`
+  - All cross-layer references updated to use `08-data-store` identifier
+  - Users with existing projects must manually migrate their models
+
 ### Added
 
 - **Changeset Storage Migration**:
@@ -258,16 +271,19 @@ Models on v0.5.0 can use spec v0.6.0 without changes:
 ```
 
 **What Changed**:
+
 - Enhanced relationship definitions (additive only)
 - New common schemas (tools can leverage for validation)
 - Improved documentation (no structural changes)
 
 **Backward Compatibility**:
+
 - All v0.5.0 models remain valid under v0.6.0
 - New relationship types are optional enhancements
 - Existing validation rules preserved
 
 **Taking Advantage of New Features**:
+
 1. **Enhanced Relationship Modeling**: Use new predicate types from taxonomy
 2. **Cross-Layer References**: Leverage documented reference patterns
 3. **Common Schemas**: Validate relationships using new common schemas
@@ -282,6 +298,7 @@ See individual layer specifications for detailed relationship examples and usage
 **Schema Generation**: All schemas regenerated using `scripts/generate_schemas.py --all`
 
 **Documentation**:
+
 - Total spec size: ~50,000 lines
 - Net additions: +6,296 lines
 - 40 files modified
@@ -289,6 +306,7 @@ See individual layer specifications for detailed relationship examples and usage
 **Validation**: All layer schemas validate successfully against JSON Schema Draft 7
 
 **Tools Support**:
+
 - CLI v0.7.3+ required for full spec v0.6.0 support
 - Enhanced relationship validation in `dr validate --strict`
 - Link registry validation in `dr validate`
@@ -376,6 +394,7 @@ dr migrate --apply
 ```
 
 **What Gets Migrated**:
+
 - `id` field: UUID auto-generated deterministically (preserves existing UUIDs)
 - `name` field: Derived from existing name/id/description
 - Backward compatible: existing fields preserved
@@ -432,6 +451,7 @@ dr validate
 ```
 
 **What Gets Migrated**:
+
 - Layer 12 (Testing) schema will be added to `.dr/schemas/`
 - Manifest will be updated with Testing layer configuration
 - No breaking changes to existing layers
@@ -487,6 +507,7 @@ dr validate
 ```
 
 **What Gets Migrated**:
+
 - Naming conventions: camelCase → kebab-case in relationship fields
 - Cardinality: Single values → arrays where specification requires arrays
 - Format: Validation of UUID, path, duration, and percentage formats
@@ -496,6 +517,7 @@ See [CLI Link Management Guide](../cli/docs/user-guide/link-management.md) for d
 ## [0.1.1] - 2024-12-15
 
 ### Fixed
+
 - Updated README.md to more accurately reflect the vision
 - Normalized the name for the spec (Documentation Robotics) used throughout
 - Cleaned up documentation links and references in prep for making repo public
@@ -503,8 +525,10 @@ See [CLI Link Management Guide](../cli/docs/user-guide/link-management.md) for d
 ## [0.1.0] - 2024-11-23
 
 ### Added
+
 - Initial stable release of the Federated Architecture Metadata Model specification
 - Core specification documents (overview, federated approach, layering philosophy, cross-layer integration, reference directionality, validation strategy)
+
 - Complete layer specifications for all 11 layers:
   - 01-motivation-layer.md (ArchiMate)
   - 02-business-layer.md (ArchiMate)
@@ -524,6 +548,7 @@ See [CLI Link Management Guide](../cli/docs/user-guide/link-management.md) for d
 - Governance model and contribution guidelines
 
 ### Standards Integrated
+
 - ArchiMate 3.2 (Layers 01, 02, 04, 05)
 - OpenAPI 3.0 (Layer 06)
 - JSON Schema Draft 7 (Layer 07)
@@ -531,11 +556,13 @@ See [CLI Link Management Guide](../cli/docs/user-guide/link-management.md) for d
 - W3C Trace Context (Layer 11)
 
 ### Custom Specifications
+
 - Security Model (Layer 03) - RBAC/ABAC/Policy-based access control
 - UX Specification (Layer 09) - Multi-channel experience state machines
 - Navigation Specification (Layer 10) - Channel-agnostic routing
 
 ### Statistics
+
 - 11 layers
 - 70+ entity types
 - 430+ attributes
@@ -555,6 +582,7 @@ The specification uses [Semantic Versioning 2.0.0](https://semver.org/):
 - **PATCH** version for clarifications, typo fixes, and non-normative changes
 
 Examples:
+
 - `2.0.0` - Breaking change (e.g., rename entity type, remove required attribute)
 - `1.1.0` - New feature (e.g., add new entity type, new optional attribute)
 - `1.0.1` - Clarification (e.g., fix typo, clarify documentation)

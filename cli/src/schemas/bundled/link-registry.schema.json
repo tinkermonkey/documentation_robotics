@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://documentation-robotics.org/schemas/link-registry.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/link-registry.schema.json",
   "title": "Link Registry Schema (DEPRECATED)",
   "description": "JSON Schema for validating the link-registry.json structure. DEPRECATED as of v0.7.0 - cross-layer relationships are now defined in layer schemas.",
   "version": "2.0.0",
@@ -36,7 +36,7 @@
             "archimate",
             "api",
             "data",
-            "datastore",
+            "data-store",
             "ux",
             "navigation",
             "apm"

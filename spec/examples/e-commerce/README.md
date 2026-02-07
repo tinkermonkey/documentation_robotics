@@ -182,7 +182,7 @@ e-commerce/
 │   │   ├── order.schema.json    # Order data model
 │   │   ├── user.schema.json     # User profile model
 │   │   └── payment.schema.json  # Payment model
-│   ├── 08_datastore/
+│   ├── 08_data_store/
 │   │   ├── product-db.yaml      # Product database
 │   │   ├── order-db.yaml        # Order database
 │   │   ├── user-db.yaml         # User database

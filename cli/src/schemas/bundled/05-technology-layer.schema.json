@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/05-technology-layer.schema.json",
-  "title": "Technology Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/05-technology-layer.schema.json",
+  "title": "Technology Layer Schema",
   "description": "Describes the technology infrastructure including hardware, software, networks, and facilities that support applications.",
   "layerMetadata": {
     "layerId": "05-technology-layer",
     "layerName": "Technology Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",

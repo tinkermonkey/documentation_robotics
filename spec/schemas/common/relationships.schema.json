@@ -1,6 +1,6 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
-  "$id": "https://example.com/schemas/common/relationships.schema.json",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/common/relationships.schema.json",
   "title": "Common Relationship Definitions",
   "description": "Reusable JSON Schema definitions for cross-layer relationships in Documentation Robotics",
   "version": "1.0.0",
@@ -530,9 +530,9 @@
                 "predicate": "persists-to",
                 "inversePredicate": "stores",
                 "targetType": "Database",
-                "targetLayer": "08-datastore",
+                "targetLayer": "08-data-store",
                 "strength": "high",
-                "category": "datastore",
+                "category": "data-store",
                 "bidirectional": true
               }
             }
@@ -547,9 +547,9 @@
                 "predicate": "maps-to",
                 "inversePredicate": "mapped-from",
                 "targetType": "Table",
-                "targetLayer": "08-datastore",
+                "targetLayer": "08-data-store",
                 "strength": "high",
-                "category": "datastore",
+                "category": "data-store",
                 "bidirectional": true
               }
             }

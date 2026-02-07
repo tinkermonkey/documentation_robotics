@@ -58,7 +58,7 @@ Documentation Robotics models systems across 12 distinct architectural layers:
 05. Technology     - WITH (platforms, frameworks, infrastructure)
 06. API            - CONTRACTS (OpenAPI 3.0.3 specs - 26 entity types)
 07. Data Model     - STRUCTURE (JSON Schema Draft 7 - 17 entity types)
-08. Datastore      - PERSISTENCE (SQL DDL - 10 entity types)
+08. Data Store      - PERSISTENCE (SQL DDL - 10 entity types)
 09. UX             - EXPERIENCE (Three-Tier Architecture - 26 entity types)
 10. Navigation     - FLOW (Multi-Modal routing - 10 entity types)
 11. APM            - OBSERVE (OpenTelemetry 1.0+ - 14 entity types)
@@ -515,7 +515,7 @@ $ dr validate
 | Service Class | application | `dr add application service service-id --name "X"`     |
 | Pydantic/DTO  | data_model  | `dr add data_model object-schema schema-id --name "X"` |
 | ORM Model     | data_model  | `dr add data_model entity entity-id --name "X"`        |
-| DB Table      | datastore   | `dr add datastore table table-id --name "X"`           |
+| DB Table      | data-store  | `dr add data-store table table-id --name "X"`          |
 | UI Component  | ux          | `dr add ux component component-id --name "X"`          |
 
 ### Confidence & Reporting
@@ -690,7 +690,7 @@ dr changeset abandon <changeset-id>
 - Application component, service → Application
 - API endpoint, operation → API
 - Data structure, schema → Data Model
-- Database, table → Datastore
+- Database, table → Data Store
 
 **Cross-Cutting:**
 
@@ -1453,7 +1453,7 @@ api.operation.get-order
 ↑ uses-schemas
 data_model.object-schema.order # Data structures
 ↑ stored-in
-datastore.collection.orders # Persistence
+data-store.collection.orders # Persistence
 ↑ instrumented-by
 apm.metric.order-api-latency # Observability
 
@@ -1464,7 +1464,7 @@ Each layer represents a different concern:
 - **Application**: The service implementation
 - **API**: The contracts it exposes
 - **Data Model**: The data structures
-- **Datastore**: Where data persists
+- **Data Store**: Where data persists
 - **APM**: How we monitor it
 
 Would you like me to:

@@ -72,7 +72,7 @@ minimal/
 │   │   └── operations.yaml     # Single endpoint
 │   ├── 07_data_model/
 │   │   └── schemas.yaml        # Single schema
-│   ├── 08_datastore/
+│   ├── 08_data_store/
 │   │   └── tables.yaml         # Single table
 │   ├── 09_ux/
 │   │   └── screens.yaml        # Single screen

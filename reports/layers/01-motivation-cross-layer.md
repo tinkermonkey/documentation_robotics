@@ -35,8 +35,8 @@ graph TB
   subgraph source07Layer["07: Data Model Layer"]
     source07Node["Any Data Model Layer entity"]
   end
-  subgraph source08Layer["08: Datastore Layer"]
-    source08Node["Any Datastore Layer entity"]
+  subgraph source08Layer["08: Data Store Layer"]
+    source08Node["Any Data Store Layer entity"]
   end
   subgraph source09Layer["09: UX Layer"]
     source09Node["Any UX Layer entity"]
@@ -164,7 +164,7 @@ Links from entities in other layers to entities in this layer.
 | `governed-by-principles` | BusinessService | Principle      | `motivation.governed-by-principles`, `x-governed-by-principles` | BusinessService governed by Principles | [✓](../../spec/schemas/link-registry.json) |
 | `supports-goals`         | BusinessService | Goal           | `motivation.supports-goals`, `x-supports-goals`                 | BusinessService supports Goals         | [✓](../../spec/schemas/link-registry.json) |
 
-#### From Datastore Layer (08)
+#### From Data Store Layer (08)
 
 | Predicate                | Source Element  | Target Element | Field Path                                                      | Description                            | Documented                                 |
 | ------------------------ | --------------- | -------------- | --------------------------------------------------------------- | -------------------------------------- | ------------------------------------------ |

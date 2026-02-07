@@ -1,4 +1,4 @@
-# Layer 8: Datastore Layer
+# Layer 8: Data Store Layer
 
 Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.
 

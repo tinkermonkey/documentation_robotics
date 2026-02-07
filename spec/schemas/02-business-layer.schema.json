@@ -1,15 +1,16 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "additionalProperties": true,
-  "$id": "https://example.com/schemas/02-business-layer.schema.json",
-  "title": "Business Layer Layer Schema",
+  "$id": "https://github.com/tinkermonkey/documentation_robotics/spec/schemas/02-business-layer.schema.json",
+  "title": "Business Layer Schema",
   "description": "Represents business services, processes, actors, and objects that define the organization's operational structure and capabilities.",
   "layerMetadata": {
     "layerId": "02-business-layer",
     "layerName": "Business Layer",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,
-    "relationshipCatalogVersion": "2.1.0"
+    "relationshipCatalogVersion": "2.1.0",
+    "catalogVersion": "0.7.2"
   },
   "intraLayerRelationships": {
     "$comment": "Relationships between entities within this layer. References relationship-catalog.json by ID.",
