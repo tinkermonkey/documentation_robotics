@@ -288,28 +288,41 @@ export class VirtualProjectionEngine {
 
         case 'update':
           if (change.after) {
-            const existing = projectedLayer.getElement(change.elementId);
-            if (existing) {
-              // Merge projected data with existing
-              existing.name = (change.after.name as string) || existing.name;
-              existing.type = (change.after.type as string) || existing.type;
-              existing.description =
-                (change.after.description as string) || existing.description;
+            // Use updateNode on the graph to persist changes
+            const updates: Record<string, unknown> = {};
 
-              if (typeof change.after.properties === 'object') {
-                existing.properties = {
-                  ...existing.properties,
-                  ...change.after.properties,
-                };
-              }
+            if (typeof change.after.name === 'string') {
+              updates.name = change.after.name;
+            }
 
-              if (Array.isArray(change.after.references)) {
-                existing.references = change.after.references;
-              }
+            if (typeof change.after.type === 'string') {
+              updates.type = change.after.type;
+            }
 
-              if (Array.isArray(change.after.relationships)) {
-                existing.relationships = change.after.relationships;
-              }
+            if (typeof change.after.description === 'string') {
+              updates.description = change.after.description;
+            }
+
+            if (typeof change.after.properties === 'object') {
+              const existing = projectedLayer.getElement(change.elementId);
+              updates.properties = existing
+                ? {
+                    ...existing.properties,
+                    ...change.after.properties,
+                  }
+                : change.after.properties;
+            }
+
+            if (Array.isArray(change.after.references)) {
+              updates.references = change.after.references;
+            }
+
+            if (Array.isArray(change.after.relationships)) {
+              updates.relationships = change.after.relationships;
+            }
+
+            if (Object.keys(updates).length > 0) {
+              projectedLayer.graph.updateNode(change.elementId, updates);
             }
           }
           break;
