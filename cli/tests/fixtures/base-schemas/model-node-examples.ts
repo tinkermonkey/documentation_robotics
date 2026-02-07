@@ -64,7 +64,7 @@ export const modelNodeExamples = {
   },
 
   tableNode: {
-    id: "880g1722-152e-74g7-d949-779988773333",
+    id: "880a1722-152e-74a7-d949-779988773333",
     spec_node_id: "data-store.table",
     type: "table",
     layer_id: "data-store",
@@ -76,7 +76,7 @@ export const modelNodeExamples = {
   },
 
   testCaseNode: {
-    id: "990h2833-263f-85h8-ea50-880099884444",
+    id: "990b2833-263f-85b8-ea50-880099884444",
     spec_node_id: "testing.test-case",
     type: "test-case",
     layer_id: "testing",
@@ -88,7 +88,7 @@ export const modelNodeExamples = {
   },
 
   minimalNode: {
-    id: "aa0i3944-374g-96i9-fb61-991100995555",
+    id: "aa0c3944-374d-96c9-fb61-991100995555",
     spec_node_id: "custom.element",
     type: "element",
     layer_id: "custom",
@@ -96,7 +96,7 @@ export const modelNodeExamples = {
   },
 
   nodeWithoutMetadata: {
-    id: "bb1j4055-485h-07j0-gc72-002211006666",
+    id: "bb1d4055-485e-07d0-gc72-002211006666",
     spec_node_id: "motivation.goal",
     type: "goal",
     layer_id: "motivation",
@@ -104,7 +104,7 @@ export const modelNodeExamples = {
   },
 
   entityNode: {
-    id: "cc2k5166-596i-18k1-hd83-113322117777",
+    id: "cc2e5166-596f-18e1-hd83-113322117777",
     spec_node_id: "data-model.entity",
     type: "entity",
     layer_id: "data-model",

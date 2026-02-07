@@ -22,37 +22,37 @@ export const modelNodeRelationshipExamples = {
     spec_relationship_id: "motivation.realizes.business",
     source_node_id: "550e8400-e29b-41d4-a716-446655440000",
     source_layer_id: "motivation",
-    destination_node_id: "880g1722-152e-74g7-d949-779988773333",
+    destination_node_id: "880a1722-152e-74a7-d949-779988773333",
     destination_layer_id: "business",
     predicate: "realizes"
   },
 
   implementsRelationship: {
-    id: "880g1722-152e-74g7-d949-779988773334",
+    id: "880a1722-152e-74a7-d949-779988773334",
     spec_relationship_id: "api.implements.data-model",
-    source_node_id: "990h2833-263f-85h8-ea50-880099884444",
+    source_node_id: "990b2833-263f-85b8-ea50-880099884444",
     source_layer_id: "api",
-    destination_node_id: "aa0i3944-374g-96i9-fb61-991100995555",
+    destination_node_id: "aa0c3944-374d-96c9-fb61-991100995555",
     destination_layer_id: "data-model",
     predicate: "implements"
   },
 
   persistsRelationship: {
-    id: "aa0i3944-374g-96i9-fb61-991100995556",
+    id: "aa0c3944-374d-96c9-fb61-991100995556",
     spec_relationship_id: "data-model.persists-to.data-store",
-    source_node_id: "bb1j4055-485h-07j0-gc72-002211006666",
+    source_node_id: "bb1d4055-485e-07d0-gc72-002211006666",
     source_layer_id: "data-model",
-    destination_node_id: "cc2k5166-596i-18k1-hd83-113322117777",
+    destination_node_id: "cc2e5166-596f-18e1-hd83-113322117777",
     destination_layer_id: "data-store",
     predicate: "persists-to"
   },
 
   testsRelationship: {
-    id: "bb1j4055-485h-07j0-gc72-002211006667",
+    id: "bb1d4055-485e-07d0-gc72-002211006667",
     spec_relationship_id: "testing.tests.api",
-    source_node_id: "cc2k5166-596i-18k1-hd83-113322117777",
+    source_node_id: "cc2e5166-596f-18e1-hd83-113322117777",
     source_layer_id: "testing",
-    destination_node_id: "dd3l6277-607j-29l2-ie94-224433228888",
+    destination_node_id: "dd3f6277-607a-29f2-ae94-224433228888",
     destination_layer_id: "api",
     predicate: "tests",
     attributes: {
@@ -62,11 +62,11 @@ export const modelNodeRelationshipExamples = {
   },
 
   consumesRelationship: {
-    id: "cc2k5166-596i-18k1-hd83-113322117778",
+    id: "cc2e5166-596f-18e1-hd83-113322117778",
     spec_relationship_id: "application.consumes.api",
-    source_node_id: "dd3l6277-607j-29l2-ie94-224433228889",
+    source_node_id: "dd3f6277-607a-29f2-ae94-224433228889",
     source_layer_id: "application",
-    destination_node_id: "ee4m7388-718k-30m3-jf05-335544339999",
+    destination_node_id: "ee4b7388-718c-30b3-bf05-335544339999",
     destination_layer_id: "api",
     predicate: "consumes",
     attributes: {
@@ -81,21 +81,19 @@ export const modelNodeRelationshipExamples = {
   },
 
   minimalRelationship: {
-    id: "dd3l6277-607j-29l2-ie94-224433228890",
+    id: "dd3f6277-607a-29f2-ae94-224433228890",
     spec_relationship_id: "custom.uses.custom",
-    source_node_id: "ee4m7388-718k-30m3-jf05-335544340000",
-    source_layer_id: "custom",
-    destination_node_id: "ff5n8499-829l-41n4-kg16-446655440001",
-    destination_layer_id: "custom",
+    source_node_id: "ee4b7388-718c-30b3-bf05-335544340000",
+    destination_node_id: "ff5c8499-829d-41c4-ca16-446655440001",
     predicate: "uses"
   },
 
   relationshipWithSourceReference: {
-    id: "ee4m7388-718k-30m3-jf05-335544340001",
+    id: "ee4b7388-718c-30b3-bf05-335544340001",
     spec_relationship_id: "motivation.supports.motivation",
-    source_node_id: "ff5n8499-829l-41n4-kg16-446655440002",
+    source_node_id: "ff5c8499-829d-41c4-ca16-446655440002",
     source_layer_id: "motivation",
-    destination_node_id: "gg6o9500-93am-52o5-lh27-557766551112",
+    destination_node_id: "aa6d9500-93ae-52d5-db27-557766551112",
     destination_layer_id: "motivation",
     predicate: "supports",
     source_reference: {

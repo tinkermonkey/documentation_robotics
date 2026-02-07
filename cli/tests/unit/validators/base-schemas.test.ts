@@ -161,10 +161,10 @@ describe("Base Schema Validation", () => {
       expect(validate.errors?.[0]?.keyword).toBe("pattern");
     });
 
-    it("should reject node with mismatched layer ID", () => {
+    it("should accept node with mismatched layer ID (schema limitation: layer_id not validated against id prefix)", () => {
       const validate = ajv.compile(specNodeSchema);
       const valid = validate(invalidSpecNodeExamples.mismatchedLayerId);
-      expect(valid).toBe(true); // Schema doesn't validate this relationship
+      expect(valid).toBe(true); // Schema doesn't validate layer_id prefix consistency - runtime validators should enforce this
     });
 
     it("should reject node with invalid attribute type", () => {
@@ -177,7 +177,8 @@ describe("Base Schema Validation", () => {
     it("should reject enum attribute without enum_values", () => {
       const validate = ajv.compile(specNodeSchema);
       const valid = validate(invalidSpecNodeExamples.enumWithoutValues);
-      expect(valid).toBe(true); // enum_values is not required by schema, but should be semantically
+      expect(valid).toBe(false); // if/then constraint requires enum_values when type is 'enum'
+      expect(validate.errors?.some(e => e.keyword === "required")).toBe(true);
     });
 
     it("should reject node with missing description", () => {

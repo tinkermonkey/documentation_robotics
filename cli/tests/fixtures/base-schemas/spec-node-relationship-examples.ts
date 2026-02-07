@@ -70,9 +70,7 @@ export const specNodeRelationshipExamples = {
   minimalRelationship: {
     id: "custom.uses.custom",
     source_spec_node_id: "custom.element",
-    source_layer: "custom",
     destination_spec_node_id: "custom.element",
-    destination_layer: "custom",
     predicate: "uses"
   },
 
