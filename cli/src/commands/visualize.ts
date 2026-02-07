@@ -10,6 +10,10 @@ import { Model } from '../core/model.js';
 import { logVerbose, logDebug } from '../utils/globals.js';
 import { CLIError } from '../utils/errors.js';
 
+// Conditional telemetry import based on compile-time flag
+declare const TELEMETRY_ENABLED: boolean | undefined;
+const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_ENABLED : false;
+
 export interface VisualizeOptions {
   port?: number;
   noBrowser?: boolean;
@@ -67,6 +71,17 @@ export async function visualizeCommand(
 
     logDebug(`Server entry path: ${serverEntryPath}`);
 
+    // Create telemetry span for server startup
+    let serverStartupSpan: any = null;
+    if (isTelemetryEnabled) {
+      const { startSpan } = await import('../telemetry/index.js');
+      serverStartupSpan = startSpan('visualize.server.startup', {
+        'server.port': port,
+        'server.auth_enabled': authEnabled,
+        'server.with_danger': withDanger,
+      });
+    }
+
     // Spawn server in Bun subprocess with environment variables
     const env: Record<string, string> = {
       ...process.env,
@@ -103,7 +118,7 @@ export async function visualizeCommand(
 
     // Capture output from server process
     if (serverProcess.stdout) {
-      serverProcess.stdout.on('data', (data) => {
+      serverProcess.stdout.on('data', async (data) => {
         const output = data.toString().trim();
         serverOutput += output + '\n';
 
@@ -138,6 +153,14 @@ export async function visualizeCommand(
         // Server started message - defer detailed output if auth enabled
         if (output.includes('running at http://localhost')) {
           serverStartupShown = true;
+
+          // End telemetry span for server startup
+          if (isTelemetryEnabled && serverStartupSpan) {
+            const { endSpan } = await import('../telemetry/index.js');
+            endSpan(serverStartupSpan);
+            serverStartupSpan = null;
+          }
+
           console.log(ansis.green(`✓ Visualization server started`));
 
           // Display access information (but may be incomplete if auth enabled and token not yet received)
@@ -216,6 +239,20 @@ export async function visualizeCommand(
         const message = serverOutput
           ? `Server exited with code ${code}\nServer output:\n${serverOutput}`
           : `Server exited with code ${code}`;
+
+        // Record error in startup span if still active
+        if (isTelemetryEnabled && serverStartupSpan) {
+          (async () => {
+            const { endSpan } = await import('../telemetry/index.js');
+            if ('recordException' in serverStartupSpan) {
+              (serverStartupSpan as any).recordException(new Error(message));
+              (serverStartupSpan as any).setStatus({ code: 2, message }); // ERROR
+            }
+            endSpan(serverStartupSpan);
+            serverStartupSpan = null;
+          })();
+        }
+
         // Print error before rejecting (CLI wrapper expects CLIError messages to be pre-printed)
         console.error(message);
         const error = new CLIError(message, code || 1);
@@ -228,6 +265,20 @@ export async function visualizeCommand(
     // Handle process errors
     serverProcess.on('error', (error) => {
       const message = `Failed to start visualization server: ${error.message}`;
+
+      // Record error in startup span if still active
+      if (isTelemetryEnabled && serverStartupSpan) {
+        (async () => {
+          const { endSpan } = await import('../telemetry/index.js');
+          if ('recordException' in serverStartupSpan) {
+            (serverStartupSpan as any).recordException(error);
+            (serverStartupSpan as any).setStatus({ code: 2, message }); // ERROR
+          }
+          endSpan(serverStartupSpan);
+          serverStartupSpan = null;
+        })();
+      }
+
       // Print error before throwing (CLI wrapper expects CLIError messages to be pre-printed)
       console.error(message);
       const cliError = new CLIError(message, 1);
@@ -235,6 +286,40 @@ export async function visualizeCommand(
         rejectKeepAlive(cliError);
       }
     });
+
+    // Handle graceful shutdown on SIGINT (Ctrl-C) and SIGTERM
+    const handleShutdown = async (signal: string) => {
+      logDebug(`\n[${signal}] Shutting down visualization server gracefully...`);
+
+      // Forward signal to server process for graceful shutdown
+      if (serverProcess && !serverProcess.killed) {
+        logDebug('Sending termination signal to server process...');
+        serverProcess.kill(signal as NodeJS.Signals);
+
+        // Wait for server to exit (with timeout)
+        await new Promise<void>((resolve) => {
+          const timeout = setTimeout(() => {
+            logDebug('Server shutdown timeout, forcing exit...');
+            if (!serverProcess.killed) {
+              serverProcess.kill('SIGKILL');
+            }
+            resolve();
+          }, 3000); // 3 second timeout
+
+          serverProcess.on('exit', () => {
+            clearTimeout(timeout);
+            resolve();
+          });
+        });
+      }
+
+      logDebug('Visualization server stopped');
+      process.exit(0);
+    };
+
+    // Register signal handlers
+    process.on('SIGINT', () => handleShutdown('SIGINT'));
+    process.on('SIGTERM', () => handleShutdown('SIGTERM'));
 
     // Keep parent process alive - reject promise if server fails
     await new Promise((_, reject) => {
