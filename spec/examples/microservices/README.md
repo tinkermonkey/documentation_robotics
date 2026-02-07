@@ -443,7 +443,7 @@ microservices/
 │   ├── 07_data_model/
 │   │   ├── domain models per service
 │   │   └── (50+ JSON schemas)
-│   ├── 08_datastore/
+│   ├── 08_data_store/
 │   │   ├── postgresql/ (10 databases)
 │   │   ├── mongodb/ (5 collections)
 │   │   ├── cassandra/ (event store)

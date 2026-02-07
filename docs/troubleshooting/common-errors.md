@@ -154,7 +154,7 @@ Use the correct canonical layer names. Remember:
 
 ```bash
 dr add data_model object-schema user      # ✗ underscore
-dr add datastore database postgresql      # ✗ no hyphen, no space
+dr add datastore database postgresql      # ✗ incorrect layer name (use data-store)
 ```
 
 **Correct:**

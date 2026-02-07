@@ -530,7 +530,7 @@ $ dr validate
 | Service Class | application | `dr add application service x --name "X" --source-file "..." --source-symbol "XClass" --source-provenance "extracted"`           |
 | Pydantic/DTO  | data_model  | `dr add data_model object-schema x --name "X" --source-file "..." --source-symbol "XModel" --source-provenance "extracted"`      |
 | ORM Model     | data_model  | `dr add data_model entity x --name "X" --source-file "..." --source-symbol "XEntity" --source-provenance "extracted"`            |
-| DB Table      | datastore   | `dr add datastore table x --name "X" --source-file "migrations/xxx.sql" --source-provenance "extracted"`                         |
+| DB Table      | data-store  | `dr add data-store table x --name "X" --source-file "migrations/xxx.sql" --source-provenance "extracted"`                       |
 | UI Component  | ux          | `dr add ux component x --name "X" --source-file "components/X.tsx" --source-symbol "XComponent" --source-provenance "extracted"` |
 
 ### Confidence & Reporting
@@ -1467,7 +1467,7 @@ api.operation.get-order
 ↑ uses-schemas
 data_model.object-schema.order # Data structures
 ↑ stored-in
-datastore.collection.orders # Persistence
+data-store.collection.orders # Persistence
 ↑ instrumented-by
 apm.metric.order-api-latency # Observability
 

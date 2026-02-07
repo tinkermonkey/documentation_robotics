@@ -25,8 +25,8 @@ const results = {
   // Data Model layer (07): JSON Schema validators
   schemas: validateJSONSchema("specs/schemas/*.json"),
 
-  // Datastore layer (08): DDL validators
-  datastore: validateDDL("specs/datastore/*.sql"),
+  // Data Store layer (08): DDL validators
+  data_store: validateDDL("specs/data-store/*.sql"),
 
   // UX layer (09): Custom UX validator
   ux: validateUXSpec("specs/ux/*.yaml"),
@@ -183,7 +183,7 @@ jobs:
           dr validate --layer technology
           dr validate --layer api
           dr validate --layer data-model
-          dr validate --layer datastore
+          dr validate --layer data-store
           dr validate --layer ux
           dr validate --layer navigation
           dr validate --layer apm

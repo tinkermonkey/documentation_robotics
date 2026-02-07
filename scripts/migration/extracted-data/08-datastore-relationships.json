@@ -1,6 +1,6 @@
 {
   "layerMetadata": {
-    "layerId": "08-datastore",
+    "layerId": "08-data-store",
     "layerName": "08 Datastore",
     "intraLayerRelationshipSupport": true,
     "crossLayerRelationshipSupport": true,

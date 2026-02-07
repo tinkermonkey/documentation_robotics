@@ -515,7 +515,7 @@ $ dr validate
 | Service Class | application | `dr add application service service-id --name "X"`     |
 | Pydantic/DTO  | data_model  | `dr add data_model object-schema schema-id --name "X"` |
 | ORM Model     | data_model  | `dr add data_model entity entity-id --name "X"`        |
-| DB Table      | datastore   | `dr add datastore table table-id --name "X"`           |
+| DB Table      | data-store  | `dr add data-store table table-id --name "X"`          |
 | UI Component  | ux          | `dr add ux component component-id --name "X"`          |
 
 ### Confidence & Reporting
@@ -1453,7 +1453,7 @@ api.operation.get-order
 ↑ uses-schemas
 data_model.object-schema.order # Data structures
 ↑ stored-in
-datastore.collection.orders # Persistence
+data-store.collection.orders # Persistence
 ↑ instrumented-by
 apm.metric.order-api-latency # Observability
 

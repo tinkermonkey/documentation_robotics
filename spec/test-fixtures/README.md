@@ -22,7 +22,7 @@ test-fixtures/
 │   ├── technology/             # Layer 05 valid fixtures
 │   ├── api/                    # Layer 06 valid fixtures
 │   ├── data-model/             # Layer 07 valid fixtures
-│   ├── datastore/              # Layer 08 valid fixtures
+│   ├── data-store/             # Layer 08 valid fixtures
 │   ├── ux/                     # Layer 09 valid fixtures
 │   ├── navigation/             # Layer 10 valid fixtures
 │   └── apm/                    # Layer 11 valid fixtures

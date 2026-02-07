@@ -243,7 +243,7 @@ Use consistent, lowercase layer prefixes:
 - `technology.*` - Technology Layer references
 - `api.*` - API Layer references
 - `data.*` - Data Model Layer references
-- `datastore.*` - Datastore Layer references
+- `data-store.*` - Data Store Layer references
 - `ux.*` - UX Layer references
 - `navigation.*` - Navigation Layer references
 - `apm.*` - APM/Observability Layer references
