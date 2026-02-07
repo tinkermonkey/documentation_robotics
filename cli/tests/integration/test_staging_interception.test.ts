@@ -106,6 +106,9 @@ layers:
         description: 'Manages user authentication',
       });
 
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+
       // Verify element is NOT in base model
       const layer = await model.getLayer('application');
       const elementInModel = layer?.getElement('application.service.app-service-auth');
@@ -154,6 +157,9 @@ layers:
       expect(loaded?.stats?.modifications).toBe(0);
       expect(loaded?.stats?.deletions).toBe(0);
 
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+
       // Verify base model is completely unchanged
       const layer = await model.getLayer('application');
       expect(layer?.listElements().length).toBe(0);
@@ -185,8 +191,12 @@ layers:
         description: 'Updated description',
       });
 
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+      const appLayerReloaded = await model.getLayer('application');
+
       // Verify base model element is UNCHANGED
-      const unmodifiedElement = appLayer?.getElement('application.service.app-service-existing');
+      const unmodifiedElement = appLayerReloaded?.getElement('application.service.app-service-existing');
       expect(unmodifiedElement?.name).toBe('Existing Service');
       expect(unmodifiedElement?.description).toBe('Original description');
 
@@ -220,8 +230,12 @@ layers:
       // Delete the element via command (should go to staging)
       await deleteCommand('application.service.app-service-todelete', { force: true });
 
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+      const appLayerReloaded = await model.getLayer('application');
+
       // Verify base model element still EXISTS
-      const stillExists = appLayer?.getElement('application.service.app-service-todelete');
+      const stillExists = appLayerReloaded?.getElement('application.service.app-service-todelete');
       expect(stillExists).toBeDefined();
       expect(stillExists?.name).toBe('Service to Delete');
 
@@ -276,13 +290,17 @@ layers:
       expect(loaded?.stats?.modifications).toBe(1);
       expect(loaded?.stats?.deletions).toBe(0);
 
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+      const appLayerReloaded = await model.getLayer('application');
+
       // Verify base model unchanged except for baseline element
-      expect(appLayer?.listElements().length).toBe(1);
-      expect(appLayer?.getElement('application.service.app-service-baseline')).toBeDefined();
-      expect(appLayer?.getElement('application.service.app-service-baseline')?.name).toBe('Baseline Service');
-      expect(appLayer?.getElement('application.service.app-service-new-1')).toBeUndefined();
-      expect(appLayer?.getElement('application.service.app-service-new-2')).toBeUndefined();
-      expect(appLayer?.getElement('application.service.app-service-new-3')).toBeUndefined();
+      expect(appLayerReloaded?.listElements().length).toBe(1);
+      expect(appLayerReloaded?.getElement('application.service.app-service-baseline')).toBeDefined();
+      expect(appLayerReloaded?.getElement('application.service.app-service-baseline')?.name).toBe('Baseline Service');
+      expect(appLayerReloaded?.getElement('application.service.app-service-new-1')).toBeUndefined();
+      expect(appLayerReloaded?.getElement('application.service.app-service-new-2')).toBeUndefined();
+      expect(appLayerReloaded?.getElement('application.service.app-service-new-3')).toBeUndefined();
     });
 
     it('should support unstaging specific elements', async () => {
@@ -318,6 +336,11 @@ layers:
       expect((loaded?.changes[1] as any).sequenceNumber).toBe(1);
       expect((loaded?.changes[2] as any).sequenceNumber).toBe(2);
       expect((loaded?.changes[3] as any).sequenceNumber).toBe(3);
+
+      // Reload model to verify unstaged element is not in base model
+      model = await Model.load(testDir);
+      const appLayer = await model.getLayer('application');
+      expect(appLayer?.getElement('application.service.app-service-3')).toBeUndefined();
     });
 
     it('should respect changeset status - no staging when inactive', async () => {
@@ -335,6 +358,7 @@ layers:
       // Verify element IS in base model (not staged)
       const appLayer = await model.getLayer('application');
       expect(appLayer?.getElement('application.service.app-service-direct')).toBeDefined();
+      expect(appLayer?.getElement('application.service.app-service-direct')?.name).toBe('Direct Service');
 
       // Verify changeset is empty
       const loaded = await stagingManager.load(changeset.id!);
@@ -374,7 +398,10 @@ layers:
       expect(loaded1?.changes.length).toBe(2);
       expect(loaded2?.changes.length).toBe(1);
 
-      // Verify base model is still completely empty (using the already-loaded instance)
+      // Reload model to get latest state from disk
+      model = await Model.load(testDir);
+
+      // Verify base model is still completely empty
       const appLayer = await model.getLayer('application');
       expect(appLayer?.listElements().length).toBe(0);
     });
