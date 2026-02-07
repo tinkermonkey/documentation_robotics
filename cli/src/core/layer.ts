@@ -1,40 +1,92 @@
 import { Element } from "./element.js";
+import { GraphModel } from "./graph-model.js";
 import type { LayerData } from "../types/index.js";
 
 /**
- * Layer class representing a container for elements within a layer
+ * Layer class - thin wrapper over graph model for backward compatibility
+ * Queries the graph for elements in a specific layer
  */
 export class Layer {
   name: string;
-  elements: Map<string, Element>;
+  graph: GraphModel;
   metadata?: { layer: string; version: string };
   private dirty: boolean = false;
 
-  constructor(name: string, elements: Element[] = []) {
+  constructor(name: string, graph?: GraphModel, elements: Element[] = []) {
     this.name = name;
-    this.elements = new Map(elements.map((e) => [e.id, e]));
+    // Use provided graph or create a new one (for backward compatibility)
+    this.graph = graph || new GraphModel();
+
+    // Add elements from constructor to the graph
+    for (const element of elements) {
+      const node = GraphModel.fromElement(element);
+      this.graph.addNode(node);
+    }
   }
 
   /**
-   * Add an element to the layer
+   * Get all elements in this layer from the graph
+   * Converts graph nodes back to Elements for backward compatibility
+   */
+  get elements(): Map<string, Element> {
+    const result = new Map<string, Element>();
+    const nodes = this.graph.getNodesByLayer(this.name);
+
+    for (const node of nodes) {
+      const element = new Element({
+        id: node.id,
+        type: node.type,
+        name: node.name,
+        description: node.description,
+        properties: node.properties,
+        layer: node.layer,
+      });
+      result.set(node.id, element);
+    }
+
+    return result;
+  }
+
+  /**
+   * Add an element to the layer (stores in graph)
    */
   addElement(element: Element): void {
-    this.elements.set(element.id, element);
+    // Ensure element has the correct layer
+    element.layer = this.name;
+    const node = GraphModel.fromElement(element);
+    this.graph.addNode(node);
     this.dirty = true;
   }
 
   /**
-   * Get an element by ID
+   * Get an element by ID from the graph
    */
   getElement(id: string): Element | undefined {
-    return this.elements.get(id);
+    const node = this.graph.nodes.get(id);
+    if (!node || node.layer !== this.name) {
+      return undefined;
+    }
+
+    return new Element({
+      id: node.id,
+      type: node.type,
+      name: node.name,
+      description: node.description,
+      properties: node.properties,
+      layer: node.layer,
+    });
   }
 
   /**
-   * Delete an element by ID
+   * Delete an element by ID from the graph
    */
   deleteElement(id: string): boolean {
-    const result = this.elements.delete(id);
+    const node = this.graph.nodes.get(id);
+    if (!node || node.layer !== this.name) {
+      return false;
+    }
+
+    const result = this.graph.removeNode(id);
     if (result) {
       this.dirty = true;
     }
@@ -42,10 +94,21 @@ export class Layer {
   }
 
   /**
-   * List all elements in the layer
+   * List all elements in the layer from the graph
    */
   listElements(): Element[] {
-    return Array.from(this.elements.values());
+    const nodes = this.graph.getNodesByLayer(this.name);
+    return nodes.map(
+      (node) =>
+        new Element({
+          id: node.id,
+          type: node.type,
+          name: node.name,
+          description: node.description,
+          properties: node.properties,
+          layer: node.layer,
+        })
+    );
   }
 
   /**
@@ -67,7 +130,7 @@ export class Layer {
    */
   toJSON(): LayerData {
     const result: LayerData = {
-      elements: Array.from(this.elements.values()).map((e) => e.toJSON()),
+      elements: this.listElements().map((e) => e.toJSON()),
     };
 
     if (this.metadata) {
@@ -80,7 +143,7 @@ export class Layer {
   /**
    * Create Layer from JSON data
    */
-  static fromJSON(name: string, data: LayerData): Layer {
+  static fromJSON(name: string, data: LayerData, graph: GraphModel): Layer {
     const elements = data.elements.map(
       (e) =>
         new Element({
@@ -91,9 +154,10 @@ export class Layer {
           properties: e.properties,
           references: e.references,
           relationships: e.relationships,
+          layer: name,
         })
     );
-    const layer = new Layer(name, elements);
+    const layer = new Layer(name, graph, elements);
     layer.metadata = data.metadata;
     return layer;
   }

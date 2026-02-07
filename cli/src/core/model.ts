@@ -1,6 +1,7 @@
 import { Layer } from "./layer.js"
 import { Manifest } from "./manifest.js"
 import { Element } from "./element.js";
+import { GraphModel, type GraphEdge } from "./graph-model.js";
 import { ProjectionEngine } from "./projection-engine.js";
 import { VirtualProjectionEngine } from "./virtual-projection.js";
 import { Relationships } from "./relationships.js";
@@ -11,6 +12,7 @@ import { findProjectRoot } from "../utils/project-paths.js";
 import type { ManifestData, ModelOptions } from "../types/index.js";
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 
 // Fallback for runtime environments where TELEMETRY_ENABLED is not defined by esbuild
 declare const TELEMETRY_ENABLED: boolean | undefined
@@ -18,10 +20,12 @@ const isTelemetryEnabled = typeof TELEMETRY_ENABLED !== 'undefined' ? TELEMETRY_
 
 /**
  * Model class representing the complete architecture model
+ * Uses GraphModel internally for graph-based storage
  */
 export class Model {
   rootPath: string
   manifest: Manifest
+  graph: GraphModel
   layers: Map<string, Layer>
   relationships: Relationships
   lazyLoad: boolean
@@ -32,6 +36,7 @@ export class Model {
   constructor(rootPath: string, manifest: Manifest, options: ModelOptions = {}) {
     this.rootPath = rootPath
     this.manifest = manifest
+    this.graph = new GraphModel()
     this.layers = new Map()
     this.relationships = new Relationships()
     this.lazyLoad = options.lazyLoad ?? false
@@ -139,7 +144,7 @@ export class Model {
         return // Layer directory not found
       }
 
-      const layer = new Layer(name)
+      const layer = new Layer(name, this.graph)
       let parseErrorCount = 0
 
       // Load all YAML files in the layer directory
@@ -217,6 +222,17 @@ export class Model {
    * Add a layer to the model
    */
   addLayer(layer: Layer): void {
+    // If the layer has elements in its isolated graph, migrate them to the model's graph
+    if (layer.graph.getNodeCount() > 0) {
+      for (const node of layer.graph.nodes.values()) {
+        this.graph.addNode(node);
+      }
+      for (const edge of layer.graph.edges.values()) {
+        this.graph.addEdge(edge);
+      }
+    }
+    // Ensure layer uses the model's graph for future operations
+    layer.graph = this.graph
     this.layers.set(layer.name, layer)
     this.loadedLayers.add(layer.name)
   }
@@ -499,6 +515,19 @@ export class Model {
 
       if (Array.isArray(data)) {
         this.relationships = Relationships.fromArray(data)
+        // Sync relationships to graph
+        for (let i = 0; i < data.length; i++) {
+          const rel = data[i]
+          const edge: GraphEdge = {
+            id: `rel-${i}-${crypto.randomBytes(4).toString('hex')}`,
+            source: rel.source,
+            destination: rel.target,
+            predicate: rel.predicate,
+            properties: rel.properties,
+            category: rel.category,
+          }
+          this.graph.addEdge(edge)
+        }
       }
     } catch (err) {
       // If file doesn't exist, that's okay - start with empty relationships
