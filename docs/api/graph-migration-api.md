@@ -380,7 +380,7 @@ const apiNode: GraphNode = {
     method: "POST",
     path: "/orders",
     consumes: ["application/json"],
-    produces: ["application/json"]
+    produces: ["application/json"],
   },
 };
 ```

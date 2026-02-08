@@ -257,7 +257,7 @@ describe("Graph Migration Services", () => {
       expect(script).toContain("// Generated from Documentation Robotics");
       expect(script).toContain("CREATE CONSTRAINT");
       expect(script).toContain("// Example queries");
-      expect(script).toContain("// Drop existing data");
+      expect(script).toContain("// WARNING: Dropping all existing data");
     });
 
     it("should generate connection configuration", () => {
