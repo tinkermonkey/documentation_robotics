@@ -44,20 +44,17 @@ class StructureValidationReport:
 class LayerStructureValidator:
     """Validates layer documentation structure."""
 
-    # Required sections in v0.6.0 template
+    # Required sections in current standardized layer format
+    # All 12 layers follow the same structure: title, standard, overview, node types, references
     REQUIRED_SECTIONS = {
         "Overview",
-        "Layer Characteristics",
-        "Entity Definitions",
-        "Example Model",
-        "Validation Rules",
+        "Node Types",
+        "References",
     }
 
     # Recommended sections
     RECOMMENDED_SECTIONS = {
-        "Intra-Layer Relationships",
-        "Cross-Layer Relationships",
-        "Integration Points",
+        "Standard",  # Standard reference (ArchiMate, OpenAPI, JSON Schema, etc.)
     }
 
     def __init__(self, spec_root: Optional[Path] = None):
@@ -138,9 +135,9 @@ class LayerStructureValidator:
         for section in missing_recommended:
             issues.append(
                 ValidationIssue(
-                    severity="warning",
+                    severity="info",
                     section=section,
-                    message=f"Recommended section missing: {section} (see v0.6.0 template)",
+                    message=f"Recommended section missing: {section} (e.g., Standard reference with link)",
                 )
             )
 
@@ -158,55 +155,9 @@ class LayerStructureValidator:
                     )
                 )
 
-        # Check for cross-layer relationships table structure
-        if "Cross-Layer Relationships" in sections_found:
-            # Look for relationship tables
-            in_cross_layer = False
-            found_outgoing = False
-            found_incoming = False
-
-            for i, line in enumerate(lines, start=1):
-                if "## Cross-Layer Relationships" in line:
-                    in_cross_layer = True
-                elif in_cross_layer and line.startswith("## ") and "Cross-Layer" not in line:
-                    in_cross_layer = False
-
-                if in_cross_layer:
-                    if "### Outgoing Relationships" in line:
-                        found_outgoing = True
-                    if "### Incoming Relationships" in line:
-                        found_incoming = True
-
-            if not found_outgoing:
-                issues.append(
-                    ValidationIssue(
-                        severity="warning",
-                        section="Cross-Layer Relationships",
-                        message="Missing '### Outgoing Relationships' subsection",
-                        line_number=section_line_numbers.get("Cross-Layer Relationships"),
-                    )
-                )
-
-            if not found_incoming:
-                issues.append(
-                    ValidationIssue(
-                        severity="warning",
-                        section="Cross-Layer Relationships",
-                        message="Missing '### Incoming Relationships' subsection",
-                        line_number=section_line_numbers.get("Cross-Layer Relationships"),
-                    )
-                )
-
-        # Check for Mermaid diagrams
-        mermaid_count = content.count("```mermaid")
-        if mermaid_count == 0:
-            issues.append(
-                ValidationIssue(
-                    severity="info",
-                    section="Diagrams",
-                    message="No Mermaid diagrams found. Consider adding relationship diagrams.",
-                )
-            )
+        # Note: Optional sections like Cross-Layer Relationships are not required
+        # in the current standardized format. Layers use "Node Types" to document
+        # all entity definitions with their attributes and relationships.
 
         # Determine if passed
         passed = len([i for i in issues if i.severity == "error"]) == 0
