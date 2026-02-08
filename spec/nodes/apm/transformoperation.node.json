@@ -1,0 +1,8 @@
+{
+  "id": "apm.transformoperation",
+  "layer_id": "apm",
+  "name": "TransformOperation",
+  "description": "TransformOperation element in APM Observability Layer",
+  "attributes": {},
+  "required_attributes": []
+}

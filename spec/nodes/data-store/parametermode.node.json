@@ -1,0 +1,8 @@
+{
+  "id": "data-store.parametermode",
+  "layer_id": "data-store",
+  "name": "ParameterMode",
+  "description": "ParameterMode element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

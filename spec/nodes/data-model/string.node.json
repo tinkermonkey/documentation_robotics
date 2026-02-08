@@ -1,0 +1,8 @@
+{
+  "id": "data-model.string",
+  "layer_id": "data-model",
+  "name": "string",
+  "description": "string element in Data Model Layer",
+  "attributes": {},
+  "required_attributes": []
+}

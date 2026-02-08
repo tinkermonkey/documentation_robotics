@@ -1,0 +1,8 @@
+{
+  "id": "security.ratelimitaction",
+  "layer_id": "security",
+  "name": "RateLimitAction",
+  "description": "RateLimitAction element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

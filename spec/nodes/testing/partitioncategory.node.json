@@ -1,0 +1,8 @@
+{
+  "id": "testing.partitioncategory",
+  "layer_id": "testing",
+  "name": "PartitionCategory",
+  "description": "PartitionCategory element in Testing Layer",
+  "attributes": {},
+  "required_attributes": []
+}

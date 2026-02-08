@@ -1,0 +1,45 @@
+{
+  "id": "testing.partitiondependency",
+  "layer_id": "testing",
+  "name": "PartitionDependency",
+  "description": "Constraint between partition values across fields",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "dependsOnPartition": {
+      "type": "string",
+      "description": ""
+    },
+    "dependsOnValue": {
+      "type": "string",
+      "description": ""
+    },
+    "effect": {
+      "type": "string",
+      "description": ""
+    },
+    "affectedValues": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "dependsOnPartition",
+    "dependsOnValue",
+    "effect",
+    "affectedValues"
+  ]
+}

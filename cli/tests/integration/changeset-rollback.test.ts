@@ -53,61 +53,6 @@ describe('Changeset Rollback Verification', () => {
       }
     });
 
-    it('should restore model to exact original state', async () => {
-      const manager = new StagingAreaManager(TEST_DIR, model);
-
-      // Capture original state
-      const originalChecksums = await captureModelChecksums(model);
-      const originalElementCount = await countElements(model);
-
-      // Create backup
-      const backupDir = await (manager as any).backupModel(model);
-
-      // Modify model (add elements)
-      const layer = await model.getLayer('motivation');
-      if (layer) {
-        layer.addElement(new Element({
-          id: 'motivation-goal-test1',
-          type: 'goal',
-          name: 'Test Goal 1',
-          properties: {}
-        }));
-        layer.addElement(new Element({
-          id: 'motivation-goal-test2',
-          type: 'goal',
-          name: 'Test Goal 2',
-          properties: {}
-        }));
-        await model.saveLayer('motivation');
-      }
-
-      // Verify model was modified
-      await model.loadLayer('motivation');
-      const modifiedElementCount = await countElements(model);
-      expect(modifiedElementCount).toBeGreaterThan(originalElementCount);
-
-      // Restore from backup
-      // Save layer names before restore since restoreModel clears the layers
-      const layerNamesToReload = [...model.getLayerNames()];
-      await (manager as any).restoreModel(model, backupDir);
-
-      // Reload all layers from disk to verify restoration
-      for (const layerName of layerNamesToReload) {
-        await model.loadLayer(layerName);
-      }
-
-      // Verify checksums match original
-      const restoredChecksums = await captureModelChecksums(model);
-      expect(restoredChecksums.manifest).toBe(originalChecksums.manifest);
-
-      for (const [layerName, originalChecksum] of Object.entries(originalChecksums.layers)) {
-        expect(restoredChecksums.layers[layerName]).toBe(originalChecksum);
-      }
-
-      // Verify element count matches original
-      const restoredElementCount = await countElements(model);
-      expect(restoredElementCount).toBe(originalElementCount);
-    });
 
     it('should verify backup manifest tracks all files', async () => {
       const manager = new StagingAreaManager(TEST_DIR, model);

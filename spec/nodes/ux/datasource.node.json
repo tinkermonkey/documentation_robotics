@@ -1,0 +1,8 @@
+{
+  "id": "ux.datasource",
+  "layer_id": "ux",
+  "name": "DataSource",
+  "description": "DataSource element in UX Layer",
+  "attributes": {},
+  "required_attributes": []
+}

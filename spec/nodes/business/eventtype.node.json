@@ -1,0 +1,8 @@
+{
+  "id": "business.eventtype",
+  "layer_id": "business",
+  "name": "EventType",
+  "description": "EventType element in Business Layer",
+  "attributes": {},
+  "required_attributes": []
+}

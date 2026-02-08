@@ -1,0 +1,8 @@
+{
+  "id": "data-store.triggerforeach",
+  "layer_id": "data-store",
+  "name": "TriggerForEach",
+  "description": "TriggerForEach element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

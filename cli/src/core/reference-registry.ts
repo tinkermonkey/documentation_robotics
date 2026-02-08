@@ -3,6 +3,16 @@ import type { Reference, Element } from "../types/index.js";
 
 /**
  * Reference registry - tracks and validates cross-layer references
+ *
+ * NOTE: Phase 3 Deferred - Registry Consolidation
+ * This registry will be consolidated into the GraphModel query API in a future phase.
+ * The graph model provides the foundation with graph-based reference tracking.
+ * Current approach maintains backward compatibility while the transition occurs.
+ *
+ * Future: Use GraphModel.getEdgesFrom/To/Between with predicate filtering
+ * instead of maintaining separate reference registry.
+ *
+ * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */
 export class ReferenceRegistry {
   private references: Map<string, Reference[]>;

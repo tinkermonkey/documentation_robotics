@@ -1,0 +1,50 @@
+{
+  "id": "testing.partitionvalue",
+  "layer_id": "testing",
+  "name": "PartitionValue",
+  "description": "A specific partition within the input space",
+  "attributes": {
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "label": {
+      "type": "string",
+      "description": ""
+    },
+    "description": {
+      "type": "string",
+      "description": ""
+    },
+    "constraint": {
+      "type": "string",
+      "description": ""
+    },
+    "constraintExpression": {
+      "type": "string",
+      "description": ""
+    },
+    "category": {
+      "type": "string",
+      "description": ""
+    },
+    "representativeValue": {
+      "type": "string",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "name",
+    "id",
+    "label",
+    "constraint",
+    "constraintExpression",
+    "category",
+    "representativeValue"
+  ]
+}

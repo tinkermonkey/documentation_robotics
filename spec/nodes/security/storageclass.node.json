@@ -1,0 +1,8 @@
+{
+  "id": "security.storageclass",
+  "layer_id": "security",
+  "name": "StorageClass",
+  "description": "StorageClass element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

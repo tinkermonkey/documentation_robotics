@@ -1,0 +1,8 @@
+{
+  "id": "security.permissionscope",
+  "layer_id": "security",
+  "name": "PermissionScope",
+  "description": "PermissionScope element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

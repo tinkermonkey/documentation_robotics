@@ -140,19 +140,23 @@ export class ReferenceValidator {
   }
 
   /**
-   * Extract layer name from element ID, handling hyphenated layer names
+   * Extract layer name from element ID, handling both dot-separated and hyphenated layer names
    */
   private extractLayerFromId(elementId: string): string {
+    // Determine if using dot-separated format (e.g., motivation.goal.name) or hyphenated (e.g., motivation-goal-name)
+    const isDotSeparated = elementId.includes('.');
+    const separator = isDotSeparated ? '.' : '-';
+
     // Try to match known layers in order of specificity (longest first)
     const sortedLayers = [...this.KNOWN_LAYERS].sort((a, b) => b.length - a.length);
 
     for (const layer of sortedLayers) {
-      if (elementId.startsWith(layer + '-')) {
+      if (elementId.startsWith(layer + separator)) {
         return layer;
       }
     }
 
     // Fallback: return first segment (shouldn't reach here with valid element IDs)
-    return elementId.split('-')[0] || '';
+    return elementId.split(separator)[0] || '';
   }
 }

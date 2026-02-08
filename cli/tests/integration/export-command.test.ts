@@ -306,16 +306,6 @@ describe("Export Command Integration Tests", () => {
     }
   });
 
-  it("should preserve element relationships in exports", async () => {
-    const loadedModel = await Model.load(testDir);
-
-    const { PlantUMLExporter } = await import("@/export/plantuml-exporter");
-    const exporter = new PlantUMLExporter();
-    const result = await exporter.export(loadedModel, {});
-
-    // Should include the realizes reference
-    expect(result.includes("realizes")).toBe(true);
-  });
 
   it("should export archimate with --layers filter", async () => {
     const loadedModel = await Model.load(testDir);

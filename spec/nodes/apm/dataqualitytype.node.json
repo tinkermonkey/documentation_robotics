@@ -1,0 +1,8 @@
+{
+  "id": "apm.dataqualitytype",
+  "layer_id": "apm",
+  "name": "DataQualityType",
+  "description": "DataQualityType element in APM Observability Layer",
+  "attributes": {},
+  "required_attributes": []
+}

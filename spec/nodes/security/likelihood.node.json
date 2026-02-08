@@ -1,0 +1,8 @@
+{
+  "id": "security.likelihood",
+  "layer_id": "security",
+  "name": "Likelihood",
+  "description": "Likelihood element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

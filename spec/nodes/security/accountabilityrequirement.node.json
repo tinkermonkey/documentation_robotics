@@ -1,0 +1,46 @@
+{
+  "id": "security.accountabilityrequirement",
+  "layer_id": "security",
+  "name": "AccountabilityRequirement",
+  "description": "Accountability and non-repudiation requirements",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "action": {
+      "type": "string",
+      "description": ""
+    },
+    "resource": {
+      "type": "string",
+      "description": ""
+    },
+    "nonRepudiation": {
+      "type": "boolean",
+      "description": ""
+    },
+    "purposeDeclaration": {
+      "type": "string",
+      "description": ""
+    },
+    "challengeable": {
+      "type": "boolean",
+      "description": ""
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "action",
+    "resource",
+    "nonRepudiation",
+    "purposeDeclaration",
+    "challengeable"
+  ]
+}

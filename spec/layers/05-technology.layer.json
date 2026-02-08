@@ -1,0 +1,35 @@
+{
+  "id": "technology",
+  "number": 5,
+  "name": "Technology Layer",
+  "description": "Layer 5: Technology Layer",
+  "inspired_by": {
+    "standard": "ArchiMate 3.2",
+    "version": "3.2",
+    "url": "https://pubs.opengroup.org/architecture/archimate32-doc/"
+  },
+  "node_types": [
+    "technology.artifact",
+    "technology.artifacttype",
+    "technology.communicationnetwork",
+    "technology.device",
+    "technology.devicetype",
+    "technology.networktype",
+    "technology.node",
+    "technology.nodetype",
+    "technology.path",
+    "technology.pathtype",
+    "technology.systemsoftware",
+    "technology.systemsoftwaretype",
+    "technology.techeventtype",
+    "technology.technologycollaboration",
+    "technology.technologyevent",
+    "technology.technologyfunction",
+    "technology.technologyinteraction",
+    "technology.technologyinterface",
+    "technology.technologyprocess",
+    "technology.technologyservice",
+    "technology.techprotocol",
+    "technology.techservicetype"
+  ]
+}

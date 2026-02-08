@@ -14,6 +14,16 @@ export interface RelationshipTypeMetadata {
 
 /**
  * Relationship registry - manages intra-layer relationships and their catalog
+ *
+ * NOTE: Phase 3 Deferred - Registry Consolidation
+ * This registry will be consolidated into the GraphModel query API in a future phase.
+ * The graph model provides the foundation with intra-layer relationship tracking via edges.
+ * Current approach maintains backward compatibility while the transition occurs.
+ *
+ * Future: Use GraphModel.getEdgesFrom/To with predicate filtering
+ * where source_layer === destination_layer for intra-layer relationships.
+ *
+ * See: https://github.com/tinkermonkey/documentation_robotics/discussions/317
  */
 export class RelationshipRegistry {
   private relationships: Map<string, Relationship[]>;

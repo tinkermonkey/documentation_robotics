@@ -1,0 +1,8 @@
+{
+  "id": "navigation.navigationtrigger",
+  "layer_id": "navigation",
+  "name": "NavigationTrigger",
+  "description": "NavigationTrigger element in Navigation Layer",
+  "attributes": {},
+  "required_attributes": []
+}

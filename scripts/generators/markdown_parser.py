@@ -103,8 +103,10 @@ class MarkdownLayerParser:
         # Extract all YAML blocks
         yaml_blocks = self.YAML_BLOCK_PATTERN.findall(content)
 
+        # If no YAML blocks found, return layer spec with only metadata
+        # (modern layer files are pure markdown documentation, not YAML-based)
         if not yaml_blocks:
-            raise ValueError(f"No YAML blocks found in {markdown_path}")
+            return layer_spec
 
         # Parse each YAML block
         for yaml_content in yaml_blocks:

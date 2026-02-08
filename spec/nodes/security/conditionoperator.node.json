@@ -1,0 +1,8 @@
+{
+  "id": "security.conditionoperator",
+  "layer_id": "security",
+  "name": "ConditionOperator",
+  "description": "ConditionOperator element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

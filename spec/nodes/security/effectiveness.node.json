@@ -1,0 +1,8 @@
+{
+  "id": "security.effectiveness",
+  "layer_id": "security",
+  "name": "Effectiveness",
+  "description": "Effectiveness element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

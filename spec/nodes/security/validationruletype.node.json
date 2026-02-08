@@ -1,0 +1,8 @@
+{
+  "id": "security.validationruletype",
+  "layer_id": "security",
+  "name": "ValidationRuleType",
+  "description": "ValidationRuleType element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

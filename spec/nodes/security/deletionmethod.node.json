@@ -1,0 +1,8 @@
+{
+  "id": "security.deletionmethod",
+  "layer_id": "security",
+  "name": "DeletionMethod",
+  "description": "DeletionMethod element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

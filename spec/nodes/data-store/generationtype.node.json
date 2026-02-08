@@ -1,0 +1,8 @@
+{
+  "id": "data-store.generationtype",
+  "layer_id": "data-store",
+  "name": "GenerationType",
+  "description": "GenerationType element in Data Store Layer",
+  "attributes": {},
+  "required_attributes": []
+}

@@ -1,6 +1,5 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
-import type { Element } from "../core/element.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
@@ -72,9 +71,17 @@ interface OpenAPISpec {
  * Endpoint mapping entry
  * Groups endpoints by path and method for processing
  */
+interface EndpointData {
+  name: string;
+  id: string;
+  description?: string;
+  getProperty: (key: string) => unknown;
+  getSourceReference: () => unknown;
+}
+
 interface EndpointMapping {
   method: string;
-  element: Element;
+  element: EndpointData;
 }
 
 /**
@@ -88,8 +95,9 @@ export class OpenAPIExporter implements Exporter {
     const span = isTelemetryEnabled ? startSpan('export.format.openapi') : null;
 
     try {
-      const layer = await model.getLayer("api");
-      if (!layer) {
+      // Query graph model for API layer nodes
+      const nodes = model.graph.getNodesByLayer("api");
+      if (nodes.length === 0) {
         throw new Error("No API layer found in model");
       }
 
@@ -120,15 +128,26 @@ export class OpenAPIExporter implements Exporter {
     // Group endpoints by path
     const pathGroups = new Map<string, EndpointMapping[]>();
 
-    for (const element of layer.listElements()) {
-      if (element.type === "endpoint") {
-        const path = element.getProperty<string>("path") || "/";
-        const method = (element.getProperty<string>("method") || "get").toLowerCase();
+    // Query graph for endpoint nodes
+    for (const node of nodes) {
+      if (node.type === "endpoint") {
+        const path = (node.properties.path as string) || "/";
+        const method = ((node.properties.method as string) || "get").toLowerCase();
 
         if (!pathGroups.has(path)) {
           pathGroups.set(path, []);
         }
-        pathGroups.get(path)!.push({ method, element });
+
+        // Create a minimal element-like object for compatibility
+        const endpointData = {
+          name: node.name,
+          id: node.id,
+          description: node.description,
+          getProperty: (key: string) => node.properties[key],
+          getSourceReference: () => node.properties['source-reference'],
+        };
+
+        pathGroups.get(path)!.push({ method, element: endpointData as any });
       }
     }
 
@@ -197,11 +216,11 @@ export class OpenAPIExporter implements Exporter {
       (spec.paths as Record<string, unknown>)[path] = pathItem;
     }
 
-    // Collect all schema definitions from elements
-    for (const element of layer.listElements()) {
-      if (element.type === "schema") {
-        const schemaName = element.getProperty<string>("schemaName") || element.id;
-        const schema = element.getProperty("schema");
+    // Collect all schema definitions from nodes
+    for (const node of nodes) {
+      if (node.type === "schema") {
+        const schemaName = (node.properties.schemaName as string) || node.id;
+        const schema = node.properties.schema;
         if (schema) {
           spec.components.schemas![schemaName] = schema;
         }
@@ -209,37 +228,37 @@ export class OpenAPIExporter implements Exporter {
     }
 
     // Collect security schemes if defined
-    for (const element of layer.listElements()) {
-      if (element.type === "security-scheme") {
-        const schemeName = element.name;
-        const schemeType = element.getProperty<string>("type");
+    for (const node of nodes) {
+      if (node.type === "security-scheme") {
+        const schemeName = node.name;
+        const schemeType = node.properties.type as string;
         if (schemeType) {
           const scheme: Record<string, unknown> = {
             type: schemeType,
           };
 
-          const schemeProp = element.getProperty("scheme");
+          const schemeProp = node.properties.scheme;
           if (schemeProp) {
             scheme.scheme = schemeProp;
           }
 
-          const bearerFormat = element.getProperty("bearerFormat");
+          const bearerFormat = node.properties.bearerFormat;
           if (bearerFormat) {
             scheme.bearerFormat = bearerFormat;
           }
 
-          const flows = element.getProperty("flows");
+          const flows = node.properties.flows;
           if (flows) {
             scheme.flows = flows;
           }
 
-          const openIdConnectUrl = element.getProperty("openIdConnectUrl");
+          const openIdConnectUrl = node.properties.openIdConnectUrl;
           if (openIdConnectUrl) {
             scheme.openIdConnectUrl = openIdConnectUrl;
           }
 
-          if (element.description) {
-            scheme.description = element.description;
+          if (node.description) {
+            scheme.description = node.description;
           }
 
           spec.components.securitySchemes![schemeName] = scheme;

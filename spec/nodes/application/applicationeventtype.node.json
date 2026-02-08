@@ -1,0 +1,8 @@
+{
+  "id": "application.applicationeventtype",
+  "layer_id": "application",
+  "name": "ApplicationEventType",
+  "description": "ApplicationEventType element in Application Layer",
+  "attributes": {},
+  "required_attributes": []
+}

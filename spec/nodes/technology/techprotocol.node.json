@@ -1,0 +1,8 @@
+{
+  "id": "technology.techprotocol",
+  "layer_id": "technology",
+  "name": "TechProtocol",
+  "description": "TechProtocol element in Technology Layer",
+  "attributes": {},
+  "required_attributes": []
+}

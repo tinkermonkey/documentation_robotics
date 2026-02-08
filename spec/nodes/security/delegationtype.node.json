@@ -1,0 +1,8 @@
+{
+  "id": "security.delegationtype",
+  "layer_id": "security",
+  "name": "DelegationType",
+  "description": "DelegationType element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

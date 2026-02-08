@@ -1,0 +1,8 @@
+{
+  "id": "security.ratelimitscope",
+  "layer_id": "security",
+  "name": "RateLimitScope",
+  "description": "RateLimitScope element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

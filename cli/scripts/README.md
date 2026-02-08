@@ -1,6 +1,158 @@
-# CLI Test Scripts
+# CLI Test Scripts and Utilities
 
-This directory contains helper scripts for running tests locally in ways that match the CI pipeline execution strategy.
+This directory contains helper scripts for running tests locally and generating specification instances.
+
+## Specification Instance Generation
+
+### Overview
+
+The `generate-spec-instances.ts` script generates SpecLayer, SpecNode, and PredicateCatalog instances from existing layer schemas. This is part of Phase 2 of the specification refactor (#319), which creates structured, validated instances of the 12-layer architecture model.
+
+### Quick Start
+
+```bash
+# Generate instances with validation
+bun run scripts/generate-spec-instances.ts --validate
+
+# Preview what would be generated (dry-run)
+bun run scripts/generate-spec-instances.ts --dry-run
+
+# Generate without validation (faster)
+bun run scripts/generate-spec-instances.ts
+```
+
+### Features
+
+- **Layer Extraction**: Parses all 12 layer schemas from `spec/schemas/`
+- **Node Type Generation**: Creates SpecNode instances for all element types
+- **Predicate Consolidation**: Consolidates predicate definitions from `common/predicates.schema.json`
+- **Validation**: Validates all generated instances against Phase 1 base type schemas
+- **Dry-Run Mode**: Preview output without writing files
+- **Validation Report**: Generates detailed report of generation results
+
+### Output Structure
+
+```
+spec/
+├── layers/
+│   ├── 01-motivation.layer.json
+│   ├── 02-business.layer.json
+│   └── ... (12 layer instances)
+├── nodes/
+│   ├── motivation/
+│   │   ├── goal.node.json
+│   │   ├── stakeholder.node.json
+│   │   └── ... (motivation node types)
+│   ├── business/
+│   │   └── ... (business node types)
+│   └── ... (12 layer directories)
+├── predicates.json  (Consolidated predicate catalog)
+└── generation-report.json  (Validation results)
+```
+
+### Extraction Logic
+
+#### Layer Extraction
+
+1. Reads all 12 layer schema files from `spec/schemas/`
+2. Extracts `layerMetadata` containing catalogVersion
+3. Maps layer number to canonical layer ID (e.g., "motivation", "data-model")
+4. Maps layer to corresponding standard (ArchiMate 3.2, OpenAPI 3.0, etc.)
+5. Creates SpecLayer instance with metadata and node type references
+
+#### Node Type Extraction
+
+1. For each layer schema, iterates over all `definitions`
+2. For each element type (e.g., "Goal", "Stakeholder"):
+   - Creates spec_node_id: `{layer}.{element-type-lowercase}`
+   - Extracts attributes from type's `properties` (excluding relationship fields)
+   - Maps JSON Schema property definitions to AttributeSpec format
+   - Records required fields
+3. Creates SpecNode instance for each type
+
+#### Predicate Consolidation
+
+1. Reads `spec/schemas/common/predicates.schema.json`
+2. Normalizes property names to match base schema:
+   - `inversePredicate` → `inverse`
+   - `archimateAlignment` → `archimate_alignment`
+   - `defaultStrength` → `default_strength`
+3. Creates PredicateCatalog with all normalized predicates
+4. Validates against `predicate-catalog.schema.json`
+
+### Validation Report
+
+After generation with `--validate`, the script generates `spec/generation-report.json`:
+
+```json
+{
+  "timestamp": "2026-02-07T22:33:05.987Z",
+  "specLayers": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 12
+  },
+  "specNodes": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 364
+  },
+  "specNodeRelationships": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 0
+  },
+  "predicateCatalog": {
+    "valid": true,
+    "errors": [],
+    "instanceCount": 22
+  },
+  "totalInstancesGenerated": 398,
+  "totalInstancesValid": 398,
+  "success": true
+}
+```
+
+### Generation Counts
+
+- **SpecLayers**: 12 instances (one per layer)
+- **SpecNodes**: 364 instances (element types across all layers)
+- **PredicateCatalog**: 1 instance with 22 predicates
+- **SpecNodeRelationships**: 0 instances (deferred to Phase 3)
+- **Total**: 398 instances, 100% validation pass rate
+
+### Command-Line Options
+
+```
+--validate   : Validate generated instances against base type schemas
+--dry-run    : Preview output without writing files to disk
+```
+
+### Example Usage
+
+```bash
+# Generate all instances with full validation
+bun run scripts/generate-spec-instances.ts --validate
+
+# Preview generation without touching filesystem
+bun run scripts/generate-spec-instances.ts --dry-run --validate
+
+# Generate instances (faster, no validation)
+bun run scripts/generate-spec-instances.ts
+```
+
+### Testing
+
+Unit tests verify the extraction logic:
+
+```bash
+bun test tests/unit/generation/
+
+# Test results:
+# - extract-layers.test.ts: 5 tests (layer extraction logic)
+# - extract-nodes.test.ts: 5 tests (node type extraction)
+# - extract-predicates.test.ts: 5 tests (predicate consolidation)
+```
 
 ## Parallel Test Execution
 

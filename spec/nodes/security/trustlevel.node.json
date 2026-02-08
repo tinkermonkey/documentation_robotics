@@ -1,0 +1,8 @@
+{
+  "id": "security.trustlevel",
+  "layer_id": "security",
+  "name": "TrustLevel",
+  "description": "TrustLevel element in Security Layer",
+  "attributes": {},
+  "required_attributes": []
+}

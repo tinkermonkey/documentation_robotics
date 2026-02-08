@@ -22,9 +22,13 @@ import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
 import { catalogCommands } from './commands/catalog.js';
+import { docsCommands } from './commands/docs.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
+import { importCommand } from './commands/import.js';
+import { graphMigrateCommand } from './commands/graph-migrate.js';
+import { modelMigrateCommand, migrateRollbackCommand } from './commands/model-migrate.js';
 import { chatCommand } from './commands/chat.js';
 import { upgradeCommand } from './commands/upgrade.js';
 import { conformanceCommand } from './commands/conformance.js';
@@ -340,6 +344,85 @@ Examples:
   });
 
 program
+  .command('import <format>')
+  .description('Import architecture model from various formats')
+  .option('--input <path>', 'Input file path (required)', undefined)
+  .option('--model <path>', 'Path to model root directory or manifest.yaml file')
+  .option('--merge-strategy <strategy>', 'How to handle existing elements: add, update, skip (default: add)')
+  .addHelpText(
+    'after',
+    `
+Supported formats:
+  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
+  openapi      Import from OpenAPI 3.0 specification (layer 6)
+
+Examples:
+  $ dr import archimate --input model.xml
+  $ dr import openapi --input api.json --merge-strategy add
+  $ dr import archimate --input model.xml --model ./myproject`
+  )
+  .action(async (format, options) => {
+    if (!options.input) {
+      console.error('Error: --input path is required');
+      process.exit(1);
+    }
+    await importCommand({
+      format,
+      input: options.input,
+      model: options.model,
+      mergeStrategy: options.mergeStrategy as 'add' | 'update' | 'skip' | undefined,
+    });
+  });
+
+program
+  .command('graph-migrate <format>')
+  .description('Transform architecture model to graph database format')
+  .option('--output <path>', 'Output file path')
+  .option('--model <path>', 'Path to model root directory')
+  .option('--dry-run', 'Preview migration without writing files')
+  .option('--validate', 'Validate model before migration')
+  .option('--drop-existing', 'Drop existing data in Neo4j before import')
+  .option('--batch-size <size>', 'Batch size for database imports (default: 1000)')
+  .option('--include-properties', 'Include element properties in migration')
+  .option('--include-metadata', 'Include metadata in migration')
+  .option('--compress', 'Compress output (LadybugDB only)')
+  .addHelpText(
+    'after',
+    `
+Supported formats:
+  neo4j      Neo4j Cypher script for graph database import
+  cypher     Alias for neo4j format
+  ladybug    LadybugDB JSON document format
+  gremlin    Apache Gremlin Groovy script
+  graphml    GraphML XML format (same as 'dr export graphml')
+
+Examples:
+  $ dr graph-migrate neo4j --output model.cypher
+  $ dr graph-migrate ladybug --output model.lbug.json
+  $ dr graph-migrate gremlin --output model.groovy
+  $ dr graph-migrate cypher --dry-run
+
+Graph Database Setup:
+  Neo4j:     neo4j-admin import --from-neo4j-uri=<path-to-cypher-file>
+  LadybugDB: ladybug import model.lbug.json
+  Gremlin:   bin/gremlin.sh < model.groovy`
+  )
+  .action(async (format, options) => {
+    await graphMigrateCommand({
+      format: format.toLowerCase(),
+      output: options.output,
+      model: options.model,
+      dryRun: options.dryRun,
+      validate: options.validate,
+      dropExisting: options.dropExisting,
+      batchSize: options.batchSize ? parseInt(options.batchSize) : undefined,
+      includeProperties: options.includeProperties,
+      includeMetadata: options.includeMetadata,
+      compress: options.compress,
+    } as any);
+  });
+
+program
   .command('info')
   .description('Show model information')
   .option('--layer <layer>', 'Show specific layer details')
@@ -393,6 +476,9 @@ relationshipCommands(relationshipGroup);
 
 // Catalog subcommands (modern relationship catalog)
 catalogCommands(program);
+
+// Documentation subcommands (schema-driven generation)
+docsCommands(program);
 
 // Dependency analysis commands
 program
@@ -595,6 +681,51 @@ Examples:
       dryRun: options.dryRun,
       force: options.force,
     });
+  });
+
+program
+  .command('migrate-model [action]')
+  .description('Migrate model to graph format or manage model migrations')
+  .option('--source <path>', 'Source model directory')
+  .option('--target <path>', 'Target directory for migrated model')
+  .option('--backup <path>', 'Backup directory for rollback')
+  .option('--no-backup', 'Skip backup creation')
+  .option('--skip-validation', 'Skip validation after migration')
+  .option('--verbose', 'Verbose output')
+  .option('--dry-run', 'Preview migration without making changes')
+  .addHelpText(
+    'after',
+    `
+Actions:
+  (default)  Migrate model to graph format
+  rollback   Restore model from backup
+
+Examples:
+  $ dr migrate-model --source ./model --target ./model-v2
+  $ dr migrate-model --dry-run --verbose
+  $ dr migrate-model rollback --backup ./model.backup-1234567890`
+  )
+  .action(async (action, options) => {
+    if (action === 'rollback') {
+      if (!options.backup) {
+        console.error('Error: --backup is required for rollback');
+        process.exit(1);
+      }
+      await migrateRollbackCommand({
+        backup: options.backup,
+        target: options.target,
+        verbose: options.verbose,
+      });
+    } else {
+      await modelMigrateCommand({
+        source: options.source,
+        target: options.target,
+        noBackup: options.noBackup,
+        skipValidation: options.skipValidation,
+        verbose: options.verbose,
+        dryRun: options.dryRun,
+      });
+    }
   });
 
 program

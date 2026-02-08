@@ -1,0 +1,59 @@
+{
+  "id": "apm.logrecord",
+  "layer_id": "apm",
+  "name": "LogRecord",
+  "description": "OpenTelemetry log entry",
+  "attributes": {
+    "id": {
+      "type": "string",
+      "description": "",
+      "format": "uuid"
+    },
+    "name": {
+      "type": "string",
+      "description": ""
+    },
+    "timeUnixNano": {
+      "type": "string",
+      "description": ""
+    },
+    "observedTimeUnixNano": {
+      "type": "string",
+      "description": ""
+    },
+    "severityNumber": {
+      "type": "string",
+      "description": ""
+    },
+    "severityText": {
+      "type": "string",
+      "description": ""
+    },
+    "body": {
+      "type": "string",
+      "description": ""
+    },
+    "flags": {
+      "type": "string",
+      "description": ""
+    },
+    "droppedAttributesCount": {
+      "type": "string",
+      "description": ""
+    },
+    "attributes": {
+      "type": "array",
+      "description": "Contains relationship"
+    }
+  },
+  "required_attributes": [
+    "id",
+    "name",
+    "timeUnixNano",
+    "observedTimeUnixNano",
+    "severityNumber",
+    "body",
+    "flags",
+    "droppedAttributesCount"
+  ]
+}

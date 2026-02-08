@@ -1,0 +1,8 @@
+{
+  "id": "api.securitytype",
+  "layer_id": "api",
+  "name": "SecurityType",
+  "description": "SecurityType element in API Layer",
+  "attributes": {},
+  "required_attributes": []
+}
