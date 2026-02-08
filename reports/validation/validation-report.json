@@ -2,7 +2,8 @@
   "summary": {
     "total_errors": 0,
     "total_warnings": 0,
-    "validation_passed": true
+    "validation_passed": true,
+    "layers_validated": "all"
   },
   "markdown": {
     "errors": [],

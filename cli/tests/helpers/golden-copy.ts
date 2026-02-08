@@ -175,7 +175,7 @@ export async function createTestWorkdir(): Promise<{
         // Verify filesystem is ready for the test directory
         // This is critical for concurrent test execution
         // Use higher retry count for test directory since it just had a large copy operation
-        await verifyFilesystemReady(testDir, 20);
+        await verifyFilesystemReady(testDir, 30);
         break; // Success
       } catch (error) {
         lastCopyError = error instanceof Error ? error : new Error(String(error));
@@ -329,6 +329,19 @@ async function verifyFilesystemReady(path: string, maxRetries: number = 10): Pro
         "test-case-sketches.yaml",
         "test-coverage-models.yaml",
       ];
+      for (const file of expectedTestingFiles) {
+        const filePath = join(testingLayerPath, file);
+        await access(filePath);
+      }
+
+      // Add stability check: verify critical files are still accessible after a delay
+      // This catches race conditions where files become unavailable after the initial check
+      // occurs in concurrent test execution scenarios
+      // Use increased delay to allow filesystem to fully stabilize
+      await new Promise((resolve) => setTimeout(resolve, 100));
+
+      // Re-check all expected testing layer files again to ensure stability
+      // This prevents ENOENT errors that occur after Model.load() is called
       for (const file of expectedTestingFiles) {
         const filePath = join(testingLayerPath, file);
         await access(filePath);
