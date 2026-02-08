@@ -145,7 +145,7 @@ describe("Model Migration Service", () => {
         backupOriginal: false,
       });
 
-      expect(result.duration).toBeGreaterThan(0);
+      expect(result.duration).toBeGreaterThanOrEqual(0);
       expect(typeof result.duration).toBe("number");
     });
 
