@@ -22,6 +22,15 @@ export class ArchiMateImporter implements Importer {
     };
 
     try {
+      // Validate merge strategy - only 'add' is supported
+      if (_options.mergeStrategy && _options.mergeStrategy !== 'add') {
+        result.errors.push({
+          message: `ArchiMate importer only supports 'add' merge strategy. Requested: '${_options.mergeStrategy}'.`
+        });
+        result.errorsCount++;
+        return result;
+      }
+
       // Parse XML using Bun's global DOMParser
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(data, "application/xml");

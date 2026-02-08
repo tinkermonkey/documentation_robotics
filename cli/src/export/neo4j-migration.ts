@@ -117,12 +117,13 @@ export class Neo4jCypherGenerator {
 
     // Drop existing data if requested
     if (dropExisting) {
-      lines.push("// Drop existing data (if you want to start fresh)");
-      lines.push("// Uncomment the lines below to enable");
-      lines.push("// MATCH (n) DETACH DELETE n;");
-      lines.push("// DROP INDEX IF EXISTS element_id;");
-      lines.push("// DROP INDEX IF EXISTS node_layer;");
-      lines.push("// DROP INDEX IF EXISTS node_type;");
+      lines.push("// WARNING: Dropping all existing data");
+      lines.push("MATCH (n) DETACH DELETE n;");
+      lines.push("DROP INDEX IF EXISTS element_id;");
+      lines.push("DROP INDEX IF EXISTS node_layer;");
+      lines.push("DROP INDEX IF EXISTS node_type;");
+      lines.push("");
+      lines.push("// Creating new nodes and relationships:");
       lines.push("");
     }
 
@@ -159,10 +160,19 @@ export class Neo4jCypherGenerator {
    * Generate connection parameters in Cypher
    */
   static generateConnectionConfig(options: Neo4jMigrationOptions): Record<string, string> {
+    // Throw error if critical credentials are missing
+    if (!options.username || !options.password) {
+      throw new Error(
+        "Neo4j credentials are required for migration. " +
+        "Provide username and password in options or set NEO4J_USER and NEO4J_PASSWORD environment variables. " +
+        "Optionally set NEO4J_URI (defaults to bolt://localhost:7687)."
+      );
+    }
+
     return {
       uri: options.uri || "bolt://localhost:7687",
-      username: options.username || "neo4j",
-      password: options.password || "password",
+      username: options.username,
+      password: options.password,
       database: options.database || "neo4j",
     };
   }
@@ -319,8 +329,10 @@ export class Neo4jMigrationService {
       const name = this.escapeCsv((node.properties.name as string) || "");
       const layer = this.escapeCsv((node.properties.layer as string) || "");
       const type = this.escapeCsv((node.properties.type as string) || "");
+      const id = this.escapeCsv(node.id);
 
-      lines.push(`"${node.id}","${name}","${layer}","${type}",${labels}`);
+      // Use escaped values directly - escapeCsv handles quoting when needed
+      lines.push(`${id},${name},${layer},${type},${labels}`);
     }
 
     return lines.join("\n");
@@ -337,19 +349,21 @@ export class Neo4jMigrationService {
 
     // Rows
     for (const edge of edges) {
-      lines.push(`"${edge.source}","${edge.relationship}","${edge.target}","${edge.relationship}"`);
+      const source = this.escapeCsv(edge.source);
+      const relationship = this.escapeCsv(edge.relationship);
+      const target = this.escapeCsv(edge.target);
+
+      lines.push(`${source},${relationship},${target},${relationship}`);
     }
 
     return lines.join("\n");
   }
 
   /**
-   * Escape CSV values
+   * Escape CSV values - wraps in quotes and escapes internal quotes
    */
   private escapeCsv(value: string): string {
-    if (value.includes(",") || value.includes('"') || value.includes("\n")) {
-      return `"${value.replace(/"/g, '""')}"`;
-    }
-    return value;
+    // Always wrap in quotes for consistency, escape internal quotes
+    return `"${value.replace(/"/g, '""')}"`;
   }
 }

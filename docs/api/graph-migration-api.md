@@ -354,11 +354,16 @@ enum GraphFormat {
 
 ### GraphNode Interface
 
+Represents a node in the architecture knowledge graph.
+
 ```typescript
 interface GraphNode {
-  id: string; // Unique identifier
-  labels: string[]; // Node labels/types
-  properties: Record<string, unknown>; // Node properties
+  id: string; // Unique identifier in format `{layer}.{type}.{name}`
+  layer: string; // Layer name (e.g., `api`, `data-model`, `testing`)
+  type: string; // Element type within the layer (e.g., `endpoint`, `entity`, `test-case`)
+  name: string; // Human-readable element name
+  description?: string; // Optional description of the element
+  properties: Record<string, unknown>; // Layer-specific properties and metadata
 }
 ```
 
@@ -367,17 +372,23 @@ interface GraphNode {
 ```typescript
 const apiNode: GraphNode = {
   id: "api.endpoint.create-order",
-  labels: ["Element", "Endpoint"],
+  layer: "api",
+  type: "endpoint",
+  name: "Create Order",
+  description: "REST endpoint for creating new orders",
   properties: {
-    name: "Create Order",
-    layer: "api",
-    type: "endpoint",
     method: "POST",
-    path: "/api/orders",
-    description: "Creates a new order",
+    path: "/orders",
+    consumes: ["application/json"],
+    produces: ["application/json"]
   },
 };
 ```
+
+**Related Types:**
+
+- **MigrationGraphNode**: Used internally during migration with additional fields (`labels`, `source`)
+- **GraphEdge**: Represents relationships between nodes
 
 ### GraphEdge Interface
 

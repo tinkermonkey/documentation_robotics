@@ -454,6 +454,12 @@ async function main() {
       try {
         validationResults = await validateInstances(outputDir, schemasDir);
       } catch (error) {
+        // Set validation to failed state instead of leaving it as "all valid"
+        validationResults = {
+          specLayers: { valid: false, errors: [error instanceof Error ? error.message : String(error)], instanceCount: 0 },
+          specNodes: { valid: false, errors: [], instanceCount: 0 },
+          predicates: { valid: false, errors: [], instanceCount: 0 },
+        };
         console.error("Validation encountered an error:", error);
       }
 

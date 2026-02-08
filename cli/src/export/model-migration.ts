@@ -115,8 +115,10 @@ export class ModelMigrationService {
       result.warnings.push(...warnings);
 
       // Step 3: Extract relationships between elements
-      const edges = await this.extractRelationships(nodes);
+      const relationshipWarnings: string[] = [];
+      const edges = await this.extractRelationships(nodes, relationshipWarnings);
       result.relationshipCount = edges.length;
+      result.warnings.push(...relationshipWarnings);
 
       // Step 4: Write new graph-based model structure
       await mkdir(options.targetDir, { recursive: true });
@@ -257,7 +259,10 @@ export class ModelMigrationService {
   /**
    * Extract relationships from element references and relationships
    */
-  private async extractRelationships(nodes: GraphNode[]): Promise<GraphEdge[]> {
+  private async extractRelationships(
+    nodes: GraphNode[],
+    warnings: string[] = []
+  ): Promise<GraphEdge[]> {
     const edges: GraphEdge[] = [];
     const nodeMap = new Map(nodes.map((n) => [n.properties.migratedFromId, n.id]));
 
@@ -276,8 +281,9 @@ export class ModelMigrationService {
         for (const reference of element.references || []) {
           const destNodeId = nodeMap.get(reference.target);
           if (!destNodeId) {
-            // Dangling reference - log but don't fail
-            console.warn(`Dangling reference from ${element.id} to ${reference.target}`);
+            // Dangling reference - collect in warnings instead of console.warn
+            const warning = `Dangling reference from ${element.id} to ${reference.target}`;
+            warnings.push(warning);
             continue;
           }
 
@@ -296,7 +302,9 @@ export class ModelMigrationService {
         for (const rel of element.relationships || []) {
           const destNodeId = nodeMap.get(rel.target);
           if (!destNodeId) {
-            console.warn(`Dangling relationship from ${element.id} to ${rel.target}`);
+            // Dangling relationship - collect in warnings instead of console.warn
+            const warning = `Dangling relationship from ${element.id} to ${rel.target}`;
+            warnings.push(warning);
             continue;
           }
 

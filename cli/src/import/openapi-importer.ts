@@ -22,6 +22,15 @@ export class OpenAPIImporter implements Importer {
     };
 
     try {
+      // Validate merge strategy - only 'add' is supported
+      if (_options.mergeStrategy && _options.mergeStrategy !== 'add') {
+        result.errors.push({
+          message: `OpenAPI importer only supports 'add' merge strategy. Requested: '${_options.mergeStrategy}'.`
+        });
+        result.errorsCount++;
+        return result;
+      }
+
       // Parse JSON specification
       let spec: any;
       try {

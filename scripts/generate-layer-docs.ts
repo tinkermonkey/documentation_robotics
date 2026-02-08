@@ -61,15 +61,36 @@ interface LayerDocumentation {
  */
 async function loadLayers(baseDir: string): Promise<SpecLayer[]> {
   const layersDir = path.join(baseDir, "spec", "layers");
-  const files = fs
-    .readdirSync(layersDir)
-    .filter((f) => f.endsWith(".layer.json"));
+
+  let files: string[];
+  try {
+    files = fs
+      .readdirSync(layersDir)
+      .filter((f) => f.endsWith(".layer.json"));
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error(`spec/layers directory not found at ${layersDir}`);
+    }
+    throw new Error(`Failed to read spec/layers directory: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
   const layers: SpecLayer[] = [];
   for (const file of files) {
-    const content = fs.readFileSync(path.join(layersDir, file), "utf-8");
-    const layer = JSON.parse(content) as SpecLayer;
-    layers.push(layer);
+    try {
+      const content = fs.readFileSync(path.join(layersDir, file), "utf-8");
+      try {
+        const layer = JSON.parse(content) as SpecLayer;
+        layers.push(layer);
+      } catch (parseError) {
+        throw new Error(
+          `Failed to parse ${file}: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+        );
+      }
+    } catch (readError) {
+      throw new Error(
+        `Failed to read spec/layers/${file}: ${readError instanceof Error ? readError.message : String(readError)}`
+      );
+    }
   }
 
   return layers.sort((a, b) => a.number - b.number);
@@ -82,16 +103,57 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
   const nodesDir = path.join(baseDir, "spec", "nodes");
   const nodes: SpecNode[] = [];
 
-  for (const layerDir of fs.readdirSync(nodesDir)) {
-    const layerPath = path.join(nodesDir, layerDir);
-    if (!fs.statSync(layerPath).isDirectory()) continue;
+  let layerDirs: string[];
+  try {
+    layerDirs = fs.readdirSync(nodesDir);
+  } catch (error) {
+    if (error instanceof Error && 'code' in error && error.code === 'ENOENT') {
+      throw new Error(`spec/nodes directory not found at ${nodesDir}`);
+    }
+    throw new Error(`Failed to read spec/nodes directory: ${error instanceof Error ? error.message : String(error)}`);
+  }
 
-    for (const file of fs.readdirSync(layerPath)) {
+  for (const layerDir of layerDirs) {
+    const layerPath = path.join(nodesDir, layerDir);
+    let isDir = false;
+
+    try {
+      isDir = fs.statSync(layerPath).isDirectory();
+    } catch (statError) {
+      throw new Error(
+        `Failed to stat ${layerPath}: ${statError instanceof Error ? statError.message : String(statError)}`
+      );
+    }
+
+    if (!isDir) continue;
+
+    let files: string[];
+    try {
+      files = fs.readdirSync(layerPath);
+    } catch (readError) {
+      throw new Error(
+        `Failed to read spec/nodes/${layerDir}: ${readError instanceof Error ? readError.message : String(readError)}`
+      );
+    }
+
+    for (const file of files) {
       if (!file.endsWith(".node.json")) continue;
 
-      const content = fs.readFileSync(path.join(layerPath, file), "utf-8");
-      const node = JSON.parse(content) as SpecNode;
-      nodes.push(node);
+      try {
+        const content = fs.readFileSync(path.join(layerPath, file), "utf-8");
+        try {
+          const node = JSON.parse(content) as SpecNode;
+          nodes.push(node);
+        } catch (parseError) {
+          throw new Error(
+            `Failed to parse spec/nodes/${layerDir}/${file}: ${parseError instanceof Error ? parseError.message : String(parseError)}`
+          );
+        }
+      } catch (readError) {
+        throw new Error(
+          `Failed to read spec/nodes/${layerDir}/${file}: ${readError instanceof Error ? readError.message : String(readError)}`
+        );
+      }
     }
   }
 
@@ -302,8 +364,14 @@ async function main() {
   const allNodes = await loadNodes(baseDir);
 
   // Ensure output directory exists
-  if (!fs.existsSync(outputDir)) {
-    fs.mkdirSync(outputDir, { recursive: true });
+  try {
+    if (!fs.existsSync(outputDir)) {
+      fs.mkdirSync(outputDir, { recursive: true });
+    }
+  } catch (error) {
+    throw new Error(
+      `Failed to create output directory ${outputDir}: ${error instanceof Error ? error.message : String(error)}`
+    );
   }
 
   // Generate layer documentation
@@ -320,8 +388,14 @@ async function main() {
     const fileName = `${String(layer.number).padStart(2, "0")}-${layer.id}-layer.md`;
     const filePath = path.join(outputDir, fileName);
 
-    fs.writeFileSync(filePath, doc);
-    console.log(`✅ Generated ${filePath}`);
+    try {
+      fs.writeFileSync(filePath, doc);
+      console.log(`✅ Generated ${filePath}`);
+    } catch (writeError) {
+      throw new Error(
+        `Failed to write documentation to ${filePath}: ${writeError instanceof Error ? writeError.message : String(writeError)}`
+      );
+    }
   } else {
     // Generate all layers
     for (const layer of layers) {
@@ -330,16 +404,28 @@ async function main() {
       const fileName = `${String(layer.number).padStart(2, "0")}-${layer.id}-layer.md`;
       const filePath = path.join(outputDir, fileName);
 
-      fs.writeFileSync(filePath, doc);
-      console.log(`✅ Generated ${fileName}`);
+      try {
+        fs.writeFileSync(filePath, doc);
+        console.log(`✅ Generated ${fileName}`);
+      } catch (writeError) {
+        throw new Error(
+          `Failed to write documentation to ${filePath}: ${writeError instanceof Error ? writeError.message : String(writeError)}`
+        );
+      }
     }
   }
 
   // Generate index document
   const indexDoc = generateIndexDocument(layers, allNodes);
   const indexPath = path.join(outputDir, "INDEX.md");
-  fs.writeFileSync(indexPath, indexDoc);
-  console.log(`✅ Generated INDEX.md`);
+  try {
+    fs.writeFileSync(indexPath, indexDoc);
+    console.log(`✅ Generated INDEX.md`);
+  } catch (writeError) {
+    throw new Error(
+      `Failed to write INDEX.md to ${indexPath}: ${writeError instanceof Error ? writeError.message : String(writeError)}`
+    );
+  }
 
   console.log(
     "\n✨ Documentation generation complete! Files written to: " + outputDir

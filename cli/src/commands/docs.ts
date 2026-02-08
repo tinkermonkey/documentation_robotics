@@ -8,9 +8,10 @@
 
 import * as fs from "fs";
 import * as path from "path";
-import { execSync } from "child_process";
+import { execSync, execFileSync } from "child_process";
 import { fileExists, ensureDir } from "../utils/file-io.js";
 import { existsSync } from "fs";
+import { isValidLayerName } from "../core/layer-utils.js";
 
 interface GenerateOptions {
   output?: string;
@@ -35,26 +36,43 @@ export async function docsGenerateCommand(options: GenerateOptions): Promise<voi
     );
   }
 
+  // Validate layer name if provided
+  if (options.layer && !isValidLayerName(options.layer)) {
+    throw new Error(
+      `Invalid layer name: ${options.layer}. ` +
+      `Must be one of: motivation, business, security, application, technology, api, data-model, data-store, ux, navigation, apm, testing`
+    );
+  }
+
   // Determine output directory
   const outputDir = options.output ? path.resolve(options.output) : specDir;
+
+  // Validate output directory path to prevent path traversal
+  const resolvedOutputDir = path.resolve(outputDir);
+  if (!resolvedOutputDir.startsWith(projectRoot)) {
+    throw new Error(
+      `Output directory must be within project root. ` +
+      `Requested: ${outputDir}, Project root: ${projectRoot}`
+    );
+  }
 
   // Ensure output directory exists
   await ensureDir(outputDir);
 
   try {
-    // Run the generation script
-    let command = `bun run scripts/generate-layer-docs.ts`;
+    // Build command arguments safely without shell string concatenation
+    const args = ["run", "scripts/generate-layer-docs.ts"];
 
     if (options.layer) {
-      command += ` --layer ${options.layer}`;
+      args.push("--layer", options.layer);
     }
 
     if (outputDir !== specDir) {
-      command += ` --output ${outputDir}`;
+      args.push("--output", outputDir);
     }
 
     console.log(`📚 Generating documentation...`);
-    execSync(command, { cwd: projectRoot, stdio: "inherit" });
+    execFileSync("bun", args, { cwd: projectRoot, stdio: "inherit" });
     console.log(`\n✅ Documentation generation complete at: ${outputDir}`);
   } catch (error) {
     if (error instanceof Error) {
