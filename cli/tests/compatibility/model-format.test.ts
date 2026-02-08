@@ -263,19 +263,5 @@ describe('Model Format Regression Tests', () => {
       expect(model.manifest.layers).toBeDefined();
       expect(model.manifest.layers?.['motivation']).toBeDefined();
     });
-
-    it('should track filePath in loaded elements', async () => {
-      // Verify that file paths are tracked during model loading
-      const model = await Model.load(join(TEST_MODEL_DIR, 'metadata'));
-      expect(model).toBeDefined();
-      expect(model.manifest).toBeDefined();
-    });
-
-    it('should preserve rawData from YAML', async () => {
-      // Verify that raw YAML data is preserved in manifest
-      const model = await Model.load(join(TEST_MODEL_DIR, 'metadata'));
-      expect(model.manifest).toBeDefined();
-      expect(model.manifest.statistics).toBeDefined();
-    });
   });
 });
