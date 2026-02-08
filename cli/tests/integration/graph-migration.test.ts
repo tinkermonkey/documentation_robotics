@@ -334,7 +334,7 @@ describe("Graph Migration Services", () => {
       const service = new LadybugMigrationService();
       const doc = await service.generateLadybugDocument(nodes, [], "Test");
 
-      expect(doc.schema.nodeTypes.size).toBeGreaterThan(0);
+      expect(Object.keys(doc.schema.nodeTypes).length).toBeGreaterThan(0);
       expect(doc.schema.indexes.length).toBeGreaterThan(0);
     });
 

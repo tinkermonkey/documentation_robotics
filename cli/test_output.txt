@@ -372,9 +372,9 @@ tests/unit/validators/semantic-validator.test.ts:
 (pass) SemanticValidator > should validate unique element IDs [1.00ms]
 66 |     model.addLayer(layer1);
 67 |     model.addLayer(layer2);
-68 | 
+68 |
 69 |     const result = await validator.validateModel(model);
-70 | 
+70 |
 71 |     expect(result.isValid()).toBe(false);
                                   ^
 error: expect(received).toBe(expected)
@@ -386,9 +386,9 @@ Received: true
 (fail) SemanticValidator > should detect duplicate element IDs across layers
 107 |     model.addLayer(layer1);
 108 |     model.addLayer(layer2);
-109 | 
+109 |
 110 |     const result = await validator.validateModel(model);
-111 | 
+111 |
 112 |     expect(result.isValid()).toBe(false);
                                    ^
 error: expect(received).toBe(expected)
@@ -435,9 +435,9 @@ tests/unit/validators/validator.test.ts:
 (pass) Validator > should validate empty model [1.00ms]
 (pass) Validator > should pass 4-stage validation for valid model [1551.00ms]
 141 |     model.addLayer(layer2);
-142 | 
+142 |
 143 |     const result = await validator.validateModel(model);
-144 | 
+144 |
 145 |     expect(result.isValid()).toBe(false);
 146 |     expect(result.errors.some((e) => e.message.includes("Duplicate"))).toBe(true);
                                                                              ^
@@ -664,9 +664,9 @@ tests/unit/validators/semantic-validator.test.ts:
 (pass) SemanticValidator > should validate unique element IDs [1.00ms]
 66 |     model.addLayer(layer1);
 67 |     model.addLayer(layer2);
-68 | 
+68 |
 69 |     const result = await validator.validateModel(model);
-70 | 
+70 |
 71 |     expect(result.isValid()).toBe(false);
                                   ^
 error: expect(received).toBe(expected)
@@ -678,9 +678,9 @@ Received: true
 (fail) SemanticValidator > should detect duplicate element IDs across layers [1.00ms]
 107 |     model.addLayer(layer1);
 108 |     model.addLayer(layer2);
-109 | 
+109 |
 110 |     const result = await validator.validateModel(model);
-111 | 
+111 |
 112 |     expect(result.isValid()).toBe(false);
                                    ^
 error: expect(received).toBe(expected)
