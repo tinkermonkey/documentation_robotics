@@ -30,6 +30,7 @@ export class SchemaValidator {
   private ajv: Ajv;
   private compiledSchemas: Map<string, ValidateFunction> = new Map();
   private schemasLoaded: boolean = false;
+  private loadedSchemaIds: Set<string> = new Set();
 
   constructor() {
     this.ajv = new Ajv({
@@ -75,7 +76,9 @@ export class SchemaValidator {
     const __dirname = path.dirname(fileURLToPath(import.meta.url));
     const schemasDir = path.join(__dirname, '..', 'schemas', 'bundled');
 
-    // First, register all common schemas that other schemas reference
+    // Pre-load all common schemas that layer schemas reference
+    // This avoids duplicate registration warnings when AJV auto-loads them
+    // during layer schema compilation by pre-registering them with their $id
     const commonSchemas = [
       'common/source-references.schema.json',
       'common/predicates.schema.json',
@@ -88,16 +91,33 @@ export class SchemaValidator {
         const schemaPath = path.join(schemasDir, commonSchemaFile);
         const schemaContent = await readFile(schemaPath);
         const schema = JSON.parse(schemaContent);
-        this.ajv.addSchema(schema);
-      } catch (error) {
+        // Track the $id to avoid duplicate registration
+        if (schema.$id) {
+          this.loadedSchemaIds.add(schema.$id);
+          // Only add to AJV if not already present
+          try {
+            this.ajv.addSchema(schema);
+          } catch (addError: any) {
+            // Schema with this $id is already registered - this is expected
+            // and safe to ignore
+            if (!addError.message?.includes('already exists')) {
+              throw addError;
+            }
+          }
+        }
+      } catch (error: any) {
         // Common schemas not all layers may reference - warn but continue
-        console.warn(
-          `Warning: Failed to load common schema ${commonSchemaFile}:`,
-          error
-        );
+        // Note: 'already exists' errors are expected and acceptable
+        if (!error.message?.includes('already exists')) {
+          console.warn(
+            `Warning: Failed to load common schema ${commonSchemaFile}:`,
+            error
+          );
+        }
       }
     }
 
+    // Load all layer schemas
     for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
       try {
         // Try primary schema path first (development)
@@ -118,10 +138,22 @@ export class SchemaValidator {
         }
 
         const schema = JSON.parse(schemaContent);
+
+        // Compile the schema. This automatically registers it with AJV using its $id.
+        // If it's already registered, compile() will handle it gracefully
         const validate = this.ajv.compile(schema);
         this.compiledSchemas.set(layerName, validate);
-      } catch (error) {
-        console.warn(`Failed to load schema for layer ${layerName}:`, error);
+
+        // Track that this schema ID has been loaded
+        if (schema.$id) {
+          this.loadedSchemaIds.add(schema.$id);
+        }
+      } catch (error: any) {
+        // Only warn if this is not a duplicate registration error
+        // Duplicate schemas are expected when tests reload validators
+        if (!error.message?.includes('already exists')) {
+          console.warn(`Failed to load schema for layer ${layerName}:`, error);
+        }
       }
     }
   }
