@@ -41,7 +41,7 @@ export async function importCommand(options: ImportOptions): Promise<void> {
     const inputPath = path.resolve(options.input);
     let fileContent: string;
     try {
-      fileContent = await readFile(inputPath, "utf-8");
+      fileContent = await readFile(inputPath);
     } catch (error) {
       console.error(ansis.red(`Error: Could not read input file: ${inputPath}`));
       if (isTelemetryEnabled && span) {

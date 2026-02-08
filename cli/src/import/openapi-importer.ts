@@ -10,7 +10,7 @@ export class OpenAPIImporter implements Importer {
   name = "OpenAPI";
   supportedFormats = ["json", "yaml", "yml"];
 
-  async import(data: string, model: Model, options: ImportOptions = {}): Promise<ImportResult> {
+  async import(data: string, model: Model, _options: ImportOptions = {}): Promise<ImportResult> {
     const span = isTelemetryEnabled ? startSpan('import.format.openapi') : null;
     const result: ImportResult = {
       success: false,

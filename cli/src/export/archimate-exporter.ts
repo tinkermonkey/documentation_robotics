@@ -1,6 +1,5 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
-import type { SourceLocation } from "../types/index.js";
 import { escapeXml } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 

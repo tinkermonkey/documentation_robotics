@@ -10,7 +10,7 @@ export class ArchiMateImporter implements Importer {
   name = "ArchiMate";
   supportedFormats = ["xml"];
 
-  async import(data: string, model: Model, options: ImportOptions = {}): Promise<ImportResult> {
+  async import(data: string, model: Model, _options: ImportOptions = {}): Promise<ImportResult> {
     const span = isTelemetryEnabled ? startSpan('import.format.archimate') : null;
     const result: ImportResult = {
       success: false,
@@ -223,7 +223,7 @@ export class ArchiMateImporter implements Importer {
   /**
    * Map ArchiMate type to element type (lowercase format)
    */
-  private mapArchiMateTypeToElementType(archimateType: string, layer: string): string {
+  private mapArchiMateTypeToElementType(archimateType: string, _layer: string): string {
     // Convert PascalCase to kebab-case
     const kebabCase = archimateType
       .replace(/([A-Z])/g, "-$1")

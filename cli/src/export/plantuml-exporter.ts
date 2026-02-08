@@ -1,5 +1,4 @@
 import type { Model } from "../core/model.js";
-import type { Element } from "../core/element.js";
 import type { Exporter, ExportOptions } from "./types.js";
 import { ALL_LAYERS, LAYER_COLORS } from "./types.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
