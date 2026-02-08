@@ -152,19 +152,24 @@ describe('spec-installer', () => {
       // This test verifies the function attempts all fallback paths
 
       let installSucceeded = false;
+      let errorMsg = '';
       try {
         await installSpecReference(testDir);
         installSucceeded = true;
       } catch (error) {
-        // If all paths fail, verify the error message indicates all attempts were made
-        const errorMsg = error instanceof Error ? error.message : String(error);
-        expect(errorMsg).toContain('Could not find bundled schemas');
+        // If all paths fail, capture the error message
+        errorMsg = error instanceof Error ? error.message : String(error);
       }
 
-      // The test is successful if either:
-      // 1. Installation succeeded (at least one fallback path worked), OR
-      // 2. All paths failed with a proper error message (fallback logic was attempted)
-      expect(installSucceeded || true).toBe(true);
+      // Validate the outcome: either installation succeeded or proper error was raised
+      if (installSucceeded) {
+        // Verify files were installed by checking .dr directory exists
+        const drPath = path.join(testDir, '.dr');
+        await access(drPath);
+      } else {
+        // Verify fallback logic ran by checking error message
+        expect(errorMsg).toContain('Could not find bundled schemas');
+      }
     });
   });
 
@@ -212,8 +217,13 @@ describe('spec-installer', () => {
         errorMsg = error instanceof Error ? error.message : String(error);
       }
 
-      // Either installation succeeded (at least one path exists) or failed with a proper message
-      if (!installSucceeded) {
+      // Validate the outcome: either installation succeeded or proper error was raised
+      if (installSucceeded) {
+        // Verify files were installed by checking .dr directory exists
+        const drPath = path.join(testDir, '.dr');
+        await access(drPath);
+      } else {
+        // Verify fallback logic attempted all paths before failing
         expect(errorMsg).toContain('Could not find bundled schemas');
       }
     });
