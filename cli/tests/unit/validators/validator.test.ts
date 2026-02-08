@@ -36,16 +36,16 @@ describe('Validator', () => {
     // Create valid layers
     const motivationLayer = new Layer('motivation', [
       new Element({
-        id: 'motivation-goal-revenue',
+        id: 'motivation.goal.increase-revenue',
         type: 'Goal',
         name: 'Increase Revenue',
-        references: [{ target: 'business-process-sales', type: 'implements' }],
+        references: [{ source: 'motivation.goal.increase-revenue', target: 'business.process.sales', type: 'implements' }],
       }),
     ]);
 
     const businessLayer = new Layer('business', [
       new Element({
-        id: 'business-process-sales',
+        id: 'business.process.sales',
         type: 'Process',
         name: 'Sales Process',
       }),
@@ -64,10 +64,10 @@ describe('Validator', () => {
     const validator = new Validator();
     const model = createTestModel();
 
-    // Create layer with invalid element ID
+    // Create layer with invalid element ID (doesn't match {layer}.{type}.{name} or {layer}-{type}-{name} format)
     const motivationLayer = new Layer('motivation', [
       new Element({
-        id: 'invalid-id',
+        id: 'INVALID_ID',
         type: 'Goal',
         name: 'Test Goal',
       }),
@@ -89,10 +89,10 @@ describe('Validator', () => {
     // Create layer with broken references
     const motivationLayer = new Layer('motivation', [
       new Element({
-        id: 'motivation-goal-revenue',
+        id: 'motivation.goal.revenue',
         type: 'Goal',
         name: 'Test',
-        references: [{ target: 'business-nonexistent', type: 'implements' }],
+        references: [{ source: 'motivation.goal.revenue', target: 'business.process.nonexistent', type: 'implements' }],
       }),
     ]);
 
@@ -111,7 +111,7 @@ describe('Validator', () => {
     // Create layers with duplicate IDs
     const layer1 = new Layer('motivation', [
       new Element({
-        id: 'duplicate-id',
+        id: 'motivation.goal.duplicate-id',
         type: 'Goal',
         name: 'Goal 1',
       }),
@@ -119,7 +119,7 @@ describe('Validator', () => {
 
     const layer2 = new Layer('business', [
       new Element({
-        id: 'duplicate-id',
+        id: 'motivation.goal.duplicate-id',
         type: 'Process',
         name: 'Process 1',
       }),
@@ -141,7 +141,7 @@ describe('Validator', () => {
     // Create multiple validation issues
     const motivationLayer = new Layer('motivation', [
       new Element({
-        id: 'invalid-format',
+        id: 'INVALID-FORMAT',
         type: 'Goal',
         name: 'Test',
       }),
@@ -162,13 +162,13 @@ describe('Validator', () => {
     // Create layer with multiple issues
     const layer = new Layer('motivation', [
       new Element({
-        id: 'invalid-id', // naming error
+        id: 'INVALID_ID', // naming error
         type: 'Goal',
         name: 'Test Goal',
-        references: [{ target: 'business-nonexistent', type: 'implements' }], // reference error
+        references: [{ source: 'INVALID_ID', target: 'business.process.nonexistent', type: 'implements' }], // reference error
       }),
       new Element({
-        id: 'duplicate-id',
+        id: 'motivation.goal.duplicate-id',
         type: 'Goal',
         name: 'Test 2',
       }),
@@ -176,7 +176,7 @@ describe('Validator', () => {
 
     const businessLayer = new Layer('business', [
       new Element({
-        id: 'duplicate-id', // semantic error (duplicate)
+        id: 'motivation.goal.duplicate-id', // semantic error (duplicate)
         type: 'Process',
         name: 'Process',
       }),
@@ -197,7 +197,7 @@ describe('Validator', () => {
 
     const layer = new Layer('motivation', [
       new Element({
-        id: 'motivation-goal-test',
+        id: 'motivation.goal.test',
         type: 'Goal',
         name: 'Test',
       }),
@@ -221,12 +221,12 @@ describe('Validator', () => {
 
     const layer = new Layer('motivation', [
       new Element({
-        id: 'motivation-goal-valid',
+        id: 'motivation.goal.valid',
         type: 'Goal',
         name: 'Valid Goal',
       }),
       new Element({
-        id: 'invalid-format',
+        id: 'INVALID_FORMAT',
         type: 'Goal',
         name: 'Invalid Goal',
       }),
@@ -247,16 +247,16 @@ describe('Validator', () => {
     // Business (lower) layer incorrectly references Motivation (higher) layer
     const businessLayer = new Layer('business', [
       new Element({
-        id: 'business-process-sales',
+        id: 'business.process.sales',
         type: 'Process',
         name: 'Sales',
-        references: [{ target: 'motivation-goal-revenue', type: 'implements' }],
+        references: [{ source: 'business.process.sales', target: 'motivation.goal.revenue', type: 'implements' }],
       }),
     ]);
 
     const motivationLayer = new Layer('motivation', [
       new Element({
-        id: 'motivation-goal-revenue',
+        id: 'motivation.goal.revenue',
         type: 'Goal',
         name: 'Revenue',
       }),
