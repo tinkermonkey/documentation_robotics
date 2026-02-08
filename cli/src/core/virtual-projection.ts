@@ -303,22 +303,26 @@ export class VirtualProjectionEngine {
               updates.description = change.after.description;
             }
 
-            if (typeof change.after.properties === 'object') {
+            if (typeof change.after.properties === 'object' ||
+                Array.isArray(change.after.references) ||
+                Array.isArray(change.after.relationships)) {
               const existing = projectedLayer.getElement(change.elementId);
-              updates.properties = existing
-                ? {
-                    ...existing.properties,
-                    ...change.after.properties,
-                  }
-                : change.after.properties;
-            }
+              const existingProps = existing?.properties || {};
 
-            if (Array.isArray(change.after.references)) {
-              updates.references = change.after.references;
-            }
+              updates.properties = {
+                ...existingProps,
+                ...(change.after.properties || {}),
+              };
 
-            if (Array.isArray(change.after.relationships)) {
-              updates.relationships = change.after.relationships;
+              // Wrap references and relationships in the correct property keys
+              // to match how layer.ts stores them
+              if (Array.isArray(change.after.references)) {
+                updates.properties['__references__'] = change.after.references;
+              }
+
+              if (Array.isArray(change.after.relationships)) {
+                updates.properties['__relationships__'] = change.after.relationships;
+              }
             }
 
             if (Object.keys(updates).length > 0) {

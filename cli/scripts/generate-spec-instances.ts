@@ -122,6 +122,7 @@ async function writeJson(filePath: string, data: any): Promise<void> {
 
 async function extractLayers(schemasDir: string): Promise<LayerSource[]> {
   const layers: LayerSource[] = [];
+  const failedLayers: Array<{ id: string; error: Error }> = [];
 
   for (const layer of LAYER_MAPPING) {
     const schemaPath = path.join(schemasDir, `${layer.filename}.schema.json`);
@@ -139,8 +140,23 @@ async function extractLayers(schemasDir: string): Promise<LayerSource[]> {
         elementTypes: schema.definitions || {},
       });
     } catch (error) {
+      failedLayers.push({
+        id: layer.id,
+        error: error instanceof Error ? error : new Error(String(error)),
+      });
       console.error(`Failed to read schema for layer ${layer.id}:`, error);
     }
+  }
+
+  // If any required layers failed to load, fail the extraction
+  if (failedLayers.length > 0) {
+    const failureDetails = failedLayers
+      .map((f) => `  - Layer "${f.id}": ${f.error.message}`)
+      .join('\n');
+    throw new Error(
+      `Failed to extract ${failedLayers.length} layer(s):\n${failureDetails}\n` +
+      `Extracted ${layers.length}/${LAYER_MAPPING.length} layers successfully.`
+    );
   }
 
   return layers;

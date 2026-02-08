@@ -49,6 +49,11 @@ export interface ModelMigrationResult {
   warnings: string[];
   duration: number;
   mappingFilePath?: string;
+  /**
+   * Set to true if migration failed AND rollback also failed.
+   * Data may be left in an inconsistent state.
+   */
+  dataCorrupted?: boolean;
 }
 
 /**
@@ -155,18 +160,36 @@ export class ModelMigrationService {
       result.duration = Date.now() - startTime;
 
       // Attempt rollback on error
+      let rollbackFailed = false;
       if (this.backupDir) {
         try {
           await this.rollback(this.backupDir, options.targetDir);
           console.log(`✓ Rolled back to backup: ${this.backupDir}`);
         } catch (rollbackError) {
-          result.warnings.push(
-            `Rollback failed: ${
-              rollbackError instanceof Error
-                ? rollbackError.message
-                : String(rollbackError)
-            }`
+          rollbackFailed = true;
+          const rollbackMessage = rollbackError instanceof Error
+            ? rollbackError.message
+            : String(rollbackError);
+          result.validationErrors.push(
+            `CRITICAL: Rollback failed after migration error. Data may be corrupted. Details: ${rollbackMessage}`
           );
+          result.dataCorrupted = true;
+
+          // Write sentinel file to prevent further use of this directory
+          try {
+            const sentinelPath = path.join(options.targetDir, '.migration-failed');
+            await writeFile(
+              sentinelPath,
+              JSON.stringify({
+                timestamp: new Date().toISOString(),
+                originalError: error instanceof Error ? error.message : String(error),
+                rollbackError: rollbackMessage,
+                message: 'Migration failed and rollback was unsuccessful. Data may be corrupted. Do not use this directory.'
+              }, null, 2)
+            );
+          } catch (sentinelError) {
+            console.error('Failed to write migration sentinel file:', sentinelError);
+          }
         }
       }
 

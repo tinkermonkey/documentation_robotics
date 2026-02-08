@@ -130,7 +130,23 @@ export class GraphMigrationService {
 
       return result;
     } catch (error) {
-      result.errors.push(error instanceof Error ? error.message : String(error));
+      // Capture full error details including stack trace and cause chain
+      if (error instanceof Error) {
+        result.errors.push(`${error.message}`);
+        if (error.stack) {
+          result.errors.push(`Stack trace:\n${error.stack}`);
+        }
+        if ((error as any).cause) {
+          result.errors.push(
+            `Caused by: ${(error as any).cause instanceof Error
+              ? (error as any).cause.message
+              : String((error as any).cause)
+            }`
+          );
+        }
+      } else {
+        result.errors.push(`Migration failed: ${String(error)}`);
+      }
       result.duration = Date.now() - startTime;
       return result;
     }
@@ -160,22 +176,37 @@ export class GraphMigrationService {
 
     for (const [layerName, layer] of layers) {
       for (const element of layer.listElements()) {
+        const properties: Record<string, unknown> = {
+          name: element.name,
+          type: element.type,
+          layer: layerName,
+        };
+
+        if (element.description) {
+          properties.description = element.description;
+        }
+
+        if (this.options.includeProperties && element.properties) {
+          Object.assign(properties, element.properties);
+        }
+
+        // Note: Element class does not currently track timestamps.
+        // includeMetadata option is preserved for future use when
+        // timestamp tracking is added to the Element class.
+        if (this.options.includeMetadata) {
+          // Check if element has timestamp properties (from custom extensions or properties)
+          if (element.properties?.createdAt) {
+            properties.createdAt = element.properties.createdAt;
+          }
+          if (element.properties?.updatedAt) {
+            properties.updatedAt = element.properties.updatedAt;
+          }
+        }
+
         const node: MigrationGraphNode = {
           id: element.id,
           labels: [layerName, element.type],
-          properties: {
-            name: element.name,
-            type: element.type,
-            layer: layerName,
-            ...(element.description && { description: element.description }),
-            ...(this.options.includeProperties && element.properties && {
-              ...element.properties,
-            }),
-            ...(this.options.includeMetadata && {
-              createdAt: element.createdAt,
-              updatedAt: element.updatedAt,
-            }),
-          },
+          properties,
         };
 
         nodes.push(node);
@@ -212,7 +243,7 @@ export class GraphMigrationService {
             source: element.id,
             target: rel.target,
             relationship: `${rel.predicate.toUpperCase()}`,
-            properties: rel.metadata ? { ...rel.metadata } : undefined,
+            properties: rel.properties ? { ...rel.properties } : undefined,
           });
         }
       }

@@ -86,6 +86,8 @@ export class SchemaValidator {
       'common/layer-extensions.schema.json',
     ];
 
+    const commonSchemaErrors: Array<{ file: string; error: Error }> = [];
+
     for (const commonSchemaFile of commonSchemas) {
       try {
         const schemaPath = path.join(schemasDir, commonSchemaFile);
@@ -98,26 +100,28 @@ export class SchemaValidator {
           try {
             this.ajv.addSchema(schema);
           } catch (addError: any) {
-            // Schema with this $id is already registered - this is expected
-            // and safe to ignore
-            if (!addError.message?.includes('already exists')) {
-              throw addError;
+            // Check if schema is already registered
+            if (this.ajv.getSchema(schema.$id)) {
+              // Schema already exists - this is acceptable
+              continue;
             }
+            // Re-throw actual errors
+            throw addError;
           }
         }
       } catch (error: any) {
-        // Common schemas not all layers may reference - warn but continue
-        // Note: 'already exists' errors are expected and acceptable
-        if (!error.message?.includes('already exists')) {
-          console.warn(
-            `Warning: Failed to load common schema ${commonSchemaFile}:`,
-            error
-          );
-        }
+        // Track common schema loading errors but don't fail immediately
+        // Some common schemas may be optional
+        commonSchemaErrors.push({
+          file: commonSchemaFile,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
       }
     }
 
-    // Load all layer schemas
+    // Load all layer schemas - these are REQUIRED
+    const layerSchemaErrors: Array<{ layer: string; error: Error }> = [];
+
     for (const [layerName, schemaFileName] of Object.entries(layerMappings)) {
       try {
         // Try primary schema path first (development)
@@ -149,12 +153,29 @@ export class SchemaValidator {
           this.loadedSchemaIds.add(schema.$id);
         }
       } catch (error: any) {
-        // Only warn if this is not a duplicate registration error
-        // Duplicate schemas are expected when tests reload validators
-        if (!error.message?.includes('already exists')) {
-          console.warn(`Failed to load schema for layer ${layerName}:`, error);
-        }
+        // Track layer schema loading errors
+        layerSchemaErrors.push({
+          layer: layerName,
+          error: error instanceof Error ? error : new Error(String(error)),
+        });
       }
+    }
+
+    // If any required layer schemas failed to load, fail initialization
+    if (layerSchemaErrors.length > 0) {
+      const errorDetails = layerSchemaErrors
+        .map((e) => `  - Layer "${e.layer}": ${e.error.message}`)
+        .join('\n');
+      throw new Error(
+        `Failed to load required layer schemas:\n${errorDetails}`
+      );
+    }
+
+    // Warn about common schema loading failures (these are not fatal)
+    for (const { file, error } of commonSchemaErrors) {
+      console.warn(
+        `Warning: Failed to load common schema ${file}: ${error.message}`
+      );
     }
   }
 
