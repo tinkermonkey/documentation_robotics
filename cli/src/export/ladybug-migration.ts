@@ -263,45 +263,17 @@ export class LadybugMigrationService {
   }
 
   /**
-   * Prepare schema for JSON serialization (already in Record format)
-   */
-  private convertSchemaToSerializable(schema: LadybugSchema): {
-    version: string;
-    nodeTypes: Record<string, NodeTypeDefinition>;
-    relationshipTypes: Record<string, RelationshipTypeDefinition>;
-    indexes: IndexDefinition[];
-  } {
-    // Schema is already in Record format, no conversion needed
-    return {
-      version: schema.version,
-      nodeTypes: schema.nodeTypes,
-      relationshipTypes: schema.relationshipTypes,
-      indexes: schema.indexes,
-    };
-  }
-
-  /**
    * Serialize document to JSON
    */
   serializeToJson(document: LadybugDocument): string {
-    // Convert schema Maps to serializable objects
-    const serializableDoc = {
-      ...document,
-      schema: this.convertSchemaToSerializable(document.schema),
-    };
-    return JSON.stringify(serializableDoc, null, 2);
+    return JSON.stringify(document, null, 2);
   }
 
   /**
    * Serialize document to compact JSON (for storage)
    */
   serializeToCompactJson(document: LadybugDocument): string {
-    // Convert schema Maps to serializable objects
-    const serializableDoc = {
-      ...document,
-      schema: this.convertSchemaToSerializable(document.schema),
-    };
-    return JSON.stringify(serializableDoc);
+    return JSON.stringify(document);
   }
 
   /**

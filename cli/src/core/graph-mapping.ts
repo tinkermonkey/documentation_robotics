@@ -8,6 +8,13 @@
  * 2. MigrationGraphNode/MigrationGraphEdge - Export format (graph-migration.ts)
  * 3. Element/Relationship/Reference - Core types (types/index.ts)
  *
+ * CURRENT STATUS: This module serves as foundational infrastructure documenting
+ * field naming inconsistencies (Issue #11 from PR #324). The utilities are available
+ * for use by export handlers and migration code, but are currently referenced
+ * (not actively used) as a foundation for future refactoring phases.
+ *
+ * See: cli/src/export/model-migration.ts (references this module)
+ *
  * FIELD NAMING INCONSISTENCIES:
  * - Edge destination: GraphEdge.destination vs MigrationGraphEdge.target vs Relationship.target
  * - Edge type: GraphEdge.predicate vs MigrationGraphEdge.relationship
