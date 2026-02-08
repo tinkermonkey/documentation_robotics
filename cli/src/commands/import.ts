@@ -37,6 +37,17 @@ export async function importCommand(options: ImportOptions): Promise<void> {
       process.exit(1);
     }
 
+    // Validate format BEFORE attempting any I/O operations
+    const supportedFormats = ['archimate', 'openapi'];
+    const normalizedFormat = options.format.toLowerCase();
+    if (!supportedFormats.includes(normalizedFormat)) {
+      console.error(
+        ansis.red(`Error: Unsupported import format "${options.format}"`)
+      );
+      console.error(`  Supported formats: ${supportedFormats.join(', ')}`);
+      process.exit(1);
+    }
+
     // Check if input file exists
     const inputPath = path.resolve(options.input);
     let fileContent: string;
@@ -61,7 +72,7 @@ export async function importCommand(options: ImportOptions): Promise<void> {
     console.log(`Importing from ${ansis.blue(options.format)} format...`);
 
     const result = await manager.import(
-      options.format.toLowerCase(),
+      normalizedFormat,
       fileContent,
       model,
       {

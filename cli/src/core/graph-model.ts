@@ -78,6 +78,7 @@ export class GraphModel implements IGraphModel {
   nodes: Map<string, GraphNode>;
   edges: Map<string, GraphEdge>;
   private indices: GraphIndices;
+  private nodesVersion: number = 0;
 
   constructor() {
     this.nodes = new Map();
@@ -92,22 +93,63 @@ export class GraphModel implements IGraphModel {
   }
 
   /**
+   * Get the current version of the nodes (for cache invalidation)
+   */
+  getNodesVersion(): number {
+    return this.nodesVersion;
+  }
+
+  /**
    * Add a node to the graph and update indices
+   * If a node with the same ID exists, its old index entries are cleaned up
    */
   addNode(node: GraphNode): void {
+    const existingNode = this.nodes.get(node.id);
+
+    // Clean up old index entries if node is being replaced
+    if (existingNode) {
+      // Remove from old layer index
+      const oldLayerSet = this.indices.nodesByLayer.get(existingNode.layer);
+      if (oldLayerSet) {
+        oldLayerSet.delete(node.id);
+        if (oldLayerSet.size === 0) {
+          this.indices.nodesByLayer.delete(existingNode.layer);
+        }
+      }
+
+      // Remove from old type index
+      const oldTypeSet = this.indices.nodesByType.get(existingNode.type);
+      if (oldTypeSet) {
+        oldTypeSet.delete(node.id);
+        if (oldTypeSet.size === 0) {
+          this.indices.nodesByType.delete(existingNode.type);
+        }
+      }
+    }
+
+    // Add new node
     this.nodes.set(node.id, node);
 
     // Update layer index
     if (!this.indices.nodesByLayer.has(node.layer)) {
       this.indices.nodesByLayer.set(node.layer, new Set());
     }
-    this.indices.nodesByLayer.get(node.layer)!.add(node.id);
+    const layerSet = this.indices.nodesByLayer.get(node.layer);
+    if (layerSet) {
+      layerSet.add(node.id);
+    }
 
     // Update type index
     if (!this.indices.nodesByType.has(node.type)) {
       this.indices.nodesByType.set(node.type, new Set());
     }
-    this.indices.nodesByType.get(node.type)!.add(node.id);
+    const typeSet = this.indices.nodesByType.get(node.type);
+    if (typeSet) {
+      typeSet.add(node.id);
+    }
+
+    // Increment version to invalidate caches
+    this.nodesVersion++;
   }
 
   /**
@@ -152,6 +194,8 @@ export class GraphModel implements IGraphModel {
       this.removeEdge(edgeId);
     }
 
+    // Increment version to invalidate caches
+    this.nodesVersion++;
     return true;
   }
 
@@ -176,7 +220,10 @@ export class GraphModel implements IGraphModel {
       if (!this.indices.nodesByLayer.has(updates.layer)) {
         this.indices.nodesByLayer.set(updates.layer, new Set());
       }
-      this.indices.nodesByLayer.get(updates.layer)!.add(nodeId);
+      const newLayerSet = this.indices.nodesByLayer.get(updates.layer);
+      if (newLayerSet) {
+        newLayerSet.add(nodeId);
+      }
     }
 
     // Handle type change
@@ -191,37 +238,63 @@ export class GraphModel implements IGraphModel {
       if (!this.indices.nodesByType.has(updates.type)) {
         this.indices.nodesByType.set(updates.type, new Set());
       }
-      this.indices.nodesByType.get(updates.type)!.add(nodeId);
+      const newTypeSet = this.indices.nodesByType.get(updates.type);
+      if (newTypeSet) {
+        newTypeSet.add(nodeId);
+      }
     }
 
     // Apply updates
     Object.assign(node, updates);
+    // Increment version to invalidate caches
+    this.nodesVersion++;
     return true;
   }
 
   /**
    * Add an edge to the graph and update indices
+   * Validates that both source and destination nodes exist
+   * @throws Error if source or destination node does not exist
    */
   addEdge(edge: GraphEdge): void {
+    // Validate that source node exists
+    if (!this.nodes.has(edge.source)) {
+      throw new Error(`Cannot add edge: source node "${edge.source}" does not exist`);
+    }
+
+    // Validate that destination node exists
+    if (!this.nodes.has(edge.destination)) {
+      throw new Error(`Cannot add edge: destination node "${edge.destination}" does not exist`);
+    }
+
     this.edges.set(edge.id, edge);
 
     // Update source index
     if (!this.indices.edgesBySource.has(edge.source)) {
       this.indices.edgesBySource.set(edge.source, new Set());
     }
-    this.indices.edgesBySource.get(edge.source)!.add(edge.id);
+    const sourceSet = this.indices.edgesBySource.get(edge.source);
+    if (sourceSet) {
+      sourceSet.add(edge.id);
+    }
 
     // Update destination index
     if (!this.indices.edgesByDestination.has(edge.destination)) {
       this.indices.edgesByDestination.set(edge.destination, new Set());
     }
-    this.indices.edgesByDestination.get(edge.destination)!.add(edge.id);
+    const destSet = this.indices.edgesByDestination.get(edge.destination);
+    if (destSet) {
+      destSet.add(edge.id);
+    }
 
     // Update predicate index
     if (!this.indices.edgesByPredicate.has(edge.predicate)) {
       this.indices.edgesByPredicate.set(edge.predicate, new Set());
     }
-    this.indices.edgesByPredicate.get(edge.predicate)!.add(edge.id);
+    const predicateSet = this.indices.edgesByPredicate.get(edge.predicate);
+    if (predicateSet) {
+      predicateSet.add(edge.id);
+    }
   }
 
   /**
@@ -287,7 +360,10 @@ export class GraphModel implements IGraphModel {
       if (!this.indices.edgesByPredicate.has(updates.predicate)) {
         this.indices.edgesByPredicate.set(updates.predicate, new Set());
       }
-      this.indices.edgesByPredicate.get(updates.predicate)!.add(edgeId);
+      const newPredicateSet = this.indices.edgesByPredicate.get(updates.predicate);
+      if (newPredicateSet) {
+        newPredicateSet.add(edgeId);
+      }
     }
 
     // Note: Source and destination changes are not supported (use removeEdge + addEdge)
@@ -308,7 +384,14 @@ export class GraphModel implements IGraphModel {
    */
   getNodesByLayer(layer: string): GraphNode[] {
     const nodeIds = this.indices.nodesByLayer.get(layer) ?? new Set();
-    return Array.from(nodeIds).map((id) => this.nodes.get(id)!);
+    const result: GraphNode[] = [];
+    for (const id of nodeIds) {
+      const node = this.nodes.get(id);
+      if (node) {
+        result.push(node);
+      }
+    }
+    return result;
   }
 
   /**
@@ -316,7 +399,14 @@ export class GraphModel implements IGraphModel {
    */
   getNodesByType(type: string): GraphNode[] {
     const nodeIds = this.indices.nodesByType.get(type) ?? new Set();
-    return Array.from(nodeIds).map((id) => this.nodes.get(id)!);
+    const result: GraphNode[] = [];
+    for (const id of nodeIds) {
+      const node = this.nodes.get(id);
+      if (node) {
+        result.push(node);
+      }
+    }
+    return result;
   }
 
   /**
@@ -324,7 +414,13 @@ export class GraphModel implements IGraphModel {
    */
   getEdgesFrom(nodeId: string, predicate?: string): GraphEdge[] {
     const edgeIds = this.indices.edgesBySource.get(nodeId) ?? new Set();
-    const edges = Array.from(edgeIds).map((id) => this.edges.get(id)!);
+    const edges: GraphEdge[] = [];
+    for (const id of edgeIds) {
+      const edge = this.edges.get(id);
+      if (edge) {
+        edges.push(edge);
+      }
+    }
 
     if (predicate) {
       return edges.filter((e) => e.predicate === predicate);
@@ -337,7 +433,13 @@ export class GraphModel implements IGraphModel {
    */
   getEdgesTo(nodeId: string, predicate?: string): GraphEdge[] {
     const edgeIds = this.indices.edgesByDestination.get(nodeId) ?? new Set();
-    const edges = Array.from(edgeIds).map((id) => this.edges.get(id)!);
+    const edges: GraphEdge[] = [];
+    for (const id of edgeIds) {
+      const edge = this.edges.get(id);
+      if (edge) {
+        edges.push(edge);
+      }
+    }
 
     if (predicate) {
       return edges.filter((e) => e.predicate === predicate);

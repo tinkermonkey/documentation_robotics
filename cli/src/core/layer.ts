@@ -11,6 +11,8 @@ export class Layer {
   graph: GraphModel;
   metadata?: { layer: string; version: string };
   private dirty: boolean = false;
+  private cachedElements: Map<string, Element> | null = null;
+  private cachedNodesVersion: number = 0;
 
   constructor(name: string, elementsOrGraph?: Element[] | GraphModel, elementsIfGraphPassed?: Element[]) {
     this.name = name;
@@ -64,8 +66,17 @@ export class Layer {
   /**
    * Get all elements in this layer from the graph
    * Converts graph nodes back to Elements for backward compatibility
+   * Results are cached and invalidated when the underlying graph changes
    */
   get elements(): Map<string, Element> {
+    const currentVersion = this.graph.getNodesVersion();
+
+    // Return cached result if graph hasn't changed
+    if (this.cachedElements !== null && this.cachedNodesVersion === currentVersion) {
+      return this.cachedElements;
+    }
+
+    // Rebuild cache
     const result = new Map<string, Element>();
     const nodes = this.graph.getNodesByLayer(this.name);
 
@@ -83,6 +94,8 @@ export class Layer {
       result.set(node.id, element);
     }
 
+    this.cachedElements = result;
+    this.cachedNodesVersion = currentVersion;
     return result;
   }
 
@@ -136,11 +149,27 @@ export class Layer {
       return false;
     }
 
+    // Prepare properties including references and relationships
+    const properties = { ...element.properties };
+
+    // Persist references and relationships as node properties
+    if (element.references && element.references.length > 0) {
+      properties['__references__'] = element.references;
+    } else {
+      delete properties['__references__'];
+    }
+
+    if (element.relationships && element.relationships.length > 0) {
+      properties['__relationships__'] = element.relationships;
+    } else {
+      delete properties['__relationships__'];
+    }
+
     // Convert element to graph node and update in place
     const updated = this.graph.updateNode(element.id, {
       name: element.name,
       description: element.description,
-      properties: element.properties,
+      properties,
     });
 
     if (updated) {

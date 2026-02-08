@@ -182,8 +182,20 @@ export async function validateCommand(options: ValidateOptions): Promise<void> {
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(ansis.red(`Error: ${message}`));
+
+    // Always preserve full error details in stderr for debugging
+    if (error instanceof Error && error.stack) {
+      console.error(ansis.dim('\nFull error details:'));
+      console.error(ansis.dim(error.stack));
+    }
+
+    // Additional context for debugging
     if (process.env.DEBUG) {
-      console.error((error as Error).stack);
+      console.error(ansis.dim('\nDebug mode enabled. Additional context:'));
+      if (error instanceof Error) {
+        console.error(ansis.dim(`Error name: ${error.name}`));
+        console.error(ansis.dim(`Error cause: ${(error as any).cause || 'none'}`));
+      }
     }
     throw error;
   }

@@ -46,33 +46,41 @@ export async function installSpecReference(
 
   // Copy bundled schemas
   // Resolve schema source directory with fallback
-  let schemaSourceDir: string;
-  try {
-    // Get current file's directory (ES module compatible)
-    const currentDir = dirname(fileURLToPath(import.meta.url));
-    schemaSourceDir = join(currentDir, '../schemas/bundled');
+  let schemaSourceDir: string = '';
+  let schemaSourcePath: string | null = null;
 
-    // Verify the directory exists by checking a known file
-    await fs.access(join(schemaSourceDir, '01-motivation-layer.schema.json'));
-  } catch {
-    // Fallback: try relative to project root
-    schemaSourceDir = join(projectRoot, 'src/schemas/bundled');
+  // Try paths in order, recording which one works
+  const pathsToTry = [
+    {
+      path: join(dirname(fileURLToPath(import.meta.url)), '../schemas/bundled'),
+      description: 'bundled from CLI installation',
+    },
+    {
+      path: join(projectRoot, 'src/schemas/bundled'),
+      description: 'source directory (src)',
+    },
+    {
+      path: join(projectRoot, 'dist/schemas/bundled'),
+      description: 'built directory (dist)',
+    },
+  ];
+
+  for (const { path, description } of pathsToTry) {
     try {
-      await fs.access(join(schemaSourceDir, '01-motivation-layer.schema.json'));
+      await fs.access(join(path, '01-motivation-layer.schema.json'));
+      schemaSourceDir = path;
+      schemaSourcePath = description;
+      break;
     } catch {
-      // Last fallback: try from dist
-      schemaSourceDir = join(projectRoot, 'dist/schemas/bundled');
-      try {
-        await fs.access(join(schemaSourceDir, '01-motivation-layer.schema.json'));
-      } catch {
-        throw new Error(
-          `Could not find bundled schemas at any of the expected locations. Tried: ` +
-          `${dirname(fileURLToPath(import.meta.url))}/../schemas/bundled, ` +
-          `${projectRoot}/src/schemas/bundled, ` +
-          `${projectRoot}/dist/schemas/bundled`
-        );
-      }
+      // Continue to next path
     }
+  }
+
+  if (!schemaSourcePath) {
+    throw new Error(
+      `Could not find bundled schemas at any of the expected locations:\n` +
+      pathsToTry.map((p) => `  - ${p.path} (${p.description})`).join('\n')
+    );
   }
 
   // Copy layer schemas
@@ -133,6 +141,7 @@ This directory contains the specification reference for Documentation Robotics.
 
 **Spec Version:** ${specVersion}
 **Installed:** ${new Date().toISOString()}
+**Schema Source:** ${schemaSourcePath}
 
 ## Structure
 
