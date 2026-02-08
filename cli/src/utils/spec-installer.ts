@@ -9,6 +9,7 @@ import { ensureDir, writeFile } from "./file-io.js";
 import { join, dirname } from "path";
 import { getCliBundledSpecVersion } from "./spec-version.js";
 import fs from "fs/promises";
+import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import { logDebug } from "./globals.js";
 
@@ -57,29 +58,25 @@ export async function installSpecReference(
       description: "bundled from CLI installation",
     },
     {
+      path: join(dirname(fileURLToPath(import.meta.url)), "../../src/schemas/bundled"),
+      description: "source directory relative to compiled code",
+    },
+    {
       path: join(projectRoot, "src/schemas/bundled"),
-      description: "source directory (src)",
+      description: "source directory (src) relative to project root",
     },
     {
       path: join(projectRoot, "dist/schemas/bundled"),
-      description: "built directory (dist)",
+      description: "built directory (dist) relative to project root",
     },
   ];
 
   for (const { path, description } of pathsToTry) {
-    try {
-      await fs.access(join(path, "01-motivation-layer.schema.json"));
+    if (existsSync(join(path, "01-motivation-layer.schema.json"))) {
       schemaSourceDir = path;
       schemaSourcePath = description;
       logDebug(`Using bundled schemas from: ${description} (${path})`);
       break;
-    } catch (error) {
-      // Only continue on file not found (ENOENT); re-throw other errors (EACCES, etc)
-      const err = error as NodeJS.ErrnoException;
-      if (err.code !== "ENOENT") {
-        throw error;
-      }
-      // Continue to next path
     }
   }
 
