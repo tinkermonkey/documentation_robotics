@@ -12,15 +12,52 @@ export class Layer {
   metadata?: { layer: string; version: string };
   private dirty: boolean = false;
 
-  constructor(name: string, graph?: GraphModel, elements: Element[] = []) {
+  constructor(name: string, elementsOrGraph?: Element[] | GraphModel, elementsIfGraphPassed?: Element[]) {
     this.name = name;
-    // Use provided graph or create a new one (for backward compatibility)
-    this.graph = graph || new GraphModel();
 
-    // Add elements from constructor to the graph
-    for (const element of elements) {
-      // Use addElement to properly convert references/relationships to edges
-      this.addElement(element);
+    // Handle overloaded constructor:
+    // new Layer(name) - create with empty graph
+    // new Layer(name, elements) - create with elements array
+    // new Layer(name, graph) - create with provided graph
+    // new Layer(name, undefined, elements) - create with elements
+    // new Layer(name, graph, elements) - create with provided graph and elements
+    let actualGraph: GraphModel | undefined;
+    let elementsToAdd: Element[] = [];
+
+    if (elementsOrGraph instanceof GraphModel) {
+      // Called with graph as second parameter
+      actualGraph = elementsOrGraph;
+      // Elements are in the third parameter if provided
+      if (Array.isArray(elementsIfGraphPassed)) {
+        elementsToAdd = elementsIfGraphPassed;
+      }
+    } else if (Array.isArray(elementsOrGraph)) {
+      // Called with elements as second parameter
+      elementsToAdd = elementsOrGraph;
+    } else if (elementsOrGraph === undefined && Array.isArray(elementsIfGraphPassed)) {
+      // Called with undefined graph and elements in third parameter
+      elementsToAdd = elementsIfGraphPassed;
+    }
+
+    // Use provided graph or create a new one
+    this.graph = actualGraph || new GraphModel();
+
+    // Add elements to the graph (without marking as dirty during construction)
+    for (const element of elementsToAdd) {
+      // Ensure element has the correct layer
+      element.layer = this.name;
+      const node = GraphModel.fromElement(element);
+
+      // Store references and relationships as node properties for preservation
+      if (element.references && element.references.length > 0) {
+        node.properties['__references__'] = element.references;
+      }
+      if (element.relationships && element.relationships.length > 0) {
+        node.properties['__relationships__'] = element.relationships;
+      }
+
+      this.graph.addNode(node);
+      // Don't mark as dirty during construction - elements added in constructor are initial state
     }
   }
 
@@ -179,7 +216,7 @@ export class Layer {
   /**
    * Create Layer from JSON data
    */
-  static fromJSON(name: string, data: LayerData, graph: GraphModel): Layer {
+  static fromJSON(name: string, data: LayerData, graph?: GraphModel): Layer {
     const elements = data.elements.map(
       (e) =>
         new Element({
