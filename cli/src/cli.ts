@@ -22,6 +22,7 @@ import { infoCommand } from './commands/info.js';
 import { elementCommands } from './commands/element.js';
 import { relationshipCommands } from './commands/relationship.js';
 import { catalogCommands } from './commands/catalog.js';
+import { docsCommands } from './commands/docs.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
@@ -475,6 +476,9 @@ relationshipCommands(relationshipGroup);
 
 // Catalog subcommands (modern relationship catalog)
 catalogCommands(program);
+
+// Documentation subcommands (schema-driven generation)
+docsCommands(program);
 
 // Dependency analysis commands
 program

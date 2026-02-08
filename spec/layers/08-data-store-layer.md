@@ -1,1623 +1,310 @@
 # Layer 8: Data Store Layer
 
-Defines physical data storage schemas using SQL DDL, including tables, columns, indexes, constraints, and database-specific objects.
+Layer 8: Data Store Layer
+
+**Standard**: [SQL 2016 2016](https://en.wikipedia.org/wiki/SQL:2016)
+
+---
 
 ## Overview
 
-The Data Store Layer defines the physical data storage using SQL DDL (Data Definition Language) with minimal custom extensions. This layer leverages standard SQL with database-specific extensions where necessary.
+Layer 8: Data Store Layer
 
-## Layer Characteristics
+This layer defines **26** node types that represent various aspects of the architecture.
 
-- **Standard**: SQL DDL (PostgreSQL, MySQL, SQLite dialects)
-- **Custom Extensions**: Minimal (primarily comments and metadata)
-- **Validation**: SQL parsers, database schema validators
-- **Tooling**: Database migration tools, schema diff tools, ORMs
-
-## Why SQL DDL + Minimal Extensions?
-
-SQL DDL is the standard for database definition:
-
-- **Industry Standard**: Universal language for database schemas
-- **Database Native**: Direct execution by database engines
-- **Version Controllable**: DDL files can be versioned in git
-- **Migration Friendly**: Works with tools like Flyway, Liquibase, Alembic
-- **Minimal Custom Invention**: Only add metadata via comments
-
-## Entity Definitions
-
-### Database
-
-```yaml
-Database:
-  description: "Database instance containing schemas"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    type: DatabaseType [enum]
-    version: string
-    charset: string (optional)
-    collation: string (optional)
-
-  contains:
-    - schemas: DatabaseSchema[] (1..*)
-
-  # Metadata (in comments)
-  metadata:
-    x-archimate-ref: string (Element.id reference)
-    x-owner: string (team/person responsible)
-    x-purpose: string (database purpose)
-
-  enums:
-    DatabaseType:
-      - PostgreSQL
-      - MySQL
-      - SQLite
-      - MariaDB
-      - Oracle
-      - SQL Server
-```
-
-### DatabaseSchema
-
-```yaml
-DatabaseSchema:
-  description: "Logical grouping of database objects"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    owner: string (optional)
-
-  contains:
-    - tables: Table[] (0..*)
-    - views: View[] (0..*)
-    - functions: Function[] (0..*)
-    - sequences: Sequence[] (0..*)
-
-  examples:
-    - public # Default schema
-    - auth # Authentication tables
-    - analytics # Analytics/reporting tables
-    - audit # Audit log tables
-```
-
-### Table
-
-```yaml
-Table:
-  description: "Database table definition"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    schema: string (optional)
-    tablespace: string (optional)
-
-  contains:
-    - columns: Column[] (1..*)
-    - constraints: Constraint[] (0..*)
-    - indexes: Index[] (0..*)
-    - triggers: Trigger[] (0..*)
-
-  # Metadata (via COMMENT ON TABLE)
-  metadata:
-    x-json-schema: string (path to JSON Schema)
-    x-archimate-ref: string (Element.id reference)
-    x-owner: string
-    x-retention: string (data retention policy)
-    x-pii: boolean (contains PII)
-
-    # Motivation Layer Integration
-    x-governed-by-constraints: string[] (Constraint IDs, optional)
-    x-governed-by-requirements: string[] (Requirement IDs, optional)
-    x-governed-by-principles: string[] (Principle IDs, optional)
-
-    # APM/Observability Layer Integration
-    x-apm-performance-metrics: string[] (Metric IDs for table performance, optional)
-    x-apm-data-quality-metrics: string[] (Metric IDs for data integrity, optional)
-
-  examples:
-    - products
-    - customers
-    - orders
-    - order_items
-```
-
-### Column
-
-```yaml
-Column:
-  description: "Table column definition"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    dataType: SQLDataType
-    nullable: boolean (optional)
-    defaultValue: string (optional)
-    generated: GenerationType (optional)
-
-  # Metadata (via COMMENT ON COLUMN)
-  metadata:
-    description: string
-    x-json-schema-path: string (JSONPath to schema property)
-    x-pii: boolean
-    x-encrypted: boolean
-    x-sensitive: boolean
-
-    # Motivation Layer Integration (optional)
-    x-governed-by-requirements: string[] (Requirement IDs, optional)
-
-  enums:
-    SQLDataType:
-      # Integer types
-      - SMALLINT
-      - INTEGER
-      - BIGINT
-      - SERIAL
-      - BIGSERIAL
-
-      # Numeric types
-      - DECIMAL(precision, scale)
-      - NUMERIC(precision, scale)
-      - REAL
-      - DOUBLE PRECISION
-
-      # Character types
-      - CHAR(length)
-      - VARCHAR(length)
-      - TEXT
-
-      # Binary types
-      - BYTEA
-      - BLOB
-
-      # Boolean
-      - BOOLEAN
-
-      # Date/Time types
-      - DATE
-      - TIME
-      - TIMESTAMP
-      - TIMESTAMPTZ # With timezone
-      - INTERVAL
-
-      # JSON types
-      - JSON
-      - JSONB # Binary JSON (PostgreSQL)
-
-      # UUID
-      - UUID
-
-      # Arrays (PostgreSQL)
-      - INTEGER[]
-      - TEXT[]
-      - etc.
-
-      # Enum types
-      - ENUM('value1', 'value2', ...)
-
-    GenerationType:
-      - ALWAYS # Always generated
-      - BY_DEFAULT # Generated by default, can be overridden
-```
-
-### Constraint
-
-```yaml
-Constraint:
-  description: "Table constraint"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    type: ConstraintType [enum]
-
-  # Type-specific attributes
-  primaryKey:
-    columns: string[] (column names)
-
-  unique:
-    columns: string[]
-
-  foreignKey:
-    columns: string[] (local columns)
-    referencedTable: string
-    referencedColumns: string[]
-    onDelete: ReferentialAction
-    onUpdate: ReferentialAction
-
-  check:
-    expression: string (SQL boolean expression)
-
-  enums:
-    ConstraintType:
-      - PRIMARY_KEY
-      - UNIQUE
-      - FOREIGN_KEY
-      - CHECK
-      - EXCLUSION # PostgreSQL-specific
-
-    ReferentialAction:
-      - CASCADE
-      - SET_NULL
-      - SET_DEFAULT
-      - RESTRICT
-      - NO_ACTION
-
-  examples:
-    # Primary key
-    - name: products_pkey
-      type: PRIMARY_KEY
-      columns: [id]
-
-    # Unique constraint
-    - name: products_sku_unique
-      type: UNIQUE
-      columns: [sku]
-
-    # Foreign key
-    - name: order_items_product_fk
-      type: FOREIGN_KEY
-      columns: [product_id]
-      referencedTable: products
-      referencedColumns: [id]
-      onDelete: RESTRICT
-      onUpdate: CASCADE
-
-    # Check constraint
-    - name: products_price_positive
-      type: CHECK
-      expression: "price >= 0"
-```
-
-### Index
-
-```yaml
-Index:
-  description: "Database index for query optimization"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    columns: string (optional)
-    unique: boolean (optional)
-    method: IndexMethod (optional)
-    where: string (optional)
-    include: string (optional)
-
-  enums:
-    IndexMethod:
-      - BTREE # Default, general purpose
-      - HASH # Equality operations only
-      - GIN # Generalized Inverted Index (arrays, JSON, full-text)
-      - GIST # Generalized Search Tree (geometric, full-text)
-      - BRIN # Block Range Index (very large tables)
-      - SP-GIST # Space-Partitioned GIST
-
-  examples:
-    # Simple index
-    - name: idx_products_category
-      columns: [category]
-      method: BTREE
-
-    # Composite index
-    - name: idx_orders_customer_date
-      columns: [customer_id, order_date]
-
-    # Unique index
-    - name: idx_products_sku
-      columns: [sku]
-      unique: true
-
-    # Partial index
-    - name: idx_products_active
-      columns: [category]
-      where: "deleted_at IS NULL"
-
-    # Expression index
-    - name: idx_products_name_lower
-      columns: ["LOWER(name)"]
-
-    # Covering index
-    - name: idx_products_category_covering
-      columns: [category]
-      include: [name, price]
-
-    # JSON index (GIN)
-    - name: idx_products_metadata_gin
-      columns: [metadata]
-      method: GIN
-```
-
-### View
-
-```yaml
-View:
-  description: "Database view"
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    definition: string (optional)
-    materialized: boolean (optional)
-
-  # Materialized view specific
-  refresh:
-    mode: RefreshMode (for materialized views)
-    schedule: string (optional, cron expression)
-
-  enums:
-    RefreshMode:
-      - ON_COMMIT
-      - ON_DEMAND
-      - SCHEDULED
-
-  examples:
-    # Regular view
-    - name: vw_product_inventory
-      definition: |
-        SELECT p.id, p.name, p.sku, p.stock_quantity,
-               CASE WHEN p.stock_quantity <= p.reorder_point
-                    THEN 'REORDER'
-                    ELSE 'OK'
-               END as inventory_status
-        FROM products p
-        WHERE p.deleted_at IS NULL
-
-    # Materialized view
-    - name: mv_daily_sales
-      materialized: true
-      definition: |
-        SELECT DATE(created_at) as sale_date,
-               COUNT(*) as order_count,
-               SUM(total_amount) as total_sales
-        FROM orders
-        GROUP BY DATE(created_at)
-      refresh:
-        mode: SCHEDULED
-        schedule: "0 1 * * *" # Daily at 1 AM
-```
+## Node Types
 
 ### Trigger
 
-```yaml
-Trigger:
-  description: "A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement."
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    table: string (table the trigger is attached to)
-    timing: TriggerTiming [enum]
-    events: TriggerEvent[] (one or more events)
-    forEach: TriggerForEach [enum]
-    functionName: string (function to execute)
-    condition: string (optional, WHEN clause)
-    enabled: boolean (optional) # default: true
+**ID**: `data-store.trigger`
 
-  enums:
-    TriggerTiming:
-      - BEFORE # Execute before the operation
-      - AFTER # Execute after the operation
-      - INSTEAD_OF # Replace the operation (views only)
+A database trigger that automatically executes in response to data modification events (INSERT, UPDATE, DELETE). Enables reactive database behavior and data integrity enforcement.
 
-    TriggerEvent:
-      - INSERT
-      - UPDATE
-      - DELETE
-      - TRUNCATE # PostgreSQL-specific
+**Attributes**:
 
-    TriggerForEach:
-      - ROW # Execute once per affected row
-      - STATEMENT # Execute once per statement
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `table`: string (required)
+- `timing`: string (required)
+- `events`: string (required)
+- `forEach`: string (required)
+- `functionName`: string (required)
+- `condition`: string (required)
+- `enabled`: boolean
 
-  metadata:
-    description: string (purpose of the trigger)
-    x-business-rule: string (business rule being enforced, optional)
-    x-governed-by-requirements: string[] (Requirement IDs, optional)
+### TriggerForEach
 
-  examples:
-    # Timestamp update trigger
-    - name: "products_updated_at"
-      table: "products"
-      timing: BEFORE
-      events: [UPDATE]
-      forEach: ROW
-      functionName: "update_updated_at_column"
-      description: "Automatically update the updated_at timestamp on row modification"
+**ID**: `data-store.triggerforeach`
 
-    # Audit log trigger
-    - name: "orders_audit_trigger"
-      table: "orders"
-      timing: AFTER
-      events: [INSERT, UPDATE, DELETE]
-      forEach: ROW
-      functionName: "log_order_changes"
-      description: "Log all changes to orders for audit compliance"
-      x-governed-by-requirements: ["req-audit-trail", "req-sox-compliance"]
+TriggerForEach element in Data Store Layer
 
-    # Validation trigger
-    - name: "products_validation_trigger"
-      table: "products"
-      timing: BEFORE
-      events: [INSERT, UPDATE]
-      forEach: ROW
-      functionName: "validate_product_data"
-      condition: "NEW.price > 0"
-      description: "Validate product data before insert or update"
-      x-business-rule: "Products must have positive price and valid category"
 
-    # Cascade update trigger
-    - name: "customers_cascade_update"
-      table: "customers"
-      timing: AFTER
-      events: [UPDATE]
-      forEach: ROW
-      functionName: "cascade_customer_updates"
-      condition: "OLD.email IS DISTINCT FROM NEW.email"
-      description: "Cascade email changes to related tables"
+### FunctionLanguage
 
-    # Statement-level trigger
-    - name: "products_batch_notify"
-      table: "products"
-      timing: AFTER
-      events: [INSERT, UPDATE, DELETE]
-      forEach: STATEMENT
-      functionName: "notify_product_changes"
-      description: "Send notification after batch product modifications"
-```
+**ID**: `data-store.functionlanguage`
 
-### Sequence
+FunctionLanguage element in Data Store Layer
 
-```yaml
-Sequence:
-  description: "A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers."
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    schema: string (optional)
-    dataType: SequenceDataType [enum] (optional) # default: BIGINT
-    startValue: integer (optional) # default: 1
-    increment: integer (optional) # default: 1
-    minValue: integer (optional)
-    maxValue: integer (optional)
-    cycle: boolean (optional) # default: false, restart at min after max
-    cache: integer (optional) # number of values to cache
-    ownedBy: string (optional) # table.column that owns this sequence
 
-  enums:
-    SequenceDataType:
-      - SMALLINT # 2 bytes, -32768 to 32767
-      - INTEGER # 4 bytes, -2147483648 to 2147483647
-      - BIGINT # 8 bytes, -9223372036854775808 to 9223372036854775807
+### TriggerTiming
 
-  metadata:
-    description: string (purpose of the sequence)
-    x-business-use: string (business context, e.g., "order numbers", "invoice IDs")
+**ID**: `data-store.triggertiming`
 
-  examples:
-    # Standard auto-increment sequence
-    - name: "products_id_seq"
-      schema: "public"
-      dataType: BIGINT
-      startValue: 1
-      increment: 1
-      ownedBy: "products.id"
-      description: "Auto-increment sequence for products table primary key"
+TriggerTiming element in Data Store Layer
 
-    # Order number sequence
-    - name: "order_number_seq"
-      schema: "sales"
-      dataType: BIGINT
-      startValue: 100000
-      increment: 1
-      cache: 10
-      description: "Business order number sequence"
-      x-business-use: "Customer-facing order numbers starting at 100000"
 
-    # Invoice number sequence (yearly reset)
-    - name: "invoice_number_2024_seq"
-      schema: "accounting"
-      dataType: INTEGER
-      startValue: 1
-      increment: 1
-      maxValue: 999999
-      cycle: false
-      description: "Invoice numbers for fiscal year 2024"
-      x-business-use: "Annual invoice numbering with year prefix"
+### ConstraintType
 
-    # Batch ID sequence with gaps
-    - name: "batch_id_seq"
-      schema: "etl"
-      dataType: BIGINT
-      startValue: 1
-      increment: 100
-      cache: 1
-      description: "Batch processing IDs with gaps for parallel processing"
-      x-business-use: "ETL batch identifiers allowing 100 sub-items per batch"
+**ID**: `data-store.constrainttype`
 
-    # High-availability cached sequence
-    - name: "event_id_seq"
-      schema: "events"
-      dataType: BIGINT
-      startValue: 1
-      increment: 1
-      cache: 1000
-      description: "High-throughput event ID sequence with large cache"
-      x-business-use: "Event streaming identifiers requiring high performance"
-```
+ConstraintType element in Data Store Layer
+
+
+### SecurityDefiner
+
+**ID**: `data-store.securitydefiner`
+
+SecurityDefiner element in Data Store Layer
+
+
+### TriggerEvent
+
+**ID**: `data-store.triggerevent`
+
+TriggerEvent element in Data Store Layer
+
+
+### ParameterMode
+
+**ID**: `data-store.parametermode`
+
+ParameterMode element in Data Store Layer
+
+
+### RefreshMode
+
+**ID**: `data-store.refreshmode`
+
+RefreshMode element in Data Store Layer
+
+
+### View
+
+**ID**: `data-store.view`
+
+Database view
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `definition`: string
+- `materialized`: boolean
+
+### DatabaseSchema
+
+**ID**: `data-store.databaseschema`
+
+Logical grouping of database objects
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `owner`: string
+- `tables`: array
+  - Contains relationship
+- `views`: array
+  - Contains relationship
+- `functions`: array
+  - Contains relationship
+- `sequences`: array
+  - Contains relationship
+
+### IndexMethod
+
+**ID**: `data-store.indexmethod`
+
+IndexMethod element in Data Store Layer
+
+
+### SQLDataType
+
+**ID**: `data-store.sqldatatype`
+
+SQLDataType element in Data Store Layer
+
+
+### Database
+
+**ID**: `data-store.database`
+
+Database instance containing schemas
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `type`: string (required)
+- `version`: string (required)
+- `charset`: string
+- `collation`: string
+- `schemas`: array
+  - Contains relationship
+
+### ParallelSafety
+
+**ID**: `data-store.parallelsafety`
+
+ParallelSafety element in Data Store Layer
+
+
+### Column
+
+**ID**: `data-store.column`
+
+Table column definition
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `dataType`: string (required)
+- `nullable`: boolean
+- `defaultValue`: string
+- `generated`: string
+- `x-source-reference`: string
+  - Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology).
+
+### FunctionVolatility
+
+**ID**: `data-store.functionvolatility`
+
+FunctionVolatility element in Data Store Layer
+
+
+### Table
+
+**ID**: `data-store.table`
+
+Database table definition
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `schema`: string
+- `tablespace`: string
+- `columns`: array
+  - Contains relationship
+- `constraints`: array
+  - Contains relationship
+- `indexes`: array
+  - Contains relationship
+- `triggers`: array
+  - Contains relationship
+- `x-source-reference`: string
+  - Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology).
 
 ### Function
 
-```yaml
-Function:
-  description: "A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation."
-  attributes:
-    id: string (UUID) [PK]
-    name: string
-    schema: string (optional)
-    language: FunctionLanguage [enum]
-    returnType: string (SQL data type or table type)
-    volatility: FunctionVolatility [enum] (optional)
-    parallel: ParallelSafety [enum] (optional)
-    strict: boolean (optional) # returns NULL if any input is NULL
-    security: SecurityDefiner [enum] (optional)
-    cost: integer (optional) # execution cost estimate
-    rows: integer (optional) # estimated rows returned (for set-returning functions)
-
-  parameters:
-    - name: string
-      type: string (SQL data type)
-      mode: ParameterMode [enum] (optional) # default: IN
-      default: any (optional)
-
-  body: string (function implementation)
-
-  enums:
-    FunctionLanguage:
-      - SQL # Pure SQL function
-      - PLPGSQL # PostgreSQL procedural language
-      - PLPYTHON3U # Python (untrusted)
-      - PLPERL # Perl
-      - PLPYTHON # Python 2 (deprecated)
-      - C # C language extension
-
-    FunctionVolatility:
-      - IMMUTABLE # Always returns same result for same inputs
-      - STABLE # Returns same result within single query
-      - VOLATILE # Can return different results (default)
-
-    ParallelSafety:
-      - UNSAFE # Cannot be used in parallel queries
-      - RESTRICTED # Limited parallel use
-      - SAFE # Can be used in parallel queries
-
-    SecurityDefiner:
-      - INVOKER # Run with caller's privileges (default)
-      - DEFINER # Run with function owner's privileges
-
-    ParameterMode:
-      - IN # Input parameter (default)
-      - OUT # Output parameter
-      - INOUT # Input and output parameter
-      - VARIADIC # Variable number of arguments
-
-  metadata:
-    description: string (purpose of the function)
-    x-business-rule: string (business rule being implemented, optional)
-    x-governed-by-requirements: string[] (Requirement IDs, optional)
-
-  examples:
-    # Timestamp update function (used by trigger)
-    - name: "update_updated_at_column"
-      schema: "public"
-      language: PLPGSQL
-      returnType: TRIGGER
-      volatility: VOLATILE
-      body: |
-        BEGIN
-            NEW.updated_at = CURRENT_TIMESTAMP;
-            RETURN NEW;
-        END;
-      description: "Updates the updated_at column to current timestamp"
-
-    # Business calculation function
-    - name: "calculate_order_total"
-      schema: "sales"
-      language: SQL
-      returnType: DECIMAL(12,2)
-      volatility: STABLE
-      strict: true
-      parameters:
-        - name: order_id
-          type: UUID
-          mode: IN
-      body: |
-        SELECT COALESCE(SUM(quantity * unit_price), 0)
-        FROM order_items
-        WHERE order_id = $1;
-      description: "Calculates the total amount for an order"
-      x-business-rule: "Order total is sum of (quantity * unit_price) for all items"
-
-    # Validation function
-    - name: "is_valid_sku"
-      schema: "catalog"
-      language: SQL
-      returnType: BOOLEAN
-      volatility: IMMUTABLE
-      parallel: SAFE
-      strict: true
-      parameters:
-        - name: sku
-          type: VARCHAR
-          mode: IN
-      body: |
-        SELECT sku ~ '^[A-Z]{2}\d{4}$';
-      description: "Validates SKU format (2 letters + 4 digits)"
-      x-business-rule: "SKU must be exactly 2 uppercase letters followed by 4 digits"
-      x-governed-by-requirements: ["req-sku-format-validation"]
-
-    # Set-returning function
-    - name: "get_low_stock_products"
-      schema: "inventory"
-      language: SQL
-      returnType: TABLE(id UUID, name VARCHAR, sku VARCHAR, stock_quantity INTEGER, shortage INTEGER)
-      volatility: STABLE
-      rows: 100
-      parameters:
-        - name: category_filter
-          type: VARCHAR
-          mode: IN
-          default: "NULL"
-      body: |
-        SELECT id, name, sku, stock_quantity,
-               (reorder_point - stock_quantity) as shortage
-        FROM products
-        WHERE stock_quantity <= reorder_point
-          AND deleted_at IS NULL
-          AND (category_filter IS NULL OR category = category_filter)
-        ORDER BY shortage DESC;
-      description: "Returns products that need reordering, optionally filtered by category"
-      x-business-rule: "Products need reordering when stock <= reorder point"
-
-    # Audit logging function
-    - name: "log_table_changes"
-      schema: "audit"
-      language: PLPGSQL
-      returnType: TRIGGER
-      volatility: VOLATILE
-      security: DEFINER
-      body: |
-        BEGIN
-            INSERT INTO audit.change_log (
-                table_name, operation, old_data, new_data,
-                changed_by, changed_at
-            ) VALUES (
-                TG_TABLE_NAME, TG_OP,
-                row_to_json(OLD), row_to_json(NEW),
-                current_user, CURRENT_TIMESTAMP
-            );
-            RETURN COALESCE(NEW, OLD);
-        END;
-      description: "Generic audit trigger function for logging table changes"
-      x-governed-by-requirements: ["req-audit-trail", "req-data-change-tracking"]
-
-    # JSON transformation function
-    - name: "normalize_product_metadata"
-      schema: "catalog"
-      language: PLPGSQL
-      returnType: JSONB
-      volatility: IMMUTABLE
-      parallel: SAFE
-      strict: true
-      parameters:
-        - name: metadata
-          type: JSONB
-          mode: IN
-      body: |
-        BEGIN
-            RETURN jsonb_strip_nulls(
-                jsonb_build_object(
-                    'weight', (metadata->>'weight')::DECIMAL,
-                    'dimensions', metadata->'dimensions',
-                    'tags', COALESCE(metadata->'tags', '[]'::JSONB)
-                )
-            );
-        END;
-      description: "Normalizes product metadata JSON structure"
-```
-
-## Custom Extensions for Cross-Layer Integration
-
-### x-apm-performance-metrics Extension
-
-This extension links physical tables to operational performance metrics from the APM Layer (Layer 11).
-
-**Type**: `string[]` (Metric IDs from APM Layer, optional)
-
-**Purpose**: Links physical tables to operational performance metrics
-
-**Rationale**:
-
-- Database performance directly impacts user experience and business outcomes
-- Links provide complete traceability from goals through metrics
-- Enables proactive monitoring before performance degrades
-- Supports capacity planning through historical metrics
-
-**Metric Categories**:
-
-- Query Performance: latency (p50, p95, p99), execution plans, slow queries
-- Table Metrics: size, growth rate, vacuum/analyze statistics, bloat
-- Index Health: hit rate, size, unused indexes, bloat
-- Write Performance: insert/update/delete throughput, lock contention
-- Connection Metrics: active connections, transaction duration, deadlocks
-
-**Example Usage** (in table COMMENT):
-
-```sql
-x-apm-performance-metrics: metric-orders-query-latency-p95,metric-orders-write-throughput
-```
-
-**Benefits**:
-
-- Complete traceability: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
-- Proactive monitoring: Alerts before performance degrades to user-impacting levels
-- Capacity planning: Historical trends inform scaling decisions
-- Cost optimization: Identify oversized tables, unused indexes, inefficient queries
-- SLA validation: Prove database layer meets business performance requirements
-
-### x-apm-data-quality-metrics Extension
-
-This extension links physical tables to operational data quality metrics from the APM Layer (Layer 11).
-
-**Type**: `string[]` (Metric IDs from APM Layer, optional)
-
-**Purpose**: Links physical tables to operational data quality metrics
-
-**Rationale**:
-Physical data quality monitoring complements logical schema validation:
-
-- **Logical Layer (07)**: Validates data matches schema contracts (JSON Schema validation, pre-persistence)
-- **Physical Layer (08)**: Monitors database integrity constraints and operational quality (post-persistence)
-
-Both layers are necessary for complete data quality governance.
-
-**Metric Categories**:
-
-- Constraint Violations: CHECK, UNIQUE, NOT NULL failures
-- Referential Integrity: foreign key violations, orphaned records, cascading impacts
-- Data Completeness: null values, missing relationships, incomplete records
-- Data Consistency: duplicate primary keys, type coercion failures, cross-table checks
-- Operational Metrics: daily record counts, anomalies, unexpected modifications
-
-**Example Usage** (in table COMMENT):
-
-```sql
-x-apm-data-quality-metrics: metric-transactions-fk-violation-rate,metric-transactions-amount-check-failures
-```
-
-**Distinction from Layer 07**:
-
-- Layer 07 (logical): Schema validation, format/type/range checks, pre-persistence
-- Layer 08 (physical): Constraint enforcement, post-persistence, cross-record checks, anomaly detection
-
-**Benefits**:
-
-- Database integrity monitoring: Detect constraint violations in real-time
-- Compliance validation: Prove data meets regulatory requirements at database level
-- Anomaly detection: Identify unexpected data patterns (sudden record count changes)
-- Impact analysis: Understand scope of data quality issues
-- Governance reporting: Automated data quality dashboards for auditors
-
-## Complete Example: Product Table
-
-```sql
--- ============================================================
--- Table: products
--- Purpose: Product catalog
--- Schema Source: schemas/product.json
--- x-archimate-ref: data-object-product
--- x-owner: product-team
--- x-retention: 7years
--- x-pii: false
--- ============================================================
-
-CREATE TABLE public.products (
-    -- Primary Key
-    -- x-json-schema-path: $.properties.id
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-
-    -- Basic Information
-    -- x-json-schema-path: $.properties.name
-    name VARCHAR(200) NOT NULL,
-
-    -- x-json-schema-path: $.properties.sku
-    -- Stock Keeping Unit (format: AA1234)
-    sku VARCHAR(10) NOT NULL,
-
-    -- x-json-schema-path: $.properties.description
-    description TEXT,
-
-    -- Pricing
-    -- x-json-schema-path: $.properties.price
-    price DECIMAL(10, 2) NOT NULL CHECK (price >= 0),
-
-    -- x-json-schema-path: $.properties.category
-    category VARCHAR(50) NOT NULL,
-
-    -- Inventory
-    -- x-json-schema-path: $.properties.stockQuantity
-    stock_quantity INTEGER NOT NULL DEFAULT 0 CHECK (stock_quantity >= 0),
-
-    -- x-json-schema-path: $.properties.reorderPoint
-    reorder_point INTEGER NOT NULL DEFAULT 10 CHECK (reorder_point >= 0),
-
-    -- Metadata
-    -- x-json-schema-path: $.properties.tags
-    tags JSONB,
-
-    -- x-json-schema-path: $.properties.images
-    images JSONB,
-
-    -- x-json-schema-path: $.properties.metadata
-    metadata JSONB,
-
-    -- Audit Fields
-    -- x-json-schema-path: $.properties.createdAt
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    -- x-json-schema-path: $.properties.updatedAt
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-
-    -- Soft Delete
-    deleted_at TIMESTAMPTZ
-);
-
--- ============================================================
--- Constraints
--- ============================================================
-
--- Unique SKU
-ALTER TABLE products
-    ADD CONSTRAINT products_sku_unique UNIQUE (sku);
-
--- Valid category values
-ALTER TABLE products
-    ADD CONSTRAINT products_category_check
-    CHECK (category IN ('electronics', 'clothing', 'food', 'books', 'other'));
-
--- ============================================================
--- Indexes
--- ============================================================
-
--- Category index (for filtering)
-CREATE INDEX idx_products_category
-    ON products(category)
-    WHERE deleted_at IS NULL;
-
--- SKU index (already unique, but explicit)
-CREATE UNIQUE INDEX idx_products_sku
-    ON products(sku)
-    WHERE deleted_at IS NULL;
-
--- Name search index (case-insensitive)
-CREATE INDEX idx_products_name_lower
-    ON products(LOWER(name))
-    WHERE deleted_at IS NULL;
-
--- JSON tags index (for tag searches)
-CREATE INDEX idx_products_tags_gin
-    ON products USING GIN(tags)
-    WHERE deleted_at IS NULL;
-
--- Composite index for common queries
-CREATE INDEX idx_products_category_price
-    ON products(category, price DESC)
-    WHERE deleted_at IS NULL;
-
--- Inventory alert index
-CREATE INDEX idx_products_low_stock
-    ON products(category)
-    WHERE stock_quantity <= reorder_point
-      AND deleted_at IS NULL;
-
--- ============================================================
--- Comments (for documentation and metadata)
--- ============================================================
-
-COMMENT ON TABLE products IS
-'Product catalog table.
-x-json-schema: schemas/product.json
-x-archimate-ref: data-object-product
-x-owner: product-team
-x-retention: 7years
-x-pii: false
-x-governed-by-requirements: req-product-data-retention
-x-governed-by-principles: principle-data-owned-by-business,principle-data-quality
-x-apm-performance-metrics: metric-products-query-latency-p95,metric-products-table-size-bytes,metric-products-index-hit-rate,metric-products-write-throughput
-x-apm-data-quality-metrics: metric-products-constraint-violations,metric-products-fk-integrity-rate,metric-products-record-count-daily,metric-products-null-violations';
-
-COMMENT ON COLUMN products.id IS
-'Unique product identifier (UUID).
-x-json-schema-path: $.properties.id';
-
-COMMENT ON COLUMN products.name IS
-'Product name (1-200 characters).
-x-json-schema-path: $.properties.name';
-
-COMMENT ON COLUMN products.sku IS
-'Stock Keeping Unit. Format: AA1234 (2 letters + 4 digits).
-x-json-schema-path: $.properties.sku';
-
-COMMENT ON COLUMN products.price IS
-'Product price in USD. Must be non-negative.
-x-json-schema-path: $.properties.price';
-
-COMMENT ON COLUMN products.tags IS
-'Product tags (JSON array of strings). Max 10 tags.
-x-json-schema-path: $.properties.tags';
-
--- ============================================================
--- Triggers
--- ============================================================
-
--- Update timestamp trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-CREATE TRIGGER products_updated_at
-    BEFORE UPDATE ON products
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
-
--- ============================================================
--- Views
--- ============================================================
-
--- Active products view
-CREATE OR REPLACE VIEW vw_products_active AS
-SELECT id, name, sku, description, price, category,
-       stock_quantity, reorder_point, tags,
-       created_at, updated_at
-FROM products
-WHERE deleted_at IS NULL;
-
-COMMENT ON VIEW vw_products_active IS
-'View of active (non-deleted) products';
-
--- Low stock products view
-CREATE OR REPLACE VIEW vw_products_low_stock AS
-SELECT id, name, sku, category,
-       stock_quantity, reorder_point,
-       (reorder_point - stock_quantity) as shortage
-FROM products
-WHERE stock_quantity <= reorder_point
-  AND deleted_at IS NULL
-ORDER BY shortage DESC;
-
-COMMENT ON VIEW vw_products_low_stock IS
-'Products that need reordering (stock <= reorder point)';
-```
-
-## Migration Management
-
-### Migration Files
-
-```yaml
-MigrationFile:
-  description: "Database migration script"
-  attributes:
-    version: string (timestamp or sequence number)
-    name: string (descriptive name)
-    type: MigrationType
-
-  structure:
-    up: string (SQL to apply migration)
-    down: string (SQL to rollback migration)
-
-  enums:
-    MigrationType:
-      - schema # Schema changes (DDL)
-      - data # Data migrations (DML)
-      - seed # Initial data seeding
-
-  examples:
-    - name: "V001__create_products_table.sql"
-      description: "Create products table"
-    - name: "V002__add_products_category_index.sql"
-      description: "Add category index"
-    - name: "V003__migrate_product_categories.sql"
-      description: "Migrate product categories"
-```
-
-### Migration Tools
-
-```text
-Tools:
-  - Flyway: Java-based migration tool
-  - Liquibase: XML/YAML/SQL migrations
-  - Alembic: Python migrations (SQLAlchemy)
-  - migrate: Go migrations
-  - node-pg-migrate: Node.js/PostgreSQL
-  - Atlas: Modern schema-as-code tool
-
-Naming Convention:
-  V{version}__{description}.sql
-  Examples:
-    - V001__create_products_table.sql
-    - V002__add_products_category_index.sql
-    - V003__migrate_product_categories.sql
-```
-
-## Example Model
-
-The following XML example demonstrates cross-layer integration using ArchiMate-style XML format.
-
-```xml
-<model>
-  <!-- Example Table with cross-layer properties -->
-  <element id="products-table" type="Table">
-    <n>Products Table</n>
-    <documentation>Example demonstrating cross-layer property usage</documentation>
-
-    <!-- Motivation Layer Integration -->
-    <property key="motivation.supports-goals">goal-example</property>
-    <property key="motivation.governed-by-principles">principle-example</property>
-
-    <!-- Security Layer Integration -->
-    <property key="security.classification">internal</property>
-  </element>
-</model>
-```
-
-## Integration Points
-
-**For complete link patterns and validation rules**, see:
-
-- **[Cross-Layer Relationships Guide](../guides/CROSS_LAYER_RELATIONSHIPS.md)** - Clarifies which pattern to use and naming conventions
-- **[Cross-Layer Reference Registry](../core/06-cross-layer-reference-registry.md)** - Complete catalog of all 60+ patterns
-
-The following integration points are defined in the registry with specific patterns and validation requirements.
-
-### To Motivation Layer
-
-- **Table** governed by **Constraint** (x-governed-by-constraints property)
-- **Table** driven by **Requirement** (x-governed-by-requirements property)
-- **Table** guided by **Principle** (x-governed-by-principles property)
-
-### To Data Model Layer (JSON Schema)
-
-- **Table** references **JSON Schema** (x-json-schema property)
-- **Column** references **Schema Path** (x-json-schema-path property)
-
-### To ArchiMate Technology Layer
-
-- **Table** references **Artifact** (x-archimate-ref property)
-
-### To Security Layer
-
-- **Column** has **PII Flag** (x-pii property)
-- **Column** has **Encryption Flag** (x-encrypted property)
-- **Table** has **Retention Policy** (x-retention property)
-- **Table** has **Classification** (x-classification property)
-
-### To APM/Observability Layer
-
-- **Table** monitored by **Performance Metric** (x-apm-performance-metrics property)
-- **Table** tracked for **Query Performance** (metric.query-latency property)
-- **Table** tracked for **Table Growth** (metric.table-size property)
-- **Table** tracked for **Index Health** (metric.index-hit-rate property)
-- **Table** tracked for **Write Performance** (metric.write-throughput property)
-- **Table** monitored by **Data Quality Metric** (x-apm-data-quality-metrics property)
-- **Table** tracked for **Constraint Violations** (metric.constraint-violations property)
-- **Table** tracked for **Referential Integrity** (metric.fk-integrity-rate property)
-- **Table** tracked for **Record Counts** (metric.record-count property)
-- **Table** tracked for **Null Violations** (metric.null-violations property)
-
-## Database-Specific Features
-
-### PostgreSQL Extensions
-
-```sql
--- Enable UUID generation
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-CREATE EXTENSION IF NOT EXISTS "pgcrypto";  -- For gen_random_uuid()
-
--- Full-text search
-CREATE EXTENSION IF NOT EXISTS "pg_trgm";  -- Trigram matching
-CREATE EXTENSION IF NOT EXISTS "unaccent";  -- Remove accents
-
--- Array and JSON operations
--- Built-in, no extension needed
-
--- Row-level security
-ALTER TABLE products ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY products_tenant_isolation ON products
-    USING (tenant_id = current_setting('app.tenant_id')::UUID);
-```
-
-### MySQL/MariaDB Specifics
-
-```sql
--- Storage engine
-CREATE TABLE products (
-    ...
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Full-text index
-CREATE FULLTEXT INDEX idx_products_fulltext
-    ON products(name, description);
-
--- JSON (MySQL 5.7+)
-ALTER TABLE products
-    ADD COLUMN metadata JSON;
-```
-
-## Intra-Layer Relationships
-
-**Purpose**: Define structural and behavioral relationships between entities within this layer.
-
-### Structural Relationships
-
-Relationships that define the composition, aggregation, and specialization of entities within this layer.
-
-| Relationship   | Source Element | Target Element | Predicate     | Inverse Predicate | Cardinality | Description                                                         |
-| -------------- | -------------- | -------------- | ------------- | ----------------- | ----------- | ------------------------------------------------------------------- |
-| Composition    | Database       | DatabaseSchema | `composes`    | `composed-of`     | 1:N         | Database instance contains one or more schemas                      |
-| Composition    | DatabaseSchema | Table          | `composes`    | `composed-of`     | 1:N         | Schema contains tables as physical storage units                    |
-| Composition    | DatabaseSchema | View           | `composes`    | `composed-of`     | 1:N         | Schema contains views as virtual tables                             |
-| Composition    | DatabaseSchema | Function       | `composes`    | `composed-of`     | 1:N         | Schema contains stored functions                                    |
-| Composition    | DatabaseSchema | Sequence       | `composes`    | `composed-of`     | 1:N         | Schema contains sequence generators                                 |
-| Composition    | Table          | Column         | `composes`    | `composed-of`     | 1:N         | Table is composed of columns defining its structure                 |
-| Composition    | Table          | Constraint     | `composes`    | `composed-of`     | 1:N         | Table contains constraints enforcing data integrity                 |
-| Composition    | Table          | Index          | `composes`    | `composed-of`     | 1:N         | Table contains indexes for query optimization                       |
-| Composition    | Table          | Trigger        | `composes`    | `composed-of`     | 1:N         | Table contains triggers for reactive behavior                       |
-| Aggregation    | Database       | DatabaseSchema | `aggregates`  | `aggregated-by`   | 1:N         | Database aggregates multiple schemas for logical organization       |
-| Aggregation    | Index          | Column         | `aggregates`  | `aggregated-by`   | N:N         | Index aggregates one or more columns (composite indexes)            |
-| Aggregation    | Constraint     | Column         | `aggregates`  | `aggregated-by`   | N:N         | Constraint aggregates columns (composite keys, multi-column checks) |
-| Aggregation    | View           | Column         | `aggregates`  | `aggregated-by`   | N:N         | View selects and aggregates columns from source tables              |
-| Specialization | View           | Table          | `specializes` | `generalized-by`  | N:1         | View is a specialized virtual representation of table data          |
-| Specialization | Constraint     | Constraint     | `specializes` | `generalized-by`  | N:1         | Constraint types (PK, FK, UNIQUE, CHECK) specialize base constraint |
-| Specialization | Index          | Index          | `specializes` | `generalized-by`  | N:1         | Index methods (BTREE, HASH, GIN, GIST) specialize base index        |
-| Specialization | Function       | Function       | `specializes` | `generalized-by`  | N:1         | Function types (TRIGGER, SCALAR, TABLE) specialize base function    |
-
-### Behavioral Relationships
-
-Relationships that define interactions, flows, and dependencies between entities within this layer.
-
-| Relationship | Source Element | Target Element | Predicate      | Inverse Predicate | Cardinality | Description                                               |
-| ------------ | -------------- | -------------- | -------------- | ----------------- | ----------- | --------------------------------------------------------- |
-| Reference    | Constraint     | Table          | `references`   | `referenced-by`   | N:1         | Foreign key constraint references target table            |
-| Reference    | Constraint     | Column         | `references`   | `referenced-by`   | N:N         | Foreign key references specific columns in target table   |
-| Reference    | View           | Table          | `references`   | `referenced-by`   | N:N         | View definition queries one or more source tables         |
-| Reference    | View           | View           | `references`   | `referenced-by`   | N:N         | View can query other views (nested views)                 |
-| Reference    | Function       | Table          | `references`   | `referenced-by`   | N:N         | Function body references tables for queries/modifications |
-| Reference    | Function       | View           | `references`   | `referenced-by`   | N:N         | Function can query views                                  |
-| Reference    | Function       | Sequence       | `references`   | `referenced-by`   | N:N         | Function can use sequences for value generation           |
-| Triggering   | Trigger        | Function       | `triggers`     | `triggered-by`    | N:1         | Trigger executes specified function on event              |
-| Serving      | Sequence       | Column         | `serves`       | `served-by`       | N:1         | Sequence serves column by generating default values       |
-| Serving      | Index          | Table          | `serves`       | `served-by`       | N:1         | Index serves table by optimizing query performance        |
-| Serving      | Function       | Trigger        | `serves`       | `served-by`       | 1:N         | Function serves as trigger handler                        |
-| Access       | Index          | Column         | `accesses`     | `accessed-by`     | N:N         | Index provides fast access to indexed columns             |
-| Access       | View           | Column         | `accesses`     | `accessed-by`     | N:N         | View accesses columns from source tables                  |
-| Access       | Function       | Column         | `accesses`     | `accessed-by`     | N:N         | Function accesses table columns for read/write operations |
-| Depends-On   | View           | Table          | `depends-on`   | `dependency-of`   | N:N         | View depends on underlying tables for data                |
-| Depends-On   | View           | View           | `depends-on`   | `dependency-of`   | N:N         | Nested view depends on source views                       |
-| Depends-On   | Trigger        | Table          | `depends-on`   | `dependency-of`   | N:1         | Trigger depends on table for event source                 |
-| Depends-On   | Function       | Function       | `depends-on`   | `dependency-of`   | N:N         | Function can depend on other functions                    |
-| Depends-On   | Constraint     | Sequence       | `depends-on`   | `dependency-of`   | N:1         | Serial/identity column constraint depends on sequence     |
-| Derives-From | Column         | Column         | `derives-from` | `derived-by`      | N:N         | Generated column derives value from source columns        |
-| Derives-From | View           | Table          | `derives-from` | `derived-by`      | N:N         | Materialized view derives data from source tables         |
-
----
-
-## Cross-Layer Relationships
-
-**Purpose**: Define semantic links to entities in other layers, supporting traceability, governance, and architectural alignment.
-
-### Outgoing Relationships (This Layer → Other Layers)
-
-Links from entities in this layer to entities in other layers.
-
-#### To Motivation Layer (01)
-
-Links to strategic goals, requirements, principles, and constraints.
-
-| Predicate                | Source Element | Target Element | Field Path                          | Strength | Required | Examples |
-| ------------------------ | -------------- | -------------- | ----------------------------------- | -------- | -------- | -------- |
-| `supports-goals`         | (TBD)          | Goal           | `motivation.supports-goals`         | High     | No       | (TBD)    |
-| `fulfills-requirements`  | (TBD)          | Requirement    | `motivation.fulfills-requirements`  | High     | No       | (TBD)    |
-| `governed-by-principles` | (TBD)          | Principle      | `motivation.governed-by-principles` | High     | No       | (TBD)    |
-| `constrained-by`         | (TBD)          | Constraint     | `motivation.constrained-by`         | Medium   | No       | (TBD)    |
-
-### Incoming Relationships (Other Layers → This Layer)
-
-Links from entities in other layers to entities in this layer.
-
-(To be documented based on actual usage patterns)
-
----
-
-## Validation Rules
-
-### Entity Validation
-
-- **Required Fields**: `id`, `name`, `description`
-- **ID Format**: UUID v4 or kebab-case string
-- **Name**: Non-empty string, max 200 characters
-- **Description**: Non-empty string, max 1000 characters
-
-### Relationship Validation
-
-#### Intra-Layer Relationships
-
-- **Valid Types**: Composition, Aggregation, Specialization, Triggering, Flow, Access, Serving, Assignment
-- **Source Validation**: Must reference existing entity in this layer
-- **Target Validation**: Must reference existing entity in this layer
-- **Cardinality**: Enforced based on relationship type
-
-#### Cross-Layer Relationships
-
-- **Target Existence**: Referenced entities must exist in target layer
-- **Target Type**: Must match allowed target element types
-- **Cardinality**:
-  - Array fields: Multiple references allowed
-  - Single fields: One reference only
-- **Format Validation**:
-  - UUID fields: Valid UUID v4 format
-  - ID fields: Valid identifier format
-  - Enum fields: Must match allowed values
-
-### Schema Validation
-
-All entities must validate against the layer schema file in `spec/schemas/`.
-
----
-
-## Best Practices
-
-### Core Database Practices
-
-1. **Use Migrations**: Never edit schema directly, always through migrations
-2. **Version Control**: All DDL in git
-3. **Naming Conventions**: Consistent naming (snake_case for PostgreSQL)
-4. **Constraints**: Use database constraints for data integrity
-5. **Indexes**: Index foreign keys and frequently queried columns
-6. **Comments**: Document tables and columns extensively
-7. **Soft Deletes**: Use deleted_at for audit trail
-8. **Timestamps**: Always include created_at and updated_at
-9. **Primary Keys**: Use UUID or BIGSERIAL for distributed systems
-10. **Foreign Keys**: Always define for referential integrity
-11. **Check Constraints**: Enforce business rules at database level
-12. **Partial Indexes**: Use WHERE clause for filtered indexes
-13. **Covering Indexes**: Include frequently accessed columns
-
-### Cross-Layer Integration Practices
-
-1. **Metadata Links**: Use COMMENT to link tables to other layers (schemas, architecture, governance)
-2. **Motivation References**: Link tables to Principles, Requirements, and Constraints that govern their design
-3. **Schema Alignment**: Maintain x-json-schema references to ensure database matches logical data model
-4. **Security Metadata**: Document PII, encryption, and retention requirements at table level
-
-### APM/Observability Integration Practices
-
-1. **Performance Monitoring**: Link tables to performance metrics using x-apm-performance-metrics
-2. **Critical Tables First**: Prioritize APM metric links for high-traffic and customer-facing tables
-3. **Quality Monitoring**: Link tables to data quality metrics using x-apm-data-quality-metrics
-4. **SLA Traceability**: Ensure performance metrics link back to business goals and SLA requirements
-5. **Comprehensive Metrics**: Include query performance, table growth, index health, and constraint violations
-6. **Alert Configuration**: Use metric references to configure proactive alerts before issues impact users
-7. **Capacity Planning**: Track table growth and query performance metrics for scaling decisions
-8. **Data Integrity**: Monitor constraint violations and referential integrity at the database layer
-9. **Anomaly Detection**: Track daily record counts to detect unexpected data changes
-10. **Complete Chain**: Maintain Goal → Requirement → Schema → Table → Metric → Outcome traceability
-
-### Metric Selection Guidelines
-
-1. **Transactional Tables**: Focus on query latency (p95, p99), write throughput, lock contention
-2. **Analytical Tables**: Focus on table growth, sequential scans, partition health, vacuum duration
-3. **Master Data Tables**: Focus on data quality (duplicates, nulls, referential integrity)
-4. **High-Traffic Tables**: Include connection pool metrics, cache hit rates, deadlock frequency
-5. **Compliance-Critical Tables**: Emphasize constraint violations, audit trail completeness, retention compliance
-
-## Validation
-
-### Schema Validation
-
-```yaml
-Tools:
-  - pg_dump: Export schema for comparison
-  - migra: Schema diff tool
-  - sqlfluff: SQL linter
-  - dbdocs: Generate documentation
-  - SchemaSpy: Schema visualization
-
-Core Checks:
-  - Foreign key integrity
-  - Index coverage
-  - Naming conventions
-  - Missing indexes on foreign keys
-  - Redundant indexes
-  - Large varchar columns
-  - Missing constraints
-  - Missing timestamps
-
-Cross-Layer Reference Validation:
-  - x-json-schema paths reference valid JSON Schema files
-  - x-archimate-ref references valid ArchiMate Artifact elements
-  - x-governed-by-requirements references valid Requirement IDs (if provided)
-  - x-governed-by-principles references valid Principle IDs (if provided)
-  - x-governed-by-constraints references valid Constraint IDs (if provided)
-  - x-apm-performance-metrics references valid Metric IDs from APM Layer (if provided)
-  - x-apm-data-quality-metrics references valid Metric IDs from APM Layer (if provided)
-
-Completeness Checks:
-  - High-traffic tables should have x-apm-performance-metrics defined
-  - Tables with business-critical data should have x-apm-data-quality-metrics defined
-  - Tables containing PII should have x-pii: true and appropriate retention policies
-  - Tables should reference JSON Schema for data model alignment
-  - Tables with compliance requirements should reference governing Constraints
-```
-
-## Performance Considerations
-
-```yaml
-Indexes:
-  - Index foreign keys
-  - Composite indexes for multi-column queries
-  - Partial indexes for filtered queries
-  - Covering indexes for read-heavy queries
-  - GIN/GIST for JSON, arrays, full-text
-
-Partitioning:
-  - Range partitioning (by date)
-  - List partitioning (by category)
-  - Hash partitioning (for even distribution)
-
-Materialized Views:
-  - Pre-compute complex aggregations
-  - Refresh on schedule
-  - Index materialized views
-
-Connection Pooling:
-  - PgBouncer, pgpool-II
-  - Application-level pooling
-```
-
-## Rationale for APM Integration
-
-### Why Database Tables Need Performance Metrics
-
-**Problem**: Database performance directly impacts user experience and business outcomes, but without explicit links to metrics, monitoring is ad-hoc and reactive.
-
-**Solution**: `x-apm-performance-metrics` provides structured links from tables to operational performance metrics.
-
-**Industry Precedent**:
-
-- **APM Tools**: Datadog, New Relic, Dynatrace all link database metrics to specific tables/queries
-- **Database Monitoring**: PostgreSQL extensions (pg_stat_statements), MySQL Performance Schema
-- **Cloud Platforms**: AWS RDS Performance Insights, Azure SQL Insights, Google Cloud SQL Insights
-- **Observability Standards**: OpenTelemetry database semantic conventions link traces to database operations
-
-**Benefits**:
-
-- ✅ **Complete Traceability**: Goal → Requirement → Schema → Table → Performance Metric → SLA Validation
-- ✅ **Proactive Monitoring**: Alert before performance degrades to user-impacting levels
-- ✅ **Capacity Planning**: Historical trends inform scaling decisions (table growth, query patterns)
-- ✅ **Cost Optimization**: Identify oversized tables, unused indexes, inefficient queries
-- ✅ **SLA Validation**: Prove database layer meets business performance requirements
-- ✅ **Impact Analysis**: Understand which business goals are at risk when table performance degrades
-
-**Example Traceability Chain**:
-
-```yaml
-# Motivation Layer (01)
-Goal:
-  id: "goal-fast-product-search"
-  name: "Product search results in under 100ms"
-  kpi: "p95 search latency < 100ms"
-
-Requirement:
-  id: "req-product-query-performance"
-  name: "Product queries must return in under 100ms at p95"
-  requirementType: "non-functional"
-
-# Data Model Layer (07)
-JSONSchema:
-  $id: "schemas/product.json"
-  x-data-governance:
-    governedBy:
-      requirementRefs: ["req-product-query-performance"]
-
-# Datastore Layer (08)
-Table: products
-  x-json-schema: "schemas/product.json"
-  x-governed-by-requirements: ["req-product-query-performance"]
-  x-apm-performance-metrics: ["metric-products-query-latency-p95"]
-
-# APM Layer (11)
-Metric:
-  id: "metric-products-query-latency-p95"
-  name: "products.query.latency.p95"
-  type: "gauge"
-  unit: "milliseconds"
-  motivationMapping:
-    contributesToGoal: "goal-fast-product-search"
-    measuresRequirement: "req-product-query-performance"
-    target: "100ms"
-
-# Result: Complete validation chain
-# "Are we achieving fast product search?" → Query metric → 85ms actual → YES ✅
-```
-
-### Why Database Tables Need Data Quality Metrics
-
-**Problem**: Data quality issues at the database level (constraint violations, referential integrity failures) are often discovered too late, after they impact applications or users.
-
-**Solution**: `x-apm-data-quality-metrics` provides structured links from tables to operational data quality metrics.
-
-**Distinction from Data Model Layer (07)**:
-
-```yaml
-Data Model Layer (07) - Logical Quality:
-  - Schema validation (JSON Schema)
-  - Application-level validation
-  - Pre-persistence validation
-  - Format, type, range checks
-
-Datastore Layer (08) - Physical Quality:
-  - Database constraint enforcement
-  - Post-persistence validation
-  - Cross-record integrity checks
-  - Operational anomaly detection
-```
-
-**Both layers are necessary**:
-
-- Layer 07 prevents bad data from being written
-- Layer 08 detects when bad data was written anyway (bugs, direct DB access, migrations)
-
-**Industry Precedent**:
-
-- **Data Quality Tools**: Great Expectations, Soda Core, dbt tests all define checks at table level
-- **Cloud Platforms**: AWS Glue Data Quality, Azure Purview, Google Cloud Data Quality
-- **Data Catalogs**: Collibra, Alation link data quality metrics to physical tables
-- **Standards**: DAMA DMBOK, ISO 8000 define data quality at both logical and physical levels
-
-**Benefits**:
-
-- ✅ **Database Integrity Monitoring**: Detect constraint violations in real-time
-- ✅ **Compliance Validation**: Prove data meets regulatory requirements at database level
-- ✅ **Anomaly Detection**: Identify unexpected data patterns (sudden record count spikes/drops)
-- ✅ **Impact Analysis**: Understand scope of data quality issues across tables
-- ✅ **Governance Reporting**: Automated data quality dashboards for auditors and compliance officers
-- ✅ **Operational Safety**: Alert when database constraints are being violated by application bugs
-
-**Example Use Cases**:
-
-```yaml
-# Financial System - Constraint Monitoring
-Table: transactions
-  x-apm-data-quality-metrics:
-    - "metric-transactions-amount-check-constraint-failures"
-    - "metric-transactions-fk-violation-rate"
-    - "metric-transactions-duplicate-detection"
-
-# Catches issues like:
-# - Negative transaction amounts (CHECK constraint violations)
-# - References to deleted customers (foreign key violations)
-# - Duplicate transaction IDs (UNIQUE constraint violations)
-
-# Customer MDM - Master Data Quality
-Table: customers
-  x-apm-data-quality-metrics:
-    - "metric-customers-email-null-rate"
-    - "metric-customers-duplicate-email-detection"
-    - "metric-customers-referential-integrity-rate"
-    - "metric-customers-record-count-anomaly"
-
-# Catches issues like:
-# - Required emails missing (NULL in NOT NULL columns)
-# - Multiple customers with same email (business rule violations)
-# - Orphaned address records (referential integrity)
-# - Sudden customer record purges (anomaly detection)
-```
-
-### Symmetric Design Across Layers
-
-The APM integration follows a **symmetric pattern** across abstraction levels:
-
-```yaml
-Layer 07 (Data Model - Logical):
-  x-apm-data-quality-metrics:
-    - Completeness (field population rates)
-    - Accuracy (validation success rates)
-    - Consistency (cross-field validation)
-    - Freshness (data age/staleness)
-
-Layer 08 (Datastore - Physical):
-  x-apm-performance-metrics:
-    - Query performance (latency, throughput)
-    - Table health (size, growth, bloat)
-    - Index effectiveness (hit rate, usage)
-
-  x-apm-data-quality-metrics:
-    - Constraint violations (CHECK, UNIQUE, NOT NULL)
-    - Referential integrity (FK violations)
-    - Operational anomalies (record count changes)
-```
-
-This provides **complete observability** from logical data contracts through physical database operations.
-
-## Benefits Summary
-
-### For Database Administrators
-
-- **Performance Monitoring**: Direct links from tables to key performance metrics
-- **Proactive Alerts**: Alert on query slowness, table bloat, index inefficiency before users complain
-- **Capacity Planning**: Track table growth trends, predict storage needs
-- **Quality Assurance**: Monitor constraint violations, detect data integrity issues
-
-### For Data Engineers
-
-- **Data Quality**: Observable data quality at the physical layer
-- **Impact Analysis**: Understand which business goals depend on table performance
-- **Migration Safety**: Track performance impact of schema changes
-- **Governance**: Prove compliance with data quality requirements
-
-### For Business Stakeholders
-
-- **Goal Validation**: Measure achievement of performance and quality goals
-- **SLA Compliance**: Verify database meets business performance commitments
-- **Risk Visibility**: Understand business impact of database issues
-- **ROI Measurement**: Link database investments to business outcomes
-
-### For Compliance Officers
-
-- **Regulatory Compliance**: Automated monitoring of data retention, integrity, quality
-- **Audit Readiness**: Complete audit trail of data quality metrics
-- **Risk Management**: Early detection of compliance violations (constraint failures)
-- **Reporting**: Automated compliance dashboards with database-level evidence
-
-## Implementation Examples
-
-### High-Traffic E-Commerce Products Table
-
-```sql
-COMMENT ON TABLE products IS
-'Product catalog table with comprehensive APM integration.
-x-json-schema: schemas/product.json
-x-archimate-ref: data-object-product
-x-governed-by-requirements: req-product-search-performance,req-product-data-quality
-x-governed-by-principles: principle-performance-first,principle-data-integrity
-x-apm-performance-metrics: metric-products-query-p95,metric-products-query-p99,metric-products-write-throughput,metric-products-table-size,metric-products-index-hit-rate,metric-products-cache-hit-rate
-x-apm-data-quality-metrics: metric-products-constraint-violations,metric-products-fk-integrity,metric-products-sku-uniqueness,metric-products-price-validation-failures,metric-products-record-count-daily';
-```
-
-### Financial Transactions Table
-
-```sql
-COMMENT ON TABLE transactions IS
-'Financial transaction records with strict quality monitoring.
-x-json-schema: schemas/transaction.json
-x-archimate-ref: data-object-transaction
-x-governed-by-constraints: constraint-sox-compliance,constraint-financial-audit-requirements
-x-governed-by-requirements: req-transaction-immutability,req-transaction-audit-trail
-x-apm-performance-metrics: metric-transactions-write-latency-p99,metric-transactions-table-growth-rate
-x-apm-data-quality-metrics: metric-transactions-amount-check-violations,metric-transactions-fk-violations,metric-transactions-duplicate-prevention,metric-transactions-daily-count-anomaly,metric-transactions-negative-amount-detection';
-```
-
-### Customer Master Data Table
-
-```sql
-COMMENT ON TABLE customers IS
-'Customer master data with data quality focus.
-x-json-schema: schemas/customer.json
-x-archimate-ref: data-object-customer
-x-governed-by-constraints: constraint-gdpr-compliance,constraint-customer-data-quality-sla
-x-governed-by-principles: principle-single-source-of-truth,principle-data-quality-first
-x-apm-performance-metrics: metric-customers-query-p95,metric-customers-table-size
-x-apm-data-quality-metrics: metric-customers-email-completeness,metric-customers-email-validity,metric-customers-duplicate-detection,metric-customers-phone-format-validity,metric-customers-address-completeness,metric-customers-referential-integrity,metric-customers-record-count-stability';
-```
-
-This Data Store Layer provides a comprehensive approach to physical database design, leveraging standard SQL with minimal extensions for metadata and cross-layer integration, now enhanced with complete APM/observability integration for performance monitoring and data quality assurance.
+**ID**: `data-store.function`
+
+A stored database function that encapsulates reusable computation logic. Returns a value and can be used in SQL expressions for data transformation or validation.
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `schema`: string
+- `language`: string (required)
+- `returnType`: string (required)
+- `volatility`: string
+- `parallel`: string
+- `strict`: boolean
+- `security`: string
+- `cost`: integer
+- `rows`: integer
+- `x-source-reference`: string
+  - Source code reference using OpenAPI x- extension pattern. This pattern is used for OpenAPI-style layers (API, Data Model, Datastore) to maintain compatibility with OpenAPI tooling, as opposed to the nested properties.source.reference pattern used in ArchiMate-style layers (Application, Technology).
+
+### DatabaseType
+
+**ID**: `data-store.databasetype`
+
+DatabaseType element in Data Store Layer
+
+
+### Sequence
+
+**ID**: `data-store.sequence`
+
+A database sequence generator that produces unique, ordered numeric values. Used for generating primary keys, order numbers, or other sequential identifiers.
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `schema`: string
+- `dataType`: string
+- `startValue`: integer
+- `increment`: integer
+- `minValue`: integer
+- `maxValue`: integer
+- `cycle`: boolean
+- `cache`: integer
+- `ownedBy`: string
+
+### Index
+
+**ID**: `data-store.index`
+
+Database index for query optimization
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `columns`: string
+- `unique`: boolean
+- `method`: string
+- `where`: string
+- `include`: string
+
+### ReferentialAction
+
+**ID**: `data-store.referentialaction`
+
+ReferentialAction element in Data Store Layer
+
+
+### GenerationType
+
+**ID**: `data-store.generationtype`
+
+GenerationType element in Data Store Layer
+
+
+### SequenceDataType
+
+**ID**: `data-store.sequencedatatype`
+
+SequenceDataType element in Data Store Layer
+
+
+### Constraint
+
+**ID**: `data-store.constraint`
+
+Table constraint
+
+**Attributes**:
+
+- `id`: string (uuid) (required)
+- `name`: string (required)
+- `type`: string (required)
+
+
+## References
+
+- [SQL 2016 2016](https://en.wikipedia.org/wiki/SQL:2016)

@@ -1,0 +1,46 @@
+name: Validate Documentation
+
+on:
+  pull_request:
+    paths:
+      - 'spec/schemas/base/**'
+      - 'spec/schemas/*.schema.json'
+      - 'spec/layers/*.layer.json'
+      - 'spec/nodes/**/*.node.json'
+      - 'scripts/generate-layer-docs.ts'
+
+jobs:
+  validate-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: cd cli && bun install
+
+      - name: Generate documentation
+        run: cd cli && bun run ../scripts/generate-layer-docs.ts --output ../spec/layers/
+
+      - name: Check for changes
+        run: |
+          git diff --exit-code spec/layers/
+          if [ $? -ne 0 ]; then
+            echo "❌ Documentation is out of sync with schemas."
+            echo ""
+            echo "Documentation files are auto-generated from specification instances."
+            echo "To fix this, run:"
+            echo ""
+            echo "  cd cli && bun run ../scripts/generate-layer-docs.ts --output ../spec/layers/"
+            echo ""
+            echo "Then commit the updated files."
+            exit 1
+          fi
+
+      - name: Documentation validation successful
+        if: success()
+        run: echo "✅ Documentation is in sync with schemas"
