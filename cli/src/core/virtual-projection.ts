@@ -12,6 +12,7 @@ import type { Model } from './model.js';
 import type { Layer } from './layer.js';
 import type { Element } from './element.js';
 import type { Manifest } from './manifest.js';
+import type { GraphNode } from './graph-model.js';
 import { Layer as LayerClass } from './layer.js';
 import { Element as ElementClass } from './element.js';
 import type { StagedChange, Change } from './changeset.js';
@@ -289,7 +290,7 @@ export class VirtualProjectionEngine {
         case 'update':
           if (change.after) {
             // Use updateNode on the graph to persist changes
-            const updates: Record<string, unknown> = {};
+            const updates: Partial<GraphNode> = {};
 
             if (typeof change.after.name === 'string') {
               updates.name = change.after.name;
@@ -309,7 +310,7 @@ export class VirtualProjectionEngine {
               const existing = projectedLayer.getElement(change.elementId);
               const existingProps = existing?.properties || {};
 
-              updates.properties = {
+              const mergedProperties: Record<string, unknown> = {
                 ...existingProps,
                 ...(change.after.properties || {}),
               };
@@ -317,12 +318,14 @@ export class VirtualProjectionEngine {
               // Wrap references and relationships in the correct property keys
               // to match how layer.ts stores them
               if (Array.isArray(change.after.references)) {
-                updates.properties['__references__'] = change.after.references;
+                mergedProperties['__references__'] = change.after.references;
               }
 
               if (Array.isArray(change.after.relationships)) {
-                updates.properties['__relationships__'] = change.after.relationships;
+                mergedProperties['__relationships__'] = change.after.relationships;
               }
+
+              updates.properties = mergedProperties;
             }
 
             if (Object.keys(updates).length > 0) {
