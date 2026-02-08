@@ -76,11 +76,11 @@ repos:
         files: ^spec/layers/.*\.md$
         pass_filenames: false
 
-      - id: validate-link-registry
-        name: Validate link registry is synchronized
-        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --relationships --all --no-output'
+      - id: validate-relationship-catalog
+        name: Validate relationship catalog schema
+        entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --schemas --no-output'
         language: system
-        files: ^(spec/layers/.*\.md|spec/schemas/link-registry\.json)$
+        files: ^spec/schemas/relationship-catalog\.json$
         pass_filenames: false
 
 # Exclude patterns

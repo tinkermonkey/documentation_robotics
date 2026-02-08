@@ -15,3 +15,13 @@
 
 **Errors**: 0
 **Warnings**: 0
+
+## Relationships Validation
+
+**Errors**: 0
+**Warnings**: 0
+
+## Structure Validation
+
+**Errors**: 0
+**Warnings**: 0
