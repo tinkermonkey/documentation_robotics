@@ -116,36 +116,6 @@ describe("Validator", () => {
     expect(result.errors.some((e) => e.message.includes("Broken reference"))).toBe(true);
   });
 
-  it("should detect semantic validation errors (duplicates)", async () => {
-    const validator = new Validator();
-    const model = createTestModel();
-
-    // Create layers with duplicate IDs
-    const layer1 = new Layer("motivation", [
-      new Element({
-        id: "motivation.goal.duplicate-id",
-        type: "Goal",
-        name: "Goal 1",
-      }),
-    ]);
-
-    const layer2 = new Layer("business", [
-      new Element({
-        id: "motivation.goal.duplicate-id",
-        type: "Process",
-        name: "Process 1",
-      }),
-    ]);
-
-    model.addLayer(layer1);
-    model.addLayer(layer2);
-
-    const result = await validator.validateModel(model);
-
-    expect(result.isValid()).toBe(false);
-    expect(result.errors.some((e) => e.message.includes("Duplicate"))).toBe(true);
-  });
-
   it("should merge validation results with proper prefixes", async () => {
     const validator = new Validator();
     const model = createTestModel();
@@ -171,7 +141,7 @@ describe("Validator", () => {
     const validator = new Validator();
     const model = createTestModel();
 
-    // Create layer with multiple issues
+    // Create layer with multiple issues (naming error and reference error)
     const layer = new Layer("motivation", [
       new Element({
         id: "INVALID_ID", // naming error
@@ -181,23 +151,9 @@ describe("Validator", () => {
           { source: "INVALID_ID", target: "business.process.nonexistent", type: "implements" },
         ], // reference error
       }),
-      new Element({
-        id: "motivation.goal.duplicate-id",
-        type: "Goal",
-        name: "Test 2",
-      }),
-    ]);
-
-    const businessLayer = new Layer("business", [
-      new Element({
-        id: "motivation.goal.duplicate-id", // semantic error (duplicate)
-        type: "Process",
-        name: "Process",
-      }),
     ]);
 
     model.addLayer(layer);
-    model.addLayer(businessLayer);
 
     const result = await validator.validateModel(model);
 

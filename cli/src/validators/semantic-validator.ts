@@ -60,32 +60,9 @@ export class SemanticValidator {
 
     await this.ensureCatalogLoaded();
 
-    this.validateUniqueIds(model, result);
     this.validateRelationshipPredicates(model, result);
 
     return result;
-  }
-
-  /**
-   * Validate that all element IDs are unique across layers
-   */
-  private validateUniqueIds(model: Model, result: ValidationResult): void {
-    const seenIds = new Map<string, string>(); // id -> layer name
-
-    for (const [layerName, layer] of model.layers) {
-      for (const element of layer.listElements()) {
-        if (seenIds.has(element.id)) {
-          result.addError({
-            layer: layerName,
-            elementId: element.id,
-            message: `Duplicate element ID: '${element.id}' already exists in layer '${seenIds.get(element.id)}'`,
-            fixSuggestion: "Element IDs must be unique across all layers",
-          });
-        } else {
-          seenIds.set(element.id, layerName);
-        }
-      }
-    }
   }
 
   /**

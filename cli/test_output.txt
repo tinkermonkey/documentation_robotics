@@ -1,0 +1,897 @@
+
+> @documentation-robotics/cli@0.1.0 test
+> bun test --concurrent ./tests/unit/core/ ./tests/unit/validators/ ./tests/unit/telemetry/ ./tests/unit/utils/ ./tests/unit/coding-agents/ ./tests/unit/integrations/ ./tests/compatibility/ --test-name-pattern '^(?!BaseIntegrationManager)' ; bun test tests/unit/chat/*.test.ts tests/integration/**/*.test.ts tests/unit/validators/semantic-validator.test.ts
+
+bun test v1.3.5 (1e86cebd)
+
+tests/unit/core/model.test.ts:
+(pass) Model > should create a model with manifest [1.00ms]
+(pass) Model > should create a model with lazy loading enabled
+(pass) Model > should add layers to model
+(pass) Model > should get layer by name
+(pass) Model > should return undefined for nonexistent layer
+(pass) Model > should throw error when saving nonexistent layer [1.00ms]
+(pass) Model > should get layer names
+
+tests/unit/core/staged-changeset.test.ts:
+(pass) Staged Changeset Data Model > Changeset with extended fields > should support new status values
+(pass) Staged Changeset Data Model > Changeset with extended fields > should serialize and deserialize with extended fields
+(pass) Staged Changeset Data Model > Changeset with extended fields > should compute stats automatically from changes
+(pass) BaseSnapshotManager > should capture snapshot hash
+(pass) BaseSnapshotManager > should produce consistent snapshot hash
+(pass) BaseSnapshotManager > should detect no drift for identical models [1.00ms]
+(pass) BaseSnapshotManager > should detect drift after model changes
+(pass) BaseSnapshotManager > should compare snapshots
+(pass) StagedChangesetStorage > should return null for non-existent changeset [8.00ms]
+(pass) StagedChangesetStorage > should throw error when deleting non-existent changeset [8.00ms]
+(pass) StagedChangesetStorage > should create changeset with YAML files [9.00ms]
+(pass) StagedChangesetStorage > should load changeset from YAML files [22.00ms]
+(pass) StagedChangesetStorage > should save changeset with updates [26.00ms]
+(pass) StagedChangesetStorage > should delete changeset [26.00ms]
+(pass) StagedChangesetStorage > should list all changesets [31.00ms]
+(pass) StagedChangesetStorage > should add change to changeset [31.00ms]
+(pass) StagedChangesetStorage > should remove change from changeset [35.00ms]
+
+tests/unit/core/layer.test.ts:
+(pass) Layer > should create an empty layer [1.00ms]
+(pass) Layer > should create a layer with initial elements
+(pass) Layer > should add elements to layer and mark as dirty
+(pass) Layer > should get element by ID
+(pass) Layer > should delete element by ID
+(pass) Layer > should return false when deleting nonexistent element
+(pass) Layer > should track dirty state correctly
+(pass) Layer > should serialize to JSON
+(pass) Layer > should deserialize from JSON [1.00ms]
+(pass) Layer > should list all elements
+(pass) Layer > should cache elements getter results
+(pass) Layer > should invalidate elements cache when graph changes
+(pass) Layer > should return correct element references and relationships from elements getter
+(pass) Layer > should preserve references and relationships through update
+
+tests/unit/core/element.test.ts:
+(pass) Element > should create an element with required fields
+(pass) Element > should create an element with all fields
+(pass) Element > should initialize empty properties, references, and relationships
+(pass) Element > should get and set properties
+(pass) Element > should handle array properties
+(pass) Element > should return empty array for non-existent array property
+(pass) Element > should serialize to JSON with optional fields omitted
+(pass) Element > should serialize to JSON with optional fields included [1.00ms]
+(pass) Element > should return correct toString representation
+
+tests/unit/core/changeset-id-validation.test.ts:
+(pass) Changeset ID Validation > unstage operation validation > should reject empty changeset ID [284.00ms]
+(pass) Changeset ID Validation > stage operation validation > should reject changeset ID with parent directory traversal [284.00ms]
+(pass) Changeset ID Validation > stage operation validation > should reject empty changeset ID [284.00ms]
+(pass) Changeset ID Validation > unstage operation validation > should reject changeset ID with path traversal [285.00ms]
+(pass) Changeset ID Validation > commit operation validation > should reject empty changeset ID [285.00ms]
+(pass) Changeset ID Validation > stage operation validation > should reject whitespace-only changeset ID [285.00ms]
+(pass) Changeset ID Validation > captureBaseSnapshot operation validation > should reject empty changeset ID [285.00ms]
+(pass) Changeset ID Validation > stage operation validation > should reject changeset ID with invalid special characters [285.00ms]
+(pass) Changeset ID Validation > isActive operation validation > should reject empty changeset ID [285.00ms]
+(pass) Changeset ID Validation > captureBaseSnapshot operation validation > should reject changeset ID with invalid characters [285.00ms]
+(pass) Changeset ID Validation > isActive operation validation > should reject changeset ID with path traversal [285.00ms]
+(pass) Changeset ID Validation > detectDrift operation validation > should reject changeset ID with path traversal [287.00ms]
+(pass) Changeset ID Validation > discard operation validation > should reject empty changeset ID [287.00ms]
+(pass) Changeset ID Validation > commit operation validation > should reject changeset ID with special characters [287.00ms]
+(pass) Changeset ID Validation > unstage operation validation > should reject changeset ID with special characters [287.00ms]
+(pass) Changeset ID Validation > discard operation validation > should reject changeset ID with path traversal [287.00ms]
+(pass) Changeset ID Validation > stage operation validation > should accept valid changeset ID with hyphens and underscores [288.00ms]
+(pass) Changeset ID Validation > stage operation validation > should reject changeset ID with path separators [290.00ms]
+(pass) Changeset ID Validation > detectDrift operation validation > should reject empty changeset ID [290.00ms]
+(pass) Changeset ID Validation > stage operation validation > should accept valid alphanumeric changeset ID [290.00ms]
+(pass) Changeset ID Validation > edge cases > should reject null changeset ID [109.00ms]
+(pass) Changeset ID Validation > edge cases > should reject undefined changeset ID [109.00ms]
+(pass) Changeset ID Validation > setActive operation validation > should reject changeset ID with special characters [110.00ms]
+(pass) Changeset ID Validation > setActive operation validation > should reject empty changeset ID [110.00ms]
+(pass) Changeset ID Validation > edge cases > should reject numeric changeset ID [109.00ms]
+(pass) Changeset ID Validation > validation error messages > should provide clear error message for path traversal attempts [110.00ms]
+(pass) Changeset ID Validation > validation error messages > should provide clear error message for special characters [110.00ms]
+(pass) Changeset ID Validation > edge cases > should normalize mixed case in changeset ID (sanitizeId handles) [110.00ms]
+
+tests/unit/core/projection-engine-compat.test.ts:
+(pass) PropertyTransform - Transformations > uppercase > should convert to uppercase
+(pass) PropertyTransform - Transformations > lowercase > should convert to lowercase
+(pass) PropertyTransform - Transformations > kebab > should convert to kebab-case
+(pass) PropertyTransform - Transformations > snake > should convert to snake_case [1.00ms]
+(pass) PropertyTransform - Transformations > pascal > should convert to PascalCase
+(pass) PropertyTransform - Transformations > prefix > should add prefix
+(pass) PropertyTransform - Transformations > suffix > should add suffix
+(pass) PropertyTransform - Transformations > template > should use template format
+(pass) PropertyTransform - Transformations > edge cases > should handle null values
+(pass) PropertyTransform - Transformations > edge cases > should convert numbers to strings
+(pass) ProjectionCondition - Operators > exists > should check if field exists
+(pass) ProjectionCondition - Operators > equals > should check equality
+(pass) ProjectionCondition - Operators > not_equals > should check inequality
+(pass) ProjectionCondition - Operators > contains > should check if value contains substring
+(pass) ProjectionCondition - Operators > matches > should check regex pattern
+(pass) ProjectionCondition - Operators > gt > should check greater than
+(pass) ProjectionCondition - Operators > lt > should check less than
+(pass) ProjectionCondition - Operators > in > should check if value in list
+(pass) ProjectionCondition - Operators > nested field access > should access nested properties
+(pass) ProjectionCondition - Operators > nested field access > should handle missing nested properties
+(pass) ProjectionEngine - Integration > should document that full integration tests require implementation
+(pass) PropertyMapping - Required Validation > should test that required properties throw error when missing [1.00ms]
+(pass) Template Rendering > should test simple template format
+(pass) Template Rendering > should test template with suffix
+(pass) Template Rendering > should test multiple placeholders
+(pass) Case Conversion Utilities > should provide pascal case conversion
+(pass) Case Conversion Utilities > should provide kebab case conversion
+(pass) Case Conversion Utilities > should provide snake case conversion
+(pass) Nested Property Access > should get nested property
+(pass) Nested Property Access > should set nested property
+
+tests/unit/core/reference-registry.test.ts:
+(pass) ReferenceRegistry > addReference > should add a reference to the registry
+(pass) ReferenceRegistry > addReference > should add multiple references from same source
+(pass) ReferenceRegistry > getReferencesFrom > should return empty array for unknown source
+(pass) ReferenceRegistry > getReferencesFrom > should return all references from a source
+(pass) ReferenceRegistry > getReferencesTo > should return empty array for unknown target
+(pass) ReferenceRegistry > getReferencesTo > should return all references to a target
+(pass) ReferenceRegistry > getReferencesByType > should return empty array for unknown type
+(pass) ReferenceRegistry > getReferencesByType > should return all references of a specific type
+(pass) ReferenceRegistry > hasReference > should return false for non-existent reference
+(pass) ReferenceRegistry > hasReference > should return true for existing reference
+(pass) ReferenceRegistry > getAllReferences > should return empty array when no references
+(pass) ReferenceRegistry > getAllReferences > should return all references
+(pass) ReferenceRegistry > clear > should clear all references
+(pass) ReferenceRegistry > getStats > should return correct statistics
+(pass) ReferenceRegistry > registerElement > should register all references from an element [1.00ms]
+(pass) ReferenceRegistry > registerElement > should handle elements with no references
+(pass) ReferenceRegistry > findBrokenReferences > should find references to non-existent elements
+(pass) ReferenceRegistry > findBrokenReferences > should return empty array if no broken references
+(pass) ReferenceRegistry > getDependencyGraph > should create a directed graph from references [1.00ms]
+(pass) ReferenceRegistry > getDependencyGraph > should return empty graph for no references
+(pass) ReferenceRegistry > getDependencyGraph > should include edge attributes
+
+tests/unit/core/projection-engine.test.ts:
+(pass) ProjectionEngine > addRule > should add a projection rule
+(pass) ProjectionEngine > addRule > should add multiple rules
+(pass) ProjectionEngine > getRules > should return a copy of rules
+(pass) ProjectionEngine > getRules > should return empty array initially
+(pass) ProjectionEngine > clearRules > should clear all rules [1.00ms]
+
+tests/unit/core/reference-registry-compat.test.ts:
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - Core Functionality > should extract single string reference from known property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - Core Functionality > should extract array of references from known property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - Core Functionality > should handle element with no references
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - Core Functionality > should handle element with references property array
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'realizes' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'realizedBy' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'serves' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'servedBy' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'accesses' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'accessedBy' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'uses' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'usedBy' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'composedOf' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'partOf' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'flows' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'triggers' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'archimateRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'businessActorRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'stakeholderRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'motivationGoalRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'dataObjectRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'apiOperationRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'applicationServiceRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > registerElement() - All Known Reference Properties > should recognize 'schemaRef' as reference property
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesFrom() > should return all outgoing references from element
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesFrom() > should return empty array for element with no outgoing references
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesFrom() > should not include incoming references
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesTo() > should return all incoming references to element
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesTo() > should return empty array for element with no incoming references
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesTo() > should not include outgoing references
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesByType() > should return all references of specified type
+(pass) ReferenceRegistry - Python CLI Compatibility > getReferencesByType() > should return empty array for non-existent type
+(pass) ReferenceRegistry - Python CLI Compatibility > hasReference() > should return true if reference exists
+(pass) ReferenceRegistry - Python CLI Compatibility > hasReference() > should return false if reference does not exist
+(pass) ReferenceRegistry - Python CLI Compatibility > findBrokenReferences() > should find references to non-existent elements
+(pass) ReferenceRegistry - Python CLI Compatibility > findBrokenReferences() > should return empty array when all references are valid
+(pass) ReferenceRegistry - Python CLI Compatibility > findBrokenReferences() > should not validate source element existence
+(pass) ReferenceRegistry - Python CLI Compatibility > getAllReferences() > should return all references
+(pass) ReferenceRegistry - Python CLI Compatibility > getAllReferences() > should return empty array for empty registry
+(pass) ReferenceRegistry - Python CLI Compatibility > clear() > should remove all references
+(pass) ReferenceRegistry - Python CLI Compatibility > getDependencyGraph() > should build directed graph from references [1.00ms]
+(pass) ReferenceRegistry - Python CLI Compatibility > getDependencyGraph() > should include edge attributes
+(pass) ReferenceRegistry - Python CLI Compatibility > getDependencyGraph() > should return empty graph for empty registry
+(pass) ReferenceRegistry - Python CLI Compatibility > Edge Cases > should handle duplicate references
+(pass) ReferenceRegistry - Python CLI Compatibility > Edge Cases > should handle self-references
+(pass) ReferenceRegistry - Python CLI Compatibility > Edge Cases > should handle empty string IDs
+(pass) ReferenceRegistry - Python CLI Compatibility > Performance > should handle large number of references efficiently [6.00ms]
+
+tests/unit/core/dependency-tracker-compat.test.ts:
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - UP direction > should trace unlimited depth upward (what element depends on) [2.00ms]
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - UP direction > should trace limited depth upward
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - UP direction > should handle depth 2 traversal
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - UP direction > should return empty for element not in graph
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - UP direction > should handle element with no outgoing edges
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - DOWN direction > should trace unlimited depth downward (what depends on element)
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - DOWN direction > should trace limited depth downward [1.00ms]
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - DOWN direction > should handle element with no incoming edges
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - BOTH direction > should trace both directions
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - BOTH direction > should handle max_depth with both directions
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - Complex graphs > should handle diamond pattern
+(pass) DependencyTracker - Python CLI Compatibility > trace_dependencies() - Complex graphs > should handle multiple branches
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should find single path between elements [1.00ms]
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should find multiple paths
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should return empty array when no path exists
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should handle direct connection
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should respect max_paths limit [1.00ms]
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should return empty for non-existent source
+(pass) DependencyTracker - Python CLI Compatibility > findDependencyPaths() > should return empty for non-existent target
+(pass) DependencyTracker - Python CLI Compatibility > getHubElements() > should find hub elements above threshold
+(pass) DependencyTracker - Python CLI Compatibility > getHubElements() > should count both incoming and outgoing connections
+(pass) DependencyTracker - Python CLI Compatibility > getHubElements() > should sort by degree descending
+(pass) DependencyTracker - Python CLI Compatibility > getHubElements() > should return empty array when no hubs found [1.00ms]
+(pass) DependencyTracker - Python CLI Compatibility > getHubElements() > should respect custom threshold
+(pass) DependencyTracker - Python CLI Compatibility > Edge Cases > should handle empty graph
+(pass) DependencyTracker - Python CLI Compatibility > Edge Cases > should handle self-loops
+(pass) DependencyTracker - Python CLI Compatibility > Edge Cases > should handle max_depth of 0
+(pass) DependencyTracker - Python CLI Compatibility > Edge Cases > should handle circular dependencies
+(pass) DependencyTracker - Python CLI Compatibility > Performance > should handle large graphs efficiently [5.00ms]
+
+tests/unit/core/manifest.test.ts:
+(pass) Manifest > should create a manifest with required fields
+(pass) Manifest > should create a manifest with all fields
+(pass) Manifest > should auto-generate created and modified timestamps
+(pass) Manifest > should serialize to JSON with optional fields omitted
+(pass) Manifest > should serialize to JSON with optional fields included
+(pass) Manifest > should deserialize from JSON
+(pass) Manifest > should round-trip JSON serialization
+(pass) Manifest > should return correct toString representation
+(pass) Manifest > getCodingAgent/setCodingAgent helpers > should support setCodingAgent helper
+(pass) Manifest > getCodingAgent/setCodingAgent helpers > should serialize and deserialize preferred_chat_client via helpers
+(pass) Manifest > getCodingAgent/setCodingAgent helpers > should work with preferred_chat_client directly
+(pass) Manifest > getCodingAgent/setCodingAgent helpers > should read preferred_chat_client when set
+(pass) Manifest > getCodingAgent/setCodingAgent helpers > should handle undefined preferred_chat_client
+(pass) Manifest > should update modified timestamp [12.00ms]
+
+tests/unit/core/relationship-registry.test.ts:
+(pass) RelationshipRegistry > registerType > should register a relationship type [1.00ms]
+(pass) RelationshipRegistry > addRelationship > should add a relationship to the registry
+(pass) RelationshipRegistry > addRelationship > should add multiple relationships from same source
+(pass) RelationshipRegistry > getRelationshipsFrom > should return empty array for unknown source
+(pass) RelationshipRegistry > getRelationshipsFrom > should return all relationships from a source
+(pass) RelationshipRegistry > getRelationshipsByLayer > should return empty array for unknown layer
+(pass) RelationshipRegistry > getRelationshipsByLayer > should return all relationships in a layer
+(pass) RelationshipRegistry > getRelationshipsByPredicate > should return empty array for unknown predicate [1.00ms]
+(pass) RelationshipRegistry > getRelationshipsByPredicate > should return all relationships with a specific predicate
+(pass) RelationshipRegistry > hasRelationship > should return false for non-existent relationship
+(pass) RelationshipRegistry > hasRelationship > should return true for existing relationship
+(pass) RelationshipRegistry > hasRelationship > should return false for different predicate
+(pass) RelationshipRegistry > getAllRelationships > should return empty array when no relationships
+(pass) RelationshipRegistry > getAllRelationships > should return all relationships
+(pass) RelationshipRegistry > getAllTypes > should return empty array when no types registered
+(pass) RelationshipRegistry > getAllTypes > should return all registered types
+(pass) RelationshipRegistry > isValidPredicate > should return false for unregistered predicate
+(pass) RelationshipRegistry > isValidPredicate > should return true for registered predicate
+(pass) RelationshipRegistry > getValidPredicatesForLayer > should return empty array when no types applicable to layer
+(pass) RelationshipRegistry > getValidPredicatesForLayer > should return predicates applicable to layer
+(pass) RelationshipRegistry > getValidPredicatesForLayer > should handle types with no applicable layers
+(pass) RelationshipRegistry > clear > should clear all relationships and types
+(pass) RelationshipRegistry > getStats > should return correct statistics
+
+tests/unit/core/dependency-tracker.test.ts:
+(pass) DependencyTracker > getDependents > should return direct dependents
+(pass) DependencyTracker > getDependents > should return empty array for non-existent node [1.00ms]
+(pass) DependencyTracker > getDependencies > should return empty array for node with no dependencies
+(pass) DependencyTracker > getDependencies > should return direct dependencies
+(pass) DependencyTracker > getDependencies > should return empty array for non-existent node
+(pass) DependencyTracker > getTransitiveDependents > should return all elements that transitively depend on a node
+(pass) DependencyTracker > getTransitiveDependents > should not include the source element itself
+(pass) DependencyTracker > getTransitiveDependents > should handle complex dependency graphs
+(pass) DependencyTracker > getTransitiveDependencies > should return all elements a node transitively depends on
+(pass) DependencyTracker > getTransitiveDependencies > should not include the source element itself
+(pass) DependencyTracker > getTransitiveDependencies > should handle complex dependency graphs
+(pass) DependencyTracker > getTransitiveDependencies > should return empty array for node with no dependencies
+(pass) DependencyTracker > detectCycles > should return empty array for acyclic graph
+(pass) DependencyTracker > detectCycles > should detect simple cycle
+(pass) DependencyTracker > detectCycles > should detect self-loop [1.00ms]
+(pass) DependencyTracker > detectCycles > should detect multiple cycles
+(pass) DependencyTracker > detectCycles > should detect cycle in larger graph
+(pass) DependencyTracker > getMetrics > should return correct metrics for empty graph
+(pass) DependencyTracker > getMetrics > should return correct metrics for simple graph
+(pass) DependencyTracker > getMetrics > should count disconnected components
+(pass) DependencyTracker > findSourceElements > should find elements with no incoming edges
+(pass) DependencyTracker > findSourceElements > should return all nodes if no edges
+(pass) DependencyTracker > findSourceElements > should return empty array for fully connected cycle
+(pass) DependencyTracker > findSinkElements > should find elements with no outgoing edges
+(pass) DependencyTracker > findSinkElements > should return all nodes if no edges
+(pass) DependencyTracker > getImpactRadius > should calculate impact radius correctly
+(pass) DependencyTracker > getDependencyDepth > should calculate depth correctly for linear chain [1.00ms]
+(pass) DependencyTracker > getDependencyDepth > should calculate depth for branching dependencies
+(pass) DependencyTracker > getDependencyDepth > should return -1 for non-existent node
+(pass) DependencyTracker > getDependencyDepth > should return 0 for leaf node
+(pass) DependencyTracker > getDependencyDepth > should handle cycles correctly without infinite recursion
+
+tests/unit/validators/base-schemas.test.ts:
+(pass) Base Schema Validation > SpecLayer Schema > should validate a valid motivation layer [4.00ms]
+(pass) Base Schema Validation > SpecLayer Schema > should validate a valid business layer
+(pass) Base Schema Validation > SpecLayer Schema > should validate a valid data-model layer
+(pass) Base Schema Validation > SpecLayer Schema > should validate minimal layer with only required fields
+(pass) Base Schema Validation > SpecLayer Schema > should reject layer with invalid ID pattern
+(pass) Base Schema Validation > SpecLayer Schema > should reject layer with invalid number
+(pass) Base Schema Validation > SpecLayer Schema > should reject layer with missing required field
+(pass) Base Schema Validation > SpecLayer Schema > should reject layer with extra properties
+(pass) Base Schema Validation > SpecLayer Schema > should reject layer with invalid node type reference [1.00ms]
+(pass) Base Schema Validation > SpecNode Schema > should validate a valid goal node [4.00ms]
+(pass) Base Schema Validation > SpecNode Schema > should validate a valid endpoint node
+(pass) Base Schema Validation > SpecNode Schema > should validate minimal node with empty attributes
+(pass) Base Schema Validation > SpecNode Schema > should validate node with enum attributes
+(pass) Base Schema Validation > SpecNode Schema > should reject node with invalid ID format
+(pass) Base Schema Validation > SpecNode Schema > should accept node with mismatched layer ID (schema limitation: layer_id not validated against id prefix)
+(pass) Base Schema Validation > SpecNode Schema > should reject node with invalid attribute type
+(pass) Base Schema Validation > SpecNode Schema > should reject enum attribute without enum_values [1.00ms]
+(pass) Base Schema Validation > SpecNode Schema > should reject node with missing description
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should validate a valid supports relationship [4.00ms]
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should validate a valid realizes relationship
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should validate minimal relationship without optional fields
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should validate relationship with attributes
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should reject relationship with invalid ID format
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should validate relationship without denormalized source_layer (optional field)
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should reject relationship with invalid cardinality
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should reject relationship with invalid strength
+(pass) Base Schema Validation > SpecNodeRelationship Schema > should reject relationship with extra properties [1.00ms]
+(pass) Base Schema Validation > ModelNode Schema > should validate a valid goal node instance [6.00ms]
+(pass) Base Schema Validation > ModelNode Schema > should validate a valid endpoint node instance
+(pass) Base Schema Validation > ModelNode Schema > should validate minimal node without optional fields
+(pass) Base Schema Validation > ModelNode Schema > should validate node with metadata
+(pass) Base Schema Validation > ModelNode Schema > should validate node with source reference [1.00ms]
+(pass) Base Schema Validation > ModelNode Schema > should reject node with invalid UUID
+(pass) Base Schema Validation > ModelNode Schema > should reject node with missing spec_node_id
+(pass) Base Schema Validation > ModelNode Schema > should reject node with invalid spec_node_id format
+(pass) Base Schema Validation > ModelNode Schema > should reject node with extra properties
+(pass) Base Schema Validation > ModelNode Schema > should reject node with invalid metadata
+(pass) Base Schema Validation > ModelNode Schema > should reject node with invalid source reference
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate a valid supports relationship instance [6.00ms]
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate a valid realizes relationship instance
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate minimal relationship without optional fields
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate relationship with attributes
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate relationship with source reference [1.00ms]
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should reject relationship with invalid UUID
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should reject relationship with invalid source_node_id
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should validate relationship without denormalized destination_layer_id (optional field)
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should reject relationship with invalid spec_relationship_id
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should reject relationship with extra properties
+(pass) Base Schema Validation > ModelNodeRelationship Schema > should reject relationship with invalid source reference
+(pass) Base Schema Validation > PredicateCatalog Schema > should validate predicate catalog structure [5.00ms]
+(pass) Base Schema Validation > PredicateCatalog Schema > should validate predicate with all optional fields
+(pass) Base Schema Validation > PredicateCatalog Schema > should reject predicate catalog without predicates property
+(pass) Base Schema Validation > PredicateCatalog Schema > should reject predicate with missing required fields
+(pass) Base Schema Validation > PredicateCatalog Schema > should reject predicate with invalid category
+(pass) Base Schema Validation > PredicateCatalog Schema > should reject predicate with invalid semantics
+(pass) Base Schema Validation > Schema Meta-Validation > spec-layer schema is valid JSON Schema Draft 7
+(pass) Base Schema Validation > Schema Meta-Validation > spec-node schema is valid JSON Schema Draft 7
+(pass) Base Schema Validation > Schema Meta-Validation > spec-node-relationship schema is valid JSON Schema Draft 7
+(pass) Base Schema Validation > Schema Meta-Validation > model-node schema is valid JSON Schema Draft 7
+(pass) Base Schema Validation > Schema Meta-Validation > model-node-relationship schema is valid JSON Schema Draft 7
+(pass) Base Schema Validation > Schema Meta-Validation > predicate-catalog schema is valid JSON Schema Draft 7
+
+tests/unit/validators/semantic-validator.test.ts:
+(pass) SemanticValidator > should validate unique element IDs [1.00ms]
+66 |     model.addLayer(layer1);
+67 |     model.addLayer(layer2);
+68 | 
+69 |     const result = await validator.validateModel(model);
+70 | 
+71 |     expect(result.isValid()).toBe(false);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/workspace/cli/tests/unit/validators/semantic-validator.test.ts:71:30)
+(fail) SemanticValidator > should detect duplicate element IDs across layers
+107 |     model.addLayer(layer1);
+108 |     model.addLayer(layer2);
+109 | 
+110 |     const result = await validator.validateModel(model);
+111 | 
+112 |     expect(result.isValid()).toBe(false);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/workspace/cli/tests/unit/validators/semantic-validator.test.ts:112:30)
+(fail) SemanticValidator > should detect multiple duplicate IDs
+(pass) SemanticValidator > should validate relationship predicates [1.00ms]
+(pass) SemanticValidator > should warn about unknown relationship predicates
+(pass) SemanticValidator > should handle elements with no relationships
+(pass) SemanticValidator > should validate empty model
+(pass) SemanticValidator > should handle multiple layers with multiple elements
+
+tests/unit/validators/validation-result.test.ts:
+(pass) ValidationResult > should create an empty validation result
+(pass) ValidationResult > should add errors
+(pass) ValidationResult > should add warnings
+(pass) ValidationResult > should merge results with prefix
+(pass) ValidationResult > should merge results without prefix
+(pass) ValidationResult > should convert to dictionary
+(pass) ValidationResult > should indicate valid when no errors
+
+tests/unit/validators/naming-validator.test.ts:
+(pass) NamingValidator > should validate correct element IDs [1.00ms]
+(pass) NamingValidator > should detect invalid ID format (too few parts)
+(pass) NamingValidator > should detect mismatched layer prefix
+(pass) NamingValidator > should detect missing type component
+(pass) NamingValidator > should detect missing name component
+(pass) NamingValidator > should validate multi-word kebab-case names
+(pass) NamingValidator > should detect uppercase characters in ID
+(pass) NamingValidator > should validate multiple elements
+(pass) NamingValidator > should handle numeric characters in IDs
+(pass) NamingValidator > should validate data-store layer elements
+(pass) NamingValidator > should reject data-store elements with wrong layer prefix [1.00ms]
+(pass) NamingValidator > should validate data-model elements with complex names
+(pass) NamingValidator > should handle all hyphenated layer names correctly
+(pass) NamingValidator > should validate dot-separated format with hyphenated layer names
+(pass) NamingValidator > should validate mixed underscore and hyphenated layer names
+
+tests/unit/validators/validator.test.ts:
+(pass) Validator > should create validator instance
+(pass) Validator > should validate empty model [1.00ms]
+(pass) Validator > should pass 4-stage validation for valid model [1551.00ms]
+141 |     model.addLayer(layer2);
+142 | 
+143 |     const result = await validator.validateModel(model);
+144 | 
+145 |     expect(result.isValid()).toBe(false);
+146 |     expect(result.errors.some((e) => e.message.includes("Duplicate"))).toBe(true);
+                                                                             ^
+error: expect(received).toBe(expected)
+
+Expected: true
+Received: false
+
+      at <anonymous> (/workspace/cli/tests/unit/validators/validator.test.ts:146:72)
+(pass) Validator > should detect naming validation errors [1675.00ms]
+(pass) Validator > should detect reference validation errors [1675.00ms]
+(fail) Validator > should detect semantic validation errors (duplicates) [1674.00ms]
+(pass) Validator > should merge validation results with proper prefixes [1674.00ms]
+(pass) Validator > should handle multiple validation stages [1673.00ms]
+(pass) Validator > should convert validation result to dictionary [1673.00ms]
+(pass) Validator > should allow mixed valid and invalid elements [1672.00ms]
+(pass) Validator > should validate directional references [1672.00ms]
+
+tests/unit/validators/reference-validator.test.ts:
+(pass) ReferenceValidator > should validate valid references [1.00ms]
+(pass) ReferenceValidator > should detect broken references
+(pass) ReferenceValidator > should enforce directional constraint (higher to lower)
+(pass) ReferenceValidator > should allow same-layer references
+(pass) ReferenceValidator > should handle multiple layers and references
+(pass) ReferenceValidator > should detect multiple broken references in same element
+(pass) ReferenceValidator > should handle empty reference list
+(pass) ReferenceValidator > should detect reference to unknown layer
+(pass) ReferenceValidator > should validate references from higher to lower hyphenated layers
+(pass) ReferenceValidator > should handle complex multi-layer scenario with hyphenated layers
+
+tests/unit/telemetry/config.test.ts:
+(pass) loadOTLPConfig() > Default Configuration > should return defaults when no env vars or config file [1.00ms]
+(pass) loadOTLPConfig() > Environment Variable Precedence > should use OTEL_EXPORTER_OTLP_ENDPOINT when set
+(pass) loadOTLPConfig() > Environment Variable Precedence > should use OTEL_EXPORTER_OTLP_LOGS_ENDPOINT when set
+(pass) loadOTLPConfig() > Environment Variable Precedence > should use OTEL_SERVICE_NAME when set
+(pass) loadOTLPConfig() > Environment Variable Precedence > should use all env vars when set
+(pass) loadOTLPConfig() > File Configuration > should handle missing config file gracefully
+(pass) loadOTLPConfig() > Configuration Precedence > should prefer env vars over defaults
+(pass) loadOTLPConfig() > Configuration Precedence > should demonstrate precedence pattern
+(pass) loadOTLPConfig() > Return Type > should return OTLPConfig interface with required fields
+(pass) loadOTLPConfig() > Return Type > should return non-empty string values
+(pass) loadOTLPConfig() > Edge Cases > should handle empty environment variable values
+(pass) loadOTLPConfig() > Edge Cases > should preserve whitespace in configuration values
+(pass) loadOTLPConfig() > Special Characters and URLs > should handle URLs with special characters [1.00ms]
+(pass) loadOTLPConfig() > Special Characters and URLs > should handle HTTPS URLs
+Error: Invalid URL in OTEL_EXPORTER_OTLP_ENDPOINT: "not-a-valid-url"
+  Reason: "not-a-valid-url" cannot be parsed as a URL.
+Suggestions:
+  • Ensure URL starts with http:// or https://
+  • Check for typos in hostname
+  • Verify port number if specified (e.g., :4318)
+  • Example: http://localhost:4318/v1/traces
+  Using fallback configuration for this field
+(pass) loadOTLPConfig() > URL Validation > should reject invalid endpoint URLs and use default
+Error: Invalid URL in OTEL_EXPORTER_OTLP_LOGS_ENDPOINT: "http://[invalid-ipv6]:4318"
+  Reason: "http://[invalid-ipv6]:4318" cannot be parsed as a URL.
+Suggestions:
+  • Ensure URL starts with http:// or https://
+  • Check for typos in hostname
+  • Verify port number if specified (e.g., :4318)
+  • Example: http://localhost:4318/v1/traces
+  Using fallback configuration for this field
+(pass) loadOTLPConfig() > URL Validation > should reject invalid logs endpoint URLs and use default
+(pass) loadOTLPConfig() > URL Validation > should accept valid URLs with ports
+(pass) loadOTLPConfig() > URL Validation > should accept valid URLs with paths
+(pass) loadOTLPConfig() > URL Validation > should accept valid URLs with query parameters
+Error: Invalid protocol "localhost:" in OTEL_EXPORTER_OTLP_ENDPOINT
+  Provided: localhost:4318/v1/traces
+  Expected: URL must start with http:// or https://
+  Using fallback configuration for this field
+Error: Invalid protocol "localhost:" in OTEL_EXPORTER_OTLP_ENDPOINT
+  Provided: localhost:4318/v1/traces
+  Expected: URL must start with http:// or https://
+  Using fallback configuration for this field
+(pass) loadOTLPConfig() > URL Validation > should prefer valid file config over invalid env var [1.00ms]
+(pass) loadOTLPConfig() > URL Validation > should handle mixed valid and invalid URLs in config file [1.00ms]
+(pass) loadOTLPConfig() > URL Validation > should reject URLs missing scheme [1.00ms]
+
+tests/unit/telemetry/resilient-log-exporter.test.ts:
+(pass) ResilientLogExporter > constructor > creates exporter with default URL [1.00ms]
+(pass) ResilientLogExporter > constructor > creates exporter with custom URL
+(pass) ResilientLogExporter > constructor > creates exporter with custom timeout
+(pass) ResilientLogExporter > constructor > creates exporter with both custom URL and timeout
+(pass) ResilientLogExporter > forceFlush > completes forceFlush call
+(pass) ResilientLogExporter > forceFlush > silently ignores flush errors
+(pass) ResilientLogExporter > forceFlush > returns promise that resolves
+(pass) ResilientLogExporter > shutdown > completes shutdown gracefully [1.00ms]
+(pass) ResilientLogExporter > shutdown > silently ignores shutdown errors
+(pass) ResilientLogExporter > shutdown > can be called multiple times safely
+(pass) ResilientLogExporter > shutdown > returns promise that resolves
+(pass) ResilientLogExporter > interface compliance > implements LogRecordExporter interface
+(pass) ResilientLogExporter > interface compliance > export method is callable
+(pass) ResilientLogExporter > configuration > accepts url configuration
+(pass) ResilientLogExporter > configuration > accepts timeoutMillis configuration
+(pass) ResilientLogExporter > configuration > accepts both url and timeoutMillis configuration
+(pass) ResilientLogExporter > configuration > uses default values when no configuration provided
+(pass) ResilientLogExporter > configuration > preserves other configuration properties passed to delegate
+(pass) ResilientLogExporter > circuit-breaker timeout configuration > respects configured timeout of 250ms
+(pass) ResilientLogExporter > circuit-breaker timeout configuration > respects configured timeout of 500ms [1.00ms]
+(pass) ResilientLogExporter > circuit-breaker timeout configuration > uses default 500ms timeout when not specified
+(pass) ResilientLogExporter > circuit-breaker timeout configuration > respects custom timeout values
+(pass) ResilientLogExporter > default endpoint configuration > uses http://localhost:4318/v1/logs as default endpoint
+(pass) ResilientLogExporter > default endpoint configuration > overrides default with custom URL
+(pass) ResilientLogExporter > default endpoint configuration > supports custom port in URL
+(pass) ResilientLogExporter > default endpoint configuration > supports custom host in URL
+(pass) ResilientLogExporter > 30-second backoff window > specifies 30000ms (30 seconds) backoff duration
+(pass) ResilientLogExporter > export result code > implements ExportResultCode.SUCCESS
+(pass) ResilientLogExporter > export result code > implements ExportResultCode.FAILED
+(pass) ResilientLogExporter > empty log records > handles empty array gracefully [11.00ms]
+(pass) ResilientLogExporter > log record attributes > preserves severity level
+(pass) ResilientLogExporter > log record attributes > preserves log body text
+(pass) ResilientLogExporter > log record attributes > preserves custom attributes
+(pass) ResilientLogExporter > implementation details > creates instance for telemetry use
+(pass) ResilientLogExporter > implementation details > supports reconfiguration via multiple instances
+
+tests/unit/utils/file-io.test.ts:
+(pass) File I/O Utilities > fileExists > should return false for nonexistent file [2.00ms]
+(pass) File I/O Utilities > ensureDir > should not error if directory already exists [2.00ms]
+(pass) File I/O Utilities > readFile and writeFile > should write and read a file [3.00ms]
+(pass) File I/O Utilities > fileExists > should return true for existing file [3.00ms]
+(pass) File I/O Utilities > ensureDir > should create a directory [3.00ms]
+(pass) File I/O Utilities > atomicWrite > should not leave temp file on success [2.00ms]
+(pass) File I/O Utilities > readJSON and writeJSON > should format JSON with indentation by default [2.00ms]
+(pass) File I/O Utilities > readFile and writeFile > should handle multiline content [3.00ms]
+(pass) File I/O Utilities > readJSON and writeJSON > should write and read JSON with pretty formatting [3.00ms]
+(pass) File I/O Utilities > atomicWrite > should write file atomically [2.00ms]
+(pass) File I/O Utilities > atomicWrite > should handle large content [2.00ms]
+(pass) File I/O Utilities > readFile and writeFile > should overwrite existing file [3.00ms]
+(pass) File I/O Utilities > readJSON and writeJSON > should write and read JSON without formatting [3.00ms]
+(pass) File I/O Utilities > readJSON and writeJSON > should handle complex nested structures [3.00ms]
+(pass) File I/O Utilities > atomicWrite > should overwrite existing file [3.00ms]
+
+tests/unit/coding-agents/agent-interface.test.ts:
+(pass) CodingAgent Interface > should define required properties
+(pass) CodingAgent Interface > should require isAvailable to return Promise<boolean>
+(pass) CodingAgent Interface > should require spawn to return AgentProcess
+(pass) CodingAgent Interface > should require parseOutput to return ChatEvent array
+(pass) ChatEvent Types > should support text event
+(pass) ChatEvent Types > should support tool_use event
+(pass) ChatEvent Types > should support tool_result event
+(pass) ChatEvent Types > should support error event
+(pass) ChatEvent Types > should support complete event
+(pass) ChatEvent Types > should allow optional fields to be omitted
+(pass) AgentProcess Structure > should contain process, conversationId, and completion
+(pass) AgentProcess Structure > should have completion promise that resolves to result
+(pass) SpawnAgentOptions > should require cwd and message
+(pass) SpawnAgentOptions > should support optional agentName
+(pass) SpawnAgentOptions > should support optional systemPrompt
+(pass) SpawnAgentOptions > should support optional additionalArgs
+(pass) AgentProcessResult > should contain exitCode, fullResponse, and events
+(pass) AgentProcessResult > should support optional error field
+(pass) AgentProcessResult > should indicate success with exitCode 0
+(pass) AgentProcessResult > should indicate failure with non-zero exitCode
+
+tests/unit/coding-agents/claude-code-agent.test.ts:
+(pass) ClaudeCodeAgent > Agent Properties > should have correct name
+(pass) ClaudeCodeAgent > Agent Properties > should have correct command
+(pass) ClaudeCodeAgent > Agent Properties > should implement CodingAgent interface
+(pass) ClaudeCodeAgent > isAvailable() > should return Promise<boolean> [2.00ms]
+(pass) ClaudeCodeAgent > isAvailable() > should return false if claude command not found [1.00ms]
+(pass) ClaudeCodeAgent > isAvailable() > should handle errors gracefully [1.00ms]
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should parse text event from JSON [1.00ms]
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should parse tool_use event from JSON
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should parse multiple content blocks
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should parse result event from JSON
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should parse error event from JSON
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should handle multiple JSON lines
+(pass) ClaudeCodeAgent > parseOutput() - JSON Events > should skip empty lines
+(pass) ClaudeCodeAgent > parseOutput() - Non-JSON Handling > should treat non-JSON lines as text
+(pass) ClaudeCodeAgent > parseOutput() - Non-JSON Handling > should handle mixed JSON and non-JSON
+(pass) ClaudeCodeAgent > parseOutput() - Non-JSON Handling > should handle malformed JSON as text
+(pass) ClaudeCodeAgent > parseOutput() - Edge Cases > should return empty array for empty string
+(pass) ClaudeCodeAgent > parseOutput() - Edge Cases > should return empty array for whitespace only
+(pass) ClaudeCodeAgent > parseOutput() - Edge Cases > should handle JSON with missing content
+(pass) ClaudeCodeAgent > parseOutput() - Edge Cases > should handle JSON with empty content array
+(pass) ClaudeCodeAgent > parseOutput() - Edge Cases > should handle unknown event types gracefully
+(pass) ClaudeCodeAgent > spawn() - Configuration > should accept required options [2.00ms]
+(pass) ClaudeCodeAgent > spawn() - Configuration > should use default agent name if not specified [1.00ms]
+(pass) ClaudeCodeAgent > spawn() - Configuration > should accept custom agent name
+(pass) ClaudeCodeAgent > spawn() - Configuration > should accept additional args [1.00ms]
+(pass) ClaudeCodeAgent > spawn() - Configuration > should generate unique conversation IDs
+(pass) ClaudeCodeAgent > spawn() - Process Management > should return AgentProcess with required properties [1.00ms]
+(pass) ClaudeCodeAgent > spawn() - Process Management > should have stdin available for writing
+(pass) ClaudeCodeAgent > spawn() - Process Management > should have stdout available for reading [1.00ms]
+(pass) ClaudeCodeAgent > spawn() - Process Management > should have stderr available for errors
+(pass) ClaudeCodeAgent > Integration - Full Workflow > should complete availability check -> parse workflow [1.00ms]
+(pass) ClaudeCodeAgent > Integration - Full Workflow > should handle streaming output scenario [1.00ms]
+(pass) ClaudeCodeAgent > Integration - Full Workflow > should handle tool invocation workflow
+
+tests/unit/integrations/base-manager.test.ts:
+
+tests/unit/integrations/hash-utils.test.ts:
+(pass) Hash Utilities > computeFileHash > should throw error for non-existent file [1.00ms]
+(pass) Hash Utilities > computeFileHash > should compute consistent hash for a file [3.00ms]
+(pass) Hash Utilities > computeFileHash > should produce different hashes for different content [3.00ms]
+(pass) Hash Utilities > computeFileHash > should handle larger files efficiently [5.00ms]
+(pass) Hash Utilities > computeDirectoryHashes > should return empty map for directory with no matching files [1.00ms]
+(pass) Hash Utilities > Hash consistency with Python CLI > should produce same hash as Python SHA256[:8] [1.00ms]
+(pass) Hash Utilities > computeDirectoryHashes > should filter files by prefix [2.00ms]
+(pass) Hash Utilities > computeDirectoryHashes > should hash all files in directory recursively [7.00ms]
+(pass) Hash Utilities > computeDirectoryHashes > should use relative paths as keys [7.00ms]
+
+tests/compatibility/model-format.test.ts:
+(pass) Model Format Regression Tests > Manifest Metadata Preservation > should preserve legacy metadata fields [5.00ms]
+(pass) Model Format Regression Tests > Dual Path Resolution > should load manifest from root/model/manifest.yaml [5.00ms]
+(pass) Model Format Regression Tests > Element ID Generation > should auto-generate layer-prefixed IDs when missing [4.00ms]
+(pass) Model Format Regression Tests > Dual Path Resolution > should load manifest from root/documentation-robotics/model/manifest.yaml [5.00ms]
+(pass) Model Format Regression Tests > Layer Path Resolution from Manifest > should read layer path from manifest.layers configuration [4.00ms]
+(pass) Model Format Regression Tests > Element Data Preservation > should track layer field in loaded elements [4.00ms]
+
+3 tests failed:
+(fail) SemanticValidator > should detect duplicate element IDs across layers
+(fail) SemanticValidator > should detect multiple duplicate IDs
+(fail) Validator > should detect semantic validation errors (duplicates) [1674.00ms]
+
+ 524 pass
+ 31 filtered out
+ 3 fail
+ 1111 expect() calls
+Ran 527 tests across 27 files. [2.60s]
+bun test v1.3.5 (1e86cebd)
+
+tests/unit/validators/semantic-validator.test.ts:
+(pass) SemanticValidator > should validate unique element IDs [1.00ms]
+66 |     model.addLayer(layer1);
+67 |     model.addLayer(layer2);
+68 | 
+69 |     const result = await validator.validateModel(model);
+70 | 
+71 |     expect(result.isValid()).toBe(false);
+                                  ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/workspace/cli/tests/unit/validators/semantic-validator.test.ts:71:30)
+(fail) SemanticValidator > should detect duplicate element IDs across layers [1.00ms]
+107 |     model.addLayer(layer1);
+108 |     model.addLayer(layer2);
+109 | 
+110 |     const result = await validator.validateModel(model);
+111 | 
+112 |     expect(result.isValid()).toBe(false);
+                                   ^
+error: expect(received).toBe(expected)
+
+Expected: false
+Received: true
+
+      at <anonymous> (/workspace/cli/tests/unit/validators/semantic-validator.test.ts:112:30)
+(fail) SemanticValidator > should detect multiple duplicate IDs
+(pass) SemanticValidator > should validate relationship predicates
+(pass) SemanticValidator > should warn about unknown relationship predicates
+(pass) SemanticValidator > should handle elements with no relationships
+(pass) SemanticValidator > should validate empty model
+(pass) SemanticValidator > should handle multiple layers with multiple elements [1.00ms]
+
+tests/unit/chat/claude-client.test.ts:
+(pass) ClaudeClient > constructor > should initialize with API key [1.00ms]
+(pass) ClaudeClient > constructor > should start with empty conversation history
+(pass) ClaudeClient > constructor > should have history length of 0
+(pass) ClaudeClient > conversation history > should track conversation history
+(pass) ClaudeClient > conversation history > should clear history
+(pass) ClaudeClient > conversation history > should return copy of history
+(pass) ClaudeClient > getHistoryLength > should return correct history length
+
+tests/unit/chat/context-provider.test.ts:
+(pass) ModelContextProvider > generateContext > should generate context with model information [1.00ms]
+(pass) ModelContextProvider > generateContext > should include layer information
+(pass) ModelContextProvider > generateContext > should include element summaries
+(pass) ModelContextProvider > getAvailableLayers > should return list of available layers
+(pass) ModelContextProvider > getLayerElementCount > should return element count for a layer
+(pass) ModelContextProvider > getLayerElementCount > should return 0 for unloaded layer
+(pass) ModelContextProvider > getTotalElementCount > should return total element count
+
+tests/unit/chat/tools.test.ts:
+(pass) Model Tools > getModelTools > should return array of tool definitions
+(pass) Model Tools > getModelTools > should include dr_list tool
+(pass) Model Tools > getModelTools > should include dr_find tool
+(pass) Model Tools > getModelTools > should include dr_search tool
+(pass) Model Tools > getModelTools > should include dr_trace tool
+(pass) Model Tools > getModelTools > tools should have proper input schemas
+(pass) Model Tools > executeModelTool > should execute dr_list tool [1.00ms]
+(pass) Model Tools > executeModelTool > should filter elements by type in dr_list
+(pass) Model Tools > executeModelTool > should return error for non-existent layer
+(pass) Model Tools > executeModelTool > should execute dr_find tool
+(pass) Model Tools > executeModelTool > should return not found for non-existent element [1.00ms]
+(pass) Model Tools > executeModelTool > should execute dr_search tool
+(pass) Model Tools > executeModelTool > should search in specific layers
+(pass) Model Tools > executeModelTool > should execute dr_trace tool [1.00ms]
+(pass) Model Tools > executeModelTool > should return error for unknown tool
+
+tests/unit/chat/copilot-parser.test.ts:
+(pass) Copilot Output Parsing > Code block detection > should detect code block start
+(pass) Copilot Output Parsing > Code block detection > should detect code block end
+(pass) Copilot Output Parsing > Code block detection > should detect various code block languages
+(pass) Copilot Output Parsing > System message detection > should detect note messages
+(pass) Copilot Output Parsing > System message detection > should detect warning messages
+(pass) Copilot Output Parsing > System message detection > should detect error messages
+(pass) Copilot Output Parsing > System message detection > should detect info messages
+(pass) Copilot Output Parsing > System message detection > should be case insensitive
+(pass) Copilot Output Parsing > Tool invocation detection > should detect running actions
+(pass) Copilot Output Parsing > Tool invocation detection > should detect executing actions
+(pass) Copilot Output Parsing > Tool invocation detection > should detect searching actions
+(pass) Copilot Output Parsing > Tool invocation detection > should detect analyzing actions
+
+tests/unit/chat/chat-logger.test.ts:
+(pass) ChatLogger > initialization and directory management > should create a ChatLogger instance with unique session ID
+(pass) ChatLogger > initialization and directory management > should generate unique session IDs across instances [1.00ms]
+(pass) ChatLogger > initialization and directory management > should create log directory structure on ensureLogDirectory
+(pass) ChatLogger > initialization and directory management > should handle multiple ensureLogDirectory calls without error [1.00ms]
+(pass) ChatLogger > initialization and directory management > should use project root for log directory when provided
+(pass) ChatLogger > initialization and directory management > should fall back to home directory when project root does not exist
+(pass) ChatLogger > initialization and directory management > should generate correct session log path
+(pass) ChatLogger > initialization and directory management > should use filesystem-safe timestamp in log filename [1.00ms]
+(pass) ChatLogger > message logging > should log user messages [1.00ms]
+(pass) ChatLogger > message logging > should log assistant messages [1.00ms]
+(pass) ChatLogger > message logging > should include metadata in logged messages [1.00ms]
+(pass) ChatLogger > message logging > should include timestamps in all logged messages
+(pass) ChatLogger > message logging > should handle empty message content [1.00ms]
+(pass) ChatLogger > message logging > should handle multiline messages [1.00ms]
+(pass) ChatLogger > message logging > should handle special characters in messages [1.00ms]
+(pass) ChatLogger > command logging > should log commands with arguments [1.00ms]
+(pass) ChatLogger > command logging > should log commands without arguments
+(pass) ChatLogger > command logging > should include command name in metadata [1.00ms]
+(pass) ChatLogger > command logging > should handle command metadata [1.00ms]
+(pass) ChatLogger > error logging > should log errors with messages [1.00ms]
+(pass) ChatLogger > error logging > should include error metadata
+(pass) ChatLogger > error logging > should mark errors with system role [1.00ms]
+(pass) ChatLogger > event logging > should log events [1.00ms]
+(pass) ChatLogger > event logging > should include event metadata [1.00ms]
+(pass) ChatLogger > event logging > should automatically create session_started event on first write [1.00ms]
+(pass) ChatLogger > file operations and persistence > should create log file on first write [1.00ms]
+(pass) ChatLogger > file operations and persistence > should append entries to existing log file
+(pass) ChatLogger > file operations and persistence > should maintain JSON format in log file [1.00ms]
+(pass) ChatLogger > file operations and persistence > should handle log file read errors gracefully
+(pass) ChatLogger > readEntries and summary calculations > should read all entries from log file [1.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should calculate correct message count in summary [1.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should calculate correct command count in summary [1.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should calculate correct error count in summary [1.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should calculate duration in summary [103.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should return N/A duration for single-entry sessions [1.00ms]
+(pass) ChatLogger > readEntries and summary calculations > should include session ID in summary
+(pass) ChatLogger > readEntries and summary calculations > should format duration as minutes and seconds when > 60s [1.00ms]
+(pass) ChatLogger > global logger functions > should initialize global chat logger
+(pass) ChatLogger > global logger functions > should return initialized global logger [1.00ms]
+(pass) ChatLogger > listChatSessions > should return empty array when no sessions exist
+(pass) ChatLogger > listChatSessions > should handle empty directory gracefully [1.00ms]
+(pass) ChatLogger > readChatSession > should read specific session file [1.00ms]
+(pass) ChatLogger > readChatSession > should throw error for non-existent session file
+(pass) ChatLogger > readChatSession > should parse JSON entries correctly [1.00ms]
+(pass) ChatLogger > edge cases and error handling > should handle very long messages [1.00ms]
+(pass) ChatLogger > edge cases and error handling > should handle sequential writes correctly [1.00ms]
+(pass) ChatLogger > edge cases and error handling > should handle metadata with nested objects [1.00ms]
+(pass) ChatLogger > edge cases and error handling > should generate session ID in correct format
+(pass) ChatLogger > error recovery and race condition handling > should recover from ENOENT race condition when writing session header [1.00ms]
+(pass) ChatLogger > error recovery and race condition handling > should handle concurrent message writes safely [1.00ms]
+(pass) ChatLogger > error recovery and race condition handling > should write session header exactly once even with concurrent writes [1.00ms]
+(pass) ChatLogger > error recovery and race condition handling > should handle directory deletion during write operations gracefully [1.00ms]
+
+tests/unit/chat/copilot-client.test.ts:
+(pass) CopilotClient > isAvailable > should check for gh copilot or standalone copilot [1.00ms]
+(pass) CopilotClient > isAvailable > should handle check gracefully
+(pass) CopilotClient > getClientName > should return correct client name
+(pass) CopilotClient > session management > should start with no session
+(pass) CopilotClient > session management > should clear session
+
+tests/unit/chat/client-communication.test.ts:
+(pass) Client Communication and Subprocess Handling > message transmission > should transmit user message to chat client
+(pass) Client Communication and Subprocess Handling > message transmission > should transmit multiple messages in sequence
+(pass) Client Communication and Subprocess Handling > message transmission > should handle empty message transmission
+(pass) Client Communication and Subprocess Handling > message transmission > should handle very long messages [1.00ms]
+(pass) Client Communication and Subprocess Handling > message transmission > should handle messages with special characters
+(pass) Client Communication and Subprocess Handling > message transmission > should handle multiline messages
+(pass) Client Communication and Subprocess Handling > message transmission > should transmit chat options along with message
+(pass) Client Communication and Subprocess Handling > message transmission > should handle partial chat options
+(pass) Client Communication and Subprocess Handling > message transmission > should handle message transmission without options
+(pass) Client Communication and Subprocess Handling > concurrent message transmission > should handle concurrent message sends
+(pass) Client Communication and Subprocess Handling > concurrent message transmission > should maintain session consistency with concurrent sends
+(pass) Client Communication and Subprocess Handling > concurrent message transmission > should handle rapid sequential messages
+(pass) Client Communication and Subprocess Handling > error handling > should catch and propagate transmission errors [1.00ms]
+(pass) Client Communication and Subprocess Handling > error handling > should handle subprocess exit code errors
+(pass) Client Communication and Subprocess Handling > error handling > should handle timeout errors gracefully
+(pass) Client Communication and Subprocess Handling > error handling > should recover from transient errors
+(pass) Client Communication and Subprocess Handling > error handling > should handle stdin stream errors
+(pass) Client Communication and Subprocess Handling > error handling > should handle stdout stream errors
+(pass) Client Communication and Subprocess Handling > stream processing > should process message through output stream
+(pass) Client Communication and Subprocess Handling > stream processing > should handle streaming responses in order
+(pass) Client Communication and Subprocess Handling > stream processing > should handle large response streams [1.00ms]
+(pass) Client Communication and Subprocess Handling > stream processing > should handle incomplete stream data
+(pass) Client Communication and Subprocess Handling > session management during communication > should create session on first message
+(pass) Client Communication and Subprocess Handling > session management during communication > should maintain session across multiple messages
+(pass) Client Communication and Subprocess Handling > session management during communication > should update session timestamp on each message [10.00ms]
+(pass) Client Communication and Subprocess Handling > session management during communication > should preserve session through error recovery [1.00ms]
+(pass) Client Communication and Subprocess Handling > session management during communication > should allow session clearing between messages
+(pass) Client Communication and Subprocess Handling > session management during communication > should support session continuation with explicit sessionId
+(pass) Client Communication and Subprocess Handling > message options handling > should handle agent option
+(pass) Client Communication and Subprocess Handling > message options handling > should handle working directory option
+(pass) Client Communication and Subprocess Handling > message options handling > should handle session ID option
+(pass) Client Communication and Subprocess Handling > message options handling > should handle danger mode option
+(pass) Client Communication and Subprocess Handling > message options handling > should handle combination of all options
+(pass) Client Communication and Subprocess Handling > availability detection > should be available by default
+(pass) Client Communication and Subprocess Handling > availability detection > should handle availability check errors
+(pass) Client Communication and Subprocess Handling > client name retrieval > should return consistent client name
+(pass) Client Communication and Subprocess Handling > performance and timing > should handle response delays [50.00ms]
+(pass) Client Communication and Subprocess Handling > performance and timing > should maintain performance with large message counts [1.00ms]
+(pass) Client Communication and Subprocess Handling > state consistency > should maintain consistent state after multiple operations
+(pass) Client Communication and Subprocess Handling > state consistency > should track all messages independently of session state
+
+tests/unit/chat/base-chat-client.test.ts:
+(pass) BaseChatClient > session creation > should create a new session
+(pass) BaseChatClient > session creation > should generate unique session IDs
+(pass) BaseChatClient > session creation > should set current session when created
+(pass) BaseChatClient > session management > should return undefined when no session exists
+(pass) BaseChatClient > session management > should return current session
+(pass) BaseChatClient > session management > should clear session
+(pass) BaseChatClient > sendMessage > should create session on first message
+(pass) BaseChatClient > getClientName > should return client name
+
+tests/unit/chat/claude-code-client.test.ts:
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should extend BaseChatClient
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should implement isAvailable method
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should implement sendMessage method
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should implement getClientName method
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should inherit getCurrentSession method
+(pass) ClaudeCodeClient > BaseChatClient interface compliance > should inherit clearSession method
+(pass) ClaudeCodeClient > isAvailable > should check for claude availability [2.00ms]
+(pass) ClaudeCodeClient > isAvailable > should handle check gracefully [2.00ms]
+(pass) ClaudeCodeClient > isAvailable > should return false when which command fails [2.00ms]
+(pass) ClaudeCodeClient > getClientName > should return correct client name
+(pass) ClaudeCodeClient > getClientName > should return a string
+(pass) ClaudeCodeClient > session management > should start with no session
+(pass) ClaudeCodeClient > session management > should clear session
+(pass) ClaudeCodeClient > session management > should maintain session state after clearing
+(pass) ClaudeCodeClient > implementation details > should be a class instance
+(pass) ClaudeCodeClient > implementation details > should have proper inheritance chain
+(pass) ClaudeCodeClient > implementation details > should not have undefined required methods
+(pass) ClaudeCodeClient > key features documentation > should support JSON event stream parsing (design verification)
+(pass) ClaudeCodeClient > key features documentation > should support agent invocation (design verification)
+(pass) ClaudeCodeClient > key features documentation > should support tool use detection (design verification)
+(pass) ClaudeCodeClient > key features documentation > should maintain session continuity via --session-id flag (design verification)
+(pass) ClaudeCodeClient > error handling capability > should handle availability check errors gracefully [1.00ms]
+(pass) ClaudeCodeClient > error handling capability > should not throw on session operations
+(pass) ClaudeCodeClient > method signatures > isAvailable should return Promise<boolean> [1.00ms]
+(pass) ClaudeCodeClient > method signatures > getClientName should return string
+(pass) ClaudeCodeClient > method signatures > getCurrentSession should return ChatSession | undefined
+(pass) ClaudeCodeClient > method signatures > clearSession should return void
+
+2 tests failed:
+(fail) SemanticValidator > should detect duplicate element IDs across layers [1.00ms]
+(fail) SemanticValidator > should detect multiple duplicate IDs
+
+ 179 pass
+ 2 fail
+ 336 expect() calls
+Ran 181 tests across 10 files. [349.00ms]
