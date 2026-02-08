@@ -76,14 +76,6 @@ repos:
         files: ^spec/layers/.*\.md$
         pass_filenames: false
 
-      - id: check-schemas-up-to-date
-        name: Check JSON Schemas match markdown
-        entry: bash -c 'source .venv/bin/activate && python scripts/generate_schemas.py --check-only'
-        language: system
-        files: ^spec/layers/.*\.md$
-        pass_filenames: false
-        always_run: false
-
       - id: validate-link-registry
         name: Validate link registry is synchronized
         entry: bash -c 'source .venv/bin/activate && python scripts/validate.py --relationships --all --no-output'

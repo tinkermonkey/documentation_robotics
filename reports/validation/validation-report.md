@@ -10,3 +10,8 @@
 
 **Errors**: 0
 **Warnings**: 0
+
+## Schemas Validation
+
+**Errors**: 0
+**Warnings**: 0
