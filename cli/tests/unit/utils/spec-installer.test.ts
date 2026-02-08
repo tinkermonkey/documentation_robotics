@@ -143,33 +143,25 @@ describe('spec-installer', () => {
       await access(drPath);
     });
 
-    it('should use fallback paths if primary path fails', async () => {
-      // The function has triple-fallback logic:
+    it('should handle successful installation with fallback paths', async () => {
+      // The function implements triple-fallback logic:
       // 1. dirname(fileURLToPath(import.meta.url))/../schemas/bundled
       // 2. projectRoot/src/schemas/bundled
       // 3. projectRoot/dist/schemas/bundled
       //
-      // This test verifies the function attempts all fallback paths
+      // This test verifies installation succeeds when schemas are available
 
-      let installSucceeded = false;
-      let errorMsg = '';
-      try {
-        await installSpecReference(testDir);
-        installSucceeded = true;
-      } catch (error) {
-        // If all paths fail, capture the error message
-        errorMsg = error instanceof Error ? error.message : String(error);
-      }
+      await installSpecReference(testDir);
 
-      // Validate the outcome: either installation succeeded or proper error was raised
-      if (installSucceeded) {
-        // Verify files were installed by checking .dr directory exists
-        const drPath = path.join(testDir, '.dr');
-        await access(drPath);
-      } else {
-        // Verify fallback logic ran by checking error message
-        expect(errorMsg).toContain('Could not find bundled schemas');
-      }
+      // Verify files were installed by checking .dr directory exists
+      const drPath = path.join(testDir, '.dr');
+      await access(drPath);
+
+      // Verify manifest was created
+      const manifestPath = path.join(drPath, 'manifest.json');
+      const manifestContent = await readFile(manifestPath, 'utf-8');
+      const manifest = JSON.parse(manifestContent);
+      expect(manifest.specVersion).toBeDefined();
     });
   });
 
@@ -194,38 +186,6 @@ describe('spec-installer', () => {
       const nonExistentDir = path.join(testDir, 'does-not-exist');
       const result = await needsSpecReferenceInstall(nonExistentDir);
       expect(result).toBe(true);
-    });
-  });
-
-  describe('Triple-fallback resolution logic', () => {
-    it('should attempt resolution in correct order', async () => {
-      // This test validates that the function implements the triple-fallback logic:
-      // 1. Try current directory's ../schemas/bundled (for development)
-      // 2. Try projectRoot/src/schemas/bundled (for source distribution)
-      // 3. Try projectRoot/dist/schemas/bundled (for bundled/compiled distribution)
-      //
-      // We verify this by checking that the function either succeeds or fails
-      // with an error message indicating all fallback paths were attempted
-
-      let installSucceeded = false;
-      let errorMsg = '';
-
-      try {
-        await installSpecReference(testDir);
-        installSucceeded = true;
-      } catch (error) {
-        errorMsg = error instanceof Error ? error.message : String(error);
-      }
-
-      // Validate the outcome: either installation succeeded or proper error was raised
-      if (installSucceeded) {
-        // Verify files were installed by checking .dr directory exists
-        const drPath = path.join(testDir, '.dr');
-        await access(drPath);
-      } else {
-        // Verify fallback logic attempted all paths before failing
-        expect(errorMsg).toContain('Could not find bundled schemas');
-      }
     });
   });
 });

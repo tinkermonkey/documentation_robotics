@@ -10,6 +10,7 @@ import { join, dirname } from "path";
 import { getCliBundledSpecVersion } from "./spec-version.js";
 import fs from "fs/promises";
 import { fileURLToPath } from "url";
+import { logDebug } from "./globals.js";
 
 /**
  * Install or update the .dr/ spec reference folder
@@ -70,7 +71,7 @@ export async function installSpecReference(
       await fs.access(join(path, "01-motivation-layer.schema.json"));
       schemaSourceDir = path;
       schemaSourcePath = description;
-      console.debug(`Using bundled schemas from: ${description} (${path})`);
+      logDebug(`Using bundled schemas from: ${description} (${path})`);
       break;
     } catch (error) {
       // Only continue on file not found (ENOENT); re-throw other errors (EACCES, etc)

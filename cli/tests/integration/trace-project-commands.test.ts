@@ -92,9 +92,14 @@ describe("Dependency Tracing Commands", () => {
         const appIndex = 4;
         const targetIndex = getLayerIndex(targetLayer);
 
-        if (targetIndex > 0) {
-          expect(targetIndex).toBeLessThan(appIndex);
-        }
+        // Validate that the target layer was found in the lookup table
+        expect(targetIndex).toBeGreaterThan(
+          0,
+          `Could not find layer index for target layer "${targetLayer}" from element ${element.id}`
+        );
+
+        // Now verify the cross-layer direction rule
+        expect(targetIndex).toBeLessThan(appIndex);
       }
     }
   });

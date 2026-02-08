@@ -387,7 +387,6 @@ const apiNode: GraphNode = {
 
 **Related Types:**
 
-- **MigrationGraphNode**: Used internally during migration with additional fields (`labels: string[]`)
 - **GraphEdge**: Represents relationships between nodes
 
 ### GraphEdge Interface
