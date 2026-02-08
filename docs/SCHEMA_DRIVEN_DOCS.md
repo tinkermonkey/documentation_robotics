@@ -6,7 +6,7 @@ Documentation Robotics implements a **schema-driven documentation generation mod
 
 This approach inverts the previous model where markdown files were the source of truth.
 
-## The Old Model (Before Phase 6)
+## The Old Model (Markdown-First)
 
 ```
 Markdown Files (Source)
