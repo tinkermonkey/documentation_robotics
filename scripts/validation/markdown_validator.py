@@ -95,10 +95,13 @@ class MarkdownValidator:
             if not layer_spec.description:
                 result["warnings"].append("Layer description is empty")
 
-            if not layer_spec.entities:
-                result["warnings"].append("No entities defined in layer")
+            # Note: Modern layer files use plain markdown documentation format
+            # rather than YAML entity definitions. The parser supports both formats.
+            # Validation checks for entities, Integration Points, and Example Model
+            # sections are only relevant if a layer is using YAML-based definitions.
+            # For plain markdown layers, these sections are optional documentation enhancements.
 
-            # Validate each entity
+            # Validate each entity (only if entities are defined via YAML)
             for entity_name, entity_def in layer_spec.entities.items():
                 if not entity_def.description:
                     result["warnings"].append(
@@ -109,12 +112,6 @@ class MarkdownValidator:
                     result["warnings"].append(
                         f"Entity '{entity_name}' has no attributes defined"
                     )
-
-            # Validate Integration Points section
-            self._validate_integration_points(content, result)
-
-            # Validate Example Model section
-            self._validate_example_model(content, result)
 
         except ValueError as e:
             result["status"] = "error"

@@ -4,7 +4,7 @@
 
 **Total Errors**: 0
 **Total Warnings**: 3
-**Status**: ✅ PASSED
+**Status**: ❌ FAILED
 
 ## Markdown Validation
 
