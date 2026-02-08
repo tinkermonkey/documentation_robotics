@@ -100,7 +100,8 @@ export async function docsValidateCommand(
     try {
       execSync(command, { cwd: projectRoot, stdio: "pipe" });
     } catch (error) {
-      throw new Error("Failed to generate documentation for validation");
+      const stderr = (error as any).stderr?.toString() || (error as Error).message || String(error);
+      throw new Error(`Failed to generate documentation for validation: ${stderr}`);
     }
 
     // Compare generated docs with existing docs

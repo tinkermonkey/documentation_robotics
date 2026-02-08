@@ -23,6 +23,7 @@ export interface Relationship {
   target: string;
   predicate: string; // e.g., "depends-on", "implements"
   properties?: Record<string, unknown>;
+  category?: 'structural' | 'behavioral'; // Relationship classification
 }
 
 /**

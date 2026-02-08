@@ -170,4 +170,105 @@ describe("Layer", () => {
     expect(elements.map((e) => e.id)).toContain("motivation-goal-test1");
     expect(elements.map((e) => e.id)).toContain("motivation-goal-test2");
   });
+
+  it("should cache elements getter results", () => {
+    const element1 = new Element({
+      id: "motivation-goal-test1",
+      type: "Goal",
+      name: "Goal 1",
+    });
+
+    const layer = new Layer("motivation", [element1]);
+
+    // First access
+    const elements1 = layer.elements;
+    // Second access without changes should return same cached map
+    const elements2 = layer.elements;
+
+    expect(elements1).toBe(elements2); // Same object reference
+    expect(elements1.get("motivation-goal-test1")).toEqual(element1);
+  });
+
+  it("should invalidate elements cache when graph changes", () => {
+    const element1 = new Element({
+      id: "motivation-goal-test1",
+      type: "Goal",
+      name: "Goal 1",
+    });
+
+    const layer = new Layer("motivation", [element1]);
+
+    // First access - caches result
+    const elements1 = layer.elements;
+    expect(elements1.size).toBe(1);
+
+    // Add new element - should invalidate cache
+    const element2 = new Element({
+      id: "motivation-goal-test2",
+      type: "Goal",
+      name: "Goal 2",
+    });
+
+    layer.addElement(element2);
+
+    // Second access - should rebuild cache due to changes
+    const elements2 = layer.elements;
+    expect(elements2).not.toBe(elements1); // Different object reference
+    expect(elements2.size).toBe(2);
+  });
+
+  it("should return correct element references and relationships from elements getter", () => {
+    const reference = {
+      source: "motivation-goal-test",
+      target: "business-service-test",
+      type: "IMPLEMENTS",
+    };
+
+    const relationship = {
+      source: "motivation-goal-test",
+      target: "motivation-goal-other",
+      predicate: "depends-on",
+    };
+
+    const element = new Element({
+      id: "motivation-goal-test",
+      type: "Goal",
+      name: "Test Goal",
+      references: [reference],
+      relationships: [relationship],
+    });
+
+    const layer = new Layer("motivation", [element]);
+
+    const retrieved = layer.elements.get("motivation-goal-test");
+    expect(retrieved?.references).toEqual([reference]);
+    expect(retrieved?.relationships).toEqual([relationship]);
+  });
+
+  it("should preserve references and relationships through update", () => {
+    const reference = {
+      source: "motivation-goal-test",
+      target: "business-service-test",
+      type: "IMPLEMENTS",
+    };
+
+    const element = new Element({
+      id: "motivation-goal-test",
+      type: "Goal",
+      name: "Test Goal",
+      description: "Original",
+      references: [reference],
+    });
+
+    const layer = new Layer("motivation", [element]);
+
+    // Update element with new description
+    element.description = "Updated";
+    layer.updateElement(element);
+
+    // Verify reference is preserved
+    const retrieved = layer.getElement("motivation-goal-test");
+    expect(retrieved?.description).toBe("Updated");
+    expect(retrieved?.references).toEqual([reference]);
+  });
 });

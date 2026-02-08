@@ -3,6 +3,10 @@
  *
  * Migrates existing layer-based models to the internal graph format (GraphNode/GraphEdge).
  * Provides backup capability, validation, and rollback functionality for safe transformation.
+ *
+ * Uses graph-mapping utilities to maintain consistent field naming across different
+ * graph representations (GraphNode/GraphEdge, MigrationGraphNode/MigrationGraphEdge, Element).
+ * See: src/core/graph-mapping.ts
  */
 
 import type { Model } from "../core/model.js";

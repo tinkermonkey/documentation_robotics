@@ -1,6 +1,6 @@
 import { Element } from "./element.js";
 import { GraphModel } from "./graph-model.js";
-import type { LayerData } from "../types/index.js";
+import type { LayerData, Reference, Relationship } from "../types/index.js";
 
 /**
  * Layer class - thin wrapper over graph model for backward compatibility
@@ -88,8 +88,8 @@ export class Layer {
         description: node.description,
         properties: node.properties,
         layer: node.layer,
-        references: (node.properties['__references__'] ?? []) as any,
-        relationships: (node.properties['__relationships__'] ?? []) as any,
+        references: (node.properties['__references__'] ?? []) as Reference[],
+        relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
       });
       result.set(node.id, element);
     }
@@ -135,8 +135,8 @@ export class Layer {
       description: node.description,
       properties: node.properties,
       layer: node.layer,
-      references: (node.properties['__references__'] ?? []) as any,
-      relationships: (node.properties['__relationships__'] ?? []) as any,
+      references: (node.properties['__references__'] ?? []) as Reference[],
+      relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
     });
   }
 
@@ -207,8 +207,8 @@ export class Layer {
         description: node.description,
         properties: node.properties,
         layer: node.layer,
-        references: (node.properties['__references__'] ?? []) as any,
-        relationships: (node.properties['__relationships__'] ?? []) as any,
+        references: (node.properties['__references__'] ?? []) as Reference[],
+        relationships: (node.properties['__relationships__'] ?? []) as Relationship[],
       })
     );
   }

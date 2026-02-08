@@ -27,8 +27,8 @@ export interface LadybugMigrationOptions {
  */
 export interface LadybugSchema {
   version: string;
-  nodeTypes: Map<string, NodeTypeDefinition>;
-  relationshipTypes: Map<string, RelationshipTypeDefinition>;
+  nodeTypes: Record<string, NodeTypeDefinition>;
+  relationshipTypes: Record<string, RelationshipTypeDefinition>;
   indexes: IndexDefinition[];
 }
 
@@ -148,14 +148,14 @@ export class LadybugMigrationService {
    * Infer schema from graph data
    */
   private inferSchema(nodes: GraphNode[], edges: GraphEdge[]): LadybugSchema {
-    const nodeTypes = new Map<string, NodeTypeDefinition>();
-    const relationshipTypes = new Map<string, RelationshipTypeDefinition>();
+    const nodeTypes: Record<string, NodeTypeDefinition> = {};
+    const relationshipTypes: Record<string, RelationshipTypeDefinition> = {};
     const indexes: IndexDefinition[] = [];
 
     // Infer node types from labels
     for (const node of nodes) {
       for (const label of node.labels || ["Element"]) {
-        if (!nodeTypes.has(label)) {
+        if (!(label in nodeTypes)) {
           const properties: Record<string, PropertyType> = {
             id: PropertyType.STRING,
             name: PropertyType.STRING,
@@ -170,11 +170,11 @@ export class LadybugMigrationService {
             }
           }
 
-          nodeTypes.set(label, {
+          nodeTypes[label] = {
             name: label,
             properties,
             description: `${label} node type in architecture model`,
-          });
+          };
         }
       }
     }
@@ -187,11 +187,10 @@ export class LadybugMigrationService {
     });
 
     // Infer relationship types from edges
-    const relationshipMap = new Map<string, RelationshipTypeDefinition>();
     for (const edge of edges) {
       const key = edge.relationship;
-      if (!relationshipMap.has(key)) {
-        relationshipMap.set(key, {
+      if (!(key in relationshipTypes)) {
+        relationshipTypes[key] = {
           name: edge.relationship,
           sourceType: "Element",
           targetType: "Element",
@@ -202,14 +201,9 @@ export class LadybugMigrationService {
               return acc;
             }, {} as Record<string, PropertyType>),
           } : undefined,
-        });
+        };
       }
     }
-
-    // Convert map to stored format
-    relationshipMap.forEach((value, key) => {
-      relationshipTypes.set(key, value);
-    });
 
     // Add normal indexes for common queries
     indexes.push({
@@ -269,7 +263,7 @@ export class LadybugMigrationService {
   }
 
   /**
-   * Convert Maps to plain objects for JSON serialization
+   * Prepare schema for JSON serialization (already in Record format)
    */
   private convertSchemaToSerializable(schema: LadybugSchema): {
     version: string;
@@ -277,22 +271,11 @@ export class LadybugMigrationService {
     relationshipTypes: Record<string, RelationshipTypeDefinition>;
     indexes: IndexDefinition[];
   } {
-    const nodeTypesObj: Record<string, NodeTypeDefinition> = {};
-    const relationshipTypesObj: Record<string, RelationshipTypeDefinition> = {};
-
-    // Convert Maps to plain objects
-    for (const [key, value] of schema.nodeTypes) {
-      nodeTypesObj[key] = value;
-    }
-
-    for (const [key, value] of schema.relationshipTypes) {
-      relationshipTypesObj[key] = value;
-    }
-
+    // Schema is already in Record format, no conversion needed
     return {
       version: schema.version,
-      nodeTypes: nodeTypesObj,
-      relationshipTypes: relationshipTypesObj,
+      nodeTypes: schema.nodeTypes,
+      relationshipTypes: schema.relationshipTypes,
       indexes: schema.indexes,
     };
   }
@@ -333,7 +316,7 @@ export class LadybugMigrationService {
 
     // Node type definitions
     lines.push("-- Node Types");
-    for (const [name, nodeDef] of schema.nodeTypes) {
+    for (const [name, nodeDef] of Object.entries(schema.nodeTypes)) {
       lines.push(`CREATE NODE TYPE ${name} {`);
       for (const [propName, propType] of Object.entries(nodeDef.properties)) {
         lines.push(`  ${propName}: ${propType},`);
@@ -344,7 +327,7 @@ export class LadybugMigrationService {
 
     // Relationship type definitions
     lines.push("-- Relationship Types");
-    for (const [name, relDef] of schema.relationshipTypes) {
+    for (const [name, relDef] of Object.entries(schema.relationshipTypes)) {
       const direction = relDef.isDirected ? "->" : "--";
       lines.push(
         `CREATE RELATIONSHIP TYPE ${name} (${relDef.sourceType} ${direction} ${relDef.targetType}) {`

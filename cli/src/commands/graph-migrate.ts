@@ -431,8 +431,8 @@ function createSampleLadybugDocument(
     },
     schema: {
       version: "1.0.0",
-      nodeTypes: new Map(),
-      relationshipTypes: new Map(),
+      nodeTypes: {},
+      relationshipTypes: {},
       indexes: [],
     },
     data: {
