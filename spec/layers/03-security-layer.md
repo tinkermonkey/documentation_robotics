@@ -16,13 +16,11 @@ This layer defines **66** node types that represent various aspects of the archi
 
 ClassificationLevel element in Security Layer
 
-
 ### Likelihood
 
 **ID**: `security.likelihood`
 
 Likelihood element in Security Layer
-
 
 ### MaskingStrategy
 
@@ -30,20 +28,17 @@ Likelihood element in Security Layer
 
 MaskingStrategy element in Security Layer
 
-
 ### Impact
 
 **ID**: `security.impact`
 
 Impact element in Security Layer
 
-
 ### PolicyTarget
 
 **ID**: `security.policytarget`
 
 PolicyTarget element in Security Layer
-
 
 ### Classification
 
@@ -96,13 +91,11 @@ Dependency between actors
 
 ValidationRuleType element in Security Layer
 
-
 ### AccessControlLevel
 
 **ID**: `security.accesscontrollevel`
 
 AccessControlLevel element in Security Layer
-
 
 ### RateLimit
 
@@ -127,13 +120,11 @@ Defines throttling constraints for API or service access, specifying maximum req
 
 DeletionMethod element in Security Layer
 
-
 ### AuditLevel
 
 **ID**: `security.auditlevel`
 
 AuditLevel element in Security Layer
-
 
 ### RateLimitAction
 
@@ -141,13 +132,11 @@ AuditLevel element in Security Layer
 
 RateLimitAction element in Security Layer
 
-
 ### DelegationType
 
 **ID**: `security.delegationtype`
 
 DelegationType element in Security Layer
-
 
 ### StorageClass
 
@@ -155,13 +144,11 @@ DelegationType element in Security Layer
 
 StorageClass element in Security Layer
 
-
 ### PolicyEffect
 
 **ID**: `security.policyeffect`
 
 PolicyEffect element in Security Layer
-
 
 ### AuthenticationConfig
 
@@ -186,7 +173,6 @@ Authentication configuration
 
 TrustLevel element in Security Layer
 
-
 ### AccessCondition
 
 **ID**: `security.accesscondition`
@@ -208,7 +194,6 @@ Conditional access rule
 **ID**: `security.authprovider`
 
 AuthProvider element in Security Layer
-
 
 ### AccountabilityRequirement
 
@@ -314,7 +299,6 @@ Protected resource definition
 
 DataSource element in Security Layer
 
-
 ### Countermeasure
 
 **ID**: `security.countermeasure`
@@ -356,7 +340,6 @@ Operation on a resource
 **ID**: `security.effectiveness`
 
 Effectiveness element in Security Layer
-
 
 ### PasswordPolicy
 
@@ -403,7 +386,6 @@ Actor in the system (beyond roles)
 
 RateLimitScope element in Security Layer
 
-
 ### SeparationOfDuty
 
 **ID**: `security.separationofduty`
@@ -444,7 +426,6 @@ Dependencies and trust between actors
 
 EvaluationType element in Security Layer
 
-
 ### Role
 
 **ID**: `security.role`
@@ -468,7 +449,6 @@ User role definition
 
 EncryptionRequirement element in Security Layer
 
-
 ### RetentionPolicy
 
 **ID**: `security.retentionpolicy`
@@ -488,13 +468,11 @@ Defines how long security-related data (audit logs, access records, encryption k
 
 ActorType element in Security Layer
 
-
 ### EvidenceType
 
 **ID**: `security.evidencetype`
 
 EvidenceType element in Security Layer
-
 
 ### ValidationSeverity
 
@@ -502,13 +480,11 @@ EvidenceType element in Security Layer
 
 ValidationSeverity element in Security Layer
 
-
 ### ConditionOperator
 
 **ID**: `security.conditionoperator`
 
 ConditionOperator element in Security Layer
-
 
 ### Threat
 
@@ -551,7 +527,6 @@ Same actor must complete related tasks
 
 VerificationLevel element in Security Layer
 
-
 ### DataClassification
 
 **ID**: `security.dataclassification`
@@ -586,7 +561,6 @@ Information asset with fine-grained rights
 **ID**: `security.permissionscope`
 
 PermissionScope element in Security Layer
-
 
 ### ValidationRule
 
@@ -625,7 +599,6 @@ Action to take when policy rule matches
 **ID**: `security.destinationtype`
 
 DestinationType element in Security Layer
-
 
 ### SecurityModel
 
@@ -671,7 +644,6 @@ Complete security model for application
 **ID**: `security.requirementlevel`
 
 RequirementLevel element in Security Layer
-
 
 ### SecurityConstraints
 
@@ -755,13 +727,11 @@ A logical expression or predicate that determines when a SecurityPolicy rule app
 
 ActionType element in Security Layer
 
-
 ### ResourceType
 
 **ID**: `security.resourcetype`
 
 ResourceType element in Security Layer
-
 
 ### FieldAccessControl
 
@@ -797,14 +767,11 @@ Explicit delegation of permissions or goals
 
 EvidenceStrength element in Security Layer
 
-
 ### Criticality
 
 **ID**: `security.criticality`
 
 Criticality element in Security Layer
-
-
 
 ## References
 

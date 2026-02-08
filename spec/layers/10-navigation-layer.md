@@ -16,7 +16,6 @@ This layer defines **26** node types that represent various aspects of the archi
 
 RouteType element in Navigation Layer
 
-
 ### GuardAction
 
 **ID**: `navigation.guardaction`
@@ -69,13 +68,11 @@ Analytics for funnel tracking (Gap #9: Funnel analytics)
 
 HttpMethod element in Navigation Layer
 
-
 ### NavigationTrigger
 
 **ID**: `navigation.navigationtrigger`
 
 NavigationTrigger element in Navigation Layer
-
 
 ### GuardType
 
@@ -83,13 +80,11 @@ NavigationTrigger element in Navigation Layer
 
 GuardType element in Navigation Layer
 
-
 ### BreadcrumbMode
 
 **ID**: `navigation.breadcrumbmode`
 
 BreadcrumbMode element in Navigation Layer
-
 
 ### FlowStep
 
@@ -127,13 +122,11 @@ Tracks business process instance across flow (Gap #3: Process correlation)
 
 StorageType element in Navigation Layer
 
-
 ### GuardActionType
 
 **ID**: `navigation.guardactiontype`
 
 GuardActionType element in Navigation Layer
-
 
 ### NavigationFlow
 
@@ -157,7 +150,6 @@ Sequence of routes that realizes a business process
 
 NotificationType element in Navigation Layer
 
-
 ### NotificationAction
 
 **ID**: `navigation.notificationaction`
@@ -177,7 +169,6 @@ Notification to send during flow step
 **ID**: `navigation.contextscope`
 
 ContextScope element in Navigation Layer
-
 
 ### RouteMeta
 
@@ -218,7 +209,6 @@ Single route/destination in the application (channel-agnostic)
 **ID**: `navigation.truncationtype`
 
 TruncationType element in Navigation Layer
-
 
 ### ContextVariable
 
@@ -291,7 +281,6 @@ Guard condition for route access
 
 WaitType element in Navigation Layer
 
-
 ### BreadcrumbConfig
 
 **ID**: `navigation.breadcrumbconfig`
@@ -322,7 +311,6 @@ Maps data between flow context and experience (Gap #2: Data handoff)
 - `target`: string (required)
 - `transform`: string (required)
 - `required`: boolean
-
 
 ## References
 

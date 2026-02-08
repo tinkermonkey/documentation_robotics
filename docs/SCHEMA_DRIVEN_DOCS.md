@@ -21,6 +21,7 @@ Dual maintenance burden
 ```
 
 **Problems:**
+
 - Documentation and schemas could drift
 - Changes had to be made in two places
 - Schema generation overwrote manual enhancements
@@ -42,6 +43,7 @@ Human-readable documentation
 ```
 
 **Benefits:**
+
 - ✅ Single source of truth (JSON specs)
 - ✅ Automatic documentation consistency
 - ✅ CI validation prevents drift
@@ -114,6 +116,7 @@ Each `*.node.json` file contains:
 **Location**: `scripts/generate-layer-docs.ts`
 
 The TypeScript generator:
+
 1. Loads all SpecLayer instances from `spec/layers/*.layer.json`
 2. Loads all SpecNode instances from `spec/nodes/**/*.node.json`
 3. Generates markdown documentation for each layer
@@ -222,6 +225,7 @@ This ensures documentation never drifts from the authoritative specification.
 ### When to Update Specifications
 
 Developers update the JSON specification instances when:
+
 - Adding new node types
 - Modifying node attributes
 - Changing layer definitions
@@ -232,6 +236,7 @@ Developers update the JSON specification instances when:
 After specification changes:
 
 1. **Locally** (before committing):
+
    ```bash
    dr docs generate
    git add spec/layers/*.md
@@ -247,11 +252,13 @@ After specification changes:
 ### Manual Documentation
 
 Certain sections may require manual curation:
+
 - Examples (demonstrate real-world usage)
 - Implementation notes
 - Design rationale
 
 These can be:
+
 - Added separately in `docs/` directory
 - Referenced from generated files
 - Maintained independently from specifications
@@ -264,9 +271,11 @@ If transitioning from markdown-first to schema-first:
    - One `*.layer.json` per layer
    - One `*.node.json` per node type
 2. **Generate documentation**:
+
    ```bash
    dr docs generate
    ```
+
 3. **Review generated output** for accuracy
 4. **Commit specification instances** (new source of truth)
 5. **Replace markdown files** with generated versions
@@ -275,21 +284,25 @@ If transitioning from markdown-first to schema-first:
 ## Architecture Benefits
 
 ### Single Source of Truth
+
 - Specifications in JSON are the authoritative source
 - Documentation is a generated artifact
 - No manual synchronization needed
 
 ### Consistency
+
 - All documentation reflects spec definitions
 - Impossible to have stale docs
 - Automatic updates on spec changes
 
 ### Maintainability
+
 - JSON specs are structured, machine-readable
 - Easy to validate, search, analyze
 - Tools can operate on specifications directly
 
 ### Standards Alignment
+
 - Specs reference industry standards (ArchiMate, OpenAPI, JSON Schema)
 - Documentation includes standard citations
 - Clear provenance and inspiration
@@ -299,6 +312,7 @@ If transitioning from markdown-first to schema-first:
 ### Specification Loading
 
 The generator:
+
 1. Reads `spec/layers/*.layer.json` files
 2. Reads `spec/nodes/**/*.node.json` files
 3. Groups nodes by layer_id
@@ -307,6 +321,7 @@ The generator:
 ### Markdown Generation
 
 For each layer:
+
 1. Generates header with layer metadata
 2. Generates overview section
 3. For each node type:
@@ -319,6 +334,7 @@ For each layer:
 ### Index Generation
 
 A master index document:
+
 - Lists all layers with links
 - Groups node types by layer
 - Provides cross-references

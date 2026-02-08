@@ -3,11 +3,11 @@ name: Validate Documentation
 on:
   pull_request:
     paths:
-      - 'spec/schemas/base/**'
-      - 'spec/schemas/*.schema.json'
-      - 'spec/layers/*.layer.json'
-      - 'spec/nodes/**/*.node.json'
-      - 'scripts/generate-layer-docs.ts'
+      - "spec/schemas/base/**"
+      - "spec/schemas/*.schema.json"
+      - "spec/layers/*.layer.json"
+      - "spec/nodes/**/*.node.json"
+      - "scripts/generate-layer-docs.ts"
 
 jobs:
   validate-docs:

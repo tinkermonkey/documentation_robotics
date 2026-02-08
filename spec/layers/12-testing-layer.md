@@ -16,7 +16,6 @@ This layer defines **29** node types that represent various aspects of the archi
 
 SketchStatus element in Testing Layer
 
-
 ### TestCoverageModel
 
 **ID**: `testing.testcoveragemodel`
@@ -75,7 +74,6 @@ Identified gap in test coverage requiring attention
 
 PresenceRule element in Testing Layer
 
-
 ### CoverageExclusion
 
 **ID**: `testing.coverageexclusion`
@@ -97,13 +95,11 @@ Explicit exclusion from coverage with justification
 
 DependencyEffect element in Testing Layer
 
-
 ### FieldRelevance
 
 **ID**: `testing.fieldrelevance`
 
 FieldRelevance element in Testing Layer
-
 
 ### CoverageCriteria
 
@@ -111,13 +107,11 @@ FieldRelevance element in Testing Layer
 
 CoverageCriteria element in Testing Layer
 
-
 ### ImplementationFormat
 
 **ID**: `testing.implementationformat`
 
 ImplementationFormat element in Testing Layer
-
 
 ### InputSpacePartition
 
@@ -142,7 +136,6 @@ Partitioning of an input dimension into testable categories
 **ID**: `testing.gapseverity`
 
 GapSeverity element in Testing Layer
-
 
 ### OutcomeCategory
 
@@ -194,7 +187,6 @@ Constraint between partition values across fields
 **ID**: `testing.partitioncategory`
 
 PartitionCategory element in Testing Layer
-
 
 ### TestCoverageTarget
 
@@ -269,7 +261,6 @@ Selection of partition values to include in coverage
 
 Priority element in Testing Layer
 
-
 ### CoverageRequirement
 
 **ID**: `testing.coveragerequirement`
@@ -298,7 +289,6 @@ Requirement for test coverage of a target
 
 TargetType element in Testing Layer
 
-
 ### CoverageSummary
 
 **ID**: `testing.coveragesummary`
@@ -321,7 +311,6 @@ Summary of coverage status (can be computed or declared)
 **ID**: `testing.outcometype`
 
 OutcomeType element in Testing Layer
-
 
 ### PartitionValue
 
@@ -376,8 +365,6 @@ Abstract test case selecting specific partition values
 **ID**: `testing.contexttype`
 
 ContextType element in Testing Layer
-
-
 
 ## References
 

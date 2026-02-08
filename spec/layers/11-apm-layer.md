@@ -16,7 +16,6 @@ This layer defines **35** node types that represent various aspects of the archi
 
 SamplerType element in APM Observability Layer
 
-
 ### LogProcessor
 
 **ID**: `apm.logprocessor`
@@ -37,13 +36,11 @@ A processing pipeline component for log records, enabling filtering, transformat
 
 LogProcessorType element in APM Observability Layer
 
-
 ### SpanKind
 
 **ID**: `apm.spankind`
 
 SpanKind element in APM Observability Layer
-
 
 ### LogLevel
 
@@ -51,20 +48,17 @@ SpanKind element in APM Observability Layer
 
 LogLevel element in APM Observability Layer
 
-
 ### InstrumentationType
 
 **ID**: `apm.instrumentationtype`
 
 InstrumentationType element in APM Observability Layer
 
-
 ### CompressionType
 
 **ID**: `apm.compressiontype`
 
 CompressionType element in APM Observability Layer
-
 
 ### SpanEvent
 
@@ -86,7 +80,6 @@ Timestamped event during span execution
 **ID**: `apm.authtype`
 
 AuthType element in APM Observability Layer
-
 
 ### Attribute
 
@@ -166,13 +159,11 @@ Link to related span (different trace or parent)
 
 AggregationTemporality element in APM Observability Layer
 
-
 ### ExporterType
 
 **ID**: `apm.exportertype`
 
 ExporterType element in APM Observability Layer
-
 
 ### LogRecord
 
@@ -216,7 +207,6 @@ Configuration for metric collection meters, specifying aggregation temporality, 
 
 ExporterProtocol element in APM Observability Layer
 
-
 ### MetricConfiguration
 
 **ID**: `apm.metricconfiguration`
@@ -236,13 +226,11 @@ Metrics configuration
 
 DataQualityType element in APM Observability Layer
 
-
 ### InstrumentType
 
 **ID**: `apm.instrumenttype`
 
 InstrumentType element in APM Observability Layer
-
 
 ### LogConfiguration
 
@@ -293,7 +281,6 @@ Immutable representation of entity producing telemetry
 **ID**: `apm.transformoperation`
 
 TransformOperation element in APM Observability Layer
-
 
 ### DataQualityMetrics
 
@@ -402,21 +389,17 @@ Complete APM configuration for an application
 
 SeverityNumber element in APM Observability Layer
 
-
 ### PropagatorType
 
 **ID**: `apm.propagatortype`
 
 PropagatorType element in APM Observability Layer
 
-
 ### StatusCode
 
 **ID**: `apm.statuscode`
 
 StatusCode element in APM Observability Layer
-
-
 
 ## References
 

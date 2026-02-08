@@ -16,20 +16,17 @@ This layer defines **19** node types that represent various aspects of the archi
 
 OutcomeStatus element in Motivation Layer
 
-
 ### RequirementType
 
 **ID**: `motivation.requirementtype`
 
 RequirementType element in Motivation Layer
 
-
 ### ConstraintType
 
 **ID**: `motivation.constrainttype`
 
 ConstraintType element in Motivation Layer
-
 
 ### Goal
 
@@ -51,7 +48,6 @@ High-level statement of intent, direction, or desired end state
 **ID**: `motivation.principlecategory`
 
 PrincipleCategory element in Motivation Layer
-
 
 ### Requirement
 
@@ -115,7 +111,6 @@ Knowledge or expertise present in a representation
 
 ValueType element in Motivation Layer
 
-
 ### Value
 
 **ID**: `motivation.value`
@@ -137,20 +132,17 @@ Relative worth, utility, or importance of something
 
 StakeholderType element in Motivation Layer
 
-
 ### AssessmentType
 
 **ID**: `motivation.assessmenttype`
 
 AssessmentType element in Motivation Layer
 
-
 ### Priority
 
 **ID**: `motivation.priority`
 
 Priority element in Motivation Layer
-
 
 ### Assessment
 
@@ -186,7 +178,6 @@ End result that has been achieved
 
 DriverCategory element in Motivation Layer
 
-
 ### Constraint
 
 **ID**: `motivation.constraint`
@@ -214,7 +205,6 @@ Individual, team, or organization with interest in the outcome
 - `name`: string (required)
 - `documentation`: string
 - `type`: string (required)
-
 
 ## References
 

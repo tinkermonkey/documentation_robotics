@@ -75,7 +75,6 @@ Application state change notification
 
 InteractionPattern element in Application Layer
 
-
 ### DataObject
 
 **ID**: `application.dataobject`
@@ -95,7 +94,6 @@ Data structured for automated processing
 **ID**: `application.interfaceprotocol`
 
 InterfaceProtocol element in Application Layer
-
 
 ### ApplicationFunction
 
@@ -146,13 +144,11 @@ Sequence of application behaviors
 
 ComponentType element in Application Layer
 
-
 ### ApplicationEventType
 
 **ID**: `application.applicationeventtype`
 
 ApplicationEventType element in Application Layer
-
 
 ### ApplicationComponent
 
@@ -174,8 +170,6 @@ Modular, deployable, and replaceable part of a system
 **ID**: `application.servicetype`
 
 ServiceType element in Application Layer
-
-
 
 ## References
 

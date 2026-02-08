@@ -16,7 +16,6 @@ This layer defines **22** node types that represent various aspects of the archi
 
 NetworkType element in Technology Layer
 
-
 ### Device
 
 **ID**: `technology.device`
@@ -62,7 +61,6 @@ Unit of collective technology behavior
 **ID**: `technology.pathtype`
 
 PathType element in Technology Layer
-
 
 ### CommunicationNetwork
 
@@ -133,7 +131,6 @@ Point of access where technology services are available
 
 SystemSoftwareType element in Technology Layer
 
-
 ### SystemSoftware
 
 **ID**: `technology.systemsoftware`
@@ -157,13 +154,11 @@ Software that provides platform for applications
 
 DeviceType element in Technology Layer
 
-
 ### TechProtocol
 
 **ID**: `technology.techprotocol`
 
 TechProtocol element in Technology Layer
-
 
 ### Node
 
@@ -219,20 +214,17 @@ Externally visible unit of technology functionality
 
 NodeType element in Technology Layer
 
-
 ### TechServiceType
 
 **ID**: `technology.techservicetype`
 
 TechServiceType element in Technology Layer
 
-
 ### TechEventType
 
 **ID**: `technology.techeventtype`
 
 TechEventType element in Technology Layer
-
 
 ### TechnologyProcess
 
@@ -270,8 +262,6 @@ Link between nodes through which they exchange
 **ID**: `technology.artifacttype`
 
 ArtifactType element in Technology Layer
-
-
 
 ## References
 

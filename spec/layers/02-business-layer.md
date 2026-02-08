@@ -46,7 +46,6 @@ Aggregate of business roles working together
 
 RepresentationFormat element in Business Layer
 
-
 ### BusinessRole
 
 **ID**: `business.businessrole`
@@ -159,7 +158,6 @@ Unit of collective behavior by collaboration
 
 EventType element in Business Layer
 
-
 ### BusinessProcess
 
 **ID**: `business.businessprocess`
@@ -199,7 +197,6 @@ Collection of business behavior based on criteria
 - `id`: string (uuid) (required)
 - `name`: string (required)
 - `documentation`: string
-
 
 ## References
 

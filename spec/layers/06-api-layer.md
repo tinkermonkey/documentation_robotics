@@ -16,7 +16,6 @@ This layer defines **29** node types that represent various aspects of the archi
 
 SecurityType element in API Layer
 
-
 ### License
 
 **ID**: `api.license`
@@ -34,7 +33,6 @@ Specifies the legal license under which the API is provided, including license n
 **ID**: `api.parameterstyle`
 
 ParameterStyle element in API Layer
-
 
 ### Info
 
@@ -267,7 +265,6 @@ A variable placeholder in server URL templates that can be substituted at runtim
 
 ParameterLocation element in API Layer
 
-
 ### Example
 
 **ID**: `api.example`
@@ -427,7 +424,6 @@ Data type definition (JSON Schema subset)
 - `default`: string
 - `enum`: string
 - `nullable`: boolean
-
 
 ## References
 

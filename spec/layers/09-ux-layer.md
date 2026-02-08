@@ -41,20 +41,17 @@ Collection of reusable UI components and sub-views that can be shared across app
 
 AnimationType element in UX Layer
 
-
 ### ButtonStyle
 
 **ID**: `ux.buttonstyle`
 
 ButtonStyle element in UX Layer
 
-
 ### FilterType
 
 **ID**: `ux.filtertype`
 
 FilterType element in UX Layer
-
 
 ### ActionComponent
 
@@ -104,13 +101,11 @@ Defines performance SLAs for UI components including load time, interaction resp
 
 LayoutType element in UX Layer
 
-
 ### AlignContent
 
 **ID**: `ux.aligncontent`
 
 AlignContent element in UX Layer
-
 
 ### ErrorConfig
 
@@ -133,13 +128,11 @@ Configuration for error handling and display within UI components, specifying er
 
 ChannelType element in UX Layer
 
-
 ### TextAlign
 
 **ID**: `ux.textalign`
 
 TextAlign element in UX Layer
-
 
 ### HttpMethod
 
@@ -147,13 +140,11 @@ TextAlign element in UX Layer
 
 HttpMethod element in UX Layer
 
-
 ### ColumnDisplayType
 
 **ID**: `ux.columndisplaytype`
 
 ColumnDisplayType element in UX Layer
-
 
 ### ViewType
 
@@ -161,13 +152,11 @@ ColumnDisplayType element in UX Layer
 
 ViewType element in UX Layer
 
-
 ### TriggerType
 
 **ID**: `ux.triggertype`
 
 TriggerType element in UX Layer
-
 
 ### View
 
@@ -198,7 +187,6 @@ Routable grouping of components (a complete user experience)
 **ID**: `ux.justifycontent`
 
 JustifyContent element in UX Layer
-
 
 ### ApiConfig
 
@@ -234,13 +222,11 @@ Reusable state machine pattern for common UX flows
 
 DataSource element in UX Layer
 
-
 ### LineStyle
 
 **ID**: `ux.linestyle`
 
 LineStyle element in UX Layer
-
 
 ### LabelPosition
 
@@ -248,20 +234,17 @@ LineStyle element in UX Layer
 
 LabelPosition element in UX Layer
 
-
 ### StickyPosition
 
 **ID**: `ux.stickyposition`
 
 StickyPosition element in UX Layer
 
-
 ### ValidationType
 
 **ID**: `ux.validationtype`
 
 ValidationType element in UX Layer
-
 
 ### UXSpec
 
@@ -320,13 +303,11 @@ Configuration for UI layout structure, defining grid systems, responsive breakpo
 
 SortDirection element in UX Layer
 
-
 ### SeriesType
 
 **ID**: `ux.seriestype`
 
 SeriesType element in UX Layer
-
 
 ### ActionComponentType
 
@@ -334,13 +315,11 @@ SeriesType element in UX Layer
 
 ActionComponentType element in UX Layer
 
-
 ### NotificationType
 
 **ID**: `ux.notificationtype`
 
 NotificationType element in UX Layer
-
 
 ### TableColumn
 
@@ -390,7 +369,6 @@ Defines reusable animation and transition patterns for state changes, page navig
 **ID**: `ux.justifyitems`
 
 JustifyItems element in UX Layer
-
 
 ### SubView
 
@@ -442,7 +420,6 @@ Reusable grouping of components that can be composed into views
 **ID**: `ux.alignitems`
 
 AlignItems element in UX Layer
-
 
 ### UXApplication
 
@@ -521,7 +498,6 @@ Client-side validation rule for a field
 
 ComponentType element in UX Layer
 
-
 ### StateActionTemplate
 
 **ID**: `ux.stateactiontemplate`
@@ -555,7 +531,6 @@ A reference to another UI component that can be embedded or composed within a pa
 
 LayoutStyle element in UX Layer
 
-
 ### Condition
 
 **ID**: `ux.condition`
@@ -573,7 +548,6 @@ Boolean expression for guard conditions
 **ID**: `ux.actiontype`
 
 ActionType element in UX Layer
-
 
 ### StateAction
 
@@ -594,7 +568,6 @@ Action executed during state lifecycle
 
 CacheStrategy element in UX Layer
 
-
 ### StateTransition
 
 **ID**: `ux.statetransition`
@@ -610,7 +583,6 @@ Transition from current state to another state
 - `description`: string
 - `actions`: array
   - Contains relationship
-
 
 ## References
 

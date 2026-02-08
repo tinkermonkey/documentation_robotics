@@ -34,13 +34,11 @@ A database trigger that automatically executes in response to data modification 
 
 TriggerForEach element in Data Store Layer
 
-
 ### FunctionLanguage
 
 **ID**: `data-store.functionlanguage`
 
 FunctionLanguage element in Data Store Layer
-
 
 ### TriggerTiming
 
@@ -48,13 +46,11 @@ FunctionLanguage element in Data Store Layer
 
 TriggerTiming element in Data Store Layer
 
-
 ### ConstraintType
 
 **ID**: `data-store.constrainttype`
 
 ConstraintType element in Data Store Layer
-
 
 ### SecurityDefiner
 
@@ -62,13 +58,11 @@ ConstraintType element in Data Store Layer
 
 SecurityDefiner element in Data Store Layer
 
-
 ### TriggerEvent
 
 **ID**: `data-store.triggerevent`
 
 TriggerEvent element in Data Store Layer
-
 
 ### ParameterMode
 
@@ -76,13 +70,11 @@ TriggerEvent element in Data Store Layer
 
 ParameterMode element in Data Store Layer
 
-
 ### RefreshMode
 
 **ID**: `data-store.refreshmode`
 
 RefreshMode element in Data Store Layer
-
 
 ### View
 
@@ -123,13 +115,11 @@ Logical grouping of database objects
 
 IndexMethod element in Data Store Layer
 
-
 ### SQLDataType
 
 **ID**: `data-store.sqldatatype`
 
 SQLDataType element in Data Store Layer
-
 
 ### Database
 
@@ -154,7 +144,6 @@ Database instance containing schemas
 
 ParallelSafety element in Data Store Layer
 
-
 ### Column
 
 **ID**: `data-store.column`
@@ -177,7 +166,6 @@ Table column definition
 **ID**: `data-store.functionvolatility`
 
 FunctionVolatility element in Data Store Layer
-
 
 ### Table
 
@@ -230,7 +218,6 @@ A stored database function that encapsulates reusable computation logic. Returns
 
 DatabaseType element in Data Store Layer
 
-
 ### Sequence
 
 **ID**: `data-store.sequence`
@@ -273,20 +260,17 @@ Database index for query optimization
 
 ReferentialAction element in Data Store Layer
 
-
 ### GenerationType
 
 **ID**: `data-store.generationtype`
 
 GenerationType element in Data Store Layer
 
-
 ### SequenceDataType
 
 **ID**: `data-store.sequencedatatype`
 
 SequenceDataType element in Data Store Layer
-
 
 ### Constraint
 
@@ -299,7 +283,6 @@ Table constraint
 - `id`: string (uuid) (required)
 - `name`: string (required)
 - `type`: string (required)
-
 
 ## References
 

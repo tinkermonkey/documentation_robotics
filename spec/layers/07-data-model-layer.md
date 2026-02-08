@@ -16,7 +16,6 @@ This layer defines **30** node types that represent various aspects of the archi
 
 MaskingStrategy element in Data Model Layer
 
-
 ### ArraySchema
 
 **ID**: `data-model.arrayschema`
@@ -37,7 +36,6 @@ ArraySchema validation rules
 **ID**: `data-model.constrainttype`
 
 ConstraintType element in Data Model Layer
-
 
 ### x-business-object-ref
 
@@ -65,7 +63,6 @@ Reference to another schema
 **ID**: `data-model.sqltype`
 
 SQLType element in Data Model Layer
-
 
 ### DataGovernance
 
@@ -121,7 +118,6 @@ Defines a single property within a schema, including its type, constraints, vali
 **ID**: `data-model.partitionstrategy`
 
 PartitionStrategy element in Data Model Layer
-
 
 ### x-security
 
@@ -188,7 +184,6 @@ Defines measurable quality attributes for data elements such as completeness, ac
 
 IndexType element in Data Model Layer
 
-
 ### x-ui
 
 **ID**: `data-model.x-ui`
@@ -254,13 +249,11 @@ Root schema document
 
 SecurityClassification element in Data Model Layer
 
-
 ### UIComponent
 
 **ID**: `data-model.uicomponent`
 
 UIComponent element in Data Model Layer
-
 
 ### string
 
@@ -268,13 +261,11 @@ UIComponent element in Data Model Layer
 
 string element in Data Model Layer
 
-
 ### DataClassificationLevel
 
 **ID**: `data-model.dataclassificationlevel`
 
 DataClassificationLevel element in Data Model Layer
-
 
 ### SchemaComposition
 
@@ -330,7 +321,6 @@ Core JSON data types
 
 ReferentialAction element in Data Model Layer
 
-
 ### StringSchema
 
 **ID**: `data-model.stringschema`
@@ -367,8 +357,6 @@ Links schema to data quality metrics in APM/Observability Layer
 **ID**: `data-model.stringformat`
 
 StringFormat element in Data Model Layer
-
-
 
 ## References
 
