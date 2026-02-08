@@ -160,13 +160,11 @@ export class ModelMigrationService {
       result.duration = Date.now() - startTime;
 
       // Attempt rollback on error
-      let rollbackFailed = false;
       if (this.backupDir) {
         try {
           await this.rollback(this.backupDir, options.targetDir);
           console.log(`✓ Rolled back to backup: ${this.backupDir}`);
         } catch (rollbackError) {
-          rollbackFailed = true;
           const rollbackMessage = rollbackError instanceof Error
             ? rollbackError.message
             : String(rollbackError);
