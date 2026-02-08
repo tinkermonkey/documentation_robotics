@@ -104,11 +104,12 @@ export async function docsValidateCommand(options: ValidateOptions): Promise<voi
   await ensureDir(tempDir);
 
   try {
-    // Generate documentation to temp directory
-    const command = `bun run scripts/generate-layer-docs.ts --output ${tempDir}`;
-
+    // Generate documentation to temp directory using safe argument passing
     try {
-      execSync(command, { cwd: projectRoot, stdio: "pipe" });
+      execFileSync("bun", ["run", "scripts/generate-layer-docs.ts", "--output", tempDir], {
+        cwd: projectRoot,
+        stdio: "pipe",
+      });
     } catch (error) {
       const stderr = (error as any).stderr?.toString() || (error as Error).message || String(error);
       throw new Error(`Failed to generate documentation for validation: ${stderr}`);

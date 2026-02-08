@@ -70,8 +70,14 @@ export async function installSpecReference(
       await fs.access(join(path, "01-motivation-layer.schema.json"));
       schemaSourceDir = path;
       schemaSourcePath = description;
+      console.debug(`Using bundled schemas from: ${description} (${path})`);
       break;
-    } catch {
+    } catch (error) {
+      // Only continue on file not found (ENOENT); re-throw other errors (EACCES, etc)
+      const err = error as NodeJS.ErrnoException;
+      if (err.code !== "ENOENT") {
+        throw error;
+      }
       // Continue to next path
     }
   }

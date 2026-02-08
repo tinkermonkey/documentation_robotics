@@ -87,7 +87,7 @@ constructor(options?: Neo4jMigrationOptions)
 interface Neo4jMigrationOptions {
   uri?: string; // Default: 'bolt://localhost:7687'
   username?: string; // Default: 'neo4j'
-  password?: string; // Default: 'password'
+  password?: string; // Required - must be provided via environment variable or options
   database?: string; // Default: 'neo4j'
   boltPort?: number; // Default: 7687
   generateCypher?: boolean; // Default: true
@@ -387,7 +387,7 @@ const apiNode: GraphNode = {
 
 **Related Types:**
 
-- **MigrationGraphNode**: Used internally during migration with additional fields (`labels`, `source`)
+- **MigrationGraphNode**: Used internally during migration with additional fields (`labels: string[]`)
 - **GraphEdge**: Represents relationships between nodes
 
 ### GraphEdge Interface
@@ -396,9 +396,10 @@ const apiNode: GraphNode = {
 interface GraphEdge {
   id: string; // Unique identifier
   source: string; // Source node ID
-  target: string; // Target node ID
-  relationship: string; // Relationship type
+  destination: string; // Destination node ID
+  predicate: string; // Relationship semantic predicate
   properties?: Record<string, unknown>; // Optional edge properties
+  category?: "structural" | "behavioral"; // Optional edge category
 }
 ```
 
@@ -408,8 +409,9 @@ interface GraphEdge {
 const edge: GraphEdge = {
   id: "edge_1",
   source: "api.endpoint.create-order",
-  target: "business.service.order-management",
-  relationship: "IMPLEMENTS",
+  destination: "business.service.order-management",
+  predicate: "implements",
+  category: "structural",
   properties: {
     strength: "strong",
     latency: "synchronous",
