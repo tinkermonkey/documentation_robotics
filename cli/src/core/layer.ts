@@ -19,8 +19,8 @@ export class Layer {
 
     // Add elements from constructor to the graph
     for (const element of elements) {
-      const node = GraphModel.fromElement(element);
-      this.graph.addNode(node);
+      // Use addElement to properly convert references/relationships to edges
+      this.addElement(element);
     }
   }
 
@@ -40,6 +40,8 @@ export class Layer {
         description: node.description,
         properties: node.properties,
         layer: node.layer,
+        references: (node.properties['__references__'] ?? []) as any,
+        relationships: (node.properties['__relationships__'] ?? []) as any,
       });
       result.set(node.id, element);
     }
@@ -54,6 +56,15 @@ export class Layer {
     // Ensure element has the correct layer
     element.layer = this.name;
     const node = GraphModel.fromElement(element);
+
+    // Store references and relationships as node properties for preservation
+    if (element.references && element.references.length > 0) {
+      node.properties['__references__'] = element.references;
+    }
+    if (element.relationships && element.relationships.length > 0) {
+      node.properties['__relationships__'] = element.relationships;
+    }
+
     this.graph.addNode(node);
     this.dirty = true;
   }
@@ -74,6 +85,8 @@ export class Layer {
       description: node.description,
       properties: node.properties,
       layer: node.layer,
+      references: (node.properties['__references__'] ?? []) as any,
+      relationships: (node.properties['__relationships__'] ?? []) as any,
     });
   }
 
@@ -120,16 +133,17 @@ export class Layer {
    */
   listElements(): Element[] {
     const nodes = this.graph.getNodesByLayer(this.name);
-    return nodes.map(
-      (node) =>
-        new Element({
-          id: node.id,
-          type: node.type,
-          name: node.name,
-          description: node.description,
-          properties: node.properties,
-          layer: node.layer,
-        })
+    return nodes.map((node) =>
+      new Element({
+        id: node.id,
+        type: node.type,
+        name: node.name,
+        description: node.description,
+        properties: node.properties,
+        layer: node.layer,
+        references: (node.properties['__references__'] ?? []) as any,
+        relationships: (node.properties['__relationships__'] ?? []) as any,
+      })
     );
   }
 

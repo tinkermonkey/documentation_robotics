@@ -8,6 +8,7 @@ import { Manifest } from '../../src/core/manifest.js';
 import { NamingValidator } from '../../src/validators/naming-validator.js';
 import { SchemaValidator } from '../../src/validators/schema-validator.js';
 import { Layer } from '../../src/core/layer.js';
+import { Element } from '../../src/core/element.js';
 
 describe('Layer 8 naming validation', () => {
   it('rejects manifest with legacy datastore key', async () => {
@@ -61,12 +62,13 @@ describe('Layer 8 naming validation', () => {
     const correctLayer = new Layer('data-store');
 
     // Add an element with a WRONG layer prefix (motivation instead of data-store)
-    correctLayer.addElement({
+    const element = new Element({
       id: 'motivation.goal.test-goal',  // Wrong layer prefix for data-store layer
       type: 'goal',
       name: 'test-goal',
       description: 'Test element with mismatched layer prefix'
     });
+    correctLayer.addElement(element);
 
     // Validate the layer with mismatched prefix
     const result = validator.validateLayer(correctLayer);
@@ -84,12 +86,13 @@ describe('Layer 8 naming validation', () => {
     const canonicalLayer = new Layer('data-store');
 
     // Add an element with the canonical layer name
-    canonicalLayer.addElement({
+    const element = new Element({
       id: 'data-store.table.users',
       type: 'table',
       name: 'users',
       description: 'Test element with canonical data-store prefix'
     });
+    canonicalLayer.addElement(element);
 
     // Validate the layer with canonical naming
     const result = validator.validateLayer(canonicalLayer);
