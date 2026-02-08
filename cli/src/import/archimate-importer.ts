@@ -1,5 +1,6 @@
 import type { Model } from "../core/model.js";
 import type { Importer, ImportOptions, ImportResult } from "./types.js";
+import type { Span } from "@opentelemetry/api";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
@@ -11,7 +12,7 @@ export class ArchiMateImporter implements Importer {
   supportedFormats = ["xml"];
 
   async import(data: string, model: Model, _options: ImportOptions = {}): Promise<ImportResult> {
-    const span = isTelemetryEnabled ? startSpan('import.format.archimate') : null;
+    const span: Span | null = isTelemetryEnabled ? startSpan('import.format.archimate') : null;
     const result: ImportResult = {
       success: false,
       nodesAdded: 0,
@@ -21,7 +22,7 @@ export class ArchiMateImporter implements Importer {
     };
 
     try {
-      // Parse XML
+      // Parse XML using Bun's global DOMParser
       const parser = new DOMParser();
       const xmlDoc = parser.parseFromString(data, "application/xml");
 
@@ -153,10 +154,10 @@ export class ArchiMateImporter implements Importer {
       result.success = result.errorsCount === 0;
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('import.nodesAdded', result.nodesAdded);
-        (span as any).setAttribute('import.edgesAdded', result.edgesAdded);
-        (span as any).setAttribute('import.errors', result.errorsCount);
-        (span as any).setStatus({ code: result.success ? 0 : 1 });
+        span.setAttribute('import.nodesAdded', result.nodesAdded);
+        span.setAttribute('import.edgesAdded', result.edgesAdded);
+        span.setAttribute('import.errors', result.errorsCount);
+        span.setStatus({ code: result.success ? 0 : 1 });
       }
 
       return result;
@@ -167,8 +168,8 @@ export class ArchiMateImporter implements Importer {
       result.errorsCount++;
 
       if (isTelemetryEnabled && span) {
-        (span as any).recordException(error as Error);
-        (span as any).setStatus({ code: 2, message: String(error) });
+        span.recordException(error as Error);
+        span.setStatus({ code: 2, message: String(error) });
       }
 
       return result;

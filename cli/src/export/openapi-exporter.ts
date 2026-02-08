@@ -1,6 +1,5 @@
 import type { Model } from "../core/model.js";
 import type { Exporter, ExportOptions } from "./types.js";
-import type { Element } from "../core/element.js";
 import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
@@ -72,9 +71,17 @@ interface OpenAPISpec {
  * Endpoint mapping entry
  * Groups endpoints by path and method for processing
  */
+interface EndpointData {
+  name: string;
+  id: string;
+  description?: string;
+  getProperty: (key: string) => unknown;
+  getSourceReference: () => unknown;
+}
+
 interface EndpointMapping {
   method: string;
-  element: Element;
+  element: EndpointData;
 }
 
 /**
