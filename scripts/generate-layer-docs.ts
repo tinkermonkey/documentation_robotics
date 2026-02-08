@@ -102,16 +102,11 @@ async function loadNodes(baseDir: string): Promise<SpecNode[]> {
  * Generate markdown for a layer's header section
  */
 function generateHeader(layer: SpecLayer): string {
-  const lines: string[] = [
-    `# Layer ${layer.number}: ${layer.name}`,
-    "",
-    layer.description,
-  ];
+  const lines: string[] = [`# Layer ${layer.number}: ${layer.name}`, ""];
 
   if (layer.inspired_by) {
-    lines.push("");
     lines.push(
-      `**Standard**: [${layer.inspired_by.standard} ${layer.inspired_by.version}](${layer.inspired_by.url})`
+      `**Standard**: [${layer.inspired_by.standard}](${layer.inspired_by.url})`
     );
   }
 
@@ -127,8 +122,13 @@ function generateHeader(layer: SpecLayer): string {
 function generateOverview(layer: SpecLayer, nodeTypes: SpecNode[]): string {
   const lines: string[] = ["## Overview", ""];
 
-  lines.push(layer.description);
-  lines.push("");
+  // Only include description if it's not just repeating the layer name
+  const layerNamePattern = `Layer ${layer.number}:`;
+  if (!layer.description.includes(layerNamePattern)) {
+    lines.push(layer.description);
+    lines.push("");
+  }
+
   lines.push(
     `This layer defines **${nodeTypes.length}** node types that represent various aspects of the architecture.`
   );
@@ -201,7 +201,7 @@ function generateReferencesSection(layer: SpecLayer): string {
 
   return (
     `## References\n\n` +
-    `- [${layer.inspired_by.standard} ${layer.inspired_by.version}](${layer.inspired_by.url})\n`
+    `- [${layer.inspired_by.standard}](${layer.inspired_by.url})\n`
   );
 }
 

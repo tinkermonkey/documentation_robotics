@@ -4,7 +4,7 @@
 
 Documentation Robotics implements a **schema-driven documentation generation model** where JSON schema definitions are the authoritative source of truth, and markdown documentation is automatically generated for human readability.
 
-This approach, implemented in Phase 6, inverts the previous model where markdown files were the source of truth.
+This approach inverts the previous model where markdown files were the source of truth.
 
 ## The Old Model (Before Phase 6)
 
@@ -26,7 +26,7 @@ Dual maintenance burden
 - Schema generation overwrote manual enhancements
 - CI validation was difficult
 
-## The New Model (Phase 6+)
+## The New Model (Schema-Driven)
 
 ```
 Specification Instances (Source)

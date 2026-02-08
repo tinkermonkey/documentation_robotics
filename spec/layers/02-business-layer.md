@@ -1,14 +1,10 @@
 # Layer 2: Business Layer
 
-Layer 2: Business Layer
-
-**Standard**: [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+**Standard**: [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
 
 ---
 
 ## Overview
-
-Layer 2: Business Layer
 
 This layer defines **15** node types that represent various aspects of the architecture.
 
@@ -207,4 +203,4 @@ Collection of business behavior based on criteria
 
 ## References
 
-- [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+- [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)

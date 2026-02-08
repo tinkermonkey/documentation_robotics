@@ -118,7 +118,7 @@ export async function docsValidateCommand(
       const existingPath = path.join(layersDir, file);
       const generatedPath = path.join(tempDir, file);
 
-      if (!fileExists(existingPath)) {
+      if (!(await fileExists(existingPath))) {
         discrepancies.push(`❌ Missing file: ${file}`);
         hasDiscrepancies = true;
         continue;

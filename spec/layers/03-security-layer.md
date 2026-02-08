@@ -1,14 +1,10 @@
 # Layer 3: Security Layer
 
-Layer 3: Security Layer
-
-**Standard**: [NIST SP 800-53 5.1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf)
+**Standard**: [NIST SP 800-53](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf)
 
 ---
 
 ## Overview
-
-Layer 3: Security Layer
 
 This layer defines **66** node types that represent various aspects of the architecture.
 
@@ -812,4 +808,4 @@ Criticality element in Security Layer
 
 ## References
 
-- [NIST SP 800-53 5.1](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf)
+- [NIST SP 800-53](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-53r5.pdf)

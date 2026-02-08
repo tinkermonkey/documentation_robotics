@@ -1,14 +1,10 @@
 # Layer 1: Motivation Layer
 
-Layer 1: Motivation Layer
-
-**Standard**: [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+**Standard**: [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
 
 ---
 
 ## Overview
-
-Layer 1: Motivation Layer
 
 This layer defines **19** node types that represent various aspects of the architecture.
 
@@ -222,4 +218,4 @@ Individual, team, or organization with interest in the outcome
 
 ## References
 
-- [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+- [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)

@@ -1,14 +1,10 @@
 # Layer 5: Technology Layer
 
-Layer 5: Technology Layer
-
-**Standard**: [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+**Standard**: [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
 
 ---
 
 ## Overview
-
-Layer 5: Technology Layer
 
 This layer defines **22** node types that represent various aspects of the architecture.
 
@@ -279,4 +275,4 @@ ArtifactType element in Technology Layer
 
 ## References
 
-- [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+- [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)

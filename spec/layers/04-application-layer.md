@@ -1,14 +1,10 @@
 # Layer 4: Application Layer
 
-Layer 4: Application Layer
-
-**Standard**: [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+**Standard**: [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
 
 ---
 
 ## Overview
-
-Layer 4: Application Layer
 
 This layer defines **14** node types that represent various aspects of the architecture.
 
@@ -183,4 +179,4 @@ ServiceType element in Application Layer
 
 ## References
 
-- [ArchiMate 3.2 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)
+- [ArchiMate 3.2](https://pubs.opengroup.org/architecture/archimate32-doc/)

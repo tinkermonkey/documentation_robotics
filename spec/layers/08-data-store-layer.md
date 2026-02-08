@@ -1,14 +1,10 @@
 # Layer 8: Data Store Layer
 
-Layer 8: Data Store Layer
-
-**Standard**: [SQL 2016 2016](https://en.wikipedia.org/wiki/SQL:2016)
+**Standard**: [SQL 2016](https://en.wikipedia.org/wiki/SQL:2016)
 
 ---
 
 ## Overview
-
-Layer 8: Data Store Layer
 
 This layer defines **26** node types that represent various aspects of the architecture.
 
@@ -307,4 +303,4 @@ Table constraint
 
 ## References
 
-- [SQL 2016 2016](https://en.wikipedia.org/wiki/SQL:2016)
+- [SQL 2016](https://en.wikipedia.org/wiki/SQL:2016)

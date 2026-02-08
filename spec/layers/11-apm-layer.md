@@ -1,14 +1,10 @@
 # Layer 11: APM Observability Layer
 
-Layer 11: APM Observability Layer
-
-**Standard**: [OpenTelemetry 1.0](https://opentelemetry.io/)
+**Standard**: [OpenTelemetry](https://opentelemetry.io/)
 
 ---
 
 ## Overview
-
-Layer 11: APM Observability Layer
 
 This layer defines **35** node types that represent various aspects of the architecture.
 
@@ -424,4 +420,4 @@ StatusCode element in APM Observability Layer
 
 ## References
 
-- [OpenTelemetry 1.0](https://opentelemetry.io/)
+- [OpenTelemetry](https://opentelemetry.io/)

@@ -1,14 +1,10 @@
 # Layer 9: UX Layer
 
-Layer 9: UX Layer
-
-**Standard**: [HTML 5.3 5.3](https://html.spec.whatwg.org/)
+**Standard**: [HTML 5.3](https://html.spec.whatwg.org/)
 
 ---
 
 ## Overview
-
-Layer 9: UX Layer
 
 This layer defines **53** node types that represent various aspects of the architecture.
 
@@ -618,4 +614,4 @@ Transition from current state to another state
 
 ## References
 
-- [HTML 5.3 5.3](https://html.spec.whatwg.org/)
+- [HTML 5.3](https://html.spec.whatwg.org/)

@@ -1,14 +1,10 @@
 # Layer 6: API Layer
 
-Layer 6: API Layer
-
-**Standard**: [OpenAPI 3.0 3.0](https://spec.openapis.org/oas/v3.0.0)
+**Standard**: [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0)
 
 ---
 
 ## Overview
-
-Layer 6: API Layer
 
 This layer defines **29** node types that represent various aspects of the architecture.
 
@@ -435,4 +431,4 @@ Data type definition (JSON Schema subset)
 
 ## References
 
-- [OpenAPI 3.0 3.0](https://spec.openapis.org/oas/v3.0.0)
+- [OpenAPI 3.0](https://spec.openapis.org/oas/v3.0.0)

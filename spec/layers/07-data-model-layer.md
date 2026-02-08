@@ -1,14 +1,10 @@
 # Layer 7: Data Model Layer
 
-Layer 7: Data Model Layer
-
-**Standard**: [JSON Schema Draft 7 Draft 7](https://json-schema.org/draft-07/)
+**Standard**: [JSON Schema Draft 7](https://json-schema.org/draft-07/)
 
 ---
 
 ## Overview
-
-Layer 7: Data Model Layer
 
 This layer defines **30** node types that represent various aspects of the architecture.
 
@@ -376,4 +372,4 @@ StringFormat element in Data Model Layer
 
 ## References
 
-- [JSON Schema Draft 7 Draft 7](https://json-schema.org/draft-07/)
+- [JSON Schema Draft 7](https://json-schema.org/draft-07/)

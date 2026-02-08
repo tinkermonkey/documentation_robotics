@@ -1,14 +1,10 @@
 # Layer 12: Testing Layer
 
-Layer 12: Testing Layer
-
-**Standard**: [IEEE 829-2008 2008](https://en.wikipedia.org/wiki/IEEE_829)
+**Standard**: [IEEE 829-2008](https://en.wikipedia.org/wiki/IEEE_829)
 
 ---
 
 ## Overview
-
-Layer 12: Testing Layer
 
 This layer defines **29** node types that represent various aspects of the architecture.
 
@@ -385,4 +381,4 @@ ContextType element in Testing Layer
 
 ## References
 
-- [IEEE 829-2008 2008](https://en.wikipedia.org/wiki/IEEE_829)
+- [IEEE 829-2008](https://en.wikipedia.org/wiki/IEEE_829)

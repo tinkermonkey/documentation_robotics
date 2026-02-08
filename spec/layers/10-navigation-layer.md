@@ -1,14 +1,10 @@
 # Layer 10: Navigation Layer
 
-Layer 10: Navigation Layer
-
-**Standard**: [SPA Navigation Patterns 1.0](https://www.w3.org/TR/navigation-timing-2/)
+**Standard**: [SPA Navigation Patterns](https://www.w3.org/TR/navigation-timing-2/)
 
 ---
 
 ## Overview
-
-Layer 10: Navigation Layer
 
 This layer defines **26** node types that represent various aspects of the architecture.
 
@@ -330,4 +326,4 @@ Maps data between flow context and experience (Gap #2: Data handoff)
 
 ## References
 
-- [SPA Navigation Patterns 1.0](https://www.w3.org/TR/navigation-timing-2/)
+- [SPA Navigation Patterns](https://www.w3.org/TR/navigation-timing-2/)
