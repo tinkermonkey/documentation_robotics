@@ -499,7 +499,7 @@ async function main() {
       specNodeRelationships: {
         valid: true,
         errors: [],
-        instanceCount: 0, // Deferred to Phase 3: Relationship Validation & Cardinality Enforcement
+        instanceCount: 0, // Relationship validation deferred to future implementation
       },
       predicateCatalog: {
         valid: predicatesResult.valid,
