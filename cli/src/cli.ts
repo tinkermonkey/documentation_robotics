@@ -25,6 +25,7 @@ import { catalogCommands } from './commands/catalog.js';
 import { traceCommand } from './commands/trace.js';
 import { projectCommand, projectAllCommand } from './commands/project.js';
 import { exportCommand } from './commands/export.js';
+import { importCommand } from './commands/import.js';
 import { graphMigrateCommand } from './commands/graph-migrate.js';
 import { modelMigrateCommand, migrateRollbackCommand } from './commands/model-migrate.js';
 import { chatCommand } from './commands/chat.js';
@@ -338,6 +339,37 @@ Examples:
       layers: options.layers,
       model: options.model,
       includeSources: options.includeSources,
+    });
+  });
+
+program
+  .command('import <format>')
+  .description('Import architecture model from various formats')
+  .option('--input <path>', 'Input file path (required)', undefined)
+  .option('--model <path>', 'Path to model root directory or manifest.yaml file')
+  .option('--merge-strategy <strategy>', 'How to handle existing elements: add, update, skip (default: add)')
+  .addHelpText(
+    'after',
+    `
+Supported formats:
+  archimate    Import from ArchiMate XML (layers 1, 2, 4, 5)
+  openapi      Import from OpenAPI 3.0 specification (layer 6)
+
+Examples:
+  $ dr import archimate --input model.xml
+  $ dr import openapi --input api.json --merge-strategy add
+  $ dr import archimate --input model.xml --model ./myproject`
+  )
+  .action(async (format, options) => {
+    if (!options.input) {
+      console.error('Error: --input path is required');
+      process.exit(1);
+    }
+    await importCommand({
+      format,
+      input: options.input,
+      model: options.model,
+      mergeStrategy: options.mergeStrategy as 'add' | 'update' | 'skip' | undefined,
     });
   });
 

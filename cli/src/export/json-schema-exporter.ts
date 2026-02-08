@@ -13,8 +13,9 @@ export class JsonSchemaExporter implements Exporter {
     const span = isTelemetryEnabled ? startSpan('export.format.json-schema') : null;
 
     try {
-      const layer = await model.getLayer("data-model");
-      if (!layer) {
+      // Query graph model for data-model layer nodes
+      const nodes = model.graph.getNodesByLayer("data-model");
+      if (nodes.length === 0) {
         throw new Error("No Data Model layer found in model");
       }
 
@@ -28,15 +29,13 @@ export class JsonSchemaExporter implements Exporter {
       definitions: {},
     };
 
-    // Process each entity in the data model layer
-    for (const element of layer.listElements()) {
-      if (element.type === "entity") {
-        const entityName = element.name;
-        const properties = element.getProperty<Record<string, unknown>>(
-          "properties"
-        );
-        const required = element.getProperty<string[]>("required");
-        const description = element.description;
+    // Process each entity node in the data model layer
+    for (const node of nodes) {
+      if (node.type === "entity") {
+        const entityName = node.name;
+        const properties = node.properties.properties as Record<string, unknown>;
+        const required = node.properties.required as string[];
+        const description = node.description;
 
         const entitySchema: Record<string, unknown> = {
           title: entityName,
@@ -47,57 +46,42 @@ export class JsonSchemaExporter implements Exporter {
         };
 
         // Add additional metadata
-        const additionalProperties = element.getProperty<boolean>(
-          "additionalProperties"
-        );
+        const additionalProperties = node.properties.additionalProperties as boolean;
         if (additionalProperties !== undefined) {
           entitySchema.additionalProperties = additionalProperties;
         }
 
         // Add constraints if present
-        const constraints = element.getProperty<Record<string, unknown>>(
-          "constraints"
-        );
+        const constraints = node.properties.constraints as Record<string, unknown>;
         if (constraints) {
           Object.assign(entitySchema, constraints);
         }
 
         // Add source reference if present
-        const sourceRef = element.getSourceReference();
+        const sourceRef = node.properties['source-reference'];
         if (sourceRef) {
           entitySchema['x-source-reference'] = sourceRef;
         }
 
-        (rootSchema.definitions as Record<string, unknown>)[element.id] = entitySchema;
+        (rootSchema.definitions as Record<string, unknown>)[node.id] = entitySchema;
       }
     }
 
-    // Add relationships as references between entities
+    // Add relationships as references between entities - query graph edges
     const relationships: Record<string, unknown> = {};
-    for (const element of layer.listElements()) {
-      if (element.type === "entity") {
-        for (const ref of element.references) {
-          // Cross-layer reference - document it
-          const refKey = `${element.id}-references`;
-          if (!relationships[refKey]) {
-            relationships[refKey] = [];
-          }
-          (relationships[refKey] as Array<{ target: string; type: string }>).push({
-            target: ref.target,
-            type: ref.type,
-          });
-        }
+    const edges = model.graph.getAllEdges();
+    const nodeIds = new Set(nodes.map(n => n.id));
 
-        for (const rel of element.relationships) {
-          // Intra-layer relationship
-          const relKey = `${element.id}-${rel.predicate}`;
-          if (!relationships[relKey]) {
-            relationships[relKey] = [];
-          }
-          (relationships[relKey] as Array<{ target: string }>).push({
-            target: rel.target,
-          });
+    for (const edge of edges) {
+      // Only include edges where source is an entity in the data-model layer
+      if (nodeIds.has(edge.source) && nodeIds.has(edge.destination)) {
+        const relKey = `${edge.source}-${edge.predicate}`;
+        if (!relationships[relKey]) {
+          relationships[relKey] = [];
         }
+        (relationships[relKey] as Array<{ target: string }>).push({
+          target: edge.destination,
+        });
       }
     }
 
@@ -106,14 +90,13 @@ export class JsonSchemaExporter implements Exporter {
     }
 
     // Add metadata section
+    const entityCount = nodes.filter((n) => n.type === "entity").length;
     const metadata: Record<string, unknown> = {
       version: model.manifest.version || "1.0.0",
       ...(model.manifest.author && { author: model.manifest.author }),
       ...(model.manifest.created && { created: model.manifest.created }),
       ...(model.manifest.modified && { modified: model.manifest.modified }),
-      entityCount: Array.from(layer.listElements()).filter(
-        (e) => e.type === "entity"
-      ).length,
+      entityCount,
     };
     rootSchema.metadata = metadata;
 

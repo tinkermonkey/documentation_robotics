@@ -6,13 +6,13 @@ import { isTelemetryEnabled, startSpan, endSpan } from "../telemetry/index.js";
 
 /**
  * PlantUML element entry for diagram generation
- * Contains element metadata and reference for rendering
+ * Contains element metadata for rendering from graph nodes
  */
 interface PlantUMLElementEntry {
   id: string;
   name: string;
   type: string;
-  element: Element;
+  description?: string;
 }
 
 /**
@@ -46,19 +46,22 @@ export class PlantUMLExporter implements Exporter {
 
     const layersToExport = options.layers || this.supportedLayers;
     const elementsByLayer = new Map<string, PlantUMLElementEntry[]>();
+    const nodesByLayer = new Map<string, any[]>();
 
-    // Collect elements by layer
+    // Collect nodes by layer from graph model
     for (const layerName of layersToExport) {
-      const layer = await model.getLayer(layerName);
-      if (!layer) continue;
+      const nodes = model.graph.getNodesByLayer(layerName);
+      if (nodes.length === 0) continue;
 
       const layerElements: PlantUMLElementEntry[] = [];
-      for (const element of layer.listElements()) {
+      nodesByLayer.set(layerName, nodes);
+
+      for (const node of nodes) {
         layerElements.push({
-          id: element.id,
-          name: element.name,
-          type: element.type,
-          element: element,
+          id: node.id,
+          name: node.name,
+          type: node.type,
+          description: node.description,
         });
       }
       elementsByLayer.set(layerName, layerElements);
@@ -72,21 +75,14 @@ export class PlantUMLExporter implements Exporter {
       const color = LAYER_COLORS[layerName] || "FFFFFF";
       lines.push(`package "${layerName}" #${color} {`);
 
-      for (const { id, name, element } of elements) {
+      for (const { id, name, description } of elements) {
         lines.push(`  component "${this.escapeQuotes(name)}" as ${id}`);
 
         // Add source reference as note if includeSources option is enabled
-        if (options.includeSources) {
-          const sourceRef = element.getSourceReference();
-          if (sourceRef && sourceRef.locations.length > 0) {
-            const loc = sourceRef.locations[0];
-            lines.push(`  note right of ${id}`);
-            lines.push(`    Source: ${this.escapeQuotes(loc.file)}`);
-            if (loc.symbol) {
-              lines.push(`    Symbol: ${this.escapeQuotes(loc.symbol)}`);
-            }
-            lines.push(`  end note`);
-          }
+        if (options.includeSources && description) {
+          lines.push(`  note right of ${id}`);
+          lines.push(`    ${this.escapeQuotes(description)}`);
+          lines.push(`  end note`);
         }
       }
 
@@ -94,27 +90,22 @@ export class PlantUMLExporter implements Exporter {
       lines.push("");
     }
 
-    // Add relationships
-    for (const layerName of layersToExport) {
-      const layer = await model.getLayer(layerName);
-      if (!layer) continue;
+    // Add relationships from graph edges
+    const edges = model.graph.getAllEdges();
+    const exportedNodeIds = new Set<string>();
+    for (const elements of elementsByLayer.values()) {
+      for (const elem of elements) {
+        exportedNodeIds.add(elem.id);
+      }
+    }
 
-      for (const element of layer.listElements()) {
-        // Cross-layer references
-        for (const ref of element.references) {
-          const refType = ref.type || "references";
-          lines.push(
-            `${element.id} --> ${ref.target} : ${this.escapeQuotes(refType)}`
-          );
-        }
-
-        // Intra-layer relationships
-        for (const rel of element.relationships) {
-          const predicate = rel.predicate || "relates-to";
-          lines.push(
-            `${element.id} ..> ${rel.target} : ${this.escapeQuotes(predicate)}`
-          );
-        }
+    for (const edge of edges) {
+      // Only include edges between exported nodes
+      if (exportedNodeIds.has(edge.source) && exportedNodeIds.has(edge.destination)) {
+        const arrow = this.getArrowType(edge.predicate);
+        lines.push(
+          `${edge.source} ${arrow} ${edge.destination} : ${this.escapeQuotes(edge.predicate)}`
+        );
       }
     }
 
@@ -124,22 +115,22 @@ export class PlantUMLExporter implements Exporter {
       const result = lines.join("\n") + "\n";
 
       if (isTelemetryEnabled && span) {
-        // Count total elements, references, and relationships
+        // Count total elements and relationships
         let totalElements = 0;
-        let totalReferences = 0;
-        let totalRelationships = 0;
+        let totalEdges = 0;
 
         for (const elements of elementsByLayer.values()) {
           totalElements += elements.length;
-          for (const { element } of elements) {
-            totalReferences += element.references.length;
-            totalRelationships += element.relationships.length;
+        }
+
+        for (const edge of edges) {
+          if (exportedNodeIds.has(edge.source) && exportedNodeIds.has(edge.destination)) {
+            totalEdges++;
           }
         }
 
         (span as any).setAttribute('export.elementCount', totalElements);
-        (span as any).setAttribute('export.referenceCount', totalReferences);
-        (span as any).setAttribute('export.relationshipCount', totalRelationships);
+        (span as any).setAttribute('export.relationshipCount', totalEdges);
         (span as any).setAttribute('export.size', result.length);
         (span as any).setStatus({ code: 0 });
       }
@@ -154,6 +145,21 @@ export class PlantUMLExporter implements Exporter {
     } finally {
       endSpan(span);
     }
+  }
+
+  /**
+   * Get PlantUML arrow type based on predicate
+   */
+  private getArrowType(predicate: string): string {
+    const arrowMap: Record<string, string> = {
+      'composes': '*--',
+      'aggregates': 'o--',
+      'supports': '-->',
+      'realizes': '..|>',
+      'flows-to': '-->',
+      'refers-to': '..>',
+    };
+    return arrowMap[predicate] || '-->';
   }
 
   /**

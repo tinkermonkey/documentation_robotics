@@ -42,68 +42,45 @@ export class ArchiMateExporter implements Exporter {
         );
       }
 
-      // Export elements
+      // Export elements - query graph model directly
       lines.push("  <elements>");
 
       const layersToExport = options.layers || this.supportedLayers;
-      const elements: Array<{ layer: string; element: any }> = [];
+      const nodesByLayer: Array<{ layer: string; node: any }> = [];
 
+      // Query graph model for nodes in supported layers
       for (const layerName of layersToExport) {
         if (!this.supportedLayers.includes(layerName)) continue;
 
-        const layer = await model.getLayer(layerName);
-        if (!layer) continue;
-
-        for (const element of layer.listElements()) {
-          elements.push({ layer: layerName, element });
+        const nodes = model.graph.getNodesByLayer(layerName);
+        for (const node of nodes) {
+          nodesByLayer.push({ layer: layerName, node });
         }
       }
 
       if (isTelemetryEnabled && span) {
-        (span as any).setAttribute('export.elementCount', elements.length);
+        (span as any).setAttribute('export.elementCount', nodesByLayer.length);
       }
 
-      for (const { layer, element } of elements) {
-        const archiType = this.mapToArchiMateType(element.type, layer);
-        lines.push(`    <element identifier="${element.id}" xsi:type="${archiType}">`);
-        lines.push(`      <name>${escapeXml(element.name)}</name>`);
+      for (const { layer, node } of nodesByLayer) {
+        const archiType = this.mapToArchiMateType(node.type, layer);
+        lines.push(`    <element identifier="${node.id}" xsi:type="${archiType}">`);
+        lines.push(`      <name>${escapeXml(node.name)}</name>`);
 
-        if (element.description) {
+        if (node.description) {
           lines.push(
-            `      <documentation>${escapeXml(element.description)}</documentation>`
+            `      <documentation>${escapeXml(node.description)}</documentation>`
           );
         }
 
         // Add properties section
         lines.push("      <properties>");
 
-        // Add source reference as properties if present
-        const sourceRef = element.getSourceReference();
-        if (sourceRef) {
-          lines.push(`        <property key="source.provenance" value="${escapeXml(sourceRef.provenance)}" />`);
-
-          sourceRef.locations.forEach((loc: SourceLocation, idx: number) => {
-            lines.push(`        <property key="source.file.${idx}" value="${escapeXml(loc.file)}" />`);
-            if (loc.symbol) {
-              lines.push(`        <property key="source.symbol.${idx}" value="${escapeXml(loc.symbol)}" />`);
-            }
-          });
-
-          if (sourceRef.repository) {
-            if (sourceRef.repository.url) {
-              lines.push(`        <property key="source.repository.url" value="${escapeXml(sourceRef.repository.url)}" />`);
-            }
-            if (sourceRef.repository.commit) {
-              lines.push(`        <property key="source.repository.commit" value="${escapeXml(sourceRef.repository.commit)}" />`);
-            }
-          }
-        }
-
-        // Add other properties
-        const propKeys = Object.keys(element.properties);
+        // Add node properties
+        const propKeys = Object.keys(node.properties || {});
         if (propKeys.length > 0) {
           for (const key of propKeys) {
-            const val = element.properties[key];
+            const val = node.properties[key];
             const strValue = this.valueToString(val);
             lines.push(`        <property key="${escapeXml(key)}" value="${escapeXml(strValue)}" />`);
           }
@@ -115,39 +92,27 @@ export class ArchiMateExporter implements Exporter {
 
       lines.push("  </elements>");
 
-      // Export relationships and references
+      // Export relationships - query graph model edges
       lines.push("  <relationships>");
 
       let relationshipCount = 0;
-      for (const { element } of elements) {
-        // Handle cross-layer references
-        for (const ref of element.references) {
-          lines.push(
-            `    <relationship identifier="${this.escapeId(element.id)}-ref-${this.escapeId(ref.target)}" `
-          );
-          lines.push(`                  source="${element.id}" target="${ref.target}" `);
-          lines.push(`                  xsi:type="Association">`);
-          if (ref.description) {
-            lines.push(
-              `      <documentation>${escapeXml(ref.description)}</documentation>`
-            );
-          }
-          lines.push(`      <name>${ref.type}</name>`);
-          lines.push(`    </relationship>`);
-          relationshipCount++;
+      const nodeIds = new Set(nodesByLayer.map(n => n.node.id));
+      const edges = model.graph.getAllEdges();
+
+      // Filter edges to include only those between exported nodes
+      for (const edge of edges) {
+        if (!nodeIds.has(edge.source) || !nodeIds.has(edge.destination)) {
+          continue;
         }
 
-        // Handle intra-layer relationships
-        for (const rel of element.relationships) {
-          lines.push(
-            `    <relationship identifier="${this.escapeId(element.id)}-${this.escapeId(rel.predicate)}-${this.escapeId(rel.target)}" `
-          );
-          lines.push(`                  source="${element.id}" target="${rel.target}" `);
-          lines.push(`                  xsi:type="Association">`);
-          lines.push(`      <name>${rel.predicate}</name>`);
-          lines.push(`    </relationship>`);
-          relationshipCount++;
-        }
+        lines.push(
+          `    <relationship identifier="${this.escapeId(edge.id)}" `
+        );
+        lines.push(`                  source="${edge.source}" target="${edge.destination}" `);
+        lines.push(`                  xsi:type="Association">`);
+        lines.push(`      <name>${edge.predicate}</name>`);
+        lines.push(`    </relationship>`);
+        relationshipCount++;
       }
 
       lines.push("  </relationships>");
